@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Music Studio</title>
+<title>Kenny's Music Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -534,7 +534,7 @@ header{
 /* ═══ CONFIG ═══ */
 const KIE_BASE = 'https://api.kie.ai';
 const POLL_INTERVAL = 3000;
-const MAX_POLLS = 120;
+const MAX_POLLS = 360;
 
 const PRESETS = [
   '🌙 Lo-Fi 새벽', '🎵 K-Pop 발라드', '⚡ EDM 드롭',
@@ -737,21 +737,31 @@ async function pollResult(apiKey, taskId) {
     await sleep(POLL_INTERVAL);
     try {
       const data = await kieRequest(apiKey, 'GET', `/api/v1/generate/record-info?taskId=${taskId}`);
+      console.log("Polling Status:", data); // 디버깅용 로그
+
       const st = data?.data;
       if (!st) continue;
 
       const status = (st.status || '').toUpperCase();
-      const tracks = st.response?.sunoData || [];
+      // 데이터 구조가 st.response.sunoData인지, st.sunoData인지 확인이 필요합니다.
+      const tracks = st.response?.sunoData || st.sunoData || [];
 
       $('ld-sub').innerHTML = `상태: <b style="color:var(--acc)">${status || '처리 중'}</b><br>음악을 완성하고 있어요...`;
 
-      if (status === 'SUCCESS' && tracks.length) return tracks;
-      if (status === 'FAILED' || status === 'ERROR') throw new Error('생성 실패');
+      // SUCCESS 상태인데 tracks가 아직 비어있을 수 있으므로 둘 다 체크
+      if (status === 'SUCCESS' && tracks.length > 0) {
+        return tracks;
+      }
+      
+      if (status === 'FAILED' || status === 'ERROR') {
+        throw new Error('AI 생성 중 오류가 발생했습니다.');
+      }
     } catch(e) {
-      if (e.message === '생성 실패') throw e;
+      if (e.message.includes('오류')) throw e;
+      console.warn("Polling error:", e);
     }
   }
-  throw new Error('시간 초과 — 다시 시도해주세요');
+  throw new Error('시간 초과 — AI 서버 응답이 늦어지고 있습니다. 잠시 후 내역을 확인해주세요.');
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
