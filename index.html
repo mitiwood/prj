@@ -79,6 +79,30 @@ header{padding:28px 0 32px;display:flex;align-items:flex-end;justify-content:spa
 .lyrics-gen-btn:disabled{opacity:.4;cursor:not-allowed;}
 .lspin{width:10px;height:10px;border:1.5px solid rgba(0,229,160,.3);border-top-color:var(--grn);border-radius:50%;animation:gspin .7s linear infinite;display:none;}
 
+/* EMOTION PICKER */
+.emotion-row{margin-bottom:14px;}
+.emotion-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.etag{padding:6px 13px;border-radius:20px;border:1.5px solid var(--bdr);background:var(--s2);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;user-select:none;}
+.etag:hover{transform:scale(1.04);}
+.etag.on{box-shadow:0 0 0 2px currentColor inset;}
+.etag[data-e="기쁨"]{color:#FFD740;}.etag[data-e="기쁨"].on{background:rgba(255,215,64,.12);border-color:#FFD740;}
+.etag[data-e="슬픔"]{color:#448AFF;}.etag[data-e="슬픔"].on{background:rgba(68,138,255,.12);border-color:#448AFF;}
+.etag[data-e="분노"]{color:#FF5252;}.etag[data-e="분노"].on{background:rgba(255,82,82,.12);border-color:#FF5252;}
+.etag[data-e="설렘"]{color:#E040FB;}.etag[data-e="설렘"].on{background:rgba(224,64,251,.12);border-color:#E040FB;}
+.etag[data-e="그리움"]{color:#00BCD4;}.etag[data-e="그리움"].on{background:rgba(0,188,212,.12);border-color:#00BCD4;}
+.etag[data-e="외로움"]{color:#9C27B0;}.etag[data-e="외로움"].on{background:rgba(156,39,176,.12);border-color:#9C27B0;}
+.etag[data-e="희망"]{color:#00E5A0;}.etag[data-e="희망"].on{background:rgba(0,229,160,.12);border-color:#00E5A0;}
+.etag[data-e="불안"]{color:#FF9800;}.etag[data-e="불안"].on{background:rgba(255,152,0,.12);border-color:#FF9800;}
+.etag[data-e="평온"]{color:#8080AA;}.etag[data-e="평온"].on{background:rgba(128,128,170,.18);border-color:#8080AA;}
+.etag[data-e="열정"]{color:#FF4081;}.etag[data-e="열정"].on{background:rgba(255,64,129,.12);border-color:#FF4081;}
+
+/* VIDEO BTN */
+.video-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;background:rgba(255,215,64,.07);border:1px solid rgba(255,215,64,.25);font-size:11px;font-weight:700;color:var(--ylw);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;}
+.video-btn:hover{background:rgba(255,215,64,.13);border-color:var(--ylw);}
+.video-btn:disabled{opacity:.4;cursor:not-allowed;}
+.video-btn.making{background:rgba(255,215,64,.13);border-color:var(--ylw);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
 /* OPTIONS ROW */
 .options-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
 
@@ -196,6 +220,49 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
 .modal-btn:hover{opacity:.9;}
 .modal-btn:disabled{opacity:.35;cursor:not-allowed;}
 
+/* TITLE INPUT */
+.title-row{margin-bottom:14px;}
+.title-input{width:100%;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:10px 14px;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:var(--t1);outline:none;transition:border-color .2s,box-shadow .2s;letter-spacing:-.3px;}
+.title-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(224,64,251,.08);}
+.title-input::placeholder{color:var(--t3);font-weight:400;}
+
+/* RESULT TABS (가사/비디오) */
+.rc-tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--bdr);}
+.rctab{padding:8px 16px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;font-family:'Syne',sans-serif;}
+.rctab:hover{color:var(--t2);}
+.rctab.on{color:var(--acc);border-bottom-color:var(--acc);}
+.rc-tab-panel{display:none;}.rc-tab-panel.on{display:block;}
+
+/* LYRICS DISPLAY */
+.lyrics-display{background:var(--s2);border-radius:10px;padding:16px;max-height:260px;overflow-y:auto;}
+.lyrics-display::-webkit-scrollbar{width:4px;}
+.lyrics-display::-webkit-scrollbar-track{background:transparent;}
+.lyrics-display::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px;}
+.lyrics-text{font-size:13px;line-height:1.9;color:var(--t2);white-space:pre-wrap;font-family:'Syne',sans-serif;}
+.lyrics-text .lsec{color:var(--acc);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;display:block;margin-top:12px;margin-bottom:4px;}
+.lyrics-text .lsec:first-child{margin-top:0;}
+.lyrics-empty{font-size:12px;color:var(--t3);text-align:center;padding:20px 0;font-family:'JetBrains Mono',monospace;}
+
+/* DOWNLOAD BTNS */
+.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.dl-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .15s;font-family:'Syne',sans-serif;border:1px solid;}
+.dl-btn.audio{color:var(--grn);border-color:rgba(0,229,160,.3);background:rgba(0,229,160,.07);}
+.dl-btn.audio:hover{background:rgba(0,229,160,.14);border-color:var(--grn);}
+.dl-btn.video{color:var(--ylw);border-color:rgba(255,215,64,.3);background:rgba(255,215,64,.07);}
+.dl-btn.video:hover{background:rgba(255,215,64,.14);border-color:var(--ylw);}
+.dl-btn.copy{color:var(--blue);border-color:rgba(68,138,255,.3);background:rgba(68,138,255,.07);}
+.dl-btn.copy:hover{background:rgba(68,138,255,.14);border-color:var(--blue);}
+
+/* MUSIC VIDEO */
+.mv-card{background:var(--s2);border:1px solid rgba(255,215,64,.2);border-radius:10px;padding:14px 16px;margin-top:12px;}
+.mv-label{font-size:10px;font-weight:700;color:var(--ylw);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.mv-label::before{content:'🎬';}
+.mv-video{width:100%;border-radius:8px;background:#000;max-height:320px;display:block;}
+.mv-link{display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 14px;border-radius:20px;background:rgba(255,215,64,.08);border:1px solid rgba(255,215,64,.3);font-size:11px;font-weight:700;color:var(--ylw);cursor:pointer;text-decoration:none;width:fit-content;transition:all .15s;}
+.mv-link:hover{background:rgba(255,215,64,.14);}
+.mv-making{display:flex;align-items:center;gap:10px;padding:12px 0;font-size:12px;color:var(--t2);}
+.mv-making-spin{width:14px;height:14px;border:2px solid rgba(255,215,64,.2);border-top-color:var(--ylw);border-radius:50%;animation:gspin .8s linear infinite;flex-shrink:0;}
+
 /* DUAL LABEL */
 .dual-label{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .dual-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
@@ -311,6 +378,29 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
     <!-- 프리셋 태그 -->
     <div class="preset-row" id="preset-row"></div>
 
+    <!-- 감정 선택 -->
+    <div class="emotion-row" id="emotion-row">
+      <div class="opt-label">감정 선택 <span style="color:var(--t3);font-weight:400;">(복수 선택 가능)</span></div>
+      <div class="emotion-grid">
+        <span class="etag" data-e="기쁨">😄 기쁨</span>
+        <span class="etag" data-e="슬픔">😢 슬픔</span>
+        <span class="etag" data-e="분노">😤 분노</span>
+        <span class="etag" data-e="설렘">💕 설렘</span>
+        <span class="etag" data-e="그리움">🌊 그리움</span>
+        <span class="etag" data-e="외로움">🌙 외로움</span>
+        <span class="etag" data-e="희망">🌱 희망</span>
+        <span class="etag" data-e="불안">🌀 불안</span>
+        <span class="etag" data-e="평온">🍃 평온</span>
+        <span class="etag" data-e="열정">🔥 열정</span>
+      </div>
+    </div>
+
+    <!-- 제목 입력 -->
+    <div class="title-row" id="title-row">
+      <div class="opt-label" style="margin-bottom:6px;">곡 제목 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
+      <input class="title-input" id="song-title" type="text" placeholder="제목을 입력하세요 (비워두면 AI가 자동 생성)">
+    </div>
+
     <!-- 가사 입력 -->
     <div class="pc-label" id="prompt-label">가사 / 곡 설명</div>
     <textarea class="prompt-input" id="prompt" rows="4"
@@ -397,6 +487,15 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
       </div>
     </div>
 
+    <!-- 뮤직비디오 옵션 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div class="toggle-label-row" id="mv-toggle" style="flex:0 0 auto;padding:8px 12px;">
+        <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+        <span class="toggle-txt">🎬 뮤직비디오도 생성</span>
+      </div>
+      <span style="font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;">생성 후 자동으로 요청 · ~20 credits</span>
+    </div>
+
     <button class="gen-btn" id="gen-btn">
       <span class="gen-spinner" id="gen-spinner"></span>
       <span id="gen-txt">✦ 음악 생성하기</span>
@@ -463,6 +562,7 @@ let history = JSON.parse(localStorage.getItem('ams_history')||'[]');
 let activeAudio=null, activeVizTimer=null;
 let instOn=false, vocalGender='', currentMode='custom';
 let extendAudioId=null, toastTmr=null;
+let selectedEmotions=new Set(), makeMV=false;
 const $=id=>document.getElementById(id);
 
 /* ── toast ── */
@@ -478,6 +578,20 @@ $('genre-cat').addEventListener('change',function(){
   $('genre-sub').innerHTML=subs.length
     ?subs.map(s=>`<option value="${s}">${s}</option>`).join('')
     :'<option value="">카테고리 먼저 선택</option>';
+});
+
+/* ── 감정 선택 ── */
+document.querySelectorAll('.etag').forEach(tag=>{
+  tag.addEventListener('click',function(){
+    const e=this.dataset.e;
+    if(selectedEmotions.has(e)){selectedEmotions.delete(e);this.classList.remove('on');}
+    else{selectedEmotions.add(e);this.classList.add('on');}
+  });
+});
+
+/* ── 뮤직비디오 토글 ── */
+$('mv-toggle').addEventListener('click',function(){
+  makeMV=!makeMV; this.classList.toggle('on',makeMV);
 });
 
 /* ── 프리셋 ── */
@@ -509,6 +623,8 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     const isC=currentMode==='custom';
     $('genre-row').style.display=isC?'':'none';
     $('preset-row').style.display=isC?'':'none';
+    $('emotion-row').style.display=isC?'':'none';
+    $('title-row').style.display=isC?'':'none';
     $('lyrics-btn-row').style.display=isC?'':'none';
     $('vocal-group').style.display=isC?'':'none';
     $('prompt-label').textContent=isC?'가사 / 곡 설명':'음악 설명 (프롬프트)';
@@ -583,7 +699,8 @@ $('lyrics-btn').addEventListener('click',async()=>{
   const sub=$('genre-sub').value||'';
   const mood=$('mood').value||'';
   const existing=$('prompt').value.trim();
-  const lyricsPrompt=[existing||'감성적인 노래',sub,mood].filter(Boolean).join(', ');
+  const emotions=[...selectedEmotions].join(', ');
+  const lyricsPrompt=[existing||'감성적인 노래',sub,mood,emotions?`감정: ${emotions}`:''].filter(Boolean).join(', ');
 
   $('lyrics-btn').disabled=true;
   $('lyrics-spinner').style.display='inline-block';
@@ -599,7 +716,16 @@ $('lyrics-btn').addEventListener('click',async()=>{
       const status=(d.status||'').toUpperCase();
       if(status==='SUCCESS'){
         const text=d.response?.text||d.text||'';
-        if(text){$('prompt').value=text;toast('✅ 가사 생성 완료!','ok');return;}
+        if(text){
+          const promptEl=$('prompt');
+          promptEl.value=text;
+          promptEl.style.borderColor='var(--grn)';
+          setTimeout(()=>{promptEl.style.borderColor='';},2000);
+          promptEl.scrollIntoView({behavior:'smooth',block:'center'});
+          promptEl.focus();
+          toast('✅ 가사 생성 완료! 수정 후 음악 생성하기를 눌러주세요','ok',3500);
+          return;
+        }
       }
       if(status==='FAILED'||status==='ERROR')throw new Error('가사 생성 실패');
     }
@@ -623,8 +749,12 @@ async function generate(){
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
   const isCustom=currentMode==='custom';
+  const emotions=[...selectedEmotions];
   if(!lyrics&&!subGenre){toast('가사 또는 장르를 선택해주세요','err');return;}
-  const styleStr=[subGenre,mood].filter(Boolean).join(', ');
+
+  // 감정을 style 태그에 자연스럽게 결합
+  const emotionStyle=emotions.length?emotions.join(', '):'';
+  const styleStr=[subGenre,mood,emotionStyle].filter(Boolean).join(', ');
   const prompt=lyrics||styleStr;
 
   $('gen-btn').disabled=true;
@@ -640,6 +770,8 @@ async function generate(){
     if(isCustom&&subGenre)body.style=styleStr;
     if(negTags)body.negativeTags=negTags;
     if(!instOn&&vocalGender)body.vocalGender=vocalGender;
+    const songTitle=$('song-title').value.trim();
+    if(songTitle)body.title=songTitle;
 
     const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
     const taskId=genData?.data?.taskId||genData?.taskId;
@@ -651,14 +783,97 @@ async function generate(){
     if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
     $('loading-card').classList.remove('on');
     renderTracks(tracks,prompt,styleStr);
+
     tracks.forEach(t=>{history.unshift({id:t.id,title:t.title||'무제',audio_url:t.audioUrl||t.audio_url,image_url:t.imageUrl||t.image_url,tags:t.tags||styleStr,created:Date.now()});});
     history=history.slice(0,20);localStorage.setItem('ams_history',JSON.stringify(history));
     renderHistory();toast('🎵 음악 생성 완료!','ok');
+
+    // 뮤직비디오 옵션이 ON이면 첫 번째 트랙으로 자동 요청
+    if(makeMV&&tracks[0]?.id){
+      const audioId=tracks[0].id;
+      requestMusicVideo(apiKey,audioId,0);
+    }
+
   }catch(e){
     $('loading-card').classList.remove('on');
     toast('❌ '+e.message,'err',5000);console.error(e);
   }finally{
     $('gen-btn').disabled=false;$('gen-spinner').style.display='none';$('gen-txt').textContent='✦ 음악 생성하기';
+  }
+}
+
+/* ── 뮤직비디오 생성 ── */
+async function requestMusicVideo(apiKey,audioId,trackIdx){
+  // 카드에 '제작 중' 상태 표시
+  const card=document.querySelectorAll('.result-card')[trackIdx];
+  if(!card)return;
+  const mvDiv=document.createElement('div');
+  mvDiv.id=`mv-${trackIdx}`;
+  mvDiv.style.cssText='background:var(--s2);border-radius:10px;padding:14px 16px;margin-top:12px;border:1px solid rgba(255,215,64,.15);';
+  mvDiv.innerHTML=`<div style="font-size:10px;font-weight:700;color:var(--ylw);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">🎬 뮤직비디오</div><div class="mv-making"><div class="mv-making-spin"></div>뮤직비디오를 생성 중이에요... (1~3분 소요)</div>`;
+  card.querySelector('.rc-body').appendChild(mvDiv);
+
+  try{
+    const data=await kieRequest(apiKey,'POST','/api/v1/create-music-video',{audioId,callBackUrl:CALLBACK});
+    const taskId=data?.data?.taskId||data?.taskId;
+    if(!taskId)throw new Error('뮤직비디오 taskId 없음');
+
+    // 폴링
+    for(let i=0;i<60;i++){
+      await sleep(4000);
+      const res=await kieRequest(apiKey,'GET',`/api/v1/create-music-video/record-info?taskId=${taskId}`);
+      const d=res?.data; if(!d)continue;
+      const status=(d.status||'').toUpperCase();
+      if(status==='SUCCESS'){
+        const videoUrl=d.response?.videoUrl||d.videoUrl||'';
+        const mvEl=document.getElementById(`mv-${trackIdx}`);
+        if(mvEl&&videoUrl){
+          // 탭 네비에 비디오 탭 추가
+          const card=document.querySelectorAll('.result-card')[trackIdx];
+          if(card){
+            const tabBar=card.querySelector('.rc-tabs');
+            if(tabBar&&!tabBar.querySelector('[data-tab="mvpanel-'+trackIdx+'"]')){
+              const newTab=document.createElement('div');
+              newTab.className='rctab';newTab.dataset.tab=`mvpanel-${trackIdx}`;newTab.textContent='🎬 비디오';
+              newTab.addEventListener('click',function(){
+                card.querySelectorAll('.rctab').forEach(t=>t.classList.remove('on'));
+                card.querySelectorAll('.rc-tab-panel').forEach(p=>p.classList.remove('on'));
+                this.classList.add('on');
+                document.getElementById(`mvpanel-${trackIdx}`)?.classList.add('on');
+              });
+              tabBar.appendChild(newTab);
+            }
+          }
+          mvEl.id=`mvpanel-${trackIdx}`;
+          mvEl.className='rc-tab-panel';
+          mvEl.innerHTML=`
+            <video class="mv-video" controls playsinline preload="metadata" style="margin-bottom:10px;">
+              <source src="${esc(videoUrl)}" type="video/mp4">
+            </video>
+            <div class="dl-row">
+              <a class="dl-btn video" href="${esc(videoUrl)}" download target="_blank">⬇ 비디오 다운로드</a>
+              <button class="dl-btn copy" data-copy="${esc(videoUrl)}">🔗 링크 복사</button>
+            </div>`;
+          mvEl.querySelectorAll('[data-copy]').forEach(btn=>{
+            btn.addEventListener('click',function(){
+              navigator.clipboard.writeText(this.dataset.copy).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
+            });
+          });
+          toast('🎬 뮤직비디오 완성!','ok');
+        }
+        return;
+      }
+      if(status==='FAILED'||status==='ERROR'){
+        const mvEl=document.getElementById(`mv-${trackIdx}`);
+        if(mvEl)mvEl.innerHTML=`<div class="mv-label">뮤직비디오</div><div style="font-size:12px;color:var(--red);">❌ 뮤직비디오 생성 실패</div>`;
+        throw new Error('뮤직비디오 생성 실패');
+      }
+    }
+    throw new Error('뮤직비디오 시간 초과');
+  }catch(e){
+    console.error('MV error:',e);
+    const mvEl=document.getElementById(`mv-${trackIdx}`);
+    if(mvEl)mvEl.querySelector('.mv-making')&&(mvEl.innerHTML=`<div class="mv-label">뮤직비디오</div><div style="font-size:12px;color:var(--red);">❌ ${e.message}</div>`);
   }
 }
 
@@ -702,6 +917,23 @@ $('extend-submit-btn').addEventListener('click',async()=>{
 });
 
 /* ── RENDER TRACKS ── */
+function parseLyrics(text){
+  if(!text)return'<div class="lyrics-empty">가사 정보가 없어요</div>';
+  const lines=text.split('\n');
+  let html='<div class="lyrics-text">';
+  lines.forEach(line=>{
+    const trimmed=line.trim();
+    if(/^\[(.*?)\]$/.test(trimmed)){
+      html+=`<span class="lsec">${esc(trimmed.replace(/[\[\]]/g,''))}</span>`;
+    } else if(trimmed){
+      html+=esc(trimmed)+'<br>';
+    } else {
+      html+='<br>';
+    }
+  });
+  return html+'</div>';
+}
+
 function renderTracks(tracks,prompt,tags){
   const container=$('results');container.innerHTML='';
   tracks.forEach((track,i)=>{
@@ -711,6 +943,8 @@ function renderTracks(tracks,prompt,tags){
     const trackTags=(track.tags||tags||'').split(',').map(t=>t.trim()).filter(Boolean);
     const dur=track.duration?formatTime(track.duration):'—';
     const audioId=track.id||'';
+    const lyricsRaw=track.lyric||track.lyrics||track.lrc||prompt||'';
+
     const card=document.createElement('div');card.className='result-card';
     card.innerHTML=`
       <div class="rc-cover">
@@ -720,31 +954,86 @@ function renderTracks(tracks,prompt,tags){
       <div class="rc-body">
         ${i>0?`<div class="dual-label">버전 ${i+1}</div>`:''}
         <div class="rc-title">${esc(title)}</div>
-        <div class="rc-meta">${esc(prompt.slice(0,60))}${prompt.length>60?'...':''} · ${dur}</div>
+        <div class="rc-meta">${esc((prompt||'').slice(0,60))}${(prompt||'').length>60?'...':''} · ${dur}</div>
         <div class="rc-tags">${trackTags.slice(0,6).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
-        <div class="rc-actions">
-          <button class="extend-btn" data-id="${esc(audioId)}"${!audioId?' disabled':''}>➕ 연장하기</button>
+
+        <!-- 탭 네비 -->
+        <div class="rc-tabs">
+          <div class="rctab on" data-tab="player-${i}">🎵 재생</div>
+          <div class="rctab" data-tab="lyrics-${i}">📝 가사</div>
         </div>
-        <div class="audio-player" id="player-${i}">
-          <div class="ap-top">
-            <button class="ap-play-btn" data-idx="${i}" data-url="${esc(audioUrl)}">▶</button>
-            <div class="ap-info">
-              <div class="ap-track">${esc(title)}</div>
-              <div class="ap-time" id="ap-time-${i}">0:00 / ${dur}</div>
+
+        <!-- 재생 탭 -->
+        <div class="rc-tab-panel on" id="player-${i}">
+          <div class="audio-player">
+            <div class="ap-top">
+              <button class="ap-play-btn" data-idx="${i}" data-url="${esc(audioUrl)}">▶</button>
+              <div class="ap-info">
+                <div class="ap-track">${esc(title)}</div>
+                <div class="ap-time" id="ap-time-${i}">0:00 / ${dur}</div>
+              </div>
             </div>
-            <a class="ap-download" href="${esc(audioUrl)}" download="${esc(title)}.mp3" title="다운로드">⬇</a>
+            <div class="ap-prog-wrap" data-idx="${i}">
+              <div class="ap-prog-track"><div class="ap-prog-fill" id="ap-prog-${i}"></div></div>
+            </div>
+            <div class="ap-viz" id="ap-viz-${i}">${Array(28).fill(0).map(()=>'<div class="ap-vbar"></div>').join('')}</div>
           </div>
-          <div class="ap-prog-wrap" data-idx="${i}">
-            <div class="ap-prog-track"><div class="ap-prog-fill" id="ap-prog-${i}"></div></div>
+          <!-- 다운로드 버튼 -->
+          <div class="dl-row">
+            <a class="dl-btn audio" href="${esc(audioUrl)}" download="${esc(title)}.mp3">⬇ MP3 다운로드</a>
+            <button class="dl-btn copy" data-copy="${esc(audioUrl)}" title="링크 복사">🔗 링크 복사</button>
+            <button class="extend-btn" data-id="${esc(audioId)}"${!audioId?' disabled':''}>➕ 연장</button>
           </div>
-          <div class="ap-viz" id="ap-viz-${i}">${Array(28).fill(0).map(()=>'<div class="ap-vbar"></div>').join('')}</div>
         </div>
+
+        <!-- 가사 탭 -->
+        <div class="rc-tab-panel" id="lyrics-${i}">
+          <div class="lyrics-display">${parseLyrics(lyricsRaw)}</div>
+          <div class="dl-row">
+            <button class="dl-btn copy" data-copy-lyrics="${i}">📋 가사 복사</button>
+          </div>
+        </div>
+
+        <!-- 뮤직비디오 영역 (나중에 주입됨) -->
+        <div id="mv-${i}"></div>
       </div>`;
     container.appendChild(card);
   });
+
+  // 탭 이벤트
+  container.querySelectorAll('.rctab').forEach(tab=>{
+    tab.addEventListener('click',function(){
+      const panelId=this.dataset.tab;
+      const allTabs=this.closest('.rc-body').querySelectorAll('.rctab');
+      const allPanels=this.closest('.rc-body').querySelectorAll('.rc-tab-panel');
+      allTabs.forEach(t=>t.classList.remove('on'));
+      allPanels.forEach(p=>p.classList.remove('on'));
+      this.classList.add('on');
+      const panel=document.getElementById(panelId);
+      if(panel)panel.classList.add('on');
+    });
+  });
+
+  // 재생 버튼
   container.querySelectorAll('.ap-play-btn').forEach(btn=>btn.addEventListener('click',()=>togglePlay(btn)));
+  // 프로그레스바 클릭
   container.querySelectorAll('.ap-prog-wrap').forEach(wrap=>wrap.addEventListener('click',e=>seekAudio(e,wrap)));
+  // 연장 버튼
   container.querySelectorAll('.extend-btn').forEach(btn=>btn.addEventListener('click',()=>openExtendModal(btn.dataset.id)));
+  // 링크 복사
+  container.querySelectorAll('[data-copy]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      navigator.clipboard.writeText(this.dataset.copy).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
+    });
+  });
+  // 가사 복사
+  container.querySelectorAll('[data-copy-lyrics]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const idx=this.dataset.copyLyrics;
+      const text=tracks[idx]?.lyric||tracks[idx]?.lyrics||tracks[idx]?.lrc||prompt||'';
+      navigator.clipboard.writeText(text).then(()=>toast('📋 가사 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
+    });
+  });
 }
 
 /* ── AUDIO PLAYER ── */
