@@ -686,7 +686,7 @@ async function generate() {
   try {
     // 1. 생성 요청
     $('ld-sub').innerHTML = 'kie.ai에 작곡 요청 중...<br>잠시만 기다려주세요 ☕';
-    const genData = await kieRequest(apiKey, 'POST', '/api/suno/music', {
+    const genData = await kieRequest(apiKey, 'POST', '/api/suno/v1/music/generate', {
       prompt,
       tags: tags || undefined,
       instrumental: isInst,
@@ -737,7 +737,7 @@ async function pollResult(apiKey, taskId) {
   for (let i = 0; i < MAX_POLLS; i++) {
     await sleep(POLL_INTERVAL);
     try {
-      const data = await kieRequest(apiKey, 'GET', `/api/suno/v1/music?taskId=${taskId}`);
+      const data = await kieRequest(apiKey, 'GET', `/api/suno/v1/music/record-info?taskId=${taskId}`);
       const st = data?.data;
       if (!st) continue;
 
