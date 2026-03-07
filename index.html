@@ -682,14 +682,17 @@ async function generate() {
   try {
     // 1. 생성 요청
     $('ld-sub').innerHTML = 'kie.ai에 작곡 요청 중...<br>잠시만 기다려주세요 ☕';
-    const genData = await kieRequest(apiKey, 'POST', '/api/suno/v1/music/generate', {
+    const genData = await kieRequest(apiKey, 'POST', '/api/v1/generate', {
       prompt,
-      tags: tags || undefined,
+      style: style || undefined,
+      customMode: !!(style || isInst),
       instrumental: isInst,
       model: 'V3_5',
+      callBackUrl: 'https://ai-music-studio-bice.vercel.app/api/callback',
     });
 
     const taskId = genData?.data?.taskId || genData?.taskId;
+    // kie.ai v1 응답: { code:200, data:{ taskId:"..." } }
     if (!taskId) throw new Error('taskId 없음 — API 응답: ' + JSON.stringify(genData).slice(0,120));
 
     $('ld-task').textContent = `Task: ${taskId}`;
@@ -733,12 +736,12 @@ async function pollResult(apiKey, taskId) {
   for (let i = 0; i < MAX_POLLS; i++) {
     await sleep(POLL_INTERVAL);
     try {
-      const data = await kieRequest(apiKey, 'GET', `/api/suno/v1/music/record-info?taskId=${taskId}`);
+      const data = await kieRequest(apiKey, 'GET', `/api/v1/generate/record-info?taskId=${taskId}`);
       const st = data?.data;
       if (!st) continue;
 
       const status = (st.status || '').toUpperCase();
-      const tracks = st.response?.sunoData || st.sunoData || [];
+      const tracks = st.response?.sunoData || [];
 
       $('ld-sub').innerHTML = `상태: <b style="color:var(--acc)">${status || '처리 중'}</b><br>음악을 완성하고 있어요...`;
 
