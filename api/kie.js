@@ -1,9 +1,5 @@
-// api/kie.js — Vercel Serverless Function (kie.ai CORS 프록시)
-export const config = {
-  api: { bodyParser: true }
-};
-
-export default async function handler(req, res) {
+// api/kie.js — Vercel Serverless Function (CommonJS)
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-kie-key');
@@ -14,13 +10,13 @@ export default async function handler(req, res) {
   if (!kieKey) return res.status(400).json({ error: 'x-kie-key header required' });
 
   const kiePath = req.query.path || '/api/suno/v1/music';
-  const url = `https://api.kie.ai${kiePath}`;
+  const url = 'https://api.kie.ai' + kiePath;
 
   const fetchOpts = {
     method: req.method,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${kieKey}`,
+      'Authorization': 'Bearer ' + kieKey,
     },
   };
 
@@ -34,9 +30,9 @@ export default async function handler(req, res) {
     const upstream = await fetch(url, fetchOpts);
     const text = await upstream.text();
     let data;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    try { data = JSON.parse(text); } catch(e) { data = { raw: text }; }
     res.status(upstream.status).json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-}
+};
