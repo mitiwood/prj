@@ -637,25 +637,21 @@ $('prompt').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.ctrlKey) generate();
 });
 
-/* ── Vercel 프록시로 kie.ai 호출 (CORS 우회) ── */
-// Vercel에 배포 시: /api/kie.js 프록시 사용
-// 로컬/테스트: PROXY_BASE = '' (같은 origin)
-const PROXY_BASE = '';  // Vercel 배포 시 빈 문자열 유지
-
+/* ── kie.ai 직접 호출 ── */
 async function kieRequest(kieKey, method, path, body) {
-  const proxyUrl = `${PROXY_BASE}/api/kie?path=${encodeURIComponent(path)}`;
+  const url = `https://api.kie.ai${path}`;
   const opts = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'x-kie-key': kieKey,
+      'Authorization': `Bearer ${kieKey}`,
     },
   };
   if (body && method !== 'GET') opts.body = JSON.stringify(body);
 
-  const res = await fetch(proxyUrl, opts);
+  const res = await fetch(url, opts);
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || data?.msg || `API 오류 ${res.status}`);
+  if (!res.ok) throw new Error(data?.error || data?.msg || data?.message || `API 오류 ${res.status}`);
   return data;
 }
 
