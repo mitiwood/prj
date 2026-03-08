@@ -4,1844 +4,1520 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kenny's Music Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ════════════════════════════════════════
-   KENNY'S MUSIC STUDIO
-   Reference: figma.site AI 작곡 앱
-   Deep Purple × Orange — MZ 감성
-════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
-
-:root{
-  /* 퍼플 배경 시스템 */
-  --bg:#2D0060;
-  --bg2:#3A0078;
-  --bg3:#4A0090;
-  --s1:rgba(255,255,255,.06);
-  --s2:rgba(255,255,255,.1);
-  --s3:rgba(255,255,255,.15);
-  --s4:rgba(255,255,255,.22);
-
-  /* 보더 */
-  --bdr:rgba(255,255,255,.18);
-  --bdr2:rgba(255,255,255,.1);
-
-  /* 텍스트 */
-  --t1:#FFFFFF;
-  --t2:rgba(255,255,255,.75);
-  --t3:rgba(255,255,255,.45);
-  --t4:rgba(255,255,255,.2);
-
-  /* 오렌지 강조 — 레퍼런스 그대로 */
-  --acc:#FF8C00;
-  --acc2:#FF6B00;
-  --acc-g:linear-gradient(135deg,#FFB800,#FF6B00);
-  --acc-glow:rgba(255,140,0,.35);
-
-  /* 퍼플 그라디언트 배경 */
-  --purple-g:linear-gradient(160deg,#4A0090 0%,#2D0060 50%,#1A0040 100%);
-
-  /* 라이트 모드 (라이브러리/설정 탭) */
-  --light-bg:#F5F5F8;
-  --light-card:#FFFFFF;
-  --light-t1:#1A1A2E;
-  --light-t2:#6B6B8A;
-  --light-t3:#A0A0B8;
-
-  /* 그린/시안 (라이브러리 카드) */
-  --card-green:linear-gradient(135deg,#00C9A7,#00875A);
-  --card-purple:linear-gradient(135deg,#C850C0,#8B5CF6);
-  --card-orange:linear-gradient(135deg,#FF6B35,#F7931E);
-
-  --r:16px;
-  --rm:12px;
-  --rs:8px;
-  --rx:100px;
+/* ══════════════════════════════
+   KENNY'S MUSIC STUDIO — Dark Edition
+   Reference: darkmode-index.html
+══════════════════════════════ */
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --card: #16161f;
+  --card2: #1e1e2a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --acc: #7c3aed;
+  --acc2: #a855f7;
+  --acc3: #c084fc;
+  --gold: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --ylw: #f59e0b;
+  --t1: #f1f0f5;
+  --t2: #a09ab8;
+  --t3: #6b6480;
+  --r: 14px;
+  --rm: 12px;
+  --rs: 10px;
+  --rx: 20px;
+  /* 레거시 호환 */
+  --bdr: rgba(255,255,255,0.07);
+  --bdr2: rgba(255,255,255,0.07);
+  --s1: rgba(255,255,255,0.04);
+  --s2: rgba(255,255,255,0.07);
+  --s3: rgba(255,255,255,0.11);
+  --s4: rgba(255,255,255,0.16);
 }
-
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow-x:hidden;}
-body{
-  font-family:'Nunito','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
-  -webkit-font-smoothing:antialiased;
-  background:var(--purple-g);
-  color:var(--t1);
-  min-height:100vh;
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  height:100%;background:var(--bg);color:var(--t1);
+  font-family:'Pretendard','Noto Sans KR',sans-serif;
+  font-size:14px;-webkit-font-smoothing:antialiased;
 }
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--acc);border-radius:3px;}
 
-/* ── 배경 오브 효과 ── */
-.bg-fx{
-  position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse 70% 50% at 10% 20%,rgba(120,40,200,.5) 0%,transparent 60%),
-    radial-gradient(ellipse 50% 60% at 90% 80%,rgba(80,0,160,.6) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%,rgba(60,0,120,.3) 0%,transparent 70%);
-}
-.bg-grid{display:none;}
+/* ── 레이아웃 ── */
+.app-wrap{max-width:480px;margin:0 auto;position:relative;}
 
-#app{
-  position:relative;z-index:1;
-  max-width:700px;margin:0 auto;
-  padding:0 20px 100px;
-  min-height:100vh;
-}
-
-/* ── 탭별 배경 전환 ── */
-body.tab-library,body.tab-settings{
-  background:#F5F5F8;
-  color:var(--light-t1);
-}
-body.tab-library .bg-fx,body.tab-settings .bg-fx{display:none;}
-body.tab-library #app,body.tab-settings #app{color:var(--light-t1);}
-
-/* ── HEADER ── */
-header{
-  padding:28px 0 16px;
+/* ── 헤더 ── */
+.app-header{
   display:flex;align-items:center;justify-content:space-between;
+  padding:18px 16px 14px;
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
 }
-.logo-block{}
-.logo-eyebrow{display:none;}
-.logo-title{
-  font-size:22px;font-weight:800;
-  letter-spacing:-.5px;color:var(--t1);
+.logo{font-size:17px;font-weight:800;letter-spacing:-0.3px;}
+.logo span{color:var(--acc2);}
+.api-badge-btn{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);
+  color:#10b981;padding:5px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;
+  font-family:inherit;
 }
-.logo-title em{
-  font-style:normal;
-  background:var(--acc-g);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.api-badge-btn:hover{background:rgba(16,185,129,0.18);}
+.api-dot{width:6px;height:6px;border-radius:50%;background:#10b981;}
 
-/* API 상태 */
-.key-status{
-  display:flex;align-items:center;gap:6px;
-  padding:7px 14px;border-radius:var(--rx);
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  font-size:11px;font-weight:700;color:var(--t3);
-}
-.key-status.ok{background:rgba(0,200,150,.15);border-color:rgba(0,200,150,.3);color:#00E5B0;}
-.key-status.err{background:rgba(255,80,80,.12);border-color:rgba(255,80,80,.25);color:#FF7070;}
-.key-status.loading{background:var(--s2);border-color:var(--bdr);color:var(--t2);}
-.key-spin{width:7px;height:7px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
-.key-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
-.login-btn{display:none;}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--acc-g);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;}
-.user-name{font-size:12px;font-weight:600;color:var(--t2);}
+/* ── 뷰 컨테이너 ── */
+.views-wrap{padding:0 0 80px;}
+.view{display:none;padding:16px;}
+.view.on{display:block;}
 
-/* ── 모달 ── */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
-.modal-backdrop.on{display:flex;}
-.modal{background:var(--bg2);border:1.5px solid var(--bdr);border-radius:var(--r) var(--r) 0 0;padding:28px 24px 40px;width:100%;max-width:700px;position:relative;}
-.modal::before{content:'';display:block;width:40px;height:4px;background:var(--s3);border-radius:2px;margin:0 auto 22px;}
-.modal-close{position:absolute;top:20px;right:20px;width:32px;height:32px;border-radius:50%;background:var(--s2);border:none;color:var(--t2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.modal-close:hover{background:var(--s3);color:var(--t1);}
-.modal-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px;}
-.modal-sub{font-size:14px;color:var(--t2);margin-bottom:20px;line-height:1.6;}
-.modal-field{margin-bottom:16px;}
-.modal-textarea{width:100%;background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--rm);padding:14px 16px;font-size:14px;font-family:inherit;color:var(--t1);outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
-.modal-textarea:focus{border-color:var(--acc);}
-.modal-textarea::placeholder{color:var(--t3);}
-.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
-.modal-btn{width:100%;padding:16px;background:var(--acc-g);border:none;border-radius:var(--rm);font-size:15px;font-weight:800;font-family:inherit;color:#fff;cursor:pointer;transition:opacity .15s;}
-.modal-btn:hover{opacity:.9;}
+/* ── 섹션 헤더 ── */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:20px;font-weight:800;}
+.section-sub{font-size:12px;color:var(--t3);margin-top:2px;}
 
-/* ── 소셜 로그인 ── */
-.social-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-.social-btn{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--rm);border:1.5px solid var(--bdr);background:var(--s1);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--t1);font-family:inherit;}
-.social-btn:hover{border-color:var(--acc);background:rgba(255,140,0,.08);}
-.social-btn .sb-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.social-btn.google .sb-icon{background:#fff;}
-.social-btn.kakao{color:#3C1E1E;}.social-btn.kakao .sb-icon{background:#FEE500;}
-.social-btn.naver .sb-icon{background:#03C75A;}
-.social-divider{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.social-divider span{font-size:11px;color:var(--t3);white-space:nowrap;}
-.social-divider::before,.social-divider::after{content:'';flex:1;height:1px;background:var(--bdr2);}
-.guest-note{font-size:12px;color:var(--t3);text-align:center;line-height:1.7;}
-.login-modal-content{max-width:400px;}
-.login-modal-content::before{background:var(--acc-g);}
-
-/* ── 메인 컨텐츠 헤더 (AI 작곡 아이콘) ── */
+/* ══════════════════════════════
+   MAKE / CREATE VIEW
+══════════════════════════════ */
 .create-hero{
-  text-align:center;
-  padding:32px 0 28px;
+  text-align:center;padding:8px 0 20px;
 }
-.create-hero-icon{
-  width:72px;height:72px;border-radius:50%;
-  background:var(--acc-g);
-  display:flex;align-items:center;justify-content:center;
-  font-size:28px;margin:0 auto 16px;
-  box-shadow:0 8px 32px var(--acc-glow);
-}
-.create-hero-title{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px;}
-.create-hero-sub{font-size:14px;color:var(--t2);font-weight:500;}
+.create-hero-icon{font-size:28px;margin-bottom:6px;}
+.create-hero-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.create-hero-sub{font-size:13px;color:var(--t3);margin-top:4px;}
 
-/* ── MODE TABS — 레퍼런스: outline pill chips ── */
+/* 모드 탭 */
 .mode-tabs{
-  display:flex;gap:8px;
-  margin-bottom:0;
-  flex-wrap:wrap;
+  display:flex;gap:4px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:4px;margin-bottom:16px;
 }
 .mtab{
-  padding:9px 20px;border-radius:var(--rx);
-  font-size:13px;font-weight:700;
-  border:1.5px solid var(--bdr);
-  background:transparent;color:var(--t2);
-  cursor:pointer;transition:all .2s;
-  font-family:inherit;white-space:nowrap;
+  flex:1;padding:8px 6px;border:none;background:transparent;
+  color:var(--t3);font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;border-radius:10px;transition:all .2s;white-space:nowrap;
 }
-.mtab:hover{background:var(--s2);color:var(--t1);}
-.mtab.on{
-  background:#fff;color:#2D0060;
-  border-color:#fff;
-  box-shadow:0 2px 12px rgba(255,255,255,.2);
+.mtab.on{background:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4);}
+
+/* 카드 */
+.prompt-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-bottom:12px;
 }
 
-/* 모드 패널 래퍼 */
-.mode-panel-wrap{
-  background:var(--s1);
-  border:1.5px solid var(--bdr2);
-  border-radius:var(--r);
-  margin-top:12px;
-  margin-bottom:16px;
-  overflow:hidden;
-}
-.prompt-card{background:transparent;border:none;border-radius:0;margin-bottom:0;}
-.mode-panel{display:none;padding:22px 18px 18px;}
+/* 패널 */
+.mode-panel{display:none;}
 .mode-panel.on{display:block;}
+.mode-panel-wrap{position:relative;}
 
-/* ── 섹션 라벨 ── */
-.opt-label,.pc-label{
-  font-size:13px;font-weight:700;color:var(--t2);
-  margin-bottom:10px;display:block;
+/* 폼 공통 */
+.form-grp{margin-bottom:14px;}
+.form-label{
   display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--t2);
+  margin-bottom:7px;letter-spacing:0.1px;
 }
-.opt-label::before,.pc-label::before{content:'♪';font-size:11px;opacity:.7;}
+.form-label-icon{font-size:13px;}
+.form-label-hint{font-size:10px;font-weight:400;color:var(--t3);margin-left:4px;}
+.form-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:11px 13px;color:var(--t1);
+  font-family:inherit;font-size:14px;transition:border-color .2s;
+}
+.form-input:focus{outline:none;border-color:var(--acc);background:var(--bg2);}
+.form-input::placeholder{color:var(--t3);}
+textarea.form-input{resize:vertical;min-height:100px;line-height:1.7;}
 
-/* ── 장르/분위기 칩 — 레퍼런스 스타일 그대로 ── */
-.genre-btn-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+/* 장르 버튼 */
+.genre-btn-grid{
+  display:flex;flex-wrap:wrap;gap:7px;
+}
 .genre-btn{
-  padding:8px 18px;border-radius:var(--rx);
-  background:transparent;
-  border:1.5px solid var(--bdr);
-  color:var(--t1);font-size:13px;font-weight:700;
-  cursor:pointer;font-family:inherit;
-  transition:all .18s;white-space:nowrap;
+  padding:6px 13px;border-radius:var(--rx);
+  border:1px solid var(--border);background:var(--bg2);
+  color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:inherit;
 }
-.genre-btn:hover{background:var(--s2);border-color:rgba(255,255,255,.4);}
-.genre-btn.on{
-  background:#fff;color:#2D0060;
-  border-color:#fff;
-}
+.genre-btn:hover{border-color:var(--acc);color:var(--acc3);}
+.genre-btn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
 
-/* 세부 장르 */
-.sub-genre-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
-.sgtag{
-  padding:7px 15px;border-radius:var(--rx);
-  background:transparent;border:1.5px solid var(--bdr2);
-  color:var(--t2);font-size:12px;font-weight:700;
+/* 서브 장르 */
+.sub-genre-row{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;
+}
+.sub-btn{
+  padding:4px 10px;border-radius:var(--rx);
+  border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);
+  color:var(--acc3);font-size:11px;font-weight:600;
   cursor:pointer;transition:all .15s;font-family:inherit;
 }
-.sgtag:hover{border-color:var(--bdr);color:var(--t1);}
-.sgtag.on{background:rgba(255,140,0,.2);border-color:var(--acc);color:#FFB347;}
+.sub-btn.on{background:rgba(168,85,247,.25);border-color:var(--acc2);}
 
-/* ── 입력 공통 ── */
-.opt-group{display:flex;flex-direction:column;gap:6px;}
-.opt-input,.opt-select{
-  width:100%;background:var(--s1);
-  border:1.5px solid var(--bdr2);
-  border-radius:var(--rm);padding:13px 16px;
-  font-size:14px;font-family:inherit;color:var(--t1);
-  outline:none;transition:border-color .2s,box-shadow .2s;
-  -webkit-appearance:none;
+/* BPM 슬라이더 */
+.bpm-main-row{
+  display:flex;align-items:center;gap:10px;
 }
-.opt-input:focus,.opt-select:focus{
-  border-color:rgba(255,255,255,.5);
-  box-shadow:0 0 0 3px rgba(255,255,255,.08);
+.bpm-slider{
+  flex:1;-webkit-appearance:none;height:4px;
+  background:var(--card2);border-radius:2px;outline:none;cursor:pointer;
 }
-.opt-input::placeholder{color:var(--t3);}
-.opt-select{
-  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;
-  padding-right:36px;cursor:pointer;
+.bpm-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--acc2);cursor:pointer;
+  box-shadow:0 0 0 3px rgba(168,85,247,.2);
 }
-.opt-select option{background:#3A0078;color:#fff;}
+.bpm-badge{
+  background:var(--card2);border:1px solid var(--border);
+  color:var(--acc3);padding:4px 9px;border-radius:8px;
+  font-size:12px;font-weight:700;min-width:64px;text-align:center;
+  white-space:nowrap;
+}
+.bpm-auto-btn{
+  padding:4px 8px;border-radius:8px;
+  background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);
+  color:var(--acc3);font-size:10px;font-weight:800;
+  cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;
+}
+.bpm-auto-btn.on{background:rgba(168,85,247,.25);border-color:var(--acc2);}
 
-/* ── 제목 입력 ── */
-.title-row{margin-bottom:16px;}
-.title-input{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rm);padding:13px 16px;
-  font-size:16px;font-weight:700;font-family:inherit;
-  color:var(--t1);outline:none;letter-spacing:-.3px;
-  transition:border-color .2s,box-shadow .2s;
-}
-.title-input:focus{border-color:rgba(255,255,255,.5);box-shadow:0 0 0 3px rgba(255,255,255,.08);}
-.title-input::placeholder{color:var(--t3);font-weight:500;}
-
-/* ── 텍스트에어리어 — 레퍼런스 큰 인풋 박스 ── */
-.prompt-input{
-  width:100%;min-height:100px;resize:vertical;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rm);padding:14px 16px;
-  font-size:14px;font-family:inherit;color:var(--t1);
-  outline:none;line-height:1.7;
-  transition:border-color .2s,box-shadow .2s;
-}
-.prompt-input:focus{border-color:rgba(255,255,255,.5);box-shadow:0 0 0 3px rgba(255,255,255,.08);}
-.prompt-input::placeholder{color:var(--t3);}
-.prompt-input.flash{border-color:#00E5B0;box-shadow:0 0 0 3px rgba(0,229,160,.12);}
-
-/* ── AI 작사 버튼 ── */
-.lyrics-btn-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;margin-bottom:16px;}
-.lyrics-hint{font-size:11px;color:var(--t3);}
-.lyrics-gen-btn{
-  display:flex;align-items:center;gap:7px;
-  padding:9px 18px;border-radius:var(--rx);
-  background:rgba(255,140,0,.15);border:1.5px solid rgba(255,140,0,.35);
-  font-size:12px;font-weight:800;color:#FFB347;
-  cursor:pointer;transition:all .15s;font-family:inherit;
-}
-.lyrics-gen-btn:hover{background:rgba(255,140,0,.25);border-color:var(--acc);}
-.lyrics-gen-btn:disabled{opacity:.35;cursor:not-allowed;}
-.lspin{width:10px;height:10px;border:1.5px solid rgba(255,140,0,.3);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;display:none;}
-
-/* ── 보컬/옵션 ── */
-.options-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
-.vocal-group{display:flex;flex-direction:column;gap:6px;}
-.vocal-btns{display:flex;gap:5px;}
+/* 보컬 */
+.vocal-row{display:flex;gap:8px;}
 .vbtn{
-  flex:1;padding:10px 4px;border-radius:var(--rx);
-  background:transparent;border:1.5px solid var(--bdr2);
-  font-size:12px;font-weight:700;color:var(--t3);
-  cursor:pointer;transition:all .15s;text-align:center;font-family:inherit;
+  flex:1;padding:7px 0;border-radius:var(--rs);
+  border:1px solid var(--border);background:var(--bg2);
+  color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .18s;font-family:inherit;text-align:center;
 }
-.vbtn:hover{color:var(--t1);border-color:var(--bdr);}
-.vbtn.on{background:#fff;color:#2D0060;border-color:#fff;}
+.vbtn:hover{border-color:var(--acc);color:var(--acc3);}
+.vbtn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
+
+/* 가사 영역 */
+.lyrics-btn-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:8px;margin-bottom:4px;
+}
+.lyrics-hint{font-size:10px;color:var(--t3);}
+.lyrics-gen-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:var(--rs);
+  background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.35);
+  color:var(--acc3);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.lyrics-gen-btn:hover{background:rgba(124,58,237,.25);}
+.lyrics-gen-btn:disabled{opacity:.5;cursor:not-allowed;}
+.lspin{
+  width:12px;height:12px;border-radius:50%;
+  border:2px solid rgba(168,85,247,.3);border-top-color:var(--acc2);
+  animation:spin .6s linear infinite;display:none;
+}
+.lspin.on{display:inline-block;}
+
+/* 옵션 셀렉트 */
+.opt-select{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:9px 12px;color:var(--t1);
+  font-family:inherit;font-size:13px;cursor:pointer;
+  -webkit-appearance:none;transition:border-color .2s;
+}
+.opt-select:focus{outline:none;border-color:var(--acc);}
+
+/* 분위기 input */
+.title-input, .opt-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:11px 13px;color:var(--t1);
+  font-family:inherit;font-size:14px;transition:border-color .2s;
+}
+.title-input:focus,.opt-input:focus{outline:none;border-color:var(--acc);background:var(--bg2);}
+.title-input::placeholder,.opt-input::placeholder{color:var(--t3);}
 
 /* 토글 */
 .toggle-label-row{
-  display:flex;align-items:center;gap:10px;
-  cursor:pointer;padding:11px 14px;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rs);transition:all .15s;
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  padding:8px 10px;border-radius:var(--rs);
+  background:var(--bg2);border:1px solid var(--border);
+  transition:all .2s;user-select:none;
 }
-.toggle-label-row.on{border-color:var(--acc);background:rgba(255,140,0,.1);}
+.toggle-label-row.on{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.3);}
 .toggle-switch{
-  width:38px;height:22px;border-radius:11px;
-  background:var(--s3);position:relative;flex-shrink:0;transition:background .2s;
+  width:34px;height:20px;border-radius:10px;background:var(--card2);
+  position:relative;transition:background .2s;flex-shrink:0;
 }
 .toggle-label-row.on .toggle-switch{background:var(--acc);}
 .toggle-thumb{
-  position:absolute;width:18px;height:18px;border-radius:50%;
-  background:#fff;top:2px;left:2px;
-  transition:transform .2s cubic-bezier(.4,0,.2,1);
-  box-shadow:0 1px 4px rgba(0,0,0,.3);
+  width:16px;height:16px;border-radius:50%;background:#fff;
+  position:absolute;top:2px;left:2px;transition:left .2s;
 }
-.toggle-label-row.on .toggle-thumb{transform:translateX(16px);}
-.toggle-txt{font-size:12px;font-weight:700;color:var(--t2);}
-.toggle-label-row.on .toggle-txt{color:#FFB347;}
+.toggle-label-row.on .toggle-thumb{left:16px;}
+.toggle-txt{font-size:12px;font-weight:600;color:var(--t2);}
+.toggle-label-row.on .toggle-txt{color:var(--acc3);}
 
-/* ── 고급 설정 ── */
-.advanced-toggle{display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:12px;width:fit-content;padding:8px 0;}
-.adv-lbl{font-size:12px;font-weight:700;color:var(--t3);}
-.adv-chev{font-size:10px;color:var(--t3);transition:transform .25s;display:inline-block;}
+/* 인라인 옵션 행 */
+.options-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.opt-group{flex:1 1 calc(50% - 5px);min-width:140px;}
+.opt-label{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:5px;letter-spacing:0.2px;text-transform:uppercase;}
+
+/* 고급설정 */
+.advanced-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 13px;border-radius:var(--rs);
+  background:var(--bg2);border:1px solid var(--border);
+  cursor:pointer;margin-bottom:4px;transition:all .15s;
+}
+.advanced-toggle:hover{border-color:var(--border2);}
+.adv-lbl{font-size:12px;font-weight:700;color:var(--t2);}
+.adv-chev{font-size:10px;color:var(--t3);transition:transform .2s;}
 .adv-chev.open{transform:rotate(180deg);}
-.advanced-panel{display:none;}.advanced-panel.open{display:block;}
-.adv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
-
-/* BPM - 레퍼런스 스타일 슬라이더 */
-.bpm-row{
-  display:flex;align-items:center;gap:14px;
-  margin-bottom:16px;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rm);padding:14px 16px;
+.advanced-panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--rs);padding:14px;margin-bottom:12px;
+  display:none;
 }
-.bpm-val{font-size:28px;font-weight:900;letter-spacing:-1px;color:#FFB347;line-height:1;}
-.bpm-unit{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.5px;}
-.bpm-slider{flex:1;}
-.bpm-auto-btn{
-  padding:6px 14px;border-radius:var(--rx);
-  background:var(--s2);border:1.5px solid var(--bdr2);
-  font-size:11px;font-weight:800;color:var(--t3);
+.advanced-panel.on{display:block;}
+.adv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.neg-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:8px 10px;color:var(--t1);
+  font-family:inherit;font-size:12px;transition:border-color .2s;
+}
+.neg-input:focus{outline:none;border-color:var(--acc);}
+.neg-input::placeholder{color:var(--t3);}
+.slider-group{display:flex;flex-direction:column;gap:5px;}
+.slider-header{display:flex;align-items:center;justify-content:space-between;}
+.slider-val{font-size:11px;font-weight:700;color:var(--acc3);}
+input[type=range]:not(.bpm-slider){
+  width:100%;-webkit-appearance:none;height:3px;
+  background:var(--card2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--acc2);cursor:pointer;
+}
+
+/* 곡 시간 버튼 */
+.duration-btns{display:flex;flex-wrap:wrap;gap:6px;}
+.dbtn{
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg);
+  color:var(--t2);font-size:12px;font-weight:600;
   cursor:pointer;transition:all .15s;font-family:inherit;
 }
-.bpm-auto-btn.on{background:rgba(255,140,0,.2);border-color:var(--acc);color:#FFB347;}
-
-/* Duration — 레퍼런스 Slow/Medium/Fast/Very Fast 버튼 */
-.duration-btns{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
-.dbtn{
-  flex:1;padding:10px 8px;border-radius:var(--rs);
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  font-size:12px;font-weight:700;color:var(--t3);
-  cursor:pointer;transition:all .15s;font-family:inherit;text-align:center;min-width:60px;
+.dbtn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
+.dbtn.pro-req{opacity:.5;}
+.pro-warning{
+  font-size:11px;color:var(--ylw);
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+  border-radius:8px;padding:7px 10px;margin-bottom:10px;display:none;
 }
-.dbtn:hover{color:var(--t1);border-color:var(--bdr);}
-.dbtn.on{background:#fff;color:#2D0060;border-color:#fff;}
-.dbtn.pro-req{color:#FFB347;border-color:rgba(255,140,0,.25);}
-.pro-warning{display:none;font-size:12px;color:#FFB347;background:rgba(255,140,0,.1);border:1.5px solid rgba(255,140,0,.2);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;line-height:1.5;}
 .pro-warning.on{display:block;}
 
-.neg-input{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rm);padding:11px 14px;
-  font-size:13px;font-family:inherit;color:var(--t1);outline:none;transition:border-color .2s;
-}
-.neg-input:focus{border-color:rgba(255,80,80,.5);}
-.neg-input::placeholder{color:var(--t3);}
-
-/* 슬라이더 */
-.slider-group{display:flex;flex-direction:column;gap:6px;}
-.slider-header{display:flex;justify-content:space-between;align-items:center;}
-.slider-val{font-size:12px;font-weight:700;color:#FFB347;}
-input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--s3);outline:none;cursor:pointer;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--acc-g);cursor:pointer;transition:transform .12s;box-shadow:0 2px 8px var(--acc-glow);}
-input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);}
-
-/* ── 생성 버튼 — 레퍼런스 오렌지 그라디언트 ── */
+/* 생성 버튼 */
 .gen-btn{
-  width:100%;padding:18px;
-  background:var(--acc-g);
-  border:none;border-radius:var(--rx);
-  font-size:16px;font-weight:900;font-family:inherit;
-  color:#fff;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:all .2s cubic-bezier(.4,0,.2,1);
-  letter-spacing:-.2px;
-  box-shadow:0 6px 24px var(--acc-glow);
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#fff;border:none;border-radius:var(--r);
+  font-size:15px;font-weight:800;font-family:inherit;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 20px rgba(124,58,237,.3);
 }
-.gen-btn:hover{transform:translateY(-1px);box-shadow:0 10px 32px var(--acc-glow),0 0 0 1px rgba(255,200,0,.2);}
-.gen-btn:active{transform:translateY(1px);}
-.gen-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
-.gen-spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
-@keyframes spin{to{transform:rotate(360deg)}}
+.gen-btn:hover{opacity:.92;transform:translateY(-1px);box-shadow:0 6px 24px rgba(124,58,237,.5);}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.gen-spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  animation:spin .7s linear infinite;display:none;
+}
+.gen-spinner.on{display:inline-block;}
 
-/* ── 로딩 카드 ── */
+/* 로딩 카드 */
 .loading-card{
-  display:none;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--r);padding:36px 24px;
-  margin-bottom:14px;text-align:center;
+  background:var(--card);border:1px solid rgba(124,58,237,.25);
+  border-radius:var(--r);padding:24px 20px;text-align:center;
+  margin-top:12px;display:none;
 }
 .loading-card.on{display:block;}
-.ld-waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:44px;margin-bottom:20px;}
-.ld-bar{width:4px;border-radius:2px;background:var(--acc-g);animation:ldwave 1.2s ease-in-out infinite;}
-.ld-bar:nth-child(1){height:8px;animation-delay:0s}
-.ld-bar:nth-child(2){height:22px;animation-delay:.1s}
-.ld-bar:nth-child(3){height:36px;animation-delay:.2s}
-.ld-bar:nth-child(4){height:26px;animation-delay:.3s}
-.ld-bar:nth-child(5){height:44px;animation-delay:.15s}
-.ld-bar:nth-child(6){height:20px;animation-delay:.25s}
-.ld-bar:nth-child(7){height:12px;animation-delay:.35s}
-@keyframes ldwave{0%,100%{transform:scaleY(.3);opacity:.3}50%{transform:scaleY(1);opacity:1}}
-.ld-title{font-size:17px;font-weight:800;margin-bottom:8px;letter-spacing:-.4px;}
-.ld-sub{font-size:13px;color:var(--t2);line-height:1.7;}
-.ld-progress{margin-top:20px;height:3px;background:var(--s3);border-radius:10px;overflow:hidden;}
-.ld-fill{height:100%;border-radius:10px;background:var(--acc-g);width:0;animation:ldprog 45s ease-out forwards;}
-@keyframes ldprog{0%{width:0}70%{width:75%}90%{width:90%}100%{width:95%}}
-.ld-task{margin-top:10px;font-size:10px;color:var(--t3);}
+.ld-waveform{display:flex;align-items:center;justify-content:center;gap:4px;height:36px;margin-bottom:12px;}
+.ld-bar{
+  width:4px;border-radius:4px;background:var(--acc2);
+  animation:ldWave 1.2s ease-in-out infinite;
+}
+.ld-bar:nth-child(1){height:16px;animation-delay:0s;}
+.ld-bar:nth-child(2){height:24px;animation-delay:.1s;}
+.ld-bar:nth-child(3){height:32px;animation-delay:.2s;}
+.ld-bar:nth-child(4){height:28px;animation-delay:.3s;}
+.ld-bar:nth-child(5){height:36px;animation-delay:.2s;}
+.ld-bar:nth-child(6){height:24px;animation-delay:.1s;}
+.ld-bar:nth-child(7){height:16px;animation-delay:0s;}
+@keyframes ldWave{0%,100%{transform:scaleY(.6);opacity:.5}50%{transform:scaleY(1);opacity:1}}
+.ld-title{font-size:15px;font-weight:700;margin-bottom:5px;}
+.ld-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:12px;}
+.ld-progress{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin:8px 0;}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;width:0%;transition:width .5s;}
+.ld-task{font-size:10px;color:var(--t3);margin-top:4px;}
 
-/* ── 결과 카드 ── */
-#results{margin-top:4px;}
+/* 결과 섹션 */
+.results-section{margin-top:12px;}
+.results-section-header{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 0 6px;
+  font-size:12px;font-weight:800;color:var(--t3);
+  border-bottom:1px solid var(--border);margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.rsec-icon{font-size:14px;}
+.rsec-label{flex:1;}
+.rsec-count{font-size:11px;color:var(--acc3);}
+.results-inner{display:flex;flex-direction:column;gap:10px;}
+
+/* 결과 카드 */
 .result-card{
-  background:var(--s1);border:1.5px solid var(--bdr2);
+  background:var(--card);border:1px solid rgba(124,58,237,.2);
   border-radius:var(--r);overflow:hidden;
-  margin-bottom:14px;
-  animation:cardIn .35s cubic-bezier(.4,0,.2,1) both;
 }
-@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.rc-cover{width:100%;aspect-ratio:16/6;background:var(--s2);position:relative;overflow:hidden;cursor:pointer;}
-.rc-cover-img{width:100%;height:100%;object-fit:cover;transition:transform .4s;}
-.rc-cover:hover .rc-cover-img{transform:scale(1.04);}
-.rc-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(45,0,96,.95));}
-.rc-cover-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg2),var(--bg3));font-size:52px;}
-.rc-body{padding:20px;}
-.rc-title{font-size:19px;font-weight:800;letter-spacing:-.4px;margin-bottom:5px;}
-.rc-meta{font-size:12px;color:var(--t3);margin-bottom:10px;font-weight:600;}
-.rc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
-.rc-tag{padding:4px 12px;border-radius:var(--rx);font-size:11px;font-weight:700;background:var(--s2);color:var(--t2);}
-.rc-tag.hl{background:rgba(255,140,0,.18);color:#FFB347;}
-.dual-label{display:inline-block;font-size:10px;font-weight:800;background:rgba(255,140,0,.2);color:#FFB347;padding:3px 10px;border-radius:var(--rx);margin-bottom:8px;}
-
-/* 결과 탭 */
-.rc-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1.5px solid var(--bdr2);}
-.rctab{padding:10px 16px;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:all .15s;font-family:inherit;}
-.rctab:hover{color:var(--t2);}
-.rctab.on{color:#FFB347;border-bottom-color:var(--acc);}
-.rc-tab-panel{display:none;}.rc-tab-panel.on{display:block;}
-
-/* ── 오디오 플레이어 ── */
-.audio-player{background:var(--s2);border-radius:var(--rm);padding:16px;}
-.ap-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
-.ap-play-btn{
-  width:46px;height:46px;border-radius:50%;flex-shrink:0;
-  background:var(--acc-g);border:none;cursor:pointer;
-  color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;box-shadow:0 4px 16px var(--acc-glow);
+.rc-cover{
+  width:100%;height:160px;object-fit:cover;
+  background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;position:relative;overflow:hidden;
 }
-.ap-play-btn:hover{transform:scale(1.08);}
-.ap-play-btn:active{transform:scale(.94);}
-.ap-info{flex:1;min-width:0;}
-.ap-track{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;letter-spacing:-.2px;}
-.ap-time{font-size:11px;color:var(--t3);font-weight:600;}
-.ap-prog-wrap{cursor:pointer;padding:5px 0;}
-.ap-prog-track{height:3px;background:var(--s3);border-radius:10px;overflow:hidden;}
-.ap-prog-fill{height:100%;border-radius:10px;background:var(--acc-g);width:0;transition:width .1s linear;}
-.ap-viz{display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:10px;}
-.ap-vbar{flex:1;border-radius:1px;background:var(--acc);opacity:.15;height:3px;transition:height .07s,opacity .07s;}
-.ap-vbar.on{opacity:.65;}
-
-/* 다운로드 버튼 */
-.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
-.dl-btn{padding:9px 16px;border-radius:var(--rx);font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--bdr2);background:var(--s2);color:var(--t2);transition:all .15s;font-family:inherit;}
-.dl-btn:hover{background:var(--s3);color:var(--t1);}
-.dl-btn.audio{color:#FFB347;border-color:rgba(255,140,0,.3);}
-.dl-btn.audio:hover{background:rgba(255,140,0,.1);}
-
-/* 가사 */
-.lyrics-display{background:var(--s2);border-radius:var(--rm);padding:16px;max-height:260px;overflow-y:auto;}
-.lyrics-display::-webkit-scrollbar{width:3px;}
-.lyrics-display::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px;}
-.lyrics-text{font-size:14px;line-height:2;color:var(--t2);white-space:pre-wrap;font-family:inherit;}
-.lyrics-text .lsec{color:#FFB347;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;display:block;margin-top:14px;margin-bottom:5px;}
-.lyrics-line{padding:2px 0;cursor:pointer;border-radius:4px;transition:color .1s;}
-.lyrics-line:hover{color:var(--t1);}
-.lyrics-line.active{color:#FFB347;font-weight:700;}
+.rc-cover img,.rc-cover video{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.rc-tabs{
+  display:flex;gap:0;
+  border-bottom:1px solid var(--border);
+  background:var(--bg2);
+}
+.rctab{
+  padding:8px 14px;font-size:12px;font-weight:700;
+  color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all .15s;font-family:inherit;background:none;border-top:none;
+}
+.rctab.on{color:var(--acc2);border-bottom-color:var(--acc2);}
+.rctab:hover:not(.on){color:var(--t1);}
+.rc-body{padding:14px;}
+.rc-tab-panel{display:none;}
+.rc-tab-panel.on{display:block;}
+.rc-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.rc-meta{font-size:12px;color:var(--t2);margin-bottom:10px;}
+.rc-player{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--rs);padding:12px;margin-bottom:10px;
+}
+.rc-player-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.rc-play-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--acc);border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.rc-play-btn:hover{transform:scale(1.08);background:var(--acc2);}
+.rc-play-btn svg{color:#fff;margin-left:2px;}
+.rc-prog{width:100%;height:4px;background:var(--card2);border-radius:2px;cursor:pointer;margin-bottom:4px;}
+.rc-prog-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;width:0%;transition:width .1s;}
+.rc-time{font-size:10px;color:var(--t3);text-align:right;}
+.rc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.rc-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 12px;border-radius:var(--rs);
+  border:1px solid var(--border);background:var(--card2);
+  color:var(--t1);font-family:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.rc-btn:hover{border-color:var(--acc3);color:var(--acc3);background:rgba(168,85,247,.08);}
+.rc-btn.primary{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
+.rc-btn.primary:hover{background:rgba(124,58,237,.25);}
+.rc-btn.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:var(--red);}
+.rc-btn.danger:hover{background:rgba(239,68,68,.2);}
+.rc-lyrics-box{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:12px 14px;
+  line-height:1.8;color:var(--t2);font-size:13px;
+  white-space:pre-wrap;min-height:80px;
+}
+.rc-lyrics-edit{
+  width:100%;background:var(--bg);border:1px solid var(--acc);
+  border-radius:var(--rs);padding:12px;color:var(--t1);
+  font-family:inherit;font-size:13px;line-height:1.8;
+  resize:vertical;min-height:120px;
+}
+.rc-lyrics-edit:focus{outline:none;}
+.rc-lyrics-toolbar{display:flex;justify-content:flex-end;gap:6px;margin-top:8px;}
+.rc-field-group{margin-bottom:12px;}
+.rc-field-label{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px;}
+.rc-field-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:9px 11px;color:var(--t1);
+  font-family:inherit;font-size:13px;
+}
+.rc-field-input:focus{outline:none;border-color:var(--acc);}
+.rc-field-textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:9px 11px;color:var(--t1);
+  font-family:inherit;font-size:13px;line-height:1.6;
+  resize:vertical;min-height:80px;
+}
+.rc-field-textarea:focus{outline:none;border-color:var(--acc);}
+.rc-small-btn{
+  padding:5px 10px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card2);
+  color:var(--t2);font-family:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.rc-small-btn:hover{color:var(--t1);}
+.rc-small-btn.primary{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
+.mv-making{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;font-size:12px;color:var(--t2);}
+.mv-spin{width:24px;height:24px;border-radius:50%;border:2px solid rgba(168,85,247,.3);border-top-color:var(--acc2);animation:spin .7s linear infinite;}
+.mv-video{width:100%;border-radius:var(--rs);display:block;}
+.dl-row{display:flex;gap:8px;margin-top:8px;}
+.dl-btn{
+  flex:1;padding:8px;border-radius:var(--rs);
+  border:1px solid var(--border);background:var(--card2);
+  color:var(--t1);font-family:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.dl-btn.video{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
+.dl-btn.lnk{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2);color:var(--green);}
 
 /* 피드백 카드 */
-.feedback-card{background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--r);padding:20px;margin-bottom:14px;}
-.fb-header{margin-bottom:6px;}
-.fb-title{font-size:15px;font-weight:800;letter-spacing:-.3px;}
-.fb-sub{font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.5;}
-.stars-row{display:flex;gap:6px;margin-bottom:16px;}
-.star{font-size:26px;cursor:pointer;opacity:.3;transition:all .15s;user-select:none;}
-.star.on,.star:hover{opacity:1;transform:scale(1.1);}
-.fb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
-.fbtag{padding:7px 15px;border-radius:var(--rx);background:var(--s1);border:1.5px solid var(--bdr2);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;font-family:inherit;}
-.fbtag.on{background:rgba(255,140,0,.15);border-color:var(--acc);color:#FFB347;}
-.fb-submit{padding:12px 24px;border-radius:var(--rx);background:rgba(255,140,0,.15);border:1.5px solid rgba(255,140,0,.3);font-size:13px;font-weight:800;color:#FFB347;cursor:pointer;transition:all .15s;font-family:inherit;}
-.fb-submit:hover{background:var(--acc-g);color:#fff;border-color:transparent;}
-.fb-time{font-size:11px;color:var(--t3);margin-top:10px;text-align:right;}
-
-
-
-/* ── 히스토리 카드 — 레퍼런스 리스트 스타일 ── */
-.view{display:none;}.view.on{display:block;}
-.hist-list{display:flex;flex-direction:column;gap:2px;}
-.hcard{
-  display:flex;align-items:center;gap:14px;
-  padding:14px 12px;border-radius:var(--rm);
-  cursor:pointer;transition:all .15s;
-  border-bottom:1px solid var(--bdr2);
+.feedback-card{
+  background:var(--card);border:1px solid rgba(168,85,247,.2);
+  border-radius:var(--r);padding:18px;margin-top:12px;
 }
-.hcard:last-child{border-bottom:none;}
-.hcard:hover{background:var(--s2);}
-.hcard-thumb{width:52px;height:52px;border-radius:var(--rs);overflow:hidden;flex-shrink:0;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;}
-.hcard-thumb img{width:100%;height:100%;object-fit:cover;}
-.hcard-info{flex:1;min-width:0;}
-.hcard-title{font-size:14px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
-.hcard-sub{font-size:11px;color:var(--t3);font-weight:600;}
-.hcard-right{flex-shrink:0;display:flex;align-items:center;gap:6px;}
-.hcard-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:var(--rx);background:rgba(255,140,0,.15);color:#FFB347;}
-.hcard-badge.liked{background:rgba(255,80,80,.12);color:#FF7070;}
-
-/* ── 커뮤니티 ── */
-.comm-hero{
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--r);overflow:hidden;margin-bottom:16px;position:relative;
+.fb-header{margin-bottom:4px;}
+.fb-title{font-size:15px;font-weight:700;}
+.fb-sub{font-size:12px;color:var(--t2);margin-bottom:12px;}
+.stars-row{display:flex;gap:6px;margin-bottom:12px;}
+.star{font-size:22px;cursor:pointer;transition:transform .1s;filter:grayscale(1);}
+.star.on,.star:hover{filter:none;transform:scale(1.15);}
+.fb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.fbtag{
+  padding:5px 11px;border-radius:var(--rx);
+  border:1px solid var(--border);background:var(--bg2);
+  font-size:11px;color:var(--t2);cursor:pointer;transition:all .15s;
 }
-.comm-hero-bg{width:100%;aspect-ratio:16/7;object-fit:cover;display:block;}
-.comm-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(45,0,96,.98) 30%,rgba(45,0,96,.3));}
-.comm-hero-content{position:absolute;bottom:0;left:0;right:0;padding:20px;}
-.comm-hero-badge{display:inline-block;font-size:10px;font-weight:800;color:#FFB347;background:rgba(255,140,0,.15);border:1.5px solid rgba(255,140,0,.3);padding:3px 10px;border-radius:var(--rx);margin-bottom:8px;}
-.comm-hero-title{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px;}
-.comm-hero-controls{display:flex;align-items:center;gap:10px;}
-.comm-hero-play{width:44px;height:44px;border-radius:50%;background:var(--acc-g);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit;box-shadow:0 4px 14px var(--acc-glow);}
-.comm-hero-play:hover{transform:scale(1.06);}
-.comm-hero-prog{flex:1;height:3px;background:rgba(255,255,255,.15);border-radius:10px;overflow:hidden;cursor:pointer;}
-.comm-hero-fill{height:100%;background:var(--acc-g);border-radius:10px;width:0;transition:width .15s linear;}
-.comm-hero-time{font-size:11px;color:rgba(255,255,255,.5);font-weight:600;}
-.comm-hero-actions{display:flex;gap:8px;margin-left:auto;}
-.comm-hero-btn{padding:7px 14px;border-radius:var(--rx);background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.15);font-size:12px;font-weight:700;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;font-family:inherit;}
-.comm-hero-btn:hover{background:rgba(255,255,255,.18);color:#fff;}
-.comm-hero-btn.liked{color:#FF7070;border-color:rgba(255,80,80,.3);}
-
-.comm-list{display:flex;flex-direction:column;gap:2px;}
-.comm-track{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--rm);cursor:pointer;transition:all .15s;border-bottom:1px solid var(--bdr2);}
-.comm-track:last-child{border-bottom:none;}
-.comm-track:hover{background:var(--s2);}
-.comm-track.active{background:rgba(255,140,0,.1);}
-.ct-num{width:22px;text-align:center;font-size:12px;color:var(--t3);font-weight:700;flex-shrink:0;}
-.ct-thumb{width:44px;height:44px;border-radius:var(--rs);overflow:hidden;flex-shrink:0;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.ct-thumb img{width:100%;height:100%;object-fit:cover;}
-.ct-info{flex:1;min-width:0;}
-.ct-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px;margin-bottom:2px;}
-.ct-sub{font-size:11px;color:var(--t3);font-weight:600;}
-.ct-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.ct-like{width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .15s;font-family:inherit;}
-.ct-like:hover{background:var(--s2);color:var(--t1);}
-.ct-like.liked{color:#FF7070;}
-
-.comm-detail-panel{background:var(--s2);border-radius:var(--rm);margin:4px 0;padding:16px;overflow:hidden;max-height:0;transition:max-height .3s ease,opacity .2s;opacity:0;}
-.comm-detail-panel.on{max-height:600px;opacity:1;}
-.comm-d-tabs{display:flex;gap:0;border-bottom:1.5px solid var(--bdr2);margin-bottom:14px;}
-.comm-d-tab{padding:8px 14px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:all .15s;font-family:inherit;}
-.comm-d-tab.on{color:#FFB347;border-bottom-color:var(--acc);}
-.comm-d-panel{display:none;}.comm-d-panel.on{display:block;}
-.comm-lyric-line{font-size:13px;color:var(--t2);line-height:2;cursor:pointer;}
-.comm-lyric-line:hover{color:var(--t1);}
-.comm-lyric-line.active{color:#FFB347;font-weight:700;}
-.comm-edit-textarea{width:100%;background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--rs);padding:10px 12px;font-size:13px;font-family:inherit;color:var(--t1);outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
-.comm-edit-textarea:focus{border-color:var(--acc);}
-.comm-edit-title-input{width:100%;background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--rs);padding:10px 12px;font-size:14px;font-weight:700;font-family:inherit;color:var(--t1);outline:none;transition:border-color .2s;margin-bottom:8px;}
-.comm-edit-title-input:focus{border-color:var(--acc);}
-.comm-save-btn{padding:9px 20px;border-radius:var(--rx);background:var(--acc-g);border:none;font-size:13px;font-weight:800;color:#fff;cursor:pointer;transition:all .15s;font-family:inherit;margin-top:10px;}
-.comm-save-btn:hover{opacity:.9;}
-
-/* ── 설정 ── */
-.settings-view-header{padding:8px 0 20px;}
-.settings-view-title{font-size:22px;font-weight:900;letter-spacing:-.5px;}
-.settings-profile{background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--r);padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;}
-.settings-avatar{width:52px;height:52px;border-radius:50%;background:var(--acc-g);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
-.settings-user-name{font-size:16px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px;}
-.settings-user-sub{font-size:12px;color:var(--t3);font-weight:600;}
-.settings-login-btn{padding:10px 22px;border-radius:var(--rx);background:var(--acc-g);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;box-shadow:0 4px 16px var(--acc-glow);}
-.settings-login-btn:hover{opacity:.9;}
-.settings-section{margin-bottom:12px;}
-.settings-section-title{font-size:11px;font-weight:800;color:var(--t3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;padding:0 2px;}
-.settings-item{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;background:var(--s1);border:1px solid var(--bdr2);cursor:pointer;transition:all .15s;}
-.settings-item:first-child{border-radius:var(--rm) var(--rm) 0 0;}
-.settings-item:last-child{border-radius:0 0 var(--rm) var(--rm);}
-.settings-item:only-child{border-radius:var(--rm);}
-.settings-item:not(:last-child){border-bottom-color:transparent;}
-.settings-item:hover{background:var(--s2);}
-.settings-item-left{display:flex;align-items:center;gap:12px;}
-.settings-item-icon{width:36px;height:36px;border-radius:var(--rs);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.settings-item-label{font-size:14px;font-weight:700;letter-spacing:-.2px;}
-.settings-item-sub{font-size:11px;color:var(--t3);font-weight:600;margin-top:2px;}
-.settings-item-right{font-size:13px;color:var(--t3);display:flex;align-items:center;gap:6px;}
-.settings-badge{padding:3px 10px;border-radius:var(--rx);background:rgba(0,200,150,.15);border:1.5px solid rgba(0,200,150,.25);color:#00E5B0;font-size:10px;font-weight:800;}
-
-
-/* ══════════════════════════════════════
-   하단 탭바 (#bottom-nav)
-══════════════════════════════════════ */
-#bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:200;
-  display:flex;align-items:center;justify-content:space-around;
-  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
-  background:rgba(20,0,50,.95);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid rgba(255,255,255,.1);
-  min-height:60px;
+.fbtag.on{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
+.fb-textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:10px;color:var(--t1);
+  font-family:inherit;font-size:12px;line-height:1.6;
+  resize:vertical;min-height:60px;margin-bottom:10px;
 }
-#bottom-nav .bnav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  gap:2px;padding:4px 2px;
-  cursor:pointer;border:none;background:transparent;
-  color:rgba(255,255,255,.3);font-family:inherit;
-  font-size:9px;font-weight:700;transition:all .15s;
-  border-radius:10px;position:relative;line-height:1.2;
-  min-width:0;
+.fb-textarea:focus{outline:none;border-color:var(--acc);}
+.fb-time-info{display:flex;align-items:center;gap:7px;margin-bottom:12px;font-size:11px;color:var(--t2);}
+.fb-time-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.fb-actions{display:flex;gap:8px;}
+.fb-remix-btn{
+  flex:1;padding:11px;border-radius:var(--rs);
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;color:#fff;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .2s;
 }
-#bottom-nav .bnav-item:hover{color:rgba(255,255,255,.6);}
-#bottom-nav .bnav-item.on{color:#fff;}
-#bottom-nav .bnav-icon{font-size:18px;line-height:1;display:block;margin-bottom:1px;}
-#bottom-nav .bnav-badge{
-  position:absolute;top:0px;right:calc(50% - 20px);
-  min-width:15px;height:15px;border-radius:8px;
-  background:var(--acc);color:#fff;font-size:9px;font-weight:800;
-  display:none;align-items:center;justify-content:center;padding:0 4px;
+.fb-remix-btn:hover{opacity:.9;}
+.fb-skip-btn{
+  padding:11px 14px;border-radius:var(--rs);
+  background:var(--card2);border:1px solid var(--border);
+  color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .15s;
 }
-#bottom-nav .bnav-badge.on{display:flex;}
+.fb-skip-btn:hover{color:var(--t1);}
 
-/* 중앙 FAB */
-#bottom-nav .bnav-center{
-  flex:0 0 52px;width:52px;height:52px;border-radius:50%;
-  background:var(--acc-g);
-  color:#fff;
-  box-shadow:0 4px 20px var(--acc-glow);
-  margin-top:-18px;
+/* ══════════════════════════════
+   HISTORY VIEW
+══════════════════════════════ */
+.hist-view-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+}
+.hist-view-title{font-size:20px;font-weight:800;}
+.hist-view-count{font-size:12px;color:var(--t3);margin-top:2px;}
+.clear-all-btn{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+  color:var(--red);padding:6px 12px;border-radius:8px;
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.clear-all-btn:hover{background:rgba(239,68,68,.18);}
+.hist-del-all-btn{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+  color:var(--red);padding:6px 12px;border-radius:8px;
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.hist-del-all-btn:hover{background:rgba(239,68,68,.18);}
+.hist-empty{text-align:center;padding:48px 20px;color:var(--t3);}
+.he-icon{font-size:40px;margin-bottom:10px;opacity:.4;}
+.he-txt{font-size:14px;font-weight:600;margin-bottom:4px;}
+.he-sub{font-size:12px;opacity:.6;}
+
+/* 히스토리 리스트 */
+.hist-view-grid{display:flex;flex-direction:column;gap:2px;}
+.hist-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border-radius:var(--rm);
+  padding:10px 12px;cursor:pointer;transition:background .15s;
+  position:relative;border-bottom:1px solid var(--border);
+}
+.hist-card:last-child{border-bottom:none;}
+.hist-card:hover{background:var(--card2);}
+.hist-thumb{
+  width:52px;height:52px;border-radius:10px;
+  overflow:hidden;background:var(--card2);flex-shrink:0;
+  position:relative;display:flex;align-items:center;
+  justify-content:center;font-size:20px;
+}
+.hist-thumb img,.hist-thumb video{width:100%;height:100%;object-fit:cover;display:block;}
+.hist-play-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;
-  flex-direction:column;gap:2px;padding:0;border:none;cursor:pointer;
-  font-family:inherit;font-weight:800;font-size:9px;
-  transition:transform .15s,box-shadow .15s;
+  opacity:0;transition:opacity .15s;
 }
-#bottom-nav .bnav-center .bnav-icon-wrap{font-size:18px;line-height:1;}
-#bottom-nav .bnav-center:hover{transform:scale(1.06);box-shadow:0 6px 28px var(--acc-glow);}
-
-/* 라이트 모드 탭바 */
-body.tab-library #bottom-nav,
-body.tab-settings #bottom-nav{
-  background:rgba(250,250,255,.96);
-  border-top-color:rgba(0,0,0,.08);
+.hist-card:hover .hist-play-overlay{opacity:1;}
+.hist-play-icon{font-size:16px;color:#fff;}
+.hist-type-badge{
+  position:absolute;top:3px;left:3px;
+  background:rgba(0,0,0,.7);color:var(--ylw);
+  font-size:8px;font-weight:800;padding:2px 4px;border-radius:4px;
 }
-body.tab-library #bottom-nav .bnav-item,
-body.tab-settings #bottom-nav .bnav-item{color:rgba(0,0,0,.28);}
-body.tab-library #bottom-nav .bnav-item.on,
-body.tab-settings #bottom-nav .bnav-item.on{color:#D06000;}
-body.tab-library #bottom-nav .bnav-center,
-body.tab-settings #bottom-nav .bnav-center{background:var(--acc-g);color:#fff;}
+.hist-info{flex:1;min-width:0;}
+.hist-title{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-sub{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-liked-badge{font-size:10px;color:#FF4081;margin-left:6px;background:rgba(255,64,129,.15);border:1px solid rgba(255,64,129,.3);border-radius:20px;padding:1px 6px;}
+.hist-del{
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+  color:var(--red);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.hist-del:hover{background:rgba(239,68,68,.2);}
+.hist-list{display:flex;flex-direction:column;gap:2px;}
 
-/* ══════════════════════════════════════
-   풀스크린 플레이어 (#fullplayer)
-══════════════════════════════════════ */
+/* ══════════════════════════════
+   COMMUNITY VIEW
+══════════════════════════════ */
+.comm-header{margin-bottom:14px;}
+.comm-title{font-size:20px;font-weight:800;}
+.comm-search-wrap{position:relative;margin-bottom:12px;}
+.comm-search{
+  width:100%;background:var(--card);
+  border:1px solid var(--border);border-radius:24px;
+  padding:11px 16px 11px 42px;color:var(--t1);
+  font-family:inherit;font-size:13px;transition:border-color .2s;
+}
+.comm-search:focus{outline:none;border-color:var(--acc);}
+.comm-search::placeholder{color:var(--t3);}
+.comm-search-wrap::before{
+  content:'🔍';position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:14px;pointer-events:none;
+}
+.comm-filter-row{
+  display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;
+  margin-bottom:16px;scrollbar-width:none;
+}
+.comm-filter-row::-webkit-scrollbar{display:none;}
+.comm-ftag{
+  padding:6px 14px;border-radius:var(--rx);
+  border:1px solid var(--border);background:var(--card);
+  color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .18s;font-family:inherit;white-space:nowrap;
+}
+.comm-ftag.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.comm-ftag:hover:not(.on){border-color:var(--acc3);color:var(--acc3);}
+
+/* 커뮤니티 히어로 */
+.comm-hero{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;margin-bottom:16px;
+}
+.comm-hero-img{
+  width:100%;height:200px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#1a0537,#3d1a5a,#0f2a4a);
+  display:flex;align-items:center;justify-content:center;
+}
+.comm-hero-img img{width:100%;height:100%;object-fit:cover;}
+.comm-hero-overlay{
+  position:absolute;bottom:0;left:0;right:0;height:100px;
+  background:linear-gradient(to top,rgba(22,22,31,.95),transparent);
+}
+.comm-hero-controls{
+  position:absolute;bottom:12px;left:14px;
+  display:flex;align-items:center;gap:10px;
+}
+.comm-hero-play{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--gold);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.comm-hero-play:hover{transform:scale(1.08);}
+.comm-hero-prog{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:100px;cursor:pointer;}
+.comm-hero-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;}
+.comm-hero-time{font-size:11px;color:rgba(255,255,255,.7);}
+.comm-hero-badges{position:absolute;top:12px;right:12px;display:flex;gap:6px;}
+.comm-like-badge{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  padding:5px 9px;border-radius:12px;font-size:11px;
+}
+.comm-hero-info{padding:14px 16px;}
+.comm-hero-title{font-size:18px;font-weight:700;margin-bottom:3px;}
+.comm-hero-desc{font-size:12px;color:var(--t2);margin-bottom:10px;}
+.comm-hero-actions{display:flex;gap:7px;}
+.comm-hero-act{
+  padding:7px 13px;border-radius:var(--rx);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  font-size:12px;font-weight:700;color:var(--t2);
+  cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;
+}
+.comm-hero-act:hover{background:rgba(255,255,255,.15);color:#fff;}
+.comm-hero-act.liked{color:var(--red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1);}
+.comm-hero-act.disliked{color:var(--t3);}
+
+/* 커뮤니티 리스트 */
+.comm-section-label{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px;}
+.comm-list{display:flex;flex-direction:column;gap:8px;}
+.comm-item{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--rm);overflow:hidden;
+}
+.comm-item-row{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;
+  cursor:pointer;transition:background .15s;
+}
+.comm-item-row:hover{background:var(--card2);}
+.comm-rank{font-size:12px;color:var(--t3);font-weight:700;width:18px;flex-shrink:0;}
+.comm-rank.top{color:var(--ylw);}
+.comm-thumb{
+  width:46px;height:46px;border-radius:9px;
+  background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.comm-thumb img{width:100%;height:100%;object-fit:cover;}
+.comm-info{flex:1;min-width:0;}
+.comm-track-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.comm-meta{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--t3);}
+.comm-stat{display:flex;align-items:center;gap:3px;}
+.comm-stat.liked-stat{color:var(--red);}
+.comm-new-badge{
+  display:inline-block;background:rgba(16,185,129,.15);
+  border:1px solid rgba(16,185,129,.3);color:var(--green);
+  font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;
+  margin-left:4px;vertical-align:middle;
+}
+.comm-pinned-badge{
+  display:inline-block;background:rgba(245,158,11,.12);
+  border:1px solid rgba(245,158,11,.25);color:var(--ylw);
+  font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;
+  margin-left:4px;vertical-align:middle;
+}
+.comm-item-btns{display:flex;gap:6px;align-items:center;}
+.comm-like-btn{
+  width:30px;height:30px;border-radius:50%;background:transparent;
+  border:1px solid var(--border);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.comm-like-btn:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);}
+.comm-like-btn.liked{color:var(--red);}
+.comm-play-btn{
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);
+  font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.comm-play-btn:hover{background:rgba(124,58,237,.3);}
+
+/* 커뮤니티 상세 패널 */
+.comm-detail{
+  background:var(--bg2);padding:0 14px;overflow:hidden;
+  max-height:0;transition:max-height .3s ease,padding .2s;
+}
+.comm-detail.on{max-height:600px;padding:14px;}
+.comm-detail-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.comm-dtab{
+  padding:7px 14px;font-size:12px;font-weight:700;
+  color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;
+}
+.comm-dtab:hover{color:var(--t1);}
+.comm-dtab.on{color:var(--gold);border-bottom-color:var(--gold);}
+.comm-dpanel{display:none;}
+.comm-dpanel.on{display:block;}
+.comm-lyrics-box{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rm);padding:12px 14px;
+  max-height:280px;overflow-y:auto;
+}
+.comm-lyric-sec{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:2px;text-transform:uppercase;display:block;margin:10px 0 4px;}
+.comm-lyric-line{font-size:13px;color:rgba(255,255,255,.82) !important;line-height:2;cursor:pointer;padding:1px 0;transition:color .1s;}
+.comm-lyric-line:hover{color:var(--gold) !important;}
+.comm-lyric-line.active{color:var(--gold) !important;font-weight:700;}
+.comm-desc-text{font-size:13px;color:rgba(255,255,255,.7);line-height:1.8;white-space:pre-wrap;background:var(--bg);border:1px solid var(--border);border-radius:var(--rm);padding:12px 14px;}
+.comm-edit-row{margin-bottom:10px;}
+.comm-edit-label{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase;}
+.comm-edit-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;font-size:13px;font-family:inherit;color:var(--t1);outline:none;transition:border-color .2s;}
+.comm-edit-input:focus{border-color:var(--acc);}
+.comm-edit-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:13px;font-family:inherit;color:var(--t1);outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
+.comm-edit-textarea:focus{border-color:var(--acc);}
+.comm-edit-save-btn{width:100%;padding:10px;border-radius:var(--rs);background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.3);color:var(--gold);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.comm-edit-save-btn:hover{background:rgba(255,140,0,.22);}
+
+/* ══════════════════════════════
+   SETTINGS VIEW
+══════════════════════════════ */
+.settings-banner{
+  background:linear-gradient(135deg,#1a0537,#3d1a5a);
+  border-radius:var(--r);padding:20px;margin-bottom:16px;
+}
+.settings-banner-top{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.settings-avatar{
+  width:52px;height:52px;border-radius:50%;
+  background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.settings-user-info{flex:1;min-width:0;}
+.settings-user-name{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.settings-user-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;}
+.settings-login-btn{
+  padding:7px 13px;border-radius:var(--rx);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:all .15s;flex-shrink:0;
+}
+.settings-login-btn:hover{background:rgba(255,255,255,.22);}
+.settings-stats{display:flex;gap:0;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;}
+.settings-stat{flex:1;text-align:center;}
+.settings-stat:not(:last-child){border-right:1px solid rgba(255,255,255,.1);}
+.settings-stat-num{font-size:20px;font-weight:800;color:#fff;}
+.settings-stat-label{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;}
+.settings-section{margin-bottom:16px;}
+.settings-section-title{font-size:11px;font-weight:800;color:var(--t3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;padding:0 2px;}
+.settings-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 14px;cursor:pointer;transition:background .15s;
+}
+.settings-item:hover{background:var(--card2);}
+.settings-item-left{display:flex;align-items:center;gap:11px;}
+.settings-item-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+}
+.settings-item-label{font-size:13px;font-weight:600;}
+.settings-item-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+.settings-item-right{font-size:13px;color:var(--t3);}
+.settings-badge{
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+  color:var(--green);padding:3px 8px;border-radius:var(--rx);font-size:10px;font-weight:700;
+}
+.key-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;}
+.key-dot{width:7px;height:7px;border-radius:50%;background:var(--t3);}
+.key-dot.ok{background:var(--green);}
+.key-dot.err{background:var(--red);}
+
+/* ══════════════════════════════
+   BOTTOM NAV
+══════════════════════════════ */
+#bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;z-index:200;
+}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:9px 0 12px;gap:3px;
+  cursor:pointer;transition:all .2s;color:var(--t3);
+  font-size:11px;font-weight:600;border:none;background:transparent;
+  font-family:inherit;position:relative;
+}
+.bnav-item.on{color:var(--acc2);}
+.bnav-svg{width:22px;height:22px;stroke-width:1.7;}
+.bnav-label{font-size:10px;}
+.bnav-center{position:relative;}
+.bnav-icon-wrap{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:#fff;
+  margin-bottom:-4px;box-shadow:0 4px 18px rgba(124,58,237,.5);
+  transition:all .2s;
+}
+.bnav-center.on .bnav-icon-wrap{box-shadow:0 6px 24px rgba(124,58,237,.7);}
+.bnav-badge{
+  position:absolute;top:6px;right:calc(50% - 20px);
+  background:var(--red);color:#fff;
+  font-size:9px;font-weight:800;
+  min-width:16px;height:16px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+}
+
+/* ══════════════════════════════
+   TOAST
+══════════════════════════════ */
+#toast{
+  position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:var(--card2);border:1px solid var(--border);color:var(--t1);
+  padding:9px 18px;border-radius:24px;font-size:12px;font-weight:600;
+  z-index:9999;opacity:0;transition:all .25s;pointer-events:none;
+  white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{border-color:rgba(16,185,129,.4);color:var(--green);}
+#toast.err{border-color:rgba(239,68,68,.4);color:var(--red);}
+
+/* ══════════════════════════════
+   FULLPLAYER
+══════════════════════════════ */
 #fullplayer{
   position:fixed;inset:0;z-index:500;
-  background:#0a001e;
-  display:none;flex-direction:column;overflow:hidden;
+  background:var(--bg);transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;
 }
-#fullplayer.on{display:flex;}
-.fp-bg{
-  position:absolute;inset:0;z-index:0;
-  background-size:cover;background-position:center;background-repeat:no-repeat;
-  filter:blur(72px) saturate(2.5) brightness(.7);opacity:1;
-  transition:background-image .5s ease;
-}
-.fp-bg::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(10,0,30,.55) 0%,rgba(10,0,30,.85) 60%,rgba(10,0,30,.97) 100%);
-}
-.fp-inner{
-  position:relative;z-index:1;
-  display:flex;flex-direction:column;
-  height:100%;max-width:540px;margin:0 auto;width:100%;
-}
-.fp-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:max(48px,env(safe-area-inset-top,48px)) 20px 12px;
-  flex-shrink:0;
-}
+#fullplayer.on{transform:translateY(0);}
+.fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(40px) brightness(.3);transform:scale(1.1);}
+.fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;width:100%;}
+.fp-header{display:flex;align-items:center;justify-content:space-between;padding:50px 20px 14px;}
 .fp-back{
-  width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.12);border:none;
-  color:rgba(255,255,255,.8);font-size:16px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  font-family:inherit;transition:all .15s;
+  width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);
+  border:none;color:#fff;font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-family:inherit;
 }
-.fp-back:active{background:rgba(255,255,255,.22);}
-.fp-header-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
-.fp-scroll{
-  flex:1;overflow-y:auto;padding:0 20px 48px;
-  -webkit-overflow-scrolling:touch;
-}
-.fp-scroll::-webkit-scrollbar{display:none;}
-/* 커버 */
-.fp-cover-wrap{padding:4px 0 20px;}
+.fp-header-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.6);}
+.fp-scroll{flex:1;overflow-y:auto;padding:0 20px 20px;}
+.fp-cover-wrap{text-align:center;margin-bottom:20px;}
 .fp-cover{
-  width:100%;aspect-ratio:1/1;border-radius:20px;overflow:hidden;
-  background:linear-gradient(135deg,#3A0078,#6B00C8);
-  display:flex;align-items:center;justify-content:center;font-size:72px;
-  box-shadow:0 24px 72px rgba(0,0,0,.7);
+  width:220px;height:220px;border-radius:16px;display:inline-block;
+  overflow:hidden;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:48px;box-shadow:0 8px 40px rgba(0,0,0,.6);
 }
-.fp-cover img{width:100%;height:100%;object-fit:cover;display:block;}
-/* 곡 정보 */
-.fp-info{margin-bottom:20px;}
-.fp-title{font-size:22px;font-weight:900;letter-spacing:-.5px;color:#fff;margin-bottom:5px;word-break:break-word;}
-.fp-tags{font-size:13px;color:rgba(255,255,255,.5);font-weight:600;}
-/* 액션 버튼 */
-.fp-actions{
-  display:flex;justify-content:space-between;
-  margin-bottom:24px;
-}
+.fp-cover img{width:100%;height:100%;object-fit:cover;}
+.fp-info{text-align:center;margin-bottom:14px;}
+.fp-title{font-size:20px;font-weight:800;margin-bottom:4px;}
+.fp-tags{font-size:12px;color:rgba(255,255,255,.5);}
+.fp-actions{display:flex;justify-content:center;gap:20px;margin-bottom:20px;}
 .fp-act-btn{
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  background:none;border:none;cursor:pointer;
-  color:rgba(255,255,255,.5);font-size:10px;font-weight:700;
-  font-family:inherit;transition:color .15s;padding:6px 4px;flex:1;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:none;border:none;color:rgba(255,255,255,.55);font-size:10px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:color .15s;
 }
-.fp-act-btn:hover,.fp-act-btn:active{color:#fff;}
-.fp-act-icon{font-size:22px;line-height:1;}
-/* 진행바 */
-.fp-prog-section{margin-bottom:24px;}
+.fp-act-btn:hover{color:#fff;}
+.fp-act-icon{font-size:20px;}
+.fp-prog-section{margin-bottom:18px;}
 .fp-prog-wrap{
-  height:4px;background:rgba(255,255,255,.15);
-  border-radius:10px;position:relative;cursor:pointer;
-  margin-bottom:8px;
+  width:100%;height:4px;background:rgba(255,255,255,.15);
+  border-radius:2px;cursor:pointer;position:relative;margin-bottom:7px;
 }
-.fp-prog-fill{
-  position:absolute;left:0;top:0;height:100%;
-  background:var(--acc-g);border-radius:10px;
-  width:0;transition:width .1s linear;
-}
+.fp-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;}
 .fp-prog-thumb{
-  position:absolute;top:50%;
-  width:14px;height:14px;border-radius:50%;
-  background:#fff;transform:translate(-50%,-50%);
-  box-shadow:0 2px 8px rgba(0,0,0,.5);
-  transition:left .1s linear;
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  position:absolute;top:-5px;left:0%;transform:translateX(-50%);
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
 }
-.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.35);font-weight:600;}
-/* 컨트롤 */
-.fp-controls{
-  display:flex;align-items:center;justify-content:center;
-  gap:24px;margin-bottom:24px;
-}
-.fp-ctrl-btn{
-  width:46px;height:46px;border-radius:50%;
-  background:rgba(255,255,255,.08);border:none;
-  color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;font-family:inherit;
-}
-.fp-ctrl-btn:hover,.fp-ctrl-btn:active{background:rgba(255,255,255,.16);color:#fff;}
+.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.4);}
+.fp-controls{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:20px;}
 .fp-play-btn{
-  width:64px;height:64px;border-radius:50%;
-  background:var(--acc-g);border:none;
-  color:#fff;font-size:22px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .2s;box-shadow:0 6px 28px var(--acc-glow);
-  font-family:inherit;
+  width:60px;height:60px;border-radius:50%;
+  background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);
+  color:#fff;font-size:20px;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;transition:all .15s;
 }
-.fp-play-btn:hover{transform:scale(1.06);}
-.fp-play-btn:active{transform:scale(.94);}
-/* Viz */
-.fp-viz{
-  display:flex;align-items:flex-end;gap:2px;
-  height:28px;justify-content:center;margin-bottom:24px;
+.fp-play-btn:hover{background:rgba(255,255,255,.25);}
+.fp-ctrl-btn{
+  width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);
+  border:none;color:rgba(255,255,255,.6);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
-.fp-vbar{width:3px;border-radius:2px;background:rgba(255,140,0,.25);height:4px;transition:height .07s,opacity .07s;}
-.fp-vbar.on{background:var(--acc);}
-/* 가사 */
-.fp-lyrics-section{background:rgba(255,255,255,.07);border-radius:16px;padding:16px;margin-bottom:12px;}
-.fp-lyrics-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.fp-lyrics-header span{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);}
+.fp-ctrl-btn:hover{background:rgba(255,255,255,.15);color:#fff;}
+.fp-viz{display:flex;align-items:center;gap:2px;height:32px;justify-content:center;margin-bottom:20px;}
+.fp-vbar{width:3px;background:rgba(255,255,255,.25);border-radius:2px;height:8px;}
+.fp-vbar.active{height:24px;background:rgba(255,255,255,.7);}
+.fp-lyrics-section{margin-top:8px;}
+.fp-lyrics-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);}
 .fp-lyrics-toggle{
-  padding:5px 12px;border-radius:100px;
-  background:rgba(255,140,0,.15);border:1.5px solid rgba(255,140,0,.3);
-  font-size:11px;font-weight:700;color:#FFB347;cursor:pointer;font-family:inherit;
+  padding:4px 10px;border-radius:var(--rx);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.6);font-size:10px;font-weight:700;
+  cursor:pointer;font-family:inherit;
 }
-.fp-lyrics-toggle.on{background:var(--acc-g);color:#fff;border-color:transparent;}
-.fp-lyrics-box{max-height:180px;overflow-y:auto;}
-.fp-lyrics-box::-webkit-scrollbar{width:2px;}
-.fp-lyrics-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
-.fp-lyrics-empty{font-size:13px;color:rgba(255,255,255,.3);text-align:center;padding:16px;}
-.fp-lyric-line{font-size:14px;color:rgba(255,255,255,.4);line-height:2;cursor:pointer;transition:all .15s;padding:1px 0;}
-.fp-lyric-line:hover{color:rgba(255,255,255,.7);}
-.fp-lyric-line.active{color:#FFB347;font-weight:800;}
-.fp-lyric-section-label{font-size:10px;font-weight:800;color:#FFB347;letter-spacing:1.5px;text-transform:uppercase;margin:10px 0 3px;display:block;}
+.fp-lyrics-box{min-height:80px;}
+.fp-lyrics-empty{font-size:12px;color:rgba(255,255,255,.25);text-align:center;padding:20px 0;}
+.fp-lline{font-size:14px;color:rgba(255,255,255,.45);line-height:2;cursor:pointer;transition:color .1s;padding:1px 0;}
+.fp-lline.active{color:#fff;font-weight:700;}
+.fp-lline.done{color:rgba(255,255,255,.3);}
+.fp-lline-plain{font-size:13px;color:rgba(255,255,255,.55);line-height:2;white-space:pre-wrap;}
+.fp-lyrics-mode-btn{padding:4px 10px;border-radius:var(--rx);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;}
 
-/* ══════════════════════════════════════
-   공유 바텀시트 (#share-sheet)
-══════════════════════════════════════ */
-#share-sheet{
+/* ══════════════════════════════
+   SHARE SHEET
+══════════════════════════════ */
+#share-sheet{position:fixed;inset:0;z-index:600;display:none;}
+#share-sheet.on{display:block;}
+.share-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
+.share-panel{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 36px;
+}
+.share-handle{width:36px;height:3px;background:var(--t3);border-radius:2px;margin:0 auto 16px;}
+.share-title{font-size:16px;font-weight:800;margin-bottom:16px;text-align:center;}
+.share-btns{display:flex;justify-content:center;gap:16px;margin-bottom:14px;}
+.share-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-family:inherit;}
+.share-btn-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.share-btn-label{font-size:11px;color:var(--t2);font-weight:600;}
+.share-copy-row{margin-top:4px;}
+.share-copy-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--t2);font-size:11px;font-family:inherit;}
+
+/* ══════════════════════════════
+   MODALS (VOCAL / EXTEND)
+══════════════════════════════ */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:700;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-backdrop.on{display:flex;}
+.modal{
+  background:var(--bg2);border-radius:20px 20px 0 0;
+  width:100%;max-width:480px;padding:24px 20px 36px;
+  max-height:90vh;overflow-y:auto;position:relative;
+}
+.modal-close{
+  position:absolute;top:16px;right:16px;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:none;
+  color:var(--t1);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:6px;}
+.modal-sub{font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.6;}
+.prompt-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);padding:11px 13px;color:var(--t1);
+  font-family:inherit;font-size:13px;line-height:1.6;
+  resize:vertical;min-height:80px;transition:border-color .2s;
+}
+.prompt-input:focus{outline:none;border-color:var(--acc);}
+.prompt-input::placeholder{color:var(--t3);}
+
+/* Extend modal */
+#extend-modal .modal{max-width:380px;width:100%;border-radius:16px;margin:20px;}
+#extend-modal{align-items:center;}
+
+/* ══════════════════════════════
+   KARAOKE PLAYER
+══════════════════════════════ */
+#karaoke-player{
+  position:fixed;inset:0;z-index:600;
+  background:var(--bg);transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+#karaoke-player.on{transform:translateY(0);}
+.kp-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:48px 20px 16px;
+  background:rgba(10,10,15,.95);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.kp-header-title{font-size:15px;font-weight:800;}
+.kp-close{
+  padding:7px 13px;border-radius:var(--rs);
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.kp-body{display:flex;flex:1;overflow:hidden;}
+.kp-left{
+  width:200px;flex-shrink:0;display:flex;flex-direction:column;
+  border-right:1px solid var(--border);padding:16px;
+}
+.kp-left-info{margin-bottom:12px;}
+.kp-cover{
+  width:80px;height:80px;border-radius:12px;
+  background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;overflow:hidden;margin-bottom:8px;
+}
+.kp-cover img{width:100%;height:100%;object-fit:cover;}
+.kp-track-title{font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.4;}
+.kp-track-tags{font-size:10px;color:var(--t3);}
+.kp-left-controls{margin-top:auto;}
+.kp-viz{display:flex;align-items:center;gap:2px;height:24px;justify-content:center;margin-bottom:10px;}
+.kp-vbar{width:3px;background:rgba(255,255,255,.2);border-radius:2px;height:6px;}
+.kp-vbar.active{background:var(--acc2);}
+.kp-prog-wrap{width:100%;height:3px;background:rgba(255,255,255,.12);border-radius:2px;cursor:pointer;margin-bottom:6px;position:relative;}
+.kp-prog-fill{height:100%;background:var(--acc2);border-radius:2px;width:0%;}
+.kp-time{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:8px;}
+.kp-controls{display:flex;justify-content:center;}
+.kp-play-btn{
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);
+  color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.kp-right{flex:1;overflow-y:auto;padding:20px;}
+.kp-lyrics-empty{font-size:13px;color:var(--t3);text-align:center;padding:40px 0;line-height:1.8;}
+.kp-lyrics-line{font-size:16px;font-weight:600;color:rgba(255,255,255,.3);line-height:1.9;cursor:pointer;transition:all .2s;padding:2px 0;}
+.kp-lyrics-line.active{color:#fff;font-size:18px;}
+.kp-lyrics-line.done{color:rgba(255,255,255,.2);}
+
+/* ══════════════════════════════
+   RECOMPOSE SHEET
+══════════════════════════════ */
+.recompose-sheet{
   position:fixed;inset:0;z-index:700;
   display:none;align-items:flex-end;justify-content:center;
 }
-#share-sheet.on{display:flex;}
-.share-backdrop{
-  position:absolute;inset:0;background:rgba(0,0,0,.6);
-  backdrop-filter:blur(6px);
-}
-.share-panel{
-  position:relative;z-index:1;width:100%;max-width:600px;
-  background:#2A0058;
-  border:1.5px solid rgba(255,255,255,.12);
-  border-bottom:none;
-  border-radius:20px 20px 0 0;
-  padding:16px 20px calc(28px + env(safe-area-inset-bottom));
-  animation:slideUpSheet .3s cubic-bezier(.4,0,.2,1);
-}
-@keyframes slideUpSheet{from{transform:translateY(100%)}to{transform:none}}
-.share-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px;}
-.share-title{font-size:15px;font-weight:800;color:#fff;margin-bottom:16px;}
-.share-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
-.share-btn{
-  display:flex;flex-direction:column;align-items:center;gap:7px;
-  background:none;border:none;cursor:pointer;font-family:inherit;
-  transition:transform .15s;
-}
-.share-btn:hover{transform:translateY(-2px);}
-.share-btn-icon{
-  width:52px;height:52px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-}
-.share-btn-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);}
-.share-copy-row{display:flex;gap:8px;}
-.share-copy-input{
-  flex:1;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.12);
-  border-radius:10px;padding:10px 12px;
-  font-size:12px;color:rgba(255,255,255,.5);font-family:inherit;outline:none;
-}
-
-/* ══════════════════════════════════════
-   설정 배너 (퍼플-핑크 그라디언트)
-══════════════════════════════════════ */
-.settings-banner{
-  background:linear-gradient(135deg,#6B00C8 0%,#C850C0 60%,#FF6B9D 100%);
-  border-radius:var(--r);padding:20px;margin-bottom:16px;overflow:hidden;position:relative;
-}
-.settings-banner::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 70% 70% at 100% 0%,rgba(255,255,255,.15),transparent);
-  pointer-events:none;
-}
-.settings-banner-top{display:flex;align-items:center;gap:12px;margin-bottom:16px;position:relative;}
-.settings-banner .settings-avatar{
-  width:48px;height:48px;border-radius:50%;
-  background:rgba(255,255,255,.22);
-  display:flex;align-items:center;justify-content:center;font-size:20px;
-  flex-shrink:0;border:2px solid rgba(255,255,255,.3);
-}
-.settings-banner .settings-user-info{flex:1;min-width:0;}
-.settings-banner .settings-user-name{font-size:15px;font-weight:800;color:#fff;}
-.settings-banner .settings-user-sub{font-size:12px;color:rgba(255,255,255,.65);font-weight:500;margin-top:2px;}
-.settings-banner .settings-login-btn{
-  padding:7px 14px;border-radius:100px;flex-shrink:0;
-  background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.3);
-  color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;
-  transition:all .15s;
-}
-.settings-banner .settings-login-btn:hover{background:rgba(255,255,255,.28);}
-.settings-stats{display:flex;position:relative;border-top:1px solid rgba(255,255,255,.18);padding-top:14px;}
-.settings-stat{flex:1;text-align:center;}
-.settings-stat:not(:last-child){border-right:1px solid rgba(255,255,255,.18);}
-.settings-stat-num{font-size:21px;font-weight:900;color:#fff;letter-spacing:-.3px;}
-.settings-stat-label{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;margin-top:2px;}
-
-/* ══════════════════════════════════════
-   피드백 카드 버튼
-══════════════════════════════════════ */
-.fb-textarea{
-  width:100%;min-height:68px;resize:none;
-  background:var(--s1);border:1.5px solid var(--bdr2);border-radius:var(--rm);
-  padding:11px 13px;font-size:13px;font-family:inherit;color:var(--t1);
-  outline:none;line-height:1.6;transition:border-color .2s;margin-bottom:12px;box-sizing:border-box;
-}
-.fb-textarea:focus{border-color:rgba(255,255,255,.35);}
-.fb-textarea::placeholder{color:var(--t3);}
-.fb-time-info{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);margin-bottom:12px;font-weight:500;}
-.fb-time-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex-shrink:0;animation:dotPulse 1.5s ease-in-out infinite;}
-@keyframes dotPulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-.fb-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.fb-remix-btn{
-  padding:10px 18px;border-radius:100px;
-  background:var(--acc-g);border:none;
-  font-size:13px;font-weight:800;color:#fff;cursor:pointer;
-  transition:all .15s;font-family:inherit;box-shadow:0 4px 14px var(--acc-glow);
-}
-.fb-remix-btn:hover{opacity:.9;transform:translateY(-1px);}
-.fb-remix-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
-.fb-skip-btn{
-  padding:10px 16px;border-radius:100px;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;
-  transition:all .15s;font-family:inherit;
-}
-.fb-skip-btn:hover{color:var(--t2);}
-
-/* ══════════════════════════════════════
-   히스토리 뷰 헤더
-══════════════════════════════════════ */
-.hist-view-header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 14px;}
-.hist-view-title{font-size:20px;font-weight:900;letter-spacing:-.4px;color:var(--t1);}
-.hist-view-count{font-size:12px;color:var(--t3);font-weight:600;margin-top:3px;}
-.hist-del-all-btn{
-  padding:7px 14px;border-radius:100px;
-  background:rgba(255,77,77,.1);border:1.5px solid rgba(255,77,77,.2);
-  font-size:12px;font-weight:700;color:#FF7070;cursor:pointer;font-family:inherit;transition:all .15s;
-}
-.hist-del-all-btn:hover{background:rgba(255,77,77,.2);}
-.hist-empty{text-align:center;padding:60px 20px;font-size:14px;color:var(--t3);line-height:2.2;}
-
-/* ══════════════════════════════════════
-   커뮤니티 뷰 헤더 & 필터
-══════════════════════════════════════ */
-.comm-view-header{padding:12px 0 8px;}
-.comm-view-title{font-size:20px;font-weight:900;letter-spacing:-.4px;color:var(--t1);margin-bottom:4px;}
-.comm-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
-.comm-filter-btn{
-  padding:7px 14px;border-radius:100px;
-  background:transparent;border:1.5px solid var(--bdr);
-  color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;
-}
-.comm-filter-btn:hover{background:var(--s2);}
-.comm-filter-btn.on{background:#fff;color:#2D0060;border-color:#fff;}
-.comm-empty{text-align:center;padding:60px 20px;font-size:14px;color:var(--t3);line-height:2.2;}
-
-/* ══════════════════════════════════════
-   연장/노래방/재작곡 버튼
-══════════════════════════════════════ */
-.extend-btn,.karaoke-btn,.rc-action-btn{
-  padding:9px 16px;border-radius:100px;
-  font-size:12px;font-weight:700;cursor:pointer;
-  border:1.5px solid var(--bdr2);background:var(--s1);color:var(--t2);
-  transition:all .15s;font-family:inherit;
-}
-.extend-btn:hover,.rc-action-btn:hover{background:var(--s2);color:var(--t1);}
-.extend-btn:disabled,.rc-action-btn:disabled{opacity:.35;cursor:not-allowed;}
-.karaoke-btn{color:#FFB347;border-color:rgba(255,140,0,.25);background:rgba(255,140,0,.08);}
-.karaoke-btn:hover{background:rgba(255,140,0,.18);}
-.rc-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
-.rc-action-btn.primary{background:rgba(255,140,0,.12);border-color:rgba(255,140,0,.28);color:#FFB347;}
-.rc-action-btn.primary:hover{background:rgba(255,140,0,.22);}
-
-/* dl-btn 확장 */
-.dl-btn.video{color:#4DA6FF;border-color:rgba(77,166,255,.28);}
-.dl-btn.video:hover{background:rgba(77,166,255,.1);}
-
-/* ══════════════════════════════════════
-   라이트 모드 (히스토리/커뮤니티/설정)
-══════════════════════════════════════ */
-body.tab-library,body.tab-settings{
-  background:#F4F4F8;
-}
-/* 헤더 */
-body.tab-library .app-header,body.tab-settings .app-header{
-  background:rgba(250,250,255,.97);border-bottom-color:rgba(0,0,0,.07);
-}
-body.tab-library .logo-title,body.tab-settings .logo-title{color:#1A1A2E;}
-body.tab-library .logo-title em,body.tab-settings .logo-title em{
-  background:linear-gradient(135deg,#8B00CC,#FF6B35);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-body.tab-library .key-status,body.tab-settings .key-status{
-  background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1);color:rgba(0,0,0,.4);
-}
-body.tab-library .key-status.ok,body.tab-settings .key-status.ok{
-  background:rgba(0,140,100,.08);border-color:rgba(0,140,100,.2);color:#006644;
-}
-body.tab-library .key-status.err,body.tab-settings .key-status.err{
-  background:rgba(200,0,0,.07);border-color:rgba(200,0,0,.15);color:#C00000;
-}
-/* 뷰 카드 */
-body.tab-library .view,body.tab-settings .view{background:transparent;}
-/* 히스토리/커뮤니티 */
-body.tab-library .hist-view-title,body.tab-library .comm-view-title{color:#1A1A2E;}
-body.tab-library .hist-view-count{color:rgba(0,0,0,.35);}
-body.tab-library .hist-del-all-btn{background:rgba(200,0,0,.07);border-color:rgba(200,0,0,.14);color:#C00000;}
-body.tab-library .hist-empty,body.tab-library .comm-empty{color:rgba(0,0,0,.28);}
-body.tab-library .hcard{border-bottom-color:rgba(0,0,0,.07);}
-body.tab-library .hcard:hover{background:rgba(0,0,0,.03);}
-body.tab-library .hcard-title{color:#1A1A2E;}
-body.tab-library .hcard-sub{color:rgba(0,0,0,.4);}
-body.tab-library .hcard-dur{color:rgba(0,0,0,.25);}
-/* 커뮤니티 필터 */
-body.tab-library .comm-filter-btn{background:#fff;border-color:rgba(0,0,0,.12);color:rgba(0,0,0,.45);}
-body.tab-library .comm-filter-btn:hover{background:#F0F0F8;}
-body.tab-library .comm-filter-btn.on{
-  background:linear-gradient(135deg,#6B00C8,#C850C0);color:#fff;border-color:transparent;
-}
-body.tab-library .comm-track,body.tab-library .comm-hero{border-color:rgba(0,0,0,.07);}
-body.tab-library .comm-track:hover{background:rgba(0,0,0,.03);}
-body.tab-library .ct-title{color:#1A1A2E;}
-body.tab-library .ct-sub,body.tab-library .ct-num{color:rgba(0,0,0,.38);}
-/* 설정 */
-body.tab-settings .settings-section-title{color:rgba(0,0,0,.38);}
-body.tab-settings .settings-item{background:#fff;border-radius:12px;}
-body.tab-settings .settings-item:hover{background:#F8F8FF;}
-body.tab-settings .settings-item-label{color:#1A1A2E;}
-body.tab-settings .settings-item-sub{color:rgba(0,0,0,.38);}
-body.tab-settings .settings-item-right{color:rgba(0,0,0,.28);}
-body.tab-settings .settings-item-icon{background:#F0F0F5;}
-body.tab-settings .settings-view-title{color:#1A1A2E;}
-body.tab-settings .settings-badge{background:rgba(0,100,50,.08);border-color:rgba(0,100,50,.15);color:#005A30;}
-
-/* ══════════════════════════════════════
-   반응형
-══════════════════════════════════════ */
-@media(max-width:400px){
-  #bottom-nav .bnav-center{width:48px;height:48px;margin-top:-16px;}
-  .fp-cover{border-radius:14px;}
-  .fp-title{font-size:19px;}
-}
-
-/* ── 노래방 플레이어 ── */
-#karaoke-player{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column;}
-#karaoke-player.on{display:flex;}
-#karaoke-player .kp-header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,16px) 20px 16px;background:rgba(45,0,96,.9);border-bottom:1px solid var(--bdr2);flex-shrink:0;}
-#karaoke-player .kp-header-title{font-size:15px;font-weight:800;letter-spacing:-.3px;}
-#karaoke-player .kp-close{padding:8px 16px;border-radius:var(--rx);background:var(--s2);border:1.5px solid var(--bdr2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
-#karaoke-player .kp-close:hover{color:var(--t1);}
-.kp-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
-@media(min-width:600px){.kp-body{flex-direction:row;}.kp-left{width:260px;flex-shrink:0;}.kp-right{flex:1;border-left:1px solid var(--bdr2);}}
-.kp-left{display:flex;flex-direction:column;padding:16px 20px;gap:10px;background:rgba(45,0,96,.5);flex-shrink:0;}
-.kp-cover{width:100%;aspect-ratio:1/1;max-height:160px;border-radius:var(--rm);overflow:hidden;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:40px;}
-.kp-cover img{width:100%;height:100%;object-fit:cover;}
-.kp-track-title{font-size:15px;font-weight:800;letter-spacing:-.3px;}
-.kp-track-tags{font-size:11px;color:var(--t3);font-weight:600;margin-top:2px;}
-.kp-left-info{display:flex;flex-direction:column;gap:8px;}
-.kp-left-controls{display:flex;flex-direction:column;gap:8px;margin-top:auto;}
-#karaoke-player .kp-viz{display:flex;align-items:flex-end;gap:2px;height:24px;}
-#karaoke-player .kp-vbar{width:3px;border-radius:1px;background:var(--acc);opacity:.15;height:3px;transition:height .07s,opacity .07s;}
-#karaoke-player .kp-vbar.on{opacity:.7;}
-.kp-prog-wrap{height:4px;background:var(--s3);border-radius:10px;overflow:hidden;cursor:pointer;position:relative;}
-#kp-prog-fill{height:100%;background:var(--acc-g);width:0;transition:width .1s linear;}
-.kp-time{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:6px;}
-#karaoke-player .kp-controls{display:flex;justify-content:center;}
-.kp-play-btn{width:54px;height:54px;border-radius:50%;background:var(--acc-g);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 18px var(--acc-glow);font-family:inherit;}
-.kp-play-btn:hover{transform:scale(1.06);}
-.kp-right{flex:1;overflow-y:auto;padding:20px;}
-.kp-right::-webkit-scrollbar{width:2px;}
-.kp-right::-webkit-scrollbar-thumb{background:var(--s3);}
-.kp-lyrics-empty{text-align:center;padding:40px 20px;font-size:14px;color:var(--t3);line-height:1.9;}
-.kp-lyric-line{font-size:15px;color:var(--t3);line-height:2;cursor:pointer;transition:all .2s;padding:2px 0;}
-.kp-lyric-line.active{color:#FFB347;font-weight:800;}
-.kp-lyric-line:hover{color:var(--t2);}
-.kp-lyric-section{font-size:10px;font-weight:800;color:#FFB347;letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;display:block;}
-
-/* ── 뮤직비디오 ── */
-.mv-making{padding:24px;text-align:center;font-size:13px;color:var(--t2);line-height:1.7;}
-.mv-spin{width:28px;height:28px;border:2.5px solid var(--s3);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
-.mv-video{width:100%;border-radius:var(--rm);display:block;}
-
-
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:calc(78px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(10px);background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,.2);border-radius:var(--rx);padding:10px 22px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;z-index:800;opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);pointer-events:none;letter-spacing:-.2px;}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
-.toast.ok{background:rgba(0,200,150,.2);border-color:rgba(0,200,150,.35);color:#00E5B0;}
-.toast.err{background:rgba(255,80,80,.18);border-color:rgba(255,80,80,.3);color:#FF7070;}
-
-
-/* sub-genre-btn = sgtag 동일 스타일 */
-.sub-genre-btn{
-  padding:7px 15px;border-radius:var(--rx);
-  background:transparent;border:1.5px solid var(--bdr2);
-  color:var(--t2);font-size:12px;font-weight:700;
-  cursor:pointer;transition:all .15s;font-family:inherit;
-  white-space:nowrap;
-}
-.sub-genre-btn:hover{border-color:var(--bdr);color:var(--t1);background:var(--s1);}
-.sub-genre-btn.on{background:rgba(255,140,0,.18);border-color:var(--acc);color:#FFB347;}
-
-
-/* 뷰 하단 padding — 탭바에 안 가리게 */
-.view{padding-bottom:80px!important;}
-/* 메인 컨텐츠 영역 */
-#views-wrap{padding-bottom:0;}
-
-
-/* 라이트모드 — 뷰 타이틀/서브타이틀 전체 커버 */
-body.tab-library .view *,
-body.tab-settings .view *{box-sizing:border-box;}
-
-/* 커뮤니티 타이틀 */
-body.tab-library #community-view .comm-view-title{color:#1A1A2E!important;}
-
-/* 히스토리 타이틀 */
-body.tab-library #history-view .hist-view-title{color:#1A1A2E!important;}
-body.tab-library #history-view .hist-view-count{color:rgba(0,0,0,.35)!important;}
-
-/* 전체삭제 버튼 */
-body.tab-library .hist-del-all-btn,
-body.tab-settings .hist-del-all-btn{
-  background:rgba(200,0,0,.07)!important;
-  border-color:rgba(200,0,0,.15)!important;
-  color:#C00000!important;
-}
-
-/* API 오류 배지 라이트모드 */
-body.tab-library .key-status.err,
-body.tab-settings .key-status.err{
-  background:rgba(220,0,0,.08)!important;
-  border-color:rgba(220,0,0,.18)!important;
-  color:#CC0000!important;
-}
-
-/* 커뮤니티 필터 칩 라이트모드 기본 */
-body.tab-library .comm-filter-btn{
-  background:#fff!important;
-  border:1.5px solid rgba(0,0,0,.12)!important;
-  color:rgba(0,0,0,.45)!important;
-}
-body.tab-library .comm-filter-btn.on{
-  background:linear-gradient(135deg,#6B00C8,#C850C0)!important;
-  color:#fff!important;
-  border-color:transparent!important;
-}
-body.tab-library .comm-filter-btn:hover{background:#F0F0F8!important;}
-
-/* 히스토리 빈 상태 */
-body.tab-library .hist-empty{color:rgba(0,0,0,.3)!important;}
-body.tab-library .hist-empty-icon{opacity:.4;}
-
-
-/* 탭바 아이템 텍스트 노드 스타일 보강 */
-#bottom-nav .bnav-item{
-  font-size:10px!important;
-  letter-spacing:-.3px;
-}
-#bottom-nav .bnav-center{
-  /* 만들기 텍스트 숨기고 아이콘만 */
-  font-size:0!important;
-  letter-spacing:0;
-}
-#bottom-nav .bnav-center .bnav-icon-wrap{
-  font-size:22px!important;
-  line-height:1;
-}
-/* 라이트모드 탭바 텍스트 */
-body.tab-library #bottom-nav .bnav-item,
-body.tab-settings #bottom-nav .bnav-item{
-  color:rgba(0,0,0,.3)!important;
-}
-body.tab-library #bottom-nav .bnav-item.on,
-body.tab-settings #bottom-nav .bnav-item.on{
-  color:#D05000!important;
-}
-
-
-/* ══════════════════════════════════════
-   라이트 모드 전체 완전 적용
-══════════════════════════════════════ */
-
-/* 라이트 모드 — body 전체 */
-body.tab-library{background:#F2F2F7!important;}
-body.tab-settings{background:#F2F2F7!important;}
-
-/* 라이트 모드 — app-header */
-body.tab-library .app-header,
-body.tab-settings .app-header{
-  background:rgba(255,255,255,.98)!important;
-  border-bottom:1px solid rgba(0,0,0,.07)!important;
-  backdrop-filter:blur(20px);
-}
-
-/* 라이트 모드 — 로고 */
-body.tab-library .logo-title,
-body.tab-settings .logo-title{color:#1A1A2E!important;}
-body.tab-library .logo-title em,
-body.tab-settings .logo-title em{
-  background:linear-gradient(135deg,#9B00E0,#FF5522)!important;
-  -webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;
-}
-
-/* 라이트 모드 — views-wrap 배경 */
-body.tab-library #views-wrap,
-body.tab-settings #views-wrap{background:#F2F2F7!important;}
-
-/* 라이트 모드 — 뷰 패딩/배경 */
-body.tab-library .view,
-body.tab-settings .view{background:transparent!important;}
-
-/* 라이트 모드 — key-status 배지 */
-body.tab-library .key-status,
-body.tab-settings .key-status{
-  background:rgba(0,0,0,.05)!important;
-  border-color:rgba(0,0,0,.1)!important;
-  color:rgba(0,0,0,.4)!important;
-}
-body.tab-library .key-status.err,
-body.tab-settings .key-status.err{
-  background:rgba(200,0,0,.07)!important;
-  border-color:rgba(200,0,0,.15)!important;
-  color:#BB0000!important;
-}
-body.tab-library .key-status.ok,
-body.tab-settings .key-status.ok{
-  background:rgba(0,140,80,.07)!important;
-  border-color:rgba(0,140,80,.15)!important;
-  color:#006040!important;
-}
-
-/* 라이트 모드 — 커뮤니티/히스토리 제목 */
-body.tab-library .comm-view-title{color:#1A1A2E!important;font-size:22px!important;font-weight:900!important;}
-body.tab-library .hist-view-title{color:#1A1A2E!important;font-size:22px!important;font-weight:900!important;}
-body.tab-library .hist-view-count{color:rgba(0,0,0,.35)!important;}
-
-/* 라이트 모드 — 커뮤니티 히어로 */
-body.tab-library .comm-hero{
-  background:#fff!important;
-  border:1px solid rgba(0,0,0,.07)!important;
-  border-radius:16px!important;
-}
-body.tab-library .ch-title{color:#1A1A2E!important;}
-body.tab-library .ch-sub{color:rgba(0,0,0,.4)!important;}
-
-/* 라이트 모드 — 트랙 리스트 */
-body.tab-library .comm-track{
-  border-bottom-color:rgba(0,0,0,.06)!important;
-}
-body.tab-library .comm-track:hover{background:rgba(0,0,0,.025)!important;}
-body.tab-library .ct-title{color:#1A1A2E!important;}
-body.tab-library .ct-sub{color:rgba(0,0,0,.38)!important;}
-body.tab-library .ct-num{color:rgba(0,0,0,.22)!important;}
-
-/* 라이트 모드 — 히스토리 카드 */
-body.tab-library .hcard{
-  border-bottom-color:rgba(0,0,0,.06)!important;
-}
-body.tab-library .hcard:hover{background:rgba(0,0,0,.025)!important;}
-body.tab-library .hcard-title{color:#1A1A2E!important;}
-body.tab-library .hcard-sub{color:rgba(0,0,0,.38)!important;}
-body.tab-library .hcard-dur{color:rgba(0,0,0,.22)!important;}
-body.tab-library .hcard-play{
-  background:rgba(0,0,0,.07)!important;
-  color:rgba(0,0,0,.5)!important;
-}
-body.tab-library .hcard-play:hover{background:rgba(0,0,0,.12)!important;color:#1A1A2E!important;}
-
-/* 라이트 모드 — 히스토리 빈 상태 */
-body.tab-library .hist-empty{color:rgba(0,0,0,.28)!important;}
-
-/* 라이트 모드 — 설정 뷰 */
-body.tab-settings .settings-section-title{color:rgba(0,0,0,.35)!important;font-size:12px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.5px!important;}
-body.tab-settings .settings-item{background:#fff!important;border-radius:12px!important;}
-body.tab-settings .settings-item:hover{background:rgba(0,0,0,.02)!important;}
-body.tab-settings .settings-item-label{color:#1A1A2E!important;}
-body.tab-settings .settings-item-sub{color:rgba(0,0,0,.38)!important;}
-body.tab-settings .settings-item-right{color:rgba(0,0,0,.25)!important;}
-body.tab-settings .settings-item-icon{background:#F0F0F5!important;color:#555!important;}
-body.tab-settings .settings-section > div > .settings-item{box-shadow:0 1px 2px rgba(0,0,0,.04)!important;}
-
-
-/* ── 전체삭제 버튼 (HTML 클래스: clear-all-btn) ── */
-.clear-all-btn{
-  padding:8px 16px;border-radius:100px;
-  background:rgba(255,77,77,.1);border:1.5px solid rgba(255,77,77,.2);
-  font-size:12px;font-weight:700;color:#FF7070;
-  cursor:pointer;transition:all .15s;font-family:inherit;
-  white-space:nowrap;
-}
-.clear-all-btn:hover{background:rgba(255,77,77,.2);}
-body.tab-library .clear-all-btn{
-  background:rgba(200,0,0,.07)!important;
-  border-color:rgba(200,0,0,.14)!important;
-  color:#CC0000!important;
-}
-
-/* ── 커뮤니티 필터 (HTML 클래스: comm-ftag) ── */
-.comm-ftag{
-  padding:8px 16px;border-radius:100px;
-  background:transparent;border:1.5px solid var(--bdr);
-  color:var(--t2);font-size:13px;font-weight:700;
-  cursor:pointer;transition:all .15s;font-family:inherit;
-  white-space:nowrap;
-}
-.comm-ftag:hover{background:var(--s2);color:var(--t1);}
-.comm-ftag.on{
-  background:#fff;color:#2D0060;border-color:#fff;
-}
-/* 라이트모드 */
-body.tab-library .comm-ftag{
-  background:#fff!important;
-  border:1.5px solid rgba(0,0,0,.12)!important;
-  color:rgba(0,0,0,.5)!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-body.tab-library .comm-ftag:hover{background:#F0F0F8!important;}
-body.tab-library .comm-ftag.on{
-  background:linear-gradient(135deg,#6B00C8,#C850C0)!important;
-  color:#fff!important;border-color:transparent!important;
-}
-
-/* ── 커뮤니티 헤더 (HTML 클래스: comm-header, comm-title) ── */
-.comm-header{padding:12px 0 8px;}
-.comm-title{
-  font-size:22px;font-weight:900;letter-spacing:-.5px;
-  color:var(--t1);margin-bottom:4px;
-}
-body.tab-library .comm-title{color:#1A1A2E!important;}
-.comm-section-label{
-  font-size:14px;font-weight:800;color:var(--t1);
-  margin:8px 0 12px;
-}
-body.tab-library .comm-section-label{color:#1A1A2E!important;}
-
-
-/* ── 커뮤니티 검색창 ── */
-.comm-search-wrap{margin-bottom:14px;}
-.comm-search{
-  width:100%;padding:12px 16px;border-radius:100px;
-  background:var(--s1);border:1.5px solid var(--bdr2);
-  font-size:14px;font-family:inherit;color:var(--t3);
-  outline:none;cursor:default;
-}
-body.tab-library .comm-search{
-  background:#fff!important;
-  border-color:rgba(0,0,0,.1)!important;
-  color:rgba(0,0,0,.35)!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.05);
-}
-
-
-/* ── 탭바 SVG 아이콘 ── */
-#bottom-nav .bnav-svg{
-  width:22px;height:22px;display:block;
-  stroke:currentColor;flex-shrink:0;margin-bottom:2px;
-}
-#bottom-nav .bnav-label{
-  font-size:10px;font-weight:700;line-height:1;
-  letter-spacing:-.3px;
-}
-#bottom-nav .bnav-center .bnav-icon-wrap{
-  font-size:24px;line-height:1;display:block;
-}
-#bottom-nav .bnav-center .bnav-label{
-  font-size:9px!important;font-weight:800!important;
-}
-
-
-/* ── BPM 메인 슬라이더 ── */
-.bpm-main-group{margin-bottom:0!important;}
-.bpm-main-row{display:flex;align-items:center;gap:8px;}
-.bpm-badge{background:var(--s2);border:1.5px solid var(--bdr);color:var(--acc3);padding:4px 10px;border-radius:var(--rs);font-size:13px;font-weight:700;min-width:52px;text-align:center;white-space:nowrap;}
-.bpm-auto-btn{padding:5px 10px;border-radius:var(--rs);background:var(--s1);border:1.5px solid var(--bdr);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
-.bpm-auto-btn.on{background:rgba(255,140,0,.15);border-color:var(--acc);color:var(--acc);}
-
-
-/* ── 가사 편집 영역 ── */
-.lrc-edit-area{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr);
-  border-radius:var(--rs);padding:12px 14px;color:var(--t1);
-  font-family:inherit;font-size:13px;line-height:1.8;
-  resize:vertical;outline:none;transition:border-color .2s;min-height:140px;
-}
-.lrc-edit-area:focus{border-color:var(--acc3);}
-.lrc-edit-actions{display:flex;gap:8px;margin-top:8px;}
-
-
-/* ── 이걸로 다시 작곡하기 시트 ── */
-.recompose-sheet{position:fixed;inset:0;z-index:800;display:none;align-items:flex-end;}
 .recompose-sheet.on{display:flex;}
 .rc-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
-.rc-sheet-box{
-  position:relative;width:100%;max-width:800px;margin:0 auto;
+.rc-sheet-panel{
+  position:relative;z-index:1;
   background:var(--bg2);border-radius:20px 20px 0 0;
-  max-height:90vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);
+  width:100%;max-width:480px;
+  padding:20px 20px 36px;max-height:90vh;overflow-y:auto;
 }
-.rc-sheet-header{padding:20px 20px 0;}
-.rc-sheet-title-row{display:flex;align-items:center;justify-content:space-between;}
-.rc-sheet-close{width:32px;height:32px;border-radius:50%;background:var(--s2);border:none;cursor:pointer;font-size:14px;color:var(--t2);display:flex;align-items:center;justify-content:center;}
-.rc-sheet-close:hover{background:var(--s3);color:var(--t1);}
-.rc-sheet-body{padding:16px 20px;}
-.rc-field-group{margin-bottom:14px;}
-.rc-field-label{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;}
-.rc-field-input{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rs);padding:11px 14px;color:var(--t1);
-  font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;
-}
-.rc-field-input:focus{border-color:var(--acc3);}
-.rc-field-input::placeholder{color:var(--t3);}
-.rc-field-textarea{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rs);padding:11px 14px;color:var(--t1);
-  font-family:inherit;font-size:13px;line-height:1.8;
-  resize:vertical;outline:none;transition:border-color .2s;min-height:100px;
-}
-.rc-field-textarea:focus{border-color:var(--acc3);}
-.rc-field-textarea::placeholder{color:var(--t3);}
-.rc-sheet-footer{
-  padding:12px 20px 20px;display:flex;gap:10px;
-  border-top:1px solid var(--bdr2);
-}
+.rc-sheet-handle{width:36px;height:3px;background:var(--t3);border-radius:2px;margin:0 auto 16px;}
+.rc-sheet-title{font-size:17px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.rc-sheet-sub{font-size:12px;color:var(--t2);margin-bottom:16px;}
+.rc-sheet-footer{display:flex;gap:8px;margin-top:4px;}
 .rc-sheet-cancel-btn{
-  flex:1;padding:12px;border-radius:var(--r);background:var(--s2);
-  border:1.5px solid var(--bdr2);color:var(--t2);font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;transition:all .15s;
+  flex:1;padding:12px;border-radius:var(--rm);
+  background:var(--card2);border:1px solid var(--border);
+  color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
 }
-.rc-sheet-cancel-btn:hover{background:var(--s3);}
 .rc-sheet-submit-btn{
-  flex:2;padding:12px;border-radius:var(--r);
-  background:linear-gradient(135deg,#FF8C00,#FF6B00);
-  border:none;color:#fff;font-size:14px;font-weight:800;
-  cursor:pointer;font-family:inherit;transition:all .2s;
-  box-shadow:0 4px 16px rgba(255,140,0,.35);
+  flex:2;padding:12px;border-radius:var(--rm);
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;
 }
-.rc-sheet-submit-btn:hover{opacity:.92;transform:translateY(-1px);}
+
+/* ══════════════════════════════
+   SMALL BUTTONS / UTILS
+══════════════════════════════ */
+.small-btn{
+  padding:5px 10px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card2);
+  color:var(--t2);font-family:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.small-btn:hover{color:var(--t1);}
+.small-btn.primary{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
+
+/* Flash animation */
+.flash{animation:flashFade 2s ease;}
+@keyframes flashFade{0%{background:rgba(168,85,247,.25);}100%{background:transparent;}}
+
+/* Spin */
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Input number hide arrows */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+
+/* YouTube 결과 */
+#yt-result{
+  margin-top:10px;padding:12px 14px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--rs);font-size:12px;color:var(--t2);line-height:1.6;
+}
+
+/* key-status 상태별 색상 */
+.api-badge-btn .key-status.ok{color:#10b981;}
+.api-badge-btn .key-status.err{color:var(--red);}
 
 </style>
 </head>
 <body>
-<div class="bg-fx"></div>
 
-<!-- LOGIN MODAL -->
-<div class="modal-backdrop" id="login-modal">
-  <div class="modal login-modal-content" style="max-width:400px;">
-    <button class="modal-close" id="login-modal-close">✕</button>
-    <div class="modal-title">Kenny's Music Studio</div>
-    <div class="modal-sub" style="margin-bottom:24px;">소셜 계정으로 로그인하고 작업 내역을 저장하세요</div>
-    <div class="social-btns">
-      <button class="social-btn google" onclick="socialLogin('google')">
-        <div class="sb-icon">🇬</div>Google로 계속하기
-      </button>
-      <button class="social-btn kakao" onclick="socialLogin('kakao')">
-        <div class="sb-icon">💬</div><span style="color:#3C1E1E;">카카오로 계속하기</span>
-      </button>
-      <button class="social-btn naver" onclick="socialLogin('naver')">
-        <div class="sb-icon" style="color:#fff;font-weight:800;font-size:13px;">N</div>네이버로 계속하기
-      </button>
-    </div>
-    <div class="social-divider"><span>또는</span></div>
-    <div class="guest-note">
-      로그인 없이도 이용 가능해요.<br>
-      단, 작업 내역은 이 기기에만 저장됩니다.<br><br>
-      <span style="color:var(--t3);font-size:10px;">※ 소셜 로그인은 배포된 서버 환경에서 OAuth 설정 후 활성화됩니다</span>
-    </div>
-  </div>
-</div>
+<div class="app-wrap">
 
-<!-- EXTEND MODAL -->
-<div class="modal-backdrop" id="extend-modal">
-  <div class="modal">
-    <button class="modal-close" id="modal-close">✕</button>
-    <div class="modal-title">🎵 음악 연장</div>
-    <div class="modal-sub">기존 트랙을 이어서 최대 8분까지 확장해요</div>
-    <div class="modal-field">
-      <div class="opt-label" style="margin-bottom:6px;">연장 방향 (선택)</div>
-      <textarea class="modal-textarea" id="extend-prompt" placeholder="이전 멜로디를 유지하며 브릿지 섹션 추가..."></textarea>
-    </div>
-    <div class="modal-row">
-      <div class="opt-group">
-        <div class="opt-label">이어붙일 시점 (초)</div>
-        <input class="opt-input" id="extend-at" type="number" placeholder="예: 60" min="0" style="width:100%">
-      </div>
-      <div class="opt-group">
-        <div class="opt-label">모델</div>
-        <select class="opt-select" id="extend-model" style="width:100%">
-          <option value="V4_5">V4.5</option>
-          <option value="V4_5PLUS" selected>V4.5+ (최대 8분)</option>
-          <option value="V5">V5 (최신)</option>
-        </select>
-      </div>
-    </div>
-    <button class="modal-btn" id="extend-submit-btn">
-      <span class="gen-spinner" id="extend-spinner"></span>
-      <span id="extend-btn-txt">🎵 연장 생성하기</span>
+  <!-- ── 헤더 ── -->
+  <header class="app-header">
+    <div class="logo">Kenny's <span>Music</span> Studio</div>
+    <button class="api-badge-btn" id="api-badge-btn">
+      <span class="api-dot" id="api-dot"></span>
+      <span class="key-status" id="key-status">
+        <span id="key-spin" style="width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(16,185,129,.3);border-top-color:#10b981;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;"></span>
+        <span id="key-status-txt" style="vertical-align:middle;">확인 중</span>
+      </span>
     </button>
-  </div>
-</div>
-
-<div id="app">
-  <header>
-    <div class="logo-block">
-      <div class="logo-title">Kenny's <em>Music</em> Studio</div>
-    </div>
-    <div class="header-right">
-      <div class="key-status loading" id="key-status">
-        <span class="key-spin" id="key-spin"></span>
-        <span id="key-status-txt">API 키 로딩 중...</span>
-      </div>
-    </div>
   </header>
 
-  <!-- ▼ 하단 탭바로 뷰 전환 (nav-tabs 제거) -->
+  <!-- ── 뷰 컨테이너 ── -->
+  <div class="views-wrap">
 
-  <!-- CREATE VIEW -->
+  <!-- ─────────── CREATE VIEW ─────────── -->
   <div class="view on" id="create-view">
 
-  <!-- 히어로 -->
-  <div class="create-hero">
-    <div class="create-hero-icon">✦</div>
-    <div class="create-hero-title">AI로 음악 만들기</div>
-    <div class="create-hero-sub">몇 가지 설정만으로 독특한 음악을 만들어보세요</div>
-  </div>
-
-  <div class="prompt-card">
-    <!-- 모드 탭 -->
-    <div class="mode-tabs">
-      <button class="mtab on" data-mode="custom">✦ 커스텀 모드</button>
-      <button class="mtab" data-mode="simple">⚡ 심플 모드</button>
-      <button class="mtab" data-mode="youtube">▶ YouTube 분석</button>
-      
+    <div class="create-hero">
+      <div class="create-hero-title">새 곡 만들기</div>
     </div>
 
-    <div class="mode-panel-wrap">
+    <!-- 모드 탭 -->
+    <div class="mode-tabs">
+      <button class="mtab on" data-mode="custom">✦ 커스텀</button>
+      <button class="mtab" data-mode="simple">⚡ 심플</button>
+      <button class="mtab" data-mode="youtube">▶ YouTube</button>
+    </div>
 
-    <!-- ━━━ 커스텀 패널 ━━━ -->
-    <div class="mode-panel on" id="panel-custom">
-      <!-- 장르 -->
-      <div id="genre-row">
-        <div class="opt-label" style="margin-bottom:8px;">장르 선택</div>
-        <div class="genre-btn-grid" id="genre-btn-grid">
-          <button class="genre-btn" data-cat="pop">🎵 K-Pop</button>
-          <button class="genre-btn" data-cat="hiphop">🎤 Hip-Hop</button>
-          <button class="genre-btn" data-cat="electronic">⚡ Electronic</button>
-          <button class="genre-btn" data-cat="rock">🎸 Rock</button>
-          <button class="genre-btn" data-cat="lofi">☕ Lo-Fi</button>
-          <button class="genre-btn" data-cat="jazz">🎷 Jazz</button>
-          <button class="genre-btn" data-cat="classical">🎻 Classical</button>
-          <button class="genre-btn" data-cat="acoustic">🪕 Acoustic</button>
+    <div class="prompt-card">
+      <div class="mode-panel-wrap">
+
+      <!-- ━━━ 커스텀 패널 ━━━ -->
+      <div class="mode-panel on" id="panel-custom">
+
+        <!-- 장르 -->
+        <div class="form-grp" id="genre-row">
+          <div class="form-label">
+            <span class="form-label-icon">⚡</span> 장르 / 스타일
+          </div>
+          <div class="genre-btn-grid" id="genre-btn-grid">
+            <button class="genre-btn" data-cat="pop">🎵 K-Pop</button>
+            <button class="genre-btn" data-cat="hiphop">🎤 Hip-Hop</button>
+            <button class="genre-btn" data-cat="electronic">⚡ Electronic</button>
+            <button class="genre-btn" data-cat="rock">🎸 Rock</button>
+            <button class="genre-btn" data-cat="lofi">☕ Lo-Fi</button>
+            <button class="genre-btn" data-cat="jazz">🎷 Jazz</button>
+            <button class="genre-btn" data-cat="classical">🎻 Classical</button>
+            <button class="genre-btn" data-cat="acoustic">🪕 Acoustic</button>
+          </div>
+          <div class="sub-genre-row" id="sub-genre-row"></div>
+          <select id="genre-cat" style="display:none;"></select>
+          <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
         </div>
-        <div class="sub-genre-row" id="sub-genre-row" ></div>
-        <select id="genre-cat" style="display:none;"></select>
-        <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
-      </div>
-      <!-- 제목 -->
-      <div class="title-row" style="margin-top:14px;">
-        <div class="opt-label" style="margin-bottom:6px;">♪ 곡 제목 <span style="color:var(--t3);font-weight:400;">(선택 — 비우면 AI 자동 생성)</span></div>
-        <input class="title-input" id="song-title" type="text" placeholder="예: 새벽 세 시의 고백">
-      </div>
-      <!-- 곡 설명 / 분위기 -->
-      <div class="title-row" style="margin-top:12px;">
-        <div class="opt-label" style="margin-bottom:6px;">🎨 곡 설명 / 분위기 <span style="color:var(--t3);font-weight:400;">(장르·감성·악기 등)</span></div>
-        <input class="title-input" id="song-desc" type="text" placeholder="예: Warm acoustic pop, 감성적인 피아노, 잔잔한 새벽 분위기">
-      </div>
-      <!-- 가사 -->
-      <div class="pc-label" id="prompt-label" style="margin-top:14px;">📝 가사 <span style="font-size:11px;color:var(--t3);font-weight:400;">(선택 — 비우면 AI 자동 생성)</span></div>
-      <textarea class="prompt-input" id="prompt" rows="4"
-        placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
-      <div class="lyrics-btn-row" id="lyrics-btn-row">
-        <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
-        <button class="lyrics-gen-btn" id="lyrics-btn">
-          <span class="lspin" id="lyrics-spinner"></span>
-          ✍️ AI 자동 작사
-        </button>
-      </div>
-      <!-- 옵션 -->
-      <div class="options-row">
-        <div class="opt-group">
-          <div class="opt-label">분위기</div>
-          <select class="opt-select" id="mood">
-            <option value="">선택 안함</option>
-            <option value="happy, uplifting">밝고 신나는</option>
-            <option value="sad, emotional">슬프고 감성적인</option>
-            <option value="calm, relaxing">잔잔하고 편안한</option>
-            <option value="dark, intense">어둡고 강렬한</option>
-            <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
-            <option value="epic, cinematic">웅장하고 영화적인</option>
-            <option value="energetic, hype">에너지 넘치는</option>
-          </select>
+
+        <!-- 곡 제목 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">✏️</span> 곡 제목
+            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
+          </div>
+          <input class="title-input" id="song-title" type="text" placeholder="예: 새벽 세 시의 고백">
         </div>
-        <!-- BPM 슬라이더 메인 노출 -->
-        <div class="opt-group bpm-main-group" style="flex:1 1 100%;">
-          <div class="opt-label" style="margin-bottom:6px;">🎵 곡 스피드 (BPM) <span style="color:var(--t3);font-weight:400;">— 현재: <span id="bpm-display">120</span> BPM</span></div>
+
+        <!-- 곡 설명 / 분위기 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">🎨</span> 곡 설명 / 분위기
+            <span class="form-label-hint">장르·감성·악기 등</span>
+          </div>
+          <input class="title-input" id="song-desc" type="text" placeholder="예: Warm acoustic pop, 감성적인 피아노, 잔잔한 새벽 분위기">
+        </div>
+
+        <!-- BPM 슬라이더 — 분위기 바로 아래 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">🎵</span> 곡 스피드
+            <span class="form-label-hint">현재: <span id="bpm-display">120</span> BPM</span>
+          </div>
           <div class="bpm-main-row">
-            <span style="font-size:10px;color:var(--t3);">느림</span>
+            <span style="font-size:11px;color:var(--t3);">느림</span>
             <input type="range" class="bpm-slider" id="bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
               oninput="selectedBpm=parseInt(this.value);$('bpm-display').textContent=this.value;if($('bpm-val'))$('bpm-val').textContent=this.value;">
-            <span style="font-size:10px;color:var(--t3);">빠름</span>
+            <span style="font-size:11px;color:var(--t3);">빠름</span>
             <div class="bpm-badge" id="bpm-badge">120</div>
-            <button class="bpm-auto-btn" id="bpm-auto-btn" title="AUTO: kie.ai가 자동 선택">AUTO</button>
+            <button class="bpm-auto-btn" id="bpm-auto-btn" title="AUTO">AUTO</button>
           </div>
         </div>
-        <div class="vocal-group" id="vocal-group">
-          <div class="opt-label">보컬 성별</div>
-          <div class="vocal-btns">
+
+        <!-- 보컬 성별 — 분위기 아래 -->
+        <div class="form-grp" id="vocal-group">
+          <div class="form-label">
+            <span class="form-label-icon">🎤</span> 보컬 성별
+          </div>
+          <div class="vocal-row">
             <button class="vbtn on" data-v="">🎤 자동</button>
             <button class="vbtn" data-v="m">👨 남성</button>
             <button class="vbtn" data-v="f">👩 여성</button>
           </div>
         </div>
-        <div class="opt-group">
-          <div class="opt-label">인스트루멘탈</div>
-          <div class="toggle-label-row" id="inst-toggle">
-            <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-            <span class="toggle-txt">보컬 없음</span>
-          </div>
-        </div>
-      </div>
-      <!-- 고급 -->
-      <div class="advanced-toggle" id="adv-toggle">
-        <span class="adv-lbl">고급 설정</span>
-        <span class="adv-chev" id="adv-chev">▼</span>
-      </div>
-      <div class="advanced-panel" id="adv-panel">
 
-        <div class="opt-label" style="margin-bottom:8px;">곡 시간</div>
-        <div class="duration-btns" style="margin-bottom:10px;">
-          <button class="dbtn" data-dur="60">1분</button>
-          <button class="dbtn on" data-dur="120">2분</button>
-          <button class="dbtn" data-dur="180">3분</button>
-          <button class="dbtn pro-req" data-dur="240">4분 👑</button>
-          <button class="dbtn pro-req" data-dur="300">5분 👑</button>
-          <button class="dbtn pro-req" data-dur="480">8분 👑</button>
-        </div>
-        <div class="pro-warning" id="pro-warning">
-          👑 <span>3분 이상 곡은 <strong>Pro 플랜</strong> 구독이 필요합니다.</span>
-        </div>
-        <div class="adv-grid">
-          <div class="opt-group">
-            <div class="opt-label">Negative Tags</div>
-            <input class="neg-input" id="neg-tags" type="text" placeholder="heavy metal, screaming...">
+        <!-- 가사 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">📝</span> 가사
+            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
           </div>
+          <textarea class="form-input" id="prompt" rows="4"
+            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+          <div class="lyrics-btn-row" id="lyrics-btn-row">
+            <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
+            <button class="lyrics-gen-btn" id="lyrics-btn">
+              <span class="lspin" id="lyrics-spinner"></span>
+              ✍️ AI 자동 작사
+            </button>
+          </div>
+        </div>
+
+        <!-- 분위기 셀렉트 + 인스트루멘탈 -->
+        <div class="options-row">
           <div class="opt-group">
-            <div class="opt-label">모델</div>
-            <select class="opt-select" id="model-sel">
-              <option value="V3_5">V3.5 (빠름)</option>
-              <option value="V4">V4</option>
-              <option value="V4_5" selected>V4.5 (권장)</option>
-              <option value="V4_5PLUS">V4.5+ (8분)</option>
-              <option value="V5">V5 (최신)</option>
+            <div class="opt-label">분위기</div>
+            <select class="opt-select" id="mood">
+              <option value="">선택 안함</option>
+              <option value="happy, uplifting">밝고 신나는</option>
+              <option value="sad, emotional">슬프고 감성적인</option>
+              <option value="calm, relaxing">잔잔하고 편안한</option>
+              <option value="dark, intense">어둡고 강렬한</option>
+              <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
+              <option value="epic, cinematic">웅장하고 영화적인</option>
+              <option value="energetic, hype">에너지 넘치는</option>
             </select>
           </div>
-        </div>
-        <div class="adv-grid" style="margin-bottom:14px;">
-          <div class="slider-group">
-            <div class="slider-header"><div class="opt-label">스타일 강도</div><span class="slider-val" id="sw-val">0.65</span></div>
-            <input type="range" id="style-weight" min="0" max="1" step="0.05" value="0.65">
-          </div>
-          <div class="slider-group">
-            <div class="slider-header"><div class="opt-label">창의성</div><span class="slider-val" id="wc-val">0.65</span></div>
-            <input type="range" id="weird-constraint" min="0" max="1" step="0.05" value="0.65">
+          <div class="opt-group">
+            <div class="opt-label">인스트루멘탈</div>
+            <div class="toggle-label-row" id="inst-toggle">
+              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+              <span class="toggle-txt">보컬 없음</span>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- MV 토글 -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div class="toggle-label-row" id="mv-toggle" style="flex:0 0 auto;padding:8px 12px;">
-          <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-          <span class="toggle-txt">🎬 뮤직비디오도 생성</span>
-        </div>
-        <span style="font-size:10px;color:var(--t3);font-family:inherit;">음악 완성 후 자동 요청 · ~20 credits</span>
-      </div>
-      <button class="gen-btn" id="gen-btn">
-        <span class="gen-spinner" id="gen-spinner"></span>
-        <span id="gen-txt">✦ 음악 생성하기</span>
-      </button>
-    </div>
 
-    <!-- ━━━ 심플 패널 ━━━ -->
-    <div class="mode-panel" id="panel-simple">
-      <div class="opt-label" style="margin-bottom:8px;">🎨 곡 설명 / 분위기 <span style="color:var(--t3);font-weight:400;">(장르, 분위기, 스타일 자유롭게 입력)</span></div>
-      <textarea class="prompt-input" id="simple-prompt" rows="3"
-        placeholder="예: upbeat K-pop with bright synths, female vocals&#10;예: 비 오는 날 카페에 어울리는 잔잔한 재즈"></textarea>
-      <div style="margin-top:12px;">
-        <div class="opt-label" style="margin-bottom:6px;">🎵 곡 스피드 (BPM) <span style="color:var(--t3);font-weight:400;">— 현재: <span id="s-bpm-display">120</span> BPM</span></div>
-        <div class="bpm-main-row">
-          <span style="font-size:10px;color:var(--t3);">느림</span>
-          <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-            oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
-          <span style="font-size:10px;color:var(--t3);">빠름</span>
-          <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
+        <!-- 고급 설정 -->
+        <div class="advanced-toggle" id="adv-toggle">
+          <span class="adv-lbl">⚙️ 고급 설정</span>
+          <span class="adv-chev" id="adv-chev">▼</span>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;margin:12px 0 10px;">
-        <div class="opt-group" style="flex:1;">
-          <div class="opt-label" style="margin-bottom:5px;">분위기</div>
-          <select class="opt-select" id="simple-mood">
-            <option value="">선택 안함</option>
-            <option value="happy, uplifting">밝고 신나는</option>
-            <option value="sad, emotional">슬프고 감성적인</option>
-            <option value="calm, relaxing">잔잔하고 편안한</option>
-            <option value="dark, intense">어둡고 강렬한</option>
-            <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
-            <option value="energetic, hype">에너지 넘치는</option>
-          </select>
+        <div class="advanced-panel" id="adv-panel">
+          <div class="opt-label" style="margin-bottom:8px;">곡 시간</div>
+          <div class="duration-btns" style="margin-bottom:10px;">
+            <button class="dbtn" data-dur="60">1분</button>
+            <button class="dbtn on" data-dur="120">2분</button>
+            <button class="dbtn" data-dur="180">3분</button>
+            <button class="dbtn pro-req" data-dur="240">4분 👑</button>
+            <button class="dbtn pro-req" data-dur="300">5분 👑</button>
+            <button class="dbtn pro-req" data-dur="480">8분 👑</button>
+          </div>
+          <div class="pro-warning" id="pro-warning">
+            👑 <span>3분 이상 곡은 <strong>Pro 플랜</strong> 구독이 필요합니다.</span>
+          </div>
+          <div class="adv-grid">
+            <div class="opt-group">
+              <div class="opt-label">Negative Tags</div>
+              <input class="neg-input" id="neg-tags" type="text" placeholder="heavy metal, screaming...">
+            </div>
+            <div class="opt-group">
+              <div class="opt-label">모델</div>
+              <select class="opt-select" id="model-sel">
+                <option value="V3_5">V3.5 (빠름)</option>
+                <option value="V4">V4</option>
+                <option value="V4_5" selected>V4.5 (권장)</option>
+                <option value="V4_5PLUS">V4.5+ (8분)</option>
+                <option value="V5">V5 (최신)</option>
+              </select>
+            </div>
+          </div>
+          <div class="adv-grid" style="margin-bottom:14px;">
+            <div class="slider-group">
+              <div class="slider-header"><div class="opt-label">스타일 강도</div><span class="slider-val" id="sw-val">0.65</span></div>
+              <input type="range" id="style-weight" min="0" max="1" step="0.05" value="0.65">
+            </div>
+            <div class="slider-group">
+              <div class="slider-header"><div class="opt-label">창의성</div><span class="slider-val" id="wc-val">0.65</span></div>
+              <input type="range" id="weird-constraint" min="0" max="1" step="0.05" value="0.65">
+            </div>
+          </div>
         </div>
-        <div class="opt-group" style="flex:1;">
-          <div class="opt-label" style="margin-bottom:5px;">인스트루멘탈</div>
-          <div class="toggle-label-row" id="simple-inst-toggle">
+
+        <!-- MV 토글 -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div class="toggle-label-row" id="mv-toggle" style="flex:0 0 auto;padding:8px 12px;">
             <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-            <span class="toggle-txt">보컬 없음</span>
+            <span class="toggle-txt">🎬 뮤직비디오도 생성</span>
           </div>
+          <span style="font-size:10px;color:var(--t3);">음악 완성 후 자동 · ~20 credits</span>
         </div>
-      </div>
-      <button class="gen-btn" id="simple-gen-btn">
-        <span class="gen-spinner" id="simple-gen-spinner"></span>
-        <span id="simple-gen-txt">⚡ 음악 생성하기</span>
-      </button>
-    </div>
 
-    <!-- ━━━ YouTube 패널 ━━━ -->
-    <div class="mode-panel" id="panel-youtube">
-      <div class="opt-label" style="margin-bottom:8px;">YouTube URL <span style="color:var(--t3);font-weight:400;">(영상 제목/채널 기반 분석)</span></div>
-      <div style="display:flex;gap:8px;">
-        <input class="opt-input" id="yt-url" type="url" placeholder="https://youtube.com/watch?v=..." style="flex:1;">
-        <button class="lyrics-gen-btn" id="yt-analyze-btn" style="white-space:nowrap;flex-shrink:0;">
-          <span class="lspin" id="yt-spinner"></span>
-          🔍 분석
+        <!-- 생성 버튼 -->
+        <button class="gen-btn" id="gen-btn">
+          <span class="gen-spinner" id="gen-spinner"></span>
+          <span id="gen-txt">✦ 음악 생성하기</span>
         </button>
       </div>
-      <div id="yt-result" style="margin-top:10px;display:none;padding:12px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);font-size:12px;color:var(--t2);line-height:1.6;"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin:12px 0 10px;">
-        <div class="opt-group" style="flex:1;">
-          <div class="opt-label" style="margin-bottom:5px;">분위기</div>
-          <select class="opt-select" id="yt-mood">
-            <option value="">자동 (분석 결과 사용)</option>
-            <option value="happy, uplifting">밝고 신나는</option>
-            <option value="sad, emotional">슬프고 감성적인</option>
-            <option value="calm, relaxing">잔잔하고 편안한</option>
-            <option value="energetic, hype">에너지 넘치는</option>
-          </select>
+
+      <!-- ━━━ 심플 패널 ━━━ -->
+      <div class="mode-panel" id="panel-simple">
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">🎨</span> 곡 설명 / 분위기
+            <span class="form-label-hint">장르, 분위기, 스타일 자유롭게</span>
+          </div>
+          <textarea class="form-input" id="simple-prompt" rows="3"
+            placeholder="예: upbeat K-pop with bright synths, female vocals&#10;예: 비 오는 날 카페에 어울리는 잔잔한 재즈"></textarea>
         </div>
-        <div class="opt-group" style="flex:1;">
-          <div class="opt-label" style="margin-bottom:5px;">인스트루멘탈</div>
-          <div class="toggle-label-row" id="yt-inst-toggle">
-            <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-            <span class="toggle-txt">보컬 없음</span>
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">🎵</span> 곡 스피드
+            <span class="form-label-hint">현재: <span id="s-bpm-display">120</span> BPM</span>
+          </div>
+          <div class="bpm-main-row">
+            <span style="font-size:11px;color:var(--t3);">느림</span>
+            <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
+              oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
+            <span style="font-size:11px;color:var(--t3);">빠름</span>
+            <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
           </div>
         </div>
+        <div class="options-row">
+          <div class="opt-group">
+            <div class="opt-label">분위기</div>
+            <select class="opt-select" id="simple-mood">
+              <option value="">선택 안함</option>
+              <option value="happy, uplifting">밝고 신나는</option>
+              <option value="sad, emotional">슬프고 감성적인</option>
+              <option value="calm, relaxing">잔잔하고 편안한</option>
+              <option value="dark, intense">어둡고 강렬한</option>
+              <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
+              <option value="energetic, hype">에너지 넘치는</option>
+            </select>
+          </div>
+          <div class="opt-group">
+            <div class="opt-label">인스트루멘탈</div>
+            <div class="toggle-label-row" id="simple-inst-toggle">
+              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+              <span class="toggle-txt">보컬 없음</span>
+            </div>
+          </div>
+        </div>
+        <button class="gen-btn" id="simple-gen-btn">
+          <span class="gen-spinner" id="simple-gen-spinner"></span>
+          <span id="simple-gen-txt">⚡ 음악 생성하기</span>
+        </button>
       </div>
-      <button class="gen-btn" id="yt-gen-btn" disabled style="opacity:.5;">
-        <span class="gen-spinner" id="yt-gen-spinner"></span>
-        <span id="yt-gen-txt">▶ 분석 후 생성 가능</span>
-      </button>
+
+      <!-- ━━━ YouTube 패널 ━━━ -->
+      <div class="mode-panel" id="panel-youtube">
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">▶</span> YouTube URL
+            <span class="form-label-hint">영상 제목/채널 기반 분석</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input class="opt-input" id="yt-url" type="url" placeholder="https://youtube.com/watch?v=..." style="flex:1;">
+            <button class="lyrics-gen-btn" id="yt-analyze-btn" style="white-space:nowrap;flex-shrink:0;">
+              <span class="lspin" id="yt-spinner"></span>
+              🔍 분석
+            </button>
+          </div>
+        </div>
+        <div id="yt-result" style="display:none;"></div>
+        <div class="options-row" style="margin-top:10px;">
+          <div class="opt-group">
+            <div class="opt-label">분위기</div>
+            <select class="opt-select" id="yt-mood">
+              <option value="">자동 (분석 결과 사용)</option>
+              <option value="happy, uplifting">밝고 신나는</option>
+              <option value="sad, emotional">슬프고 감성적인</option>
+              <option value="calm, relaxing">잔잔하고 편안한</option>
+              <option value="energetic, hype">에너지 넘치는</option>
+            </select>
+          </div>
+          <div class="opt-group">
+            <div class="opt-label">인스트루멘탈</div>
+            <div class="toggle-label-row" id="yt-inst-toggle">
+              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+              <span class="toggle-txt">보컬 없음</span>
+            </div>
+          </div>
+        </div>
+        <button class="gen-btn" id="yt-gen-btn" disabled style="opacity:.5;">
+          <span class="gen-spinner" id="yt-gen-spinner"></span>
+          <span id="yt-gen-txt">▶ 분석 후 생성 가능</span>
+        </button>
+      </div>
+
+      </div><!-- /mode-panel-wrap -->
+    </div><!-- /prompt-card -->
+
+    <!-- 로딩 카드 -->
+    <div class="loading-card" id="loading-card">
+      <div class="ld-waveform">
+        <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
+        <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
+        <div class="ld-bar"></div>
+      </div>
+      <div class="ld-title">Kenny's AI가 음악을 작곡하고 있어요</div>
+      <div class="ld-sub" id="ld-sub">Suno AI가 멜로디와 리듬을 구성 중...<br>보통 30~60초 소요됩니다</div>
+      <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
+      <div class="ld-task" id="ld-task"></div>
     </div>
 
-    </div><!-- /mode-panel-wrap -->
-  </div><!-- /prompt-card -->
+    <!-- 모드별 결과 영역 -->
+    <div id="results-custom" class="results-section">
+      <div class="results-section-header">
+        <span class="rsec-icon">✦</span>
+        <span class="rsec-label">커스텀 모드</span>
+        <span class="rsec-count" id="rsec-count-custom"></span>
+      </div>
+      <div class="results-inner" id="results-inner-custom"></div>
+    </div>
+    <div id="results-simple" class="results-section">
+      <div class="results-section-header">
+        <span class="rsec-icon">⚡</span>
+        <span class="rsec-label">심플 모드</span>
+        <span class="rsec-count" id="rsec-count-simple"></span>
+      </div>
+      <div class="results-inner" id="results-inner-simple"></div>
+    </div>
+    <div id="results-youtube" class="results-section">
+      <div class="results-section-header">
+        <span class="rsec-icon">▶</span>
+        <span class="rsec-label">YouTube 분석</span>
+        <span class="rsec-count" id="rsec-count-youtube"></span>
+      </div>
+      <div class="results-inner" id="results-inner-youtube"></div>
+    </div>
+    <div id="results"></div>
 
-  <div class="loading-card" id="loading-card">
-    <div class="ld-waveform">
-      <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
-      <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
-      <div class="ld-bar"></div>
+    <!-- 피드백 카드 -->
+    <div class="feedback-card" id="feedback-card" style="display:none;">
+      <div class="fb-header">
+        <div class="fb-title">🎧 이 음악이 마음에 드셨나요?</div>
+      </div>
+      <div class="fb-sub">피드백을 주시면 더 비슷한 결의 음악을 다시 작곡해 드릴게요!</div>
+      <div class="stars-row" id="stars-row">
+        <span class="star" data-s="1">⭐</span>
+        <span class="star" data-s="2">⭐</span>
+        <span class="star" data-s="3">⭐</span>
+        <span class="star" data-s="4">⭐</span>
+        <span class="star" data-s="5">⭐</span>
+      </div>
+      <div class="opt-label" style="margin-bottom:8px;">어떤 점이 아쉬웠나요?</div>
+      <div class="fb-tags" id="fb-tags">
+        <span class="fbtag" data-f="tempo_fast">⏩ 템포 너무 빠름</span>
+        <span class="fbtag" data-f="tempo_slow">⏪ 템포 너무 느림</span>
+        <span class="fbtag" data-f="more_energy">🔥 에너지 더 필요</span>
+        <span class="fbtag" data-f="softer">🌊 더 잔잔하게</span>
+        <span class="fbtag" data-f="more_vocal">🎤 보컬 더 강하게</span>
+        <span class="fbtag" data-f="instrumental">🎸 인스트루멘탈로</span>
+        <span class="fbtag" data-f="different_genre">🎵 다른 장르로</span>
+        <span class="fbtag" data-f="keep_vibe">✨ 분위기 유지하고 재도전</span>
+      </div>
+      <textarea class="fb-textarea" id="fb-text" placeholder="원하시는 방향을 자유롭게 적어주세요... (선택)"></textarea>
+      <div class="fb-time-info">
+        <div class="fb-time-dot"></div>
+        <span id="fb-time-txt">재작곡 예상 시간: 약 <strong>45~90초</strong> · 2곡 생성 예정</span>
+      </div>
+      <div class="fb-actions">
+        <button class="fb-remix-btn" id="fb-remix-btn">🔄 이걸로 다시 작곡하기</button>
+        <button class="fb-skip-btn" id="fb-skip-btn">건너뛰기</button>
+      </div>
     </div>
-    <div class="ld-title">Kenny's AI가 음악을 작곡하고 있어요</div>
-    <div class="ld-sub" id="ld-sub">Suno AI가 멜로디와 리듬을 구성 중...<br>보통 30~60초 소요됩니다</div>
-    <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
-    <div class="ld-task" id="ld-task"></div>
-  </div>
-
-  <!-- 모드별 결과 영역 -->
-  <div id="results-custom" class="results-section" >
-    <div class="results-section-header">
-      <span class="rsec-icon">✦</span>
-      <span class="rsec-label">커스텀 모드</span>
-      <span class="rsec-count" id="rsec-count-custom"></span>
-    </div>
-    <div class="results-inner" id="results-inner-custom"></div>
-  </div>
-  <div id="results-simple" class="results-section" >
-    <div class="results-section-header">
-      <span class="rsec-icon">⚡</span>
-      <span class="rsec-label">심플 모드</span>
-      <span class="rsec-count" id="rsec-count-simple"></span>
-    </div>
-    <div class="results-inner" id="results-inner-simple"></div>
-  </div>
-  <div id="results-youtube" class="results-section" >
-    <div class="results-section-header">
-      <span class="rsec-icon">▶</span>
-      <span class="rsec-label">YouTube 분석</span>
-      <span class="rsec-count" id="rsec-count-youtube"></span>
-    </div>
-    <div class="results-inner" id="results-inner-youtube"></div>
-  </div>
-  <!-- 레거시 fallback (사용 안 함) -->
-  <div id="results" ></div>
-
-  <!-- 피드백 카드 (음악 생성 후 표시) -->
-  <div class="feedback-card" id="feedback-card" >
-    <div class="fb-header">
-      <div class="fb-title">🎧 이 음악이 마음에 드셨나요?</div>
-    </div>
-    <div class="fb-sub">피드백을 주시면 더 비슷한 결의 음악을 다시 작곡해 드릴게요!</div>
-    <div class="stars-row" id="stars-row">
-      <span class="star" data-s="1">⭐</span>
-      <span class="star" data-s="2">⭐</span>
-      <span class="star" data-s="3">⭐</span>
-      <span class="star" data-s="4">⭐</span>
-      <span class="star" data-s="5">⭐</span>
-    </div>
-    <div class="opt-label" style="margin-bottom:8px;">어떤 점이 아쉬웠나요?</div>
-    <div class="fb-tags" id="fb-tags">
-      <span class="fbtag" data-f="tempo_fast">⏩ 템포 너무 빠름</span>
-      <span class="fbtag" data-f="tempo_slow">⏪ 템포 너무 느림</span>
-      <span class="fbtag" data-f="more_energy">🔥 에너지 더 필요</span>
-      <span class="fbtag" data-f="softer">🌊 더 잔잔하게</span>
-      <span class="fbtag" data-f="more_vocal">🎤 보컬 더 강하게</span>
-      <span class="fbtag" data-f="instrumental">🎸 인스트루멘탈로</span>
-      <span class="fbtag" data-f="different_genre">🎵 다른 장르로</span>
-      <span class="fbtag" data-f="keep_vibe">✨ 분위기 유지하고 재도전</span>
-    </div>
-    <textarea class="fb-textarea" id="fb-text" placeholder="원하시는 방향을 자유롭게 적어주세요... (선택)"></textarea>
-    <div class="fb-time-info">
-      <div class="fb-time-dot"></div>
-      <span id="fb-time-txt">재작곡 예상 시간: 약 <strong>45~90초</strong> · 2곡 생성 예정</span>
-    </div>
-    <div class="fb-actions">
-      <button class="fb-remix-btn" id="fb-remix-btn">🔄 이걸로 다시 작곡하기</button>
-      <button class="fb-skip-btn" id="fb-skip-btn">건너뛰기</button>
-    </div>
-  </div>
 
   </div><!-- /create-view -->
 
-  <!-- HISTORY VIEW -->
+  <!-- ─────────── HISTORY VIEW ─────────── -->
   <div class="view" id="history-view">
     <div class="hist-view-header">
       <div>
@@ -1853,13 +1529,13 @@ body.tab-library .comm-search{
     <div id="history-view-grid"></div>
   </div>
 
-  <!-- COMMUNITY VIEW -->
+  <!-- ─────────── COMMUNITY VIEW ─────────── -->
   <div class="view" id="community-view">
     <div class="comm-header">
       <div class="comm-title">커뮤니티</div>
     </div>
     <div class="comm-search-wrap">
-      <input class="comm-search" type="text" placeholder="🔍 장르, 분위기, 아티스트 검색..." readonly>
+      <input class="comm-search" type="text" placeholder="장르, 분위기, 아티스트 검색..." readonly>
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
@@ -1869,15 +1545,13 @@ body.tab-library .comm-search{
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
     </div>
-    <!-- 히어로 (좋아요 1위 / 최신곡) — JS로 렌더 -->
     <div id="comm-hero-wrap"></div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
   </div>
 
-  <!-- SETTINGS VIEW -->
+  <!-- ─────────── SETTINGS VIEW ─────────── -->
   <div class="view" id="settings-view">
-    <!-- 프로필 배너 — 레퍼런스 퍼플-핑크 그라디언트 -->
     <div class="settings-banner">
       <div class="settings-banner-top">
         <div class="settings-avatar" id="settings-avatar">👤</div>
@@ -1902,11 +1576,9 @@ body.tab-library .comm-search{
         </div>
       </div>
     </div>
-
-    <!-- API 상태 -->
     <div class="settings-section">
       <div class="settings-section-title">연결 상태</div>
-      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <div class="settings-item" style="border-radius:12px 12px 0 0;cursor:default;">
           <div class="settings-item-left">
             <div class="settings-item-icon">🔑</div>
@@ -1916,13 +1588,13 @@ body.tab-library .comm-search{
             </div>
           </div>
           <div class="settings-item-right">
-            <span class="key-status" id="settings-key-status" style="font-size:10px;">
+            <span class="key-status" id="settings-key-status">
               <span class="key-dot" id="settings-key-dot"></span>
               <span id="settings-key-txt">확인 중</span>
             </span>
           </div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--bdr2);border-radius:0 0 12px 12px;cursor:default;">
+        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;cursor:default;">
           <div class="settings-item-left">
             <div class="settings-item-icon">🤖</div>
             <div>
@@ -1936,11 +1608,9 @@ body.tab-library .comm-search{
         </div>
       </div>
     </div>
-
-    <!-- 기능 -->
     <div class="settings-section">
       <div class="settings-section-title">기능</div>
-      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <div class="settings-item" style="border-radius:12px 12px 0 0;" onclick="document.getElementById('bottom-nav').querySelector('[data-view=create-view]').click();">
           <div class="settings-item-left">
             <div class="settings-item-icon">🎵</div>
@@ -1951,7 +1621,7 @@ body.tab-library .comm-search{
           </div>
           <div class="settings-item-right">›</div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--bdr2);" onclick="document.getElementById('bottom-nav').querySelector('[data-view=history-view]').click();">
+        <div class="settings-item" style="border-top:1px solid var(--border);" onclick="document.getElementById('bottom-nav').querySelector('[data-view=history-view]').click();">
           <div class="settings-item-left">
             <div class="settings-item-icon">📂</div>
             <div>
@@ -1961,7 +1631,7 @@ body.tab-library .comm-search{
           </div>
           <div class="settings-item-right">›</div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--bdr2);border-radius:0 0 12px 12px;" onclick="if(confirm('최근 생성 내역을 모두 삭제할까요?')){historyData=[];saveHistory();updateHistBadge();renderHistoryView();toast('🗑 전체 삭제','',2000);}">
+        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="if(confirm('최근 생성 내역을 모두 삭제할까요?')){historyData=[];saveHistory();updateHistBadge();renderHistoryView();toast('🗑 전체 삭제','',2000);}">
           <div class="settings-item-left">
             <div class="settings-item-icon">🗑</div>
             <div>
@@ -1973,11 +1643,9 @@ body.tab-library .comm-search{
         </div>
       </div>
     </div>
-
-    <!-- 앱 정보 -->
     <div class="settings-section">
       <div class="settings-section-title">앱 정보</div>
-      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <div class="settings-item" style="border-radius:12px;cursor:default;">
           <div class="settings-item-left">
             <div class="settings-item-icon">✦</div>
@@ -1992,7 +1660,8 @@ body.tab-library .comm-search{
     </div>
   </div>
 
-</div><!-- /views wrapper -->
+  </div><!-- /views-wrap -->
+</div><!-- /app-wrap -->
 
 <!-- ── 하단 탭바 ── -->
 <nav id="bottom-nav">
@@ -2019,24 +1688,19 @@ body.tab-library .comm-search{
 <div id="fullplayer">
   <div class="fp-bg" id="fp-bg"></div>
   <div class="fp-inner">
-    <!-- 헤더 -->
     <div class="fp-header">
       <button class="fp-back" id="fp-back">⌄</button>
       <div class="fp-header-title">지금 재생 중</div>
       <div style="width:36px;"></div>
     </div>
-    <!-- 스크롤 영역 -->
     <div class="fp-scroll" id="fp-scroll">
-      <!-- 커버 -->
       <div class="fp-cover-wrap">
         <div class="fp-cover" id="fp-cover">🎵</div>
       </div>
-      <!-- 곡 정보 -->
       <div class="fp-info">
         <div class="fp-title" id="fp-title">곡 제목</div>
         <div class="fp-tags" id="fp-tags"></div>
       </div>
-      <!-- 액션: 좋아요/싫어요/공유/다운로드/삭제 -->
       <div class="fp-actions">
         <button class="fp-act-btn" id="fp-like-btn" onclick="fpToggleLike()">
           <span class="fp-act-icon">🤍</span>
@@ -2059,7 +1723,6 @@ body.tab-library .comm-search{
           <span>삭제</span>
         </button>
       </div>
-      <!-- 진행바 -->
       <div class="fp-prog-section">
         <div class="fp-prog-wrap" id="fp-prog-wrap">
           <div class="fp-prog-fill" id="fp-prog-fill"></div>
@@ -2070,13 +1733,11 @@ body.tab-library .comm-search{
           <span id="fp-dur">0:00</span>
         </div>
       </div>
-      <!-- 컨트롤 -->
       <div class="fp-controls">
         <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초">⏮</button>
         <button class="fp-play-btn" id="fp-play-btn">▶</button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초">⏭</button>
       </div>
-      <!-- Viz -->
       <div class="fp-viz" id="fp-viz">
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
@@ -2085,7 +1746,6 @@ body.tab-library .comm-search{
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
       </div>
-      <!-- 가사 -->
       <div class="fp-lyrics-section">
         <div class="fp-lyrics-header">
           <span>가사</span>
@@ -2119,7 +1779,7 @@ body.tab-library .comm-search{
         <span class="share-btn-label">페이스북</span>
       </button>
       <button class="share-btn" onclick="fpCopyLink()">
-        <div class="share-btn-icon" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);">🔗</div>
+        <div class="share-btn-icon" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">🔗</div>
         <span class="share-btn-label">링크 복사</span>
       </button>
     </div>
@@ -2135,7 +1795,6 @@ body.tab-library .comm-search{
     <button class="modal-close" id="vocal-modal-close">✕</button>
     <div class="modal-title">🎙 보컬 변경</div>
     <div class="modal-sub">기존 트랙의 보컬을 새 스타일로 교체하거나, 인스트루멘탈에 보컬을 추가합니다.</div>
-
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 성별</div>
       <div style="display:flex;gap:8px;">
@@ -2144,17 +1803,14 @@ body.tab-library .comm-search{
         <button class="vbtn" id="vc-gender-f" data-vg="f">👩 여성</button>
       </div>
     </div>
-
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
       <input class="neg-input" id="vc-style" type="text" placeholder="예: soulful R&B, powerful pop, soft ballad">
     </div>
-
     <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">가사 프롬프트 <span style="color:var(--t3);font-weight:400;">(새 가사 아이디어)</span></div>
+      <div class="opt-label" style="margin-bottom:6px;">가사 프롬프트</div>
       <textarea class="prompt-input" id="vc-prompt" rows="3" style="font-size:12px;" placeholder="예: romantic ballad about missing someone in summer"></textarea>
     </div>
-
     <div style="margin-bottom:16px;">
       <div class="opt-label" style="margin-bottom:6px;">모델</div>
       <select class="opt-select" id="vc-model">
@@ -2164,23 +1820,51 @@ body.tab-library .comm-search{
         <option value="V4">V4</option>
       </select>
     </div>
-
     <button class="gen-btn" id="vc-submit-btn" style="width:100%;">
-      <span class="gen-spinner" id="vc-spinner" ></span>
+      <span class="gen-spinner" id="vc-spinner"></span>
       <span id="vc-btn-txt">🎙 보컬 교체 생성</span>
     </button>
     <div id="vc-result" style="margin-top:12px;"></div>
   </div>
 </div>
 
-<!-- ── 노래방 풀스크린 플레이어 ── -->
+<!-- ── EXTEND MODAL ── -->
+<div class="modal-backdrop" id="extend-modal">
+  <div class="modal" style="max-width:380px;width:100%;border-radius:16px;margin:20px;">
+    <button class="modal-close" id="extend-modal-close">✕</button>
+    <div class="modal-title">🎵 곡 연장</div>
+    <div class="modal-sub">현재 트랙에서 이어지는 새로운 섹션을 생성합니다.</div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">추가 프롬프트 (선택)</div>
+      <textarea class="prompt-input" id="extend-prompt" rows="3" placeholder="이어질 내용이나 분위기를 입력하세요..."></textarea>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">이어지는 시작 시간 (초)</div>
+      <input class="neg-input" id="extend-at" type="number" placeholder="예: 60 (자동이면 비워두세요)">
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="opt-label" style="margin-bottom:6px;">모델</div>
+      <select class="opt-select" id="extend-model">
+        <option value="V4_5">V4.5 (권장)</option>
+        <option value="V4_5PLUS">V4.5+</option>
+        <option value="V5">V5 (최신)</option>
+        <option value="V4">V4</option>
+      </select>
+    </div>
+    <button class="gen-btn" id="extend-submit-btn">
+      <span class="gen-spinner" id="extend-spinner"></span>
+      <span id="extend-btn-txt">🎵 연장하기</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── 노래방 플레이어 ── -->
 <div id="karaoke-player">
   <div class="kp-header">
     <div class="kp-header-title">🎤 노래방 모드</div>
     <button class="kp-close" id="kp-close-btn">✕ 닫기</button>
   </div>
   <div class="kp-body">
-    <!-- 좌측: 앨범 + 컨트롤 -->
     <div class="kp-left">
       <div class="kp-left-info">
         <div class="kp-cover" id="kp-cover">🎵</div>
@@ -2203,14 +1887,36 @@ body.tab-library .comm-search{
         </div>
       </div>
     </div>
-    <!-- 우측: 싱크 가사 -->
     <div class="kp-right" id="kp-lyrics-area">
-      <div class="kp-lyrics-empty">🎤 노래방 모드<br><br>가사 데이터를 불러오고 있어요...<br><span style="font-size:11px;opacity:.5;">타임스탬프가 없으면 일반 가사로 표시됩니다</span></div>
+      <div class="kp-lyrics-empty">🎤 노래방 모드<br><br>가사 데이터를 불러오고 있어요...</div>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
+<!-- ── 로그인 모달 ── -->
+<div class="modal-backdrop" id="login-modal">
+  <div class="modal" style="max-width:360px;width:100%;border-radius:16px;margin:20px;">
+    <button class="modal-close" id="login-modal-close">✕</button>
+    <div class="modal-title">🔐 로그인</div>
+    <div class="modal-sub">소셜 계정으로 간편하게 로그인하세요.</div>
+    <div id="login-area">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="gen-btn" style="background:rgba(255,255,255,.1);border:1px solid var(--border);" onclick="alert('Google 로그인 준비 중')">
+          🔵 Google로 로그인
+        </button>
+        <button class="gen-btn" style="background:#FEE500;color:#3C1E1E;box-shadow:none;" onclick="alert('Kakao 로그인 준비 중')">
+          💬 카카오로 로그인
+        </button>
+        <button class="gen-btn" style="background:#03C75A;color:#fff;box-shadow:none;" onclick="alert('Naver 로그인 준비 중')">
+          🟢 네이버로 로그인
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
 <script>
 'use strict';
@@ -2284,7 +1990,7 @@ function logout(){
   updateLoginUI();toast('로그아웃 되었습니다');
 }
 function updateLoginUI(){
-  const area=$('login-area');
+  const area=$('login-area'); if(!area)return;
   if(!area)return; /* 헤더에서 login-area 제거됨 */
   if(currentUser){
     area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="logout()">
@@ -2297,8 +2003,8 @@ function updateLoginUI(){
 }
 
 /* ── 로그인 모달 닫기 ── */
-$('login-modal-close').addEventListener('click',()=>$('login-modal').classList.remove('on'));
-$('login-modal').addEventListener('click',e=>{if(e.target===$('login-modal'))$('login-modal').classList.remove('on');});
+if($('login-modal-close'))$('login-modal-close').addEventListener('click',()=>$('login-modal')?.classList.remove('on'));
+if($('login-modal'))$('login-modal').addEventListener('click',e=>{if(e.target===$('login-modal'))$('login-modal').classList.remove('on');});
 
 /* ── 장르 버튼 (select hidden 연동) ── */
 /* genre-cat hidden select에 옵션 미리 세팅 */
@@ -2660,9 +2366,11 @@ $('lyrics-btn').addEventListener('click',async()=>{
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   const sub=$('genre-sub').value||'';
   const mood=$('mood').value||'';
-  const existing=$('prompt').value.trim();
-  /* emotions removed */
-  const lyricsPrompt=[existing||'감성적인 노래',sub,mood].filter(Boolean).join(', ');
+  const desc=($('song-desc')?.value||'').trim();
+  const titleVal=($('song-title')?.value||'').trim();
+  /* song-desc 우선 → 없으면 장르/분위기 조합 */
+  const base=desc||[sub,mood].filter(Boolean).join(', ')||'감성적인 노래';
+  const lyricsPrompt=titleVal?`${titleVal}: ${base}`:base;
 
   $('lyrics-btn').disabled=true;
   $('lyrics-spinner').style.display='inline-block';
@@ -2809,8 +2517,11 @@ async function generate(overrideParams){
     saveHistory();updateHistBadge();
     toast('🎵 음악 생성 완료!','ok');
 
-    if(makeMV&&tracks[0]?.id){
-      requestMusicVideo(apiKey,taskId,tracks[0].id,0);
+    if(makeMV){
+      const mvTrack=tracks[0];
+      const mvAudioId=mvTrack?.id||mvTrack?.audioId||'';
+      console.log('[MV] starting. taskId='+taskId+' audioId='+mvAudioId+' makeMV='+makeMV);
+      requestMusicVideo(apiKey,taskId,mvAudioId,0);
     }
   }catch(e){
     $('loading-card').classList.remove('on');
@@ -2825,8 +2536,12 @@ async function generate(overrideParams){
 
 /* ── 뮤직비디오 (Kling 2.6 Text-to-Video via Market API) ── */
 async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
-  const card=document.querySelectorAll('.result-card')[trackIdx];
-  if(!card)return;
+  /* 현재 모드 컨테이너에서 result-card 찾기 */
+  const modeKey=currentMode||'custom';
+  const container=document.getElementById('results-inner-'+modeKey);
+  const allCards=container?container.querySelectorAll('.result-card'):document.querySelectorAll('.result-card');
+  const card=allCards[trackIdx];
+  if(!card){console.warn('[MV] result-card not found, idx='+trackIdx);return;}
 
   /* 탭 추가 */
   const tabBar=card.querySelector('.rc-tabs');
@@ -2838,7 +2553,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
       card.querySelectorAll('.rctab').forEach(t=>t.classList.remove('on'));
       card.querySelectorAll('.rc-tab-panel').forEach(p=>p.classList.remove('on'));
       this.classList.add('on');
-      document.getElementById(mvPanelId)?.classList.add('on');
+      const p2=card.querySelector('#'+mvPanelId)||document.getElementById(mvPanelId);if(p2)p2.classList.add('on');
     });
     tabBar.appendChild(newTab);
   }
@@ -2846,13 +2561,15 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
   const mvPanel=document.createElement('div');
   mvPanel.className='rc-tab-panel';mvPanel.id=mvPanelId;
   mvPanel.innerHTML=`<div class="mv-making"><div class="mv-spin"></div>뮤직비디오를 생성 중이에요... (약 1~3분 소요)</div>`;
-  card.querySelector('.rc-body').appendChild(mvPanel);
+  /* mvpanel-slot에 삽입 (없으면 rc-body에 폴백) */
+  const slot=card.querySelector('#mvpanel-slot-'+trackIdx)||card.querySelector('.rc-body');
+  if(slot)slot.appendChild(mvPanel);
 
   /* 트랙 정보 가져오기 */
   const trackData=trackDataMap.get(audioId)||lastTracks?.[trackIdx]||{};
   const title=trackData.title||'Music Video';
-  const tags=(trackData.tags||'').split(',')[0]?.trim()||'music';
-  const prompt=`${title} — ${tags} music video, cinematic visuals, dynamic lighting, high quality`;
+  const tags=(trackData.tags||'').split(',').slice(0,2).map(t=>t.trim()).join(', ')||'music';
+  const prompt=`${tags} music video, cinematic visuals, synchronised with "${title}", dynamic lighting, 4K quality, no text`;
 
   try{
     /* Step 1: Kling Market API로 비디오 생성 */
@@ -3021,7 +2738,7 @@ $('vc-submit-btn').addEventListener('click',async()=>{
 
 /* ── 음악 연장 ── */
 function openExtendModal(audioId){extendAudioId=audioId;$('extend-prompt').value='';$('extend-at').value='';$('extend-modal').classList.add('on');}
-$('modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
+if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
 $('extend-modal').addEventListener('click',e=>{if(e.target===$('extend-modal'))$('extend-modal').classList.remove('on');});
 $('extend-submit-btn').addEventListener('click',async()=>{
   const apiKey=kieApiKey;
@@ -3461,24 +3178,19 @@ function renderHistoryView(){
       ?`<video src="${esc(h.video_url)}" muted playsinline preload="none"></video>`
       :h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'🎵';
     const timeAgo=formatTimeAgo(h.created);
+    const tagLabel=h.tags?.split(',')[0]?.trim()||'';
     return`
-    <div class="hist-card">
-      <div class="hist-thumb"
-        data-audio="${esc(h.audio_url)}"
-        data-video="${esc(h.video_url||'')}"
-        data-title="${esc(h.title)}"
-        data-idx="${idx}"
-        onclick="openFullPlayer(${idx})">
+    <div class="hist-card" onclick="openFullPlayer(${idx})">
+      <div class="hist-thumb">
         ${thumbContent}
-        ${hasVideo?`<div class="hist-type-badge">🎬 VIDEO</div>`:''}
+        ${hasVideo?`<div class="hist-type-badge">🎬</div>`:''}
         <div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>
       </div>
       <div class="hist-info">
-        <div class="hist-title">${esc(h.title)}</div>
-        <div class="hist-sub">${esc(h.tags?.split(',')[0]?.trim()||'')} · ${timeAgo}</div>
+        <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}</div>
+        <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
       </div>
       <button class="hist-del" title="삭제" onclick="deleteHistory(${idx},event)">✕</button>
-      ${h._liked?'<div style="position:absolute;top:5px;left:5px;background:rgba(255,64,129,.2);border:1px solid rgba(255,64,129,.5);border-radius:20px;padding:2px 6px;font-size:9px;color:#FF4081;font-weight:800;">❤️</div>':''}
     </div>`;
   }).join('')}</div>`;
 }
@@ -4076,7 +3788,7 @@ function renderCommunity(){
       </div>
     </div>
   </div>
-  <div class="comm-detail" id="comm-detail-hero" style="display:none;border-radius:0 0 14px 14px;margin-bottom:16px;">
+  <div class="comm-detail" id="comm-detail-hero" style="border-radius:0 0 14px 14px;margin-bottom:16px;">
     ${buildDetailPanel('hero',hero)}
   </div>`;
 
@@ -4305,16 +4017,15 @@ function commLike(i){
 /* 상세 패널 토글 */
 function commToggleDetail(i){
   const panel=document.getElementById(`comm-detail-${i}`);if(!panel)return;
-  const isOpen=panel.style.display!=='none';
-  /* 모두 닫기 */
-  document.querySelectorAll('[id^="comm-detail-"]').forEach(p=>{p.style.display='none';});
-  if(!isOpen)panel.style.display='block';
+  const isOpen=panel.classList.contains('on');
+  document.querySelectorAll('[id^="comm-detail-"]').forEach(p=>{p.classList.remove('on');p.style.display='';});
+  if(!isOpen)panel.classList.add('on');
 }
 function commOpenDetail(i,isHero){
   const panel=document.getElementById(isHero?'comm-detail-hero':`comm-detail-${i}`);if(!panel)return;
-  const isOpen=panel.style.display!=='none';
-  document.querySelectorAll('[id^="comm-detail-"]').forEach(p=>{p.style.display='none';});
-  if(!isOpen)panel.style.display='block';
+  const isOpen=panel.classList.contains('on');
+  document.querySelectorAll('[id^="comm-detail-"]').forEach(p=>{p.classList.remove('on');p.style.display='';});
+  if(!isOpen)panel.classList.add('on');
 }
 
 /* 상세 탭 전환 */
