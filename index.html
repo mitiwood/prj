@@ -1488,6 +1488,7 @@ function logout(){
 }
 function updateLoginUI(){
   const area=$('login-area');
+  if(!area)return; /* 헤더에서 login-area 제거됨 */
   if(currentUser){
     area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="logout()">
       <div class="user-avatar">${currentUser.avatar||'👤'}</div>
@@ -1856,7 +1857,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
   const mood=$('mood').value||'';
   const existing=$('prompt').value.trim();
   /* emotions removed */
-  const lyricsPrompt=[existing||'감성적인 노래',sub,mood,emotions?`감정: ${emotions}`:''].filter(Boolean).join(', ');
+  const lyricsPrompt=[existing||'감성적인 노래',sub,mood].filter(Boolean).join(', ');
 
   $('lyrics-btn').disabled=true;
   $('lyrics-spinner').style.display='inline-block';
@@ -1941,7 +1942,7 @@ async function generate(overrideParams){
   lastLyricsInput=lyricsText;
 
   /* 재작곡을 위한 파라미터 저장 */
-  lastGenerateParams={prompt,subGenre,mood,emotions,styleStr,isCustom};
+  lastGenerateParams={prompt,subGenre,mood,styleStr,isCustom};
 
   /* 모드별 버튼 비활성화 */
   const activeGenBtn=isSimple?$('simple-gen-btn'):isYT?$('yt-gen-btn'):$('gen-btn');
