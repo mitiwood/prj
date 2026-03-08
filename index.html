@@ -1438,6 +1438,40 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .fp-act-btn:hover{color:#fff;}
 .fp-act-btn.liked .fp-act-icon{filter:drop-shadow(0 0 6px rgba(255,100,130,.7));}
 
+
+/* ── 커스텀 모드 가사 미리보기 ── */
+#lyrics-preview-wrap{
+  margin-top:8px;display:none;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+}
+#lyrics-preview-wrap.on{display:block;}
+.lp-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-bottom:1px solid var(--border);
+}
+.lp-header-label{font-size:11px;font-weight:700;color:var(--acc3);letter-spacing:.3px;}
+.lp-toggle-btn{
+  font-size:11px;color:var(--t3);background:none;border:none;
+  cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:6px;
+  transition:all .15s;
+}
+.lp-toggle-btn:hover{color:var(--t1);background:rgba(255,255,255,.07);}
+.lp-body{padding:12px 14px;max-height:260px;overflow-y:auto;}
+.lp-body::-webkit-scrollbar{width:3px;}
+.lp-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.lp-sec{
+  font-size:10px;font-weight:800;color:var(--acc3);
+  letter-spacing:2px;text-transform:uppercase;
+  display:block;margin:8px 0 3px;opacity:.7;
+}
+.lp-sec:first-child{margin-top:0;}
+.lp-line{
+  font-size:14px;font-weight:600;color:var(--t1);
+  line-height:1.9;display:block;
+}
+.lp-empty{font-size:12px;color:var(--t3);height:8px;display:block;}
+
 </style>
 </head>
 <body>
@@ -1557,6 +1591,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
               <span class="lspin" id="lyrics-spinner"></span>
               ✍️ AI 자동 작사
             </button>
+          </div>
+          <!-- 가사 미리보기 패널 -->
+          <div id="lyrics-preview-wrap">
+            <div class="lp-header">
+              <span class="lp-header-label">🎤 가사 미리보기</span>
+              <button class="lp-toggle-btn" id="lp-edit-btn" onclick="lpToggleEdit()">✏️ 직접 편집</button>
+            </div>
+            <div class="lp-body" id="lp-body"></div>
           </div>
         </div>
 
@@ -3164,8 +3206,8 @@ $('lyrics-btn').addEventListener('click',async()=>{
           promptEl.value=text;
           promptEl.classList.add('flash');
           setTimeout(()=>promptEl.classList.remove('flash'),2000);
-          promptEl.scrollIntoView({behavior:'smooth',block:'center'});
-          promptEl.focus();
+          renderLyricsPreview(text);
+          $('lyrics-preview-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
           toast('✅ 가사 생성 완료! 확인 후 음악 생성하기를 눌러주세요','ok',3500);
           return;
         }
@@ -3175,6 +3217,57 @@ $('lyrics-btn').addEventListener('click',async()=>{
     throw new Error('가사 생성 시간 초과 — 잠시 후 다시 시도해주세요');
   }catch(e){clearInterval(toastInterval);toast('❌ '+e.message,'err',5000);}
   finally{$('lyrics-btn').disabled=false;$('lyrics-spinner').style.display='none';}
+});
+
+
+/* ── 커스텀 모드 가사 미리보기 ── */
+function renderLyricsPreview(text){
+  const wrap=$('lyrics-preview-wrap');
+  const body=$('lp-body');
+  if(!wrap||!body)return;
+  if(!text||!text.trim()){wrap.classList.remove('on');return;}
+  const lines=text.split('\n');
+  let html='';
+  lines.forEach(line=>{
+    const t=line.trim();
+    if(!t){html+=`<span class="lp-empty"></span>`;return;}
+    if(/^\[.+\]$/.test(t)){
+      html+=`<span class="lp-sec">${esc(t.replace(/[\[\]]/g,'').trim())}</span>`;
+    } else {
+      html+=`<span class="lp-line">${esc(t)}</span>`;
+    }
+  });
+  body.innerHTML=html;
+  wrap.classList.add('on');
+  /* textarea 숨기고 preview 표시 */
+  $('prompt').style.display='none';
+  $('lp-edit-btn').textContent='✏️ 직접 편집';
+}
+
+function lpToggleEdit(){
+  const ta=$('prompt');
+  const btn=$('lp-edit-btn');
+  if(ta.style.display==='none'){
+    ta.style.display='';
+    btn.textContent='👁 미리보기';
+    ta.focus();
+  } else {
+    /* textarea → preview 갱신 */
+    renderLyricsPreview(ta.value);
+    if(!ta.value.trim()){ta.style.display='';btn.textContent='👁 미리보기';}
+  }
+}
+
+/* textarea 직접 입력 후 포커스 아웃 → 미리보기 갱신 */
+$('prompt').addEventListener('blur',function(){
+  if(this.value.trim())renderLyricsPreview(this.value);
+});
+/* textarea 비우면 미리보기 숨김 */
+$('prompt').addEventListener('input',function(){
+  if(!this.value.trim()){
+    $('lyrics-preview-wrap').classList.remove('on');
+    $('prompt').style.display='';
+  }
 });
 
 /* ── 음악 생성 ── */
