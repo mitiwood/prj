@@ -1755,7 +1755,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
             <span class="form-label-hint">영상 제목/채널 기반 분석</span>
           </div>
           <div style="display:flex;gap:8px;">
-            <input class="opt-input" id="yt-url" type="url" placeholder="https://youtube.com/watch?v=..." style="flex:1;">
+            <input class="opt-input" id="yt-url" type="text" placeholder="https://youtube.com/watch?v=..." style="flex:1;" autocomplete="off" autocorrect="off" autocapitalize="off">
             <button class="lyrics-gen-btn" id="yt-analyze-btn" style="white-space:nowrap;flex-shrink:0;">
               <span class="lspin" id="yt-spinner"></span>
               🔍 분석
@@ -2980,19 +2980,22 @@ $('weird-constraint').addEventListener('input',function(){$('wc-val').textConten
 /* ── YouTube 분석 (oEmbed + Claude API로 스타일 추론) ── */
 /* YouTube URL 입력 시 자동 활성화 + debounce 분석 */
 let _ytDebounce=null;
-$('yt-url').addEventListener('input',function(){
-  const val=this.value.trim();
+function _ytUrlCheck(){
+  const val=($('yt-url').value||'').trim();
   const btn=$('yt-analyze-btn');
-  const isValid=val&&(val.includes('youtube.com')||val.includes('youtu.be'));
+  const isValid=!!(val&&(val.includes('youtube.com')||val.includes('youtu.be')));
   if(btn){btn.disabled=!isValid;btn.style.opacity=isValid?'1':'0.4';}
   clearTimeout(_ytDebounce);
   if(isValid){
     _ytDebounce=setTimeout(()=>{
-      if(!$('yt-spinner')||$('yt-spinner').style.display==='inline-block')return;
-      btn.click();
+      if($('yt-spinner')&&$('yt-spinner').style.display==='inline-block')return;
+      if(!$('yt-analyze-btn').disabled)$('yt-analyze-btn').click();
     },900);
   }
-});
+}
+/* input / paste / keyup / change 모두 처리 */
+['input','keyup','change'].forEach(ev=>$('yt-url').addEventListener(ev,_ytUrlCheck));
+$('yt-url').addEventListener('paste',()=>setTimeout(_ytUrlCheck,50));
 /* 초기 상태: 분석 버튼 비활성화 */
 $('yt-analyze-btn').disabled=true;$('yt-analyze-btn').style.opacity='0.4';
 
