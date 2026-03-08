@@ -145,8 +145,12 @@ textarea.form-input{resize:vertical;min-height:100px;line-height:1.7;}
   color:var(--t2);font-size:12px;font-weight:600;
   cursor:pointer;transition:all .2s;font-family:inherit;
 }
-.genre-btn:hover{border-color:var(--acc);color:var(--acc3);}
-.genre-btn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
+.genre-btn:hover{border-color:var(--acc2);color:var(--acc3);background:rgba(168,85,247,.08);}
+.genre-btn.on{
+  background:linear-gradient(135deg,rgba(124,58,237,.55),rgba(168,85,247,.45));
+  border-color:var(--acc2);color:#fff;font-weight:800;
+  box-shadow:0 0 0 1px rgba(168,85,247,.35),0 2px 10px rgba(124,58,237,.25);
+}
 
 /* 서브 장르 */
 .sub-genre-row{
@@ -196,7 +200,7 @@ textarea.form-input{resize:vertical;min-height:100px;line-height:1.7;}
   cursor:pointer;transition:all .18s;font-family:inherit;text-align:center;
 }
 .vbtn:hover{border-color:var(--acc);color:var(--acc3);}
-.vbtn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
+.vbtn.on{background:linear-gradient(135deg,rgba(124,58,237,.55),rgba(168,85,247,.45));border-color:var(--acc2);color:#fff;font-weight:800;box-shadow:0 0 0 1px rgba(168,85,247,.3);}
 
 /* 가사 영역 */
 .lyrics-btn-row{
@@ -309,7 +313,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   color:var(--t2);font-size:12px;font-weight:600;
   cursor:pointer;transition:all .15s;font-family:inherit;
 }
-.dbtn.on{background:rgba(124,58,237,.2);border-color:var(--acc);color:var(--acc3);}
+.dbtn.on{background:linear-gradient(135deg,rgba(124,58,237,.55),rgba(168,85,247,.45));border-color:var(--acc2);color:#fff;font-weight:800;box-shadow:0 0 0 1px rgba(168,85,247,.3);}
 .dbtn.pro-req{opacity:.5;}
 .pro-warning{
   font-size:11px;color:var(--ylw);
@@ -643,18 +647,15 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .comm-hero-img img{width:100%;height:100%;object-fit:cover;}
 .comm-hero-overlay{
-  position:absolute;bottom:0;left:0;right:0;height:100px;
-  background:linear-gradient(to top,rgba(22,22,31,.95),transparent);
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(10,10,15,.97) 25%,rgba(10,10,15,.4) 55%,transparent 75%);
+  pointer-events:none; /* 클릭 투과 — 자식 버튼은 pointer-events:auto */
 }
+.comm-hero-overlay>*{pointer-events:auto;}
 .comm-hero-controls{
-  position:absolute;bottom:12px;left:14px;
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
 }
-.comm-hero-play{
-  width:44px;height:44px;border-radius:50%;
-  background:var(--gold);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .2s;
-}
+
 .comm-hero-play:hover{transform:scale(1.08);}
 .comm-hero-prog{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:100px;cursor:pointer;}
 .comm-hero-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;}
@@ -1197,7 +1198,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .vocal-chg:hover{background:rgba(168,85,247,.18);}
 /* sub-genre-btn */
 .sub-genre-btn{padding:4px 10px;border-radius:var(--rx);border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
-.sub-genre-btn.on{background:rgba(168,85,247,.25);border-color:var(--acc2);}
+.sub-genre-btn.on{background:linear-gradient(135deg,rgba(124,58,237,.5),rgba(168,85,247,.4));border-color:var(--acc2);color:#fff;font-weight:800;box-shadow:0 0 0 1px rgba(168,85,247,.3);}
 /* comm-edit-save */
 .comm-edit-save{padding:9px;border-radius:var(--rs);background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.3);color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;transition:all .15s;}
 .comm-edit-save:hover{background:rgba(255,140,0,.22);}
@@ -1228,8 +1229,21 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .comm-hero-placeholder{width:100%;aspect-ratio:16/7;background:linear-gradient(135deg,#1a0537,#3d1a5a);display:flex;align-items:center;justify-content:center;font-size:48px;}
 /* hero controls (progress bar row) */
 .comm-hero-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.comm-hero-play{width:40px;height:40px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;transition:all .2s;flex-shrink:0;}
-.comm-hero-play:hover{transform:scale(1.08);}
+.comm-hero-play{
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:2px solid rgba(255,255,255,.25);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:#fff;transition:all .25s;flex-shrink:0;
+  box-shadow:0 4px 20px rgba(124,58,237,.5);
+}
+.comm-hero-play:hover,.comm-hero-play:active{transform:scale(1.1);box-shadow:0 6px 28px rgba(124,58,237,.7);}
+.comm-hero-play.playing{background:linear-gradient(135deg,var(--acc2),var(--acc3));}
+/* 히어로 중앙 재생버튼 래퍼 */
+.comm-hero-center-play{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+  z-index:3;pointer-events:auto;
+}
 .comm-hero-prog{flex:1;height:3px;background:rgba(255,255,255,.18);border-radius:2px;cursor:pointer;position:relative;}
 .comm-hero-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;transition:width .1s;}
 .comm-hero-time{font-size:10px;color:rgba(255,255,255,.55);flex-shrink:0;}
@@ -1245,6 +1259,27 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .k-word.done{color:rgba(255,255,255,.3);}
 /* playing state */
 .comm-item.playing .comm-play-btn{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);}
+
+
+/* ── 고급설정 강화 CSS ── */
+.adv-section{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.adv-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.adv-section-title{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:7px;letter-spacing:0.2px;}
+.adv-slider-desc{font-size:10px;color:var(--t3);margin-bottom:5px;}
+/* 악기 버튼 그리드 */
+.adv-instrument-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.adv-inst-btn{
+  padding:5px 11px;border-radius:var(--rx);
+  border:1px solid var(--border);background:var(--bg);
+  color:var(--t2);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .18s;font-family:inherit;
+}
+.adv-inst-btn:hover{border-color:var(--acc2);color:var(--acc3);}
+.adv-inst-btn.on{
+  background:linear-gradient(135deg,rgba(124,58,237,.5),rgba(168,85,247,.4));
+  border-color:var(--acc2);color:#fff;font-weight:800;
+  box-shadow:0 0 0 1px rgba(168,85,247,.3);
+}
 
 </style>
 </head>
@@ -1325,7 +1360,24 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
           <input class="title-input" id="song-desc" type="text" placeholder="예: Warm acoustic pop, 감성적인 피아노, 잔잔한 새벽 분위기">
         </div>
 
-        <!-- BPM 슬라이더 — 분위기 바로 아래 -->
+        <!-- 가사 — 곡설명 바로 아래 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">📝</span> 가사
+            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
+          </div>
+          <textarea class="form-input" id="prompt" rows="4"
+            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+          <div class="lyrics-btn-row" id="lyrics-btn-row">
+            <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
+            <button class="lyrics-gen-btn" id="lyrics-btn">
+              <span class="lspin" id="lyrics-spinner"></span>
+              ✍️ AI 자동 작사
+            </button>
+          </div>
+        </div>
+
+        <!-- BPM 슬라이더 -->
         <div class="form-grp">
           <div class="form-label">
             <span class="form-label-icon">🎵</span> 곡 스피드
@@ -1341,7 +1393,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
           </div>
         </div>
 
-        <!-- 보컬 성별 — 분위기 아래 -->
+        <!-- 보컬 성별 -->
         <div class="form-grp" id="vocal-group">
           <div class="form-label">
             <span class="form-label-icon">🎤</span> 보컬 성별
@@ -1350,23 +1402,6 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
             <button class="vbtn on" data-v="">🎤 자동</button>
             <button class="vbtn" data-v="m">👨 남성</button>
             <button class="vbtn" data-v="f">👩 여성</button>
-          </div>
-        </div>
-
-        <!-- 가사 -->
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon">📝</span> 가사
-            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
-          </div>
-          <textarea class="form-input" id="prompt" rows="4"
-            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
-          <div class="lyrics-btn-row" id="lyrics-btn-row">
-            <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
-            <button class="lyrics-gen-btn" id="lyrics-btn">
-              <span class="lspin" id="lyrics-spinner"></span>
-              ✍️ AI 자동 작사
-            </button>
           </div>
         </div>
 
@@ -1400,42 +1435,89 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
           <span class="adv-chev" id="adv-chev">▼</span>
         </div>
         <div class="advanced-panel" id="adv-panel">
-          <div class="opt-label" style="margin-bottom:8px;">곡 시간</div>
-          <div class="duration-btns" style="margin-bottom:10px;">
-            <button class="dbtn" data-dur="60">1분</button>
-            <button class="dbtn on" data-dur="120">2분</button>
-            <button class="dbtn" data-dur="180">3분</button>
-            <button class="dbtn pro-req" data-dur="240">4분 👑</button>
-            <button class="dbtn pro-req" data-dur="300">5분 👑</button>
-            <button class="dbtn pro-req" data-dur="480">8분 👑</button>
-          </div>
-          <div class="pro-warning" id="pro-warning">
-            👑 <span>3분 이상 곡은 <strong>Pro 플랜</strong> 구독이 필요합니다.</span>
-          </div>
-          <div class="adv-grid">
-            <div class="opt-group">
-              <div class="opt-label">Negative Tags</div>
-              <input class="neg-input" id="neg-tags" type="text" placeholder="heavy metal, screaming...">
+          <!-- 곡 시간 -->
+          <div class="adv-section">
+            <div class="adv-section-title">⏱ 곡 시간</div>
+            <div class="duration-btns">
+              <button class="dbtn" data-dur="60">1분</button>
+              <button class="dbtn on" data-dur="120">2분</button>
+              <button class="dbtn" data-dur="180">3분</button>
+              <button class="dbtn pro-req" data-dur="240">4분 👑</button>
+              <button class="dbtn pro-req" data-dur="300">5분 👑</button>
+              <button class="dbtn pro-req" data-dur="480">8분 👑</button>
             </div>
-            <div class="opt-group">
-              <div class="opt-label">모델</div>
-              <select class="opt-select" id="model-sel">
-                <option value="V3_5">V3.5 (빠름)</option>
-                <option value="V4">V4</option>
-                <option value="V4_5" selected>V4.5 (권장)</option>
-                <option value="V4_5PLUS">V4.5+ (8분)</option>
-                <option value="V5">V5 (최신)</option>
-              </select>
+            <div class="pro-warning" id="pro-warning">
+              👑 <span>3분 이상 곡은 <strong>Pro 플랜</strong> 구독이 필요합니다.</span>
             </div>
           </div>
-          <div class="adv-grid" style="margin-bottom:14px;">
-            <div class="slider-group">
-              <div class="slider-header"><div class="opt-label">스타일 강도</div><span class="slider-val" id="sw-val">0.65</span></div>
-              <input type="range" id="style-weight" min="0" max="1" step="0.05" value="0.65">
+          <!-- 모델 + Negative Tags -->
+          <div class="adv-section">
+            <div class="adv-grid">
+              <div class="opt-group">
+                <div class="adv-section-title">🤖 AI 모델</div>
+                <select class="opt-select" id="model-sel">
+                  <option value="V3_5">V3.5 (빠름)</option>
+                  <option value="V4">V4</option>
+                  <option value="V4_5" selected>V4.5 (권장)</option>
+                  <option value="V4_5PLUS">V4.5+ (8분)</option>
+                  <option value="V5">V5 (최신)</option>
+                </select>
+              </div>
+              <div class="opt-group">
+                <div class="adv-section-title">🌏 가사 언어</div>
+                <select class="opt-select" id="lyrics-lang">
+                  <option value="">자동 (입력 언어 따름)</option>
+                  <option value="Korean">한국어</option>
+                  <option value="English">영어</option>
+                  <option value="Japanese">일본어</option>
+                  <option value="Chinese">중국어</option>
+                </select>
+              </div>
             </div>
-            <div class="slider-group">
-              <div class="slider-header"><div class="opt-label">창의성</div><span class="slider-val" id="wc-val">0.65</span></div>
-              <input type="range" id="weird-constraint" min="0" max="1" step="0.05" value="0.65">
+          </div>
+          <!-- 악기 지정 -->
+          <div class="adv-section">
+            <div class="adv-section-title">🎸 악기 / 사운드</div>
+            <div class="adv-instrument-grid" id="adv-instrument-grid">
+              <button class="adv-inst-btn" data-inst="piano">🎹 피아노</button>
+              <button class="adv-inst-btn" data-inst="guitar">🎸 기타</button>
+              <button class="adv-inst-btn" data-inst="synth">🎛 신스</button>
+              <button class="adv-inst-btn" data-inst="violin">🎻 바이올린</button>
+              <button class="adv-inst-btn" data-inst="bass">🎵 베이스</button>
+              <button class="adv-inst-btn" data-inst="drums">🥁 드럼</button>
+              <button class="adv-inst-btn" data-inst="saxophone">🎷 색소폰</button>
+              <button class="adv-inst-btn" data-inst="choir">🎼 합창</button>
+            </div>
+          </div>
+          <!-- 레퍼런스 아티스트 -->
+          <div class="adv-section">
+            <div class="adv-section-title">🎤 레퍼런스 아티스트 <span style="font-size:10px;color:var(--t3);font-weight:400;">(스타일 참고용)</span></div>
+            <input class="neg-input" id="ref-artist" type="text" placeholder="예: BTS, IU, aespa, Billie Eilish...">
+          </div>
+          <!-- Negative Tags -->
+          <div class="adv-section">
+            <div class="adv-section-title">🚫 Negative Tags <span style="font-size:10px;color:var(--t3);font-weight:400;">(제외할 요소)</span></div>
+            <input class="neg-input" id="neg-tags" type="text" placeholder="예: heavy metal, screaming, distorted guitar...">
+          </div>
+          <!-- 슬라이더 -->
+          <div class="adv-section">
+            <div class="adv-grid">
+              <div class="slider-group">
+                <div class="slider-header">
+                  <div class="adv-section-title">🎨 스타일 강도</div>
+                  <span class="slider-val" id="sw-val">0.65</span>
+                </div>
+                <div class="adv-slider-desc">높을수록 선택 장르/스타일에 충실</div>
+                <input type="range" id="style-weight" min="0" max="1" step="0.05" value="0.65">
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <div class="adv-section-title">✨ 창의성</div>
+                  <span class="slider-val" id="wc-val">0.65</span>
+                </div>
+                <div class="adv-slider-desc">높을수록 더 독창적·실험적</div>
+                <input type="range" id="weird-constraint" min="0" max="1" step="0.05" value="0.65">
+              </div>
             </div>
           </div>
         </div>
@@ -1564,7 +1646,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
     </div>
 
     <!-- 모드별 결과 영역 -->
-    <div id="results-custom" class="results-section">
+    <div id="results-custom" class="results-section" style="display:none;">
       <div class="results-section-header">
         <span class="rsec-icon">✦</span>
         <span class="rsec-label">커스텀 모드</span>
@@ -1572,7 +1654,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
       </div>
       <div class="results-inner" id="results-inner-custom"></div>
     </div>
-    <div id="results-simple" class="results-section">
+    <div id="results-simple" class="results-section" style="display:none;">
       <div class="results-section-header">
         <span class="rsec-icon">⚡</span>
         <span class="rsec-label">심플 모드</span>
@@ -1580,7 +1662,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
       </div>
       <div class="results-inner" id="results-inner-simple"></div>
     </div>
-    <div id="results-youtube" class="results-section">
+    <div id="results-youtube" class="results-section" style="display:none;">
       <div class="results-section-header">
         <span class="rsec-icon">▶</span>
         <span class="rsec-label">YouTube 분석</span>
@@ -2339,7 +2421,20 @@ document.querySelectorAll('.vbtn').forEach(btn=>{
 });
 
 /* ── 고급 ── */
-$('adv-toggle').addEventListener('click',()=>{$('adv-panel').classList.toggle('open');$('adv-chev').classList.toggle('open');});
+$('adv-toggle').addEventListener('click',()=>{$('adv-panel').classList.toggle('on');$('adv-chev').classList.toggle('open');});
+/* 악기 버튼 멀티셀렉트 */
+let selectedInstruments=[];
+document.querySelectorAll('.adv-inst-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const inst=this.dataset.inst;
+    this.classList.toggle('on');
+    if(this.classList.contains('on')){
+      if(!selectedInstruments.includes(inst))selectedInstruments.push(inst);
+    } else {
+      selectedInstruments=selectedInstruments.filter(i=>i!==inst);
+    }
+  });
+});
 $('style-weight').addEventListener('input',function(){$('sw-val').textContent=this.value;});
 $('weird-constraint').addEventListener('input',function(){$('wc-val').textContent=this.value;});
 
@@ -2562,6 +2657,13 @@ async function generate(overrideParams){
 
   /* BPM을 스타일에 추가 */
   if(!bpmAuto&&selectedBpm){styleStr=[styleStr,`${selectedBpm}bpm`].filter(Boolean).join(', ');}
+
+  /* 고급설정: 악기, 레퍼런스 아티스트, 언어 스타일에 추가 */
+  if(selectedInstruments?.length){styleStr=[styleStr,...selectedInstruments].filter(Boolean).join(', ');}
+  const refArtist=$('ref-artist')?.value.trim();
+  if(refArtist){styleStr=[styleStr,`in the style of ${refArtist}`].filter(Boolean).join(', ');}
+  const lyricsLang=$('lyrics-lang')?.value;
+  if(lyricsLang){styleStr=[styleStr,`${lyricsLang} lyrics`].filter(Boolean).join(', ');}
 
   const prompt=lyricsText||styleStr;
   lastLyricsInput=lyricsText;
@@ -3329,7 +3431,7 @@ function renderHistoryView(){
     const timeAgo=formatTimeAgo(h.created);
     const tagLabel=h.tags?.split(',')[0]?.trim()||'';
     return`
-    <div class="hist-card" onclick="openFullPlayer(${idx})">
+    <div class="hist-card" data-hist-idx="${idx}" role="button" tabindex="0">
       <div class="hist-thumb">
         ${thumbContent}
         ${hasVideo?`<div class="hist-type-badge">🎬</div>`:''}
@@ -3339,9 +3441,39 @@ function renderHistoryView(){
         <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}</div>
         <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
       </div>
-      <button class="hist-del" title="삭제" onclick="deleteHistory(${idx},event)">✕</button>
+      <button class="hist-del" data-del-idx="${idx}" title="삭제" aria-label="삭제">✕</button>
     </div>`;
   }).join('')}</div>`;
+
+  /* 이벤트 위임 — 카드 클릭 & 삭제 버튼 */
+  const wrap=grid.querySelector('.hist-view-grid');
+  if(!wrap)return;
+  wrap.addEventListener('click',function(e){
+    /* 삭제 버튼 */
+    const delBtn=e.target.closest('[data-del-idx]');
+    if(delBtn){
+      e.stopPropagation();
+      const di=parseInt(delBtn.dataset.delIdx);
+      historyData.splice(di,1);
+      saveHistory();updateHistBadge();renderHistoryView();
+      return;
+    }
+    /* 카드 클릭 → 풀플레이어 */
+    const card=e.target.closest('[data-hist-idx]');
+    if(card){
+      const hi=parseInt(card.dataset.histIdx);
+      openFullPlayer(hi);
+    }
+  });
+  /* 키보드 접근성 */
+  wrap.querySelectorAll('[data-hist-idx]').forEach(card=>{
+    card.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        openFullPlayer(parseInt(card.dataset.histIdx));
+      }
+    });
+  });
 }
 
 function formatTimeAgo(ts){
@@ -3688,7 +3820,7 @@ function isAnyAudioPlaying(){
 function stopAllAudio(){
   if(fpAudio){fpAudio.pause();}
   if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);const ob=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);if(ob)ob.textContent='▶';}
-  if(commHeroAudio){commHeroAudio.pause();const pb=$('comm-hero-play-btn');if(pb)pb.textContent='▶';commHeroPlaying=false;}
+  if(commHeroAudio){commHeroAudio.pause();const pb=$('comm-hero-play-btn');if(pb){pb.textContent='▶';pb.classList.remove('playing');}commHeroPlaying=false;}
   if(commAudio){commAudio.pause();if(commPlayingIdx>=0){const ob=document.getElementById(`comm-play-${commPlayingIdx}`);if(ob)ob.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}commPlayingIdx=-1;}
   if(kpAudio){kpAudio.pause();}
 }
@@ -3944,13 +4076,17 @@ function renderCommunity(){
     ${hero.img
       ?`<img src="${esc(hero.img)}" alt="" style="width:100%;aspect-ratio:16/7;object-fit:cover;display:block;">`
       :`<div class="comm-hero-placeholder">🎵</div>`}
+    <!-- 중앙 재생 버튼 -->
+    <div class="comm-hero-center-play">
+      <button class="comm-hero-play" id="comm-hero-play-btn">▶</button>
+    </div>
     <div class="comm-hero-overlay">
       <div class="comm-hero-badge">🏆 좋아요 ${hero.likes > 0 ? hero.likes + '개' : '최신'}</div>
       <div class="comm-hero-title">${esc(hero.title)}</div>
       <div class="comm-hero-meta">${esc(hero.tags)}${hero.dur!=='—'?' · '+hero.dur:''}</div>
+      <!-- 프로그레스 + 시간 -->
       <div class="comm-hero-controls">
-        <button class="comm-hero-play" id="comm-hero-play-btn">▶</button>
-        <div class="comm-hero-prog" id="comm-hero-prog">
+        <div class="comm-hero-prog" id="comm-hero-prog" style="flex:1;">
           <div class="comm-hero-prog-fill" id="comm-hero-prog-fill"></div>
         </div>
         <span class="comm-hero-time" id="comm-hero-time">0:00</span>
@@ -4084,16 +4220,16 @@ function setupHeroAudio(hero){
     /* 히어로 가사 싱크 */
     commSyncLyrics('hero',audio.currentTime,audio.duration);
   });
-  audio.addEventListener('ended',()=>{if(playBtn)playBtn.textContent='▶';commHeroPlaying=false;});
+  audio.addEventListener('ended',()=>{if(playBtn){playBtn.textContent='▶';playBtn.classList.remove('playing');}commHeroPlaying=false;});
   playBtn.onclick=()=>{
     /* 히어로 일시정지/재생 토글 */
-    if(!audio.paused){audio.pause();playBtn.textContent='▶';commHeroPlaying=false;return;}
+    if(!audio.paused){audio.pause();playBtn.textContent='▶';playBtn.classList.remove('playing');commHeroPlaying=false;return;}
     /* 다른 소스 재생 중 차단 */
     if(fpAudio&&!fpAudio.paused){toast('⏸ 풀스크린 플레이어가 재생 중이에요. 먼저 정지해주세요.','err',2500);return;}
     if(activeAudio&&!activeAudio.paused){toast('⏸ 결과 카드에서 재생 중이에요. 먼저 정지해주세요.','err',2500);return;}
     if(commAudio&&!commAudio.paused){toast('⏸ 커뮤니티 다른 곡이 재생 중이에요. 먼저 정지해주세요.','err',2500);return;}
     if(kpAudio&&!kpAudio.paused){toast('⏸ 노래방 모드가 재생 중이에요. 먼저 정지해주세요.','err',2500);return;}
-    audio.play().then(()=>{playBtn.textContent='⏸';commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
+    audio.play().then(()=>{playBtn.textContent='⏸';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
   };
   const prog=$('comm-hero-prog');
   if(prog)prog.onclick=e=>{
