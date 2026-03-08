@@ -1096,7 +1096,15 @@ $('lyrics-btn').addEventListener('click',async()=>{
 
   $('lyrics-btn').disabled=true;
   $('lyrics-spinner').style.display='inline-block';
-  toast('✍️ 가사 생성 중...','',60000);
+
+  /* ✅ FIX: 진행 카운터 토스트 (60초 고정 대신 실시간 업데이트) */
+  let elapsed=0;
+  const toastInterval=setInterval(()=>{
+    elapsed+=1;
+    toast(`✍️ 가사 생성 중... ${elapsed}초`,'',2000);
+  },1000);
+  toast('✍️ 가사 생성 중... 0초','',2000);
+
   try{
     const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt,callBackUrl:CALLBACK});
     const taskId=data?.data?.taskId||data?.taskId;
@@ -1109,8 +1117,9 @@ $('lyrics-btn').addEventListener('click',async()=>{
       if(status==='SUCCESS'){
         const text=d.response?.text||d.text||'';
         if(text){
+          clearInterval(toastInterval);
           const promptEl=$('prompt');
-          promptEl.value=text; /* ✅ FIX: 실제 textarea에 삽입 */
+          promptEl.value=text;
           promptEl.classList.add('flash');
           setTimeout(()=>promptEl.classList.remove('flash'),2000);
           promptEl.scrollIntoView({behavior:'smooth',block:'center'});
@@ -1121,8 +1130,8 @@ $('lyrics-btn').addEventListener('click',async()=>{
       }
       if(status==='FAILED'||status==='ERROR')throw new Error('가사 생성 실패');
     }
-    throw new Error('가사 생성 시간 초과');
-  }catch(e){toast('❌ '+e.message,'err',5000);}
+    throw new Error('가사 생성 시간 초과 (75초)');
+  }catch(e){clearInterval(toastInterval);toast('❌ '+e.message,'err',5000);}
   finally{$('lyrics-btn').disabled=false;$('lyrics-spinner').style.display='none';}
 });
 
@@ -1218,7 +1227,6 @@ async function requestMusicVideo(apiKey,audioId,trackIdx){
   const card=document.querySelectorAll('.result-card')[trackIdx];
   if(!card)return;
 
-  /* 탭에 '비디오' 추가 */
   const tabBar=card.querySelector('.rc-tabs');
   const mvPanelId=`mvpanel-${trackIdx}`;
   if(tabBar&&!tabBar.querySelector(`[data-tab="${mvPanelId}"]`)){
@@ -1239,47 +1247,56 @@ async function requestMusicVideo(apiKey,audioId,trackIdx){
   card.querySelector('.rc-body').appendChild(mvPanel);
 
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/create-music-video',{audioId,callBackUrl:CALLBACK});
+    /* ✅ FIX: kie.ai API는 'audioId' 파라미터 사용 */
+    const data=await kieRequest(apiKey,'POST','/api/v1/create-music-video',{
+      audioId: audioId,
+      callBackUrl: CALLBACK
+    });
     const taskId=data?.data?.taskId||data?.taskId;
-    if(!taskId)throw new Error('뮤직비디오 taskId 없음');
+    if(!taskId)throw new Error('뮤직비디오 taskId 없음 — API가 이 기능을 지원하지 않을 수 있어요');
 
     for(let i=0;i<60;i++){
       await sleep(4000);
-      const res=await kieRequest(apiKey,'GET',`/api/v1/create-music-video/record-info?taskId=${taskId}`);
-      const d=res?.data;if(!d)continue;
-      const status=(d.status||'').toUpperCase();
-      if(status==='SUCCESS'){
-        const videoUrl=d.response?.videoUrl||d.videoUrl||'';
-        if(videoUrl){
-          mvPanel.innerHTML=`
-            <video class="mv-video" controls playsinline preload="metadata">
-              <source src="${esc(videoUrl)}" type="video/mp4">
-            </video>
-            <div class="dl-row">
-              <button class="dl-btn video" data-dl-video data-url="${esc(videoUrl)}" data-name="music-video.mp4">⬇ 비디오 다운로드</button>
-              <button class="dl-btn lnk" data-copy-video-url="${esc(videoUrl)}">🔗 링크 복사</button>
-            </div>`;
-          mvPanel.querySelector('[data-dl-video]').addEventListener('click',function(){downloadFile(this.dataset.url,this.dataset.name);});
-          mvPanel.querySelector('[data-copy-video-url]').addEventListener('click',function(){
-            navigator.clipboard.writeText(this.dataset.copyVideoUrl).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
-          });
-          /* 히스토리에 video_url 업데이트 */
-          if(historyData[0])historyData[0].video_url=videoUrl,historyData[0].type='video';
-          saveHistory();renderHistory();
-          toast('🎬 뮤직비디오 완성!','ok');
+      try{
+        const res=await kieRequest(apiKey,'GET',`/api/v1/create-music-video/record-info?taskId=${taskId}`);
+        const d=res?.data;if(!d)continue;
+        const status=(d.status||'').toUpperCase();
+        if(status==='SUCCESS'){
+          const videoUrl=d.response?.videoUrl||d.videoUrl||'';
+          if(videoUrl){
+            mvPanel.innerHTML=`
+              <video class="mv-video" controls playsinline preload="metadata">
+                <source src="${esc(videoUrl)}" type="video/mp4">
+              </video>
+              <div class="dl-row">
+                <button class="dl-btn video" data-dl-video data-url="${esc(videoUrl)}" data-name="music-video.mp4">⬇ 비디오 다운로드</button>
+                <button class="dl-btn lnk" data-copy-video-url="${esc(videoUrl)}">🔗 링크 복사</button>
+              </div>`;
+            mvPanel.querySelector('[data-dl-video]').addEventListener('click',function(){downloadFile(this.dataset.url,this.dataset.name);});
+            mvPanel.querySelector('[data-copy-video-url]').addEventListener('click',function(){
+              navigator.clipboard.writeText(this.dataset.copyVideoUrl).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
+            });
+            if(historyData[0])historyData[0].video_url=videoUrl,historyData[0].type='video';
+            saveHistory();renderHistory();
+            toast('🎬 뮤직비디오 완성!','ok');
+          }
+          return;
         }
-        return;
-      }
-      if(status==='FAILED'||status==='ERROR'){
-        mvPanel.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;">❌ 뮤직비디오 생성 실패</div>`;
-        return;
-      }
+        if(status==='FAILED'||status==='ERROR'){
+          mvPanel.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;">❌ 뮤직비디오 생성 실패 (API 서버 오류)</div>`;
+          return;
+        }
+      }catch(pollErr){console.warn('MV poll:',pollErr);}
     }
-    mvPanel.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;">❌ 시간 초과</div>`;
+    mvPanel.innerHTML=`<div style="font-size:12px;color:var(--ylw);padding:12px;">⏱ 시간 초과 — 나중에 다시 시도해주세요</div>`;
   }catch(e){
     console.error('MV:',e);
     const p=document.getElementById(mvPanelId);
-    if(p)p.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;">❌ ${esc(e.message)}</div>`;
+    /* ✅ 404 = API 미지원 플랜 안내 */
+    const msg=e.message.includes('404')||e.message.includes('Not Found')
+      ? '❌ 뮤직비디오는 kie.ai 유료 플랜에서 지원됩니다'
+      : '❌ '+esc(e.message);
+    if(p)p.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;">${msg}</div>`;
   }
 }
 
@@ -1605,21 +1622,94 @@ function renderHistory(){updateHistBadge();}
 function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(historyData));}
 
 function playFromHistory(audioUrl,videoUrl,title){
+  /* ✅ 오디오/비디오 모두 풀스크린 모달 플레이어 */
+  const backdrop=document.createElement('div');
+  backdrop.id='hist-player-modal';
+  backdrop.style.cssText='position:fixed;inset:0;background:rgba(4,4,14,.92);backdrop-filter:blur(12px);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;';
+
   if(videoUrl){
-    const backdrop=document.createElement('div');
-    backdrop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;';
     backdrop.innerHTML=`
-      <div style="font-size:14px;font-weight:700;color:var(--t1);">${esc(title)}</div>
-      <video src="${esc(videoUrl)}" controls autoplay playsinline style="max-width:100%;max-height:70vh;border-radius:12px;background:#000;"></video>
-      <button style="padding:10px 24px;border-radius:20px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:var(--t1);font-size:13px;font-weight:700;cursor:pointer;" onclick="this.closest('div[style]').remove()">✕ 닫기</button>`;
-    backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.remove();});
-    document.body.appendChild(backdrop);
+      <div style="width:100%;max-width:560px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-.5px;">${esc(title)}</div>
+          <button style="padding:7px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;" onclick="document.getElementById('hist-player-modal').remove()">✕ 닫기</button>
+        </div>
+        <video src="${esc(videoUrl)}" controls autoplay playsinline style="width:100%;border-radius:12px;background:#000;display:block;"></video>
+      </div>`;
   } else if(audioUrl){
-    if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);}
-    const audio=new Audio(audioUrl);audio._idx=99;activeAudio=audio;
-    audio.play().catch(e=>toast('재생 실패: '+e.message,'err'));
-    toast(`▶ ${title}`,'',2000);
+    /* 오디오 풀스크린 — 커버 이미지 + 웨이브 애니메이션 */
+    const hist=historyData.find(h=>h.audio_url===audioUrl)||{};
+    const imgUrl=hist.image_url||'';
+    const tags=hist.tags||'';
+    backdrop.innerHTML=`
+      <div style="width:100%;max-width:420px;text-align:center;">
+        <button style="position:absolute;top:20px;right:20px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;" onclick="document.getElementById('hist-player-modal').remove();if(window._histAudio){window._histAudio.pause();}">✕ 닫기</button>
+        <div style="${imgUrl?`background:url(${esc(imgUrl)}) center/cover;`:'background:var(--s3);'}width:200px;height:200px;border-radius:16px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:60px;box-shadow:0 16px 48px rgba(0,0,0,.6);flex-shrink:0;">${imgUrl?'':'🎵'}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:6px;letter-spacing:-.5px;">${esc(title)}</div>
+        <div style="font-size:12px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-bottom:24px;">${esc(tags.split(',')[0]||'')}</div>
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:3px;height:36px;margin-bottom:20px;" id="hist-viz">
+          ${Array(20).fill(0).map(()=>'<div style="width:4px;border-radius:2px;background:linear-gradient(to top,var(--acc2),var(--acc));height:4px;transition:height .07s;opacity:.6;"></div>').join('')}
+        </div>
+        <div style="background:var(--s2);border-radius:8px;height:4px;margin-bottom:16px;cursor:pointer;" id="hist-prog-wrap">
+          <div style="height:100%;border-radius:8px;background:linear-gradient(90deg,var(--acc2),var(--acc));width:0%;transition:width .1s linear;" id="hist-prog-fill"></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);margin-bottom:16px;" id="hist-time">0:00 / 0:00</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
+          <button id="hist-play-btn" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(208,64,232,.4);">▶</button>
+        </div>
+      </div>`;
+
+    /* 오디오 연결 */
+    if(window._histAudio){window._histAudio.pause();}
+    const audio=new Audio(audioUrl);
+    window._histAudio=audio;
+    const playBtn=backdrop.querySelector('#hist-play-btn');
+    const progFill=backdrop.querySelector('#hist-prog-fill');
+    const timeEl=backdrop.querySelector('#hist-time');
+    const vizBars=backdrop.querySelectorAll('#hist-viz div');
+    let vizTimer=null;
+
+    function startVizModal(){
+      clearInterval(vizTimer);
+      vizTimer=setInterval(()=>{
+        vizBars.forEach(b=>{b.style.height=Math.max(4,Math.floor(Math.random()*32))+'px';});
+      },80);
+    }
+    function stopVizModal(){
+      clearInterval(vizTimer);
+      vizBars.forEach(b=>{b.style.height='4px';});
+    }
+
+    audio.addEventListener('timeupdate',()=>{
+      const pct=audio.duration?(audio.currentTime/audio.duration)*100:0;
+      progFill.style.width=pct+'%';
+      timeEl.textContent=`${formatTime(audio.currentTime)} / ${formatTime(audio.duration||0)}`;
+    });
+    audio.addEventListener('ended',()=>{playBtn.textContent='▶';stopVizModal();});
+
+    playBtn.addEventListener('click',()=>{
+      if(audio.paused){audio.play().then(()=>{playBtn.textContent='⏸';startVizModal();}).catch(e=>toast('재생 실패','err'));}
+      else{audio.pause();playBtn.textContent='▶';stopVizModal();}
+    });
+
+    backdrop.querySelector('#hist-prog-wrap').addEventListener('click',e=>{
+      if(!audio.duration)return;
+      const rect=e.currentTarget.getBoundingClientRect();
+      audio.currentTime=audio.duration*((e.clientX-rect.left)/rect.width);
+    });
+
+    /* 모달 닫을 때 오디오 정지 */
+    backdrop.addEventListener('click',e=>{
+      if(e.target===backdrop){audio.pause();stopVizModal();backdrop.remove();}
+    });
+
+    audio.play().then(()=>{playBtn.textContent='⏸';startVizModal();}).catch(()=>{});
+    document.body.appendChild(backdrop);
+    return;
   }
+
+  backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.remove();});
+  document.body.appendChild(backdrop);
 }
 
 function deleteHistory(idx,e){
