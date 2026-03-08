@@ -1372,76 +1372,6 @@ body.tab-library .comm-search{
   font-size:9px!important;font-weight:800!important;
 }
 
-
-/* ── BPM 메인 슬라이더 ── */
-.bpm-main-group{margin-bottom:0!important;}
-.bpm-main-row{display:flex;align-items:center;gap:8px;}
-.bpm-badge{background:var(--s2);border:1.5px solid var(--bdr);color:var(--acc3);padding:4px 10px;border-radius:var(--rs);font-size:13px;font-weight:700;min-width:52px;text-align:center;white-space:nowrap;}
-.bpm-auto-btn{padding:5px 10px;border-radius:var(--rs);background:var(--s1);border:1.5px solid var(--bdr);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
-.bpm-auto-btn.on{background:rgba(255,140,0,.15);border-color:var(--acc);color:var(--acc);}
-
-
-/* ── 가사 편집 영역 ── */
-.lrc-edit-area{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr);
-  border-radius:var(--rs);padding:12px 14px;color:var(--t1);
-  font-family:inherit;font-size:13px;line-height:1.8;
-  resize:vertical;outline:none;transition:border-color .2s;min-height:140px;
-}
-.lrc-edit-area:focus{border-color:var(--acc3);}
-.lrc-edit-actions{display:flex;gap:8px;margin-top:8px;}
-
-
-/* ── 이걸로 다시 작곡하기 시트 ── */
-.recompose-sheet{position:fixed;inset:0;z-index:800;display:none;align-items:flex-end;}
-.recompose-sheet.on{display:flex;}
-.rc-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
-.rc-sheet-box{
-  position:relative;width:100%;max-width:800px;margin:0 auto;
-  background:var(--bg2);border-radius:20px 20px 0 0;
-  max-height:90vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);
-}
-.rc-sheet-header{padding:20px 20px 0;}
-.rc-sheet-title-row{display:flex;align-items:center;justify-content:space-between;}
-.rc-sheet-close{width:32px;height:32px;border-radius:50%;background:var(--s2);border:none;cursor:pointer;font-size:14px;color:var(--t2);display:flex;align-items:center;justify-content:center;}
-.rc-sheet-close:hover{background:var(--s3);color:var(--t1);}
-.rc-sheet-body{padding:16px 20px;}
-.rc-field-group{margin-bottom:14px;}
-.rc-field-label{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;}
-.rc-field-input{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rs);padding:11px 14px;color:var(--t1);
-  font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;
-}
-.rc-field-input:focus{border-color:var(--acc3);}
-.rc-field-input::placeholder{color:var(--t3);}
-.rc-field-textarea{
-  width:100%;background:var(--s1);border:1.5px solid var(--bdr2);
-  border-radius:var(--rs);padding:11px 14px;color:var(--t1);
-  font-family:inherit;font-size:13px;line-height:1.8;
-  resize:vertical;outline:none;transition:border-color .2s;min-height:100px;
-}
-.rc-field-textarea:focus{border-color:var(--acc3);}
-.rc-field-textarea::placeholder{color:var(--t3);}
-.rc-sheet-footer{
-  padding:12px 20px 20px;display:flex;gap:10px;
-  border-top:1px solid var(--bdr2);
-}
-.rc-sheet-cancel-btn{
-  flex:1;padding:12px;border-radius:var(--r);background:var(--s2);
-  border:1.5px solid var(--bdr2);color:var(--t2);font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;transition:all .15s;
-}
-.rc-sheet-cancel-btn:hover{background:var(--s3);}
-.rc-sheet-submit-btn{
-  flex:2;padding:12px;border-radius:var(--r);
-  background:linear-gradient(135deg,#FF8C00,#FF6B00);
-  border:none;color:#fff;font-size:14px;font-weight:800;
-  cursor:pointer;font-family:inherit;transition:all .2s;
-  box-shadow:0 4px 16px rgba(255,140,0,.35);
-}
-.rc-sheet-submit-btn:hover{opacity:.92;transform:translateY(-1px);}
-
 </style>
 </head>
 <body>
@@ -1535,7 +1465,6 @@ body.tab-library .comm-search{
       <button class="mtab on" data-mode="custom">✦ 커스텀 모드</button>
       <button class="mtab" data-mode="simple">⚡ 심플 모드</button>
       <button class="mtab" data-mode="youtube">▶ YouTube 분석</button>
-      
     </div>
 
     <div class="mode-panel-wrap">
@@ -1561,18 +1490,13 @@ body.tab-library .comm-search{
       </div>
       <!-- 제목 -->
       <div class="title-row" style="margin-top:14px;">
-        <div class="opt-label" style="margin-bottom:6px;">♪ 곡 제목 <span style="color:var(--t3);font-weight:400;">(선택 — 비우면 AI 자동 생성)</span></div>
+        <div class="opt-label" style="margin-bottom:6px;">곡 제목 <span style="color:var(--t3);font-weight:400;">(선택 — 비우면 AI 자동 생성)</span></div>
         <input class="title-input" id="song-title" type="text" placeholder="예: 새벽 세 시의 고백">
       </div>
-      <!-- 곡 설명 / 분위기 -->
-      <div class="title-row" style="margin-top:12px;">
-        <div class="opt-label" style="margin-bottom:6px;">🎨 곡 설명 / 분위기 <span style="color:var(--t3);font-weight:400;">(장르·감성·악기 등)</span></div>
-        <input class="title-input" id="song-desc" type="text" placeholder="예: Warm acoustic pop, 감성적인 피아노, 잔잔한 새벽 분위기">
-      </div>
       <!-- 가사 -->
-      <div class="pc-label" id="prompt-label" style="margin-top:14px;">📝 가사 <span style="font-size:11px;color:var(--t3);font-weight:400;">(선택 — 비우면 AI 자동 생성)</span></div>
+      <div class="pc-label" id="prompt-label" style="margin-top:14px;">가사 / 곡 설명</div>
       <textarea class="prompt-input" id="prompt" rows="4"
-        placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+        placeholder="여기에 가사를 입력하세요&#10;&#10;[Verse]&#10;가사 첫 번째 줄&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
       <div class="lyrics-btn-row" id="lyrics-btn-row">
         <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
         <button class="lyrics-gen-btn" id="lyrics-btn">
@@ -1594,18 +1518,6 @@ body.tab-library .comm-search{
             <option value="epic, cinematic">웅장하고 영화적인</option>
             <option value="energetic, hype">에너지 넘치는</option>
           </select>
-        </div>
-        <!-- BPM 슬라이더 메인 노출 -->
-        <div class="opt-group bpm-main-group" style="flex:1 1 100%;">
-          <div class="opt-label" style="margin-bottom:6px;">🎵 곡 스피드 (BPM) <span style="color:var(--t3);font-weight:400;">— 현재: <span id="bpm-display">120</span> BPM</span></div>
-          <div class="bpm-main-row">
-            <span style="font-size:10px;color:var(--t3);">느림</span>
-            <input type="range" class="bpm-slider" id="bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-              oninput="selectedBpm=parseInt(this.value);$('bpm-display').textContent=this.value;if($('bpm-val'))$('bpm-val').textContent=this.value;">
-            <span style="font-size:10px;color:var(--t3);">빠름</span>
-            <div class="bpm-badge" id="bpm-badge">120</div>
-            <button class="bpm-auto-btn" id="bpm-auto-btn" title="AUTO: kie.ai가 자동 선택">AUTO</button>
-          </div>
         </div>
         <div class="vocal-group" id="vocal-group">
           <div class="opt-label">보컬 성별</div>
@@ -1629,7 +1541,15 @@ body.tab-library .comm-search{
         <span class="adv-chev" id="adv-chev">▼</span>
       </div>
       <div class="advanced-panel" id="adv-panel">
-
+        <div class="opt-label" style="margin-bottom:8px;">BPM <span style="color:var(--t3);font-weight:400;">(템포)</span></div>
+        <div class="bpm-row">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div class="bpm-val" id="bpm-val">—</div>
+            <div class="bpm-unit">BPM</div>
+          </div>
+          <input type="range" class="bpm-slider" id="bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;">
+          <button class="bpm-auto-btn on" id="bpm-auto-btn">AUTO</button>
+        </div>
         <div class="opt-label" style="margin-bottom:8px;">곡 시간</div>
         <div class="duration-btns" style="margin-bottom:10px;">
           <button class="dbtn" data-dur="60">1분</button>
@@ -1685,19 +1605,9 @@ body.tab-library .comm-search{
 
     <!-- ━━━ 심플 패널 ━━━ -->
     <div class="mode-panel" id="panel-simple">
-      <div class="opt-label" style="margin-bottom:8px;">🎨 곡 설명 / 분위기 <span style="color:var(--t3);font-weight:400;">(장르, 분위기, 스타일 자유롭게 입력)</span></div>
+      <div class="opt-label" style="margin-bottom:10px;">음악 설명 <span style="color:var(--t3);font-weight:400;">(장르, 분위기, 스타일 자유롭게 입력)</span></div>
       <textarea class="prompt-input" id="simple-prompt" rows="3"
         placeholder="예: upbeat K-pop with bright synths, female vocals&#10;예: 비 오는 날 카페에 어울리는 잔잔한 재즈"></textarea>
-      <div style="margin-top:12px;">
-        <div class="opt-label" style="margin-bottom:6px;">🎵 곡 스피드 (BPM) <span style="color:var(--t3);font-weight:400;">— 현재: <span id="s-bpm-display">120</span> BPM</span></div>
-        <div class="bpm-main-row">
-          <span style="font-size:10px;color:var(--t3);">느림</span>
-          <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-            oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
-          <span style="font-size:10px;color:var(--t3);">빠름</span>
-          <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
-        </div>
-      </div>
       <div style="display:flex;align-items:center;gap:10px;margin:12px 0 10px;">
         <div class="opt-group" style="flex:1;">
           <div class="opt-label" style="margin-bottom:5px;">분위기</div>
@@ -1760,7 +1670,6 @@ body.tab-library .comm-search{
         <span id="yt-gen-txt">▶ 분석 후 생성 가능</span>
       </button>
     </div>
-
     </div><!-- /mode-panel-wrap -->
   </div><!-- /prompt-card -->
 
@@ -1834,7 +1743,7 @@ body.tab-library .comm-search{
       <span id="fb-time-txt">재작곡 예상 시간: 약 <strong>45~90초</strong> · 2곡 생성 예정</span>
     </div>
     <div class="fb-actions">
-      <button class="fb-remix-btn" id="fb-remix-btn">🔄 이걸로 다시 작곡하기</button>
+      <button class="fb-remix-btn" id="fb-remix-btn">🔄 이 결로 다시 작곡하기</button>
       <button class="fb-skip-btn" id="fb-skip-btn">건너뛰기</button>
     </div>
   </div>
@@ -1856,7 +1765,7 @@ body.tab-library .comm-search{
   <!-- COMMUNITY VIEW -->
   <div class="view" id="community-view">
     <div class="comm-header">
-      <div class="comm-title">커뮤니티</div>
+      <div class="comm-title">탐색</div>
     </div>
     <div class="comm-search-wrap">
       <input class="comm-search" type="text" placeholder="🔍 장르, 분위기, 아티스트 검색..." readonly>
@@ -1998,7 +1907,7 @@ body.tab-library .comm-search{
 <nav id="bottom-nav">
   <button class="bnav-item" data-view="community-view">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <span class="bnav-label">커뮤니티</span>
+    <span class="bnav-label">탐색</span>
   </button>
   <button class="bnav-item on bnav-center" data-view="create-view">
     <span class="bnav-icon-wrap">✦</span>
@@ -2249,7 +2158,7 @@ let extendAudioId=null,toastTmr=null;
 let selectedEmotions=new Set(),makeMV=false;
 let currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
 let kieApiKey=''; /* /api/config 에서 로드됨 */
-let bpmAuto=false, selectedBpm=120;
+let bpmAuto=true, selectedBpm=120;
 let selectedDuration=120; /* 초 */
 let fbRating=0, fbTags=new Set();
 let lastGenerateParams=null; /* 피드백 재작곡용 */
@@ -2375,12 +2284,10 @@ document.querySelectorAll('#bottom-nav .bnav-item').forEach(tab=>{
 const bpmSlider=$('bpm-slider');
 const bpmAutoBtn=$('bpm-auto-btn');
 function updateBpmDisplay(){
-  if($('bpm-val'))$('bpm-val').textContent=bpmAuto?'—':selectedBpm;
-  if($('bpm-display'))$('bpm-display').textContent=bpmAuto?'AUTO':selectedBpm;
-  if($('bpm-badge'))$('bpm-badge').textContent=bpmAuto?'AUTO':selectedBpm+' BPM';
+  $('bpm-val').textContent=bpmAuto?'—':selectedBpm;
   bpmAutoBtn.classList.toggle('on',bpmAuto);
   bpmSlider.style.opacity=bpmAuto?'.35':'1';
-  bpmSlider.style.pointerEvents=bpmAuto?'none':'auto';
+  bpmSlider.style.pointerEvents=bpmAuto?'none':'';
 }
 bpmSlider.addEventListener('input',function(){
   selectedBpm=parseInt(this.value);
@@ -2461,19 +2368,14 @@ $('simple-gen-btn').addEventListener('click',()=>{
   const moodVal=$('simple-mood').value;
   if(!desc&&!moodVal){toast('음악 설명을 입력해주세요','err');return;}
   currentMode='simple';
-  /* 심플 BPM 적용 */
-  const simpleBpm=parseInt($('simple-bpm-slider')?.value||120);
-  const prevBpmAuto=bpmAuto;const prevBpm=selectedBpm;
-  bpmAuto=false;selectedBpm=simpleBpm;
   const origPrompt=$('prompt').value;
   const origInst=instOn;
   $('prompt').value=desc;
   instOn=simpleInstOn;
   generate();
-  setTimeout(()=>{$('prompt').value=origPrompt;instOn=origInst;bpmAuto=prevBpmAuto;selectedBpm=prevBpm;},100);
+  setTimeout(()=>{$('prompt').value=origPrompt;instOn=origInst;},100);
 });
 
-/* ── YouTube 생성 버튼 ── */
 /* ── YouTube 생성 버튼 ── */
 $('yt-gen-btn').addEventListener('click',()=>{
   currentMode='youtube';
@@ -2528,7 +2430,6 @@ $('style-weight').addEventListener('input',function(){$('sw-val').textContent=th
 $('weird-constraint').addEventListener('input',function(){$('wc-val').textContent=this.value;});
 
 /* ── YouTube 분석 (oEmbed + Claude API로 스타일 추론) ── */
-/* ── YouTube 분석 (oEmbed + Claude API로 스타일 추론) ── */
 $('yt-analyze-btn').addEventListener('click',async()=>{
   const url=$('yt-url').value.trim();
   if(!url||!url.includes('youtube')){toast('유효한 YouTube URL을 입력해주세요','err');return;}
@@ -2546,10 +2447,12 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
       if(r.ok){const d=await r.json();title=d.title||'';author=d.author_name||'';}
     }catch(e){/* CORS일 경우 URL에서 직접 추출 */}
     if(!title){
+      /* URL에서 videoId 추출 후 제목은 수동 안내 */
       const m=url.match(/[?&]v=([^&]+)/);
       title=m?`YouTube 영상 (${m[1]})`:'YouTube 영상';
     }
-    /* Claude API → Vercel 서버리스 프록시 (/api/analyze) 로 호출 */
+
+    /* Claude API → Vercel 서버리스 프록시 (/api/analyze) 로 호출 — CORS 우회 */
     let rawText='';
     try{
       const proxyRes=await fetch('/api/analyze',{
@@ -2562,6 +2465,7 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
       rawText=proxyData.text||'';
     }catch(proxyErr){
       console.warn('analyze proxy failed:',proxyErr);
+      /* 프록시 실패 시 제목 기반 폴백 — 아래 분기에서 처리됨 */
     }
     let analysis;
     try{
@@ -2570,6 +2474,8 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
     }catch{analysis=null;}
 
     if(analysis){
+      /* 분석 결과를 폼에 자동 입력 */
+      /* 아티스트 이름 제거 — SENSITIVE_WORD_ERROR 방지 */
       const rawStylePrompt=analysis.style_prompt||'';
       const stylePrompt=rawStylePrompt.replace(/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g,'').replace(/kwon[\s\S]*?jinah?/gi,'').trim();
       $('prompt').value=stylePrompt;
@@ -2578,7 +2484,7 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
       if(analysis.bpm_estimate&&analysis.bpm_estimate>0){
         bpmAuto=false;
         selectedBpm=Math.min(200,Math.max(60,analysis.bpm_estimate));
-        if($('bpm-slider'))$('bpm-slider').value=selectedBpm;
+        $('bpm-slider').value=selectedBpm;
         updateBpmDisplay();
       }
       resultEl.style.display='block';
@@ -2589,9 +2495,12 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
           장르: ${esc(analysis.genre||'—')} · BPM: ~${analysis.bpm_estimate||'?'} · 분위기: ${esc(analysis.mood||'—')}
         </div>`;
       toast('✅ 분석 완료! 스타일이 자동 입력되었습니다.','ok',3000);
+      /* yt-gen-btn 활성화 */
       const ytGenBtn=$('yt-gen-btn');
       if(ytGenBtn){ytGenBtn.disabled=false;ytGenBtn.style.opacity='1';$('yt-gen-txt').textContent='▶ YouTube 스타일로 생성';}
     }else{
+      /* Claude API 없을 경우 제목 기반 기본 처리 */
+      /* 아티스트 이름 포함 시 SENSITIVE_WORD_ERROR 발생 — author 제거 */
       const safePrompt=title.replace(/[\(\[].*/,'').trim();
       $('prompt').value=`${safePrompt} style music`;
       resultEl.style.display='block';
@@ -2731,8 +2640,6 @@ async function generate(overrideParams){
     moodVal=overrideParams?.mood||$('mood').value;
     subGenre=overrideParams?.subGenre||$('genre-sub').value;
   }
-  /* 커스텀모드 곡 설명 필드 */
-  const songDesc=($('song-desc')?.value||'').trim();
   const mood=moodVal;
   const negTags=$('neg-tags').value.trim();
   const model=$('model-sel').value;
@@ -2740,7 +2647,7 @@ async function generate(overrideParams){
   const wc=parseFloat($('weird-constraint').value);
   if(!lyricsText&&!subGenre){toast(isSimple?'음악 설명을 입력해주세요':'가사 또는 장르를 선택해주세요','err');return;}
 
-  let styleStr=overrideParams?.styleStr||[subGenre,mood,songDesc||''].filter(Boolean).join(', ');
+  let styleStr=overrideParams?.styleStr||[subGenre,mood].filter(Boolean).join(', ');
 
   /* BPM을 스타일에 추가 */
   if(!bpmAuto&&selectedBpm){styleStr=[styleStr,`${selectedBpm}bpm`].filter(Boolean).join(', ');}
@@ -2749,7 +2656,7 @@ async function generate(overrideParams){
   lastLyricsInput=lyricsText;
 
   /* 재작곡을 위한 파라미터 저장 */
-  lastGenerateParams={prompt,subGenre,mood,styleStr,isCustom,songDesc:songDesc||''};
+  lastGenerateParams={prompt,subGenre,mood,styleStr,isCustom};
 
   /* 모드별 버튼 비활성화 */
   const activeGenBtn=isSimple?$('simple-gen-btn'):isYT?$('yt-gen-btn'):$('gen-btn');
@@ -3152,38 +3059,15 @@ function renderTracks(tracks,prompt,tags,mode){
           <div class="dl-row" style="margin-bottom:10px;">
             <button class="dl-btn lnk" data-copy-lyrics-idx="${i}">📋 가사 복사</button>
             <button class="dl-btn audio" style="color:var(--ylw);border-color:rgba(255,208,0,.3);" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">🎤 노래방 모드</button>
-            <button class="dl-btn" id="lrc-edit-btn-${i}" style="color:var(--acc3);border-color:rgba(168,85,247,.3);" onclick="toggleLyricsEdit(${i})">✏️ 가사 편집</button>
           </div>
-          <!-- 가사 표시 영역 -->
           <div class="lyrics-display" id="lyrics-plain-${i}">${parseLyrics(lyricsRaw)}</div>
-          <div class="lyrics-display" id="lyrics-karaoke-${i}"></div>
-          <!-- 가사 편집 영역 (기본 숨김) -->
-          <div id="lrc-edit-wrap-${i}" style="display:none;">
-            <textarea class="lrc-edit-area" id="lrc-edit-area-${i}" rows="8" placeholder="가사를 편집하세요...">${lyricsRaw.replace(/</g,'&lt;')}</textarea>
-            <div class="lrc-edit-actions">
-              <button class="dl-btn" onclick="saveLyricsEdit(${i})" style="color:var(--grn);border-color:rgba(0,221,160,.3);">✅ 저장</button>
-              <button class="dl-btn" onclick="cancelLyricsEdit(${i})">✕ 취소</button>
-            </div>
-          </div>
+          <div class="lyrics-display" id="lyrics-karaoke-${i}" ></div>
         </div>
         <div id="mvpanel-slot-${i}"></div>
       </div>`;
     container.appendChild(card);
   });
 
-  /* 심플 모드: 가사 탭 기본 활성화 */
-  if(modeKey==='simple'){
-    tracks.forEach((_,i)=>{
-      const body=container.querySelectorAll('.rc-body')[i];
-      if(!body)return;
-      body.querySelectorAll('.rctab').forEach(t=>t.classList.remove('on'));
-      body.querySelectorAll('.rc-tab-panel').forEach(p=>p.classList.remove('on'));
-      const lyTab=body.querySelector('.rctab[data-tab="ly-'+i+'"]');
-      const lyPanel=document.getElementById('ly-'+i);
-      if(lyTab)lyTab.classList.add('on');
-      if(lyPanel)lyPanel.classList.add('on');
-    });
-  }
   /* 탭 이벤트 */
   container.querySelectorAll('.rctab').forEach(tab=>{
     tab.addEventListener('click',function(){
@@ -3354,72 +3238,27 @@ document.querySelectorAll('.fbtag').forEach(tag=>{
 });
 
 /* 재작곡 */
-$('fb-remix-btn').addEventListener('click',()=>{
-  if(!lastGenerateParams){toast('먼저 음악을 생성해주세요','err');return;}
-  openRecomposeSheet();
-});
-
-function openRecomposeSheet(){
-  const p=lastGenerateParams||{};
-  /* 모달 필드 채우기 */
-  const sheet=$('recompose-sheet');
-  if(!sheet)return;
-  $('rc-sheet-title').value=p.title||($('song-title')?.value)||'';
-  $('rc-sheet-desc').value=p.songDesc||($('song-desc')?.value)||($('simple-prompt')?.value)||'';
-  /* 현재 가사: lastTracks 첫번째 */
-  const lyricsNow=lastTracks?.[0]?._inputLyrics||lastTracks?.[0]?.lyric||lastTracks?.[0]?.lyrics||'';
-  $('rc-sheet-lyrics').value=lyricsNow;
-  const bpmNow=selectedBpm||120;
-  $('rc-sheet-bpm').value=bpmNow;
-  $('rc-sheet-bpm-badge').textContent=bpmNow+' BPM';
-  /* 피드백 태그 수집 */
-  const activeFbTags=[...fbTags];
-  const fbText=$('fb-text').value.trim();
-  if(activeFbTags.length||fbText){
-    const hint=[...activeFbTags.map(t=>({
-      tempo_fast:'템포 느리게',tempo_slow:'템포 빠르게',more_energy:'에너지 강하게',
-      softer:'더 잔잔하게',more_vocal:'보컬 강화',instrumental:'인스트루멘탈',
-      different_genre:'다른 장르',keep_vibe:'분위기 유지'
-    }[t]||t)),fbText].filter(Boolean).join(', ');
-    if($('rc-sheet-desc').value)$('rc-sheet-desc').value+=' ('+hint+')';
-    else $('rc-sheet-desc').value=hint;
-  }
-  sheet.classList.add('on');
-  document.body.style.overflow='hidden';
-}
-
-function closeRecomposeSheet(){
-  const sheet=$('recompose-sheet');
-  if(sheet)sheet.classList.remove('on');
-  document.body.style.overflow='';
-}
-
-async function doRecompose(){
-  const title=$('rc-sheet-title').value.trim();
-  const desc=$('rc-sheet-desc').value.trim();
-  const lyrics=$('rc-sheet-lyrics').value.trim();
-  const bpm=parseInt($('rc-sheet-bpm').value)||120;
-  closeRecomposeSheet();
+$('fb-remix-btn').addEventListener('click',async()=>{
+  if(!lastGenerateParams)return;
   $('feedback-card').style.display='none';
-  /* 폼 채우기 */
-  if($('song-title'))$('song-title').value=title;
-  if($('song-desc'))$('song-desc').value=desc;
-  if($('prompt'))$('prompt').value=lyrics;
-  bpmAuto=false;selectedBpm=bpm;updateBpmDisplay();
-  if($('bpm-slider'))$('bpm-slider').value=bpm;
-  /* 커스텀 모드 활성화 후 생성 */
-  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('on'));
-  const customTab=document.querySelector('.mtab[data-mode="custom"]');
-  if(customTab)customTab.classList.add('on');
-  const customPanel=$('panel-custom');
-  if(customPanel)customPanel.classList.add('on');
-  currentMode='custom';
-  toast('🔄 다시 작곡 중...','',60000);
-  let styleStr=[desc].filter(Boolean).join(', ');
-  if(bpm)styleStr=[styleStr,bpm+'bpm'].filter(Boolean).join(', ');
-  await generate({prompt:lyrics||styleStr,styleStr,isCustom:true,title,songDesc:desc});
-}
+  const fbText=$('fb-text').value.trim();
+  const tags=[...fbTags];
+
+  /* 피드백 기반으로 파라미터 수정 */
+  let overrideParams={...lastGenerateParams};
+
+  if(tags.includes('tempo_fast'))overrideParams.styleStr=(overrideParams.styleStr||'')+', slow tempo, 70bpm';
+  if(tags.includes('tempo_slow'))overrideParams.styleStr=(overrideParams.styleStr||'')+', fast tempo, 140bpm';
+  if(tags.includes('more_energy'))overrideParams.styleStr=(overrideParams.styleStr||'')+', energetic, high energy, powerful';
+  if(tags.includes('softer'))overrideParams.styleStr=(overrideParams.styleStr||'')+', soft, gentle, mellow';
+  if(tags.includes('more_vocal'))overrideParams.styleStr=(overrideParams.styleStr||'')+', prominent vocals, clear singing';
+  if(tags.includes('instrumental'))overrideParams.styleStr=(overrideParams.styleStr||'')+', instrumental, no vocals';
+  if(fbText)overrideParams.styleStr=(overrideParams.styleStr||'')+', '+fbText;
+  if(tags.includes('keep_vibe'))overrideParams.styleStr=(overrideParams.styleStr||'')+', same vibe, similar mood';
+
+  toast('🔄 피드백 기반으로 재작곡 중...','',60000);
+  await generate(overrideParams);
+});
 
 $('fb-skip-btn').addEventListener('click',()=>{$('feedback-card').style.display='none';});
 
@@ -4372,103 +4211,6 @@ updateLoginUI();
 /* API 로드 완료 후 설정탭 상태 반영 */
 setTimeout(renderSettings, 2000);
 
-
-/* ── 가사 편집 (결과 카드) ── */
-function toggleLyricsEdit(idx){
-  const wrap=document.getElementById('lrc-edit-wrap-'+idx);
-  const plain=document.getElementById('lyrics-plain-'+idx);
-  const karaoke=document.getElementById('lyrics-karaoke-'+idx);
-  const btn=document.getElementById('lrc-edit-btn-'+idx);
-  if(!wrap)return;
-  const isOpen=wrap.style.display!=='none';
-  if(isOpen){
-    wrap.style.display='none';
-    if(plain)plain.style.display='';
-    if(karaoke)karaoke.style.display='';
-    if(btn)btn.textContent='✏️ 가사 편집';
-  } else {
-    /* 현재 표시된 가사를 textarea에 채우기 */
-    const area=document.getElementById('lrc-edit-area-'+idx);
-    if(area&&plain)area.value=plain.innerText||plain.textContent||'';
-    wrap.style.display='block';
-    if(plain)plain.style.display='none';
-    if(karaoke)karaoke.style.display='none';
-    if(btn)btn.textContent='✕ 편집 취소';
-    if(area)area.focus();
-  }
-}
-function saveLyricsEdit(idx){
-  const area=document.getElementById('lrc-edit-area-'+idx);
-  const plain=document.getElementById('lyrics-plain-'+idx);
-  if(!area||!plain)return;
-  const newText=area.value;
-  /* lastTracks 업데이트 */
-  if(lastTracks&&lastTracks[idx]){lastTracks[idx]._inputLyrics=newText;lastTracks[idx].lyric=newText;}
-  /* 히스토리 업데이트 */
-  const audioUrl=lastTracks?.[idx]?.audioUrl||lastTracks?.[idx]?.audio_url||'';
-  if(audioUrl){
-    const h=historyData.find(h=>h.audioUrl===audioUrl||h.audio_url===audioUrl);
-    if(h){h.lyrics=newText;saveHistory();}
-  }
-  plain.innerHTML=parseLyrics(newText);
-  cancelLyricsEdit(idx);
-  toast('✅ 가사가 저장되었습니다','ok');
-}
-function cancelLyricsEdit(idx){
-  const wrap=document.getElementById('lrc-edit-wrap-'+idx);
-  const plain=document.getElementById('lyrics-plain-'+idx);
-  const karaoke=document.getElementById('lyrics-karaoke-'+idx);
-  const btn=document.getElementById('lrc-edit-btn-'+idx);
-  if(wrap)wrap.style.display='none';
-  if(plain)plain.style.display='';
-  if(karaoke)karaoke.style.display='';
-  if(btn)btn.textContent='✏️ 가사 편집';
-}
-
 </script>
-
-<!-- ── 이걸로 다시 작곡하기 시트 ── -->
-<div class="recompose-sheet" id="recompose-sheet">
-  <div class="rc-sheet-backdrop" onclick="closeRecomposeSheet()"></div>
-  <div class="rc-sheet-box">
-    <div class="rc-sheet-header">
-      <div class="rc-sheet-title-row">
-        <div style="font-size:17px;font-weight:800;">🔄 이걸로 다시 작곡하기</div>
-        <button class="rc-sheet-close" onclick="closeRecomposeSheet()">✕</button>
-      </div>
-      <div style="font-size:12px;color:var(--t3);margin-top:4px;">수정하고 싶은 부분만 바꾸고 다시 작곡하세요</div>
-    </div>
-    <div class="rc-sheet-body">
-      <div class="rc-field-group">
-        <div class="rc-field-label">♪ 곡 제목 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
-        <input class="rc-field-input" id="rc-sheet-title" type="text" placeholder="예: 새벽 세 시의 고백">
-      </div>
-      <div class="rc-field-group">
-        <div class="rc-field-label">🎨 곡 설명 / 분위기</div>
-        <input class="rc-field-input" id="rc-sheet-desc" type="text" placeholder="장르, 분위기, 악기, 스타일 등">
-      </div>
-      <div class="rc-field-group">
-        <div class="rc-field-label">📝 가사 <span style="color:var(--t3);font-weight:400;">(비우면 AI 자동 생성)</span></div>
-        <textarea class="rc-field-textarea" id="rc-sheet-lyrics" rows="5" placeholder="수정하고 싶은 가사를 입력하세요..."></textarea>
-      </div>
-      <div class="rc-field-group">
-        <div class="rc-field-label">🎵 곡 스피드 — <span id="rc-sheet-bpm-badge" style="color:var(--acc3);">120 BPM</span></div>
-        <div class="bpm-main-row">
-          <span style="font-size:10px;color:var(--t3);">느림</span>
-          <input type="range" class="bpm-slider" id="rc-sheet-bpm" min="60" max="200" step="1" value="120" style="flex:1;"
-            oninput="$('rc-sheet-bpm-badge').textContent=this.value+' BPM';">
-          <span style="font-size:10px;color:var(--t3);">빠름</span>
-        </div>
-      </div>
-    </div>
-    <div class="rc-sheet-footer">
-      <button class="rc-sheet-cancel-btn" onclick="closeRecomposeSheet()">취소</button>
-      <button class="rc-sheet-submit-btn" onclick="doRecompose()">
-        🔄 다시 작곡하기
-      </button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
