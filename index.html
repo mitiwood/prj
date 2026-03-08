@@ -132,7 +132,7 @@ header{padding:24px 0 28px;display:flex;align-items:center;justify-content:space
 .options-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
 .vocal-group{display:flex;flex-direction:column;gap:5px;}
 .vocal-btns{display:flex;gap:5px;}
-.vbtn{flex:1;padding:9px 4px;border-radius:var(--rsm);background:var(--s2);border:1.5px solid var(--bdr);font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;text-align:center;font-family:'Syne',sans-serif;}
+.vbtn{flex:1;padding:9px 6px;border-radius:var(--rsm);background:var(--s2);border:1.5px solid var(--bdr);font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;text-align:center;font-family:'Syne',sans-serif;white-space:nowrap;}
 .vbtn:hover{border-color:var(--acc);color:var(--acc);}
 .vbtn.on{background:rgba(224,64,251,.12);border-color:var(--acc);color:var(--acc);}
 .toggle-label-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;background:var(--s2);border:1.5px solid var(--bdr);border-radius:var(--rsm);transition:border-color .15s;}
@@ -566,16 +566,22 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
 .share-copy-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace;outline:none;}
 
 /* ── 하단 탭바 ── */
+/* ── 글로벌 모드탭 바 ── */
+.global-mode-bar{display:flex;gap:6px;padding:8px 0 12px;position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid rgba(255,255,255,.04);}
+.gmtab{flex:1;padding:10px 8px;border-radius:10px;background:var(--s2);border:1.5px solid var(--bdr);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;text-align:center;}
+.gmtab:hover{border-color:var(--acc);color:var(--acc);}
+.gmtab.on{background:rgba(208,64,232,.12);border-color:var(--acc);color:var(--acc);}
+
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(8,8,18,.92);backdrop-filter:blur(16px);border-top:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-around;padding:0 4px;padding-bottom:env(safe-area-inset-bottom,0);}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;cursor:pointer;background:none;border:none;color:var(--t3);font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3px;transition:color .15s;position:relative;text-transform:uppercase;}
 .bnav-item:hover{color:var(--t2);}
 .bnav-item.on{color:var(--acc);}
 .bnav-icon{font-size:20px;line-height:1;margin-bottom:1px;}
 .bnav-badge{position:absolute;top:7px;right:calc(50% - 18px);background:var(--acc);color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:8px;font-family:'JetBrains Mono',monospace;min-width:14px;text-align:center;}
-.bnav-center{position:relative;}
-.bnav-center .bnav-icon-wrap{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 18px rgba(208,64,232,.5);margin-bottom:2px;transition:transform .15s;}
+/* 만들기 버튼 — 다른 탭과 동일 사이즈 */
+.bnav-center .bnav-icon-wrap{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--acc2),var(--acc));display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:1px;transition:transform .15s;}
 .bnav-center:hover .bnav-icon-wrap{transform:scale(1.08);}
-.bnav-center.on .bnav-icon-wrap{box-shadow:0 4px 24px rgba(208,64,232,.7);}
+.bnav-center.on .bnav-icon-wrap{box-shadow:0 2px 10px rgba(208,64,232,.5);}
 
 /* ── 장르 버튼 그리드 ── */
 .genre-btn-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
@@ -763,21 +769,21 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
         <span class="key-spin" id="key-spin"></span>
         <span id="key-status-txt">API 키 로딩 중...</span>
       </div>
-      <div id="login-area">
-        <button class="login-btn" id="login-btn" onclick="document.getElementById('login-modal').classList.add('on')">
-          👤 로그인
-        </button>
-      </div>
     </div>
   </header>
 
-  <!-- ▼ 하단 탭바로 뷰 전환 (nav-tabs 제거) -->
+  <!-- 모드탭 — 헤더 고정 바 -->
+  <div class="global-mode-bar">
+    <button class="gmtab on" data-mode="custom">✦ 커스텀</button>
+    <button class="gmtab" data-mode="simple">⚡ 심플</button>
+    <button class="gmtab" data-mode="youtube">▶ YouTube</button>
+  </div>
 
   <!-- CREATE VIEW -->
   <div class="view on" id="create-view">
-
   <div class="prompt-card">
-    <div class="mode-tabs">
+    <!-- 모드탭 (하위호환용 숨김 — JS 참조) -->
+    <div class="mode-tabs" style="display:none;">
       <button class="mtab on" data-mode="custom">✦ 커스텀 모드</button>
       <button class="mtab" data-mode="simple">⚡ 심플 모드</button>
       <button class="mtab" data-mode="youtube">▶ YouTube 분석</button>
@@ -815,9 +821,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
       <select id="genre-cat" style="display:none;"></select>
       <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
     </div>
-
-    <!-- 프리셋 -->
-    <div class="preset-row" id="preset-row"></div>
 
     <!-- 감정 -->
     <div class="emotion-row" id="emotion-row">
@@ -1600,28 +1603,23 @@ function renderPresets(){
 }
 
 /* ── 모드 탭 ── */
-document.querySelectorAll('.mtab').forEach(tab=>{
-  tab.addEventListener('click',function(){
-    document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('on'));
-    this.classList.add('on');currentMode=this.dataset.mode;
-    const isC=currentMode==='custom';
-    const isYT=currentMode==='youtube';
-    ['genre-row','preset-row','emotion-row','title-row','lyrics-btn-row','vocal-group'].forEach(id=>{
-      const el=$(id);if(el)el.style.display=(isC&&!isYT)?'':'none';
-    });
-    $('youtube-row').style.display=isYT?'block':'none';
-    $('prompt-label').textContent=isC?'가사 / 곡 설명':isYT?'생성할 음악 설명 (자동 입력됨)':'음악 설명 (프롬프트)';
-    $('prompt').placeholder=isC?'여기에 가사를 입력하세요\n\n[Verse]\n가사 첫 번째 줄\n\n[Chorus]\n후렴구...':
-      isYT?'YouTube 영상을 분석하면 여기에 자동으로 스타일 프롬프트가 입력됩니다...':
-      '예: 잔잔한 피아노 발라드, 가을 감성, 오후 햇살이 드는 카페...';
-
-    /* 해당 모드 결과 섹션이 있으면 살짝 하이라이트 */
-    const activeSection=$(`results-${currentMode}`);
-    if(activeSection&&activeSection.style.display!=='none'){
-      activeSection.style.outline='2px solid rgba(208,64,232,.3)';
-      setTimeout(()=>{activeSection.style.outline='none';},1000);
-    }
+/* 모드 전환 공통 함수 */
+function switchMode(mode){
+  currentMode=mode;
+  document.querySelectorAll('.mtab,.gmtab').forEach(t=>t.classList.toggle('on',t.dataset.mode===mode));
+  const isC=mode==='custom';
+  const isYT=mode==='youtube';
+  ['genre-row','emotion-row','title-row','lyrics-btn-row','vocal-group'].forEach(id=>{
+    const el=$(id);if(el)el.style.display=(isC&&!isYT)?'':'none';
   });
+  $('youtube-row').style.display=isYT?'block':'none';
+  $('prompt-label').textContent=isC?'가사 / 곡 설명':isYT?'생성할 음악 설명 (자동 입력됨)':'음악 설명 (프롬프트)';
+  $('prompt').placeholder=isC?'여기에 가사를 입력하세요\n\n[Verse]\n가사 첫 번째 줄\n\n[Chorus]\n후렴구...':
+    isYT?'YouTube 영상을 분석하면 여기에 자동으로 스타일 프롬프트가 입력됩니다...':
+    '예: 잔잔한 피아노 발라드, 가을 감성, 오후 햇살이 드는 카페...';
+}
+document.querySelectorAll('.mtab,.gmtab').forEach(tab=>{
+  tab.addEventListener('click',function(){switchMode(this.dataset.mode);});
 });
 
 /* ── /api/config 에서 API 키 로드 ── */
@@ -1794,54 +1792,72 @@ async function downloadFile(url,filename){
   }
 }
 
-/* ── AI 자동 작사 ── */
+/* ── AI 자동 작사 — Anthropic API 직접 호출 ── */
 $('lyrics-btn').addEventListener('click',async()=>{
-  const apiKey=kieApiKey;
-  if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
-  const sub=$('genre-sub').value||'';
-  const mood=$('mood').value||'';
+  const sub=$('genre-sub').value||$('genre-cat').value||'K-Pop';
+  const mood=$('mood').value||'emotional';
   const existing=$('prompt').value.trim();
   const emotions=[...selectedEmotions].join(', ');
-  const lyricsPrompt=[existing||'감성적인 노래',sub,mood,emotions?`감정: ${emotions}`:''].filter(Boolean).join(', ');
+  const titleHint=$('title-input')?.value?.trim()||'';
 
   $('lyrics-btn').disabled=true;
   $('lyrics-spinner').style.display='inline-block';
+  toast('✍️ 가사 생성 중...','',30000);
 
-  /* ✅ FIX: 진행 카운터 토스트 (60초 고정 대신 실시간 업데이트) */
-  let elapsed=0;
-  const toastInterval=setInterval(()=>{
-    elapsed+=1;
-    toast(`✍️ 가사 생성 중... ${elapsed}초`,'',2000);
-  },1000);
-  toast('✍️ 가사 생성 중... 0초','',2000);
+  const sysPrompt=`당신은 전문 작사가입니다. 요청에 맞는 한국어 가사를 작성하세요.
+규칙:
+- [Verse 1], [Chorus], [Bridge] 등 섹션 태그 포함
+- 총 16~20줄 분량
+- 자연스럽고 감성적인 한국어
+- JSON 없이 가사만 출력`;
+
+  const userMsg=`장르: ${sub}
+분위기: ${mood}
+${emotions?'감정: '+emotions:''}
+${titleHint?'제목: '+titleHint:''}
+${existing?'참고 내용: '+existing:''}
+
+위 조건에 맞는 한국어 가사를 작성해주세요.`;
 
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt,callBackUrl:CALLBACK});
-    const taskId=data?.data?.taskId||data?.taskId;
-    if(!taskId)throw new Error('가사 생성 taskId 없음');
-    for(let i=0;i<60;i++){
-      await sleep(3000);
-      const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
-      const d=res?.data;if(!d)continue;
-      const status=(d.status||'').toUpperCase();
-      if(status==='SUCCESS'){
-        const text=d.response?.text||d.text||'';
-        if(text){
-          clearInterval(toastInterval);
-          const promptEl=$('prompt');
-          promptEl.value=text;
-          promptEl.classList.add('flash');
-          setTimeout(()=>promptEl.classList.remove('flash'),2000);
-          promptEl.scrollIntoView({behavior:'smooth',block:'center'});
-          promptEl.focus();
-          toast('✅ 가사 생성 완료! 확인 후 음악 생성하기를 눌러주세요','ok',3500);
-          return;
-        }
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:sysPrompt,
+        messages:[{role:'user',content:userMsg}]
+      })
+    });
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const text=data?.content?.[0]?.text||'';
+    if(!text)throw new Error('가사 생성 실패');
+    const promptEl=$('prompt');
+    promptEl.value=text.trim();
+    promptEl.classList.add('flash');
+    setTimeout(()=>promptEl.classList.remove('flash'),2000);
+    promptEl.scrollIntoView({behavior:'smooth',block:'center'});
+    toast('✅ 가사 생성 완료!','ok',3000);
+  }catch(e){
+    /* fallback — /api/analyze 프록시 시도 */
+    try{
+      const proxyRes=await fetch('/api/analyze',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({title:titleHint||existing||sub,author:mood})
+      });
+      const pd=await proxyRes.json();
+      const fallText=pd?.text||'';
+      if(fallText&&fallText.length>30){
+        $('prompt').value=fallText;
+        toast('✅ 가사 생성 완료!','ok',3000);
+      } else {
+        throw new Error('가사를 불러오지 못했습니다');
       }
-      if(status==='FAILED'||status==='ERROR')throw new Error('가사 생성 실패');
-    }
-    throw new Error('가사 생성 시간 초과 — 잠시 후 다시 시도해주세요');
-  }catch(e){clearInterval(toastInterval);toast('❌ '+e.message,'err',5000);}
+    }catch(e2){toast('❌ '+e2.message,'err',4000);}
+  }
   finally{$('lyrics-btn').disabled=false;$('lyrics-spinner').style.display='none';}
 });
 
@@ -2951,46 +2967,76 @@ function renderKpTimestampedLyrics(words){
 }
 
 function renderKpPlainLyrics(plain){
-  if(!plain){$('kp-lyrics-area').innerHTML='<div class="kp-lyrics-empty">가사가 없어요<br><span style="font-size:11px;opacity:.5;">커스텀 모드로 생성하면 가사가 표시됩니다</span></div>';return;}
   const lyricsArea=$('kp-lyrics-area');
+  if(!plain||plain.trim().length<3){
+    lyricsArea.innerHTML='<div class="kp-lyrics-empty">🎤 가사가 없습니다<br><span style="font-size:11px;opacity:.5;">커스텀 모드에서 가사 입력 후 생성하면 표시됩니다</span></div>';
+    return;
+  }
+  const isStyle=!plain.includes('\n')&&plain.length<120&&!/\[.+\]/.test(plain);
+  if(isStyle){lyricsArea.innerHTML='<div class="kp-lyrics-empty">🎤 가사 없음</div>';return;}
+
   const lines=plain.split('\n');
-  kpLines=lines.map((text,i)=>({isSec:/^\[.+\]$/.test(text.trim()),text:text.replace(/[\[\]]/g,'').trim(),startS:null}));
-  let html='';
-  lines.forEach((line,li)=>{
-    if(!line.trim()){html+='<div style="height:12px;"></div>';return;}
-    if(/^\[.+\]$/.test(line.trim())){
-      html+=`<div class="kp-lyrics-sec">${esc(line.replace(/[\[\]]/g,'').trim())}</div>`;
+  /* 실제 가사 라인 수집 */
+  const lyricLines=[];
+  lines.forEach(l=>{const t=l.trim();if(t&&!/^\[.+\]$/.test(t))lyricLines.push(t);});
+  kpLines=lyricLines;
+
+  let html='',li=0;
+  lines.forEach(line=>{
+    const t=line.trim();
+    if(!t){html+='<div style="height:10px;"></div>';return;}
+    if(/^\[.+\]$/.test(t)){
+      html+=`<div class="kp-lyrics-sec">${esc(t.replace(/[\[\]]/g,'').trim())}</div>`;
     } else {
-      html+=`<div class="kp-lyrics-line no-sync" id="kpl-${li}">${esc(line)}</div>`;
+      html+=`<div class="kp-lyrics-line" id="kpl-${li}" data-li="${li}" onclick="kpSeekByLine(${li})">${esc(t)}</div>`;
+      li++;
     }
   });
   lyricsArea.innerHTML=html;
-  toast('📝 타임스탬프 없음 — 일반 가사로 표시됩니다','',3000);
+}
+
+/* 라인 클릭 시크 */
+function kpSeekByLine(li){
+  if(!kpAudio?.duration||!kpLines.length)return;
+  kpAudio.currentTime=(kpAudio.duration/kpLines.length)*li;
+  if(kpAudio.paused){kpAudio.play();$('kp-play-btn').textContent='⏸';startKpViz();}
 }
 
 function syncKpLyrics(currentTime){
-  const lines=$('kp-lyrics-area').querySelectorAll('.kp-lyrics-line:not(.no-sync)');
-  let activeEl=null;
-  lines.forEach(el=>{
-    const start=parseFloat(el.dataset.start)||0;
-    const end=parseFloat(el.dataset.end)||0;
-    if(currentTime>=start&&currentTime<end){
-      el.classList.add('active');el.classList.remove('done');
-      activeEl=el;
-    } else if(currentTime>=end){
-      el.classList.remove('active');el.classList.add('done');
-    } else {
-      el.classList.remove('active','done');
-    }
-  });
-  /* 현재 라인 자동 스크롤 */
-  if(activeEl){
-    const area=$('kp-lyrics-area');
-    const areaRect=area.getBoundingClientRect();
-    const elRect=activeEl.getBoundingClientRect();
-    const targetScroll=area.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
-    area.scrollTo({top:targetScroll,behavior:'smooth'});
+  /* 타임스탬프 있는 라인 */
+  const tsLines=$('kp-lyrics-area').querySelectorAll('.kp-lyrics-line[data-start]');
+  if(tsLines.length){
+    let activeEl=null;
+    tsLines.forEach(el=>{
+      const s=parseFloat(el.dataset.start)||0;
+      const e=parseFloat(el.dataset.end)||0;
+      if(currentTime>=s&&currentTime<e){el.classList.add('active');el.classList.remove('done');activeEl=el;}
+      else if(currentTime>=e){el.classList.remove('active');el.classList.add('done');}
+      else{el.classList.remove('active','done');}
+    });
+    if(activeEl)scrollKpToActive(activeEl);
+    return;
   }
+  /* 균등분할 싱크 (plain lyrics) */
+  const plainLines=$('kp-lyrics-area').querySelectorAll('.kp-lyrics-line[data-li]');
+  if(!plainLines.length||!kpAudio?.duration)return;
+  const n=plainLines.length;
+  const dur=kpAudio.duration;
+  let activeEl=null;
+  plainLines.forEach((el,i)=>{
+    const s=(dur/n)*i,e=(dur/n)*(i+1);
+    if(currentTime>=s&&currentTime<e){el.classList.add('active');el.classList.remove('done');activeEl=el;}
+    else if(currentTime>=e){el.classList.remove('active');el.classList.add('done');}
+    else{el.classList.remove('active','done');}
+  });
+  if(activeEl)scrollKpToActive(activeEl);
+}
+
+function scrollKpToActive(el){
+  const area=$('kp-lyrics-area');
+  const aRect=area.getBoundingClientRect();
+  const eRect=el.getBoundingClientRect();
+  area.scrollTo({top:area.scrollTop+(eRect.top-aRect.top)-(aRect.height/2)+(eRect.height/2),behavior:'smooth'});
 }
 
 function kpSeekToLine(startS){
