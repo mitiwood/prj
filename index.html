@@ -23,7 +23,7 @@ body{font-family:'Syne',sans-serif;color:var(--t1);-webkit-font-smoothing:antial
 .bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
   background-image:linear-gradient(var(--bdr) 1px,transparent 1px),linear-gradient(90deg,var(--bdr) 1px,transparent 1px);
   background-size:40px 40px;}
-#app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:0 20px 80px;min-height:100vh;}
+#app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:0 16px 88px;min-height:100vh;}
 
 /* ── HEADER ── */
 header{padding:24px 0 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -423,13 +423,91 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
 #toast.err{border-color:var(--red);color:var(--red);}
 
 @media(max-width:600px){
-  .genre-row,.options-row,.adv-grid,.modal-row{grid-template-columns:1fr 1fr;}
+  .adv-grid,.modal-row{grid-template-columns:1fr 1fr;}
   header{flex-wrap:wrap;}
   .history-grid{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:400px){
-  .genre-row,.options-row{grid-template-columns:1fr;}
+  .adv-grid{grid-template-columns:1fr;}
 }
+
+/* ── 하단 탭바 ── */
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(8,8,18,.92);backdrop-filter:blur(16px);border-top:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-around;padding:0 4px;padding-bottom:env(safe-area-inset-bottom,0);}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;cursor:pointer;background:none;border:none;color:var(--t3);font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3px;transition:color .15s;position:relative;text-transform:uppercase;}
+.bnav-item:hover{color:var(--t2);}
+.bnav-item.on{color:var(--acc);}
+.bnav-icon{font-size:20px;line-height:1;margin-bottom:1px;}
+.bnav-badge{position:absolute;top:7px;right:calc(50% - 18px);background:var(--acc);color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:8px;font-family:'JetBrains Mono',monospace;min-width:14px;text-align:center;}
+.bnav-center{position:relative;}
+.bnav-center .bnav-icon-wrap{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 18px rgba(208,64,232,.5);margin-bottom:2px;transition:transform .15s;}
+.bnav-center:hover .bnav-icon-wrap{transform:scale(1.08);}
+.bnav-center.on .bnav-icon-wrap{box-shadow:0 4px 24px rgba(208,64,232,.7);}
+
+/* ── 장르 버튼 그리드 ── */
+.genre-btn-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.genre-btn{padding:7px 14px;border-radius:20px;background:var(--s2);border:1.5px solid var(--bdr);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;white-space:nowrap;}
+.genre-btn:hover{border-color:var(--acc);color:var(--acc);}
+.genre-btn.on{background:rgba(208,64,232,.14);border-color:var(--acc);color:var(--acc);}
+
+/* 세부장르 */
+.sub-genre-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;padding:12px;background:rgba(208,64,232,.04);border:1px solid rgba(208,64,232,.15);border-radius:var(--rsm);animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.sub-genre-btn{padding:5px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--bdr);font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .12s;}
+.sub-genre-btn:hover{border-color:var(--acc);color:var(--acc);}
+.sub-genre-btn.on{background:rgba(208,64,232,.12);border-color:var(--acc);color:var(--acc);}
+
+/* ── 커뮤니티 뷰 ── */
+.comm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:4px;}
+.comm-title{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.comm-filter-row{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.comm-filter-row::-webkit-scrollbar{display:none;}
+.comm-ftag{padding:6px 14px;border-radius:20px;background:var(--s2);border:1.5px solid var(--bdr);font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all .12s;}
+.comm-ftag:hover{border-color:var(--acc);color:var(--acc);}
+.comm-ftag.on{background:rgba(208,64,232,.12);border-color:var(--acc);color:var(--acc);}
+.comm-list{display:flex;flex-direction:column;gap:0;}
+.comm-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bdr2);cursor:pointer;transition:background .12s;}
+.comm-item:hover{background:rgba(255,255,255,.02);margin:0 -8px;padding:12px 8px;border-radius:8px;}
+.comm-item:last-child{border-bottom:none;}
+.comm-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--s3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;overflow:hidden;}
+.comm-thumb img{width:100%;height:100%;object-fit:cover;}
+.comm-thumb-dur{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.7);font-size:8px;font-weight:700;color:#fff;padding:1px 4px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+.comm-info{flex:1;min-width:0;}
+.comm-track-title{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+.comm-new-badge{background:rgba(208,64,232,.15);border:1px solid rgba(208,64,232,.4);color:var(--acc);font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.comm-meta{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px;}
+.comm-stat{display:flex;align-items:center;gap:3px;}
+.comm-play-btn{width:32px;height:32px;border-radius:50%;background:rgba(208,64,232,.12);border:1px solid rgba(208,64,232,.3);color:var(--acc);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;}
+.comm-play-btn:hover{background:rgba(208,64,232,.2);border-color:var(--acc);}
+.comm-hero{width:100%;border-radius:16px;overflow:hidden;margin-bottom:16px;position:relative;aspect-ratio:16/7;background:var(--s2);}
+.comm-hero img{width:100%;height:100%;object-fit:cover;}
+.comm-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(6,6,14,.85));display:flex;flex-direction:column;justify-content:flex-end;padding:20px;}
+.comm-hero-title{font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;}
+.comm-hero-meta{font-size:11px;color:rgba(255,255,255,.6);font-family:'JetBrains Mono',monospace;}
+.comm-section-label{font-size:11px;font-weight:800;color:var(--t3);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin:16px 0 10px;}
+
+/* ── 설정 뷰 ── */
+.settings-view{}
+.settings-profile{display:flex;align-items:center;gap:16px;padding:20px;background:var(--s1);border:1px solid var(--bdr);border-radius:16px;margin-bottom:14px;}
+.settings-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;border:2px solid rgba(208,64,232,.3);}
+.settings-user-info{flex:1;min-width:0;}
+.settings-user-name{font-size:16px;font-weight:800;margin-bottom:3px;}
+.settings-user-sub{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;}
+.settings-login-btn{padding:9px 18px;border-radius:20px;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap;}
+.settings-section{margin-bottom:14px;}
+.settings-section-title{font-size:10px;font-weight:800;color:var(--t3);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:8px;padding:0 2px;}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s1);border:1px solid var(--bdr2);cursor:pointer;transition:border-color .12s;}
+.settings-item:first-child{border-radius:12px 12px 0 0;}
+.settings-item:last-child{border-radius:0 0 12px 12px;border-bottom-color:var(--bdr2);}
+.settings-item:only-child{border-radius:12px;}
+.settings-item:not(:last-child){border-bottom-color:transparent;}
+.settings-item:hover{border-color:rgba(208,64,232,.25);background:rgba(208,64,232,.03);}
+.settings-item-left{display:flex;align-items:center;gap:12px;}
+.settings-item-icon{width:32px;height:32px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.settings-item-label{font-size:13px;font-weight:700;color:var(--t1);}
+.settings-item-sub{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;}
+.settings-item-right{font-size:12px;color:var(--t3);display:flex;align-items:center;gap:6px;}
+.settings-badge{padding:2px 8px;border-radius:10px;background:rgba(0,221,160,.12);border:1px solid rgba(0,221,160,.3);color:var(--grn);font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
 </style>
 </head>
 <body>
@@ -511,11 +589,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
     </div>
   </header>
 
-  <!-- NAV TABS -->
-  <div class="nav-tabs">
-    <button class="ntab on" data-view="create-view">🎵 음악 만들기</button>
-    <button class="ntab" data-view="history-view">📂 최근 생성 <span class="nbadge" id="hist-badge" style="display:none">0</span></button>
-  </div>
+  <!-- ▼ 하단 탭바로 뷰 전환 (nav-tabs 제거) -->
 
   <!-- CREATE VIEW -->
   <div class="view on" id="create-view">
@@ -540,26 +614,24 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
       <div id="yt-result" style="margin-top:10px;display:none;padding:12px;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rsm);font-size:12px;color:var(--t2);line-height:1.6;"></div>
     </div>
 
-    <!-- 카테고리 -->
-    <div class="genre-row" id="genre-row">
-      <div class="opt-group">
-        <div class="opt-label">카테고리</div>
-        <select class="opt-select" id="genre-cat">
-          <option value="">선택 안함</option>
-          <option value="pop">Pop / K-Pop</option>
-          <option value="hiphop">Hip-Hop / R&amp;B</option>
-          <option value="electronic">Electronic</option>
-          <option value="rock">Rock</option>
-          <option value="lofi">Lo-Fi / Chill</option>
-          <option value="jazz">Jazz / Blues</option>
-          <option value="classical">Classical / OST</option>
-          <option value="acoustic">Acoustic</option>
-        </select>
+    <!-- 장르 버튼 형식 -->
+    <div id="genre-row">
+      <div class="opt-label" style="margin-bottom:8px;">장르 선택</div>
+      <div class="genre-btn-grid" id="genre-btn-grid">
+        <button class="genre-btn" data-cat="pop">🎵 K-Pop</button>
+        <button class="genre-btn" data-cat="hiphop">🎤 Hip-Hop</button>
+        <button class="genre-btn" data-cat="electronic">⚡ Electronic</button>
+        <button class="genre-btn" data-cat="rock">🎸 Rock</button>
+        <button class="genre-btn" data-cat="lofi">☕ Lo-Fi</button>
+        <button class="genre-btn" data-cat="jazz">🎷 Jazz</button>
+        <button class="genre-btn" data-cat="classical">🎻 Classical</button>
+        <button class="genre-btn" data-cat="acoustic">🪕 Acoustic</button>
       </div>
-      <div class="opt-group">
-        <div class="opt-label">세부 장르</div>
-        <select class="opt-select" id="genre-sub"><option value="">카테고리 먼저 선택</option></select>
-      </div>
+      <!-- 세부 장르 (동적) -->
+      <div class="sub-genre-row" id="sub-genre-row" style="display:none;"></div>
+      <!-- hidden selects (JS 호환용) -->
+      <select id="genre-cat" style="display:none;"></select>
+      <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
     </div>
 
     <!-- 프리셋 -->
@@ -793,7 +865,157 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
     <div id="history-view-grid"></div>
   </div>
 
-</div>
+  <!-- COMMUNITY VIEW -->
+  <div class="view" id="community-view">
+    <div class="comm-header">
+      <div class="comm-title">커뮤니티</div>
+    </div>
+    <!-- 필터 -->
+    <div class="comm-filter-row">
+      <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
+      <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
+      <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
+      <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
+      <button class="comm-ftag" data-cf="ost">🎬 OST</button>
+    </div>
+    <!-- 히어로 -->
+    <div class="comm-hero">
+      <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a0a2e,#0d1a35,#0a1a20);display:flex;align-items:center;justify-content:center;font-size:64px;">🎵</div>
+      <div class="comm-hero-overlay">
+        <div class="comm-hero-title">그때 그자리</div>
+        <div class="comm-hero-meta">Kenny LEE · K-Pop Ballad · 4:14</div>
+      </div>
+    </div>
+    <div class="comm-section-label">최신 작곡</div>
+    <div class="comm-list" id="comm-list">
+      <!-- JS로 렌더링 -->
+    </div>
+  </div>
+
+  <!-- SETTINGS VIEW -->
+  <div class="view" id="settings-view">
+    <!-- 프로필 -->
+    <div class="settings-profile">
+      <div class="settings-avatar" id="settings-avatar">👤</div>
+      <div class="settings-user-info">
+        <div class="settings-user-name" id="settings-user-name">게스트</div>
+        <div class="settings-user-sub" id="settings-user-sub">로그인하고 내 작곡을 저장하세요</div>
+      </div>
+      <button class="settings-login-btn" id="settings-login-btn">로그인</button>
+    </div>
+
+    <!-- API 상태 -->
+    <div class="settings-section">
+      <div class="settings-section-title">연결 상태</div>
+      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+        <div class="settings-item" style="border-radius:12px 12px 0 0;cursor:default;">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">🔑</div>
+            <div>
+              <div class="settings-item-label">API 연결</div>
+              <div class="settings-item-sub">Suno AI (kie.ai)</div>
+            </div>
+          </div>
+          <div class="settings-item-right">
+            <span class="key-status" id="settings-key-status" style="font-size:10px;">
+              <span class="key-dot" id="settings-key-dot"></span>
+              <span id="settings-key-txt">확인 중</span>
+            </span>
+          </div>
+        </div>
+        <div class="settings-item" style="border-top:1px solid var(--bdr2);border-radius:0 0 12px 12px;cursor:default;">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">🤖</div>
+            <div>
+              <div class="settings-item-label">AI 작사</div>
+              <div class="settings-item-sub">Claude (Anthropic)</div>
+            </div>
+          </div>
+          <div class="settings-item-right">
+            <span class="settings-badge">활성</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 기능 -->
+    <div class="settings-section">
+      <div class="settings-section-title">기능</div>
+      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+        <div class="settings-item" style="border-radius:12px 12px 0 0;" onclick="document.getElementById('bottom-nav').querySelector('[data-view=create-view]').click();">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">🎵</div>
+            <div>
+              <div class="settings-item-label">음악 만들기</div>
+              <div class="settings-item-sub">AI로 나만의 곡 작곡</div>
+            </div>
+          </div>
+          <div class="settings-item-right">›</div>
+        </div>
+        <div class="settings-item" style="border-top:1px solid var(--bdr2);" onclick="document.getElementById('bottom-nav').querySelector('[data-view=history-view]').click();">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">📂</div>
+            <div>
+              <div class="settings-item-label">최근 생성</div>
+              <div class="settings-item-sub" id="settings-hist-count">저장된 곡 없음</div>
+            </div>
+          </div>
+          <div class="settings-item-right">›</div>
+        </div>
+        <div class="settings-item" style="border-top:1px solid var(--bdr2);border-radius:0 0 12px 12px;" onclick="if(confirm('최근 생성 내역을 모두 삭제할까요?')){historyData=[];saveHistory();updateHistBadge();renderHistoryView();toast('🗑 전체 삭제','',2000);}">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">🗑</div>
+            <div>
+              <div class="settings-item-label">히스토리 초기화</div>
+              <div class="settings-item-sub">저장된 생성 내역 삭제</div>
+            </div>
+          </div>
+          <div class="settings-item-right" style="color:var(--red);">삭제</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 앱 정보 -->
+    <div class="settings-section">
+      <div class="settings-section-title">앱 정보</div>
+      <div style="background:var(--s1);border:1px solid var(--bdr2);border-radius:12px;overflow:hidden;">
+        <div class="settings-item" style="border-radius:12px;cursor:default;">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">✦</div>
+            <div>
+              <div class="settings-item-label">Kenny's Music Studio</div>
+              <div class="settings-item-sub">v2.0 · Powered by Suno AI</div>
+            </div>
+          </div>
+          <div class="settings-item-right"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /views wrapper -->
+
+<!-- ── 하단 탭바 ── -->
+<nav id="bottom-nav">
+  <button class="bnav-item" data-view="community-view">
+    <span class="bnav-icon">🌐</span>
+    커뮤니티
+  </button>
+  <button class="bnav-item on bnav-center" data-view="create-view">
+    <div class="bnav-icon-wrap">✦</div>
+    만들기
+  </button>
+  <button class="bnav-item" data-view="history-view">
+    <span class="bnav-icon">📂</span>
+    최근생성
+    <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
+  </button>
+  <button class="bnav-item" data-view="settings-view">
+    <span class="bnav-icon">⚙️</span>
+    설정
+  </button>
+</nav>
 
 <!-- ── 보컬 변경 모달 ── -->
 <div class="modal-backdrop" id="vocal-modal">
@@ -965,10 +1187,46 @@ function updateLoginUI(){
 $('login-modal-close').addEventListener('click',()=>$('login-modal').classList.remove('on'));
 $('login-modal').addEventListener('click',e=>{if(e.target===$('login-modal'))$('login-modal').classList.remove('on');});
 
-/* ── 카테고리 ── */
-$('genre-cat').addEventListener('change',function(){
-  const subs=GENRE_SUBS[this.value]||[];
-  $('genre-sub').innerHTML=subs.length?subs.map(s=>`<option value="${s}">${s}</option>`).join(''):'<option value="">카테고리 먼저 선택</option>';
+/* ── 장르 버튼 (select hidden 연동) ── */
+/* genre-cat hidden select에 옵션 미리 세팅 */
+(function(){
+  const opts=[['','선택 안함'],['pop','Pop / K-Pop'],['hiphop','Hip-Hop / R&B'],['electronic','Electronic'],['rock','Rock'],['lofi','Lo-Fi / Chill'],['jazz','Jazz / Blues'],['classical','Classical / OST'],['acoustic','Acoustic']];
+  const sel=$('genre-cat');
+  opts.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o);});
+})();
+
+document.querySelectorAll('#genre-btn-grid .genre-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const cat=this.dataset.cat;
+    const isOn=this.classList.contains('on');
+    /* 토글 */
+    document.querySelectorAll('#genre-btn-grid .genre-btn').forEach(b=>b.classList.remove('on'));
+    const subRow=$('sub-genre-row');
+    if(isOn){
+      $('genre-cat').value='';$('genre-sub').innerHTML='<option value="">카테고리 먼저 선택</option>';
+      subRow.style.display='none';
+      return;
+    }
+    this.classList.add('on');
+    $('genre-cat').value=cat;
+    /* 세부장르 버튼 렌더 */
+    const subs=GENRE_SUBS[cat]||[];
+    if(subs.length){
+      subRow.innerHTML=subs.map(s=>`<button class="sub-genre-btn" data-sub="${s}">${s}</button>`).join('');
+      subRow.style.display='flex';
+      $('genre-sub').innerHTML=subs.map(s=>`<option value="${s}">${s}</option>`).join('');
+      $('genre-sub').value='';
+      subRow.querySelectorAll('.sub-genre-btn').forEach(sb=>{
+        sb.addEventListener('click',function(){
+          subRow.querySelectorAll('.sub-genre-btn').forEach(b=>b.classList.remove('on'));
+          this.classList.add('on');
+          $('genre-sub').value=this.dataset.sub;
+        });
+      });
+    } else {
+      subRow.style.display='none';
+    }
+  });
 });
 
 /* ── 감정 ── */
@@ -980,16 +1238,19 @@ document.querySelectorAll('.etag').forEach(tag=>{
   });
 });
 
-/* ── 네비게이션 탭 ── */
-document.querySelectorAll('.ntab').forEach(tab=>{
+/* ── 하단 탭바 ── */
+document.querySelectorAll('#bottom-nav .bnav-item').forEach(tab=>{
   tab.addEventListener('click',function(){
-    document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
     this.classList.add('on');
     const viewId=this.dataset.view;
     const view=document.getElementById(viewId);
     if(view)view.classList.add('on');
     if(viewId==='history-view')renderHistoryView();
+    if(viewId==='community-view')renderCommunity();
+    if(viewId==='settings-view')renderSettings();
+    window.scrollTo({top:0,behavior:'smooth'});
   });
 });
 
@@ -1899,14 +2160,24 @@ $('fb-skip-btn').addEventListener('click',()=>{$('feedback-card').style.display=
 
 /* ── 히스토리 배지 ── */
 function updateHistBadge(){
+  /* 구 badge (사용 안 하지만 호환 유지) */
   const badge=$('hist-badge');
-  if(!badge)return;
-  if(historyData.length>0){
-    badge.style.display='inline';
+  if(badge){
+    badge.style.display=historyData.length>0?'inline':'none';
     badge.textContent=historyData.length>99?'99+':historyData.length;
-  }else{
-    badge.style.display='none';
   }
+  /* 하단탭 배지 */
+  const bnavBadge=$('bnav-hist-badge');
+  if(bnavBadge){
+    bnavBadge.style.display=historyData.length>0?'inline':'none';
+    bnavBadge.textContent=historyData.length>99?'99+':historyData.length;
+  }
+  /* 히스토리 뷰 카운트 */
+  const hvc=$('hist-view-count');
+  if(hvc)hvc.textContent=`${historyData.length}곡 저장됨`;
+  /* 설정 탭 카운트 */
+  const shc=$('settings-hist-count');
+  if(shc)shc.textContent=historyData.length>0?`${historyData.length}곡 저장됨`:'저장된 곡 없음';
 }
 
 /* ── HISTORY VIEW ── */
@@ -2061,6 +2332,14 @@ $('clear-all-btn').addEventListener('click',()=>{
   if(!confirm('최근 생성 내역을 모두 삭제할까요?'))return;
   historyData=[];saveHistory();updateHistBadge();renderHistoryView();
   toast('🗑 전체 삭제되었습니다');
+});
+
+/* ── 커뮤니티 필터 ── */
+document.querySelectorAll('.comm-ftag').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
+    this.classList.add('on');
+  });
 });
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -2259,10 +2538,81 @@ function closeKaraokePlayer(){
 $('kp-close-btn').addEventListener('click',closeKaraokePlayer);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('karaoke-player').classList.contains('on'))closeKaraokePlayer();});
 
+/* ── 커뮤니티 렌더 ── */
+const MOCK_TRACKS=[
+  {title:'그때 그자리',tags:'K-Pop Ballad',dur:'4:14',plays:2,likes:3,img:'',isNew:true},
+  {title:'Candy-Coded Heartbeat',tags:'J-Pop Bounce',dur:'3:11',plays:0,likes:1,img:'',isNew:false},
+  {title:'새벽 세 시의 고백',tags:'Lo-Fi Hip-Hop',dur:'2:48',plays:5,likes:8,img:'',isNew:true},
+  {title:'도시의 불빛',tags:'Synthwave',dur:'3:33',plays:1,likes:2,img:'',isNew:false},
+  {title:'오늘도 맑음',tags:'Acoustic Folk',dur:'2:55',plays:3,likes:4,img:'',isNew:false},
+  {title:'Electric Dreams',tags:'EDM House',dur:'3:47',plays:7,likes:12,img:'',isNew:true},
+];
+
+function renderCommunity(){
+  const list=$('comm-list');
+  if(!list)return;
+  /* historyData가 있으면 히스토리 먼저 표시 */
+  const combined=[...historyData.slice(0,3).map(h=>({
+    title:h.title||'무제',tags:(h.tags||'').split(',')[0]||'',
+    dur:h.audio_url?'—':'—',plays:0,likes:0,img:h.image_url||'',isNew:true,
+    audioUrl:h.audio_url,videoUrl:h.video_url,fromHistory:true
+  })),...MOCK_TRACKS].slice(0,8);
+
+  list.innerHTML=combined.map((t,i)=>`
+    <div class="comm-item" onclick="${t.audioUrl?`playFromHistory('${esc(t.audioUrl||'')}','${esc(t.videoUrl||'')}','${esc(t.title)}')`:'toast(\'커뮤니티 기능 준비 중...\',\'\',1500)'}">
+      <div class="comm-thumb">
+        ${t.img?`<img src="${esc(t.img)}" alt="">`:`<span style="font-size:24px;">${['🎵','🎸','🎤','🎷','🎻','🎹','🥁','🎼'][i%8]}</span>`}
+        <span class="comm-thumb-dur">${t.dur}</span>
+      </div>
+      <div class="comm-info">
+        <div class="comm-track-title">
+          ${esc(t.title)}
+          ${t.isNew?'<span class="comm-new-badge">NEW</span>':''}
+        </div>
+        <div class="comm-meta">
+          <span>${esc(t.tags)}</span>
+          <span class="comm-stat">▶ ${t.plays}</span>
+          <span class="comm-stat">❤ ${t.likes}</span>
+        </div>
+      </div>
+      <button class="comm-play-btn" onclick="event.stopPropagation();${t.audioUrl?`playFromHistory('${esc(t.audioUrl||'')}','${esc(t.videoUrl||'')}','${esc(t.title)}')`:'toast(\'준비 중...\',\'\',1500)'}">▶</button>
+    </div>
+  `).join('');
+}
+
+/* ── 설정 렌더 ── */
+function renderSettings(){
+  const nameEl=$('settings-user-name');
+  const subEl=$('settings-user-sub');
+  const avatarEl=$('settings-avatar');
+  const loginBtn=$('settings-login-btn');
+  if(currentUser){
+    if(nameEl)nameEl.textContent=currentUser.name||'사용자';
+    if(subEl)subEl.textContent=currentUser.email||'로그인됨';
+    if(avatarEl)avatarEl.textContent=currentUser.name?currentUser.name[0]:'👤';
+    if(loginBtn){loginBtn.textContent='로그아웃';loginBtn.onclick=()=>{currentUser=null;updateLoginUI();renderSettings();toast('로그아웃 완료','',1500);};}
+  } else {
+    if(nameEl)nameEl.textContent='게스트';
+    if(subEl)subEl.textContent='로그인하고 내 작곡을 저장하세요';
+    if(avatarEl)avatarEl.textContent='👤';
+    if(loginBtn){loginBtn.textContent='로그인';loginBtn.onclick=()=>$('login-modal').classList.add('on');}
+  }
+  /* API 상태 반영 */
+  const skDot=$('settings-key-dot');const skTxt=$('settings-key-txt');
+  if(skDot&&skTxt){
+    if(kieApiKey){skDot.classList.add('ok');skTxt.textContent='연결됨';}
+    else{skDot.classList.remove('ok');skTxt.textContent='연결 안 됨';}
+  }
+}
+
 /* ── INIT ── */
 renderPresets();
 updateHistBadge();
 updateLoginUI();
+/* 하단탭 data-view=create-view 버튼을 on으로 (HTML에서 on 클래스 직접 설정됨) */
+/* API 로드 완료 후 설정탭 상태 반영 */
+setTimeout(renderSettings, 2000);
+
 </script>
 </body>
 </html>
