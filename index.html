@@ -3089,8 +3089,24 @@ function socialLogin(provider){
   }
 }
 function logout(){
-  currentUser=null;localStorage.removeItem('kms_user');
-  updateLoginUI();toast('로그아웃 되었습니다');
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">로그아웃</div><div style="font-size:13px;color:#a09ab8;">정말 로그아웃 하시겠습니까?</div></div><div style="display:flex;gap:10px;"><button id="_logout_cancel" style="flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_logout_confirm" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">로그아웃</button></div></div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('_logout_cancel').onclick=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.getElementById('_logout_confirm').onclick=()=>{
+    overlay.remove();
+    currentUser=null;
+    localStorage.clear();
+    sessionStorage.clear();
+    historyData=[];
+    document.cookie.split(';').forEach(c=>{
+      document.cookie=c.replace(/^ +/,'').replace(/=.*/,'=;expires='+new Date(0).toUTCString()+';path=/');
+    });
+    toast('로그아웃 되었습니다','',1200);
+    setTimeout(()=>window.location.replace('/'),1000);
+  };
 }
 function updateLoginUI(){
   /* 설정탭 로그인 버튼 갱신 */
