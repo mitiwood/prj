@@ -1685,6 +1685,77 @@ body.mp-on .view{padding-bottom:100px;}
 }
 .fes-title-input:focus{outline:none;border-color:var(--acc);}
 
+
+/* ── 커뮤니티 Suno 스타일 ── */
+.comm-thumb{position:relative;width:52px;height:52px;border-radius:8px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.comm-thumb img{width:100%;height:100%;object-fit:cover;}
+.comm-thumb-play{
+  position:absolute;inset:0;background:rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;opacity:0;transition:opacity .15s;
+  border-radius:8px;
+}
+.comm-item:hover .comm-thumb-play{opacity:1;}
+.comm-item.playing .comm-thumb-play{opacity:1;color:var(--acc3);}
+.comm-tag-chip{
+  display:inline-block;padding:1px 7px;border-radius:20px;
+  background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2);
+  color:var(--acc3);font-size:10px;font-weight:600;
+}
+.comm-stats-row{display:flex;align-items:center;gap:8px;margin-top:3px;}
+.comm-stat-item{font-size:10px;color:var(--t3);}
+.comm-stat-badge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;}
+.comm-stat-badge.new{background:rgba(16,185,129,.15);color:var(--green);}
+.comm-more-btn{
+  width:28px;height:28px;border-radius:50%;background:none;border:none;
+  color:var(--t3);font-size:16px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;letter-spacing:1px;
+}
+.comm-more-btn:hover{color:var(--t1);}
+.comm-item{cursor:pointer;}
+
+
+/* ── MV 트랙 선택 카드 ── */
+.mv-track-card{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:10px;
+  background:var(--bg2);border:1px solid var(--border);
+  cursor:pointer;transition:all .15s;
+}
+.mv-track-card:hover{border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.06);}
+.mv-track-card.on{border-color:var(--acc);background:rgba(124,58,237,.12);}
+.mv-tc-thumb{width:36px;height:36px;border-radius:6px;background:var(--bg3);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.mv-tc-thumb img{width:100%;height:100%;object-fit:cover;}
+.mv-tc-info{flex:1;min-width:0;}
+.mv-tc-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mv-tc-tag{font-size:10px;color:var(--t3);}
+.mv-tc-check{font-size:13px;color:var(--acc3);font-weight:700;flex-shrink:0;width:18px;text-align:center;}
+
+
+/* ── SUNO 스타일 카드 ── */
+.comm-card-grid{display:flex;flex-direction:column;}
+.comm-suno-card{display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:8px;}
+.comm-suno-card:hover{background:rgba(255,255,255,.04);}
+.comm-suno-card:last-child{border-bottom:none;}
+.cs-rank{width:22px;text-align:center;font-size:12px;font-weight:700;color:var(--t3);flex-shrink:0;}
+.cs-rank.top{color:var(--gold);}
+.cs-thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;border:1px solid var(--border);}
+.cs-thumb img{width:100%;height:100%;object-fit:cover;}
+.cs-over{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;border-radius:10px;font-size:16px;color:#fff;}
+.comm-suno-card:hover .cs-over{opacity:1;}
+.cs-info{flex:1;min-width:0;}
+.cs-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.cs-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden;}
+.cs-genre{font-size:10px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.12);border-radius:4px;padding:1px 6px;white-space:nowrap;}
+.cs-stat{font-size:10px;color:var(--t3);white-space:nowrap;}
+.cs-new{font-size:9px;font-weight:800;color:#fff;background:var(--acc);border-radius:4px;padding:1px 5px;}
+.cs-btns{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.cs-like-btn{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px;padding:4px 6px;border-radius:8px;transition:all .15s;font-family:inherit;font-weight:600;white-space:nowrap;}
+.cs-like-btn:hover,.cs-like-btn.liked{color:#ff6482;}
+.cs-play-btn{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(124,58,237,.4);transition:all .15s;}
+.cs-play-btn:hover{filter:brightness(1.12);}
+
 </style>
 </head>
 <body>
@@ -1694,13 +1765,7 @@ body.mp-on .view{padding-bottom:100px;}
   <!-- ── 헤더 ── -->
   <header class="app-header">
     <div class="logo">Kenny's <span>Music</span> Studio</div>
-    <button class="api-badge-btn" id="api-badge-btn">
-      <span class="api-dot" id="api-dot"></span>
-      <span class="key-status" id="key-status">
-        <span id="key-spin" style="width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(16,185,129,.3);border-top-color:#10b981;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;"></span>
-        <span id="key-status-txt" style="vertical-align:middle;">확인 중</span>
-      </span>
-    </button>
+
   </header>
 
   <!-- ── 뷰 컨테이너 ── -->
@@ -2127,12 +2192,19 @@ body.mp-on .view{padding-bottom:100px;}
 
         <!-- 히스토리 음악 연결 옵션 -->
         <div class="form-grp" style="margin-bottom:16px;">
-          <div class="form-label" style="margin-bottom:6px;">
+          <div class="form-label" style="margin-bottom:8px;">
             <span class="form-label-icon">🎵</span> 기존 음악과 연결 <span class="form-label-hint">선택사항</span>
           </div>
-          <select class="opt-select" id="mv-link-track" style="width:100%;">
-            <option value="">연결 안함 (순수 영상만 생성)</option>
-          </select>
+          <div id="mv-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <input type="hidden" id="mv-link-track" value="">
+          <div id="mv-selected-track" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:10px;display:none;align-items:center;gap:10px;">
+            <div id="mv-sel-thumb" style="width:36px;height:36px;border-radius:6px;background:var(--bg2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>
+            <div style="flex:1;min-width:0;">
+              <div id="mv-sel-title" style="font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+              <div id="mv-sel-tags" style="font-size:10px;color:var(--acc3);"></div>
+            </div>
+            <button onclick="mvClearTrack()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;">✕</button>
+          </div>
         </div>
 
         <!-- 생성 버튼 -->
@@ -2271,10 +2343,10 @@ body.mp-on .view{padding-bottom:100px;}
       <div class="settings-banner-top">
         <div class="settings-avatar" id="settings-avatar">👤</div>
         <div class="settings-user-info">
-          <div class="settings-user-name" id="settings-user-name">AI 작곡가</div>
-          <div class="settings-user-sub" id="settings-user-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0cbc5ceced9e0c1c9cdd5d3c9c38ec3cfcd">[email&#160;protected]</a></div>
+          <div class="settings-user-name" id="settings-user-name">로그인하세요</div>
+          <div class="settings-user-sub" id="settings-user-sub">소셜 계정으로 간편 로그인</div>
         </div>
-        <button class="settings-login-btn" id="settings-login-btn">로그인</button>
+        <button class="settings-login-btn" id="settings-login-btn" onclick="openLoginSheet()">로그인</button>
       </div>
       <div class="settings-stats">
         <div class="settings-stat">
@@ -2291,38 +2363,7 @@ body.mp-on .view{padding-bottom:100px;}
         </div>
       </div>
     </div>
-    <div class="settings-section">
-      <div class="settings-section-title">연결 상태</div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-        <div class="settings-item" style="border-radius:12px 12px 0 0;cursor:default;">
-          <div class="settings-item-left">
-            <div class="settings-item-icon">🔑</div>
-            <div>
-              <div class="settings-item-label">API 연결</div>
-              <div class="settings-item-sub">Suno AI (kie.ai)</div>
-            </div>
-          </div>
-          <div class="settings-item-right">
-            <span class="key-status" id="settings-key-status">
-              <span class="key-dot" id="settings-key-dot"></span>
-              <span id="settings-key-txt">확인 중</span>
-            </span>
-          </div>
-        </div>
-        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;cursor:default;">
-          <div class="settings-item-left">
-            <div class="settings-item-icon">🤖</div>
-            <div>
-              <div class="settings-item-label">AI 작사</div>
-              <div class="settings-item-sub">Claude (Anthropic)</div>
-            </div>
-          </div>
-          <div class="settings-item-right">
-            <span class="settings-badge">활성</span>
-          </div>
-        </div>
-      </div>
-    </div>
+
     <div class="settings-section">
       <div class="settings-section-title">기능</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
@@ -2405,21 +2446,21 @@ body.mp-on .view{padding-bottom:100px;}
 
 <nav id="bottom-nav">
   <button class="bnav-item" data-view="community-view">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span class="bnav-label">커뮤니티</span>
   </button>
   <button class="bnav-item on bnav-center" data-view="create-view">
-    <span class="bnav-icon-wrap">✦</span>
+    <span class="bnav-icon-wrap" style="font-size:15px;font-weight:900;">✦</span>
     <span class="bnav-label" style="font-size:10px;font-weight:800;">만들기</span>
   </button>
   <button class="bnav-item" data-view="history-view">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
     <span class="bnav-label">최근생성</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
   </button>
   <button class="bnav-item" data-view="settings-view">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    <span class="bnav-label">메뉴</span>
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="bnav-label">설정</span>
   </button>
 </nav>
 
@@ -2524,6 +2565,21 @@ body.mp-on .view{padding-bottom:100px;}
       <textarea class="fes-lyrics-ta" id="fes-lyrics-ta" placeholder="가사가 없어요. 직접 입력해보세요!"></textarea>
       <button class="fes-save-btn" onclick="saveFpEdits()">💾 저장하기</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ── MV 음악 트랙 피커 ── -->
+<div id="mv-track-picker" style="position:fixed;inset:0;z-index:700;pointer-events:none;opacity:0;transition:opacity .22s;">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);" onclick="closeMvTrackPicker()"></div>
+  <div id="mv-picker-panel" style="position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:0 0 env(safe-area-inset-bottom,20px);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:70vh;display:flex;flex-direction:column;">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
+    <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);">🎵 음악 선택</div>
+      <button onclick="closeMvTrackPicker()" style="background:none;border:none;color:var(--t3);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--t3);padding:0 18px 12px;flex-shrink:0;">생성한 음악 중 연결할 트랙을 선택하세요</div>
+    <div id="mv-picker-list" style="overflow-y:auto;padding:0 12px 12px;flex:1;"></div>
   </div>
 </div>
 
@@ -2738,29 +2794,61 @@ body.mp-on .view{padding-bottom:100px;}
 <div id="toast"></div>
 <!-- ── 로그인 모달 ── -->
 <div class="modal-backdrop" id="login-modal">
-  <div class="modal" style="max-width:360px;width:100%;border-radius:16px;margin:20px;">
-    <button class="modal-close" id="login-modal-close">✕</button>
-    <div class="modal-title">🔐 로그인</div>
-    <div class="modal-sub">소셜 계정으로 간편하게 로그인하세요.</div>
-    <div id="login-area">
+  <div class="modal" style="max-width:380px;width:100%;border-radius:20px;margin:20px;padding:0;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,var(--acc),var(--acc2));padding:24px 20px 20px;text-align:center;">
+      <button class="modal-close" id="login-modal-close" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);">✕</button>
+      <div style="font-size:32px;margin-bottom:8px;">🎵</div>
+      <div style="font-size:18px;font-weight:800;color:#fff;">Kenny's Music Studio</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;">로그인하고 나만의 음악을 만들어보세요</div>
+    </div>
+    <div style="padding:20px;" id="login-area">
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <button class="gen-btn" style="background:rgba(255,255,255,.1);border:1px solid var(--border);" onclick="alert('Google 로그인 준비 중')">
-          🔵 Google로 로그인
+        <!-- Google -->
+        <button onclick="socialLogin('google')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#fff;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3c4043;box-shadow:0 1px 8px rgba(0,0,0,.12);">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Google로 계속하기
         </button>
-        <button class="gen-btn" style="background:#FEE500;color:#3C1E1E;box-shadow:none;" onclick="alert('Kakao 로그인 준비 중')">
-          💬 카카오로 로그인
+        <!-- Kakao -->
+        <button onclick="socialLogin('kakao')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#FEE500;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3C1E1E;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#3C1E1E"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.71 1.52 5.09 3.84 6.57L4.5 21l4.1-2.73A11.3 11.3 0 0 0 12 18.6c5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
+          카카오로 계속하기
         </button>
-        <button class="gen-btn" style="background:#03C75A;color:#fff;box-shadow:none;" onclick="alert('Naver 로그인 준비 중')">
-          🟢 네이버로 로그인
+        <!-- Naver -->
+        <button onclick="socialLogin('naver')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#03C75A;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M16.273 12.845L7.376 3H3v18h7.727V11.155L19.624 21H24V3h-7.727z"/></svg>
+          네이버로 계속하기
+        </button>
+        <!-- Guest -->
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:11px;color:var(--t3);">또는</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <button onclick="socialLogin('guest')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--t2);">
+          <span style="font-size:20px;">👤</span>
+          게스트로 시작하기 <span style="font-size:11px;color:var(--t3);margin-left:auto;">저장 안됨</span>
         </button>
       </div>
+      <!-- 연동 가이드 -->
+      <details style="margin-top:16px;">
+        <summary style="font-size:11px;color:var(--t3);cursor:pointer;padding:6px 0;">🔧 소셜 로그인 연동 방법 보기</summary>
+        <div style="margin-top:8px;background:var(--bg2);border-radius:10px;padding:12px;font-size:11px;color:var(--t2);line-height:1.8;">
+          <div style="font-weight:700;color:var(--acc3);margin-bottom:6px;">개발자 연동 가이드</div>
+          <div><b>Google:</b> Google Cloud Console → OAuth 2.0 → /api/auth/google 엔드포인트 설정</div>
+          <div style="margin-top:4px;"><b>Kakao:</b> Kakao Developers → 앱 등록 → REST API 키 → /api/auth/kakao</div>
+          <div style="margin-top:4px;"><b>Naver:</b> Naver Developers → 애플리케이션 등록 → /api/auth/naver</div>
+          <div style="margin-top:8px;background:rgba(124,58,237,.1);border-radius:6px;padding:8px;color:var(--acc3);">
+            Vercel 환경변수: GOOGLE_CLIENT_ID, KAKAO_APP_KEY, NAVER_CLIENT_ID 등록 후 배포
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 </div>
 
 
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 'use strict';
 const KIE_BASE = 'https://api.kie.ai';
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
@@ -2816,16 +2904,47 @@ function toast(msg,type='',dur=2800){
   clearTimeout(toastTmr);toastTmr=setTimeout(()=>el.className='',dur);
 }
 
+
+/* ── 로그인 바텀시트 ── */
+function openLoginSheet(){
+  const sh=document.getElementById('login-sheet');
+  const panel=document.getElementById('login-sheet-panel');
+  if(!sh)return;
+  sh.style.pointerEvents='auto';sh.style.opacity='1';
+  if(panel)panel.style.transform='translate(-50%,0)';
+}
+function closeLoginSheet(){
+  const sh=document.getElementById('login-sheet');
+  const panel=document.getElementById('login-sheet-panel');
+  if(!sh)return;
+  sh.style.opacity='0';sh.style.pointerEvents='none';
+  if(panel)panel.style.transform='translate(-50%,100%)';
+}
+function guestLogin(){
+  const mock={provider:'guest',name:'게스트',avatar:'👤',at:Date.now()};
+  currentUser=mock;localStorage.setItem('kms_user',JSON.stringify(mock));
+  closeLoginSheet();updateLoginUI();toast('👤 게스트로 시작합니다','ok');
+}
 /* ── 소셜 로그인 ── */
 function socialLogin(provider){
-  /* 실제 OAuth redirect는 서버 배포 후 활성화 */
-  const names={google:'Google',kakao:'카카오',naver:'네이버'};
-  const mockUser={provider,name:`${names[provider]} 사용자`,avatar:'🎵',at:Date.now()};
+  const names={google:'Google',kakao:'카카오',naver:'네이버',guest:'게스트'};
+  const avatars={google:'🔵',kakao:'💬',naver:'🟢',guest:'👤'};
+  if(provider==='guest'){
+    const mockUser={provider:'guest',name:'게스트',avatar:'👤',at:Date.now()};
+    currentUser=mockUser;
+    localStorage.setItem('kms_user',JSON.stringify(mockUser));
+    $('login-modal').classList.remove('on');
+    updateLoginUI();
+    toast('👤 게스트 모드로 시작합니다','',2500);
+    return;
+  }
+  /* TODO: 실제 OAuth redirect → /api/auth/${provider} */
+  const mockUser={provider,name:`${names[provider]} 사용자`,avatar:avatars[provider]||'🎵',at:Date.now()};
   currentUser=mockUser;
   localStorage.setItem('kms_user',JSON.stringify(mockUser));
   $('login-modal').classList.remove('on');
   updateLoginUI();
-  toast(`✅ ${names[provider]}로 로그인되었습니다 (데모)`,'ok');
+  toast(`✅ ${names[provider]}로 로그인 (데모 모드)`,'ok');
 }
 function logout(){
   currentUser=null;localStorage.removeItem('kms_user');
@@ -3122,16 +3241,129 @@ document.querySelectorAll('#mv-mode-btns .mv-opt-btn').forEach(btn=>{
 });
 
 /* 히스토리 트랙 셀렉트 채우기 */
+
+/* ── MV 트랙 피커 ── */
+let _mvLinkedIdx = null;
+function openMvTrackPicker(){
+  const list = document.getElementById('mv-picker-list');
+  if(!list) return;
+  if(!historyData.filter(h=>h.audio_url).length){
+    toast('생성한 음악이 없어요. 음악을 먼저 만들어주세요.','err',3000); return;
+  }
+  list.innerHTML = historyData.map((h,i)=>{
+    if(!h.audio_url) return '';
+    const thumb = h.image_url ? `<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : '<span style="font-size:18px;">🎵</span>';
+    const sel = _mvLinkedIdx===i;
+    return `<div onclick="selectMvTrack(${i})" style="display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:12px;cursor:pointer;background:${sel?'rgba(124,58,237,.2)':'transparent'};border:1px solid ${sel?'rgba(168,85,247,.4)':'transparent'};margin-bottom:4px;transition:all .15s;">
+      <div style="width:44px;height:44px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">${thumb}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(h.title||'무제')}</div>
+        <div style="font-size:10px;color:var(--t3);">${esc((h.tags||'').split(',')[0]?.trim()||'')} · ${new Date(h.created||Date.now()).toLocaleDateString('ko-KR')}</div>
+      </div>
+      ${sel?'<span style="color:var(--acc3);font-size:16px;">✓</span>':''}
+    </div>`;
+  }).filter(Boolean).join('');
+  const sh = document.getElementById('mv-track-picker');
+  const panel = document.getElementById('mv-picker-panel');
+  sh.style.pointerEvents='auto'; sh.style.opacity='1';
+  if(panel) panel.style.transform='translate(-50%,0)';
+}
+function closeMvTrackPicker(){
+  const sh = document.getElementById('mv-track-picker');
+  const panel = document.getElementById('mv-picker-panel');
+  sh.style.opacity='0'; sh.style.pointerEvents='none';
+  if(panel) panel.style.transform='translate(-50%,100%)';
+}
+function selectMvTrack(idx){
+  _mvLinkedIdx = idx;
+  const h = historyData[idx];
+  if(!h) return;
+  // 히든 셀렉트 값 설정
+  const sel = $('mv-link-track');
+  if(sel) { sel.innerHTML='<option value="'+idx+'">'+esc(h.title||'무제')+'</option>'; sel.value=idx; }
+  // 표시 업데이트
+  const disp = document.getElementById('mv-linked-track-display');
+  const thumb = document.getElementById('mv-linked-thumb');
+  const title = document.getElementById('mv-linked-title');
+  const tags = document.getElementById('mv-linked-tags');
+  if(disp){ disp.style.display='block'; }
+  if(thumb){ thumb.innerHTML = h.image_url ? `<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : '🎵'; }
+  if(title){ title.textContent = h.title||'무제'; }
+  if(tags){ tags.textContent = (h.tags||'').split(',')[0]?.trim()||''; }
+  // 선택 버튼 텍스트 변경
+  const btn = document.getElementById('mv-track-pick-btn');
+  if(btn) btn.textContent = '🔄 다른 음악 선택하기';
+  closeMvTrackPicker();
+  toast('✅ 음악 연결됨: '+esc(h.title||'무제'),'ok',2000);
+}
+function clearMvLink(){
+  _mvLinkedIdx = null;
+  const sel = $('mv-link-track');
+  if(sel) { sel.innerHTML='<option value="">연결 안함</option>'; sel.value=''; }
+  const disp = document.getElementById('mv-linked-track-display');
+  if(disp) disp.style.display='none';
+  const btn = document.getElementById('mv-track-pick-btn');
+  if(btn) btn.textContent = '🎵 생성한 음악에서 선택하기';
+}
+
 function mvRefreshTrackSelect(){
-  const sel=$('mv-link-track');
-  if(!sel)return;
-  sel.innerHTML='<option value="">연결 안함 (순수 영상만 생성)</option>';
-  historyData.slice(0,15).forEach((h,i)=>{
-    if(!h.audio_url)return;
-    const opt=document.createElement('option');
-    opt.value=i;
-    opt.textContent=(h.title||'무제')+' — '+(h.tags||'').split(',')[0]?.trim()||'';
-    sel.appendChild(opt);
+  const list=$('mv-track-list');
+  if(!list)return;
+  const tracks=historyData.slice(0,15).filter(h=>h.audio_url&&h.type!=='video');
+  if(!tracks.length){
+    list.innerHTML='<div style="font-size:11px;color:var(--t3);padding:4px 0;">생성한 음악이 없어요</div>';return;
+  }
+  list.innerHTML=`
+    <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">아래에서 연결할 음악을 선택하세요</div>
+    ${tracks.map((h,i)=>`
+      <div class="mv-track-card" onclick="mvSelectTrack(${i})" id="mv-tc-${i}">
+        <div class="mv-tc-thumb">${h.image_url?`<img src="${h.image_url}" alt="">`:'🎵'}</div>
+        <div class="mv-tc-info">
+          <div class="mv-tc-title">${esc(h.title||'무제')}</div>
+          <div class="mv-tc-tag">${esc((h.tags||'').split(',')[0]?.trim()||'')}</div>
+        </div>
+        <div class="mv-tc-check" id="mv-tc-check-${i}">○</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function mvSelectTrack(idx){
+  const h=historyData[idx];
+  if(!h)return;
+  /* 이전 선택 해제 */
+  document.querySelectorAll('.mv-track-card').forEach((c,i)=>{
+    c.classList.remove('on');
+    const ck=document.getElementById(`mv-tc-check-${i}`);
+    if(ck)ck.textContent='○';
+  });
+  const cur=document.getElementById(`mv-tc-${idx}`);
+  const curCk=document.getElementById(`mv-tc-check-${idx}`);
+  if($('mv-link-track').value===String(idx)){
+    /* 토글 해제 */
+    $('mv-link-track').value='';
+    $('mv-selected-track').style.display='none';
+    return;
+  }
+  cur?.classList.add('on');
+  if(curCk)curCk.textContent='✓';
+  $('mv-link-track').value=idx;
+  /* 선택 프리뷰 */
+  const st=$('mv-selected-track');
+  const thumb=$('mv-sel-thumb');
+  if(thumb)thumb.innerHTML=h.image_url?`<img src="${h.image_url}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  if($('mv-sel-title'))$('mv-sel-title').textContent=h.title||'무제';
+  if($('mv-sel-tags'))$('mv-sel-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
+  st.style.display='flex';
+}
+
+function mvClearTrack(){
+  $('mv-link-track').value='';
+  $('mv-selected-track').style.display='none';
+  document.querySelectorAll('.mv-track-card').forEach((card,i)=>{
+    card.classList.remove('on');
+    const ck=document.getElementById(`mv-tc-check-${i}`);
+    if(ck)ck.textContent='○';
   });
 }
 
@@ -3191,7 +3423,7 @@ async function generateMV(){
 
   /* 연결 트랙 */
   const trackSelIdx=$('mv-link-track')?.value;
-  const linkedTrack=trackSelIdx!==''&&trackSelIdx!=null?historyData[parseInt(trackSelIdx)]:null;
+  const linkedTrack=trackSelIdx!==''&&trackSelIdx!=null&&trackSelIdx!==undefined?historyData[parseInt(trackSelIdx)]:null;
 
   try{
     /* Step 1: Grok Imagine text-to-video */
@@ -5253,10 +5485,13 @@ $('clear-all-btn').addEventListener('click',()=>{
 });
 
 /* ── 커뮤니티 필터 ── */
+let _commActiveGenre='all';
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
     document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
     this.classList.add('on');
+    _commActiveGenre=this.dataset.cf||'all';
+    renderCommunity();
   });
 });
 
@@ -5539,10 +5774,18 @@ let commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
 let commHeroAudio=null,commHeroVizTimer=null;
 
 /* historyData를 커뮤니티 트랙 형태로 변환 */
+const _GENRE_KEYS={
+  kpop:['k-pop','kpop','pop','korean','케이팝'],
+  hiphop:['hip','hop','rap','r&b','힙합','랩'],
+  lofi:['lofi','lo-fi','chill','study','로파이','칠'],
+  electronic:['edm','electronic','house','techno','synth','일렉','하우스'],
+  ost:['ost','cinematic','epic','film','오에스티','영화'],
+};
 function getCommTracks(){
-  return historyData.map((h,i)=>({
+  let all=historyData.map((h,i)=>({
     _hIdx:i, title:h.title||'무제',
     tags:(h.tags||'').split(',')[0]?.trim()||'',
+    allTags:(h.tags||'').toLowerCase(),
     img:h.image_url||'', dur:'—',
     audioUrl:h.audio_url||'', videoUrl:h.video_url||'',
     lyrics:h.lyrics||'', description:h.description||'',
@@ -5551,6 +5794,11 @@ function getCommTracks(){
     isNew:(Date.now()-(h.created||0))<3600000*24,
     plays:h._commPlays||0,
   }));
+  if(_commActiveGenre&&_commActiveGenre!=='all'){
+    const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
+    all=all.filter(t=>kws.some(k=>t.allTags.includes(k)||t.title.toLowerCase().includes(k)));
+  }
+  return all;
 }
 
 function renderCommunity(){
@@ -5615,34 +5863,33 @@ function renderCommunity(){
   /* 히어로 오디오 연결 */
   setupHeroAudio(hero);
 
-  /* ── 리스트 렌더 ── */
-  $('comm-section-lbl').textContent=rest.length?'다른 트랙':'트랙 없음';
-  list.innerHTML=rest.map((t,i)=>`
-    <div class="comm-item" id="comm-item-${i}">
-      <div class="comm-item-row">
-        <span class="comm-rank${i<3?' top':''}">${i+1}</span>
-        <div class="comm-thumb">
-          ${t.img?`<img src="${esc(t.img)}" alt="">`:`<span>${['🎵','🎸','🎤','🎷','🎻','🎹','🥁','🎼'][(i+1)%8]}</span>`}
-        </div>
-        <div class="comm-info">
-          <div class="comm-track-title">
-            ${esc(t.title)}
-            ${t.isNew?'<span class="comm-new-badge">NEW</span>':''}
-            ${t.likes>=3?'<span class="comm-pinned-badge">🔥 인기</span>':''}
-          </div>
-          <div class="comm-meta">
-            <span>${esc(t.tags)}</span>
-            <span class="comm-stat${t.liked?' liked-stat':''}">❤ <span id="comm-likes-${i}">${t.likes}</span></span>
-          </div>
-        </div>
-        <div class="comm-item-btns">
-          <button class="comm-like-btn${t.liked?' liked':''}" id="comm-like-${i}" onclick="event.stopPropagation();commLike(${i})" title="좋아요">🤍</button>
-          <button class="comm-play-btn" id="comm-play-${i}" onclick="event.stopPropagation();commPlayFull(${i})" title="재생">▶</button>
+  /* ── 리스트 렌더 (Suno 스타일) ── */
+  const filterLabel={all:'전체 트랙',kpop:'K-Pop',hiphop:'Hip-Hop',lofi:'Lo-Fi',electronic:'Electronic',ost:'OST'};
+  $('comm-section-lbl').textContent=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'전체 트랙')+' ('+tracks.length+'곡)';
+  const EMOJIS_C=['🎵','🎸','🎤','🎷','🎻','🎹','🥁','🎼'];
+  list.innerHTML='<div class="comm-card-grid">'+rest.map((t,i)=>`
+    <div class="comm-suno-card" id="comm-item-${i}">
+      <span class="cs-rank${i<3?' top':''}">${i<3?['🥇','🥈','🥉'][i]:i+2}</span>
+      <div class="cs-thumb">
+        ${t.img?`<img src="${esc(t.img)}" alt="">`:('<span>'+EMOJIS_C[(i+1)%8]+'</span>')}
+        <div class="cs-over">▶</div>
+      </div>
+      <div class="cs-info">
+        <div class="cs-title">${esc(t.title)}${t.isNew?' <span class="cs-new">NEW</span>':''}${t.likes>=3?' 🔥':''}</div>
+        <div class="cs-meta">
+          ${t.tags?`<span class="cs-genre">${esc(t.tags)}</span>`:''}
+          ${t.plays>0?`<span class="cs-stat">▶ ${t.plays}</span>`:''}
+          ${t.dur!=='—'?`<span class="cs-stat">⏱ ${t.dur}</span>`:''}
         </div>
       </div>
-      <!-- 상세 패널 비활성화 -->
+      <div class="cs-btns">
+        <button class="cs-like-btn${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLike(${i+1})" title="좋아요">
+          ${t.liked?'❤️':'🤍'} ${t.likes>0?t.likes:''}
+        </button>
+        <button class="cs-play-btn" onclick="event.stopPropagation();commPlayFull(${i+1})" title="재생">▶</button>
+      </div>
     </div>
-  `).join('');
+  `).join('')+'</div>'||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">이 장르의 트랙이 없어요</div>';
 
   /* 리스트 좋아요 버튼 초기화 */
   rest.forEach((t,i)=>{
@@ -5745,6 +5992,15 @@ function setupHeroAudio(hero){
 
 /* 리스트 재생 */
 /* 커뮤니티 재생 → 히스토리에서 찾아 전체화면 플레이어 */
+
+function commShowMore(idx){
+  /* 간단한 액션시트 */
+  const tracks=getCommTracks();
+  const t=tracks[idx];
+  if(!t)return;
+  const choice=confirm(`"${t.title}"\n\n재생하기를 누르면 전체 플레이어에서 재생됩니다.`);
+  if(choice)commPlayFull(idx);
+}
 function commPlayFull(i){
   const tracks=getCommTracks().slice(1);
   const t=tracks[i];if(!t)return;
@@ -5935,7 +6191,7 @@ function renderSettings(){
     if(nameEl)nameEl.textContent='게스트';
     if(subEl)subEl.textContent='로그인하고 내 작곡을 저장하세요';
     if(avatarEl)avatarEl.textContent='👤';
-    if(loginBtn){loginBtn.textContent='로그인';loginBtn.onclick=()=>$('login-modal').classList.add('on');}
+    if(loginBtn){loginBtn.textContent='로그인';loginBtn.onclick=openLoginSheet;}
   }
   /* API 상태 반영 */
   const skDot=$('settings-key-dot');const skTxt=$('settings-key-txt');
@@ -6043,4 +6299,13 @@ function cancelLyricsEdit(idx){
       </div>
     </div>
     <div class="rc-sheet-footer">
-      <button class="r
+      <button class="rc-sheet-cancel-btn" onclick="closeRecomposeSheet()">취소</button>
+      <button class="rc-sheet-submit-btn" onclick="doRecompose()">
+        🔄 다시 작곡하기
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
