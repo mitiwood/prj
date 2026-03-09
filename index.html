@@ -1487,7 +1487,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 ══════════════════════════════ */
 #mini-player{
   position:fixed;
-  bottom:calc(56px + env(safe-area-inset-bottom,0px));
+  bottom:var(--bnav-h, 56px);
   left:0;right:0;
   width:100%;max-width:480px;
   margin:0 auto;
@@ -1797,11 +1797,19 @@ body.mp-on .view{padding-bottom:118px;}
 .cs-genre{font-size:10px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.12);border-radius:4px;padding:1px 6px;white-space:nowrap;}
 .cs-stat{font-size:10px;color:var(--t3);white-space:nowrap;}
 .cs-new{font-size:9px;font-weight:800;color:#fff;background:var(--acc);border-radius:4px;padding:1px 5px;}
-.cs-btns{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.cs-btns{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .cs-like-btn{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px;padding:4px 6px;border-radius:8px;transition:all .15s;font-family:inherit;font-weight:600;white-space:nowrap;}
 .cs-like-btn:hover,.cs-like-btn.liked{color:#ff6482;}
 .cs-play-btn{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(124,58,237,.4);transition:all .15s;}
 .cs-play-btn:hover{filter:brightness(1.12);}
+/* 투명 액션 버튼 */
+.cs-act-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--t3);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px;padding:5px 7px;border-radius:8px;transition:all .15s;font-family:inherit;font-weight:600;white-space:nowrap;}
+.cs-act-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:var(--t1);}
+.cs-act-btn.on{color:#ff6482;border-color:rgba(255,100,130,.3);background:rgba(255,100,130,.08);}
+/* 사용자 정보 */
+.cs-user-row{display:flex;align-items:center;gap:4px;margin-bottom:3px;}
+.cs-user-img{width:14px;height:14px;border-radius:50%;object-fit:cover;}
+.cs-user-name{font-size:10px;color:var(--t3);font-weight:600;}
 
 </style>
 </head>
@@ -3333,6 +3341,14 @@ async function fetchApiKey(){
   }
 }
 fetchApiKey();
+
+/* ── 탭바 높이 CSS 변수 동적 세팅 ── */
+function updateNavHeight(){
+  const nav=document.getElementById('bottom-nav');
+  if(nav) document.documentElement.style.setProperty('--bnav-h', nav.offsetHeight+'px');
+}
+updateNavHeight();
+window.addEventListener('resize', updateNavHeight);
 
 /* ── OAuth 콜백 결과 처리 (페이지 로드 시) ── */
 (function handleOAuthCallback(){
@@ -5855,10 +5871,16 @@ function fpDeleteCurrent(){
 /* 공유 */
 function fpOpenShare(){
   const h=historyData[fpCurrentIdx]||{};
-  const shareUrl=h.audio_url||window.location.href;
-  $('share-url-input').value=shareUrl;
-  $('share-title').textContent=`"${h.title||'이 곡'}" 공유하기`;
-  $('share-sheet').classList.add('on');
+  const title=h.title||'나의 노래';
+  const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요';
+  const url=h.audio_url||window.location.href;
+  if(navigator.share){
+    navigator.share({title,text,url}).catch(()=>{});
+  } else {
+    $('share-url-input').value=url;
+    $('share-title').textContent='"'+title+'" 공유하기';
+    $('share-sheet').classList.add('on');
+  }
 }
 function fpCloseShare(){$('share-sheet').classList.remove('on');}
 
@@ -6296,26 +6318,29 @@ function renderCommunity(){
   const filterLabel={all:'전체 트랙',kpop:'K-Pop',hiphop:'Hip-Hop',lofi:'Lo-Fi',electronic:'Electronic',ost:'OST'};
   $('comm-section-lbl').textContent=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'전체 트랙')+' ('+tracks.length+'곡)';
   const EMOJIS_C=['🎵','🎸','🎤','🎷','🎻','🎹','🥁','🎼'];
+  const userName=currentUser?.name||'나';
+  const userAvatar=currentUser?.avatar||'';
   list.innerHTML='<div class="comm-card-grid">'+rest.map((t,i)=>`
-    <div class="comm-suno-card" id="comm-item-${i}">
-      <span class="cs-rank${i<3?' top':''}">${i<3?['🥇','🥈','🥉'][i]:i+2}</span>
+    <div class="comm-suno-card" id="comm-item-${i}" onclick="commPlayByHIdx(${t._hIdx})">
       <div class="cs-thumb">
         ${t.img?`<img src="${esc(t.img)}" alt="">`:('<span>'+EMOJIS_C[(i+1)%8]+'</span>')}
         <div class="cs-over">▶</div>
       </div>
       <div class="cs-info">
         <div class="cs-title">${esc(t.title)}${t.isNew?' <span class="cs-new">NEW</span>':''}${t.likes>=3?' 🔥':''}</div>
+        <div class="cs-user-row">
+          ${userAvatar?`<img src="${esc(userAvatar)}" class="cs-user-img" onerror="this.style.display='none'">`:''}<span class="cs-user-name">${esc(userName)}</span>
+        </div>
         <div class="cs-meta">
           ${t.tags?`<span class="cs-genre">${esc(t.tags)}</span>`:''}
           ${t.plays>0?`<span class="cs-stat">▶ ${t.plays}</span>`:''}
-          ${t.dur!=='—'?`<span class="cs-stat">⏱ ${t.dur}</span>`:''}
         </div>
       </div>
       <div class="cs-btns">
-        <button class="cs-like-btn${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeByHIdx(${t._hIdx})" title="좋아요">
-          ${t.liked?'❤️':'🤍'} ${t.likes>0?t.likes:''}
-        </button>
-        <button class="cs-play-btn" onclick="event.stopPropagation();commPlayByHIdx(${t._hIdx})" title="재생">▶</button>
+        <button class="cs-act-btn${t.liked?' on':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeByHIdx(${t._hIdx})" title="좋아요">${t.liked?'❤️':'🤍'}<span>${t.likes>0?t.likes:''}</span></button>
+        <button class="cs-act-btn${t.disliked?' on':''}" onclick="event.stopPropagation();commDislikeByHIdx(${t._hIdx})" title="싫어요">👎</button>
+        <button class="cs-act-btn" onclick="event.stopPropagation();commShareByHIdx(${t._hIdx})" title="공유">↗</button>
+        <button class="cs-act-btn" onclick="event.stopPropagation();commDeleteByHIdx(${t._hIdx})" title="삭제">🗑</button>
       </div>
     </div>
   `).join('')+'</div>'||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">이 장르의 트랙이 없어요</div>';
@@ -6565,19 +6590,45 @@ function commLikeByHIdx(hIdx){
   h._commLiked=!h._commLiked;if(h._commLiked)h._commDisliked=false;
   h._commLikes=(h._commLikes||0)+(h._commLiked?1:-1);if(h._commLikes<0)h._commLikes=0;
   saveHistory();
-  /* 카드 DOM 갱신 */
-  const sorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
-  const si=sorted.findIndex(t=>t._hIdx===hIdx);
-  if(si>0){
-    const restI=si-1;
-    const btn=document.getElementById('comm-like-btn-'+restI);
-    if(btn){
-      btn.classList.toggle('liked',h._commLiked);
-      btn.innerHTML=(h._commLiked?'❤️':'🤍')+(h._commLikes>0?' '+h._commLikes:'');
-    }
-  }
   toast(h._commLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
-  if(h._commLiked&&h._commLikes>=(getCommTracks()[0]?.likes||0))setTimeout(renderCommunity,800);
+  renderCommunity();
+}
+
+function commDislikeByHIdx(hIdx){
+  const h=historyData[hIdx];if(!h)return;
+  h._commDisliked=!h._commDisliked;if(h._commDisliked)h._commLiked=false;
+  saveHistory();
+  toast(h._commDisliked?'👎 싫어요':'싫어요 취소','',1200);
+  renderCommunity();
+}
+
+function commShareByHIdx(hIdx){
+  const h=historyData[hIdx];if(!h)return;
+  const title=h.title||'나의 노래';
+  const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요';
+  const url=h.audio_url||window.location.href;
+  if(navigator.share){
+    navigator.share({title,text,url}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500));
+  }
+}
+
+function commDeleteByHIdx(hIdx){
+  const h=historyData[hIdx];if(!h)return;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML='<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 삭제</div><div style="font-size:13px;color:#a09ab8;">"'+esc(h.title||'이 곡')+'" 을 삭제할까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">삭제</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_del_cancel').onclick=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector('#_del_confirm').onclick=()=>{
+    overlay.remove();
+    historyData.splice(hIdx,1);
+    saveHistory();
+    toast('🗑 삭제됨','',1200);
+    renderCommunity();
+  };
 }
 
 function commLike(i){
