@@ -874,6 +874,16 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* ══════════════════════════════
    BOTTOM NAV
 ══════════════════════════════ */
+ <nav id="bottom-nav">
+  <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')">
+ 
+  <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')">
+ 
+  <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
+ 
+  <button class="bnav-item" data-view="settings-view" onclick="switchTab('settings-view')">  
+
+   
 #bottom-nav{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%);
   width:100%;max-width:480px;
@@ -3098,6 +3108,23 @@ function updateLoginUI(){
       area.innerHTML=`<div style='font-size:12px;color:var(--t3);padding:8px 0;'>게스트 모드로 이용 중</div>`;
     }
   }
+}
+function switchTab(viewId){
+  document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  const btn=document.querySelector('#bottom-nav .bnav-item[data-view="'+viewId+'"]');
+  if(btn)btn.classList.add('on');
+  const view=document.getElementById(viewId);
+  if(view)view.classList.add('on');
+  if(viewId==='history-view')try{renderHistoryView();}catch(e){}
+  if(viewId==='community-view')try{renderCommunity();}catch(e){}
+  if(viewId==='settings-view')try{renderSettings();}catch(e){}
+  const _mpOn=document.body.classList.contains('mp-on');
+  document.body.className='';
+  if(_mpOn)document.body.classList.add('mp-on');
+  if(viewId==='history-view'||viewId==='community-view')document.body.classList.add('tab-library');
+  if(viewId==='settings-view')document.body.classList.add('tab-settings');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 /* ── 로그인 모달 닫기 (바텀시트로 교체 - 배경 클릭은 HTML onclick 처리) ── */
