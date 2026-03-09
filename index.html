@@ -1487,90 +1487,135 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 #mini-player{
   position:fixed;
   bottom:calc(65px + env(safe-area-inset-bottom,0px));
-  left:50%;transform:translateX(-50%) translateY(110%);
-  width:calc(100% - 24px);max-width:456px;
-  background:rgba(22,22,31,.97);
+  left:0;right:0;
+  width:100%;max-width:480px;
+  margin:0 auto;
+  background:rgba(18,18,26,.98);
   backdrop-filter:blur(24px);
-  border:1px solid rgba(168,85,247,.2);
-  border-radius:16px;
-  box-shadow:0 -4px 32px rgba(0,0,0,.6),0 0 0 1px rgba(124,58,237,.1);
+  border:1px solid rgba(168,85,247,.18);
+  border-radius:14px 14px 0 0;          /* 좌우 상단만 radius */
+  box-shadow:0 -6px 28px rgba(0,0,0,.55),0 0 0 1px rgba(124,58,237,.08);
   z-index:210;
-  transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .3s;
+  transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s;
+  transform:translateY(110%);
   opacity:0;
   overflow:hidden;
   cursor:pointer;
 }
-#mini-player.on{
-  transform:translateX(-50%) translateY(0);
-  opacity:1;
+#mini-player.on{transform:translateY(0);opacity:1;}
+/* 진행바 */
+.mp-prog-bar{height:2px;background:rgba(255,255,255,.07);}
+.mp-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s linear;}
+/* 더보기 핸들 행 */
+.mp-handle-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:6px;padding:5px 14px 2px;
+  border-bottom:1px solid rgba(255,255,255,.05);
 }
-/* 진행바 (최상단) */
-.mp-prog-bar{
-  height:3px;background:rgba(255,255,255,.08);
-  position:relative;
+.mp-more-btn{
+  display:flex;align-items:center;gap:5px;
+  background:none;border:none;color:var(--t3);
+  font-size:10px;font-weight:700;cursor:pointer;
+  padding:2px 8px;border-radius:20px;
+  transition:all .15s;letter-spacing:.4px;
 }
-.mp-prog-fill{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,var(--acc),var(--acc2));
-  border-radius:0;transition:width .4s linear;
-}
+.mp-more-btn:hover{color:var(--acc3);background:rgba(124,58,237,.1);}
+.mp-more-icon{font-size:12px;transition:transform .2s;}
 /* 본문 */
-.mp-body{
-  display:flex;align-items:center;gap:12px;
-  padding:10px 12px 11px;
-}
+.mp-body{display:flex;align-items:center;gap:10px;padding:7px 12px 9px;}
 .mp-thumb{
-  width:44px;height:44px;border-radius:10px;
+  width:38px;height:38px;border-radius:8px;
   overflow:hidden;background:var(--bg2);
-  flex-shrink:0;display:flex;align-items:center;
-  justify-content:center;font-size:20px;
-  border:1px solid rgba(255,255,255,.06);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:1px solid rgba(255,255,255,.06);
 }
 .mp-thumb img{width:100%;height:100%;object-fit:cover;}
 .mp-info{flex:1;min-width:0;}
-.mp-title{
-  font-size:13px;font-weight:700;color:var(--t1);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  margin-bottom:2px;
-}
+.mp-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;}
 .mp-sub{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mp-viz{
-  display:flex;align-items:center;gap:2px;height:16px;
-  margin-top:3px;
-}
-.mp-vbar{
-  width:2px;height:4px;background:rgba(168,85,247,.4);
-  border-radius:1px;transition:height .1s;
-}
+.mp-viz{display:flex;align-items:center;gap:2px;height:12px;margin-top:2px;}
+.mp-vbar{width:2px;height:3px;background:rgba(168,85,247,.4);border-radius:1px;transition:height .1s;}
 .mp-vbar.on{background:var(--acc2);}
-.mp-controls{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.mp-controls{display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .mp-play-btn{
-  width:40px;height:40px;border-radius:50%;
+  width:36px;height:36px;border-radius:50%;
   background:linear-gradient(135deg,var(--acc),var(--acc2));
-  border:none;color:#fff;font-size:16px;cursor:pointer;
+  border:none;color:#fff;font-size:14px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 12px rgba(124,58,237,.5);
-  flex-shrink:0;transition:all .15s;
+  box-shadow:0 2px 10px rgba(124,58,237,.45);flex-shrink:0;transition:all .15s;
 }
 .mp-play-btn:hover{filter:brightness(1.12);}
 .mp-next-btn{
-  width:34px;height:34px;border-radius:50%;
+  width:30px;height:30px;border-radius:50%;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
-  color:var(--t2);font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .15s;
+  color:var(--t2);font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;
 }
 .mp-next-btn:hover{background:rgba(124,58,237,.2);color:var(--acc3);}
 .mp-close-btn{
-  width:28px;height:28px;border-radius:50%;
-  background:none;border:none;
-  color:var(--t3);font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .15s;
+  width:24px;height:24px;border-radius:50%;background:none;border:none;
+  color:var(--t3);font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;
 }
 .mp-close-btn:hover{color:var(--red);}
-/* 뷰 하단 여백 — 미니플레이어 떠있을 때 */
-body.mp-on .view{padding-bottom:100px;}
+/* 뷰 하단 여백 */
+body.mp-on .view{padding-bottom:118px;}
+
+/* ── 트랙 상세 바텀시트 ── */
+#mp-detail-sheet{
+  position:fixed;inset:0;z-index:220;pointer-events:none;opacity:0;transition:opacity .25s;
+}
+#mp-detail-sheet.on{pointer-events:auto;opacity:1;}
+#mp-detail-sheet .mds-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
+#mp-detail-sheet .mds-panel{
+  position:absolute;bottom:0;left:50%;
+  transform:translate(-50%,100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  width:100%;max-width:480px;
+  background:var(--card2);
+  border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border2);
+  max-height:88vh;overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,20px);
+}
+#mp-detail-sheet.on .mds-panel{transform:translate(-50%,0);}
+.mds-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:12px auto 0;}
+.mds-header{padding:14px 18px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.mds-cover{width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.mds-cover img{width:100%;height:100%;object-fit:cover;}
+.mds-track-info{flex:1;min-width:0;}
+.mds-title{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mds-user{font-size:11px;color:var(--t3);}
+.mds-style-chip{display:inline-block;padding:2px 8px;border-radius:20px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);color:var(--acc3);font-size:10px;font-weight:700;margin-top:3px;}
+.mds-body{padding:0 18px 16px;}
+.mds-section{margin-top:14px;}
+.mds-section-title{font-size:10px;font-weight:800;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;}
+.mds-style-desc{font-size:12px;color:var(--t2);line-height:1.7;background:var(--bg2);padding:10px 12px;border-radius:10px;border:1px solid var(--border);}
+.mds-lyrics-box{font-size:12px;color:var(--t2);line-height:1.9;background:var(--bg2);padding:12px 14px;border-radius:10px;border:1px solid var(--border);max-height:200px;overflow-y:auto;white-space:pre-wrap;position:relative;}
+.mds-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.mds-action-btn{display:flex;align-items:center;gap:5px;padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.mds-action-btn:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--acc3);}
+.mds-action-btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:#fff;box-shadow:0 2px 12px rgba(124,58,237,.4);}
+/* 스타일 재사용 UI */
+.mds-reuse-panel{display:none;margin-top:14px;background:var(--bg2);border-radius:12px;padding:14px;border:1px solid rgba(124,58,237,.2);}
+.mds-reuse-panel.on{display:block;}
+.mds-reuse-textarea{width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;line-height:1.7;}
+.mds-reuse-textarea:focus{outline:none;border-color:var(--acc);}
+/* 플로팅 만들기 버튼 */
+#mds-float-btn{
+  position:sticky;bottom:16px;left:0;right:0;
+  display:none;
+  margin:12px 0 0;
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;border-radius:14px;
+  color:#fff;font-size:14px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 20px rgba(124,58,237,.5);
+  transition:all .18s;
+}
+#mds-float-btn.on{display:block;}
+#mds-float-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
 
 
 /* ── 생성 중 알림 팝업 ── */
@@ -2422,8 +2467,13 @@ body.mp-on .view{padding-bottom:100px;}
 <!-- ── 하단 탭바 ── -->
 <!-- ── 미니 플로팅 플레이어 (PIP) ── -->
 <div id="mini-player">
-  <div class="mp-prog-bar">
-    <div class="mp-prog-fill" id="mp-prog-fill"></div>
+  <div class="mp-prog-bar"><div class="mp-prog-fill" id="mp-prog-fill"></div></div>
+  <!-- 더보기 핸들 -->
+  <div class="mp-handle-row">
+    <button class="mp-more-btn" id="mp-more-btn" onclick="event.stopPropagation();openMpDetailSheet()">
+      <span>더보기</span>
+      <span class="mp-more-icon">⌃</span>
+    </button>
   </div>
   <div class="mp-body">
     <div class="mp-thumb" id="mp-thumb">🎵</div>
@@ -2440,6 +2490,50 @@ body.mp-on .view{padding-bottom:100px;}
       <button class="mp-play-btn" id="mp-play-btn" title="재생/일시정지">▶</button>
       <button class="mp-next-btn" id="mp-next-btn" title="다음 곡">⏭</button>
       <button class="mp-close-btn" id="mp-close-btn" title="닫기">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 트랙 상세 바텀시트 ── -->
+<div id="mp-detail-sheet">
+  <div class="mds-backdrop" onclick="closeMpDetailSheet()"></div>
+  <div class="mds-panel">
+    <div class="mds-handle"></div>
+    <!-- 헤더: 커버 + 제목 + 유저 -->
+    <div class="mds-header">
+      <div class="mds-cover" id="mds-cover">🎵</div>
+      <div class="mds-track-info">
+        <div class="mds-title" id="mds-title">무제</div>
+        <div class="mds-user" id="mds-user">👤 나의 트랙</div>
+        <span class="mds-style-chip" id="mds-style-chip"></span>
+      </div>
+    </div>
+    <div class="mds-body">
+      <!-- 스타일 설명 -->
+      <div class="mds-section" id="mds-style-section">
+        <div class="mds-section-title">🎨 스타일 설명</div>
+        <div class="mds-style-desc" id="mds-style-desc"></div>
+      </div>
+      <!-- 가사 -->
+      <div class="mds-section" id="mds-lyrics-section">
+        <div class="mds-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>🎤 가사</span>
+          <button class="mds-action-btn" id="mds-copy-btn" onclick="mdsCopyLyrics()" style="padding:4px 10px;font-size:10px;">📋 복사</button>
+        </div>
+        <div class="mds-lyrics-box" id="mds-lyrics-box"></div>
+      </div>
+      <!-- 액션 버튼 -->
+      <div class="mds-actions">
+        <button class="mds-action-btn primary" id="mds-reuse-btn" onclick="mdsToggleReuse()">✨ 스타일 재사용</button>
+        <button class="mds-action-btn" onclick="closeMpDetailSheet();expandToFullPlayer()">🎵 전체 재생</button>
+      </div>
+      <!-- 스타일 재사용 패널 -->
+      <div class="mds-reuse-panel" id="mds-reuse-panel">
+        <div class="mds-section-title">✏️ 가사 수정 후 만들기</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px;">이 스타일로 새 음악을 만들어요. 가사를 수정하거나 그대로 사용하세요.</div>
+        <textarea class="mds-reuse-textarea" id="mds-reuse-lyrics" placeholder="가사를 입력하거나 수정하세요..."></textarea>
+        <button id="mds-float-btn" class="on" onclick="mdsCreateWithStyle()">✦ 이 스타일로 만들기</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4906,44 +5000,55 @@ function showMiniPlayer(idx){
   if(!h) return;
   fpCurrentIdx = idx;
 
+  /* ── 기존 오디오 완전 정리 (src="" 로 스트림 차단) ── */
+  if(fpAudio){
+    fpAudio.pause();
+    fpAudio.src = '';     /* 브라우저가 계속 버퍼링/재생하는 것 완전 차단 */
+    fpAudio = null;
+    clearInterval(fpVizTimer);
+    mpStopViz(); fpStopViz();
+  }
+
   /* 썸네일 */
   const thumb = $('mp-thumb');
-  thumb.innerHTML = h.image_url ? `<img src="${esc(h.image_url)}" alt="">` : '🎵';
+  if(thumb) thumb.innerHTML = h.image_url ? `<img src="${esc(h.image_url)}" alt="">` : '🎵';
 
   /* 정보 */
-  $('mp-title').textContent = h.title || '무제';
-  $('mp-sub').textContent = (h.tags||'').split(',')[0]?.trim() || '';
+  const titleEl=$('mp-title'); if(titleEl) titleEl.textContent = h.title || '무제';
+  const subEl=$('mp-sub'); if(subEl) subEl.textContent = (h.tags||'').split(',')[0]?.trim() || '';
 
   /* 미니플레이어 표시 */
   $('mini-player').classList.add('on');
   document.body.classList.add('mp-on');
 
-  /* 오디오 */
-  if(fpAudio){ fpAudio.pause(); clearInterval(fpVizTimer); }
   if(!h.audio_url){ toast('오디오 URL 없음','err'); return; }
+
+  /* ── 새 오디오 생성 ── */
   const audio = new Audio(h.audio_url);
   fpAudio = audio;
 
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration) return;
     const pct = (audio.currentTime / audio.duration) * 100;
-    $('mp-prog-fill').style.width = pct + '%';
-    /* 풀플레이어도 열려있으면 싱크 */
+    const fill=$('mp-prog-fill'); if(fill) fill.style.width = pct + '%';
     if($('fullplayer').classList.contains('on')){
-      $('fp-prog-fill').style.width = pct + '%';
-      $('fp-prog-thumb').style.left = pct + '%';
-      $('fp-cur').textContent = formatTime(audio.currentTime);
-      $('fp-dur').textContent = formatTime(audio.duration);
+      const fpf=$('fp-prog-fill'),fpt=$('fp-prog-thumb'),cur=$('fp-cur'),dur=$('fp-dur');
+      if(fpf) fpf.style.width = pct + '%';
+      if(fpt) fpt.style.left  = pct + '%';
+      if(cur) cur.textContent = formatTime(audio.currentTime);
+      if(dur) dur.textContent = formatTime(audio.duration);
       if(fpSyncMode && fpTimestampLines.length) fpSyncLyrics(audio.currentTime);
     }
   });
 
   audio.addEventListener('ended',()=>{
-    $('mp-play-btn').textContent = '▶';
-    $('fp-play-btn').textContent = '▶';
+    const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
+    if(pb) pb.textContent='▶';
+    if(fpb) fpb.textContent='▶';
     mpStopViz(); fpStopViz();
-    /* 다음 곡 자동 재생 */
-    const next = fpCurrentIdx + 1;
+    /* 다음 곡 히스토리에서 audio_url 있는 것 */
+    let next = fpCurrentIdx + 1;
+    while(next < historyData.length && !historyData[next]?.audio_url) next++;
     if(next < historyData.length){
       setTimeout(()=> showMiniPlayer(next), 600);
       toast(`⏭ 다음 곡: ${historyData[next]?.title||'무제'}`,'',2000);
@@ -4952,13 +5057,19 @@ function showMiniPlayer(idx){
     }
   });
 
-  audio.addEventListener('error',()=> toast('오디오 재생 오류','err'));
+  audio.addEventListener('error',(e)=>{
+    console.error('[Audio Error]', e);
+    toast('오디오 재생 오류','err');
+  });
 
   audio.play().then(()=>{
-    $('mp-play-btn').textContent = '⏸';
-    $('fp-play-btn').textContent = '⏸';
+    const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
+    if(pb) pb.textContent='⏸';
+    if(fpb) fpb.textContent='⏸';
     mpStartViz(); fpStartViz();
-  }).catch(()=>{});
+  }).catch(err=>{
+    console.warn('[play() failed]', err.message);
+  });
 }
 
 function hideMiniPlayer(){
@@ -4969,6 +5080,151 @@ function hideMiniPlayer(){
   /* 풀플레이어도 닫기 */
   $('fullplayer').classList.remove('on');
   document.body.style.overflow = '';
+}
+
+/* ── 트랙 상세 바텀시트 ── */
+function openMpDetailSheet(){
+  const h=historyData[fpCurrentIdx];
+  if(!h) return;
+
+  /* 커버 */
+  const cov=$('mds-cover');
+  if(cov) cov.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'🎵';
+
+  /* 제목 */
+  const titleEl=$('mds-title');
+  if(titleEl) titleEl.textContent=h.title||'무제';
+
+  /* 유저 */
+  const userEl=$('mds-user');
+  if(userEl){
+    const uname=currentUser?.name||'나의 트랙';
+    const provider=currentUser?.provider||'';
+    const providerIcon={google:'🔵',kakao:'💬',naver:'🟢',guest:'👤'}[provider]||'👤';
+    userEl.textContent=providerIcon+' '+uname;
+  }
+
+  /* 스타일 칩 + 설명 */
+  const tagsAll=(h.tags||'');
+  const mainTag=tagsAll.split(',')[0]?.trim()||'';
+  const chip=$('mds-style-chip');
+  if(chip) chip.textContent=mainTag;
+
+  const styleDesc=$('mds-style-desc');
+  if(styleDesc){
+    const modeLabel={custom:'커스텀 모드',simple:'심플 모드',youtube:'YouTube 모드',mv:'MV 모드'}[h.genMode||'custom']||'커스텀';
+    const parts=[];
+    if(mainTag) parts.push(`장르: ${mainTag}`);
+    if(h.tags&&h.tags.includes(',')) parts.push(`태그: ${tagsAll}`);
+    parts.push(`생성 모드: ${modeLabel}`);
+    if(h.created) parts.push(`생성: ${new Date(h.created).toLocaleDateString('ko-KR')}`);
+    styleDesc.textContent=parts.join(' · ')||'스타일 정보 없음';
+  }
+
+  /* 가사 */
+  const lyricsBox=$('mds-lyrics-box');
+  if(lyricsBox){
+    const raw=h.lyrics||h._inputLyrics||'';
+    lyricsBox.textContent=raw||'가사 없음';
+    /* 가사 없으면 섹션 숨기기 */
+    const lsec=$('mds-lyrics-section');
+    if(lsec) lsec.style.display=raw?'':'none';
+  }
+
+  /* 재사용 패널 초기화 */
+  const rPanel=$('mds-reuse-panel');
+  const rTA=$('mds-reuse-lyrics');
+  if(rPanel) rPanel.classList.remove('on');
+  if(rTA) rTA.value=h.lyrics||h._inputLyrics||'';
+
+  $('mp-detail-sheet').classList.add('on');
+}
+
+function closeMpDetailSheet(){
+  $('mp-detail-sheet').classList.remove('on');
+}
+
+function mdsCopyLyrics(){
+  const box=$('mds-lyrics-box');
+  const text=box?.textContent||'';
+  if(!text||text==='가사 없음'){toast('복사할 가사가 없어요','err',1500);return;}
+  navigator.clipboard?.writeText(text).then(()=>{
+    toast('📋 가사 복사됨','ok',1800);
+  }).catch(()=>{
+    /* fallback */
+    const ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    toast('📋 가사 복사됨','ok',1800);
+  });
+}
+
+function mdsToggleReuse(){
+  const panel=$('mds-reuse-panel');
+  if(!panel) return;
+  const isOn=panel.classList.toggle('on');
+  const btn=$('mds-reuse-btn');
+  if(btn) btn.textContent=isOn?'✨ 재사용 닫기':'✨ 스타일 재사용';
+  if(isOn){
+    /* 현재 가사를 textarea에 채우기 */
+    const h=historyData[fpCurrentIdx];
+    const ta=$('mds-reuse-lyrics');
+    if(ta&&h) ta.value=h.lyrics||h._inputLyrics||'';
+    /* 스크롤해서 패널 보여주기 */
+    setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
+
+function mdsCreateWithStyle(){
+  const h=historyData[fpCurrentIdx];
+  if(!h){toast('트랙 정보를 찾을 수 없어요','err');return;}
+  const newLyrics=($('mds-reuse-lyrics')?.value||'').trim();
+
+  /* 만들기 탭으로 전환 */
+  closeMpDetailSheet();
+
+  /* 탭 전환 */
+  document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  const createBtn=document.querySelector('#bottom-nav .bnav-item[data-view="create-view"]');
+  if(createBtn) createBtn.classList.add('on');
+  const createView=$('create-view');
+  if(createView) createView.classList.add('on');
+
+  /* 커스텀 모드 탭 선택 */
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('on'));
+  const customTab=document.querySelector('.mode-tab[data-mode="custom"]');
+  if(customTab) customTab.classList.add('on');
+  const customPanel=$('panel-custom');
+  if(customPanel) customPanel.classList.add('on');
+  currentMode='custom';
+
+  /* 기존 스타일/태그 채우기 */
+  const tags=(h.tags||'').split(',');
+  const mainTag=tags[0]?.trim()||'';
+
+  /* 장르 버튼에서 가장 가까운 것 활성화 시도 */
+  if(mainTag){
+    const genreLower=mainTag.toLowerCase();
+    let matched=false;
+    document.querySelectorAll('#genre-btn-grid .genre-btn').forEach(btn=>{
+      if(!matched&&btn.textContent.toLowerCase().includes(genreLower)){
+        btn.click();matched=true;
+      }
+    });
+  }
+
+  /* 가사 채우기 */
+  const promptEl=$('prompt');
+  if(promptEl) promptEl.value=newLyrics;
+
+  /* 곡 설명 채우기 */
+  const descEl=$('song-desc');
+  if(descEl) descEl.value=h.tags||'';
+
+  toast('✦ 스타일이 적용됐어요! 가사 확인 후 만들기를 눌러주세요','ok',3000);
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 /* 미니 → 풀 확장 */
@@ -5997,29 +6253,31 @@ function renderCommunity(){
   const filterLabel={all:'전체 트랙',kpop:'K-Pop',hiphop:'Hip-Hop',lofi:'Lo-Fi',electronic:'Electronic',ost:'OST'};
   $('comm-section-lbl').textContent=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'전체 트랙')+' ('+tracks.length+'곡)';
   const EMOJIS_C=['🎵','🎸','🎤','🎷','🎻','🎹','🥁','🎼'];
-  list.innerHTML='<div class="comm-card-grid">'+rest.map((t,i)=>`
-    <div class="comm-suno-card" id="comm-item-${i}">
-      <span class="cs-rank${i<3?' top':''}">${i<3?['🥇','🥈','🥉'][i]:i+2}</span>
-      <div class="cs-thumb">
-        ${t.img?`<img src="${esc(t.img)}" alt="">`:('<span>'+EMOJIS_C[(i+1)%8]+'</span>')}
-        <div class="cs-over">▶</div>
-      </div>
-      <div class="cs-info">
-        <div class="cs-title">${esc(t.title)}${t.isNew?' <span class="cs-new">NEW</span>':''}${t.likes>=3?' 🔥':''}</div>
-        <div class="cs-meta">
-          ${t.tags?`<span class="cs-genre">${esc(t.tags)}</span>`:''}
-          ${t.plays>0?`<span class="cs-stat">▶ ${t.plays}</span>`:''}
-          ${t.dur!=='—'?`<span class="cs-stat">⏱ ${t.dur}</span>`:''}
-        </div>
-      </div>
-      <div class="cs-btns">
-        <button class="cs-like-btn${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeByHIdx(${t._hIdx})" title="좋아요">
-          ${t.liked?'❤️':'🤍'} ${t.likes>0?t.likes:''}
-        </button>
-        <button class="cs-play-btn" onclick="event.stopPropagation();commPlayByHIdx(${t._hIdx})" title="재생">▶</button>
-      </div>
-    </div>
-  `).join('')+'</div>'||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">이 장르의 트랙이 없어요</div>';
+  list.innerHTML='<div class="comm-card-grid">'+rest.map((t,i)=>{
+    const thumbHtml=t.img?('<img src="'+esc(t.img)+'" alt="">'):('<span>'+EMOJIS_C[(i+1)%8]+'</span>');
+    const genreHtml=t.tags?('<span class="cs-genre">'+esc(t.tags)+'</span>'):'';
+    const playsHtml=t.plays>0?('<span class="cs-stat">▶ '+t.plays+'</span>'):'';
+    const durHtml=t.dur!=='—'?('<span class="cs-stat">⏱ '+t.dur+'</span>'):'';
+    const newBadge=t.isNew?' <span class="cs-new">NEW</span>':'';
+    const fireBadge=t.likes>=3?' 🔥':'';
+    const likedClass=t.liked?' liked':'';
+    const likedIcon=t.liked?'❤️':'🤍';
+    const likesNum=t.likes>0?(' '+t.likes):'';
+    const rankClass='cs-rank'+(i<3?' top':'');
+    const rankIcon=i<3?['🥇','🥈','🥉'][i]:(i+2);
+    return '<div class="comm-suno-card" id="comm-item-'+i+'">'+
+      '<span class="'+rankClass+'">'+rankIcon+'</span>'+
+      '<div class="cs-thumb">'+thumbHtml+'<div class="cs-over">▶</div></div>'+
+      '<div class="cs-info">'+
+        '<div class="cs-title">'+esc(t.title)+newBadge+fireBadge+'</div>'+
+        '<div class="cs-meta">'+genreHtml+playsHtml+durHtml+'</div>'+
+      '</div>'+
+      '<div class="cs-btns">'+
+        '<button class="cs-like-btn'+likedClass+'" id="comm-like-btn-'+i+'" onclick="event.stopPropagation();commLikeByHIdx('+t._hIdx+')" title="좋아요">'+likedIcon+likesNum+'</button>'+
+        '<button class="cs-play-btn" onclick="event.stopPropagation();commPlayByHIdx('+t._hIdx+')" title="재생">▶</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')+'</div>'||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">이 장르의 트랙이 없어요</div>';
 
   /* 리스트 좋아요 버튼 초기화 */
   rest.forEach((t,i)=>{
@@ -6263,11 +6521,24 @@ function commHeroDislike(){
 /* 리스트 좋아요 */
 function commLikeByHIdx(hIdx){
   const h=historyData[hIdx];if(!h)return;
-  /* 카드 DOM 인덱스 찾기 (rest 기준) */
+  h._commLiked=!h._commLiked;if(h._commLiked)h._commDisliked=false;
+  h._commLikes=(h._commLikes||0)+(h._commLiked?1:-1);if(h._commLikes<0)h._commLikes=0;
+  saveHistory();
+  /* 카드 DOM 갱신 */
   const sorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
-  const i=sorted.findIndex(t=>t._hIdx===hIdx);
-  if(i<=0)return; /* i=0은 hero */
-  const restI=i-1;
+  const si=sorted.findIndex(t=>t._hIdx===hIdx);
+  if(si>0){
+    const restI=si-1;
+    const btn=document.getElementById('comm-like-btn-'+restI);
+    if(btn){
+      btn.classList.toggle('liked',h._commLiked);
+      btn.innerHTML=(h._commLiked?'❤️':'🤍')+(h._commLikes>0?' '+h._commLikes:'');
+    }
+  }
+  toast(h._commLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
+  if(h._commLiked&&h._commLikes>=(getCommTracks()[0]?.likes||0))setTimeout(renderCommunity,800);
+}
+
 function commLike(i){
   /* i = sorted 전체 배열 기준 (0=hero, 1~=rest) */
   const tracks=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
