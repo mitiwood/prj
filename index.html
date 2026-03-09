@@ -1742,7 +1742,7 @@ body.mp-on .view{padding-bottom:100px;}
 .cs-rank.top{color:var(--gold);}
 .cs-thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;border:1px solid var(--border);}
 .cs-thumb img{width:100%;height:100%;object-fit:cover;}
-.cs-over{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;border-radius:10px;font-size:16px;color:#fff;}
+.cs-over{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;border-radius:10px;font-size:16px;color:#fff;pointer-events:none;}
 .comm-suno-card:hover .cs-over{opacity:1;}
 .cs-info{flex:1;min-width:0;}
 .cs-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
@@ -2793,52 +2793,81 @@ body.mp-on .view{padding-bottom:100px;}
 
 <div id="toast"></div>
 <!-- ── 로그인 모달 ── -->
-<div class="modal-backdrop" id="login-modal">
-  <div class="modal" style="max-width:380px;width:100%;border-radius:20px;margin:20px;padding:0;overflow:hidden;">
-    <div style="background:linear-gradient(135deg,var(--acc),var(--acc2));padding:24px 20px 20px;text-align:center;">
-      <button class="modal-close" id="login-modal-close" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);">✕</button>
-      <div style="font-size:32px;margin-bottom:8px;">🎵</div>
-      <div style="font-size:18px;font-weight:800;color:#fff;">Kenny's Music Studio</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;">로그인하고 나만의 음악을 만들어보세요</div>
+<!-- ── 로그인 바텀시트 ── -->
+<div id="login-sheet" style="position:fixed;inset:0;z-index:800;pointer-events:none;opacity:0;transition:opacity .25s;">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);" onclick="closeLoginSheet()"></div>
+  <div id="login-sheet-panel" style="
+    position:absolute;bottom:0;left:50%;
+    transform:translate(-50%,100%);
+    transition:transform .35s cubic-bezier(.4,0,.2,1);
+    width:100%;max-width:480px;
+    background:var(--card2);
+    border-radius:20px 20px 0 0;
+    border-top:1px solid var(--border2);
+    padding-bottom:env(safe-area-inset-bottom,16px);
+    max-height:92vh;overflow-y:auto;
+  ">
+    <!-- 핸들 -->
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0;"></div>
+    <!-- 헤더 -->
+    <div style="background:linear-gradient(135deg,var(--acc),var(--acc2));padding:22px 20px 18px;text-align:center;margin-top:10px;border-radius:0;">
+      <div style="font-size:30px;margin-bottom:6px;">🎵</div>
+      <div style="font-size:17px;font-weight:800;color:#fff;">Kenny's Music Studio</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;">로그인하고 나만의 음악을 만들어보세요</div>
     </div>
-    <div style="padding:20px;" id="login-area">
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <!-- Google -->
-        <button onclick="socialLogin('google')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#fff;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3c4043;box-shadow:0 1px 8px rgba(0,0,0,.12);">
-          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Google로 계속하기
-        </button>
-        <!-- Kakao -->
-        <button onclick="socialLogin('kakao')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#FEE500;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3C1E1E;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#3C1E1E"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.71 1.52 5.09 3.84 6.57L4.5 21l4.1-2.73A11.3 11.3 0 0 0 12 18.6c5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
-          카카오로 계속하기
-        </button>
-        <!-- Naver -->
-        <button onclick="socialLogin('naver')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;background:#03C75A;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M16.273 12.845L7.376 3H3v18h7.727V11.155L19.624 21H24V3h-7.727z"/></svg>
-          네이버로 계속하기
-        </button>
-        <!-- Guest -->
-        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-          <span style="font-size:11px;color:var(--t3);">또는</span>
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-        </div>
-        <button onclick="socialLogin('guest')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--t2);">
-          <span style="font-size:20px;">👤</span>
-          게스트로 시작하기 <span style="font-size:11px;color:var(--t3);margin-left:auto;">저장 안됨</span>
-        </button>
+    <!-- 로그인 버튼들 -->
+    <div style="padding:20px;display:flex;flex-direction:column;gap:10px;">
+      <!-- Google -->
+      <button onclick="socialLogin('google')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#fff;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3c4043;box-shadow:0 2px 10px rgba(0,0,0,.15);width:100%;transition:all .15s;" onmouseover="this.style.filter='brightness(.97)'" onmouseout="this.style.filter=''">
+        <svg width="20" height="20" viewBox="0 0 24 24" style="flex-shrink:0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span>Google로 계속하기</span>
+      </button>
+      <!-- Kakao -->
+      <button onclick="socialLogin('kakao')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#FEE500;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#3C1E1E;width:100%;transition:all .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter=''">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#3C1E1E" style="flex-shrink:0;"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.71 1.52 5.09 3.84 6.57L4.5 21l4.1-2.73A11.3 11.3 0 0 0 12 18.6c5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
+        <span>카카오로 계속하기</span>
+      </button>
+      <!-- Naver -->
+      <button onclick="socialLogin('naver')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#03C75A;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;width:100%;transition:all .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter=''">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="flex-shrink:0;"><path d="M16.273 12.845L7.376 3H3v18h7.727V11.155L19.624 21H24V3h-7.727z"/></svg>
+        <span>네이버로 계속하기</span>
+      </button>
+      <!-- 구분선 -->
+      <div style="display:flex;align-items:center;gap:8px;margin:2px 0;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:11px;color:var(--t3);">또는</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
+      <!-- Guest -->
+      <button onclick="socialLogin('guest')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--t2);width:100%;transition:all .15s;">
+        <span style="font-size:20px;flex-shrink:0;">👤</span>
+        <span>게스트로 시작하기</span>
+        <span style="font-size:10px;color:var(--t3);margin-left:auto;">저장 안됨</span>
+      </button>
       <!-- 연동 가이드 -->
-      <details style="margin-top:16px;">
-        <summary style="font-size:11px;color:var(--t3);cursor:pointer;padding:6px 0;">🔧 소셜 로그인 연동 방법 보기</summary>
-        <div style="margin-top:8px;background:var(--bg2);border-radius:10px;padding:12px;font-size:11px;color:var(--t2);line-height:1.8;">
-          <div style="font-weight:700;color:var(--acc3);margin-bottom:6px;">개발자 연동 가이드</div>
-          <div><b>Google:</b> Google Cloud Console → OAuth 2.0 → /api/auth/google 엔드포인트 설정</div>
-          <div style="margin-top:4px;"><b>Kakao:</b> Kakao Developers → 앱 등록 → REST API 키 → /api/auth/kakao</div>
-          <div style="margin-top:4px;"><b>Naver:</b> Naver Developers → 애플리케이션 등록 → /api/auth/naver</div>
-          <div style="margin-top:8px;background:rgba(124,58,237,.1);border-radius:6px;padding:8px;color:var(--acc3);">
-            Vercel 환경변수: GOOGLE_CLIENT_ID, KAKAO_APP_KEY, NAVER_CLIENT_ID 등록 후 배포
+      <details style="margin-top:4px;">
+        <summary style="font-size:11px;color:var(--t3);cursor:pointer;padding:6px 2px;list-style:none;">🔧 개발자 연동 가이드 보기 ▸</summary>
+        <div style="margin-top:8px;background:var(--bg2);border-radius:12px;padding:14px;font-size:11px;color:var(--t2);line-height:2;">
+          <div style="font-weight:800;color:var(--acc3);margin-bottom:8px;font-size:12px;">소셜 로그인 연동 방법</div>
+          <div style="margin-bottom:6px;"><b style="color:#4285F4;">Google</b><br>
+            1. console.cloud.google.com → 프로젝트 생성<br>
+            2. API 및 서비스 → OAuth 2.0 클라이언트 ID 생성<br>
+            3. 승인된 리디렉션: https://도메인/api/auth/google/callback<br>
+            4. Vercel 환경변수: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+          </div>
+          <div style="margin-bottom:6px;"><b style="color:#3C1E1E;background:#FEE500;padding:1px 4px;border-radius:3px;">Kakao</b><br>
+            1. developers.kakao.com → 내 애플리케이션 → 앱 추가<br>
+            2. 카카오 로그인 → Redirect URI: /api/auth/kakao/callback<br>
+            3. Vercel 환경변수: KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET
+          </div>
+          <div><b style="color:#03C75A;">Naver</b><br>
+            1. developers.naver.com → Application → 애플리케이션 등록<br>
+            2. 서비스 URL + Callback URL: /api/auth/naver/callback<br>
+            3. Vercel 환경변수: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET
+          </div>
+          <div style="margin-top:8px;padding:8px;background:rgba(124,58,237,.1);border-radius:8px;color:var(--acc3);">
+            💡 NextAuth.js 또는 직접 OAuth flow 구현<br>
+            Vercel에서 환경변수 설정 후 배포
           </div>
         </div>
       </details>
@@ -2934,7 +2963,7 @@ function socialLogin(provider){
     const mockUser={provider:'guest',name:'게스트',avatar:'👤',at:Date.now()};
     currentUser=mockUser;
     localStorage.setItem('kms_user',JSON.stringify(mockUser));
-    $('login-modal').classList.remove('on');
+    closeLoginSheet();
     updateLoginUI();
     toast('👤 게스트 모드로 시작합니다','',2500);
     return;
@@ -2943,7 +2972,7 @@ function socialLogin(provider){
   const mockUser={provider,name:`${names[provider]} 사용자`,avatar:avatars[provider]||'🎵',at:Date.now()};
   currentUser=mockUser;
   localStorage.setItem('kms_user',JSON.stringify(mockUser));
-  $('login-modal').classList.remove('on');
+  closeLoginSheet();
   updateLoginUI();
   toast(`✅ ${names[provider]}로 로그인 (데모 모드)`,'ok');
 }
@@ -2952,21 +2981,32 @@ function logout(){
   updateLoginUI();toast('로그아웃 되었습니다');
 }
 function updateLoginUI(){
-  const area=$('login-area'); if(!area)return;
-  if(!area)return; /* 헤더에서 login-area 제거됨 */
-  if(currentUser){
-    area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="logout()">
-      <div class="user-avatar">${currentUser.avatar||'👤'}</div>
-      <span class="user-name">${esc(currentUser.name)}</span>
-    </div>`;
-  } else {
-    area.innerHTML=`<div style='font-size:12px;color:var(--t3);padding:8px 0;'>게스트 모드로 이용 중</div>`;
+  /* 설정탭 로그인 버튼 갱신 */
+  const loginBtn=$('settings-login-btn');
+  if(loginBtn){
+    if(currentUser){
+      loginBtn.textContent=`${currentUser.avatar||'👤'} ${currentUser.name} (로그아웃)`;
+      loginBtn.onclick=logout;
+    } else {
+      loginBtn.textContent='로그인';
+      loginBtn.onclick=openLoginSheet;
+    }
+  }
+  /* 구 헤더 login-area (있을 경우) */
+  const area=$('login-area');
+  if(area){
+    if(currentUser){
+      area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="logout()">
+        <div class="user-avatar">${currentUser.avatar||'👤'}</div>
+        <span class="user-name">${esc(currentUser.name)}</span>
+      </div>`;
+    } else {
+      area.innerHTML=`<div style='font-size:12px;color:var(--t3);padding:8px 0;'>게스트 모드로 이용 중</div>`;
+    }
   }
 }
 
-/* ── 로그인 모달 닫기 ── */
-if($('login-modal-close'))$('login-modal-close').addEventListener('click',()=>$('login-modal')?.classList.remove('on'));
-if($('login-modal'))$('login-modal').addEventListener('click',e=>{if(e.target===$('login-modal'))$('login-modal').classList.remove('on');});
+/* ── 로그인 모달 닫기 (바텀시트로 교체 - 배경 클릭은 HTML onclick 처리) ── */
 
 /* ── 장르 버튼 (select hidden 연동) ── */
 /* genre-cat hidden select에 옵션 미리 세팅 */
@@ -3052,7 +3092,7 @@ function updateBpmDisplay(){
 }
 bpmSlider.addEventListener('input',function(){
   selectedBpm=parseInt(this.value);
-  if(!bpmAuto)$('bpm-val').textContent=selectedBpm;
+  if(!bpmAuto&&$('bpm-val'))$('bpm-val').textContent=selectedBpm;
 });
 bpmAutoBtn.addEventListener('click',function(){
   bpmAuto=!bpmAuto;
@@ -3164,25 +3204,21 @@ $('yt-gen-btn').addEventListener('click',()=>{
 
 /* ── /api/config 에서 API 키 로드 ── */
 async function fetchApiKey(){
-  const statusEl=$('key-status');
-  const spinEl=$('key-spin');
-  const txtEl=$('key-status-txt');
   try{
     const res=await fetch('/api/config');
+    if(!res.ok) throw new Error('config '+res.status);
     const data=await res.json();
-    if(!res.ok||!data.apiKey)throw new Error(data.error||'키 없음');
-    kieApiKey=data.apiKey;
-    spinEl.style.display='none';
-    statusEl.className='key-status ok';
-    txtEl.textContent='✓ API 연결됨';
+    if(!data.apiKey&&!data.kieApiKey) throw new Error('키 없음');
+    kieApiKey=data.apiKey||data.kieApiKey||'';
+    console.log('[API] 키 로드 성공');
   }catch(e){
-    spinEl.style.display='none';
-    statusEl.className='key-status err';
-    txtEl.textContent='✕ API 키 오류';
-    /* 개발 환경 fallback: localStorage에 직접 저장된 키 사용 */
+    /* 조용히 실패 — DOM 참조 없음 */
+    console.warn('[API] config 로드 실패:', e.message);
     const localKey=localStorage.getItem('kms_dev_key')||'';
-    if(localKey){kieApiKey=localKey;statusEl.className='key-status ok';txtEl.textContent='✓ Dev 키 사용 중';}
-    else toast('⚠️ API 키 로드 실패. Vercel 환경변수를 확인하세요.','err',5000);
+    if(localKey){
+      kieApiKey=localKey;
+      console.log('[API] Dev 키 fallback 사용 중');
+    }
   }
 }
 fetchApiKey();
@@ -5873,18 +5909,21 @@ const _GENRE_KEYS={
   ost:['ost','cinematic','epic','film','오에스티','영화'],
 };
 function getCommTracks(){
-  let all=historyData.map((h,i)=>({
-    _hIdx:i, title:h.title||'무제',
-    tags:(h.tags||'').split(',')[0]?.trim()||'',
-    allTags:(h.tags||'').toLowerCase(),
-    img:h.image_url||'', dur:'—',
-    audioUrl:h.audio_url||'', videoUrl:h.video_url||'',
-    lyrics:h.lyrics||'', description:h.description||'',
-    likes:h._commLikes||0, liked:h._commLiked||false,
-    disliked:h._commDisliked||false,
-    isNew:(Date.now()-(h.created||0))<3600000*24,
-    plays:h._commPlays||0,
-  }));
+  /* audio_url 있는 트랙만, video 전용 제외 */
+  let all=historyData
+    .map((h,i)=>({
+      _hIdx:i, title:h.title||'무제',
+      tags:(h.tags||'').split(',')[0]?.trim()||'',
+      allTags:(h.tags||'').toLowerCase(),
+      img:h.image_url||'', dur:'—',
+      audioUrl:h.audio_url||'', videoUrl:h.video_url||'',
+      lyrics:h.lyrics||'', description:h.description||'',
+      likes:h._commLikes||0, liked:h._commLiked||false,
+      disliked:h._commDisliked||false,
+      isNew:(Date.now()-(h.created||0))<3600000*24,
+      plays:h._commPlays||0,
+    }))
+    .filter(t=>t.audioUrl); /* audio URL 없으면 커뮤니티 노출 제외 */
   if(_commActiveGenre&&_commActiveGenre!=='all'){
     const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
     all=all.filter(t=>kws.some(k=>t.allTags.includes(k)||t.title.toLowerCase().includes(k)));
@@ -5974,10 +6013,10 @@ function renderCommunity(){
         </div>
       </div>
       <div class="cs-btns">
-        <button class="cs-like-btn${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLike(${i+1})" title="좋아요">
+        <button class="cs-like-btn${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeByHIdx(${t._hIdx})" title="좋아요">
           ${t.liked?'❤️':'🤍'} ${t.likes>0?t.likes:''}
         </button>
-        <button class="cs-play-btn" onclick="event.stopPropagation();commPlayFull(${i+1})" title="재생">▶</button>
+        <button class="cs-play-btn" onclick="event.stopPropagation();commPlayByHIdx(${t._hIdx})" title="재생">▶</button>
       </div>
     </div>
   `).join('')+'</div>'||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">이 장르의 트랙이 없어요</div>';
@@ -6085,17 +6124,24 @@ function setupHeroAudio(hero){
 /* 커뮤니티 재생 → 히스토리에서 찾아 전체화면 플레이어 */
 
 function commShowMore(idx){
-  /* 간단한 액션시트 */
-  const tracks=getCommTracks();
-  const t=tracks[idx];
+  /* idx = rest 기준 인덱스 (0-based) → sorted 기준 idx+1 */
+  const tracks=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
+  const t=tracks[idx+1];
   if(!t)return;
   const choice=confirm(`"${t.title}"\n\n재생하기를 누르면 전체 플레이어에서 재생됩니다.`);
-  if(choice)commPlayFull(idx);
+  if(choice)t&&commPlayByHIdx(t._hIdx);
 }
-function commPlayFull(i){
-  const tracks=getCommTracks().slice(1);
-  const t=tracks[i];if(!t)return;
-  /* 커뮤니티 오디오 먼저 정지 — 팝업 방지 */
+/* hIdx(historyData 인덱스)로 직접 커뮤니티 트랙 재생 */
+function commPlayByHIdx(hIdx){
+  const h=historyData[hIdx];
+  if(!h){console.warn('[commPlayByHIdx] invalid hIdx',hIdx);return;}
+  if(!h.audio_url){toast('오디오 URL이 없어요','err');return;}
+  _stopCommAudio();
+  showMiniPlayer(hIdx);
+}
+
+/* 커뮤니티 오디오(hero + list) 전부 정지 */
+function _stopCommAudio(){
   if(commHeroAudio&&!commHeroAudio.paused){
     commHeroAudio.pause();
     const pb=$('comm-hero-play-btn');if(pb){pb.textContent='▶';pb.classList.remove('playing');}
@@ -6103,20 +6149,20 @@ function commPlayFull(i){
   }
   if(commAudio&&!commAudio.paused){
     commAudio.pause();
-    if(commPlayingIdx>=0){const ob=document.getElementById(`comm-play-${commPlayingIdx}`);if(ob)ob.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
+    if(commPlayingIdx>=0){
+      document.getElementById('comm-play-'+commPlayingIdx)?.textContent && (document.getElementById('comm-play-'+commPlayingIdx).textContent='▶');
+      document.getElementById('comm-item-'+commPlayingIdx)?.classList.remove('playing');
+    }
     commPlayingIdx=-1;
   }
-  /* 히스토리에서 해당 트랙 매칭 */
-  const hIdx=historyData.findIndex(h=>h.audio_url===t.audioUrl||(t._hIdx!==undefined&&historyData[t._hIdx]?.audio_url===t.audioUrl));
-  if(hIdx>=0){
-    showMiniPlayer(hIdx);
-  }else if(t.audioUrl){
-    /* 히스토리에 없으면 임시 추가 후 열기 */
-    historyData.unshift({id:'comm_tmp_'+Date.now(),taskId:'',title:t.title||'커뮤니티 트랙',audio_url:t.audioUrl,video_url:'',image_url:t.img||'',tags:t.tags||'',lyrics:t.lyrics||'',created:Date.now(),type:'audio'});
-    historyData=historyData.slice(0,30);
-    saveHistory();updateHistBadge();
-    showMiniPlayer(0);
-  }
+}
+
+/* 하위호환: 정렬 인덱스 기반 호출 (히어로/더보기 등에서 사용) */
+function commPlayFull(i){
+  const allSorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
+  const t=allSorted[i];
+  if(!t||!t._hIdx===undefined){console.warn('[commPlayFull] 트랙 없음 idx=',i);return;}
+  commPlayByHIdx(t._hIdx);
 }
 
 function commPlay(i){
@@ -6215,8 +6261,16 @@ function commHeroDislike(){
 }
 
 /* 리스트 좋아요 */
+function commLikeByHIdx(hIdx){
+  const h=historyData[hIdx];if(!h)return;
+  /* 카드 DOM 인덱스 찾기 (rest 기준) */
+  const sorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
+  const i=sorted.findIndex(t=>t._hIdx===hIdx);
+  if(i<=0)return; /* i=0은 hero */
+  const restI=i-1;
 function commLike(i){
-  const tracks=getCommTracks().slice(1);
+  /* i = sorted 전체 배열 기준 (0=hero, 1~=rest) */
+  const tracks=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
   const t=tracks[i];if(!t)return;
   const h=historyData[t._hIdx];if(!h)return;
   h._commLiked=!h._commLiked;if(h._commLiked)h._commDisliked=false;
@@ -6268,6 +6322,9 @@ function commSaveEdit(pid,hIdx){
 }
 
 /* ── 설정 렌더 ── */
+/* 초기 로그인 UI 갱신 (페이지 로드시) */
+try{updateLoginUI();}catch(e){}
+
 function renderSettings(){
   const nameEl=$('settings-user-name');
   const subEl=$('settings-user-sub');
