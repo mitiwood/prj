@@ -2539,20 +2539,20 @@ body.mp-on .view{padding-bottom:118px;}
 </div>
 
 <nav id="bottom-nav">
-  <button class="bnav-item" data-view="community-view">
+  <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span class="bnav-label">커뮤니티</span>
   </button>
-  <button class="bnav-item on bnav-center" data-view="create-view">
+  <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')">
     <span class="bnav-icon-wrap" style="font-size:15px;font-weight:900;">✦</span>
     <span class="bnav-label" style="font-size:10px;font-weight:800;">만들기</span>
   </button>
-  <button class="bnav-item" data-view="history-view">
+  <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
     <span class="bnav-label">최근생성</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
   </button>
-  <button class="bnav-item" data-view="settings-view">
+  <button class="bnav-item" data-view="settings-view" onclick="switchTab('settings-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     <span class="bnav-label">설정</span>
   </button>
@@ -2974,6 +2974,25 @@ body.mp-on .view{padding-bottom:118px;}
 <script>
 'use strict';
 const KIE_BASE = 'https://api.kie.ai';
+
+/* ── 탭 전환 (전역 함수 — onclick에서 직접 호출) ── */
+function switchTab(viewId){
+  document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  const btn=document.querySelector('#bottom-nav .bnav-item[data-view="'+viewId+'"]');
+  if(btn)btn.classList.add('on');
+  const view=document.getElementById(viewId);
+  if(view)view.classList.add('on');
+  const _mpOn=document.body.classList.contains('mp-on');
+  document.body.className='';
+  if(_mpOn)document.body.classList.add('mp-on');
+  if(viewId==='history-view'||viewId==='community-view')document.body.classList.add('tab-library');
+  if(viewId==='settings-view')document.body.classList.add('tab-settings');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
+  if(viewId==='community-view')try{renderCommunity();}catch(e){console.error(e);}
+  if(viewId==='settings-view')try{renderSettings();}catch(e){console.error(e);}
+}
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
 const POLL_INTERVAL = 3000;
 const MAX_POLLS = 50;
@@ -3154,24 +3173,7 @@ document.querySelectorAll('.etag').forEach(tag=>{
 });
 
 /* ── 하단 탭바 ── */
-document.querySelectorAll('#bottom-nav .bnav-item').forEach(tab=>{
-  tab.addEventListener('click',function(){
-    document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-    this.classList.add('on');
-    const viewId=this.dataset.view;
-    const view=document.getElementById(viewId);
-    if(view)view.classList.add('on');
-    if(viewId==='history-view')renderHistoryView();
-    if(viewId==='community-view')renderCommunity();
-    if(viewId==='settings-view')renderSettings();
-    /* body 클래스로 배경 전환 */
-    document.body.className='';
-    if(viewId==='history-view'||viewId==='community-view')document.body.classList.add('tab-library');
-    if(viewId==='settings-view')document.body.classList.add('tab-settings');
-    window.scrollTo({top:0,behavior:'smooth'});
-  });
-});
+/* 탭 전환은 switchTab() 전역함수 사용 (각 버튼 onclick에 직접 연결) */
 
 /* ── BPM ── */
 const bpmSlider=$('bpm-slider');
