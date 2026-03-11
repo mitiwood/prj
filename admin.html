@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMS Admin — Kenny's Music Studio</title>
+<style>
+:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--card:#16161f;--card2:#1e1e2a;--border:rgba(255,255,255,.07);--acc:#a855f7;--acc2:#7c3aed;--t1:#f0f0f8;--t2:#b0b0c8;--t3:#666680;--red:#ff4560;--grn:#00dda0;--ylw:#ffd000;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--t1);font-family:'Pretendard',-apple-system,sans-serif;min-height:100vh;}
+.admin-layout{display:flex;min-height:100vh;}
+/* 사이드바 */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:0;flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo .logo-title{font-size:13px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sidebar-logo .logo-sub{font-size:10px;color:var(--t3);margin-top:2px;}
+.sidebar-nav{padding:12px 8px;flex:1;overflow-y:auto;}
+.snav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--t2);transition:all .15s;margin-bottom:2px;}
+.snav-item:hover{background:rgba(168,85,247,.1);color:var(--t1);}
+.snav-item.on{background:rgba(168,85,247,.18);color:var(--acc);font-weight:700;}
+.snav-icon{font-size:16px;flex-shrink:0;}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--t3);}
+/* 메인 */
+.admin-main{flex:1;overflow-y:auto;}
+.admin-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.admin-header h1{font-size:16px;font-weight:700;}
+.admin-header .header-right{display:flex;align-items:center;gap:12px;}
+.admin-badge{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);color:var(--acc);font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;}
+.admin-content{padding:24px;}
+/* 섹션 */
+.admin-section{display:none;}
+.admin-section.on{display:block;}
+/* 통계 카드 */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
+.stat-card .stat-icon{font-size:24px;margin-bottom:8px;}
+.stat-card .stat-val{font-size:24px;font-weight:800;color:var(--t1);}
+.stat-card .stat-label{font-size:11px;color:var(--t3);margin-top:2px;}
+.stat-card .stat-change{font-size:10px;margin-top:4px;}
+.stat-change.up{color:var(--grn);}
+.stat-change.dn{color:var(--red);}
+/* 테이블 */
+.admin-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.admin-table-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.admin-table-header h3{font-size:13px;font-weight:700;}
+.table-search{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--t1);font-size:12px;font-family:inherit;width:180px;}
+.table-search:focus{outline:none;border-color:var(--acc);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:rgba(255,255,255,.03);}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);border-bottom:1px solid var(--border);}
+td{padding:10px 16px;font-size:12px;color:var(--t2);border-bottom:1px solid rgba(255,255,255,.04);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.td-title{font-weight:600;color:var(--t1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.td-thumb img{width:100%;height:100%;border-radius:8px;object-fit:cover;}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.badge-grn{background:rgba(0,221,160,.12);color:var(--grn);border:1px solid rgba(0,221,160,.2);}
+.badge-ylw{background:rgba(255,208,0,.12);color:var(--ylw);border:1px solid rgba(255,208,0,.2);}
+.badge-red{background:rgba(255,69,96,.12);color:var(--red);border:1px solid rgba(255,69,96,.2);}
+.badge-acc{background:rgba(168,85,247,.12);color:var(--acc);border:1px solid rgba(168,85,247,.2);}
+/* 버튼 */
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--bg3);color:var(--t2);transition:all .15s;}
+.btn:hover{background:rgba(168,85,247,.15);color:var(--acc);border-color:rgba(168,85,247,.3);}
+.btn-red{background:rgba(255,69,96,.1);color:var(--red);border-color:rgba(255,69,96,.3);}
+.btn-red:hover{background:rgba(255,69,96,.2);}
+.btn-acc{background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;border:none;}
+.btn-acc:hover{opacity:.9;}
+/* 액션 행 */
+.table-action-row{display:flex;gap:6px;}
+/* 섹션 헤더 */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.sec-hdr h2{font-size:15px;font-weight:800;}
+/* 토글 */
+.toggle{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;}
+.toggle.on{background:var(--acc);}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .2s;}
+.toggle.on::after{transform:translateX(16px);}
+/* 설정 폼 */
+.settings-group{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.settings-row{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.04);}
+.settings-row:last-child{border-bottom:none;}
+.settings-row label{font-size:13px;font-weight:600;color:var(--t1);}
+.settings-row .desc{font-size:11px;color:var(--t3);margin-top:2px;}
+.settings-input{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t1);font-size:12px;font-family:inherit;width:200px;}
+.settings-input:focus{outline:none;border-color:var(--acc);}
+/* 로그인 게이트 */
+#admin-gate{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;}
+.gate-box{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:32px;width:320px;text-align:center;}
+.gate-title{font-size:18px;font-weight:800;margin-bottom:6px;}
+.gate-sub{font-size:12px;color:var(--t3);margin-bottom:24px;}
+.gate-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:14px;font-family:inherit;margin-bottom:10px;}
+.gate-input:focus{outline:none;border-color:var(--acc);}
+.gate-btn{width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.gate-err{font-size:12px;color:var(--red);margin-top:8px;display:none;}
+/* 차트 */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
+.chart-card h4{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px;}
+.bar-chart{display:flex;flex-direction:column;gap:8px;}
+.bar-item{display:flex;align-items:center;gap:10px;}
+.bar-label{font-size:11px;color:var(--t3);width:60px;text-align:right;flex-shrink:0;}
+.bar-track{flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .5s;}
+.bar-val{font-size:11px;color:var(--t2);width:30px;flex-shrink:0;}
+/* 토스트 */
+#admin-toast{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:10px 16px;font-size:12px;font-weight:600;color:var(--t1);z-index:9999;transform:translateY(60px);opacity:0;transition:all .25s;pointer-events:none;}
+#admin-toast.on{transform:translateY(0);opacity:1;}
+/* 반응형 */
+@media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- 관리자 인증 게이트 -->
+<div id="admin-gate">
+  <div class="gate-box">
+    <div style="font-size:32px;margin-bottom:12px;">🎵</div>
+    <div class="gate-title">KMS Admin</div>
+    <div class="gate-sub">Kenny's Music Studio 관리자 페이지</div>
+    <input class="gate-input" id="gate-pw" type="password" placeholder="관리자 비밀번호" autocomplete="off">
+    <button class="gate-btn" onclick="gateLogin()">로그인</button>
+    <div class="gate-err" id="gate-err">비밀번호가 올바르지 않습니다</div>
+  </div>
+</div>
+
+<div class="admin-layout" id="admin-app" style="display:none;">
+  <!-- 사이드바 -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-title">Kenny's Music Studio</div>
+      <div class="logo-sub">Admin Dashboard v3.0</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="snav-item on" data-sec="dashboard" onclick="switchSec('dashboard')"><span class="snav-icon">📊</span>대시보드</div>
+      <div class="snav-item" data-sec="tracks" onclick="switchSec('tracks')"><span class="snav-icon">🎵</span>음악 관리</div>
+      <div class="snav-item" data-sec="community" onclick="switchSec('community')"><span class="snav-icon">🌐</span>커뮤니티</div>
+      <div class="snav-item" data-sec="users" onclick="switchSec('users')"><span class="snav-icon">👥</span>사용자</div>
+      <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
+      <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
+    </div>
+    <div class="sidebar-footer">
+      <div>마지막 접속: <span id="last-login-time"></span></div>
+      <div style="margin-top:4px;cursor:pointer;color:var(--red);" onclick="adminLogout()">로그아웃</div>
+    </div>
+  </div>
+
+  <!-- 메인 -->
+  <div class="admin-main">
+    <div class="admin-header">
+      <h1 id="sec-title">대시보드</h1>
+      <div class="header-right">
+        <span class="admin-badge">Admin</span>
+        <button class="btn" onclick="loadData()">🔄 새로고침</button>
+      </div>
+    </div>
+    <div class="admin-content">
+
+      <!-- 대시보드 -->
+      <div class="admin-section on" id="sec-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">전체 곡 수</div></div>
+          <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="stat-likes">0</div><div class="stat-label">총 좋아요</div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">소셜 로그인 사용자</div></div>
+          <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="stat-mv">0</div><div class="stat-label">뮤직비디오</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="stat-today">0</div><div class="stat-label">오늘 생성</div></div>
+          <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="stat-comm">0</div><div class="stat-label">커뮤니티 공개</div></div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-card">
+            <h4>모드별 생성 비율</h4>
+            <div class="bar-chart" id="mode-chart"></div>
+          </div>
+          <div class="chart-card">
+            <h4>Top 5 인기 트랙</h4>
+            <div class="bar-chart" id="top-chart"></div>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>최근 생성 트랙</h3>
+          </div>
+          <table><thead><tr><th>커버</th><th>제목</th><th>모드</th><th>생성일</th><th>좋아요</th><th>공개</th><th>관리</th></tr></thead>
+          <tbody id="recent-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 음악 관리 -->
+      <div class="admin-section" id="sec-tracks">
+        <div class="sec-hdr">
+          <h2>음악 관리</h2>
+          <div style="display:flex;gap:8px;">
+            <input class="table-search" id="track-search" placeholder="제목 검색..." oninput="filterTracks()">
+            <select class="table-search" id="track-mode-filter" onchange="filterTracks()" style="width:110px;">
+              <option value="">전체 모드</option>
+              <option value="custom">커스텀</option>
+              <option value="simple">심플</option>
+              <option value="youtube">YouTube</option>
+              <option value="mv">MV</option>
+            </select>
+            <button class="btn btn-red" onclick="deleteSelected()">🗑 선택 삭제</button>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>모드</th><th>가사</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
+          <tbody id="tracks-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 커뮤니티 -->
+      <div class="admin-section" id="sec-community">
+        <div class="sec-hdr"><h2>커뮤니티 관리</h2></div>
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>커뮤니티 곡 목록 (소셜 로그인 사용자 곡)</h3>
+            <button class="btn btn-acc" onclick="renderCommunityAdmin()">🔄 새로고침</button>
+          </div>
+          <table><thead><tr><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>생성일</th><th>공개 여부</th><th>관리</th></tr></thead>
+          <tbody id="comm-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 사용자 -->
+      <div class="admin-section" id="sec-users">
+        <div class="sec-hdr"><h2>사용자 관리</h2></div>
+        <div class="admin-table-wrap">
+          <table><thead><tr><th>프로바이더</th><th>이름</th><th>생성 곡 수</th><th>마지막 로그인</th><th>관리</th></tr></thead>
+          <tbody id="users-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 신고 -->
+      <div class="admin-section" id="sec-reports">
+        <div class="sec-hdr"><h2>신고 관리</h2></div>
+        <div id="reports-empty" style="text-align:center;padding:48px;color:var(--t3);">
+          <div style="font-size:32px;margin-bottom:12px;">✅</div>
+          <div style="font-weight:700;">처리할 신고가 없습니다</div>
+        </div>
+        <div class="admin-table-wrap" id="reports-table" style="display:none;">
+          <table><thead><tr><th>트랙</th><th>신고 사유</th><th>신고일</th><th>처리</th></tr></thead>
+          <tbody id="reports-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 설정 -->
+      <div class="admin-section" id="sec-settings">
+        <div class="sec-hdr"><h2>앱 설정</h2></div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div><label>앱 버전</label><div class="desc">현재 배포 버전</div></div>
+            <input class="settings-input" id="set-version" value="v3.0">
+          </div>
+          <div class="settings-row">
+            <div><label>커뮤니티 공개</label><div class="desc">소셜 로그인 사용자 곡 커뮤니티 노출</div></div>
+            <div class="toggle on" id="tog-community" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="settings-row">
+            <div><label>비로그인 커뮤니티 열람</label><div class="desc">비로그인 사용자도 커뮤니티 볼 수 있음</div></div>
+            <div class="toggle on" id="tog-guest-view" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="settings-row">
+            <div><label>멀티 생성 허용</label><div class="desc">동시에 여러 곡 생성 가능</div></div>
+            <div class="toggle on" id="tog-multi" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div><label>관리자 비밀번호 변경</label><div class="desc">새 비밀번호 입력 후 저장</div></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="settings-input" id="set-pw" type="password" placeholder="새 비밀번호">
+              <button class="btn btn-acc" onclick="savePw()">저장</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-red" onclick="clearAllData()">⚠️ 전체 데이터 초기화</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+
+<script>
+// ── 인증 ──
+const ADMIN_PW_KEY='kms_admin_pw';
+const DEFAULT_PW='kenny2024!';
+
+function gateLogin(){
+  const pw=document.getElementById('gate-pw').value;
+  const stored=localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+  if(pw===stored){
+    localStorage.setItem('kms_admin_auth','1');
+    document.getElementById('admin-gate').style.display='none';
+    document.getElementById('admin-app').style.display='flex';
+    document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR');
+    loadData();
+  } else {
+    document.getElementById('gate-err').style.display='block';
+    setTimeout(()=>document.getElementById('gate-err').style.display='none',3000);
+  }
+}
+function adminLogout(){
+  localStorage.removeItem('kms_admin_auth');
+  location.reload();
+}
+document.getElementById('gate-pw').addEventListener('keydown',e=>{if(e.key==='Enter')gateLogin();});
+if(localStorage.getItem('kms_admin_auth')==='1'){
+  document.getElementById('admin-gate').style.display='none';
+  document.getElementById('admin-app').style.display='flex';
+  document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR');
+  loadData();
+}
+
+// ── 섹션 전환 ──
+function switchSec(id){
+  document.querySelectorAll('.snav-item').forEach(n=>{n.classList.remove('on');if(n.dataset.sec===id)n.classList.add('on');});
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
+  const sec=document.getElementById('sec-'+id);
+  if(sec)sec.classList.add('on');
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',reports:'신고 관리',settings:'설정'};
+  document.getElementById('sec-title').textContent=titles[id]||id;
+  if(id==='tracks')renderTracksAdmin();
+  if(id==='community')renderCommunityAdmin();
+  if(id==='users')renderUsersAdmin();
+}
+
+// ── 데이터 로드 (localStorage에서) ──
+function getHistory(){
+  try{return JSON.parse(localStorage.getItem('kms_history')||'[]');}catch{return [];}
+}
+function getUser(){
+  try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch{return null;}
+}
+
+function loadData(){
+  const h=getHistory();
+  const today=new Date();today.setHours(0,0,0,0);
+  const totalLikes=h.reduce((a,t)=>a+(t._commLikes||0),0);
+  const mvCount=h.filter(t=>t.video_url).length;
+  const todayCount=h.filter(t=>t.created&&new Date(t.created)>=today).length;
+  const commCount=h.filter(t=>t.audio_url&&t._owner).length;
+  const users=[...new Set(h.map(t=>t._owner?.name).filter(Boolean))];
+
+  document.getElementById('stat-total').textContent=h.length;
+  document.getElementById('stat-likes').textContent=totalLikes;
+  document.getElementById('stat-users').textContent=users.length;
+  document.getElementById('stat-mv').textContent=mvCount;
+  document.getElementById('stat-today').textContent=todayCount;
+  document.getElementById('stat-comm').textContent=commCount;
+
+  // 모드별 차트
+  const modeCounts={custom:0,simple:0,youtube:0,mv:0};
+  h.forEach(t=>{const m=t.genMode||'custom';if(modeCounts[m]!==undefined)modeCounts[m]++;});
+  const total=h.length||1;
+  document.getElementById('mode-chart').innerHTML=Object.entries(modeCounts).map(([m,n])=>
+    `<div class="bar-item"><div class="bar-label">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[m]}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/total*100)}%"></div></div><div class="bar-val">${n}</div></div>`
+  ).join('');
+
+  // Top 5
+  const top5=[...h].sort((a,b)=>(b._commLikes||0)-(a._commLikes||0)).slice(0,5);
+  const maxL=top5[0]?._commLikes||1;
+  document.getElementById('top-chart').innerHTML=top5.map(t=>
+    `<div class="bar-item"><div class="bar-label" style="font-size:10px;">${(t.title||'무제').slice(0,6)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round((t._commLikes||0)/maxL*100)}%"></div></div><div class="bar-val">${t._commLikes||0}</div></div>`
+  ).join('');
+
+  // 최근 트랙 테이블
+  const tbody=document.getElementById('recent-tbody');
+  tbody.innerHTML=h.slice(0,10).map((t,i)=>`
+    <tr>
+      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
+      <td class="td-title">${esc(t.title||'무제')}</td>
+      <td><span class="badge badge-acc">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[t.genMode||'custom']||'?'}</span></td>
+      <td>${t.created?new Date(t.created).toLocaleDateString('ko-KR'):'—'}</td>
+      <td>${t._commLikes||0}</td>
+      <td><span class="badge ${t._owner?'badge-grn':'badge-ylw'}">${t._owner?'공개':'비공개'}</span></td>
+      <td><div class="table-action-row">
+        ${t.audio_url?`<button class="btn" onclick="window.open('${esc(t.audio_url)}')">▶</button>`:''}
+        <button class="btn btn-red" onclick="deleteTrack(${i})">🗑</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ── 트랙 관리 ──
+let _filteredTracks=[];
+function renderTracksAdmin(){
+  const h=getHistory();
+  _filteredTracks=h;
+  renderTracksTable(h);
+}
+function renderTracksTable(list){
+  const tbody=document.getElementById('tracks-tbody');
+  tbody.innerHTML=list.map((t,i)=>`
+    <tr>
+      <td><input type="checkbox" data-idx="${i}"></td>
+      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
+      <td class="td-title">${esc(t.title||'무제')}</td>
+      <td><span class="badge badge-acc">${t.genMode||'custom'}</span></td>
+      <td><span class="badge ${t.lyrics?'badge-grn':'badge-red'}">${t.lyrics?'있음':'없음'}</span></td>
+      <td><span class="badge ${t.audio_url?'badge-grn':'badge-red'}">${t.audio_url?'있음':'없음'}</span></td>
+      <td>${t.created?new Date(t.created).toLocaleString('ko-KR'):'—'}</td>
+      <td><div class="table-action-row">
+        ${t.audio_url?`<button class="btn" onclick="window.open('${esc(t.audio_url)}')">▶</button>`:''}
+        <button class="btn btn-red" onclick="deleteTrackByIdx(${i})">🗑</button>
+      </div></td>
+    </tr>`).join('');
+}
+function filterTracks(){
+  const q=(document.getElementById('track-search')?.value||'').toLowerCase();
+  const m=document.getElementById('track-mode-filter')?.value||'';
+  const h=getHistory();
+  const filtered=h.filter(t=>(t.title||'').toLowerCase().includes(q)&&(!m||t.genMode===m));
+  _filteredTracks=filtered;
+  renderTracksTable(filtered);
+}
+function toggleAll(el){document.querySelectorAll('#tracks-tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);}
+function deleteSelected(){
+  const selected=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
+  if(!selected.length){adminToast('선택된 트랙이 없습니다');return;}
+  if(!confirm(selected.length+'곡을 삭제할까요?'))return;
+  let h=getHistory();
+  const idxSet=new Set(selected);
+  h=h.filter((_,i)=>!idxSet.has(i));
+  localStorage.setItem('kms_history',JSON.stringify(h));
+  adminToast('✅ '+selected.length+'곡 삭제됨');
+  renderTracksAdmin();loadData();
+}
+function deleteTrackByIdx(i){
+  if(!confirm('이 트랙을 삭제할까요?'))return;
+  let h=getHistory();h.splice(i,1);
+  localStorage.setItem('kms_history',JSON.stringify(h));
+  adminToast('✅ 삭제됨');renderTracksAdmin();loadData();
+}
+function deleteTrack(i){deleteTrackByIdx(i);loadData();}
+
+// ── 커뮤니티 관리 ──
+function renderCommunityAdmin(){
+  const h=getHistory();
+  const comm=h.filter(t=>t.audio_url&&t._owner);
+  const tbody=document.getElementById('comm-tbody');
+  if(!comm.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">커뮤니티에 공개된 음악이 없습니다</td></tr>`;return;}
+  tbody.innerHTML=comm.map((t,i)=>`
+    <tr>
+      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
+      <td class="td-title">${esc(t.title||'무제')}</td>
+      <td>
+        ${t._owner?.avatar?`<img src="${esc(t._owner.avatar)}" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display='none'">`:''}
+        ${esc(t._owner?.name||'익명')}
+        <span class="badge badge-acc" style="margin-left:4px;">${t._owner?.provider||'?'}</span>
+      </td>
+      <td>${t._commLikes||0}</td>
+      <td>${t.created?new Date(t.created).toLocaleDateString('ko-KR'):'—'}</td>
+      <td><span class="badge badge-grn">공개</span></td>
+      <td><div class="table-action-row">
+        <button class="btn btn-red" onclick="hideFromComm(${h.indexOf(t)})">숨기기</button>
+      </div></td>
+    </tr>`).join('');
+}
+function hideFromComm(i){
+  let h=getHistory();
+  if(h[i])h[i]._owner=null;
+  localStorage.setItem('kms_history',JSON.stringify(h));
+  adminToast('✅ 커뮤니티에서 숨겼습니다');
+  renderCommunityAdmin();
+}
+
+// ── 사용자 관리 ──
+function renderUsersAdmin(){
+  const h=getHistory();
+  const userMap={};
+  h.forEach(t=>{
+    if(t._owner?.name){
+      const key=t._owner.name;
+      if(!userMap[key])userMap[key]={...t._owner,count:0,last:t.created||0};
+      userMap[key].count++;
+      if((t.created||0)>userMap[key].last)userMap[key].last=t.created;
+    }
+  });
+  const users=Object.values(userMap);
+  const tbody=document.getElementById('users-tbody');
+  if(!users.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">소셜 로그인 사용자가 없습니다</td></tr>`;return;}
+  tbody.innerHTML=users.map(u=>`
+    <tr>
+      <td><span class="badge badge-acc">${u.provider||'?'}</span></td>
+      <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">`:''}${esc(u.name)}</td>
+      <td>${u.count}곡</td>
+      <td>${u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—'}</td>
+      <td><button class="btn btn-red" onclick="banUser('${esc(u.name)}')">🚫 차단</button></td>
+    </tr>`).join('');
+}
+function banUser(name){
+  if(!confirm(name+' 사용자를 차단할까요? (해당 사용자의 곡이 커뮤니티에서 숨겨집니다)'))return;
+  let h=getHistory();
+  h=h.map(t=>{if(t._owner?.name===name)t._owner=null;return t;});
+  localStorage.setItem('kms_history',JSON.stringify(h));
+  adminToast('✅ '+name+' 차단됨');renderUsersAdmin();loadData();
+}
+
+// ── 설정 저장 ──
+function savePw(){
+  const pw=document.getElementById('set-pw')?.value;
+  if(!pw||pw.length<6){adminToast('⚠️ 비밀번호는 6자 이상');return;}
+  localStorage.setItem(ADMIN_PW_KEY,pw);
+  document.getElementById('set-pw').value='';
+  adminToast('✅ 비밀번호 변경됨');
+}
+function clearAllData(){
+  if(!confirm('⚠️ 전체 음악 데이터를 초기화할까요? 이 작업은 되돌릴 수 없습니다.'))return;
+  if(!confirm('정말로 삭제합니까? 모든 데이터가 사라집니다.'))return;
+  localStorage.removeItem('kms_history');
+  adminToast('✅ 초기화 완료');loadData();
+}
+
+// ── 유틸 ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let _toastTimer;
+function adminToast(msg){
+  const t=document.getElementById('admin-toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('on'),3000);
+}
+</script>
+</body>
+</html>
