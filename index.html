@@ -2948,7 +2948,7 @@ body.mp-on .view{padding-bottom:118px;}
 <div id="toast"></div>
 <!-- ── 로그인 모달 ── -->
 <!-- ── 로그인 바텀시트 ── -->
-<div id="login-sheet" style="position:fixed;inset:0;z-index:800;pointer-events:none;opacity:0;transition:opacity .25s;">
+<div id="login-sheet" style="position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .25s;">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);" onclick="closeLoginSheet()"></div>
   <div id="login-sheet-panel" style="
     position:absolute;bottom:0;left:50%;
@@ -3705,7 +3705,14 @@ async function generateMV(){
         prompt:prompt,
         aspect_ratio:mvSelectedRatio,
         mode:mvSelectedMode,
-        ...(mvSelectedDuration&&mvSelectedDuration!=='custom'?{duration:String(mvSelectedDuration)}:mvSelectedDuration==='custom'&&$('mv-dur-custom')?.value?{duration:String(Math.max(3,Math.min(60,parseInt($('mv-dur-custom').value)||5)))}:{})
+        duration: (()=>{
+          const _allowed=['5','10'];
+          if(mvSelectedDuration==='custom'){
+            const v=parseInt($('mv-dur-custom')?.value||'5');
+            return v<=7?'5':'10';
+          }
+          return _allowed.includes(String(mvSelectedDuration))?String(mvSelectedDuration):'5';
+        })()
       }
     });
 
@@ -4598,13 +4605,25 @@ function renderTracks(tracks,prompt,tags,mode){
     return;
   }
 
-  /* 섹션 보이기 + 기존 카드 제거 */
+  /* 섹션 보이기 — 기존 카드 유지, 새 배치는 맨 위에 prepend */
   section.style.display='block';
-  container.innerHTML='';
   /* 트랙 데이터 전역 Map에 저장 */
   tracks.forEach(t=>{if(t.id)trackDataMap.set(t.id,t);});
 
-  /* 다른 모드 섹션은 내용이 없으면 숨기지 않음 (누적 표시) */
+  /* 배치 구분 헤더 */
+  const batchId='batch-'+Date.now();
+  const batchWrap=document.createElement('div');
+  batchWrap.className='result-batch';
+  batchWrap.dataset.batchId=batchId;
+  batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:10px;margin-bottom:10px;';
+  const batchHdr=document.createElement('div');
+  batchHdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
+  batchHdr.innerHTML=`<span style="font-size:10px;color:var(--acc3);font-weight:700;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey} · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span><button onclick="this.closest('.result-batch').remove()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;" title="이 배치 닫기">✕</button>`;
+  batchWrap.appendChild(batchHdr);
+  /* 맨 앞에 삽입 */
+  if(container.firstChild) container.insertBefore(batchWrap, container.firstChild);
+  else container.appendChild(batchWrap);
+
   tracks.forEach((track,i)=>{
     const audioUrl=track.audioUrl||track.audio_url||'';
     const imageUrl=track.imageUrl||track.image_url||'';
@@ -4682,7 +4701,7 @@ function renderTracks(tracks,prompt,tags,mode){
         </div>
         <div id="mvpanel-slot-${i}"></div>
       </div>`;
-    container.appendChild(card);
+    batchWrap.appendChild(card);
   });
 
   /* 심플 모드: 가사 탭 기본 활성화 */
