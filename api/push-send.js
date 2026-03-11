@@ -29,9 +29,20 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'VAPID keys not configured' });
   }
 
+  /* VAPID_PUBLIC_KEY가 SPKI(91바이트) 포맷이면 raw(65바이트)로 변환 */
+  let vapidPub = vapidPublic;
+  try {
+    const pad = '='.repeat((4 - vapidPub.length % 4) % 4);
+    const raw = Buffer.from(vapidPub.replace(/-/g,'+').replace(/_/g,'/')+pad, 'base64');
+    if(raw.length === 91) {
+      vapidPub = raw.slice(26).toString('base64')
+        .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+    }
+  } catch(e) { console.warn('[push-send] VAPID key conversion:', e.message); }
+
   webpush.setVapidDetails(
     'mailto:admin@ai-music-studio.app',
-    vapidPublic,
+    vapidPub,
     vapidPrivate
   );
 

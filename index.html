@@ -3580,7 +3580,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     btn.disabled=true;sp.style.display='inline-block';txt.textContent='AI 생성 중...';
     try{
       const base='감성적인 한국 팝송, 따뜻하고 서정적인';
-      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base,callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'auto-lyrics'});
+      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base}); trackUsage('lyrics',{mode:'auto-lyrics'});
       const ltid=ld?.data?.taskId||ld?.taskId;
       if(ltid){
         for(let i=0;i<30;i++){
@@ -3679,6 +3679,21 @@ function _saveLoginUser(user){
       id: p.get('id')||'',
       at: Date.now(),
     };
+    /* 이전 소셜 로그인 잔여 데이터 클린 처리 */
+    const _prevUser = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
+    if(_prevUser && _prevUser.provider && _prevUser.provider !== user.provider){
+      /* 다른 소셜 계정으로 전환 — 인증 관련 데이터만 초기화 (히스토리는 유지) */
+      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement'];
+      const _saved = {};
+      _keepKeys.forEach(k=>{ const v=localStorage.getItem(k); if(v) _saved[k]=v; });
+      /* 쿠키 초기화 (OAuth 세션) */
+      document.cookie.split(';').forEach(c=>{
+        document.cookie=c.replace(/^ +/,'').replace(/=.*/,'=;expires='+new Date(0).toUTCString()+';path=/');
+      });
+      localStorage.clear(); sessionStorage.clear();
+      _keepKeys.forEach(k=>{ if(_saved[k]) localStorage.setItem(k, _saved[k]); });
+    }
+
     currentUser=user;
     localStorage.setItem('kms_user',JSON.stringify(user));
     updateLoginUI();
@@ -4338,11 +4353,11 @@ $('lyrics-btn').addEventListener('click',async()=>{
   toast('✍️ 가사 생성 중... 0초','',2000);
 
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt,callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'yt-lyrics'});
+    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt}); trackUsage('lyrics',{mode:'yt-lyrics'});
     const taskId=data?.data?.taskId||data?.taskId;
     if(!taskId)throw new Error('가사 생성 taskId 없음');
-    for(let i=0;i<60;i++){
-      await sleep(3000);
+    for(let i=0;i<30;i++){
+      await sleep(i < 5 ? 1500 : 2500);
       const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
       const d=res?.data;if(!d)continue;
       const status=(d.status||'').toUpperCase();
@@ -4512,13 +4527,23 @@ async function generate(overrideParams){
   const model=$('model-sel').value;
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
-  /* 커스텀 모드: 가사 없으면 AI 자동 작사 후 생성 */
-  if(!lyricsText&&isCustom&&!overrideParams?._afterLyrics){
-    toast('✍️ 가사가 없어요. AI 자동 작사 후 음악을 생성할게요!','',2500);
-    await _autoLyricsAndGenerate();
-    return;
+  /* 가사 없으면 AI 자동 작사 후 생성 (커스텀/심플 공통) */
+  if(!lyricsText && !overrideParams?._afterLyrics){
+    if(isCustom){
+      /* 커스텀: 장르/무드 기반 가사 자동 생성 */
+      toast('✍️ 가사가 없어요. AI가 자동으로 작사 후 음악을 생성할게요!','',2500);
+      await _autoLyricsAndGenerate();
+      return;
+    } else if(isSimple){
+      /* 심플: 설명 없으면 기본값으로 생성 */
+      const simplePrompt = $('simple-prompt')?.value.trim();
+      if(!simplePrompt){
+        toast('✍️ 음악 설명을 입력하거나 AI 자동 생성을 이용하세요','err',2500);
+        return;
+      }
+    }
   }
-  if(!lyricsText&&!subGenre){toast(isSimple?'음악 설명을 입력해주세요':'가사 또는 장르를 선택해주세요','err');return;}
+  if(!lyricsText&&!subGenre&&!isSimple&&!isYT){toast('가사 또는 장르를 선택해주세요','err');return;}
 
   let styleStr=overrideParams?.styleStr||[subGenre,mood,songDesc||''].filter(Boolean).join(', ');
 
@@ -4583,8 +4608,10 @@ async function generate(overrideParams){
       /* 심플모드: lastLyricsInput 없음 → API 응답 lyric 사용
          커스텀모드: 입력 가사 우선, 없으면 API lyric */
       const apiLyric=t.lyric||t.lyrics||t.lrc||'';
-      const isStyleStr=apiLyric&&!apiLyric.includes('\n')&&apiLyric.length<120&&!/\[.+\]/.test(apiLyric);
-      const savedLyrics=lastLyricsInput||(isStyleStr?'':apiLyric)||$('prompt').value.trim()||'';
+      /* 가사 판별: [Verse] 등 섹션 태그 포함 or 줄바꿈 있으면 진짜 가사 */
+      const isRealLyric = apiLyric && (apiLyric.includes('\n') || /\[.+\]/.test(apiLyric) || apiLyric.length > 120);
+      /* 우선순위: 사용자 입력 > API 응답 가사 > 프롬프트 */
+      const savedLyrics = lastLyricsInput || (isRealLyric ? apiLyric : '') || $('prompt').value.trim() || '';
       historyData.unshift({
         id:t.id,taskId,title:t.title||'무제',
         audio_url:t.audioUrl||t.audio_url||'',
@@ -7869,15 +7896,27 @@ async function registerPushSW(){
     }
     /* 구독 정보 서버 + localStorage 저장 */
     localStorage.setItem(KMS_SUB_KEY, JSON.stringify(sub));
-    await fetch('/api/push-subscribe',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        subscription: sub,
-        userInfo: (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })()
-      })
-    });
-    console.log('[Push] subscribed:', sub.endpoint.slice(-20));
+
+    /* admin.html getPushSubscriptions()과 키 동기화 (kms_push_subs 배열) */
+    try{
+      const subsArr = JSON.parse(localStorage.getItem('kms_push_subs')||'[]');
+      const already = subsArr.find(s => s.endpoint === sub.endpoint);
+      if(!already){ subsArr.push(JSON.parse(JSON.stringify(sub))); }
+      localStorage.setItem('kms_push_subs', JSON.stringify(subsArr));
+    }catch(e2){ console.warn('[Push] subs array update failed:', e2.message); }
+
+    const _userInfo = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
+    try {
+      const r = await fetch('/api/push-subscribe',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ subscription: sub, userInfo: _userInfo })
+      });
+      const d = await r.json().catch(()=>({}));
+      console.log('[Push] subscribed:', sub.endpoint.slice(-20), d.message||'ok');
+    } catch(fetchErr) {
+      console.warn('[Push] subscribe fetch failed (local saved ok):', fetchErr.message);
+    }
   }catch(e){ console.warn('[Push] setup error:', e.message); }
 }
 
@@ -7889,6 +7928,18 @@ function urlBase64ToUint8Array(b64){
 
 /* 로그인 후 또는 페이지 로드 시 구독 시도 */
 window.addEventListener('load', ()=>{
+  /* 기존 kms_push_sub → kms_push_subs 마이그레이션 (1회) */
+  try{
+    const single = localStorage.getItem('kms_push_sub');
+    if(single && Notification.permission === 'granted'){
+      const sub = JSON.parse(single);
+      const arr = JSON.parse(localStorage.getItem('kms_push_subs')||'[]');
+      if(sub?.endpoint && !arr.find(s=>s.endpoint===sub.endpoint)){
+        arr.push(sub);
+        localStorage.setItem('kms_push_subs', JSON.stringify(arr));
+      }
+    }
+  }catch(e){}
   /* 알림 권한이 이미 있으면 바로 등록 */
   if(Notification.permission === 'granted') registerPushSW();
 });
@@ -7912,6 +7963,11 @@ async function togglePushSubscription(){
     /* 구독 취소 */
     await sub.unsubscribe();
     localStorage.removeItem('kms_push_sub');
+    /* kms_push_subs 배열에서도 제거 */
+    try{
+      const subsArr = JSON.parse(localStorage.getItem('kms_push_subs')||'[]');
+      localStorage.setItem('kms_push_subs', JSON.stringify(subsArr.filter(s => s.endpoint !== sub.endpoint)));
+    }catch(e2){}
     if(btn){btn.textContent='허용';btn.style.background='';}
     if(desc)desc.textContent='새 기능, 이벤트, 챌린지 소식을 알림으로 받아보세요';
     toast('알림 구독 취소됨','',2000);
