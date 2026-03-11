@@ -210,12 +210,34 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <!-- 커뮤니티 -->
       <div class="admin-section" id="sec-community">
         <div class="sec-hdr"><h2>커뮤니티 관리</h2></div>
+        
+        <!-- kie.ai 로그 불러오기 -->
+        <div class="settings-group" style="margin-bottom:16px;">
+          <div class="settings-row">
+            <div>
+              <label>kie.ai 생성 로그 연동</label>
+              <div class="desc">kie.ai API 키를 입력하면 생성된 음악 로그를 불러와 커뮤니티에 노출합니다</div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div><label>API Key</label></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="settings-input" id="kie-api-input" type="password" placeholder="kie.ai API Key" style="width:280px;">
+              <button class="btn btn-acc" onclick="fetchKieLogs()">🔍 로그 불러오기</button>
+            </div>
+          </div>
+          <div class="settings-row" id="kie-status-row" style="display:none;">
+            <div><label>로그 현황</label></div>
+            <div id="kie-status" style="font-size:12px;color:var(--t2);"></div>
+          </div>
+        </div>
+        
         <div class="admin-table-wrap">
           <div class="admin-table-header">
-            <h3>커뮤니티 곡 목록 (소셜 로그인 사용자 곡)</h3>
+            <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
             <button class="btn btn-acc" onclick="renderCommunityAdmin()">🔄 새로고침</button>
           </div>
-          <table><thead><tr><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>생성일</th><th>공개 여부</th><th>관리</th></tr></thead>
+          <table><thead><tr><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>출처</th><th>생성일</th><th>공개</th><th>관리</th></tr></thead>
           <tbody id="comm-tbody"></tbody></table>
         </div>
       </div>
@@ -436,6 +458,59 @@ function deleteTrackByIdx(i){
 function deleteTrack(i){deleteTrackByIdx(i);loadData();}
 
 // ── 커뮤니티 관리 ──
+async function fetchKieLogs(){
+  const apiKey=document.getElementById('kie-api-input')?.value.trim();
+  if(!apiKey){adminToast('⚠️ API Key를 입력하세요');return;}
+  const statusRow=document.getElementById('kie-status-row');
+  const status=document.getElementById('kie-status');
+  const KIE_BASE='https://api.kie.ai';
+  statusRow.style.display='flex';
+  status.textContent='로딩 중...';
+  try{
+    /* kie.ai /api/v1/generate/record-list (생성 로그) */
+    const res=await fetch(KIE_BASE+'/api/v1/generate/record-list?pageSize=50&pageNum=1',{
+      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'}
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const list=data?.data?.list||data?.list||[];
+    if(!list.length){status.textContent='로그 없음';adminToast('로그가 없습니다');return;}
+    /* localStorage의 historyData에 병합 */
+    let h=getHistory();
+    let added=0;
+    list.forEach(item=>{
+      const audioUrl=item.audioUrl||item.audio_url||'';
+      if(!audioUrl)return;
+      const existing=h.find(t=>t.id===item.taskId||t.taskId===item.taskId);
+      if(!existing){
+        h.unshift({
+          id:item.taskId||Date.now().toString(),
+          taskId:item.taskId||'',
+          title:item.title||'kie.ai 트랙',
+          audio_url:audioUrl,
+          video_url:item.videoUrl||'',
+          image_url:item.imageUrl||item.image_url||'',
+          tags:item.tags||item.style||'',
+          lyrics:item.lyric||'',
+          created:item.createdAt?new Date(item.createdAt).getTime():Date.now(),
+          type:'audio',
+          genMode:'custom',
+          _kieLog:true,
+          _owner:{name:'kie.ai 사용자',avatar:'',provider:'kie'},
+        });
+        added++;
+      }
+    });
+    localStorage.setItem('kms_history',JSON.stringify(h.slice(0,100)));
+    status.innerHTML=`<span style="color:var(--grn);">✅ ${list.length}개 로그 확인, ${added}개 신규 추가</span>`;
+    adminToast('✅ kie.ai 로그 '+added+'개 추가됨');
+    renderCommunityAdmin();loadData();
+  }catch(e){
+    status.innerHTML=`<span style="color:var(--red);">❌ ${e.message}</span>`;
+    adminToast('❌ 로그 불러오기 실패: '+e.message);
+  }
+}
+
 function renderCommunityAdmin(){
   const h=getHistory();
   const comm=h.filter(t=>t.audio_url&&t._owner);
@@ -451,9 +526,11 @@ function renderCommunityAdmin(){
         <span class="badge badge-acc" style="margin-left:4px;">${t._owner?.provider||'?'}</span>
       </td>
       <td>${t._commLikes||0}</td>
+      <td><span class="badge ${t._kieLog?'badge-ylw':'badge-grn'}">${t._kieLog?'kie.ai':'앱 생성'}</span></td>
       <td>${t.created?new Date(t.created).toLocaleDateString('ko-KR'):'—'}</td>
       <td><span class="badge badge-grn">공개</span></td>
       <td><div class="table-action-row">
+        ${t.audio_url?`<button class="btn" onclick="window.open('${esc(t.audio_url)}','_blank')">▶</button>`:''}
         <button class="btn btn-red" onclick="hideFromComm(${h.indexOf(t)})">숨기기</button>
       </div></td>
     </tr>`).join('');
