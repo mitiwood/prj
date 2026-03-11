@@ -3668,46 +3668,6 @@ function _saveLoginUser(user){
   }
 })()
 
-/* ── 공유 링크 자동 재생 ── */
-(function handleSharedTrack(){
-  const p=new URLSearchParams(window.location.search);
-  const playUrl=p.get('play');
-  const trackTitle=p.get('t')||p.get('track')||'';
-  const imgUrl=p.get('img')||'';
-  if(!playUrl) return;
-  /* URL에서 바로 재생 */
-  window.addEventListener('load', ()=>{
-    setTimeout(()=>{
-      try{
-        /* 히스토리에 임시 트랙 추가 */
-        const tmpTrack={
-          title: trackTitle||'공유된 노래',
-          audio_url: playUrl,
-          image_url: imgUrl,
-          tags: 'shared',
-          created_at: Date.now(),
-          _shared: true
-        };
-        /* 히스토리 맨 앞에 추가 (중복 체크) */
-        if(!historyData.find(h=>h.audio_url===playUrl)){
-          historyData.unshift(tmpTrack);
-          saveHistory();
-          renderHistory();
-        }
-        const idx=historyData.findIndex(h=>h.audio_url===playUrl);
-        if(idx>=0){
-          switchTab('history-view');
-          setTimeout(()=>openFullPlayer(idx), 400);
-          toast('🎵 공유된 곡 재생 중: '+( trackTitle||''), 'ok', 2500);
-        }
-        /* URL 정리 */
-        history.replaceState({},'',window.location.pathname);
-      }catch(e){ console.warn('[SharedTrack]',e); }
-    }, 800);
-  });
-})();
-;
-
 /* ── 공유 링크 자동 재생 처리 ── */
 (function handleSharedTrack(){
   const p=new URLSearchParams(window.location.search);
