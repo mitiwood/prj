@@ -1929,9 +1929,8 @@ function clearUsageLog(){
 
 // ── 매니저 관리 ──
 const MGR_KEY = 'kms_managers';
-
 function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
-function saveManagers(arr){ localStorage.setItem(MGR_KEY, JSON.stringify(arr)); }
+function saveManagers(list){ localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
 
 function renderManagers(){
   const mgrs = getManagers();
@@ -2110,7 +2109,6 @@ loadData = function(){
 // ══════════════════════════════════════════════
 //  매니저 관리 시스템
 // ══════════════════════════════════════════════
-const MGR_KEY   = 'kms_managers';
 const MGR_ROLES = {
   admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','settings'] },
   super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push'] },
@@ -2121,9 +2119,6 @@ const MGR_ROLES = {
 /* 현재 로그인한 계정 정보 (admin or manager) */
 const CURRENT_ACCOUNT_KEY = 'kms_admin_account';
 let currentAccount = null;
-
-function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
-function saveManagers(list){ localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
 
 /* 초기화 시 현재 계정 확인 */
 function initAccountSession(){
