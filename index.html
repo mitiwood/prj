@@ -3109,6 +3109,31 @@ body.mp-on .view{padding-bottom:118px;}
 </div>
 
 <div id="toast"></div>
+
+<!-- ── 인앱 공지 팝업 ── -->
+<div id="ann-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);" onclick="closeAnnouncement(event)">
+  <div id="ann-modal" style="background:linear-gradient(160deg,#16161f,#1e1e2a);border:1px solid rgba(168,85,247,.35);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 40px rgba(168,85,247,.15);" onclick="event.stopPropagation()">
+    <!-- 닫기 -->
+    <button onclick="closeAnnouncement()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;">✕</button>
+    <!-- 아이콘 -->
+    <div id="ann-modal-icon" style="font-size:44px;margin-bottom:12px;">🎵</div>
+    <!-- 유형 배지 -->
+    <div id="ann-modal-badge" style="display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px;background:rgba(168,85,247,.2);color:#a855f7;border:1px solid rgba(168,85,247,.35);">공지</div>
+    <!-- 제목 -->
+    <div id="ann-modal-title" style="font-size:18px;font-weight:800;color:#f0f0f8;line-height:1.3;margin-bottom:10px;">—</div>
+    <!-- 본문 -->
+    <div id="ann-modal-body" style="font-size:13px;color:#b0b0c8;line-height:1.7;margin-bottom:20px;">—</div>
+    <!-- 버튼 -->
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeAnnouncement()" style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px;color:#888;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button>
+      <button id="ann-modal-cta" onclick="goAnnouncement()" style="flex:2;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;border-radius:10px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">확인하기 →</button>
+    </div>
+    <!-- 다시 보지 않기 -->
+    <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;cursor:pointer;font-size:11px;color:rgba(255,255,255,.3);">
+      <input type="checkbox" id="ann-no-show" style="accent-color:#a855f7;"> 오늘 하루 보지 않기
+    </label>
+  </div>
+</div>
 <!-- ── 로그인 모달 ── -->
 <!-- ── 로그인 바텀시트 ── -->
 <div id="login-sheet" style="position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .25s;">
@@ -7489,7 +7514,88 @@ function renderSettings(){
 }
 
 /* 앱 시작 시 */
-document.addEventListener('DOMContentLoaded', ()=>{ renderPlanUI(); });
+document.addEventListener('DOMContentLoaded', ()=>{ renderPlanUI(); checkAnnouncement(); });
+</script>
+
+<!-- ── 인앱 공지 수신 ── -->
+<script>
+const _ANN_SEEN_KEY = 'kms_ann_seen';
+
+async function checkAnnouncement() {
+  try {
+    const r = await fetch('/api/announcement');
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d.hasAnnouncement || !d.announcement) return;
+    const a = d.announcement;
+    // 대상 체크
+    if(a.target === 'logged') {
+      const user = (() => { try { return JSON.parse(localStorage.getItem('kms_user')||'null'); } catch { return null; } })();
+      if(!user) return;
+    }
+    // "오늘 하루 보지 않기" 체크
+    const seenKey = _ANN_SEEN_KEY + '_' + a.id;
+    const seenUntil = localStorage.getItem(seenKey);
+    if(seenUntil && Date.now() < parseInt(seenUntil)) return;
+    // 팝업 표시
+    showAnnModal(a);
+  } catch(e) { /* 조용히 실패 */ }
+}
+
+const _ANN_TYPE_MAP = {
+  info:    { color: '#a855f7', bg: 'rgba(168,85,247,.2)', border: 'rgba(168,85,247,.35)', label: '📌 공지' },
+  success: { color: '#00dda0', bg: 'rgba(0,221,160,.15)',  border: 'rgba(0,221,160,.3)',   label: '✅ 출시' },
+  event:   { color: '#ffd000', bg: 'rgba(255,208,0,.15)',  border: 'rgba(255,208,0,.3)',   label: '🎉 이벤트' },
+  warning: { color: '#ff9500', bg: 'rgba(255,149,0,.15)',  border: 'rgba(255,149,0,.3)',   label: '⚠️ 점검' },
+};
+let _annUrl = '';
+
+function showAnnModal(a) {
+  _annUrl = a.url || '';
+  const g = id => document.getElementById(id);
+  if(g('ann-modal-icon'))  g('ann-modal-icon').textContent  = a.icon || '🎵';
+  if(g('ann-modal-title')) g('ann-modal-title').textContent = a.title;
+  if(g('ann-modal-body'))  g('ann-modal-body').textContent  = a.body;
+  const style = _ANN_TYPE_MAP[a.type] || _ANN_TYPE_MAP.info;
+  const badge = g('ann-modal-badge');
+  if(badge) {
+    badge.textContent = style.label;
+    badge.style.background = style.bg;
+    badge.style.color = style.color;
+    badge.style.borderColor = style.border;
+  }
+  // 저장: announcement id를 modal에 보관
+  const overlay = g('ann-overlay');
+  if(overlay) {
+    overlay.dataset.annId = a.id || '';
+    overlay.style.display = 'flex';
+    setTimeout(() => { g('ann-modal').style.transform = 'scale(1)'; }, 10);
+  }
+}
+
+function closeAnnouncement(e) {
+  if(e && e.target !== document.getElementById('ann-overlay') && !e.target.closest('#ann-overlay') && e.target !== e.currentTarget) return;
+  const overlay = document.getElementById('ann-overlay');
+  if(!overlay) return;
+  // "오늘 하루 보지 않기" 처리
+  const noShow = document.getElementById('ann-no-show');
+  if(noShow?.checked && overlay.dataset.annId) {
+    const until = Date.now() + 24 * 3600 * 1000;
+    localStorage.setItem(_ANN_SEEN_KEY + '_' + overlay.dataset.annId, String(until));
+  }
+  overlay.style.display = 'none';
+}
+
+function goAnnouncement() {
+  closeAnnouncement();
+  if(_annUrl && _annUrl !== location.href) {
+    if(_annUrl.startsWith(location.origin) || _annUrl.startsWith('/')) {
+      location.href = _annUrl;
+    } else {
+      window.open(_annUrl, '_blank');
+    }
+  }
+}
 </script>
 
 <!-- ── Push Notification (Service Worker) ── -->

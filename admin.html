@@ -476,7 +476,135 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
       <!-- 푸시 알림 -->
       <div class="admin-section" id="sec-push">
-        <div class="sec-hdr"><h2>푸시 알림 발송</h2></div>
+        <div class="sec-hdr"><h2>알림 발송 센터</h2></div>
+
+        <!-- ══ 인앱 팝업 공지 ══ -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(168,85,247,.35);box-shadow:0 0 16px rgba(168,85,247,.08);">
+          <div class="admin-table-header" style="background:rgba(168,85,247,.08);">
+            <h3>📣 인앱 팝업 공지 <span style="font-size:10px;font-weight:400;color:var(--grn);margin-left:8px;">✅ 즉시 사용 가능</span></h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="ann-active-badge" style="display:none;background:rgba(0,221,160,.15);border:1px solid rgba(0,221,160,.4);color:var(--grn);font-size:10px;padding:3px 10px;border-radius:20px;">● 공지 활성</span>
+              <button class="btn" onclick="deleteAnnouncement()" id="ann-delete-btn" style="display:none;color:var(--red);border-color:rgba(255,69,96,.3);">✕ 공지 삭제</button>
+            </div>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+
+            <!-- 현재 활성 공지 상태 -->
+            <div id="ann-current-wrap" style="display:none;background:rgba(0,221,160,.06);border:1px solid rgba(0,221,160,.2);border-radius:10px;padding:14px;">
+              <div style="font-size:11px;color:var(--grn);font-weight:700;margin-bottom:8px;">📌 현재 활성 공지</div>
+              <div style="font-size:13px;font-weight:700;color:var(--t1);" id="ann-cur-title">—</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:4px;" id="ann-cur-body">—</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:6px;" id="ann-cur-meta">—</div>
+            </div>
+
+            <!-- 템플릿 -->
+            <div>
+              <div style="font-size:12px;color:var(--t3);margin-bottom:8px;">⚡ 빠른 템플릿</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <button class="btn" onclick="applyAnnTemplate('new_feature')">🆕 신기능 출시</button>
+                <button class="btn" onclick="applyAnnTemplate('event')">🎉 이벤트 안내</button>
+                <button class="btn" onclick="applyAnnTemplate('challenge')">🔥 챌린지 공개</button>
+                <button class="btn" onclick="applyAnnTemplate('maintenance')">🔧 점검 안내</button>
+                <button class="btn" onclick="applyAnnTemplate('update')">⬆️ 업데이트</button>
+                <button class="btn" onclick="applyAnnTemplate('welcome')">👋 환영 메시지</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <!-- 제목 -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">공지 제목 <span style="color:var(--red);">*</span></div>
+                <input class="settings-input" id="ann-title" placeholder="🎵 새로운 기능이 출시됐어요!" style="width:100%;" oninput="updateAnnPreview()">
+              </div>
+              <!-- 아이콘 + 유형 -->
+              <div style="display:flex;gap:8px;">
+                <div style="flex:0 0 80px;">
+                  <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">아이콘</div>
+                  <input class="settings-input" id="ann-icon" placeholder="🎵" style="width:100%;text-align:center;font-size:18px;" value="🎵" oninput="updateAnnPreview()">
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">유형</div>
+                  <select id="ann-type" class="settings-input" style="width:100%;" onchange="updateAnnPreview()">
+                    <option value="info">ℹ️ 일반</option>
+                    <option value="success">✅ 성공/출시</option>
+                    <option value="event">🎉 이벤트</option>
+                    <option value="warning">⚠️ 점검/경고</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 본문 -->
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">공지 내용 <span style="color:var(--red);">*</span></div>
+              <textarea id="ann-body" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical;min-height:70px;" placeholder="사용자에게 전달할 소식을 입력하세요..." oninput="updateAnnPreview()"></textarea>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+              <!-- 이동 URL -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">클릭 URL</div>
+                <input class="settings-input" id="ann-url" value="https://ai-music-studio-bice.vercel.app" style="width:100%;" placeholder="https://...">
+              </div>
+              <!-- 노출 대상 -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">노출 대상</div>
+                <select id="ann-target" class="settings-input" style="width:100%;">
+                  <option value="all">전체 방문자</option>
+                  <option value="logged">로그인 사용자</option>
+                </select>
+              </div>
+              <!-- 만료 -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">만료 시간</div>
+                <select id="ann-expires" class="settings-input" style="width:100%;">
+                  <option value="">만료 없음</option>
+                  <option value="6">6시간</option>
+                  <option value="24">24시간</option>
+                  <option value="72">3일</option>
+                  <option value="168">7일</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 미리보기 -->
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">👁 팝업 미리보기</div>
+              <div id="ann-preview-wrap" style="max-width:340px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;">
+                <div id="ann-prev-icon" style="font-size:36px;margin-bottom:10px;">🎵</div>
+                <div id="ann-prev-title" style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:6px;">공지 제목</div>
+                <div id="ann-prev-body" style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;">공지 내용</div>
+                <div style="display:flex;gap:8px;justify-content:center;">
+                  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 16px;font-size:12px;color:var(--t3);">닫기</div>
+                  <div id="ann-prev-btn" style="background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;color:#fff;">확인하기 →</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 발송 버튼 -->
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <button class="btn btn-acc" onclick="sendAnnouncement()" id="ann-send-btn" style="padding:12px 28px;font-size:14px;">
+                📣 인앱 공지 발송
+              </button>
+              <span id="ann-result" style="font-size:12px;color:var(--grn);"></span>
+            </div>
+
+            <!-- 발송 기록 -->
+            <div id="ann-history-wrap" style="display:none;">
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📋 최근 발송 기록 (이번 서버 세션)</div>
+              <div id="ann-history-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+            </div>
+
+          </div>
+        </div>
+        <!-- ══ /인앱 팝업 공지 ══ -->
+
+        <!-- 구분선 -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <div style="font-size:11px;color:var(--t3);white-space:nowrap;">🔔 Web Push (VAPID 키 필요)</div>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
 
         <!-- VAPID 설정 상태 -->
         <div class="settings-group" style="margin-bottom:16px;">
@@ -802,7 +930,7 @@ function switchSec(id){
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
   if(id==='users')renderUsersAdmin();
-  if(id==='push'){loadPushStats();updatePushPreview();}
+  if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
   if(id==='managers') renderManagersSection();
   if(id==='reports') loadReports();
   if(id==='managers') renderManagers();
@@ -1259,6 +1387,130 @@ function adminToast(msg){
 // ── 푸시 알림 ──
 const PUSH_HISTORY_KEY = 'kms_push_history';
 const ADMIN_APP_URL = 'https://ai-music-studio-bice.vercel.app';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   인앱 팝업 공지 시스템
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const ANN_TEMPLATES = {
+  new_feature: { icon:'🆕', type:'success', title:'새 기능이 출시됐어요!', body:'Kenny\'s Music Studio에 멋진 기능이 추가됐습니다. 지금 바로 확인해보세요 🎵' },
+  event:       { icon:'🎉', type:'event',   title:'특별 이벤트 진행 중!', body:'지금 참여하면 무료 크레딧 증정! 놓치지 마세요' },
+  challenge:   { icon:'🔥', type:'event',   title:'이번 주 챌린지 공개!', body:'이번 주 테마에 맞는 곡을 만들어서 TOP 크리에이터에 도전하세요!' },
+  maintenance: { icon:'🔧', type:'warning', title:'서비스 점검 안내',     body:'오늘 새벽 2시~4시 서비스 점검이 진행됩니다. 미리 작업을 저장해주세요' },
+  update:      { icon:'⬆️', type:'success', title:'업데이트 완료!',       body:'새로운 업데이트가 적용됐어요. 더 빠르고 안정적인 서비스를 즐겨보세요 🚀' },
+  welcome:     { icon:'👋', type:'info',    title:'KMS에 오신 걸 환영해요!', body:'AI로 나만의 음악을 만들어보세요. 지금 바로 첫 곡을 생성해보세요 🎧' },
+};
+
+function applyAnnTemplate(key) {
+  const t = ANN_TEMPLATES[key]; if(!t) return;
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+  set('ann-title', t.title); set('ann-body', t.body); set('ann-icon', t.icon); set('ann-type', t.type);
+  updateAnnPreview();
+  adminToast('템플릿 적용됨');
+}
+
+function updateAnnPreview() {
+  const g = id => document.getElementById(id);
+  const title = g('ann-title')?.value || '공지 제목';
+  const body  = g('ann-body')?.value  || '공지 내용';
+  const icon  = g('ann-icon')?.value  || '🎵';
+  if(g('ann-prev-title')) g('ann-prev-title').textContent = title.slice(0,50);
+  if(g('ann-prev-body'))  g('ann-prev-body').textContent  = body.slice(0,100);
+  if(g('ann-prev-icon'))  g('ann-prev-icon').textContent  = icon;
+}
+
+async function loadCurrentAnnouncement() {
+  try {
+    const r = await fetch('/api/announcement');
+    const d = await r.json();
+    const badge  = document.getElementById('ann-active-badge');
+    const delBtn = document.getElementById('ann-delete-btn');
+    const wrap   = document.getElementById('ann-current-wrap');
+    const curTitle = document.getElementById('ann-cur-title');
+    const curBody  = document.getElementById('ann-cur-body');
+    const curMeta  = document.getElementById('ann-cur-meta');
+    if(d.hasAnnouncement && d.announcement) {
+      const a = d.announcement;
+      if(badge)    { badge.style.display = 'inline'; }
+      if(delBtn)   { delBtn.style.display = 'inline-block'; }
+      if(wrap)     { wrap.style.display = 'block'; }
+      if(curTitle) curTitle.textContent = (a.icon||'🎵') + ' ' + a.title;
+      if(curBody)  curBody.textContent  = a.body;
+      if(curMeta)  curMeta.textContent  = '발송: ' + new Date(a.createdAt).toLocaleString('ko-KR') +
+        (a.expiresAt ? ' · 만료: ' + new Date(a.expiresAt).toLocaleString('ko-KR') : ' · 만료 없음') +
+        ' · 대상: ' + (a.target === 'all' ? '전체' : '로그인 사용자');
+    } else {
+      if(badge)  badge.style.display  = 'none';
+      if(delBtn) delBtn.style.display = 'none';
+      if(wrap)   wrap.style.display   = 'none';
+    }
+  } catch(e) { console.warn('announcement load failed', e.message); }
+}
+
+async function sendAnnouncement() {
+  const g   = id => document.getElementById(id);
+  const title = g('ann-title')?.value.trim();
+  const body  = g('ann-body')?.value.trim();
+  const icon  = g('ann-icon')?.value.trim() || '🎵';
+  const type  = g('ann-type')?.value  || 'info';
+  const url   = g('ann-url')?.value.trim()  || ADMIN_APP_URL;
+  const target = g('ann-target')?.value || 'all';
+  const expiresHours = g('ann-expires')?.value ? parseInt(g('ann-expires').value) : null;
+  const btn   = g('ann-send-btn');
+  const result = g('ann-result');
+  if(!title) { adminToast('⚠️ 제목을 입력하세요'); return; }
+  if(!body)  { adminToast('⚠️ 내용을 입력하세요'); return; }
+  btn.disabled = true; btn.textContent = '발송 중...';
+  if(result) result.textContent = '';
+  try {
+    const pw = localStorage.getItem('kms_admin_pw') || 'kenny2024!';
+    const r = await fetch('/api/announcement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + pw },
+      body: JSON.stringify({ title, body, icon, type, url, target, expiresHours })
+    });
+    const d = await r.json();
+    if(d.success) {
+      if(result) result.textContent = '✅ 공지가 등록됐습니다! 앱 방문 시 팝업으로 표시됩니다.';
+      adminToast('✅ 인앱 공지 발송 완료!');
+      loadCurrentAnnouncement();
+      renderAnnLocalHistory({ title, body, icon, type, target, sentAt: Date.now() });
+    } else {
+      if(result) result.innerHTML = `<span style="color:var(--red);">❌ ${esc(d.error||'발송 실패')}</span>`;
+    }
+  } catch(e) {
+    if(result) result.innerHTML = `<span style="color:var(--red);">❌ ${esc(e.message)}</span>`;
+    adminToast('❌ 발송 실패: ' + e.message);
+  } finally { btn.disabled = false; btn.textContent = '📣 인앱 공지 발송'; }
+}
+
+async function deleteAnnouncement() {
+  if(!confirm('현재 활성 공지를 삭제할까요?')) return;
+  try {
+    const pw = localStorage.getItem('kms_admin_pw') || 'kenny2024!';
+    const r = await fetch('/api/announcement', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + pw }
+    });
+    const d = await r.json();
+    if(d.success) { adminToast('✅ 공지가 삭제됐습니다'); loadCurrentAnnouncement(); }
+  } catch(e) { adminToast('❌ ' + e.message); }
+}
+
+function renderAnnLocalHistory(item) {
+  const wrap = document.getElementById('ann-history-wrap');
+  const list = document.getElementById('ann-history-list');
+  if(!wrap || !list) return;
+  wrap.style.display = 'block';
+  const el = document.createElement('div');
+  el.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;';
+  el.innerHTML = `<span style="font-size:18px;">${esc(item.icon||'🎵')}</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.title)}</div>
+      <div style="color:var(--t3);font-size:11px;">${new Date(item.sentAt).toLocaleString('ko-KR')} · ${item.target==='all'?'전체':'로그인 사용자'}</div>
+    </div>
+    <span class="badge badge-grn">발송완료</span>`;
+  list.prepend(el);
+}
 
 const PUSH_TEMPLATES = {
   new_feature: {
