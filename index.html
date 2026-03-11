@@ -1854,6 +1854,68 @@ body.mp-on .view{padding-bottom:118px;}
 .cs-user-img{width:14px;height:14px;border-radius:50%;object-fit:cover;}
 .cs-user-name{font-size:10px;color:var(--t3);font-weight:600;}
 
+
+/* ── 구독 플랜 ── */
+.plan-section{margin-bottom:16px;}
+.plan-banner{
+  background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(168,85,247,.12));
+  border:1px solid rgba(168,85,247,.3);
+  border-radius:16px;padding:16px;margin-bottom:12px;
+  position:relative;overflow:hidden;
+}
+.plan-banner::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:120px;height:120px;background:radial-gradient(circle,rgba(168,85,247,.2),transparent 70%);
+  border-radius:50%;
+}
+.plan-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.plan-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;
+}
+.plan-name{font-size:18px;font-weight:800;color:var(--t1);}
+.plan-desc{font-size:12px;color:var(--t2);margin-top:2px;line-height:1.5;}
+.plan-usage-bar-wrap{margin-top:10px;}
+.plan-usage-label{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-bottom:4px;}
+.plan-usage-track{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.plan-usage-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .5s;}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.plan-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:14px;cursor:pointer;transition:all .2s;
+  position:relative;
+}
+.plan-card:hover{border-color:rgba(168,85,247,.4);transform:translateY(-2px);}
+.plan-card.current{border-color:rgba(168,85,247,.5);background:rgba(124,58,237,.1);}
+.plan-card.recommended{border-color:rgba(168,85,247,.5);}
+.plan-card-badge{
+  position:absolute;top:-1px;right:10px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#fff;font-size:9px;font-weight:800;padding:2px 8px;
+  border-radius:0 0 8px 8px;
+}
+.plan-card-icon{font-size:22px;margin-bottom:6px;}
+.plan-card-name{font-size:13px;font-weight:800;color:var(--t1);}
+.plan-card-price{font-size:16px;font-weight:900;color:var(--acc2);margin-top:2px;}
+.plan-card-price span{font-size:10px;color:var(--t3);font-weight:400;}
+.plan-card-features{margin-top:8px;display:flex;flex-direction:column;gap:3px;}
+.plan-card-feat{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px;}
+.plan-card-feat::before{content:'✓';color:var(--acc3);font-size:10px;font-weight:700;}
+.plan-upgrade-btn{
+  width:100%;margin-top:8px;padding:9px;border-radius:10px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .2s;
+}
+.plan-upgrade-btn:hover{opacity:.9;}
+.plan-upgrade-btn.current-btn{
+  background:rgba(255,255,255,.06);color:var(--t3);cursor:default;
+}
+.usage-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.usage-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+.usage-stat-num{font-size:20px;font-weight:800;color:var(--t1);}
+.usage-stat-label{font-size:10px;color:var(--t3);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -2462,6 +2524,114 @@ body.mp-on .view{padding-bottom:118px;}
       </div>
     </div>
 
+
+
+    <!-- ── 알림 설정 섹션 ── -->
+    <div class="settings-section" id="push-settings-section">
+      <div class="settings-section-title">🔔 푸시 알림</div>
+      <div class="settings-card">
+        <div class="settings-item">
+          <div class="settings-item-icon">🔔</div>
+          <div class="settings-item-body">
+            <div class="settings-item-label">앱 알림 구독</div>
+            <div class="settings-item-desc" id="push-status-desc">새 기능, 이벤트, 챌린지 소식을 알림으로 받아보세요</div>
+          </div>
+          <button class="settings-item-action" id="push-toggle-btn" onclick="togglePushSubscription()" style="transition:background .2s;">허용</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 플랜 / 구독 섹션 ── -->
+    <div class="settings-section plan-section" id="plan-section">
+      <div class="settings-section-title">구독 플랜</div>
+
+      <!-- 현재 플랜 배너 -->
+      <div class="plan-banner" id="plan-current-banner">
+        <div class="plan-badge-row">
+          <div class="plan-badge" id="plan-badge">🆓 FREE</div>
+          <div style="font-size:11px;color:var(--t3);" id="plan-renew-date"></div>
+        </div>
+        <div class="plan-name" id="plan-name">무료 플랜</div>
+        <div class="plan-desc" id="plan-desc">월 5곡까지 무료로 생성할 수 있어요</div>
+        <!-- 사용량 바 -->
+        <div class="plan-usage-bar-wrap">
+          <div class="plan-usage-label">
+            <span>이번 달 생성량</span>
+            <span id="plan-usage-text">0 / 5곡</span>
+          </div>
+          <div class="plan-usage-track">
+            <div class="plan-usage-fill" id="plan-usage-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 이번 달 사용 통계 -->
+      <div class="usage-stat-grid">
+        <div class="usage-stat">
+          <div class="usage-stat-num" id="us-songs">0</div>
+          <div class="usage-stat-label">생성한 곡</div>
+        </div>
+        <div class="usage-stat">
+          <div class="usage-stat-num" id="us-mv">0</div>
+          <div class="usage-stat-label">뮤직비디오</div>
+        </div>
+        <div class="usage-stat">
+          <div class="usage-stat-num" id="us-lyrics">0</div>
+          <div class="usage-stat-label">가사 생성</div>
+        </div>
+        <div class="usage-stat" style="border-top:1px solid var(--border);padding-top:10px;">
+          <div class="usage-stat-num" id="us-cost-krw" style="color:var(--acc2);font-size:15px;">₩0</div>
+          <div class="usage-stat-label">이번 달 예상 비용</div>
+        </div>
+        <div class="usage-stat" style="border-top:1px solid var(--border);padding-top:10px;">
+          <div class="usage-stat-num" id="us-cost-usd" style="color:var(--t2);font-size:15px;">$0.00</div>
+          <div class="usage-stat-label">API 사용 비용 (USD)</div>
+        </div>
+      </div>
+
+      <!-- 플랜 카드 -->
+      <div class="plan-cards">
+        <!-- Free -->
+        <div class="plan-card" id="plan-card-free" onclick="selectPlan('free')">
+          <div class="plan-card-icon">🆓</div>
+          <div class="plan-card-name">Free</div>
+          <div class="plan-card-price">무료 <span>/월</span></div>
+          <div class="plan-card-features">
+            <div class="plan-card-feat">월 5곡 생성</div>
+            <div class="plan-card-feat">기본 음질</div>
+            <div class="plan-card-feat">커뮤니티 읽기</div>
+          </div>
+          <button class="plan-upgrade-btn current-btn" id="btn-free" disabled>현재 플랜</button>
+        </div>
+        <!-- Pro -->
+        <div class="plan-card recommended" id="plan-card-pro" onclick="selectPlan('pro')">
+          <div class="plan-card-badge">추천</div>
+          <div class="plan-card-icon">💜</div>
+          <div class="plan-card-name">Pro</div>
+          <div class="plan-card-price">₩9,900 <span>/월</span></div>
+          <div class="plan-card-features">
+            <div class="plan-card-feat">월 30곡 생성</div>
+            <div class="plan-card-feat">고음질 MP3</div>
+            <div class="plan-card-feat">뮤직비디오 3편</div>
+          </div>
+          <button class="plan-upgrade-btn" id="btn-pro" onclick="event.stopPropagation();upgradePlan('pro')">업그레이드</button>
+        </div>
+        <!-- Creator -->
+        <div class="plan-card" id="plan-card-creator" onclick="selectPlan('creator')" style="grid-column:span 2;">
+          <div class="plan-card-icon" style="display:inline;">👑</div>
+          <span class="plan-card-name" style="margin-left:4px;">Creator</span>
+          <span class="plan-card-price" style="margin-left:8px;">₩29,900 <span>/월</span></span>
+          <div class="plan-card-features" style="margin-top:6px;flex-direction:row;flex-wrap:wrap;gap:8px;">
+            <div class="plan-card-feat">무제한 생성</div>
+            <div class="plan-card-feat">상업적 이용</div>
+            <div class="plan-card-feat">스템 분리</div>
+            <div class="plan-card-feat">API 접근</div>
+          </div>
+          <button class="plan-upgrade-btn" id="btn-creator" onclick="event.stopPropagation();upgradePlan('creator')" style="margin-top:10px;">업그레이드</button>
+        </div>
+      </div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-section-title">기능</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
@@ -3044,7 +3214,7 @@ function switchTab(viewId){
   window.scrollTo({top:0,behavior:'smooth'});
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
   if(viewId==='community-view')try{renderCommunity();}catch(e){console.error(e);}
-  if(viewId==='settings-view')try{renderSettings();}catch(e){console.error(e);}
+  if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
 const POLL_INTERVAL = 3000;
@@ -3358,7 +3528,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     btn.disabled=true;sp.style.display='inline-block';txt.textContent='AI 생성 중...';
     try{
       const base='감성적인 한국 팝송, 따뜻하고 서정적인';
-      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base,callBackUrl:CALLBACK});
+      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base,callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'auto-lyrics'});
       const ltid=ld?.data?.taskId||ld?.taskId;
       if(ltid){
         for(let i=0;i<30;i++){
@@ -3443,6 +3613,10 @@ window.addEventListener('resize', updateNavHeight);
     const providerNames={google:'Google',kakao:'카카오',naver:'네이버'};
     const pName=providerNames[user.provider]||user.provider;
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
+    /* 로그인 사용자 목록에 추가 (관리자 통계용) */
+    _saveLoginUser(user);
+    /* 푸시 구독 요청 */
+    setTimeout(()=>{ if(window.kmsRequestPush) window.kmsRequestPush(); }, 1500);
     /* URL 파라미터 제거 */
     window.history.replaceState({},'','/');
   } else if(p.get('login')==='fail'){
@@ -3907,7 +4081,7 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
       try{
         const lyricsPrompt=analysis.mood_tags||analysis.mood||'';
         const lyricsBase=(analysis.description||title).slice(0,120);
-        const ld=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:`${lyricsBase}, ${lyricsPrompt}`,callBackUrl:CALLBACK});
+        const ld=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:`${lyricsBase}, ${lyricsPrompt}`,callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'custom-lyrics'});
         const ltid=ld?.data?.taskId||ld?.taskId;
         if(ltid){
           for(let li=0;li<30;li++){
@@ -4024,7 +4198,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
   toast('✍️ 가사 생성 중... 0초','',2000);
 
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt,callBackUrl:CALLBACK});
+    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt,callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'yt-lyrics'});
     const taskId=data?.data?.taskId||data?.taskId;
     if(!taskId)throw new Error('가사 생성 taskId 없음');
     for(let i=0;i<60;i++){
@@ -4283,7 +4457,7 @@ async function generate(overrideParams){
     });
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
-    showCompletionPopup();
+    showCompletionPopup(currentMode||'custom', '');
     setTimeout(gotoHistoryTab,600);
 
     if(makeMV){
@@ -4410,6 +4584,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
               _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
             };
             historyData.unshift(mvEntry);
+    trackUsage('mv', {mode:'mv', title:mvEntry.title||''});
             historyData=historyData.slice(0,30);
             saveHistory();renderHistory();
             /* results-mv에도 카드 추가 */
@@ -5592,7 +5767,9 @@ function genUnlock(){
   const btn=document.querySelector('#bottom-nav .bnav-item[data-view="create-view"]');
   if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
 }
-function showCompletionPopup(){
+function showCompletionPopup(mode, title){
+  /* 사용량 기록 */
+  trackUsage('song', {mode:mode||'custom', title:title||''});
   const modal = $('glp-modal');
   const title = $('glp-title');
   const desc  = $('glp-desc');
@@ -7039,6 +7216,288 @@ function cancelLyricsEdit(idx){
     </div>
   </div>
 </div>
+
+
+
+<!-- ── 구독 플랜 JS ── -->
+<script>
+/* ───────────────────────────────────────────
+   구독 플랜 시스템
+   localStorage 키:
+     kms_plan         : { type:'free'|'pro'|'creator', startDate, endDate }
+     kms_usage_YYYYMM : { songs:0, mv:0, lyrics:0, lastUpdated }
+     kms_usage_log    : [{type, cost, ts, mode, title}]  최근 200개
+─────────────────────────────────────────── */
+
+const PLAN_LIMITS = {
+  free:    { songs:5,  mv:0,  lyrics:5,  label:'무료 플랜',    icon:'🆓', color:'var(--t3)' },
+  pro:     { songs:30, mv:3,  lyrics:30, label:'Pro 플랜',     icon:'💜', color:'var(--acc2)' },
+  creator: { songs:999,mv:20, lyrics:999,label:'Creator 플랜', icon:'👑', color:'#f59e0b' }
+};
+/* kie.ai 예상 단가 (USD → KRW 1,300 환산) */
+const COST_PER = {
+  song:   { usd:0.05, label:'음악 생성' },
+  mv:     { usd:0.25, label:'뮤직비디오' },
+  lyrics: { usd:0.005,label:'가사 생성' },
+  extend: { usd:0.03, label:'곡 연장' },
+  vocal:  { usd:0.05, label:'보컬 변환' },
+};
+const USD_KRW = 1340;
+
+function getMonthKey(){ const d=new Date(); return d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0'); }
+function getUsage(){ try{ return JSON.parse(localStorage.getItem('kms_usage_'+getMonthKey())||'{"songs":0,"mv":0,"lyrics":0}'); }catch{ return {songs:0,mv:0,lyrics:0}; } }
+function saveUsage(u){ localStorage.setItem('kms_usage_'+getMonthKey(),JSON.stringify({...u,lastUpdated:Date.now()})); }
+function getUsageLog(){ try{ return JSON.parse(localStorage.getItem('kms_usage_log')||'[]'); }catch{ return []; } }
+function getPlan(){ try{ return JSON.parse(localStorage.getItem('kms_plan')||'{"type":"free"}'); }catch{ return {type:'free'}; } }
+
+/* 사용량 기록 — kieRequest 호출 후 각 mode에서 호출 */
+function trackUsage(type, meta={}){
+  const usage = getUsage();
+  if(type==='song')   usage.songs=(usage.songs||0)+1;
+  if(type==='mv')     usage.mv=(usage.mv||0)+1;
+  if(type==='lyrics') usage.lyrics=(usage.lyrics||0)+1;
+  saveUsage(usage);
+  /* 로그 */
+  const log = getUsageLog();
+  const cost = COST_PER[type]||{usd:0,label:type};
+  log.unshift({ type, cost_usd:cost.usd, cost_krw:Math.round(cost.usd*USD_KRW), label:cost.label, ts:Date.now(), ...meta });
+  localStorage.setItem('kms_usage_log', JSON.stringify(log.slice(0,200)));
+}
+
+/* 플랜 제한 체크 — generate() 시작 전 호출 */
+function checkPlanLimit(type){
+  const plan = getPlan();
+  const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
+  const usage = getUsage();
+  const key = type==='song'?'songs':type==='mv'?'mv':'lyrics';
+  const used = usage[key]||0;
+  const limit = limits[key];
+  if(limit < 999 && used >= limit){
+    showUpgradePrompt(type, used, limit, plan.type);
+    return false;
+  }
+  return true;
+}
+
+function showUpgradePrompt(type, used, limit, currentPlan){
+  const typeLabel = {song:'음악 생성',mv:'뮤직비디오',lyrics:'가사 생성'}[type]||type;
+  toast(`💜 ${typeLabel} 한도 도달 (${used}/${limit}). Pro 플랜으로 업그레이드하세요!`,'',4000);
+  /* 설정 탭으로 이동 + 플랜 섹션 강조 */
+  setTimeout(()=>{
+    const btn=document.querySelector('#bottom-nav [data-view="settings-view"]');
+    if(btn) btn.click();
+    setTimeout(()=>{
+      const sec=document.getElementById('plan-section');
+      if(sec){ sec.scrollIntoView({behavior:'smooth',block:'start'}); sec.style.animation='none'; sec.offsetHeight; }
+    },300);
+  },400);
+}
+
+/* 설정 탭 렌더링 시 플랜 정보 갱신 */
+function renderPlanUI(){
+  const plan = getPlan();
+  const planInfo = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
+  const usage = getUsage();
+  const today = new Date();
+  const monthEnd = new Date(today.getFullYear(), today.getMonth()+1, 0);
+
+  /* 배너 */
+  const badge=$('plan-badge'); if(badge){ badge.textContent=planInfo.icon+' '+plan.type.toUpperCase(); badge.style.background=plan.type==='free'?'rgba(255,255,255,.15)':'linear-gradient(135deg,var(--acc),var(--acc2))'; }
+  const pname=$('plan-name'); if(pname) pname.textContent=planInfo.label;
+  const pdesc=$('plan-desc'); if(pdesc){
+    if(plan.type==='free') pdesc.textContent='월 5곡까지 무료로 생성할 수 있어요';
+    else if(plan.type==='pro') pdesc.textContent=`Pro 플랜 사용 중 · ${monthEnd.getMonth()+1}월 ${monthEnd.getDate()}일 갱신`;
+    else pdesc.textContent=`Creator 플랜 사용 중 · 무제한 생성 가능`;
+  }
+
+  /* 사용량 바 */
+  const limit = planInfo.songs;
+  const pct = limit>=999?100:Math.min(100,Math.round((usage.songs||0)/limit*100));
+  const fill=$('plan-usage-fill'); if(fill){ fill.style.width=pct+'%'; fill.style.background=pct>=90?'linear-gradient(90deg,#ef4444,#f87171)':pct>=70?'linear-gradient(90deg,#f59e0b,#fcd34d)':'linear-gradient(90deg,var(--acc),var(--acc2))'; }
+  const utxt=$('plan-usage-text'); if(utxt) utxt.textContent=`${usage.songs||0} / ${limit>=999?'∞':limit}곡`;
+
+  /* 통계 */
+  const us=$('us-songs'); if(us) us.textContent=usage.songs||0;
+  const um=$('us-mv');    if(um) um.textContent=usage.mv||0;
+  const ul=$('us-lyrics');if(ul) ul.textContent=usage.lyrics||0;
+
+  /* 이번 달 예상 비용 계산 */
+  const _costUsd = Math.round(
+    ((usage.songs||0)*0.05 + (usage.mv||0)*0.25 + (usage.lyrics||0)*0.005) * 1000
+  ) / 1000;
+  const _costKrw = Math.round(_costUsd * 1340);
+  const uck=$('us-cost-krw'); if(uck) uck.textContent='₩'+_costKrw.toLocaleString('ko-KR');
+  const ucu=$('us-cost-usd'); if(ucu) ucu.textContent='$'+_costUsd.toFixed(3);
+
+  /* 플랜 카드 current 표시 */
+  ['free','pro','creator'].forEach(p=>{
+    const card=document.getElementById('plan-card-'+p);
+    const btn=document.getElementById('btn-'+p);
+    if(!card||!btn) return;
+    if(p===plan.type){
+      card.classList.add('current');
+      btn.textContent='현재 플랜'; btn.disabled=true; btn.className='plan-upgrade-btn current-btn';
+    } else {
+      card.classList.remove('current');
+      btn.textContent='업그레이드'; btn.disabled=false; btn.className='plan-upgrade-btn';
+    }
+  });
+}
+
+function selectPlan(type){ /* 카드 클릭 시 강조만 */ }
+
+function upgradePlan(type){
+  /* 실 서비스에서는 결제 페이지 연동 */
+  const info={pro:{label:'Pro',price:'₩9,900'},creator:{label:'Creator',price:'₩29,900'}}[type];
+  if(!info) return;
+  if(confirm(`💜 ${info.label} 플랜으로 업그레이드할까요?
+
+가격: ${info.price}/월
+
+(현재는 데모 버전입니다. 결제 연동 후 정식 서비스됩니다)`)){
+    /* 데모: 플랜 변경 */
+    const startDate = new Date().toISOString();
+    const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
+    localStorage.setItem('kms_plan', JSON.stringify({type, startDate, endDate}));
+    toast(`✅ ${info.label} 플랜 활성화됨! (데모)`,'',3000);
+    renderPlanUI();
+  }
+}
+
+/* renderSettings 훅 — 기존 renderSettings 가 있으면 확장 */
+const _origRenderSettings = typeof renderSettings === 'function' ? renderSettings : null;
+function renderSettings(){
+  if(_origRenderSettings) _origRenderSettings();
+  renderPlanUI();
+  /* 통계 */
+  const h = typeof historyData !== 'undefined' ? historyData : [];
+  const sc=$('stat-songs'); if(sc) sc.textContent=h.length;
+  const sl=$('stat-likes'); if(sl) sl.textContent=h.reduce((a,t)=>a+(t._commLikes||0),0);
+  const hc=$('settings-hist-count'); if(hc) hc.textContent=h.length>0?`${h.length}곡 저장됨`:'저장된 곡 없음';
+}
+
+/* 앱 시작 시 */
+document.addEventListener('DOMContentLoaded', ()=>{ renderPlanUI(); });
+</script>
+
+<!-- ── Push Notification (Service Worker) ── -->
+<script>
+const KMS_SUB_KEY = 'kms_push_sub';
+
+/* 로그인 사용자 목록 관리자용 저장 */
+function _saveLoginUser(user){
+  if(!user?.name) return;
+  try{
+    const KEY='kms_login_users';
+    const list=JSON.parse(localStorage.getItem(KEY)||'[]');
+    const idx=list.findIndex(u=>u.name===user.name&&u.provider===user.provider);
+    const entry={
+      name:user.name, avatar:user.avatar||'', provider:user.provider||'',
+      email:user.email||'', id:user.id||'',
+      lastLogin:Date.now(),
+      loginCount: idx>=0 ? (list[idx].loginCount||1)+1 : 1,
+    };
+    if(idx>=0) list[idx]=entry; else list.unshift(entry);
+    localStorage.setItem(KEY, JSON.stringify(list.slice(0,200)));
+  }catch(e){}
+}
+
+async function registerPushSW(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try{
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    console.log('[SW] registered', reg.scope);
+    /* VAPID 공개키 fetch */
+    const vr = await fetch('/api/vapid-keys').catch(()=>null);
+    if(!vr?.ok) return;
+    const {publicKey} = await vr.json();
+    if(!publicKey){ console.warn('[Push] no VAPID key'); return; }
+    /* 이미 구독 중이면 스킵 */
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+    }
+    /* 구독 정보 서버 + localStorage 저장 */
+    localStorage.setItem(KMS_SUB_KEY, JSON.stringify(sub));
+    await fetch('/api/push-subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        subscription: sub,
+        userInfo: (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })()
+      })
+    });
+    console.log('[Push] subscribed:', sub.endpoint.slice(-20));
+  }catch(e){ console.warn('[Push] setup error:', e.message); }
+}
+
+function urlBase64ToUint8Array(b64){
+  const pad = '='.repeat((4 - b64.length%4)%4);
+  const raw = atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+
+/* 로그인 후 또는 페이지 로드 시 구독 시도 */
+window.addEventListener('load', ()=>{
+  /* 알림 권한이 이미 있으면 바로 등록 */
+  if(Notification.permission === 'granted') registerPushSW();
+});
+
+/* 외부에서 호출 가능 — 소셜 로그인 완료 후 호출 */
+async function togglePushSubscription(){
+  const btn=document.getElementById('push-toggle-btn');
+  const desc=document.getElementById('push-status-desc');
+  const perm=Notification.permission;
+  if(perm==='denied'){
+    toast('브라우저 설정에서 알림을 허용해주세요','err',3000);
+    return;
+  }
+  if(!('serviceWorker' in navigator)){
+    toast('이 브라우저는 푸시 알림을 지원하지 않아요','err');
+    return;
+  }
+  const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+  const sub=reg?await reg.pushManager.getSubscription():null;
+  if(sub){
+    /* 구독 취소 */
+    await sub.unsubscribe();
+    localStorage.removeItem('kms_push_sub');
+    if(btn){btn.textContent='허용';btn.style.background='';}
+    if(desc)desc.textContent='새 기능, 이벤트, 챌린지 소식을 알림으로 받아보세요';
+    toast('알림 구독 취소됨','',2000);
+  } else {
+    /* 구독 시작 */
+    await window.kmsRequestPush();
+    _updatePushSettingsUI();
+  }
+}
+
+function _updatePushSettingsUI(){
+  const btn=document.getElementById('push-toggle-btn');
+  const desc=document.getElementById('push-status-desc');
+  if(!btn||!desc) return;
+  const sub=localStorage.getItem('kms_push_sub');
+  if(sub&&Notification.permission==='granted'){
+    btn.textContent='구독 중';
+    btn.style.background='var(--grn)';
+    desc.textContent='✅ 푸시 알림 구독 중 — 새 소식을 놓치지 않아요';
+  } else {
+    btn.textContent='허용';
+    btn.style.background='';
+    desc.textContent='새 기능, 이벤트, 챌린지 소식을 알림으로 받아보세요';
+  }
+}
+
+window.kmsRequestPush = async function(){
+  if(Notification.permission === 'granted'){ registerPushSW(); return; }
+  if(Notification.permission === 'denied') return;
+  const p = await Notification.requestPermission();
+  if(p === 'granted') registerPushSW();
+};
+</script>
 
 </body>
 </html>

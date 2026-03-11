@@ -137,6 +137,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="community" onclick="switchSec('community')"><span class="snav-icon">🌐</span>커뮤니티</div>
       <div class="snav-item" data-sec="users" onclick="switchSec('users')"><span class="snav-icon">👥</span>사용자</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
+      <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
     </div>
@@ -162,10 +163,12 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="stats-grid" id="stats-grid">
           <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">전체 곡 수</div></div>
           <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="stat-likes">0</div><div class="stat-label">총 좋아요</div></div>
-          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">소셜 로그인 사용자</div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">로그인 사용자</div></div>
           <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="stat-mv">0</div><div class="stat-label">뮤직비디오</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="stat-today">0</div><div class="stat-label">오늘 생성</div></div>
           <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="stat-comm">0</div><div class="stat-label">커뮤니티 공개</div></div>
+          <div class="stat-card" style="border-color:rgba(255,208,0,.2);"><div class="stat-icon">💰</div><div class="stat-val" id="stat-cost" style="color:var(--ylw);font-size:18px;">₩0</div><div class="stat-label">예상 API 비용</div><div class="stat-change up" id="stat-cost-detail" style="font-size:9px;"></div></div>
+          <div class="stat-card" style="border-color:rgba(0,221,160,.2);"><div class="stat-icon">🔔</div><div class="stat-val" id="stat-subs">0</div><div class="stat-label">푸시 구독자</div></div>
         </div>
         <div class="chart-row">
           <div class="chart-card">
@@ -177,6 +180,35 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <div class="bar-chart" id="top-chart"></div>
           </div>
         </div>
+        <!-- API 사용량 & 비용 분석 -->
+        <div class="chart-card" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h4>💰 API 비용 분석 (kie.ai 기준)</h4>
+            <button class="btn" onclick="fetchKieUsage()" style="font-size:11px;padding:5px 10px;">🔍 실시간 조회</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;" id="cost-grid">
+            <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--ylw);" id="cost-music">₩0</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px;">음악 생성</div>
+              <div style="font-size:9px;color:var(--t3);" id="cost-music-cnt">0곡</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--acc3);" id="cost-mv">₩0</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px;">뮤직비디오</div>
+              <div style="font-size:9px;color:var(--t3);" id="cost-mv-cnt">0편</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--grn);" id="cost-total">₩0</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px;">총 예상 비용</div>
+              <div style="font-size:9px;color:var(--t3);" id="cost-note">크레딧 기준 추산</div>
+            </div>
+          </div>
+          <div id="kie-balance-row" style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t2);display:none;">
+            <span>💳 kie.ai 잔여 크레딧: </span><strong id="kie-balance" style="color:var(--grn);">-</strong>
+            <span style="margin-left:12px;">📊 이번 달 사용: </span><strong id="kie-used">-</strong>
+          </div>
+        </div>
+
         <div class="admin-table-wrap">
           <div class="admin-table-header">
             <h3>최근 생성 트랙</h3>
@@ -223,7 +255,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div class="settings-row">
             <div><label>API Key</label></div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input class="settings-input" id="kie-api-input" type="password" placeholder="kie.ai API Key" style="width:280px;">
+              <input class="settings-input" id="kie-api-input" type="password" placeholder="kie.ai API Key" style="width:280px;" oninput="localStorage.setItem('kms_kie_key',this.value)" onpaste="setTimeout(()=>localStorage.setItem('kms_kie_key',this.value),0)">
               <button class="btn btn-acc" onclick="fetchKieLogs()">🔍 로그 불러오기</button>
             </div>
           </div>
@@ -245,10 +277,46 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
       <!-- 사용자 -->
       <div class="admin-section" id="sec-users">
-        <div class="sec-hdr"><h2>사용자 관리</h2></div>
-        <div class="admin-table-wrap">
-          <table><thead><tr><th>프로바이더</th><th>이름</th><th>생성 곡 수</th><th>마지막 로그인</th><th>관리</th></tr></thead>
-          <tbody id="users-tbody"></tbody></table>
+        <div class="sec-hdr">
+          <h2>사용자 관리</h2>
+          <button class="btn btn-acc" onclick="renderUsersAdmin()">🔄 새로고침</button>
+        </div>
+
+        <!-- 통계 요약 -->
+        <div class="stats-grid" style="margin-bottom:20px;" id="user-stats-grid">
+          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-total">0</div><div class="stat-label">전체 사용자</div></div>
+          <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div></div>
+          <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
+        </div>
+
+        <!-- 탭 전환 -->
+        <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:4px;width:fit-content;">
+          <button class="btn btn-acc" id="utab-login" onclick="switchUserTab('login')" style="font-size:12px;padding:7px 16px;">🔑 로그인 사용자</button>
+          <button class="btn" id="utab-creator" onclick="switchUserTab('creator')" style="font-size:12px;padding:7px 16px;">🎵 생성 기여자</button>
+        </div>
+
+        <!-- 로그인 사용자 목록 -->
+        <div id="utab-panel-login">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>로그인 사용자 목록 <span id="login-user-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+              <input class="table-search" id="user-search" placeholder="이름 검색..." oninput="filterUsers()">
+            </div>
+            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>로그인 횟수</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
+            <tbody id="users-login-tbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- 생성 기여자 목록 -->
+        <div id="utab-panel-creator" style="display:none;">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>음악 생성 기여자</h3>
+            </div>
+            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>생성 곡</th><th>좋아요 합계</th><th>마지막 생성</th><th>관리</th></tr></thead>
+            <tbody id="users-creator-tbody"></tbody></table>
+          </div>
         </div>
       </div>
 
@@ -264,6 +332,105 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <tbody id="reports-tbody"></tbody></table>
         </div>
       </div>
+
+      <!-- 사용량·비용 -->
+      <div class="admin-section" id="sec-usage">
+        <div class="sec-hdr">
+          <h2>사용량 & 비용 분석</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select class="table-search" id="usage-month-sel" onchange="loadUsageAdmin()" style="width:130px;">
+            </select>
+            <button class="btn btn-acc" onclick="loadUsageAdmin()">🔄 새로고침</button>
+            <button class="btn" onclick="promptKieKeyAndFetch()" style="font-size:11px;">💳 kie.ai 잔액 조회</button>
+            <button class="btn" onclick="exportUsageCsv()" style="font-size:11px;">📥 CSV 내보내기</button>
+          </div>
+        </div>
+
+        <!-- 요약 카드 -->
+        <div class="stats-grid" id="usage-summary-grid" style="margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-icon">🎵</div>
+            <div class="stat-val" id="u-songs">0</div>
+            <div class="stat-label">음악 생성 (이번 달)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-val" id="u-mv">0</div>
+            <div class="stat-label">뮤직비디오</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <div class="stat-val" id="u-lyrics">0</div>
+            <div class="stat-label">가사 생성</div>
+          </div>
+          <div class="stat-card" style="border-color:rgba(168,85,247,.3);">
+            <div class="stat-icon">💰</div>
+            <div class="stat-val" id="u-cost-krw" style="color:var(--acc2);">₩0</div>
+            <div class="stat-label">예상 비용 (KRW)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💵</div>
+            <div class="stat-val" id="u-cost-usd">$0.00</div>
+            <div class="stat-label">예상 비용 (USD)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-val" id="u-total-ops">0</div>
+            <div class="stat-label">총 API 호출</div>
+          </div>
+          <div class="stat-card" style="border-color:rgba(16,185,129,.3);">
+            <div class="stat-icon">💳</div>
+            <div class="stat-val" id="u-kie-balance" style="color:var(--grn);font-size:16px;">-</div>
+            <div class="stat-label">kie.ai 잔여 크레딧</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px;" id="u-kie-krw"></div>
+          </div>
+        </div>
+
+        <!-- 비용 단가표 -->
+        <div class="admin-table-wrap" style="margin-bottom:16px;">
+          <div class="admin-table-header">
+            <h3>💡 kie.ai API 단가 (참고)</h3>
+          </div>
+          <table>
+            <thead><tr><th>기능</th><th>단가 (USD)</th><th>단가 (KRW)</th><th>이번 달 사용</th><th>소계 (KRW)</th></tr></thead>
+            <tbody id="cost-table-tbody"></tbody>
+            <tfoot>
+              <tr style="font-weight:700;background:rgba(168,85,247,.08);">
+                <td colspan="3" style="padding:10px 16px;color:var(--acc3);">합계</td>
+                <td id="cost-total-ops" style="padding:10px 16px;">0건</td>
+                <td id="cost-total-krw" style="padding:10px 16px;color:var(--acc2);font-size:14px;font-weight:800;">₩0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- 월별 트렌드 차트 -->
+        <div class="chart-row" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <h4>월별 생성량 트렌드 (최근 6개월)</h4>
+            <div class="bar-chart" id="monthly-trend-chart"></div>
+          </div>
+          <div class="chart-card">
+            <h4>기능별 사용 비율</h4>
+            <div class="bar-chart" id="feature-ratio-chart"></div>
+          </div>
+        </div>
+
+        <!-- 상세 로그 -->
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>📋 API 사용 로그 (최근 50건)</h3>
+            <button class="btn btn-red" onclick="clearUsageLog()">🗑 로그 초기화</button>
+          </div>
+          <table>
+            <thead><tr><th>유형</th><th>제목/모드</th><th>비용 (KRW)</th><th>비용 (USD)</th><th>일시</th></tr></thead>
+            <tbody id="usage-log-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">로그가 없습니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
 
       <!-- 푸시 알림 -->
       <div class="admin-section" id="sec-push">
@@ -454,12 +621,13 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',reports:'신고 관리',push:'푸시 알림',settings:'설정'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();}
+  if(id==='usage') loadUsageAdmin();
 }
 
 // ── 데이터 로드 (localStorage에서) ──
@@ -481,10 +649,36 @@ function loadData(){
 
   document.getElementById('stat-total').textContent=h.length;
   document.getElementById('stat-likes').textContent=totalLikes;
-  document.getElementById('stat-users').textContent=users.length;
+  document.getElementById('stat-users').textContent=getLoginUsers().length;
   document.getElementById('stat-mv').textContent=mvCount;
   document.getElementById('stat-today').textContent=todayCount;
   document.getElementById('stat-comm').textContent=commCount;
+  /* 구독자 수 */
+  const subs=getPushSubscriptions();
+  const subEl=document.getElementById('stat-subs');
+  if(subEl)subEl.textContent=subs.length;
+  /* 비용 계산 (kie.ai 크레딧 기준: 곡당 약 10 크레딧=$0.10=₩135, MV 약 100 크레딧=$1=₩1,350) */
+  const MUSIC_COST_KRW=150; /* 곡 1개 */
+  const MV_COST_KRW=1500;   /* MV 1편 */
+  const musicCost=h.filter(t=>!t.video_url).length*MUSIC_COST_KRW;
+  const mvCost2=mvCount*MV_COST_KRW;
+  const totalCost=musicCost+mvCost2;
+  const fmt=n=>'₩'+n.toLocaleString('ko-KR');
+  const ce=document.getElementById('stat-cost');
+  const cd=document.getElementById('stat-cost-detail');
+  if(ce)ce.textContent=fmt(totalCost);
+  if(cd)cd.textContent=`곡 ${fmt(musicCost)} + MV ${fmt(mvCost2)}`;
+  /* 비용 그리드 */
+  const cmu=document.getElementById('cost-music');
+  const cmv=document.getElementById('cost-mv');
+  const ct=document.getElementById('cost-total');
+  const cmc=document.getElementById('cost-music-cnt');
+  const cvc=document.getElementById('cost-mv-cnt');
+  if(cmu)cmu.textContent=fmt(musicCost);
+  if(cmv)cmv.textContent=fmt(mvCost2);
+  if(ct)ct.textContent=fmt(totalCost);
+  if(cmc)cmc.textContent=(h.length-mvCount)+'곡';
+  if(cvc)cvc.textContent=mvCount+'편';
 
   // 모드별 차트
   const modeCounts={custom:0,simple:0,youtube:0,mv:0};
@@ -571,56 +765,131 @@ function deleteTrackByIdx(i){
 function deleteTrack(i){deleteTrackByIdx(i);loadData();}
 
 // ── 커뮤니티 관리 ──
+async function kieProxyRequest(apiKey, path, method='GET', body=null){
+  /* /api/kie-proxy 경유로 CORS 우회 */
+  const r = await fetch('/api/kie-proxy', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ path, method, body, apiKey })
+  });
+  const data = await r.json();
+  if(!r.ok) throw new Error(data?.msg || data?.error || 'HTTP '+r.status);
+  return data;
+}
+
 async function fetchKieLogs(){
   const apiKey=document.getElementById('kie-api-input')?.value.trim();
   if(!apiKey){adminToast('⚠️ API Key를 입력하세요');return;}
   const statusRow=document.getElementById('kie-status-row');
   const status=document.getElementById('kie-status');
-  const KIE_BASE='https://api.kie.ai';
   statusRow.style.display='flex';
-  status.textContent='로딩 중...';
-  try{
-    /* kie.ai /api/v1/generate/record-list (생성 로그) */
-    const res=await fetch(KIE_BASE+'/api/v1/generate/record-list?pageSize=50&pageNum=1',{
-      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'}
-    });
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const list=data?.data?.list||data?.list||[];
-    if(!list.length){status.textContent='로그 없음';adminToast('로그가 없습니다');return;}
-    /* localStorage의 historyData에 병합 */
-    let h=getHistory();
-    let added=0;
-    list.forEach(item=>{
-      const audioUrl=item.audioUrl||item.audio_url||'';
-      if(!audioUrl)return;
-      const existing=h.find(t=>t.id===item.taskId||t.taskId===item.taskId);
-      if(!existing){
-        h.unshift({
-          id:item.taskId||Date.now().toString(),
-          taskId:item.taskId||'',
-          title:item.title||'kie.ai 트랙',
-          audio_url:audioUrl,
-          video_url:item.videoUrl||'',
-          image_url:item.imageUrl||item.image_url||'',
-          tags:item.tags||item.style||'',
-          lyrics:item.lyric||'',
-          created:item.createdAt?new Date(item.createdAt).getTime():Date.now(),
-          type:'audio',
-          genMode:'custom',
-          _kieLog:true,
-          _owner:{name:'kie.ai 사용자',avatar:'',provider:'kie'},
-        });
-        added++;
+  status.textContent='🔄 로딩 중...';
+
+  /* kie.ai 실제 엔드포인트 — 여러 경로 순서대로 시도 */
+  const endpoints = [
+    '/api/v1/generate/record-list?pageSize=50&pageNum=1',
+    '/api/v1/generate/records?pageSize=50&page=1',
+    '/api/v1/music/list?pageSize=50&pageNum=1',
+    '/api/v1/task/list?pageSize=50&pageNum=1',
+  ];
+
+  let list = [];
+  let foundEndpoint = '';
+
+  for(const ep of endpoints){
+    try{
+      status.textContent = `🔄 시도 중: ${ep.split('?')[0]}`;
+      const data = await kieProxyRequest(apiKey, ep);
+      const raw = data?.data?.list || data?.data?.records || data?.list || data?.records || data?.data || [];
+      if(Array.isArray(raw) && raw.length >= 0){
+        list = raw;
+        foundEndpoint = ep;
+        break;
       }
-    });
-    localStorage.setItem('kms_history',JSON.stringify(h.slice(0,100)));
-    status.innerHTML=`<span style="color:var(--grn);">✅ ${list.length}개 로그 확인, ${added}개 신규 추가</span>`;
-    adminToast('✅ kie.ai 로그 '+added+'개 추가됨');
-    renderCommunityAdmin();loadData();
-  }catch(e){
-    status.innerHTML=`<span style="color:var(--red);">❌ ${e.message}</span>`;
-    adminToast('❌ 로그 불러오기 실패: '+e.message);
+    }catch(e){
+      console.warn('[KieLog] endpoint failed:', ep, e.message);
+    }
+  }
+
+  if(!foundEndpoint){
+    status.innerHTML='<span style="color:var(--red);">❌ 사용 가능한 엔드포인트를 찾지 못했습니다.<br><span style="font-size:11px;">API Key를 확인하거나 kie.ai 계정 상태를 확인해주세요</span></span>';
+    adminToast('❌ kie.ai 로그 불러오기 실패');
+    return;
+  }
+
+  if(!list.length){
+    status.innerHTML='<span style="color:var(--ylw);">⚠️ 생성된 트랙이 없습니다 (엔드포인트: '+foundEndpoint.split('?')[0]+')</span>';
+    adminToast('로그 없음');
+    return;
+  }
+
+  /* localStorage historyData에 병합 */
+  let h=getHistory();
+  let added=0;
+  list.forEach(item=>{
+    const audioUrl=item.audioUrl||item.audio_url||item.streamAudioUrl||'';
+    if(!audioUrl)return;
+    const taskId=item.taskId||item.id||item.task_id||'';
+    const existing=h.find(t=>t.id===taskId||t.taskId===taskId);
+    if(!existing){
+      h.unshift({
+        id:taskId||('kie-'+Date.now()+Math.random()),
+        taskId:taskId,
+        title:item.title||item.prompt?.slice(0,30)||'kie.ai 트랙',
+        audio_url:audioUrl,
+        video_url:item.videoUrl||item.video_url||'',
+        image_url:item.imageUrl||item.image_url||item.coverUrl||'',
+        tags:item.tags||item.style||item.genre||'',
+        lyrics:item.lyric||item.lyrics||'',
+        created:item.createdAt||item.created_at||item.createTime?new Date(item.createdAt||item.created_at||item.createTime).getTime():Date.now(),
+        type:'audio', genMode:'custom', _kieLog:true,
+        _owner:{name:'kie.ai 사용자',avatar:'',provider:'kie'},
+      });
+      added++;
+    }
+  });
+  localStorage.setItem('kms_history',JSON.stringify(h.slice(0,200)));
+  status.innerHTML=`<span style="color:var(--grn);">✅ ${list.length}개 확인 / ${added}개 신규 추가 (${foundEndpoint.split('?')[0]})</span>`;
+  adminToast('✅ kie.ai 로그 '+added+'개 추가됨');
+  renderCommunityAdmin(); loadData();
+}
+
+
+async function fetchKieUsage(){
+  const apiKey = document.getElementById('kie-api-input')?.value.trim()
+              || localStorage.getItem('kms_kie_key') || '';
+  if(!apiKey){ adminToast('⚠️ 커뮤니티 탭에서 kie.ai API Key 입력 후 이용하세요'); return; }
+  adminToast('🔍 잔여 크레딧 조회 중...');
+
+  /* 여러 엔드포인트 시도 */
+  const credEndpoints = [
+    '/api/v1/user/info',
+    '/api/v1/user/me',
+    '/api/v1/account/info',
+    '/api/v1/credit/balance',
+  ];
+  let balance = null, used = null;
+
+  for(const ep of credEndpoints){
+    try{
+      const d = await kieProxyRequest(apiKey, ep);
+      const b = d?.data?.credits ?? d?.data?.remainCredits ?? d?.credits ?? d?.balance ?? null;
+      if(b !== null){ balance = b; used = d?.data?.usedCredits ?? d?.usedCredits ?? 0; break; }
+    }catch(e){ console.warn('[KieCred]', ep, e.message); }
+  }
+
+  const row = document.getElementById('kie-balance-row');
+  const bal = document.getElementById('kie-balance');
+  const usedEl = document.getElementById('kie-used');
+  if(row) row.style.display='block';
+
+  if(balance !== null){
+    if(bal) bal.textContent = balance + ' 크레딧 (≈ ₩' + Math.round(balance*13.5).toLocaleString() + ')';
+    if(usedEl) usedEl.textContent = (used||0) + ' 크레딧 (≈ ₩' + Math.round((used||0)*13.5).toLocaleString() + ')';
+    adminToast('✅ 크레딧 조회 완료');
+  } else {
+    if(bal) bal.innerHTML='<span style="color:var(--ylw);">직접 확인 → <a href="https://kie.ai/ko/logs" target="_blank" style="color:var(--acc3);">kie.ai 대시보드</a></span>';
+    adminToast('⚠️ 크레딧 직접 확인 필요');
   }
 }
 
@@ -657,35 +926,130 @@ function hideFromComm(i){
 }
 
 // ── 사용자 관리 ──
+function getLoginUsers(){
+  try{ return JSON.parse(localStorage.getItem('kms_login_users')||'[]'); }catch{ return []; }
+}
+
+let _uTabCurrent = 'login';
+function switchUserTab(tab){
+  _uTabCurrent = tab;
+  document.getElementById('utab-panel-login').style.display   = tab==='login'   ? '' : 'none';
+  document.getElementById('utab-panel-creator').style.display = tab==='creator' ? '' : 'none';
+  document.getElementById('utab-login').className   = tab==='login'   ? 'btn btn-acc' : 'btn';
+  document.getElementById('utab-creator').className = tab==='creator' ? 'btn btn-acc' : 'btn';
+}
+
 function renderUsersAdmin(){
-  const h=getHistory();
-  const userMap={};
+  const h = getHistory();
+  const loginUsers = getLoginUsers();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  /* 통계 */
+  const creatorMap = {};
   h.forEach(t=>{
     if(t._owner?.name){
-      const key=t._owner.name;
-      if(!userMap[key])userMap[key]={...t._owner,count:0,last:t.created||0};
-      userMap[key].count++;
-      if((t.created||0)>userMap[key].last)userMap[key].last=t.created;
+      const k=t._owner.name+'__'+t._owner.provider;
+      if(!creatorMap[k]) creatorMap[k]={...t._owner,count:0,likes:0,last:0};
+      creatorMap[k].count++;
+      creatorMap[k].likes+=(t._commLikes||0);
+      if((t.created||0)>creatorMap[k].last) creatorMap[k].last=t.created||0;
     }
   });
-  const users=Object.values(userMap);
-  const tbody=document.getElementById('users-tbody');
-  if(!users.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">소셜 로그인 사용자가 없습니다</td></tr>`;return;}
-  tbody.innerHTML=users.map(u=>`
-    <tr>
-      <td><span class="badge badge-acc">${u.provider||'?'}</span></td>
-      <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">`:''}${esc(u.name)}</td>
-      <td>${u.count}곡</td>
-      <td>${u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—'}</td>
-      <td><button class="btn btn-red" onclick="banUser('${esc(u.name)}')">🚫 차단</button></td>
-    </tr>`).join('');
+  const creators = Object.values(creatorMap);
+  const todayLogins = loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=today).length;
+  const pushSubs = getPushSubscriptions().length;
+
+  const ustatT=document.getElementById('ustat-total');
+  const ustatC=document.getElementById('ustat-creator');
+  const ustatTd=document.getElementById('ustat-today');
+  const ustatP=document.getElementById('ustat-push');
+  if(ustatT) ustatT.textContent = loginUsers.length;
+  if(ustatC) ustatC.textContent = creators.length;
+  if(ustatTd) ustatTd.textContent = todayLogins;
+  if(ustatP) ustatP.textContent = pushSubs;
+
+  const loginCnt = document.getElementById('login-user-count');
+  if(loginCnt) loginCnt.textContent = '(' + loginUsers.length + '명)';
+
+  /* 로그인 사용자 테이블 */
+  const loginTbody = document.getElementById('users-login-tbody');
+  if(loginTbody){
+    if(!loginUsers.length){
+      loginTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로그인 기록이 없습니다. 앱에서 소셜 로그인 시 자동 기록됩니다.</td></tr>';
+    } else {
+      loginTbody.innerHTML = loginUsers.map((u,i)=>{
+        const creatorKey = u.name+'__'+u.provider;
+        const cInfo = creatorMap[creatorKey];
+        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
+        return `<tr>
+          <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>'}</td>
+          <td style="font-weight:600;">${esc(u.name)}<div style="font-size:10px;color:var(--t3);">${esc(u.email||'')}</div></td>
+          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
+          <td style="text-align:center;font-weight:700;">${u.loginCount||1}회</td>
+          <td style="font-size:11px;color:var(--t3);">${u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR'):'—'}</td>
+          <td style="text-align:center;">${cInfo?cInfo.count+'곡':'—'}</td>
+          <td><div style="display:flex;gap:4px;">
+            <button class="btn" onclick="sendPushToUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🔔</button>
+            <button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  /* 생성 기여자 테이블 */
+  const creatorTbody = document.getElementById('users-creator-tbody');
+  if(creatorTbody){
+    if(!creators.length){
+      creatorTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">생성 기여자가 없습니다</td></tr>';
+    } else {
+      const sorted = [...creators].sort((a,b)=>b.count-a.count);
+      creatorTbody.innerHTML = sorted.map((u,i)=>{
+        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
+        return `<tr>
+          <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>'}</td>
+          <td style="font-weight:600;">${esc(u.name)}</td>
+          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
+          <td style="text-align:center;font-weight:800;color:var(--acc3);">${u.count}곡</td>
+          <td style="text-align:center;">${u.likes}</td>
+          <td style="font-size:11px;color:var(--t3);">${u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—'}</td>
+          <td><button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫 차단</button></td>
+        </tr>`;
+      }).join('');
+    }
+  }
 }
+
+function filterUsers(){
+  const q=(document.getElementById('user-search')?.value||'').toLowerCase();
+  const rows=document.querySelectorAll('#users-login-tbody tr');
+  rows.forEach(r=>{
+    const txt=r.textContent.toLowerCase();
+    r.style.display=txt.includes(q)?'':'none';
+  });
+}
+
+function sendPushToUser(name){
+  /* 특정 사용자에게 개별 알림 — 푸시탭으로 이동 후 이름 표시 */
+  switchSec('push');
+  const titleEl=document.getElementById('push-title');
+  const bodyEl=document.getElementById('push-body');
+  if(titleEl) titleEl.value="🎵 Kenny's Music Studio";
+  if(bodyEl)  bodyEl.value=name+'님, 새 소식이 있어요!';
+  updatePushPreview();
+  adminToast('📝 '+name+'님 대상 알림을 작성해주세요');
+}
+
 function banUser(name){
-  if(!confirm(name+' 사용자를 차단할까요? (해당 사용자의 곡이 커뮤니티에서 숨겨집니다)'))return;
+  if(!confirm(name+' 사용자를 차단할까요?\n(커뮤니티 곡이 숨겨지고 로그인 목록에서 제거됩니다)'))return;
   let h=getHistory();
   h=h.map(t=>{if(t._owner?.name===name)t._owner=null;return t;});
   localStorage.setItem('kms_history',JSON.stringify(h));
-  adminToast('✅ '+name+' 차단됨');renderUsersAdmin();loadData();
+  /* 로그인 목록에서도 제거 */
+  let lu=getLoginUsers().filter(u=>u.name!==name);
+  localStorage.setItem('kms_login_users',JSON.stringify(lu));
+  adminToast('✅ '+name+' 차단됨');
+  renderUsersAdmin();loadData();
 }
 
 // ── 설정 저장 ──
@@ -893,6 +1257,10 @@ async function testLocalPush(){
 
 /* 입력 이벤트 바인딩 */
 window.addEventListener('load', ()=>{
+  /* 저장된 kie.ai key 복원 */
+  const _sk = localStorage.getItem('kms_kie_key');
+  const _ki = document.getElementById('kie-api-input');
+  if(_sk && _ki) _ki.value = _sk;
   const ti = document.getElementById('push-title');
   const bi = document.getElementById('push-body');
   if(ti) ti.addEventListener('input', updatePushPreview);
@@ -909,6 +1277,222 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const sec = document.getElementById('sec-push');
   if(sec) _pushSwitchObserver.observe(sec, {attributes:true, attributeFilter:['class']});
 });
+
+
+// ── 사용량·비용 분석 ──
+const USD_KRW_RATE = 1340;
+const COST_TABLE = [
+  { type:'song',   label:'🎵 음악 생성',    usd:0.05,  key:'songs'  },
+  { type:'mv',     label:'🎬 뮤직비디오',   usd:0.25,  key:'mv'     },
+  { type:'lyrics', label:'📝 가사 생성',    usd:0.005, key:'lyrics' },
+  { type:'extend', label:'🔄 곡 연장',      usd:0.03,  key:'extend' },
+  { type:'vocal',  label:'🎤 보컬 변환',    usd:0.05,  key:'vocal'  },
+];
+
+function getMonthKeyAdmin(offset=0){
+  const d=new Date();
+  d.setMonth(d.getMonth()-offset);
+  return d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0');
+}
+
+function getUsageForMonth(monthKey){
+  try{ return JSON.parse(localStorage.getItem('kms_usage_'+monthKey)||'{}'); }catch{ return {}; }
+}
+function getUsageLogAdmin(){
+  try{ return JSON.parse(localStorage.getItem('kms_usage_log')||'[]'); }catch{ return []; }
+}
+
+function loadUsageAdmin(){
+  /* 월 선택 옵션 생성 */
+  const sel=document.getElementById('usage-month-sel');
+  if(sel && sel.options.length===0){
+    for(let i=0;i<6;i++){
+      const d=new Date(); d.setMonth(d.getMonth()-i);
+      const key=d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0');
+      const label=d.getFullYear()+'년 '+(d.getMonth()+1)+'월';
+      const opt=document.createElement('option');
+      opt.value=key; opt.textContent=label; if(i===0)opt.selected=true;
+      sel.appendChild(opt);
+    }
+  }
+  const monthKey=sel?sel.value:getMonthKeyAdmin();
+  const usage=getUsageForMonth(monthKey);
+  const log=getUsageLogAdmin();
+
+  /* 필터: 선택 월 로그만 */
+  const monthStart=new Date(parseInt(monthKey.slice(0,4)),parseInt(monthKey.slice(4))-1,1).getTime();
+  const monthEnd=new Date(parseInt(monthKey.slice(0,4)),parseInt(monthKey.slice(4)),1).getTime();
+  const monthLog=log.filter(l=>l.ts>=monthStart&&l.ts<monthEnd);
+
+  /* 요약 집계 */
+  let totalKrw=0, totalUsd=0, totalOps=0;
+  const typeCounts={};
+  monthLog.forEach(l=>{
+    totalUsd+=(l.cost_usd||0);
+    totalKrw+=(l.cost_krw||0);
+    totalOps++;
+    typeCounts[l.type]=(typeCounts[l.type]||0)+1;
+  });
+
+  /* fallback: usage 키 기반 집계 */
+  if(totalOps===0){
+    COST_TABLE.forEach(row=>{
+      const n=usage[row.key]||0;
+      if(n>0){ totalUsd+=n*row.usd; totalKrw+=Math.round(n*row.usd*USD_KRW_RATE); totalOps+=n; typeCounts[row.type]=n; }
+    });
+  }
+
+  /* 요약 카드 */
+  const songs=usage.songs||typeCounts['song']||0;
+  const mvs=usage.mv||typeCounts['mv']||0;
+  const lyrics=usage.lyrics||typeCounts['lyrics']||0;
+  const el=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  el('u-songs',songs); el('u-mv',mvs); el('u-lyrics',lyrics);
+  el('u-cost-krw','₩'+totalKrw.toLocaleString('ko-KR'));
+  el('u-cost-usd','$'+totalUsd.toFixed(2));
+  el('u-total-ops',totalOps+'건');
+
+  /* 단가 테이블 */
+  const tbody=document.getElementById('cost-table-tbody');
+  if(tbody){
+    tbody.innerHTML=COST_TABLE.map(row=>{
+      const n=usage[row.key]||typeCounts[row.type]||0;
+      const sub=Math.round(n*row.usd*USD_KRW_RATE);
+      return `<tr>
+        <td>${row.label}</td>
+        <td>$${row.usd.toFixed(3)}</td>
+        <td>₩${Math.round(row.usd*USD_KRW_RATE).toLocaleString()}</td>
+        <td>${n}건</td>
+        <td style="font-weight:700;color:${sub>0?'var(--acc2)':'var(--t3)'};">₩${sub.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+  }
+  const tf1=document.getElementById('cost-total-ops'); if(tf1) tf1.textContent=totalOps+'건';
+  const tf2=document.getElementById('cost-total-krw'); if(tf2) tf2.textContent='₩'+totalKrw.toLocaleString('ko-KR');
+
+  /* u-kie-balance 자동 로드 (저장된 키 있으면) */
+  const _savedKey = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
+  if(_savedKey && document.getElementById('u-kie-balance')?.textContent === '-'){
+    fetchKieUsageForStats(_savedKey);
+  }
+
+  /* 월별 트렌드 (최근 6개월) */
+  const trendData=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(); d.setMonth(d.getMonth()-i);
+    const key=d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0');
+    const u=getUsageForMonth(key);
+    trendData.push({label:(d.getMonth()+1)+'월', songs:u.songs||0, mv:u.mv||0, lyrics:u.lyrics||0});
+  }
+  const maxSongs=Math.max(...trendData.map(t=>t.songs),1);
+  const tChart=document.getElementById('monthly-trend-chart');
+  if(tChart) tChart.innerHTML=trendData.map(t=>`
+    <div class="bar-item">
+      <div class="bar-label">${t.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(t.songs/maxSongs*100)}%"></div></div>
+      <div class="bar-val">${t.songs}곡</div>
+    </div>`).join('');
+
+  /* 기능별 비율 */
+  const fChart=document.getElementById('feature-ratio-chart');
+  if(fChart){
+    const maxC=Math.max(...COST_TABLE.map(r=>typeCounts[r.type]||0),1);
+    fChart.innerHTML=COST_TABLE.map(row=>`
+      <div class="bar-item">
+        <div class="bar-label" style="font-size:10px;width:70px;">${row.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((typeCounts[row.type]||0)/maxC*100)}%"></div></div>
+        <div class="bar-val">${typeCounts[row.type]||0}</div>
+      </div>`).join('');
+  }
+
+  /* 로그 테이블 */
+  const logTbody=document.getElementById('usage-log-tbody');
+  if(logTbody){
+    const displayLog=monthLog.length?monthLog:log.slice(0,50);
+    if(!displayLog.length){
+      logTbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">로그가 없습니다<br><span style="font-size:11px;">앱에서 음악을 생성하면 자동으로 기록됩니다</span></td></tr>';
+    } else {
+      logTbody.innerHTML=displayLog.slice(0,50).map(l=>`
+        <tr>
+          <td><span class="badge badge-acc">${{song:'🎵 음악',mv:'🎬 MV',lyrics:'📝 가사',extend:'🔄 연장',vocal:'🎤 보컬'}[l.type]||l.type}</span></td>
+          <td style="color:var(--t2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(l.title||l.mode||'-')}</td>
+          <td style="font-weight:700;color:var(--acc2);">₩${(l.cost_krw||0).toLocaleString()}</td>
+          <td style="color:var(--t3);">$${(l.cost_usd||0).toFixed(3)}</td>
+          <td style="font-size:11px;color:var(--t3);">${new Date(l.ts).toLocaleString('ko-KR')}</td>
+        </tr>`).join('');
+    }
+  }
+}
+
+function promptKieKeyAndFetch(){
+  /* 사용량 탭에서도 kie API Key 입력 가능 */
+  const saved = localStorage.getItem('kms_kie_key') || '';
+  const key = prompt('kie.ai API Key를 입력하세요:', saved);
+  if(!key) return;
+  localStorage.setItem('kms_kie_key', key);
+  /* kie-api-input에도 동기화 */
+  const inp = document.getElementById('kie-api-input');
+  if(inp) inp.value = key;
+  fetchKieUsageForStats(key);
+}
+
+async function fetchKieUsageForStats(apiKey){
+  if(!apiKey) return;
+  const bal  = document.getElementById('u-kie-balance');
+  const balK = document.getElementById('u-kie-krw');
+  if(bal) bal.textContent = '조회 중...';
+
+  const endpoints = ['/api/v1/user/info','/api/v1/user/me','/api/v1/credit/balance'];
+  for(const ep of endpoints){
+    try{
+      const d = await kieProxyRequest(apiKey, ep);
+      const b = d?.data?.credits ?? d?.data?.remainCredits ?? d?.credits ?? d?.balance ?? null;
+      if(b !== null){
+        if(bal)  bal.textContent  = b.toLocaleString() + ' cr';
+        if(balK) balK.textContent = '≈ ₩' + Math.round(b*13.5).toLocaleString();
+        /* 대시보드 카드도 동기화 */
+        const kb = document.getElementById('kie-balance');
+        if(kb) kb.textContent = b + ' 크레딧 (≈ ₩' + Math.round(b*13.5).toLocaleString() + ')';
+        const kbrow = document.getElementById('kie-balance-row');
+        if(kbrow) kbrow.style.display = 'block';
+        return;
+      }
+    }catch(e){ console.warn(ep, e.message); }
+  }
+  if(bal) bal.innerHTML = '<a href="https://kie.ai/ko/logs" target="_blank" style="color:var(--acc3);font-size:11px;">직접 확인 →</a>';
+}
+
+function exportUsageCsv(){
+  const log = getUsageLogAdmin();
+  if(!log.length){ adminToast('내보낼 로그 없음'); return; }
+  const header = ['유형','제목/모드','비용(KRW)','비용(USD)','일시'];
+  const rows = log.map(l=>[
+    {song:'음악',mv:'MV',lyrics:'가사',extend:'연장',vocal:'보컬'}[l.type]||l.type,
+    (l.title||l.mode||'-').replace(/,/g,' '),
+    l.cost_krw||0,
+    (l.cost_usd||0).toFixed(3),
+    new Date(l.ts).toLocaleString('ko-KR')
+  ]);
+  const csv = [header, ...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), {href:url, download:'kms_usage_'+getMonthKeyAdmin()+'.csv'});
+  a.click(); URL.revokeObjectURL(url);
+  adminToast('📥 CSV 다운로드됨');
+}
+
+function clearUsageLog(){
+  if(!confirm('사용 로그를 모두 초기화할까요?')) return;
+  localStorage.removeItem('kms_usage_log');
+  /* 월별 데이터도 초기화 */
+  for(let i=0;i<6;i++){
+    const d=new Date(); d.setMonth(d.getMonth()-i);
+    const key=d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0');
+    localStorage.removeItem('kms_usage_'+key);
+  }
+  adminToast('✅ 사용 로그 초기화됨');
+  loadUsageAdmin();
+}
 
 </script>
 </body>
