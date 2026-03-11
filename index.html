@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kenny's Music Studio — AI 음악 생성기">
+<meta property="og:description" content="AI로 나만의 음악을 만들어보세요. 커스텀 가사, 심플 모드, YouTube 커버, 뮤직비디오까지!">
+<meta property="og:image" id="og-image" content="https://ai-music-studio-bice.vercel.app/og-cover.png">
+<meta property="og:url" id="og-url" content="https://ai-music-studio-bice.vercel.app">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kenny's Music Studio">
+<meta name="twitter:description" content="AI로 나만의 음악을 만들어보세요">
+<meta name="twitter:image" id="tw-image" content="https://ai-music-studio-bice.vercel.app/og-cover.png">
 <title>Kenny's Music Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1860,7 +1869,7 @@ body.mp-on .view{padding-bottom:118px;}
 
   <!-- ── 헤더 ── -->
   <header class="app-header">
-    <div class="logo">Kenny's <span>Music</span> Studio</div>
+    <div class="logo">Kenny's <span>Music</span> Studio<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.0</span></div>
 
   </header>
 
@@ -3661,7 +3670,6 @@ Return ONLY the prompt text, no explanation. Make it vivid, cinematic, 100-200 w
 $('mv-gen-btn')?.addEventListener('click',generateMV);
 
 async function generateMV(){
-  if(_genLocked){showGenLockedPopup();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   const prompt=($('mv-prompt')?.value||'').trim();
@@ -4101,7 +4109,6 @@ $('prompt').addEventListener('input',function(){
 
 /* ── 커스텀: AI 작사 → 자동 생성 ── */
 async function _autoLyricsAndGenerate(){
-  if(_genLocked){showGenLockedPopup();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   const sub=$('genre-sub').value||'';
@@ -4390,8 +4397,29 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
             mvPanel.querySelector('[data-copy-video-url]').addEventListener('click',function(){
               navigator.clipboard.writeText(this.dataset.copyVideoUrl).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));
             });
-            if(historyData[0])historyData[0].video_url=videoUrl,historyData[0].type='video';
+            /* MV 히스토리에 독립 저장 */
+            const linkedAudio=historyData[0]||{};
+            const mvEntry={
+              id:'mv-'+Date.now(),taskId:'mv',
+              title:(linkedAudio.title||'무제')+' MV',
+              audio_url:linkedAudio.audio_url||'',
+              video_url:videoUrl,
+              image_url:linkedAudio.image_url||'',
+              tags:'뮤직비디오',lyrics:'',
+              created:Date.now(),type:'video',genMode:'mv',
+              _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+            };
+            historyData.unshift(mvEntry);
+            historyData=historyData.slice(0,30);
             saveHistory();renderHistory();
+            /* results-mv에도 카드 추가 */
+            const mvInner=$('results-inner-mv');
+            if(mvInner){
+              const mvCard=document.createElement('div');mvCard.className='result-card';
+              mvCard.innerHTML=`<div class="rc-cover"><video class="rc-cover-img" src="${esc(videoUrl)}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video></div><div class="rc-info"><div class="rc-title">${esc(mvEntry.title)}</div><div class="rc-tags"><span class="rc-tag">🎬 MV</span></div></div>`;
+              mvInner.prepend(mvCard);
+              $('results-mv').style.display='block';
+            }
             toast('🎬 뮤직비디오 완성! 최근생성 탭에서 확인하세요','ok',3000);
             setTimeout(gotoHistoryTab,800);
           }else{
@@ -4599,7 +4627,10 @@ function renderTracks(tracks,prompt,tags,mode){
         <div style="position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.6);border:1px solid rgba(208,64,232,.4);color:var(--acc);font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:inherit;pointer-events:none;">🎤 노래방</div>
       </div>
       <div class="rc-body">
-        ${i>0?`<div class="dual-label">버전 ${i+1}</div>`:''}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          ${i>0?`<div class="dual-label">버전 ${i+1}</div>`:''}
+          <div style="font-size:9px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2);border-radius:6px;padding:2px 7px;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey.toUpperCase()}</div>
+        </div>
         <div class="rc-title">${esc(title)}</div>
         <div class="rc-meta">${esc((prompt||'').slice(0,60))}${(prompt||'').length>60?'...':''} · ${dur}</div>
         <div class="rc-tags">${trackTags.slice(0,6).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
@@ -4638,7 +4669,7 @@ function renderTracks(tracks,prompt,tags,mode){
             <button class="dl-btn" id="lrc-edit-btn-${i}" style="color:var(--acc3);border-color:rgba(168,85,247,.3);" onclick="toggleLyricsEdit(${i})">✏️ 가사 편집</button>
           </div>
           <!-- 가사 표시 영역 -->
-          <div class="lyrics-display" id="lyrics-plain-${i}">${parseLyrics(lyricsRaw)}</div>
+          <div class="lyrics-display" id="lyrics-plain-${i}">${lyricsRaw?parseLyrics(lyricsRaw):'<div style=\'text-align:center;padding:20px;color:var(--t3);\'><div style=\'font-size:24px;margin-bottom:8px;\'>🎵</div><div style=\'font-size:12px;margin-bottom:10px;\'>가사가 아직 없어요</div></div>'}</div>
           <div class="lyrics-display" id="lyrics-karaoke-${i}"></div>
           <!-- 가사 편집 영역 (기본 숨김) -->
           <div id="lrc-edit-wrap-${i}" style="display:none;">
@@ -5106,6 +5137,7 @@ $('hes-dl-btn').addEventListener('click',()=>{
   const h=historyData[_hesIdx];
   if(!h)return;
   const url=h.video_url||h.audio_url;
+  if(url){try{new URL(url);}catch(e){toast('잘못된 미디어 URL','err');return;}}
   if(!url){toast('다운로드할 파일 없음','err');return;}
   const ext=h.video_url?'mp4':'mp3';
   downloadFile(url,(h.title||'track')+'.'+ext);
@@ -5175,9 +5207,15 @@ function showMiniPlayer(idx){
   document.body.classList.add('mp-on');
 
   if(!h.audio_url){ toast('오디오 URL 없음','err'); return; }
+  /* URL 유효성 체크 */
+  let _safeAudioUrl = h.audio_url;
+  try{ new URL(_safeAudioUrl); }catch(e){ toast('잘못된 오디오 URL','err'); return; }
 
   /* ── 새 오디오 생성 ── */
-  const audio = new Audio(h.audio_url);
+  const audio = new Audio();
+  audio.crossOrigin='anonymous';
+  audio.preload='none';
+  audio.src = _safeAudioUrl;
   fpAudio = audio;
 
   audio.addEventListener('timeupdate',()=>{
@@ -5632,21 +5670,24 @@ function _doOpenFullPlayer(idx){
   /* 가사 렌더 */
   fpRenderLyrics(h);
 
-  /* 풀플레이어 열기 — 미니플레이어 즉시 숨기기 */
+  /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
   $('fullplayer').classList.add('on');
   const mp=$('mini-player');
   mp.style.transition='none';
   mp.classList.remove('on');
-  mp.style.opacity='0';
-  mp.style.pointerEvents='none';
-  mp.style.transform='translateY(110%)';
-  /* body mp-on 유지는 하되 미니플레이어 강제 숨김 — 풀플레이어 닫을 때 복원 */
+  mp.style.cssText='opacity:0!important;transform:translateY(120%)!important;pointer-events:none!important;visibility:hidden!important;';
+  document.body.classList.remove('mp-on');
   document.body.style.overflow='hidden';
 
   /* 오디오 */
   if(fpAudio){fpAudio.pause();clearInterval(fpVizTimer);}
   if(!h.audio_url){toast('오디오 URL 없음','err');return;}
-  const audio=new Audio(h.audio_url);
+  /* URL 유효성 체크 */
+  try{new URL(h.audio_url);}catch(e){toast('잘못된 오디오 URL: '+h.audio_url.slice(0,40),'err');return;}
+  if(!/^https?:\/\//i.test(h.audio_url)){toast('지원하지 않는 오디오 URL 형식','err');return;}
+  const audio=new Audio();
+  audio.preload='none';
+  audio.src=h.audio_url;
   fpAudio=audio;
 
   audio.addEventListener('timeupdate',()=>{
@@ -5659,8 +5700,16 @@ function _doOpenFullPlayer(idx){
     if(fpSyncMode&&fpTimestampLines.length)fpSyncLyrics(audio.currentTime);
   });
   audio.addEventListener('ended',()=>{$('fp-play-btn').textContent='▶';fpStopViz();});
-  audio.addEventListener('error',()=>toast('오디오 재생 오류','err'));
-  audio.play().then(()=>{$('fp-play-btn').textContent='⏸';fpStartViz();}).catch(()=>{});
+  audio.addEventListener('error',(ev)=>{
+    const code=ev.target?.error?.code;
+    const msgs={1:'로딩 중단',2:'네트워크 오류',3:'디코딩 실패',4:'지원하지 않는 형식'};
+    const msg=msgs[code]||'재생 오류';
+    console.error('[FP Audio Error]',code,h.audio_url?.slice(0,80));
+    toast('🔇 오디오 '+msg+' ('+msg+')','err',4000);
+  });
+  audio.play().then(()=>{$('fp-play-btn').textContent='⏸';fpStartViz();}).catch((e)=>{
+    if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
+  });
 
   /* 시크 */
   $('fp-prog-wrap').onclick=e=>{
@@ -5678,12 +5727,12 @@ $('fp-back').addEventListener('click',()=>{
   $('fullplayer').classList.remove('on');
   document.body.style.overflow='';
   fpStopViz();
-  /* 미니플레이어 복원 */
-  if(document.body.classList.contains('mp-on')){
+  /* 미니플레이어 복원 — 재생 중인 곡 있을 때만 */
+  if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]?.audio_url){
     const mp=$('mini-player');
-    /* !important 인라인 스타일 완전 초기화 */
     mp.style.cssText='';
     mp.classList.add('on');
+    document.body.classList.add('mp-on');
   }
   /* 음악은 계속 재생 */
   if(fpAudio && !fpAudio.paused){
@@ -5979,11 +6028,26 @@ function fpDeleteCurrent(){
 }
 
 /* 공유 */
+function _updateOgTags(title,imageUrl,shareUrl){
+  try{
+    const ogTitle=document.querySelector('meta[property="og:title"]');
+    const ogDesc=document.querySelector('meta[property="og:description"]');
+    const ogImg=document.querySelector('#og-image,meta[property="og:image"]');
+    const ogUrl=document.querySelector('#og-url,meta[property="og:url"]');
+    const twImg=document.querySelector('#tw-image,meta[name="twitter:image"]');
+    if(ogTitle)ogTitle.content=title+' — Kenny\'s Music Studio';
+    if(ogDesc)ogDesc.content='🎵 AI로 만든 노래: "'+title+'"';
+    if(ogImg&&imageUrl)ogImg.content=imageUrl;
+    if(twImg&&imageUrl)twImg.content=imageUrl;
+    if(ogUrl&&shareUrl)ogUrl.content=shareUrl;
+  }catch(e){}
+}
 function fpOpenShare(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
   const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요';
-  const url=h.audio_url||window.location.href;
+  const url=window.location.origin+'/?track='+encodeURIComponent(title);
+  _updateOgTags(title,h.image_url||'',url);
   if(navigator.share){
     navigator.share({title,text,url}).catch(()=>{});
   } else {
