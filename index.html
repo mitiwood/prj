@@ -3301,21 +3301,47 @@ $('yt-inst-toggle').addEventListener('click',function(){
 });
 
 /* ── 심플 모드 생성 버튼 ── */
-$('simple-gen-btn').addEventListener('click',()=>{
+$('simple-gen-btn').addEventListener('click',async()=>{
   const desc=$('simple-prompt').value.trim();
   const moodVal=$('simple-mood').value;
-  if(!desc&&!moodVal){toast('음악 설명을 입력해주세요','err');return;}
   currentMode='simple';
-  /* 심플 BPM 적용 */
   const simpleBpm=parseInt($('simple-bpm-slider')?.value||120);
-  const prevBpmAuto=bpmAuto;const prevBpm=selectedBpm;
   bpmAuto=false;selectedBpm=simpleBpm;
-  const origPrompt=$('prompt').value;
-  const origInst=instOn;
-  $('prompt').value=desc;
   instOn=simpleInstOn;
+  if(!desc&&!moodVal){
+    /* 빈 입력 → AI 자동 가사+제목 생성 후 generate */
+    if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
+    const btn=$('simple-gen-btn'),sp=$('simple-gen-spinner'),txt=$('simple-gen-txt');
+    btn.disabled=true;sp.style.display='inline-block';txt.textContent='AI 생성 중...';
+    try{
+      const base='감성적인 한국 팝송, 따뜻하고 서정적인';
+      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base,callBackUrl:CALLBACK});
+      const ltid=ld?.data?.taskId||ld?.taskId;
+      if(ltid){
+        for(let i=0;i<30;i++){
+          await sleep(3000);
+          const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid);
+          if((lr?.data?.status||'').toUpperCase()==='SUCCESS'){
+            const text=lr?.data?.response?.text||lr?.data?.text||'';
+            if(text){
+              $('simple-prompt').value=text;
+              const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
+              const autoTitle=firstLine.slice(0,20)||'AI 생성곡';
+              $('song-title').value=autoTitle;
+              toast('✅ AI 가사+제목 생성 완료!','ok',2000);
+              break;
+            }
+          }
+        }
+      }
+    }catch(e){toast('자동 생성 실패: '+e.message,'err');}
+    finally{btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';}
+    return;
+  }
+  const origPrompt=$('prompt').value;
+  $('prompt').value=desc;
   generate();
-  setTimeout(()=>{$('prompt').value=origPrompt;instOn=origInst;bpmAuto=prevBpmAuto;selectedBpm=prevBpm;},100);
+  setTimeout(()=>{$('prompt').value=origPrompt;},100);
 });
 
 /* ── YouTube 생성 버튼 ── */
@@ -3763,7 +3789,15 @@ function _ytUrlCheck(){
 }
 /* input / paste / keyup / change 모두 처리 */
 ['input','keyup','change'].forEach(ev=>$('yt-url').addEventListener(ev,_ytUrlCheck));
-$('yt-url').addEventListener('paste',()=>setTimeout(_ytUrlCheck,50));
+$('yt-url').addEventListener('paste',()=>{
+  setTimeout(()=>{
+    _ytUrlCheck();
+    const val=($('yt-url').value||'').trim();
+    if(val&&(val.includes('youtube.com')||val.includes('youtu.be'))){
+      setTimeout(()=>$('yt-analyze-btn').click(),300);
+    }
+  },50);
+});
 /* 초기 상태: 분석 버튼 비활성화 */
 $('yt-analyze-btn').disabled=true;$('yt-analyze-btn').style.opacity='0.4';
 
@@ -3846,6 +3880,11 @@ $('yt-analyze-btn').addEventListener('click',async()=>{
       /* 가사를 prompt에도 반영 */
       if(generatedLyrics)$('prompt').value=generatedLyrics;
       _lastYtAnalysis=analysis; /* 나중에 historyData에 저장 */
+      /* 제목 자동 설정 */
+      if(!$('song-title').value.trim()){
+        const cleanTitle=title.replace(/[\(\[].*/,'').trim().slice(0,30);
+        $('song-title').value=cleanTitle||'YouTube 커버';
+      }
       toast('✅ 분석 + 가사 생성 완료!','ok',3000);
       const ytGenBtn=$('yt-gen-btn');
       if(ytGenBtn){ytGenBtn.disabled=false;ytGenBtn.style.opacity='1';$('yt-gen-txt').textContent='▶ YouTube 스타일로 생성';}
@@ -4051,7 +4090,15 @@ async function _autoLyricsAndGenerate(){
           clearInterval(ti);
           $('prompt').value=text;
           renderLyricsPreview(text);
-          toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
+          /* 제목 자동 생성 */
+          if(!$('song-title').value.trim()){
+            const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
+            const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||'나의 노래';
+            $('song-title').value=autoTitle;
+            toast('✅ 가사+제목 생성 완료! 음악을 생성합니다...','ok',2500);
+          } else {
+            toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
+          }
           /* 바로 생성 */
           setTimeout(()=>generate({_afterLyrics:true}),800);
           return;
@@ -4181,8 +4228,9 @@ async function generate(overrideParams){
         lyrics:savedLyrics,
         created:Date.now(),
         type:'audio',
-        genMode:currentMode,  /* 생성 모드 저장 */
+        genMode:currentMode,
         _ytAnalysis:currentMode==='youtube'?_lastYtAnalysis:null,
+        _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
     historyData=historyData.slice(0,30);
@@ -6250,7 +6298,8 @@ const _GENRE_KEYS={
   ost:['ost','cinematic','epic','film','오에스티','영화'],
 };
 function getCommTracks(){
-  /* audio_url 있는 트랙만, video 전용 제외 */
+  /* 소셜 로그인 사용자가 만든 곡만 (guest 제외), audio_url 있는 것만 */
+  const isLoggedIn=currentUser&&currentUser.provider!=='guest';
   let all=historyData
     .map((h,i)=>({
       _hIdx:i, title:h.title||'무제',
@@ -6263,8 +6312,9 @@ function getCommTracks(){
       disliked:h._commDisliked||false,
       isNew:(Date.now()-(h.created||0))<3600000*24,
       plays:h._commPlays||0,
+      _owner: h._owner||null,
     }))
-    .filter(t=>t.audioUrl); /* audio URL 없으면 커뮤니티 노출 제외 */
+    .filter(t=>t.audioUrl&&(isLoggedIn||t._owner)); /* 로그인 시 내 곡 포함, 비로그인은 owner 있는 곡만 */
   if(_commActiveGenre&&_commActiveGenre!=='all'){
     const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
     all=all.filter(t=>kws.some(k=>t.allTags.includes(k)||t.title.toLowerCase().includes(k)));
@@ -6280,10 +6330,12 @@ function renderCommunity(){
   let tracks=getCommTracks();
   if(!tracks.length){
     heroWrap.innerHTML='';
+    const isLoggedIn=currentUser&&currentUser.provider!=='guest';
     list.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--t3);">
       <div style="font-size:40px;margin-bottom:12px;">🎵</div>
-      <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 생성된 음악이 없어요</div>
-      <div style="font-size:12px;">음악 만들기에서 첫 곡을 만들어보세요!</div>
+      <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">${isLoggedIn?'아직 생성된 음악이 없어요':'로그인 후 음악을 공유해보세요'}</div>
+      <div style="font-size:12px;">${isLoggedIn?'음악 만들기에서 첫 곡을 만들어보세요!':'소셜 로그인 후 나만의 AI 음악을 커뮤니티에 올릴 수 있어요'}</div>
+      ${!isLoggedIn?`<button onclick="openLoginSheet()" style="margin-top:16px;padding:10px 24px;border-radius:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">로그인하기</button>`:''}
     </div>`;
     return;
   }
