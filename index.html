@@ -6,12 +6,12 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Kenny's Music Studio — AI 음악 생성기">
 <meta property="og:description" content="AI로 나만의 음악을 만들어보세요. 커스텀 가사, 심플 모드, YouTube 커버, 뮤직비디오까지!">
-<meta property="og:image" id="og-image" content="https://ai-music-studio-bice.vercel.app/og-cover.png">
+<meta property="og:image" id="og-image" content="https://ai-music-studio-bice.vercel.app/api/og-image?title=AI+Music+Studio&artist=Kenny">
 <meta property="og:url" id="og-url" content="https://ai-music-studio-bice.vercel.app">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Kenny's Music Studio">
 <meta name="twitter:description" content="AI로 나만의 음악을 만들어보세요">
-<meta name="twitter:image" id="tw-image" content="https://ai-music-studio-bice.vercel.app/og-cover.png">
+<meta name="twitter:image" id="tw-image" content="https://ai-music-studio-bice.vercel.app/api/og-image?title=AI+Music+Studio&artist=Kenny">
 <title>Kenny's Music Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -3623,7 +3623,103 @@ window.addEventListener('resize', updateNavHeight);
     toast('로그인에 실패했습니다','err',2500);
     window.history.replaceState({},'','/');
   }
+})()
+
+/* ── 공유 링크 자동 재생 ── */
+(function handleSharedTrack(){
+  const p=new URLSearchParams(window.location.search);
+  const playUrl=p.get('play');
+  const trackTitle=p.get('t')||p.get('track')||'';
+  const imgUrl=p.get('img')||'';
+  if(!playUrl) return;
+  /* URL에서 바로 재생 */
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      try{
+        /* 히스토리에 임시 트랙 추가 */
+        const tmpTrack={
+          title: trackTitle||'공유된 노래',
+          audio_url: playUrl,
+          image_url: imgUrl,
+          tags: 'shared',
+          created_at: Date.now(),
+          _shared: true
+        };
+        /* 히스토리 맨 앞에 추가 (중복 체크) */
+        if(!historyData.find(h=>h.audio_url===playUrl)){
+          historyData.unshift(tmpTrack);
+          saveHistory();
+          renderHistory();
+        }
+        const idx=historyData.findIndex(h=>h.audio_url===playUrl);
+        if(idx>=0){
+          switchTab('history-view');
+          setTimeout(()=>openFullPlayer(idx), 400);
+          toast('🎵 공유된 곡 재생 중: '+( trackTitle||''), 'ok', 2500);
+        }
+        /* URL 정리 */
+        history.replaceState({},'',window.location.pathname);
+      }catch(e){ console.warn('[SharedTrack]',e); }
+    }, 800);
+  });
 })();
+;
+
+/* ── 공유 링크 자동 재생 처리 ── */
+(function handleSharedTrack(){
+  const p=new URLSearchParams(window.location.search);
+  const sharedAudio=p.get('play');
+  const sharedTitle=p.get('track');
+  const sharedImg=p.get('img');
+  if(!sharedAudio && !sharedTitle) return;
+
+  /* 페이지 로드 완료 후 처리 */
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      if(sharedAudio){
+        /* 공유 플레이어 팝업 표시 */
+        _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+      }
+      /* URL 클린업 */
+      window.history.replaceState({},'','/');
+    }, 800);
+  });
+})();
+
+function _showSharedPlayer(title, audioUrl, imgUrl){
+  /* 기존 공유 플레이어 있으면 제거 */
+  document.getElementById('shared-player-wrap')?.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'shared-player-wrap';
+  wrap.style.cssText='position:fixed;inset:0;z-index:9000;display:flex;align-items:flex-end;background:rgba(0,0,0,.7);';
+  wrap.innerHTML=`
+  <div style="width:100%;background:linear-gradient(180deg,#1a1030 0%,#0d0d1a 100%);border-radius:20px 20px 0 0;padding:24px 20px 40px;animation:slideUp .35s cubic-bezier(.22,1,.36,1);">
+    <div style="width:36px;height:3px;background:#555;border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div style="width:60px;height:60px;border-radius:12px;overflow:hidden;background:#1e1535;flex-shrink:0;">
+        ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;">🎵</div>'}
+      </div>
+      <div>
+        <div style="font-size:13px;color:#a78bfa;font-weight:600;margin-bottom:4px;">✦ 공유된 AI 음악</div>
+        <div style="font-size:17px;font-weight:800;color:#fff;">${title}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;">Kenny's Music Studio</div>
+      </div>
+    </div>
+    <audio id="shared-audio-el" src="${audioUrl}" style="width:100%;border-radius:8px;margin-bottom:12px;" controls preload="auto"></audio>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button onclick="window.location.href='/'" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">✦ 나도 만들기</button>
+      <button onclick="document.getElementById('shared-player-wrap').remove()" style="padding:12px 18px;background:#1e1535;color:#a78bfa;border:1px solid #7c3aed44;border-radius:12px;font-size:14px;cursor:pointer;">닫기</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.addEventListener('click', e=>{
+    if(e.target===wrap) wrap.remove();
+  });
+  /* 자동 재생 시도 */
+  const audio = document.getElementById('shared-audio-el');
+  if(audio) audio.play().catch(()=>{});
+}
 
 /* ── 인스트루멘탈 ── */
 $('inst-toggle').addEventListener('click',function(){
@@ -5771,11 +5867,11 @@ function showCompletionPopup(mode, title){
   /* 사용량 기록 */
   trackUsage('song', {mode:mode||'custom', title:title||''});
   const modal = $('glp-modal');
-  const title = $('glp-title');
+  const titleEl = $('glp-title');
   const desc  = $('glp-desc');
-  if(modal && title && desc){
+  if(modal && titleEl && desc){
     modal.classList.add('done');
-    title.textContent = '✅ 음악 생성 완료!';
+    titleEl.textContent = '✅ 음악 생성 완료!';
     desc.textContent  = '최근생성 탭에서 확인하세요 🎵';
     $('gen-lock-popup').classList.add('on');
     setTimeout(closeGenLockPopup, 3000);
@@ -6230,29 +6326,39 @@ function fpDeleteCurrent(){
 /* 공유 */
 function _updateOgTags(title,imageUrl,shareUrl){
   try{
+    const BASE='https://ai-music-studio-bice.vercel.app';
+    const safeTitle=(title||'나의 노래').slice(0,28);
+    const ogImgUrl=BASE+'/api/og-image?title='+encodeURIComponent(safeTitle)+'&artist='+encodeURIComponent('AI 아티스트');
+    /* OG 메타 업데이트 */
     const ogTitle=document.querySelector('meta[property="og:title"]');
-    const ogDesc=document.querySelector('meta[property="og:description"]');
-    const ogImg=document.querySelector('#og-image,meta[property="og:image"]');
-    const ogUrl=document.querySelector('#og-url,meta[property="og:url"]');
-    const twImg=document.querySelector('#tw-image,meta[name="twitter:image"]');
-    if(ogTitle)ogTitle.content=title+' — Kenny\'s Music Studio';
-    if(ogDesc)ogDesc.content='🎵 AI로 만든 노래: "'+title+'"';
-    if(ogImg&&imageUrl)ogImg.content=imageUrl;
-    if(twImg&&imageUrl)twImg.content=imageUrl;
-    if(ogUrl&&shareUrl)ogUrl.content=shareUrl;
+    const ogDesc =document.querySelector('meta[property="og:description"]');
+    const ogImg  =document.getElementById('og-image');
+    const ogUrl  =document.getElementById('og-url');
+    const twImg  =document.getElementById('tw-image');
+    if(ogTitle) ogTitle.setAttribute('content', safeTitle+' — Kenny\'s Music Studio');
+    if(ogDesc)  ogDesc.setAttribute('content',  '🎵 AI로 만든 노래: "'+safeTitle+'"');
+    if(ogImg)   ogImg.setAttribute('content',   ogImgUrl);
+    if(twImg)   twImg.setAttribute('content',   ogImgUrl);
+    if(ogUrl&&shareUrl) ogUrl.setAttribute('content', shareUrl);
   }catch(e){}
 }
 function fpOpenShare(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
-  const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요';
-  const url=window.location.origin+'/?track='+encodeURIComponent(title);
-  _updateOgTags(title,h.image_url||'',url);
+  const audioUrl=h.audio_url||h.song_path||'';
+  const imgUrl=h.image_url||h.cover_image_url||'';
+  const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  /* 공유 URL — audio_url 포함해 웹에서 바로 재생 가능 */
+  const params=new URLSearchParams({t:title});
+  if(audioUrl) params.set('play', audioUrl);
+  if(imgUrl)   params.set('img',  imgUrl);
+  const url=window.location.origin+'/?'+params.toString();
+  _updateOgTags(title, imgUrl, url);
   if(navigator.share){
-    navigator.share({title,text,url}).catch(()=>{});
+    navigator.share({title, text, url}).catch(()=>{});
   } else {
     $('share-url-input').value=url;
-    $('share-title').textContent='"'+title+'" 공유하기';
+    $('share-title').textContent='\"'+title+'\" 공유하기';
     $('share-sheet').classList.add('on');
   }
 }
@@ -7004,10 +7110,16 @@ function commDislikeByHIdx(hIdx){
 function commShareByHIdx(hIdx){
   const h=historyData[hIdx];if(!h)return;
   const title=h.title||'나의 노래';
-  const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요';
-  const url=h.audio_url||window.location.href;
+  const audioUrl=h.audio_url||h.song_path||'';
+  const imgUrl=h.image_url||h.cover_image_url||'';
+  const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  const params=new URLSearchParams({t:title});
+  if(audioUrl) params.set('play', audioUrl);
+  if(imgUrl)   params.set('img',  imgUrl);
+  const url=window.location.origin+'/?'+params.toString();
+  _updateOgTags(title, imgUrl, url);
   if(navigator.share){
-    navigator.share({title,text,url}).catch(()=>{});
+    navigator.share({title, text, url}).catch(()=>{});
   } else {
     navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500));
   }

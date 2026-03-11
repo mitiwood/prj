@@ -18,6 +18,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Pretendard',-apple-system
 .snav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--t2);transition:all .15s;margin-bottom:2px;}
 .snav-item:hover{background:rgba(168,85,247,.1);color:var(--t1);}
 .snav-item.on{background:rgba(168,85,247,.18);color:var(--acc);font-weight:700;}
+    .snav-divider{height:1px;background:var(--border);margin:4px 8px;pointer-events:none;padding:0!important;min-height:1px;}
 .snav-icon{font-size:16px;flex-shrink:0;}
 .sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--t3);}
 /* 메인 */
@@ -121,6 +122,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <input class="gate-input" id="gate-pw" type="password" placeholder="관리자 비밀번호" autocomplete="off">
     <button class="gate-btn" onclick="gateLogin()">로그인</button>
     <div class="gate-err" id="gate-err">비밀번호가 올바르지 않습니다</div>
+    <div style="font-size:10px;color:#4b5563;margin-top:8px;text-align:center;">매니저 접속: <span style="color:#a78bfa;">아이디:비밀번호</span> 형식</div>
   </div>
 </div>
 
@@ -136,9 +138,12 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="tracks" onclick="switchSec('tracks')"><span class="snav-icon">🎵</span>음악 관리</div>
       <div class="snav-item" data-sec="community" onclick="switchSec('community')"><span class="snav-icon">🌐</span>커뮤니티</div>
       <div class="snav-item" data-sec="users" onclick="switchSec('users')"><span class="snav-icon">👥</span>사용자</div>
+      <div class="snav-item" data-sec="managers" onclick="switchSec('managers')"><span class="snav-icon">🛡️</span>매니저</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
+      <div class="snav-item snav-divider"></div>
+      <div class="snav-item" data-sec="managers" onclick="switchSec('managers')" id="snav-managers"><span class="snav-icon">👔</span>매니저 관리</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
     </div>
     <div class="sidebar-footer">
@@ -316,6 +321,43 @@ tr:hover td{background:rgba(255,255,255,.02);}
             </div>
             <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>생성 곡</th><th>좋아요 합계</th><th>마지막 생성</th><th>관리</th></tr></thead>
             <tbody id="users-creator-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- 매니저 관리 -->
+      <div class="admin-section" id="sec-managers">
+        <div class="sec-hdr">
+          <h2>매니저 관리</h2>
+          <button class="btn btn-acc" onclick="openAddManagerModal()">➕ 매니저 추가</button>
+        </div>
+
+        <div class="admin-table-wrap" style="margin-bottom:16px;">
+          <div class="admin-table-header">
+            <h3>🛡️ 매니저 목록 <span id="mgr-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+          </div>
+          <table><thead><tr><th>이름</th><th>이메일/ID</th><th>권한</th><th>상태</th><th>등록일</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="managers-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다</td></tr>
+          </tbody></table>
+        </div>
+
+        <div class="admin-table-wrap">
+          <div class="admin-table-header"><h3>📋 권한 레벨</h3></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:8px;">
+              <span style="background:#ef4444;color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;">ADMIN</span>
+              <span style="font-size:13px;color:var(--t2);">전체 관리 권한 — 음악, 사용자, 설정, 매니저 추가/삭제</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:8px;">
+              <span style="background:#f97316;color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;">MODERATOR</span>
+              <span style="font-size:13px;color:var(--t2);">음악/신고/커뮤니티 관리 — 설정·매니저 변경 불가</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:8px;">
+              <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;">VIEWER</span>
+              <span style="font-size:13px;color:var(--t2);">통계 열람만 가능 — 수정/삭제 불가</span>
+            </div>
           </div>
         </div>
       </div>
@@ -543,6 +585,95 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
 
 
+      <!-- 매니저 관리 -->
+      <div class="admin-section" id="sec-managers">
+        <div class="sec-hdr"><h2>매니저 관리</h2><div id="mgr-role-badge" style="display:none;"></div></div>
+
+        <!-- 현재 매니저 목록 -->
+        <div class="admin-table-wrap" style="margin-bottom:16px;">
+          <div class="admin-table-header">
+            <h3>👔 매니저 계정 목록</h3>
+            <button class="btn btn-acc" onclick="openAddManagerModal()" id="btn-add-manager">+ 매니저 추가</button>
+          </div>
+          <table id="managers-table">
+            <thead>
+              <tr>
+                <th>이름</th><th>아이디</th><th>권한 레벨</th><th>허용 섹션</th><th>상태</th><th>마지막 접속</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="managers-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 권한 레벨 설명 -->
+        <div class="admin-table-wrap">
+          <div class="admin-table-header"><h3>🔐 권한 레벨 안내</h3></div>
+          <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+            <div style="background:var(--bg3);border-radius:10px;padding:14px;border-left:3px solid #ef4444;">
+              <div style="font-weight:800;font-size:13px;color:#ef4444;">👑 관리자 (ADMIN)</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6;">모든 기능 접근 가능<br>매니저 추가/삭제<br>비밀번호 변경<br>전체 초기화</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:14px;border-left:3px solid #f59e0b;">
+              <div style="font-weight:800;font-size:13px;color:#f59e0b;">🔧 슈퍼 매니저 (SUPER)</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6;">음악/커뮤니티/사용자 관리<br>신고 처리, 푸시 발송<br>설정 제외 전체 접근</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:14px;border-left:3px solid #3b82f6;">
+              <div style="font-weight:800;font-size:13px;color:#3b82f6;">📋 매니저 (MANAGER)</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6;">음악/커뮤니티 관리<br>신고 처리<br>사용자/설정 제외</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:14px;border-left:3px solid #10b981;">
+              <div style="font-weight:800;font-size:13px;color:#10b981;">👁 뷰어 (VIEWER)</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6;">대시보드 + 통계 조회만<br>데이터 수정 불가<br>읽기 전용</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 매니저 추가/편집 모달 -->
+      <div id="add-manager-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;">
+        <div style="background:var(--bg2);border-radius:16px;padding:28px;width:min(420px,92vw);border:1px solid var(--border);">
+          <h3 id="mgr-modal-title" style="margin-bottom:20px;font-size:16px;">+ 매니저 추가</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">이름 *</div>
+              <input class="settings-input" id="mgr-name" placeholder="홍길동" style="width:100%;">
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">아이디 *</div>
+              <input class="settings-input" id="mgr-id" placeholder="manager1" style="width:100%;">
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">비밀번호 * <span style="color:var(--t3);font-weight:400;">(8자 이상)</span></div>
+              <input class="settings-input" id="mgr-pw" type="password" placeholder="비밀번호 입력" style="width:100%;">
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">권한 레벨 *</div>
+              <div style="display:flex;flex-direction:column;gap:6px;" id="mgr-role-select">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+                  <input type="radio" name="mgr-role" value="super"> <span style="font-size:13px;"><span style="color:#f59e0b;">🔧</span> 슈퍼 매니저 — 설정 제외 전체</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+                  <input type="radio" name="mgr-role" value="manager" checked> <span style="font-size:13px;"><span style="color:#3b82f6;">📋</span> 매니저 — 콘텐츠 관리</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+                  <input type="radio" name="mgr-role" value="viewer"> <span style="font-size:13px;"><span style="color:#10b981;">👁</span> 뷰어 — 조회만</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">메모</div>
+              <input class="settings-input" id="mgr-memo" placeholder="예: CS팀 담당자" style="width:100%;">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="btn btn-acc" onclick="saveManager()" style="flex:1;">저장</button>
+            <button class="btn" onclick="closeManagerModal()" style="flex:1;">취소</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 설정 -->
       <div class="admin-section" id="sec-settings">
         <div class="sec-hdr"><h2>앱 설정</h2></div>
@@ -584,24 +715,69 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <div id="admin-toast"></div>
 
+      <!-- 매니저 추가/수정 모달 -->
+      <div id="mgr-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:440px;">
+          <h3 style="margin:0 0 20px;font-size:17px;" id="mgr-modal-title">🛡️ 매니저 추가</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div><div class="field-label">이름 *</div><input class="settings-input" id="mgr-name" placeholder="홍길동" style="width:100%;"></div>
+            <div><div class="field-label">이메일 / 소셜 ID</div><input class="settings-input" id="mgr-email" placeholder="example@email.com" style="width:100%;"></div>
+            <div><div class="field-label">권한 *</div>
+              <select id="mgr-role" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;">
+                <option value="MODERATOR">MODERATOR — 음악/신고 관리</option>
+                <option value="VIEWER">VIEWER — 통계 열람만</option>
+                <option value="ADMIN">ADMIN — 전체 관리</option>
+              </select>
+            </div>
+            <div><div class="field-label">메모</div><input class="settings-input" id="mgr-note" placeholder="담당 영역, 연락처 등" style="width:100%;"></div>
+          </div>
+          <input type="hidden" id="mgr-edit-idx">
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="btn btn-acc" onclick="saveManager()" style="flex:1;">저장</button>
+            <button class="btn" onclick="closeMgrModal()">취소</button>
+          </div>
+        </div>
+      </div>
+
+
 <script>
 // ── 인증 ──
 const ADMIN_PW_KEY='kms_admin_pw';
 const DEFAULT_PW='kenny2024!';
 
 function gateLogin(){
-  const pw=document.getElementById('gate-pw').value;
-  const stored=localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
-  if(pw===stored){
+  const inputPw=document.getElementById('gate-pw').value;
+  const adminPw=localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+  
+  /* 관리자 로그인 */
+  if(inputPw===adminPw){
     localStorage.setItem('kms_admin_auth','1');
     document.getElementById('admin-gate').style.display='none';
     document.getElementById('admin-app').style.display='flex';
-    document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR');
-    loadData();
-  } else {
-    document.getElementById('gate-err').style.display='block';
-    setTimeout(()=>document.getElementById('gate-err').style.display='none',3000);
+    currentAccount={role:'admin',name:'관리자',id:'admin'};
+    sessionStorage.setItem(CURRENT_ACCOUNT_KEY,JSON.stringify(currentAccount));
+    loadData();document.getElementById('last-login-time')&&(document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR'));switchSec('dashboard');
+    setTimeout(initAccountSession,100);
+    return;
   }
+  
+  /* 매니저 로그인 (아이디:비밀번호 형식) */
+  const parts=inputPw.split(':');
+  if(parts.length===2){
+    const mgr=tryManagerLogin(parts[0].trim(),parts[1].trim());
+    if(mgr){
+      document.getElementById('admin-gate').style.display='none';
+      document.getElementById('admin-app').style.display='flex';
+      currentAccount={role:mgr.role,name:mgr.name,id:mgr.id};
+      sessionStorage.setItem(CURRENT_ACCOUNT_KEY,JSON.stringify(currentAccount));
+      switchSec('dashboard');
+      setTimeout(()=>{initAccountSession();adminToast('✅ '+mgr.name+'님 로그인');},100);
+      return;
+    }
+  }
+  
+  const err=document.getElementById('gate-err');
+  if(err){err.style.display='block';setTimeout(()=>err.style.display='none',2000);}
 }
 function adminLogout(){
   localStorage.removeItem('kms_admin_auth');
@@ -621,12 +797,16 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();}
+  if(id==='managers') renderManagersSection();
+  if(id==='reports') loadReports();
+  if(id==='managers') renderManagers();
+  if(id==='reports') renderReportsAdmin();
   if(id==='usage') loadUsageAdmin();
 }
 
@@ -1493,6 +1673,460 @@ function clearUsageLog(){
   adminToast('✅ 사용 로그 초기화됨');
   loadUsageAdmin();
 }
+
+
+// ── 매니저 관리 ──
+const MGR_KEY = 'kms_managers';
+
+function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
+function saveManagers(arr){ localStorage.setItem(MGR_KEY, JSON.stringify(arr)); }
+
+function renderManagers(){
+  const mgrs = getManagers();
+  const tbody = document.getElementById('managers-tbody');
+  const cnt   = document.getElementById('mgr-count');
+  if(cnt) cnt.textContent = mgrs.length + '명';
+  if(!tbody) return;
+  if(!mgrs.length){
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다</td></tr>';
+    return;
+  }
+  const roleBadge = r => r==='ADMIN' ? '<span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">ADMIN</span>'
+    : r==='MODERATOR' ? '<span style="background:#f97316;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">MOD</span>'
+    : '<span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">VIEW</span>';
+  tbody.innerHTML = mgrs.map((m,i)=>`
+    <tr>
+      <td style="font-weight:700;">${esc(m.name)}</td>
+      <td style="font-size:12px;color:var(--t3);">${esc(m.email||'-')}</td>
+      <td>${roleBadge(m.role)}</td>
+      <td><span class="badge ${m.active!==false?'badge-grn':'badge-red'}">${m.active!==false?'활성':'비활성'}</span></td>
+      <td style="font-size:11px;color:var(--t3);">${new Date(m.createdAt||Date.now()).toLocaleDateString('ko-KR')}</td>
+      <td style="font-size:12px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.note||'-')}</td>
+      <td>
+        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="editManager(${i})">✏️ 수정</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="toggleManagerStatus(${i})">${m.active!==false?'비활성화':'활성화'}</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);" onclick="deleteManager(${i})">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddManagerModal(){
+  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 추가';
+  document.getElementById('mgr-name').value  = '';
+  document.getElementById('mgr-email').value = '';
+  document.getElementById('mgr-role').value  = 'MODERATOR';
+  document.getElementById('mgr-note').value  = '';
+  document.getElementById('mgr-edit-idx').value = '';
+  document.getElementById('mgr-modal').style.display = 'flex';
+}
+function editManager(idx){
+  const m = getManagers()[idx];
+  if(!m) return;
+  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 수정';
+  document.getElementById('mgr-name').value  = m.name;
+  document.getElementById('mgr-email').value = m.email||'';
+  document.getElementById('mgr-role').value  = m.role||'MODERATOR';
+  document.getElementById('mgr-note').value  = m.note||'';
+  document.getElementById('mgr-edit-idx').value = idx;
+  document.getElementById('mgr-modal').style.display = 'flex';
+}
+function closeMgrModal(){ document.getElementById('mgr-modal').style.display = 'none'; }
+function saveManager(){
+  const name  = document.getElementById('mgr-name').value.trim();
+  const email = document.getElementById('mgr-email').value.trim();
+  const role  = document.getElementById('mgr-role').value;
+  const note  = document.getElementById('mgr-note').value.trim();
+  const editIdx = document.getElementById('mgr-edit-idx').value;
+  if(!name){ adminToast('⚠️ 이름을 입력하세요'); return; }
+  const mgrs = getManagers();
+  if(editIdx !== ''){
+    mgrs[parseInt(editIdx)] = {...mgrs[parseInt(editIdx)], name, email, role, note, updatedAt: Date.now()};
+    adminToast('✅ 매니저 정보 수정 완료');
+  } else {
+    mgrs.push({ name, email, role, note, active:true, createdAt:Date.now() });
+    adminToast('✅ 매니저 추가 완료');
+  }
+  saveManagers(mgrs);
+  closeMgrModal();
+  renderManagers();
+}
+function toggleManagerStatus(idx){
+  const mgrs = getManagers();
+  if(!mgrs[idx]) return;
+  mgrs[idx].active = mgrs[idx].active === false ? true : false;
+  saveManagers(mgrs);
+  renderManagers();
+  adminToast(mgrs[idx].active ? '✅ 활성화됨' : '비활성화됨');
+}
+function deleteManager(idx){
+  if(!confirm('이 매니저를 삭제하시겠습니까?')) return;
+  const mgrs = getManagers();
+  mgrs.splice(idx,1);
+  saveManagers(mgrs);
+  renderManagers();
+  adminToast('🗑 매니저 삭제됨');
+}
+
+// ── 신고 관리 ──
+const REPORT_KEY = 'kms_reports';
+function getReports(){ try{ return JSON.parse(localStorage.getItem(REPORT_KEY)||'[]'); }catch{ return []; } }
+function saveReports(arr){ localStorage.setItem(REPORT_KEY, JSON.stringify(arr)); }
+
+function renderReportsAdmin(){
+  const reports = getReports();
+  const tbody = document.getElementById('reports-tbody');
+  const empty = document.getElementById('reports-empty');
+  const table = document.getElementById('reports-table');
+  if(!tbody) return;
+  const pending = reports.filter(r=>r.status!=='resolved');
+  if(!pending.length){
+    if(empty) empty.style.display='block';
+    if(table) table.style.display='none';
+    return;
+  }
+  if(empty) empty.style.display='none';
+  if(table) table.style.display='block';
+  tbody.innerHTML = pending.map((r,i)=>`
+    <tr>
+      <td style="font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.trackTitle||'알 수 없음')}</td>
+      <td><span class="badge badge-red">${esc(r.reason||'기타')}</span></td>
+      <td style="font-size:11px;color:var(--t3);">${new Date(r.reportedAt||Date.now()).toLocaleDateString('ko-KR')}</td>
+      <td>
+        <button class="btn btn-acc" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="resolveReport(${i})">✅ 처리</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="ignoreReport(${i})">무시</button>
+      </td>
+    </tr>`).join('');
+}
+function resolveReport(idx){
+  const reports = getReports();
+  const pending = reports.filter(r=>r.status!=='resolved');
+  if(!pending[idx]) return;
+  const target = reports.find(r=>r===pending[idx]);
+  if(target) target.status = 'resolved';
+  saveReports(reports);
+  renderReportsAdmin();
+  adminToast('✅ 신고 처리 완료');
+}
+function ignoreReport(idx){
+  const reports = getReports();
+  const pending = reports.filter(r=>r.status!=='resolved');
+  if(!pending[idx]) return;
+  const target = reports.find(r=>r===pending[idx]);
+  if(target) target.status = 'ignored';
+  saveReports(reports);
+  renderReportsAdmin();
+  adminToast('신고 무시됨');
+}
+
+// 신고 버튼 클릭 시 신고 등록 (index.html에서 postMessage로 받거나 localStorage 공유)
+function addReport(trackTitle, reason){
+  const reports = getReports();
+  reports.unshift({ trackTitle, reason, reportedAt: Date.now(), status:'pending' });
+  saveReports(reports.slice(0,100));
+}
+
+// ── reports 섹션 진입 시 렌더 ──
+const _origSwitchSec2 = switchSec;
+document.addEventListener('DOMContentLoaded', ()=>{
+  const rSec = document.getElementById('sec-reports');
+  if(rSec){
+    const obs = new MutationObserver(()=>{
+      if(rSec.classList.contains('on')) renderReportsAdmin();
+    });
+    obs.observe(rSec, {attributes:true, attributeFilter:['class']});
+  }
+  const mSec = document.getElementById('sec-managers');
+  if(mSec){
+    const obs2 = new MutationObserver(()=>{
+      if(mSec.classList.contains('on')) renderManagers();
+    });
+    obs2.observe(mSec, {attributes:true, attributeFilter:['class']});
+  }
+});
+
+// ── 대시보드 통계 업데이트 (신고 건수 포함) ──
+const _origLoadData = loadData;
+loadData = function(){
+  _origLoadData();
+  // 신고 건수 업데이트
+  const pendingReports = getReports().filter(r=>r.status==='pending').length;
+  const reportStat = document.getElementById('stat-reports');
+  if(reportStat) reportStat.textContent = pendingReports;
+};
+
+
+// ══════════════════════════════════════════════
+//  매니저 관리 시스템
+// ══════════════════════════════════════════════
+const MGR_KEY   = 'kms_managers';
+const MGR_ROLES = {
+  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','settings'] },
+  super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push'] },
+  manager: { label:'📋 매니저',       color:'#3b82f6', secs:['dashboard','tracks','community','reports'] },
+  viewer:  { label:'👁 뷰어',         color:'#10b981', secs:['dashboard','usage'] }
+};
+
+/* 현재 로그인한 계정 정보 (admin or manager) */
+const CURRENT_ACCOUNT_KEY = 'kms_admin_account';
+let currentAccount = null;
+
+function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
+function saveManagers(list){ localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
+
+/* 초기화 시 현재 계정 확인 */
+function initAccountSession(){
+  const raw = sessionStorage.getItem(CURRENT_ACCOUNT_KEY);
+  if(raw){ try{ currentAccount = JSON.parse(raw); }catch{} }
+  if(!currentAccount){
+    currentAccount = { role:'admin', name:'관리자', id:'admin' };
+  }
+  applyRoleRestrictions();
+  renderAccountBadge();
+}
+
+function applyRoleRestrictions(){
+  if(!currentAccount) return;
+  const role = currentAccount.role || 'admin';
+  const allowed = MGR_ROLES[role]?.secs || Object.keys(MGR_ROLES.admin.secs);
+  /* 허용되지 않은 섹션 숨김 */
+  document.querySelectorAll('.snav-item[data-sec]').forEach(el=>{
+    const sec = el.dataset.sec;
+    if(sec && !allowed.includes(sec) && role !== 'admin'){
+      el.style.display = 'none';
+    }
+  });
+  /* 매니저라면 관리자 전용 버튼 숨기기 */
+  if(role !== 'admin'){
+    const el = document.getElementById('btn-add-manager');
+    if(el) el.style.display = 'none';
+  }
+}
+
+function renderAccountBadge(){
+  const badge = document.getElementById('mgr-role-badge');
+  if(!badge) return;
+  if(!currentAccount || currentAccount.role === 'admin'){
+    badge.style.display = 'none';
+    return;
+  }
+  const roleInfo = MGR_ROLES[currentAccount.role];
+  badge.style.display = 'inline-block';
+  badge.innerHTML = `<span style="background:${roleInfo.color}22;color:${roleInfo.color};border:1px solid ${roleInfo.color}55;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">${roleInfo.label} — ${esc(currentAccount.name)}</span>`;
+}
+
+/* 매니저 섹션 렌더링 */
+function renderManagersSection(){
+  const tbody = document.getElementById('managers-tbody');
+  if(!tbody) return;
+  const managers = getManagers();
+  if(!managers.length){
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다<br><small>+ 매니저 추가 버튼으로 생성하세요</small></td></tr>';
+    return;
+  }
+  tbody.innerHTML = managers.map((m,i)=>{
+    const ri = MGR_ROLES[m.role] || MGR_ROLES.manager;
+    const allowedStr = (ri.secs||[]).slice(0,3).map(s=>titles[s]||s).join(', ') + (ri.secs?.length>3?` 외 ${ri.secs.length-3}개`:'');
+    const lastAccess = m.lastAccess ? new Date(m.lastAccess).toLocaleString('ko-KR') : '-';
+    return `<tr>
+      <td style="font-weight:700;">${esc(m.name)}</td>
+      <td style="font-family:monospace;color:var(--t2);">${esc(m.id)}</td>
+      <td><span style="background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">${ri.label}</span></td>
+      <td style="font-size:11px;color:var(--t3);">${allowedStr}</td>
+      <td><span class="badge ${m.active!==false?'badge-grn':'badge-red'}">${m.active!==false?'활성':'비활성'}</span></td>
+      <td style="font-size:11px;color:var(--t3);">${lastAccess}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editManager(${i})">편집</button>
+          <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="toggleManagerActive(${i})">${m.active!==false?'비활성화':'활성화'}</button>
+          <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:var(--red)44;" onclick="deleteManager(${i})">삭제</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* 매니저 추가 모달 */
+let _editingMgrIdx = -1;
+function openAddManagerModal(){
+  _editingMgrIdx = -1;
+  document.getElementById('mgr-modal-title').textContent = '+ 매니저 추가';
+  document.getElementById('mgr-name').value = '';
+  document.getElementById('mgr-id').value   = '';
+  document.getElementById('mgr-pw').value   = '';
+  document.getElementById('mgr-memo').value = '';
+  document.querySelector('input[name="mgr-role"][value="manager"]').checked = true;
+  document.getElementById('add-manager-modal').style.display = 'flex';
+}
+function editManager(i){
+  const m = getManagers()[i];
+  if(!m) return;
+  _editingMgrIdx = i;
+  document.getElementById('mgr-modal-title').textContent = '매니저 편집';
+  document.getElementById('mgr-name').value = m.name||'';
+  document.getElementById('mgr-id').value   = m.id||'';
+  document.getElementById('mgr-pw').value   = '';
+  document.getElementById('mgr-memo').value = m.memo||'';
+  const rb = document.querySelector(`input[name="mgr-role"][value="${m.role||'manager'}"]`);
+  if(rb) rb.checked = true;
+  document.getElementById('add-manager-modal').style.display = 'flex';
+}
+function closeManagerModal(){
+  document.getElementById('add-manager-modal').style.display = 'none';
+}
+function saveManager(){
+  const name = document.getElementById('mgr-name').value.trim();
+  const id   = document.getElementById('mgr-id').value.trim();
+  const pw   = document.getElementById('mgr-pw').value;
+  const role = document.querySelector('input[name="mgr-role"]:checked')?.value || 'manager';
+  const memo = document.getElementById('mgr-memo').value.trim();
+
+  if(!name){ adminToast('⚠️ 이름을 입력하세요'); return; }
+  if(!id)  { adminToast('⚠️ 아이디를 입력하세요'); return; }
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ adminToast('⚠️ 아이디: 영문/숫자/언더스코어 3~20자'); return; }
+  
+  const managers = getManagers();
+  
+  if(_editingMgrIdx === -1){
+    /* 추가 모드 */
+    if(!pw || pw.length < 8){ adminToast('⚠️ 비밀번호 8자 이상'); return; }
+    if(managers.find(m=>m.id===id)){ adminToast('⚠️ 이미 존재하는 아이디'); return; }
+    managers.push({
+      name, id,
+      pwHash: btoa(pw), /* 간단한 인코딩 (실 서비스에서는 bcrypt 사용) */
+      role, memo,
+      active: true,
+      createdAt: Date.now()
+    });
+    adminToast('✅ 매니저 추가 완료');
+  } else {
+    /* 편집 모드 */
+    const m = managers[_editingMgrIdx];
+    m.name = name;
+    m.role = role;
+    m.memo = memo;
+    if(pw && pw.length >= 8) m.pwHash = btoa(pw);
+    else if(pw && pw.length > 0) { adminToast('⚠️ 비밀번호 8자 이상'); return; }
+    adminToast('✅ 매니저 정보 수정 완료');
+  }
+  
+  saveManagers(managers);
+  closeManagerModal();
+  renderManagersSection();
+}
+function toggleManagerActive(i){
+  const managers = getManagers();
+  if(!managers[i]) return;
+  managers[i].active = managers[i].active === false ? true : false;
+  saveManagers(managers);
+  renderManagersSection();
+  adminToast(managers[i].active ? '✅ 활성화됨' : '비활성화됨');
+}
+function deleteManager(i){
+  if(!confirm('이 매니저를 삭제할까요?')) return;
+  const managers = getManagers();
+  managers.splice(i,1);
+  saveManagers(managers);
+  renderManagersSection();
+  adminToast('삭제됨');
+}
+
+/* 매니저 로그인 처리 */
+function tryManagerLogin(id, pw){
+  const managers = getManagers();
+  const m = managers.find(m=>m.id===id && m.pwHash===btoa(pw) && m.active!==false);
+  if(!m) return null;
+  /* 마지막 접속 시간 업데이트 */
+  m.lastAccess = Date.now();
+  saveManagers(managers);
+  return m;
+}
+
+
+
+/* 페이지 로드 시 세션 초기화 */
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(initAccountSession, 100);
+  
+  /* 게이트 힌트 업데이트 */
+  const hint = document.querySelector('.gate-hint, #gate-hint');
+  if(hint) hint.innerHTML += '<div style="font-size:10px;color:var(--t3);margin-top:4px;">매니저: <span style="color:var(--acc);">아이디:비밀번호</span> 형식으로 입력</div>';
+  
+  /* 모달 외부 클릭 닫기 */
+  document.getElementById('add-manager-modal')?.addEventListener('click', e=>{
+    if(e.target.id==='add-manager-modal') closeManagerModal();
+  });
+});
+
+// ══════════════════════════════════════════════
+//  신고 관리 구현
+// ══════════════════════════════════════════════
+const REPORTS_KEY = 'kms_reports';
+
+function getReports(){ try{ return JSON.parse(localStorage.getItem(REPORTS_KEY)||'[]'); }catch{ return []; } }
+function saveReports(r){ localStorage.setItem(REPORTS_KEY, JSON.stringify(r)); }
+
+function loadReports(){
+  const reports = getReports();
+  const empty = document.getElementById('reports-empty');
+  const table = document.getElementById('reports-table');
+  
+  if(!reports.length){
+    if(empty) empty.style.display='block';
+    if(table) table.style.display='none';
+    return;
+  }
+  if(empty) empty.style.display='none';
+  
+  if(!table){
+    /* 테이블 없으면 생성 */
+    const sec = document.getElementById('sec-reports');
+    if(!sec) return;
+    const tw = document.createElement('div');
+    tw.className='admin-table-wrap';
+    tw.innerHTML=`<div class="admin-table-header"><h3>📋 신고 목록</h3><div style="font-size:12px;color:var(--t3);">총 ${reports.length}건</div></div>
+    <table id="reports-table"><thead><tr><th>곡 제목</th><th>신고 유형</th><th>신고 사유</th><th>신고자</th><th>신고일</th><th>상태</th><th>처리</th></tr></thead>
+    <tbody id="reports-tbody"></tbody></table>`;
+    sec.appendChild(tw);
+  }
+  
+  const tbody = document.getElementById('reports-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = reports.map((r,i)=>`
+    <tr style="${r.resolved?'opacity:0.5':''}">
+      <td style="font-weight:600;">${esc(r.trackTitle||'제목 없음')}</td>
+      <td><span class="badge badge-red">${esc(r.type||'기타')}</span></td>
+      <td style="font-size:12px;color:var(--t2);">${esc(r.reason||'-')}</td>
+      <td style="font-size:11px;color:var(--t3);">${esc(r.reporter||'익명')}</td>
+      <td style="font-size:11px;color:var(--t3);">${new Date(r.at||Date.now()).toLocaleDateString('ko-KR')}</td>
+      <td><span class="badge ${r.resolved?'badge-grn':'badge-acc'}">${r.resolved?'처리완료':'미처리'}</span></td>
+      <td>
+        <div style="display:flex;gap:5px;">
+          ${!r.resolved?`<button class="btn" style="padding:3px 8px;font-size:11px;" onclick="resolveReport(${i})">처리</button>`:''}
+          <button class="btn" style="padding:3px 8px;font-size:11px;color:var(--red);" onclick="deleteReport(${i})">삭제</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function resolveReport(i){
+  const r = getReports();
+  if(r[i]){ r[i].resolved=true; r[i].resolvedAt=Date.now(); saveReports(r); loadReports(); adminToast('✅ 신고 처리됨'); }
+}
+function deleteReport(i){
+  if(!confirm('신고를 삭제할까요?')) return;
+  const r = getReports();
+  r.splice(i,1); saveReports(r); loadReports(); adminToast('삭제됨');
+}
+
+/* 신고하기 함수 (앱에서 호출 가능) */
+window.submitReport = function(trackTitle, type, reason, reporter){
+  const r = getReports();
+  r.unshift({trackTitle, type, reason, reporter, at:Date.now(), resolved:false});
+  saveReports(r.slice(0,200));
+};
+
+/* 신고 탭 진입 시 로드 */
+const _origSwitchSecRep = switchSec;
 
 </script>
 </body>
