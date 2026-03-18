@@ -3630,55 +3630,164 @@ $('simple-gen-btn').addEventListener('click',async()=>{
 });
 
 /* ── YouTube 생성 버튼 ── */
+/* ── YouTube 생성 버튼 ── */
+/* generate()를 완전히 우회 — YT 전용 독립 생성 흐름 */
+let _ytGenerating = false;
+
+async function _ytDoGenerate(){
+  if(_ytGenerating) return;
+  if(_globalGenerating){ _showGeneratingPopup(); return; }
+
+  const apiKey = kieApiKey;
+  if(!apiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도','err'); return; }
+  if(!_lastYtAnalysis){ toast('먼저 YouTube URL을 분석해주세요','err',2500); return; }
+  /* 로그인/게스트 체크 */
+  if(!currentUser){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
+  if(currentUser.provider==='guest'){
+    const _gu=getUsage();
+    if((_gu.songs||0)>=2){
+      const _go=document.createElement('div');
+      _go.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;';
+      _go.innerHTML=`<div style="background:#1e1e2a;border-radius:20px;padding:30px 24px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(239,68,68,.35);">
+        <div style="font-size:36px;margin-bottom:14px;">🔒</div>
+        <div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">게스트 체험 한도 도달</div>
+        <div style="font-size:13px;color:#a09ab8;margin-bottom:22px;line-height:1.7;">게스트는 <b style="color:#f87171;">2곡</b>까지만 생성할 수 있어요.</div>
+        <button onclick="this.closest('[style*=fixed]').remove();openLoginSheet();" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🚀 소셜 로그인하기</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button>
+      </div>`;
+      _go.addEventListener('click',e=>{if(e.target===_go)_go.remove();});
+      document.body.appendChild(_go);
+      return;
+    }
+  }
+
+  /* 입력값 수집 */
+  const _ytTa   = document.getElementById('yt-lyrics-ta');
+  const ytLyrics= (_ytTa?.value||'').trim();
+  const ytMood  = ($('yt-mood')?.value||_lastYtAnalysis.mood||'').trim();
+  const ytGenre = _lastYtAnalysis.genre || '';
+  const ytStylePrompt = (_lastYtAnalysis.style_prompt||'').trim().slice(0,200);
+  const ytStyle = [ytGenre, ytMood, ytStylePrompt].filter(Boolean).join(', ');
+  /* prompt: 가사 있으면 가사 우선, 없으면 스타일 프롬프트 */
+  const prompt  = ytLyrics || ytStyle || 'YouTube cover music';
+  const model   = ($('model-sel')?.value) || 'V4_5';
+  const isInst  = ytInstOn;
+  const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
+  const songTitle = ($('song-title')?.value||'').trim() ||
+                    rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
+  console.log('[YT] lyrics:', ytLyrics.slice(0,30)||'(없음)', '| style:', ytStyle.slice(0,60), '| title:', songTitle);
+
+  /* UI 로딩 시작 */
+  _ytGenerating = true;
+  _globalGenerating = true;
+  const ytBtn  = $('yt-gen-btn');
+  const ytSpin = $('yt-gen-spinner');
+  const ytTxt  = $('yt-gen-txt');
+  if(ytBtn)  { ytBtn.disabled=true; ytBtn.style.opacity='0.5'; }
+  if(ytSpin) ytSpin.style.display='block';
+  if(ytTxt)  ytTxt.textContent='생성 중...';
+  $('loading-card').classList.add('on');
+  $('results').innerHTML='';
+  $('feedback-card').style.display='none';
+  const fill=$('ld-fill');
+  if(fill){ fill.style.animation='none'; void fill.offsetWidth; fill.style.animation=''; }
+  $('ld-sub').innerHTML='YouTube 스타일로 음악 생성 중...<br>잠시만 기다려주세요 ☕';
+  const _tips=['kie.ai에 작곡 요청 중... ☕','AI가 멜로디를 구성하고 있어요 🎼','YouTube 스타일 분석 중... 🔍','보컬 설정 중... 🎤','편곡 & 믹싱 중... 🎚'];
+  let _ti=0;
+  const _tipTimer=setInterval(()=>{
+    if(!$('loading-card')?.classList.contains('on')){ clearInterval(_tipTimer); return; }
+    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30~60초 소요됩니다</span>';
+    _ti++;
+  }, 8000);
+
+  try{
+    const body = {
+      prompt,
+      customMode: true,
+      style: ytStyle || ytMood || '',
+      instrumental: isInst,
+      model,
+      callBackUrl: CALLBACK,
+    };
+    if(songTitle) body.title = songTitle;
+
+    console.log('[YT Generate] prompt:', prompt.slice(0,80), '| style:', (ytStyle||'').slice(0,60));
+
+    const genData = await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    const taskId  = genData?.data?.taskId || genData?.taskId;
+    if(!taskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
+
+    lastTaskId = taskId;
+    if($('ld-task')) $('ld-task').textContent='Task: '+taskId;
+    $('ld-sub').innerHTML='YouTube 스타일로 작곡 중...<br>보통 30~60초 소요됩니다 ☕';
+
+    const tracks = await pollResult(apiKey, taskId);
+    if(!tracks?.length) throw new Error('트랙을 받지 못했어요');
+
+    $('loading-card').classList.remove('on');
+    clearInterval(_tipTimer);
+
+    lastTracks      = tracks.map(t=>({...t,_inputLyrics:ytLyrics,_taskId:taskId}));
+    lastLyricsInput = ytLyrics;
+    renderTracks(lastTracks, prompt, ytStyle, 'youtube');
+    showFeedbackCard();
+
+    tracks.forEach(t=>{
+      const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
+      const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
+      historyData.unshift({
+        id:t.id, taskId,
+        title: t.title||songTitle||'YouTube Cover',
+        audio_url: t.audioUrl||t.audio_url||'',
+        video_url: '',
+        image_url: t.imageUrl||t.image_url||'',
+        tags: t.tags||ytStyle,
+        lyrics: ytLyrics||(isRealLyric?apiLyric:'')||'',
+        created: Date.now(),
+        type: 'audio',
+        genMode: 'youtube',
+        _ytAnalysis: _lastYtAnalysis,
+        _owner: currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+      });
+    });
+    historyData = historyData.slice(0,30);
+    saveHistory(); updateHistBadge();
+    trackUsage('song',{mode:'youtube',title:songTitle});
+    showCompletionPopup('youtube','');
+    setTimeout(gotoHistoryTab,600);
+
+  }catch(e){
+    clearInterval(_tipTimer);
+    $('loading-card').classList.remove('on');
+    console.error('[YT Generate error]', e.message);
+    toast('❌ YT 생성 오류: '+e.message,'err',5000);
+  }finally{
+    _ytGenerating     = false;
+    _globalGenerating = false;
+    if(ytBtn)  { ytBtn.disabled=false; ytBtn.style.opacity='1'; }
+    if(ytSpin) ytSpin.style.display='none';
+    if(ytTxt)  ytTxt.textContent='▶ YouTube 스타일로 생성';
+  }
+}
+
 $('yt-gen-btn').onclick = null;
-$('yt-gen-btn').addEventListener('click', async function(){
-  /* 1. URL 확인 */
+$('yt-gen-btn').addEventListener('click', function(e){
+  e.stopPropagation();
+  if(this.disabled) return;
   const ytUrl = ($('yt-url')?.value||'').trim();
   if(!ytUrl){
-    const inp = $('yt-url');
-    if(inp){ inp.focus(); inp.style.outline='2px solid rgba(239,68,68,.7)'; setTimeout(()=>{inp.style.outline='';},2000); }
-    toast('⚠️ YouTube URL을 먼저 입력해주세요','err',2500);
+    $('yt-url')?.focus();
+    toast('YouTube URL을 먼저 입력해주세요','err',2500);
     return;
   }
-  /* 2. 분석 미완료 → 자동 분석 후 생성 */
   if(!_lastYtAnalysis){
-    toast('🔍 YouTube 분석 중... 완료 후 자동 생성됩니다','',3000);
     window._ytAutoGenerateAfterAnalysis = true;
+    toast('YouTube 분석 후 자동 생성됩니다...','',2500);
     $('yt-analyze-btn').click();
     return;
   }
-  /* 3. 생성 중이면 차단 */
-  if(_globalGenerating){ _showGeneratingPopup(); return; }
-
-  /* 4. 분석 결과에서 직접 prompt/style 수집 */
-  const _ytTa = document.getElementById('yt-lyrics-ta');
-  const ytLyrics = (_ytTa?.value||'').trim() || $('prompt').value.trim();
-  const ytStyle  = [
-    _lastYtAnalysis?.genre||'',
-    $('yt-mood')?.value||_lastYtAnalysis?.mood||'',
-    _lastYtAnalysis?.style_prompt||''
-  ].filter(Boolean).join(', ');
-
-  /* 5. currentMode 설정 후 generate 직접 호출 */
-  currentMode = 'youtube';
-  const origInst = instOn;
-  instOn = ytInstOn;
-  try{
-    await generate({
-      prompt: ytLyrics || ytStyle,
-      styleStr: ytStyle,
-      _ytMode: true
-    });
-  }finally{
-    instOn = origInst;
-  }
+  _ytDoGenerate();
 });
-
-function _ytDoGenerate(){
-  /* 레거시 호환 — _ytAutoGenerateAfterAnalysis 플래그로 호출됨 */
-  $('yt-gen-btn').click();
-}
-
 /* ── /api/config 에서 API 키 로드 ── */
 async function fetchApiKey(){
   try{
@@ -4243,110 +4352,119 @@ $('yt-url').addEventListener('paste',()=>{
 /* 초기 상태: 분석 버튼 비활성화 */
 $('yt-analyze-btn').disabled=true;$('yt-analyze-btn').style.opacity='0.4';
 
-$('yt-analyze-btn').addEventListener('click',async()=>{
-  const url=$('yt-url').value.trim();
-  if(!url||!url.includes('youtube')){toast('유효한 YouTube URL을 입력해주세요','err');return;}
-  $('yt-analyze-btn').disabled=true;
-  $('yt-spinner').style.display='inline-block';
-  const resultEl=$('yt-result');
-  resultEl.style.display='none';
-  toast('🔍 YouTube 영상 분석 중...','',30000);
+$('yt-analyze-btn').addEventListener('click', async () => {
+  const url = ($('yt-url').value||'').trim();
+  if(!url || !url.includes('youtu')){
+    toast('유효한 YouTube URL을 입력해주세요','err'); return;
+  }
+  const analyzeBtn = $('yt-analyze-btn');
+  const resultEl   = $('yt-result');
+  analyzeBtn.disabled = true;
+  $('yt-spinner').style.display = 'inline-block';
+  resultEl.style.display = 'none';
+  _lastYtAnalysis = null; /* 분석 초기화 */
+  $('yt-gen-btn').disabled = true;
+  $('yt-gen-btn').style.opacity = '0.4';
+  $('yt-gen-txt').textContent = '▶ 분석 후 생성 가능';
+
   try{
-    /* oEmbed로 제목/채널명 가져오기 */
-    const oembedUrl=`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-    let title='',author='';
-    try{
-      const r=await fetch(oembedUrl);
-      if(r.ok){const d=await r.json();title=d.title||'';author=d.author_name||'';}
-    }catch(e){/* CORS일 경우 URL에서 직접 추출 */}
-    if(!title){
-      const m=url.match(/[?&]v=([^&]+)/);
-      title=m?`YouTube 영상 (${m[1]})`:'YouTube 영상';
-    }
-    /* Claude API → Vercel 서버리스 프록시 (/api/analyze) 로 호출 */
-    let rawText='';
-    try{
-      const proxyRes=await fetch('/api/analyze',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({title,author})
-      });
-      if(!proxyRes.ok)throw new Error('proxy '+proxyRes.status);
-      const proxyData=await proxyRes.json();
-      rawText=proxyData.text||'';
-    }catch(proxyErr){
-      console.warn('analyze proxy failed:',proxyErr);
-    }
+    /* ── 서버사이드 분석 (/api/yt-analyze) ── */
+    toast('🔍 YouTube 영상 분석 중...','',15000);
+    const r = await fetch('/api/yt-analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url}),
+    });
+    const raw = await r.text();
+    if(!r.ok) throw new Error('분석 서버 오류 ' + r.status);
     let analysis;
-    try{
-      const clean=rawText.replace(/```json|```/g,'').trim();
-      analysis=JSON.parse(clean);
-    }catch{analysis=null;}
+    try { analysis = JSON.parse(raw); } catch { throw new Error('응답 파싱 실패'); }
 
-    if(analysis){
-      const rawStylePrompt=analysis.style_prompt||'';
-      const stylePrompt=rawStylePrompt.replace(/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g,'').replace(/kwon[\s\S]*?jinah?/gi,'').trim();
-      $('prompt').value=stylePrompt;
-      $('prompt').classList.add('flash');
-      setTimeout(()=>$('prompt').classList.remove('flash'),2000);
-      if(analysis.bpm_estimate&&analysis.bpm_estimate>0){
-        bpmAuto=false;
-        selectedBpm=Math.min(200,Math.max(60,analysis.bpm_estimate));
-        if($('bpm-slider'))$('bpm-slider').value=selectedBpm;
-        updateBpmDisplay();
-      }
-      /* AI로 가사 생성 */
-      let generatedLyrics='';
-      try{
-        const lyricsPrompt=analysis.mood_tags||analysis.mood||'';
-        const lyricsBase=(analysis.description||title).slice(0,120);
-        const ld=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:`${lyricsBase}, ${lyricsPrompt}`}); trackUsage('lyrics',{mode:'custom-lyrics'});
-        const ltid=ld?.data?.taskId||ld?.taskId;
-        if(ltid){
-          for(let li=0;li<30;li++){
-            await sleep(3000);
-            const lr=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`);
-            if((lr?.data?.status||'').toUpperCase()==='SUCCESS'){generatedLyrics=lr?.data?.response?.text||lr?.data?.text||'';break;}
-          }
-        }
-      }catch(le){console.warn('YT 가사 생성 실패',le);}
+    const title  = analysis.title  || 'YouTube 영상';
+    const author = analysis.author || '';
 
-      resultEl.style.display='block';
-      resultEl.innerHTML=`
-        <div style="font-size:11px;font-weight:700;color:var(--acc);margin-bottom:6px;">✅ 분석 완료: ${esc(title)}</div>
-        <div style="color:var(--t3);font-size:10px;margin-bottom:8px;">
-          장르: ${esc(analysis.genre||'—')} · BPM: ~${analysis.bpm_estimate||'?'} · 분위기: ${esc(analysis.mood||'—')}
+    /* _lastYtAnalysis에 title 포함해서 저장 */
+    _lastYtAnalysis = { ...analysis, title };
+
+    /* 제목 자동 설정 */
+    if(!($('song-title')?.value||'').trim()){
+      const cleanTitle = title.replace(/[(\[].*/, '').trim().slice(0, 30);
+      $('song-title').value = cleanTitle || 'YouTube 커버';
+    }
+
+    /* BPM 반영 */
+    if(analysis.bpm_estimate > 0){
+      bpmAuto = false;
+      selectedBpm = Math.min(200, Math.max(60, analysis.bpm_estimate));
+      if($('bpm-slider')) $('bpm-slider').value = selectedBpm;
+      updateBpmDisplay();
+    }
+
+    /* 결과 UI 렌더 */
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:4px;">✅ ${esc(title)}</div>
+        <div style="font-size:11px;color:var(--t3);">
+          ${esc(author?author+' · ':'')}장르: <b>${esc(analysis.genre||'—')}</b> · BPM: ~${analysis.bpm_estimate||'?'} · 분위기: ${esc(analysis.mood||'—')}
         </div>
-        <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:4px;">🎤 생성된 가사 (수정 가능)</div>
-        <textarea id="yt-lyrics-ta" class="form-input" rows="6" style="font-size:12px;line-height:1.7;">${esc(generatedLyrics||stylePrompt)}</textarea>`;
-      /* 가사를 prompt에도 반영 */
-      if(generatedLyrics)$('prompt').value=generatedLyrics;
-      _lastYtAnalysis=analysis; /* 나중에 historyData에 저장 */
-      /* 제목 자동 설정 */
-      if(!$('song-title').value.trim()){
-        const cleanTitle=title.replace(/[\(\[].*/,'').trim().slice(0,30);
-        $('song-title').value=cleanTitle||'YouTube 커버';
+        <div style="font-size:10px;color:var(--t3);margin-top:3px;">${esc(analysis.description||'')}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">🎤 가사 (직접 입력하거나 AI 생성)</div>
+      <textarea id="yt-lyrics-ta" class="form-input" rows="5"
+        placeholder="가사를 직접 입력하거나 아래 'AI 가사 생성' 버튼을 누르세요"
+        style="font-size:12px;line-height:1.7;margin-bottom:8px;"></textarea>
+      <button id="yt-lyrics-gen-btn" style="width:100%;padding:9px;border-radius:10px;border:1px solid rgba(124,58,237,.4);background:rgba(124,58,237,.15);color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
+        ✦ AI 가사 자동 생성 (선택사항)
+      </button>`;
+
+    /* AI 가사 생성 버튼 */
+    document.getElementById('yt-lyrics-gen-btn').addEventListener('click', async function(){
+      const self = this;
+      self.disabled = true; self.textContent = '⏳ 가사 생성 중...';
+      try{
+        const lyricsPrompt = [analysis.description||title, analysis.mood_tags||analysis.mood||''].filter(Boolean).join(', ');
+        const ld = await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt});
+        const ltid = ld?.data?.taskId || ld?.taskId;
+        if(!ltid) throw new Error('taskId 없음');
+        let lyrics = '';
+        for(let i=0; i<25; i++){
+          await sleep(2000);
+          const lr = await kieRequest(kieApiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`);
+          const st = (lr?.data?.status||'').toUpperCase();
+          if(st==='SUCCESS'){ lyrics = lr?.data?.response?.text||lr?.data?.text||''; break; }
+          if(st==='FAILED'||st==='ERROR') throw new Error('가사 생성 실패');
+        }
+        if(lyrics){
+          const ta = document.getElementById('yt-lyrics-ta');
+          if(ta) ta.value = lyrics;
+          toast('✅ 가사 생성 완료!','ok',2000);
+          trackUsage('lyrics',{mode:'yt-lyrics'});
+        }
+      }catch(e){
+        toast('가사 생성 실패: '+e.message,'err',3000);
+      }finally{
+        self.disabled = false; self.textContent = '✦ AI 가사 다시 생성';
       }
-      toast('✅ 분석 + 가사 생성 완료!','ok',3000);
-      const ytGenBtn=$('yt-gen-btn');
-      if(ytGenBtn){ytGenBtn.disabled=false;ytGenBtn.style.opacity='1';$('yt-gen-txt').textContent='▶ YouTube 스타일로 생성';}
-      /* 자동 생성 플래그가 있으면 분석 직후 생성 */
-      if(window._ytAutoGenerateAfterAnalysis){ window._ytAutoGenerateAfterAnalysis=false; setTimeout(_ytDoGenerate,400); }
-    }else{
-      const safePrompt=title.replace(/[\(\[].*/,'').trim();
-      $('prompt').value=`${safePrompt} style music`;
-      resultEl.style.display='block';
-      resultEl.innerHTML=`<div style="color:var(--ylw);font-size:11px;">⚠️ AI 분석 불가 — 영상 제목 기반으로 기본 프롬프트를 입력했습니다.<br><span style="font-size:10px;color:var(--t3);">${esc(title)} (${esc(author)})</span></div>`;
-      toast('⚠️ 제목 기반 프롬프트 입력됨','',3000);
-      const ytGenBtn=$('yt-gen-btn');
-      if(ytGenBtn){ytGenBtn.disabled=false;ytGenBtn.style.opacity='1';$('yt-gen-txt').textContent='▶ YouTube 스타일로 생성';}
-      if(window._ytAutoGenerateAfterAnalysis){ window._ytAutoGenerateAfterAnalysis=false; setTimeout(_ytDoGenerate,400); }
+    });
+
+    /* 생성 버튼 활성화 */
+    $('yt-gen-btn').disabled = false;
+    $('yt-gen-btn').style.opacity = '1';
+    $('yt-gen-txt').textContent = '▶ YouTube 스타일로 생성';
+    toast('✅ 분석 완료! 가사를 입력하거나 바로 생성하세요','ok',3000);
+
+    /* 자동 생성 플래그 */
+    if(window._ytAutoGenerateAfterAnalysis){
+      window._ytAutoGenerateAfterAnalysis = false;
+      setTimeout(() => _ytDoGenerate(), 500);
     }
   }catch(e){
     toast('❌ 분석 실패: '+e.message,'err',5000);
+    console.error('[YT Analyze]', e);
   }finally{
-    $('yt-analyze-btn').disabled=false;
-    $('yt-spinner').style.display='none';
+    analyzeBtn.disabled = false;
+    $('yt-spinner').style.display = 'none';
   }
 });
 async function kieRequest(apiKey,method,path,body){
@@ -4586,22 +4704,30 @@ async function generate(overrideParams){
     _showGeneratingPopup();
     return;
   }
-  /* 게스트 3곡 제한 */
-  if(currentUser?.provider==='guest' && !overrideParams?._afterLyrics){
-    const usage = getUsage();
-    if((usage.songs||0) >= 3){
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;';
-      overlay.innerHTML = `<div style="background:#1e1e2a;border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(239,68,68,.3);">
-        <div style="font-size:32px;margin-bottom:12px;">🔒</div>
-        <div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">게스트 생성 한도 초과</div>
-        <div style="font-size:13px;color:#a09ab8;margin-bottom:20px;line-height:1.6;">게스트 회원은 <b style="color:#f87171;">3곡</b>까지만 생성할 수 있어요.<br>소셜 로그인하면 더 많은 곡을 만들 수 있어요!</div>
-        <button onclick="this.closest('[style*=fixed]').remove();openLoginSheet();" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">소셜 로그인하기</button>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">닫기</button>
-      </div>`;
-      overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
-      document.body.appendChild(overlay);
+  /* 로그인 체크 + 게스트 2곡 제한 */
+  if(!overrideParams?._afterLyrics){
+    if(!currentUser){
+      /* 비로그인: 로그인 유도 */
+      openLoginSheet();
+      toast('로그인 후 음악을 생성할 수 있어요','err',2500);
       return;
+    }
+    if(currentUser.provider==='guest'){
+      const usage = getUsage();
+      if((usage.songs||0) >= 2){
+        const overlay = document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML=`<div style="background:#1e1e2a;border-radius:20px;padding:30px 24px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(239,68,68,.35);">
+          <div style="font-size:36px;margin-bottom:14px;">🔒</div>
+          <div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">게스트 체험 한도 도달</div>
+          <div style="font-size:13px;color:#a09ab8;margin-bottom:22px;line-height:1.7;">게스트는 <b style="color:#f87171;">2곡</b>까지만 생성할 수 있어요.<br>소셜 로그인하면 <b style="color:#a78bfa;">더 많은 곡</b>을 만들 수 있어요! 🎵</div>
+          <button onclick="this.closest('[style*=fixed]').remove();openLoginSheet();" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🚀 소셜 로그인하기</button>
+          <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button>
+        </div>`;
+        overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+        document.body.appendChild(overlay);
+        return;
+      }
     }
   }
   _globalGenerating = true;
