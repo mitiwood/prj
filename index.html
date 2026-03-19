@@ -7733,10 +7733,13 @@ async function renderCommunity(force=false){
     return;
   }
 
-  /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero */
+  /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero (유효한 오디오 URL 필수) */
   const sorted=[...tracks].sort((a,b)=>b.likes-a.likes);
-  const hero=sorted[0];
-  const rest=sorted.slice(1);
+  const _isValidAudioUrl=(url)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'));
+  /* 유효한 오디오가 있는 트랙을 hero로 선택 */
+  const heroIdx=sorted.findIndex(t=>_isValidAudioUrl(t.audioUrl));
+  const hero=heroIdx>=0?sorted[heroIdx]:sorted[0];
+  const rest=sorted.filter(t=>t!==hero);
 
   /* ── Featured Hero (첨부 디자인: featured-track 스타일) ── */
   heroWrap.innerHTML=`
