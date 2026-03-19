@@ -85,11 +85,26 @@ export default async function handler(req, res) {
   /* ─── GET: 댓글 조회 ─── */
   if (req.method === "GET") {
     const trackId = req.query?.track_id;
+    const all = req.query?.all === "true";
+    const limit = parseInt(req.query?.limit) || 200;
+
+    /* 관리자 전체 조회 */
+    if (all && isAdmin) {
+      if (_sbAvailable) {
+        try {
+          const rows = await sb(`/comments?order=created_at.desc&limit=${limit}&select=*`);
+          return res.status(200).json({ comments: rows || [], total: (rows || []).length, source: "supabase" });
+        } catch (e) { console.warn("[comments GET all sb]", e.message); }
+      }
+      const sorted = [..._mem].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, limit);
+      return res.status(200).json({ comments: sorted, total: sorted.length, source: "memory" });
+    }
+
     if (!trackId) return res.status(400).json({ error: "track_id required" });
 
     if (_sbAvailable) {
       try {
-        let filter = `/comments?track_id=eq.${encodeURIComponent(trackId)}&order=created_at.asc&select=*`;
+        let filter = `/comments?track_id=eq.${encodeURIComponent(trackId)}&order=created_at.asc&limit=${limit}&select=*`;
         if (!isAdmin) filter += "&is_hidden=eq.false";
         const rows = await sb(filter);
         return res.status(200).json({ comments: rows || [], total: (rows || []).length, source: "supabase" });
@@ -98,7 +113,7 @@ export default async function handler(req, res) {
     let list = _mem.filter((c) => c.track_id === trackId);
     if (!isAdmin) list = list.filter((c) => !c.is_hidden);
     list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    return res.status(200).json({ comments: list, total: list.length, source: "memory" });
+    return res.status(200).json({ comments: list.slice(0, limit), total: list.length, source: "memory" });
   }
 
   /* ─── POST: 댓글 작성 ─── */

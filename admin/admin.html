@@ -2093,43 +2093,75 @@ async function renderCommentsAdmin(){
   const wrap=document.getElementById('comments-admin-list');if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);">불러오는 중...</div>';
   try{
-    /* 모든 트랙의 댓글을 가져오기 위해 공개 트랙 목록 먼저 조회 */
-    const tr=await fetch('/api/tracks?public=true&limit=500').then(r=>r.json());
-    const tracks=tr.tracks||[];
-    let allComments=[];
-    /* 트랙별 댓글 로드 (관리자 권한) */
-    for(const t of tracks.slice(0,50)){
-      try{
-        const cr=await fetch('/api/comments?track_id='+encodeURIComponent(t.id),{headers:{'Authorization':'Bearer '+getAdminPw()}}).then(r=>r.json());
-        (cr.comments||[]).forEach(c=>{c._trackTitle=t.title||'무제';allComments.push(c);});
-      }catch(e){}
-    }
+    /* 전체 댓글 한번에 조회 (관리자 API) */
+    const r=await adminFetch('/api/comments?all=true&limit=500');
+    const d=await r.json();
+    const allComments=d.comments||[];
+
+    /* 트랙 제목 매핑을 위한 트랙 목록 */
+    const tracks=_serverTracks||[];
+    const trackMap={};
+    tracks.forEach(t=>{ if(t.id) trackMap[t.id]=t.title||'무제'; });
+
     allComments.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-    if(!allComments.length){wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">등록된 댓글이 없습니다.</div>';return;}
-    wrap.innerHTML=`<div style="font-size:12px;color:var(--t3);margin-bottom:8px;">총 ${allComments.length}개 댓글</div>`+
+
+    const totalCount=allComments.length;
+    const hiddenCount=allComments.filter(c=>c.is_hidden).length;
+
+    if(!totalCount){
+      wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">등록된 댓글이 없습니다.</div>';
+      return;
+    }
+
+    wrap.innerHTML=`<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;color:var(--t3);">
+      <span>전체 <b style="color:var(--t1);">${totalCount}</b>개</span>
+      <span>숨김 <b style="color:var(--red);">${hiddenCount}</b>개</span>
+      <span>출처: <b style="color:var(--acc);">${d.source||'?'}</b></span>
+    </div>`+
       allComments.map(c=>{
-        const time=new Date(c.created_at).toLocaleString('ko-KR');
-        const hidden=c.is_hidden?'<span style="color:var(--red);font-size:10px;"> [숨김]</span>':'';
+        const time=new Date(c.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const trackTitle=trackMap[c.track_id]||c.track_id||'?';
+        const hidden=c.is_hidden;
         const reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
-        return`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;">
+        const rowStyle=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
+        return`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${rowStyle}">
+          <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;">
+            ${c.author_avatar?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.outerHTML=\'👤\'">':'👤'}
+          </div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:var(--t3);">${esc(c._trackTitle)} · ${time}${hidden}${reply}</div>
-            <div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">${esc(c.author_name||'익명')} <span style="font-size:10px;color:var(--t3);">(${c.author_provider||'guest'})</span></div>
-            <div style="font-size:13px;color:var(--t1);line-height:1.5;word-break:break-word;">${esc(c.content)}</div>
+            <div style="font-size:11px;color:var(--t3);">🎵 ${esc(trackTitle)} · ${time}${hidden?' <span style="color:var(--red);">[숨김]</span>':''}${reply}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">
+              ${esc(c.author_name||'익명')}
+              <span class="badge ${({google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'})[c.author_provider]||'badge-acc'}" style="font-size:9px;">${esc(c.author_provider||'guest')}</span>
+            </div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5;word-break:break-word;">${esc(c.content)}</div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button class="btn btn-sm" onclick="toggleCommentAdmin('${c.id}',${!c.is_hidden})" style="font-size:11px;">${c.is_hidden?'👁 공개':'🚫 숨김'}</button>
+            <button class="btn" onclick="toggleCommentAdmin('${c.id}',${!hidden})" style="font-size:11px;padding:3px 8px;">${hidden?'👁 공개':'🙈 숨김'}</button>
+            <button class="btn btn-red" onclick="deleteCommentAdmin('${c.id}')" style="font-size:11px;padding:3px 8px;">🗑</button>
           </div>
         </div>`;
       }).join('');
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:20px;">로드 실패: '+e.message+'</div>';}
 }
+
 async function toggleCommentAdmin(id,hide){
   try{
-    await fetch('/api/comments?id='+id+'&action='+(hide?'hide':'show'),{method:'PATCH',headers:{'Authorization':'Bearer '+getAdminPw()}});
-    toast(hide?'댓글 숨김 처리':'댓글 공개 처리','ok');
+    await adminFetch('/api/comments?id='+encodeURIComponent(id)+'&action='+(hide?'hide':'show'),{method:'PATCH'});
+    adminToast(hide?'댓글 숨김 처리':'댓글 공개 처리');
+    addAudit(hide?'hide':'show', '댓글 '+(hide?'숨김':'공개'), 'ID: '+id);
     renderCommentsAdmin();
-  }catch(e){toast('실패: '+e.message,'err');}
+  }catch(e){adminToast('실패: '+e.message);}
+}
+
+async function deleteCommentAdmin(id){
+  if(!confirm('이 댓글을 삭제할까요?'))return;
+  try{
+    await adminFetch('/api/comments?id='+encodeURIComponent(id),{method:'DELETE'});
+    adminToast('🗑 댓글 삭제됨');
+    addAudit('delete','댓글 삭제','ID: '+id);
+    renderCommentsAdmin();
+  }catch(e){adminToast('실패: '+e.message);}
 }
 
 async function renderCommunityAdmin(){
