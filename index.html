@@ -1463,27 +1463,32 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 
 /* ── 풀플레이어 가사 오버레이 (커버 위) ── */
 .fp-cover-wrap{position:relative;}
-.fp-lyrics-overlay{
-  position:absolute;bottom:0;left:0;right:0;
-  background:linear-gradient(to top,rgba(10,10,15,.97) 0%,rgba(10,10,15,.7) 60%,transparent 100%);
-  border-radius:0 0 var(--r) var(--r);
-  padding:32px 14px 12px;
-  pointer-events:none;min-height:70px;
-  display:flex;align-items:flex-end;
+.fp-lyrics-overlay{display:none !important;}
+.fp-lyrics-overlay-box{display:none;}
+.fp-ov-line,.fp-ov-empty{display:none;}
+/* ── 제목 아래 가사 영역 ── */
+.fp-lyrics-main{
+  margin-top:12px;padding:0 4px;text-align:center;
+  max-height:200px;overflow-y:auto;scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
 }
-.fp-lyrics-overlay-box{
-  width:100%;text-align:center;
+.fp-lyrics-main::-webkit-scrollbar{width:3px;}
+.fp-lyrics-main::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
+.fp-lm-line{
+  font-size:15px;font-weight:600;color:rgba(255,255,255,.3);
+  line-height:2;transition:all .3s;cursor:pointer;
+  padding:0 8px;border-radius:6px;
 }
-.fp-ov-line{
-  font-size:14px;font-weight:700;color:rgba(255,255,255,.35);
-  line-height:1.7;transition:all .25s;
+.fp-lm-line.active{
+  font-size:19px;font-weight:800;color:#fff;
+  text-shadow:0 0 24px rgba(168,85,247,.7);
 }
-.fp-ov-line.active{
-  font-size:16px;color:#fff;
-  text-shadow:0 0 20px rgba(168,85,247,.8);
+.fp-lm-line.done{color:rgba(255,255,255,.15);}
+.fp-lm-sec{
+  font-size:11px;font-weight:700;color:rgba(168,85,247,.5);
+  letter-spacing:1px;text-transform:uppercase;margin:8px 0 2px;
 }
-.fp-ov-line.done{color:rgba(255,255,255,.2);}
-.fp-ov-empty{font-size:12px;color:rgba(255,255,255,.2);padding:8px 0;}
+.fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;}
 
 /* ── fp 버튼 보라색 통일 ── */
 .fp-play-btn{
@@ -2886,6 +2891,10 @@ body.mp-on .view{padding-bottom:118px;}
           <div class="fp-info" style="text-align:left;margin-bottom:0;">
             <div class="fp-title" id="fp-title">곡 제목</div>
             <div class="fp-tags" id="fp-tags"></div>
+          </div>
+          <!-- 제목 아래 가사 (크게) -->
+          <div class="fp-lyrics-main" id="fp-lyrics-main">
+            <div class="fp-lm-empty">🎵</div>
           </div>
         </div>
         <!-- 오른쪽 세로 액션 버튼 -->
@@ -7058,27 +7067,20 @@ function fpToggleDislike(){
   fpUpdateLikeUI();toast(fpDisliked?'👎 싫어요':'싫어요 취소','',1200);
 }
 
-/* 가사 렌더 — 노래방 스타일 */
+/* 가사 렌더 — 제목 아래 크게 표시 */
 function fpRenderLyrics(h){
-  const box=$('fp-lyrics-box');
-  const ovBox=$('fp-lyrics-overlay-box');
+  const mainBox=$('fp-lyrics-main');
   /* 실제 가사만 사용, 스타일/태그 문자열 제외 */
   const raw=h.lyrics||h.lyric||h._inputLyrics||'';
 
-  /* 가사인지 스타일 문자열인지 판별:
-     - 줄바꿈이 없고 [Verse]/[Chorus] 없고 40자 이하면 스타일 문자열로 간주 */
+  /* 가사인지 스타일 문자열인지 판별 */
   const isStyleStr = raw && !raw.includes('\n') && !/\[.+\]/.test(raw) && raw.length < 120;
   const plain = isStyleStr ? '' : raw;
 
   fpTimestampLines=[];
 
   if(!plain.trim()){
-    box.innerHTML=`
-      <div class="fp-lyrics-empty">
-        가사를 불러오는 중이거나 없습니다<br>
-        <span style="font-size:10px;opacity:.5;margin-top:4px;display:block;">커스텀 모드에서 가사 입력 후 생성하면 표시됩니다</span>
-      </div>`;
-    if(ovBox)ovBox.innerHTML='<div class="fp-ov-empty">🎵</div>';
+    if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵</div>';
     return;
   }
 
@@ -7089,33 +7091,22 @@ function fpRenderLyrics(h){
 
   lines.forEach(line => {
     const trimmed = line.trim();
-    if(!trimmed){ html += '<div style="height:8px;"></div>'; return; }
-
+    if(!trimmed){ html += '<div style="height:6px;"></div>'; return; }
     if(/^\[.+\]$/.test(trimmed)){
-      /* 섹션 헤더 */
-      html += `<div class="fp-lyric-sec">${esc(trimmed.replace(/[\[\]]/g,'').trim())}</div>`;
+      html += `<div class="fp-lm-sec">${esc(trimmed.replace(/[\[\]]/g,'').trim())}</div>`;
     } else {
-      /* 가사 라인 — data-li로 인덱스 저장 */
-      html += `<div class="fp-lyric-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(trimmed)}</div>`;
+      html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(trimmed)}</div>`;
       lyricLineIdx++;
     }
   });
 
-  box.innerHTML = html;
-  fpTimestampLines = [...box.querySelectorAll('.fp-lyric-line')];
-
-  /* 오버레이 초기화 — 첫 2줄 표시 */
-  if(ovBox){
-    const lyricTextLines=plain.split('\n').map(l=>l.trim()).filter(l=>l&&!/^\[.+\]$/.test(l));
-    ovBox.innerHTML=lyricTextLines.slice(0,2).map((l,i)=>`<div class="fp-ov-line${i===0?' active':''}">${esc(l)}</div>`).join('');
+  if(mainBox){
+    mainBox.innerHTML = html;
+    fpTimestampLines = [...mainBox.querySelectorAll('.fp-lm-line')];
   }
 
-  /* 첫 라인 pre-active (싱크 모드일 때만) */
+  /* 첫 라인 pre-active */
   if(fpTimestampLines.length && fpSyncMode) fpTimestampLines[0].classList.add('active');
-
-  /* 가사 섹션 항상 표시 */
-  const lsec=$('fp-lyrics-section');
-  if(lsec) lsec.style.display='block';
 }
 
 function fpSeekToLine(el){
@@ -7143,7 +7134,6 @@ function fpSyncLyrics(currentTime){
   if(!fpTimestampLines.length||!fpAudio?.duration)return;
   const total=fpAudio.duration;
   const n=fpTimestampLines.length;
-  /* 각 라인의 시작 시간 = 총 재생시간 / 라인 수 * 인덱스 (균등 분할) */
   let activeIdx=-1;
   fpTimestampLines.forEach((el,i)=>{
     const lineStart=(total/n)*i;
@@ -7153,27 +7143,16 @@ function fpSyncLyrics(currentTime){
     el.classList.toggle('done',currentTime>=lineEnd);
     if(isActive)activeIdx=i;
   });
-  /* 활성 라인 박스 중앙으로 스크롤 */
+  /* 활성 라인 중앙으로 스크롤 */
   if(activeIdx>=0){
-    const box=$('fp-lyrics-box');
-    const el=fpTimestampLines[activeIdx];
-    const boxTop=box.getBoundingClientRect().top;
-    const elTop=el.getBoundingClientRect().top;
-    const offset=elTop-boxTop-(box.clientHeight/2)+(el.clientHeight/2);
-    box.scrollBy({top:offset,behavior:'smooth'});
-  }
-  /* 오버레이 싱크 — 이전/현재/다음 라인 */
-  const ovBox=$('fp-lyrics-overlay-box');
-  if(ovBox&&activeIdx>=0){
-    const lines=fpTimestampLines;
-    let html='';
-    const prev=activeIdx>0?lines[activeIdx-1].textContent:'';
-    const curr=lines[activeIdx]?.textContent||'';
-    const next=activeIdx<lines.length-1?lines[activeIdx+1]?.textContent:'';
-    if(prev)html+=`<div class="fp-ov-line done">${esc(prev)}</div>`;
-    html+=`<div class="fp-ov-line active">${esc(curr)}</div>`;
-    if(next)html+=`<div class="fp-ov-line">${esc(next)}</div>`;
-    ovBox.innerHTML=html;
+    const box=$('fp-lyrics-main');
+    if(box){
+      const el=fpTimestampLines[activeIdx];
+      const boxTop=box.getBoundingClientRect().top;
+      const elTop=el.getBoundingClientRect().top;
+      const offset=elTop-boxTop-(box.clientHeight/2)+(el.clientHeight/2);
+      box.scrollBy({top:offset,behavior:'smooth'});
+    }
   }
 }
 
