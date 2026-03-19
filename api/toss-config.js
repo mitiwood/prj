@@ -1,6 +1,7 @@
 // /api/toss-config.js — 토스 공개키 + 플랜 정의 (프론트엔드용)
 
-const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY;
+/* 환경변수 없으면 토스 공식 테스트 키 사용 (실결제 안 됨) */
+const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
 
 const PLANS = {
   free: {

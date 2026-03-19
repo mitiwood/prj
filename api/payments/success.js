@@ -3,7 +3,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const TOSS_SECRET = process.env.TOSS_SECRET_KEY;
+const TOSS_SECRET = process.env.TOSS_SECRET_KEY || "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
 
 const PLANS = {
   basic:     { price: 4900,  credits: 30,  label: "Basic" },
