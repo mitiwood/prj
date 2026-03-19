@@ -1005,6 +1005,33 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <div id="pw-change-status" style="font-size:11px;color:var(--t3);"></div>
           </div>
         </div>
+        <!-- 텔레그램 알림 설정 -->
+        <div class="settings-group" style="margin-top:16px;">
+          <div class="settings-row">
+            <div><label>📲 텔레그램 알림</label><div class="desc">주요 이벤트를 텔레그램으로 실시간 알림</div></div>
+            <button class="btn btn-acc" onclick="checkTelegramBot()" style="font-size:11px;padding:5px 12px;">연결 확인</button>
+          </div>
+          <div id="tg-status" style="display:none;padding:8px 14px;background:var(--bg3);border-radius:8px;margin-bottom:8px;font-size:12px;"></div>
+          <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">Vercel 환경변수에 TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID 설정 필요</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn" onclick="testTelegramMsg()" style="font-size:11px;padding:5px 12px;">📨 테스트 메시지</button>
+              <button class="btn" onclick="getTelegramChatIds()" style="font-size:11px;padding:5px 12px;">🔍 Chat ID 조회</button>
+            </div>
+            <div id="tg-chats" style="display:none;padding:8px 14px;background:var(--bg3);border-radius:8px;font-size:11px;max-height:150px;overflow-y:auto;"></div>
+          </div>
+          <div style="margin-top:8px;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">알림 받을 이벤트</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);cursor:pointer;"><input type="checkbox" id="tg-evt-music" checked> 🎵 곡 생성</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);cursor:pointer;"><input type="checkbox" id="tg-evt-user" checked> 👤 새 로그인</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);cursor:pointer;"><input type="checkbox" id="tg-evt-comment" checked> 💬 댓글</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);cursor:pointer;"><input type="checkbox" id="tg-evt-mv"> 🎬 MV 생성</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);cursor:pointer;"><input type="checkbox" id="tg-evt-push"> 📣 푸시 발송</label>
+            </div>
+          </div>
+        </div>
+
         <div style="margin-top:16px;">
           <button class="btn btn-red" onclick="clearAllData()">⚠️ 전체 데이터 초기화</button>
         </div>
@@ -2623,6 +2650,53 @@ function clearAllData(){
   if(!confirm('정말로 삭제합니까? 모든 데이터가 사라집니다.'))return;
   localStorage.removeItem('kms_history');
   adminToast('✅ 초기화 완료');loadData();
+}
+
+// ── 텔레그램 연동 ──
+async function checkTelegramBot(){
+  const el=document.getElementById('tg-status'); if(!el)return;
+  el.style.display='block'; el.innerHTML='⏳ 확인 중...';
+  try{
+    const r=await fetch('/api/telegram?action=me',{headers:{'Authorization':'Bearer '+getAdminPw()},signal:AbortSignal.timeout(5000)});
+    const d=await r.json();
+    if(d.ok&&d.bot){
+      el.innerHTML='<span style="color:var(--grn);">✅ 연결됨</span> — @'+esc(d.bot.username)+' ('+esc(d.bot.first_name)+')'+(d.chatId?' · Chat ID: '+d.chatId:'');
+    } else if(!d.configured){
+      el.innerHTML='<span style="color:var(--ylw);">⚠️ TELEGRAM_BOT_TOKEN 미설정</span> — Vercel 환경변수에 봇 토큰을 추가하세요';
+    } else {
+      el.innerHTML='<span style="color:var(--red);">❌ '+esc(d.error||'연결 실패')+'</span>';
+    }
+  }catch(e){ el.innerHTML='<span style="color:var(--red);">❌ '+esc(e.message)+'</span>'; }
+}
+async function testTelegramMsg(){
+  try{
+    const r=await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify({event:'test',data:{message:'🧪 Kenny Music Studio 텔레그램 연동 테스트'}})});
+    const d=await r.json();
+    if(d.ok) adminToast('✅ 텔레그램 메시지 전송 성공!');
+    else adminToast('❌ 전송 실패: '+(d.error||''));
+  }catch(e){ adminToast('❌ '+e.message); }
+}
+async function getTelegramChatIds(){
+  const el=document.getElementById('tg-chats'); if(!el)return;
+  el.style.display='block'; el.innerHTML='⏳ 조회 중...';
+  try{
+    const r=await fetch('/api/telegram?action=updates',{headers:{'Authorization':'Bearer '+getAdminPw()},signal:AbortSignal.timeout(5000)});
+    const d=await r.json();
+    if(d.ok&&d.chats?.length){
+      el.innerHTML='<div style="margin-bottom:4px;font-weight:700;color:var(--t1);">최근 대화:</div>'+d.chats.map(c=>'<div style="padding:3px 0;">Chat ID: <b style="color:var(--acc3);">'+c.chatId+'</b> — '+esc(c.name||c.username||'?')+' "'+esc((c.text||'').slice(0,30))+'"</div>').join('');
+    } else if(d.ok){
+      el.innerHTML='<span style="color:var(--ylw);">봇에게 먼저 메시지를 보내세요. 그 후 다시 조회하면 Chat ID가 나타납니다.</span>';
+    } else {
+      el.innerHTML='<span style="color:var(--red);">'+esc(d.error||'조회 실패')+'</span>';
+    }
+  }catch(e){ el.innerHTML='<span style="color:var(--red);">'+esc(e.message)+'</span>'; }
+}
+/* 텔레그램 이벤트 알림 헬퍼 (다른 함수에서 호출) */
+function tgNotify(event, data){
+  const evtCheckMap={music_created:'tg-evt-music',new_user:'tg-evt-user',comment:'tg-evt-comment',mv_created:'tg-evt-mv',push_sent:'tg-evt-push'};
+  const chkId=evtCheckMap[event];
+  if(chkId&&!document.getElementById(chkId)?.checked) return;
+  fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify({event,data})}).catch(()=>{});
 }
 
 // ── 유틸 ──
