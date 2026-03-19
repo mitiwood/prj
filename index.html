@@ -3783,8 +3783,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
             if(!d) continue;
             const st=(d.status||d.callbackType||'').toUpperCase();
             if(st==='SUCCESS'||st==='COMPLETE'){
-              text=d.response?.text||d.text||'';
-              if(!text&&Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
+              text=_extractLyricsFromResponse(d);
               if(text) break;
             }
             if(st==='FAILED'||st==='ERROR') break;
@@ -4858,14 +4857,8 @@ $('lyrics-btn').addEventListener('click',async()=>{
           if(!d) continue;
           const status=(d.status||d.callbackType||'').toUpperCase();
           if(status==='SUCCESS'||status==='COMPLETE'){
-            /* 응답 구조: data.response.text 또는 data.data[].text 배열 */
-            text = d.response?.text || d.text || '';
-            if(!text && Array.isArray(d.data)){
-              text = d.data.map(item=>item.text||'').filter(Boolean)[0] || '';
-            }
-            if(!text && Array.isArray(d.response?.sunoData)){
-              text = d.response.sunoData.map(item=>item.text||item.lyric||'').filter(Boolean)[0] || '';
-            }
+            /* 응답 구조 — 0번째 인덱스 가사 선택 */
+            text = _extractLyricsFromResponse(d);
             if(text){ kieSuccess=true; break; }
           }
           if(status==='FAILED'||status==='ERROR'){
@@ -5010,9 +5003,7 @@ async function _autoLyricsAndGenerate(){
           if(!d) continue;
           const status=(d.status||d.callbackType||'').toUpperCase();
           if(status==='SUCCESS'||status==='COMPLETE'){
-            text=d.response?.text||d.text||'';
-            if(!text && Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
-            if(!text && Array.isArray(d.response?.sunoData)) text=d.response.sunoData.map(x=>x.text||x.lyric||'').filter(Boolean)[0]||'';
+            text=_extractLyricsFromResponse(d);
             if(text) break;
           }
           if(status==='FAILED'||status==='ERROR') break;
@@ -6656,6 +6647,26 @@ function renderHistory(){updateHistBadge();}
 
 /* ── HISTORY SAVE ── */
 
+/* ── kie.ai lyrics 응답에서 0번째 가사 추출 ── */
+function _extractLyricsFromResponse(d){
+  /* 1. 직접 text 필드 */
+  if(d.response?.text) return d.response.text;
+  if(d.text) return d.text;
+  /* 2. data 배열 → 0번째 인덱스 */
+  if(Array.isArray(d.data) && d.data.length > 0){
+    return d.data[0].text || d.data[0].lyric || d.data[0].lyrics || '';
+  }
+  /* 3. sunoData 배열 → 0번째 인덱스 */
+  if(Array.isArray(d.response?.sunoData) && d.response.sunoData.length > 0){
+    return d.response.sunoData[0].text || d.response.sunoData[0].lyric || d.response.sunoData[0].lyrics || '';
+  }
+  /* 4. response.data 배열 → 0번째 */
+  if(Array.isArray(d.response?.data) && d.response.data.length > 0){
+    return d.response.data[0].text || d.response.data[0].lyric || '';
+  }
+  return '';
+}
+
 /* ── 공통 가사 생성 헬퍼 (kie.ai + Claude 폴백) ── */
 async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
   let text='';
@@ -6672,9 +6683,7 @@ async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
         if(!d) continue;
         const st=(d.status||d.callbackType||'').toUpperCase();
         if(st==='SUCCESS'||st==='COMPLETE'){
-          text=d.response?.text||d.text||'';
-          if(!text&&Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
-          if(!text&&Array.isArray(d.response?.sunoData)) text=d.response.sunoData.map(x=>x.text||x.lyric||'').filter(Boolean)[0]||'';
+          text=_extractLyricsFromResponse(d);
           if(text) break;
         }
         if(st==='FAILED'||st==='ERROR') break;
