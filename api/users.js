@@ -103,11 +103,16 @@ export default async function handler(req, res) {
     if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { name, provider } = req.query || {};
-    if (!name) return res.status(400).json({ error: 'name required' });
+    const { name, provider, id } = req.query || {};
+    if (!name && !id) return res.status(400).json({ error: 'name or id required' });
     try {
-      let path = `/users?name=eq.${encodeURIComponent(name)}`;
-      if (provider) path += `&provider=eq.${encodeURIComponent(provider)}`;
+      let path;
+      if (id) {
+        path = `/users?id=eq.${encodeURIComponent(id)}`;
+      } else {
+        path = `/users?name=eq.${encodeURIComponent(name)}`;
+        if (provider) path += `&provider=eq.${encodeURIComponent(provider)}`;
+      }
       await sbFetch(path, { method: 'DELETE' });
       return res.status(200).json({ success: true });
     } catch (e) {
