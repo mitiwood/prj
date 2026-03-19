@@ -4980,24 +4980,62 @@ function _mvMergeSetTrack(idx){
     var vid = $('mv-merge-video'); if(vid){ vid.pause(); vid.currentTime = 0; }
   });
 }
+let _mvMergePickedIdx = null;
 function mvMergePickTrack(){
+  _mvMergePickedIdx = null;
   var musicTracks = historyData.filter(function(h){ return h.audio_url && !h.video_url; });
   if(!musicTracks.length){ toast('생성된 음악이 없어요','err'); return; }
   var overlay = document.createElement('div'); overlay.className = 'ai-sheet-overlay';
   var listHtml = musicTracks.slice(0,20).map(function(h){
     var realIdx = historyData.indexOf(h);
     var thumbHtml = h.image_url ? '<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">' : '🎵';
-    return '<div onclick="document.querySelector(\'.ai-sheet-overlay\')?.remove();_mvMergeSetTrack('+realIdx+')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);margin-bottom:6px;transition:all .15s;">'
+    return '<div data-merge-idx="'+realIdx+'" onclick="_mvMergeSelectItem(this,'+realIdx+')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);margin-bottom:6px;transition:all .15s;">'
       +'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">'+thumbHtml+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(h.title||'무제')+'</div>'
-      +'<div style="font-size:10px;color:var(--t3);">'+esc((h.tags||'').split(',')[0]?.trim()||'')+'</div></div></div>';
+      +'<div style="font-size:10px;color:var(--t3);">'+esc((h.tags||'').split(',')[0]?.trim()||'')+'</div></div>'
+      +'<div class="merge-check" style="width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;"></div></div>';
   }).join('');
   overlay.innerHTML = '<div class="ai-sheet-box" style="max-height:75vh;"><div class="ai-sheet-handle"></div>'
     +'<div class="ai-sheet-title">🎵 음악 선택</div><div class="ai-sheet-sub">영상과 합칠 음악을 선택하세요</div>'
-    +'<div style="overflow-y:auto;max-height:50vh;">'+listHtml+'</div>'
-    +'<button class="ai-sheet-cancel-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove()">닫기</button></div>';
+    +'<div style="overflow-y:auto;max-height:50vh;" id="merge-track-list">'+listHtml+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:12px;">'
+    +'<button class="ai-sheet-cancel-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove()" style="flex:1;">닫기</button>'
+    +'<button id="merge-confirm-btn" disabled onclick="_mvMergeConfirmPick()" style="flex:2;padding:13px;border-radius:12px;border:none;background:rgba(124,58,237,.3);color:rgba(168,85,247,.5);font-size:14px;font-weight:700;cursor:not-allowed;font-family:inherit;transition:all .2s;">음악 선택</button>'
+    +'</div></div>';
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+function _mvMergeSelectItem(el, idx){
+  _mvMergePickedIdx = idx;
+  /* 모든 항목 포커스 해제 */
+  document.querySelectorAll('#merge-track-list [data-merge-idx]').forEach(function(item){
+    item.style.background = 'rgba(255,255,255,.04)';
+    item.style.borderColor = 'rgba(255,255,255,.08)';
+    var chk = item.querySelector('.merge-check');
+    if(chk){ chk.style.borderColor = 'rgba(255,255,255,.15)'; chk.style.background = 'transparent'; chk.innerHTML = ''; }
+  });
+  /* 선택 항목 포커스 */
+  el.style.background = 'rgba(124,58,237,.15)';
+  el.style.borderColor = 'rgba(124,58,237,.5)';
+  var chk = el.querySelector('.merge-check');
+  if(chk){ chk.style.borderColor = '#a855f7'; chk.style.background = '#a855f7'; chk.innerHTML = '✓'; }
+  /* 확인 버튼 활성화 */
+  var btn = document.getElementById('merge-confirm-btn');
+  if(btn){
+    var title = historyData[idx]?.title || '무제';
+    btn.disabled = false;
+    btn.style.background = 'linear-gradient(135deg,#7c3aed,#a855f7)';
+    btn.style.color = '#fff';
+    btn.style.cursor = 'pointer';
+    btn.textContent = '✅ "' + title.slice(0,15) + '" 합치기';
+  }
+}
+function _mvMergeConfirmPick(){
+  if(_mvMergePickedIdx === null) return;
+  document.querySelector('.ai-sheet-overlay')?.remove();
+  _mvMergeSetTrack(_mvMergePickedIdx);
+  /* 자동 재생 시작 */
+  setTimeout(function(){ mvMergeTogglePlay(); }, 300);
 }
 function mvMergeChangeTrack(){ mvMergePickTrack(); }
 function mvMergeTogglePlay(){
