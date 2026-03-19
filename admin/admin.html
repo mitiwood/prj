@@ -1180,10 +1180,10 @@ async function adminFetch(url, options={}){
 
 function gateLogin(){
   const inputPw=document.getElementById('gate-pw').value;
-  const adminPw=localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
-  
-  /* 관리자 로그인 */
-  if(inputPw===adminPw){
+  const savedPw=localStorage.getItem(ADMIN_PW_KEY);
+
+  /* 관리자 로그인 — 저장된 비밀번호 또는 기본 비밀번호 모두 허용 */
+  if(inputPw===DEFAULT_PW || (savedPw && inputPw===savedPw)){
     localStorage.setItem('kms_admin_auth','1');
     sessionStorage.setItem('kms_admin_session', inputPw);
     document.getElementById('admin-gate').style.display='none';
