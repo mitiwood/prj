@@ -7872,46 +7872,75 @@ function buildCommLyrics(id,plain){
 /* 히어로 오디오 */
 function setupHeroAudio(hero){
   if(commHeroAudio){commHeroAudio.pause();commHeroAudio=null;}
+  const playBtn=$('comm-hero-play-btn');
   if(!hero.audioUrl){
-    const pb=$('comm-hero-play-btn');
-    if(pb){pb.style.opacity='.4';pb.title='오디오 없음';pb.onclick=()=>toast('이 트랙은 오디오가 없어요','err',2000);}
+    if(playBtn){playBtn.style.opacity='.4';playBtn.title='오디오 없음';playBtn.onclick=()=>toast('이 트랙은 오디오가 없어요','err',2000);}
     return;
   }
-  const audio=new Audio(hero.audioUrl);
+  const audio=new Audio();
+  audio.crossOrigin='anonymous';
+  audio.preload='auto';
+  audio.src=hero.audioUrl;
   commHeroAudio=audio;
-  const playBtn=$('comm-hero-play-btn');
   const fill=$('comm-hero-prog-fill');
   const timeEl=$('comm-hero-time');
   if(!playBtn)return;
+
+  const PLAY_SVG='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  const PAUSE_SVG='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
     const pct=(audio.currentTime/audio.duration)*100;
     if(fill)fill.style.width=pct+'%';
     if(timeEl)timeEl.textContent=formatTime(audio.currentTime);
-    /* 히어로 가사 싱크 */
     commSyncLyrics('hero',audio.currentTime,audio.duration);
   });
   audio.addEventListener('ended',()=>{
-    if(playBtn){
-      playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-      playBtn.classList.remove('playing');
-    }
+    if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');}
     commHeroPlaying=false;
   });
+  audio.addEventListener('error',(e)=>{
+    console.error('[HeroAudio] 로드 실패:', audio.src, e);
+    if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');}
+    commHeroPlaying=false;
+  });
+
+  function _doPlay(){
+    /* 다른 모든 오디오 정지 후 재생 */
+    stopAllAudio();
+    audio.play().then(()=>{
+      playBtn.innerHTML=PAUSE_SVG;
+      playBtn.classList.add('playing');
+      commHeroPlaying=true;
+    }).catch(e=>{
+      console.error('[HeroAudio] play 실패:', e);
+      /* DOMException 등 자동재생 차단 시 사용자 인터랙션 후 재시도 */
+      if(e.name==='NotAllowedError'){
+        toast('재생 버튼을 한번 더 눌러주세요','',2000);
+      } else {
+        toast('재생 실패: '+e.message,'err',3000);
+      }
+    });
+  }
+
   playBtn.onclick=()=>{
     if(!audio.paused){
       audio.pause();
-      playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-      playBtn.classList.remove('playing');commHeroPlaying=false;return;
+      playBtn.innerHTML=PLAY_SVG;
+      playBtn.classList.remove('playing');
+      commHeroPlaying=false;
+      return;
     }
     const _hSrc=getPlayingInfo();
     if(_hSrc){
       showAudioSwitchPopup(_hSrc,hero.title||'커뮤니티 트랙',()=>{
-        audio.play().then(()=>{playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
+        stopAllAudio();
+        _doPlay();
       });
       return;
     }
-    audio.play().then(()=>{playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
+    _doPlay();
   };
   const prog=$('comm-hero-prog');
   if(prog)prog.onclick=e=>{
@@ -7937,7 +7966,7 @@ function commPlayByHIdx(hIdx){
   const h=historyData[hIdx];
   if(!h){console.warn('[commPlayByHIdx] invalid hIdx',hIdx);return;}
   if(!h.audio_url){toast('오디오 URL이 없어요','err');return;}
-  _stopCommAudio();
+  stopAllAudio();
   showMiniPlayer(hIdx);
 }
 
@@ -7953,7 +7982,7 @@ function commPlaySb(sbId){
     hIdx=0;
     updateHistBadge();
   }
-  _stopCommAudio();
+  stopAllAudio();
   showMiniPlayer(hIdx);
 }
 
