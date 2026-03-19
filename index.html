@@ -875,6 +875,11 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* Community List Items */
 .comm-list-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px;cursor:pointer;transition:all .2s;margin-bottom:8px;}
 .comm-list-item:hover{border-color:rgba(168,85,247,.3);transform:translateX(3px);}
+.comm-list-item:active{transform:scale(.98);border-color:rgba(168,85,247,.5);}
+.comm-list-item.playing{border-color:rgba(168,85,247,.6);background:rgba(168,85,247,.08);box-shadow:0 0 12px rgba(168,85,247,.15);}
+.comm-list-item.playing .comm-list-num{color:var(--acc3);}
+.comm-list-item.playing .comm-list-title{color:var(--acc3);}
+.comm-list-item.playing .comm-play-sm{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444;}
 .comm-list-num{font-size:13px;color:var(--t3);font-weight:700;width:20px;flex-shrink:0;text-align:center;}
 .comm-list-num.top{color:var(--gold);}
 .comm-list-img{width:48px;height:48px;border-radius:8px;background:var(--card2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
@@ -7814,7 +7819,7 @@ async function renderCommunity(force=false){
     const ownerName=t._owner?.name||currentUser?.name||'익명';
     const ownerAvatar=t._owner?.avatar||currentUser?.avatar||'';
     const sid=esc(t._sbId||'');
-    return `<div class="comm-list-item" onclick="commPlaySb('${sid}')">
+    return `<div class="comm-list-item" data-sbid="${sid}" onclick="commPlaySb('${sid}')"
       <div class="comm-list-num${i<3?' top':''}">${i+1}</div>
       <div class="comm-list-img">
         ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
@@ -8008,6 +8013,10 @@ function commPlaySb(sbId){
     hIdx=0;
     updateHistBadge();
   }
+  /* 선택된 리스트 아이템 하이라이트 */
+  document.querySelectorAll('.comm-list-item.playing').forEach(el=>el.classList.remove('playing'));
+  const activeEl=document.querySelector(`.comm-list-item[data-sbid="${sbId}"]`);
+  if(activeEl) activeEl.classList.add('playing');
   stopAllAudio();
   showMiniPlayer(hIdx);
 }
@@ -8834,9 +8843,10 @@ function goAnnouncement() {
 
 <!-- ── Claude Sonnet 4.5 AI Assist Features ── -->
 <script>
-const KIE_CLAUDE_URL = 'https://api.kie.ai/claude-sonnet-4-5/v1/chat/completions';
+const KIE_LLM_URL = 'https://api.kie.ai/gemini-2.5-flash/v1/chat/completions';
+const KIE_CLAUDE_URL = KIE_LLM_URL; /* 하위호환 */
 
-/* kie.ai Claude Sonnet 4.5 스트리밍 호출 */
+/* kie.ai Gemini 2.5 Flash 스트리밍 호출 (빠르고 저렴) */
 async function callClaudeStream(systemPrompt, userPrompt, onChunk){
   if(!kieApiKey){ toast('API 키 로딩 중...','err'); return null; }
   const res = await fetch(KIE_CLAUDE_URL, {
@@ -8847,12 +8857,10 @@ async function callClaudeStream(systemPrompt, userPrompt, onChunk){
         { role:'system', content: systemPrompt },
         { role:'user',   content: userPrompt }
       ],
-      stream: true,
-      include_thoughts: false,
-      reasoning_effort: 'low'
+      stream: true
     })
   });
-  if(!res.ok){ const e=await res.json(); throw new Error(e?.error?.message||'Claude API 오류'); }
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||e?.msg||'AI API 오류'); }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let full = '';
@@ -8874,18 +8882,16 @@ async function callClaudeStream(systemPrompt, userPrompt, onChunk){
   return full;
 }
 
-/* kie.ai Claude - 검색 포함 비스트리밍 */
+/* kie.ai Gemini - 검색 포함 비스트리밍 */
 async function callClaudeWithSearch(userPrompt){
   if(!kieApiKey) return null;
-  const res = await fetch(KIE_CLAUDE_URL, {
+  const res = await fetch(KIE_LLM_URL, {
     method: 'POST',
     headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
     body: JSON.stringify({
       messages: [{ role:'user', content: userPrompt }],
       tools: [{ type:'function', function:{ name:'googleSearch' } }],
-      stream: false,
-      include_thoughts: false,
-      reasoning_effort: 'low'
+      stream: false
     })
   });
   if(!res.ok) return null;
@@ -9145,7 +9151,7 @@ async function aiImageToStyle(input){
 각 태그는 2~5단어의 구체적인 음악 프로덕션 용어로. 예: "melancholic piano ballad, warm golden hour reverb, soft falsetto vocal, nostalgic 90s synth, acoustic fingerpicking, lo-fi tape haze, cinematic string arrangement, ambient rain texture"` }
           ]
         }],
-        stream: false, include_thoughts: false, reasoning_effort:'low'
+        stream: false
       })
     });
     _imgOverlay.remove();
