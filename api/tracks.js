@@ -28,11 +28,8 @@ function _tgNotify(event, data) {
   if (data.user) text += `생성자: ${data.user}\n`;
   if (data.author) text += `작성자: ${data.author}\n`;
   text += `⏰ ${ts}`;
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }),
-  }).catch(() => {});
+  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
 }
 
 async function sb(path, opts = {}) {

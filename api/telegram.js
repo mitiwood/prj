@@ -19,11 +19,15 @@ function checkAuth(req) {
 
 async function tgApi(method, body = null) {
   if (!BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN not configured');
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
-  const opts = { method: body ? 'POST' : 'GET' };
+  let url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
+  let opts = { method: 'GET' };
   if (body) {
-    opts.headers = { 'Content-Type': 'application/json; charset=utf-8' };
-    opts.body = JSON.stringify(body);
+    /* URL query 방식으로 전송 — 한글 인코딩 문제 우회 */
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) {
+      if (v !== undefined && v !== null) params.append(k, String(v));
+    }
+    url += '?' + params.toString();
   }
   const r = await fetch(url, opts);
   const d = await r.json();

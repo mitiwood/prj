@@ -20,10 +20,8 @@ function _tgComment(author, text, trackId) {
   if (!TG_TOKEN || !TG_CHAT) return;
   const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const msg = `💬 *새 댓글*\n작성자: ${author || "익명"}\n내용: ${(text || "").slice(0, 100)}\n⏰ ${ts}`;
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST", headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }),
-  }).catch(() => {});
+  const p = new URLSearchParams({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" });
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
 }
 
 async function sb(path, opts = {}) {

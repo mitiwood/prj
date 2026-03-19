@@ -16,10 +16,8 @@ const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
 
 function _tgNotify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }),
-  }).catch(() => {});
+  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' });
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
 }
 
 let _memAnnouncement = null;

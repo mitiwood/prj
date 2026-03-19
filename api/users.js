@@ -22,10 +22,8 @@ function _tgNotify(event, data) {
   const icon = event === 'new_user' ? '🆕' : '👤';
   const label = event === 'new_user' ? '신규 가입' : '로그인';
   const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }),
-  }).catch(() => {});
+  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' });
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
 }
 
 async function sbFetch(path, options = {}) {
