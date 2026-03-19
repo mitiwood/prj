@@ -3971,37 +3971,45 @@ async function runHealthCheck(){
   grid.innerHTML = '<div class="health-item"><div class="health-dot health-warn"></div><div class="health-label">확인 중...</div></div>';
   const checks = [];
 
+  const _hpw = getAdminPw();
+  const _hAuth = {'Authorization':'Bearer '+_hpw};
+
   // Supabase
   try{
-    const r = await fetch('/api/tracks?limit=1',{signal:AbortSignal.timeout(5000)});
-    const d = await r.json();
+    const r = await fetch('/api/tracks?limit=1',{headers:_hAuth,signal:AbortSignal.timeout(5000)});
+    const txt = await r.text();
+    let d; try{d=JSON.parse(txt);}catch{d={};}
     checks.push({name:'Supabase',ok:r.ok&&d.source==='supabase',warn:r.ok&&d.source!=='supabase'});
   }catch{ checks.push({name:'Supabase',ok:false}); }
 
   // Users API
   try{
-    const pw = localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
-    const r = await fetch('/api/users',{headers:{'Authorization':'Bearer '+pw},signal:AbortSignal.timeout(5000)});
-    checks.push({name:'Users API',ok:r.ok});
+    const r = await fetch('/api/users',{headers:_hAuth,signal:AbortSignal.timeout(5000)});
+    const txt = await r.text();
+    let d; try{d=JSON.parse(txt);}catch{d={};}
+    checks.push({name:'Users API',ok:r.ok&&!d.error&&Array.isArray(d.users)});
   }catch{ checks.push({name:'Users API',ok:false}); }
 
   // VAPID
   try{
     const r = await fetch('/api/vapid-keys',{signal:AbortSignal.timeout(5000)});
-    const d = await r.json();
-    checks.push({name:'VAPID',ok:!!d.publicKey,warn:!d.publicKey});
+    const txt = await r.text(); let d; try{d=JSON.parse(txt);}catch{d={};}
+    checks.push({name:'VAPID',ok:!!d.publicKey,warn:r.ok&&!d.publicKey});
   }catch{ checks.push({name:'VAPID',ok:false}); }
 
   // Announcement API
   try{
     const r = await fetch('/api/announcement',{signal:AbortSignal.timeout(5000)});
-    checks.push({name:'공지 API',ok:r.ok});
+    const txt = await r.text(); let d; try{d=JSON.parse(txt);}catch{d=null;}
+    checks.push({name:'공지 API',ok:r.ok&&d!==null});
   }catch{ checks.push({name:'공지 API',ok:false}); }
 
   // KIE Proxy
   try{
-    const r = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/api/v1/chat/credit',method:'GET',apiKey:'test'}),signal:AbortSignal.timeout(5000)});
-    checks.push({name:'KIE Proxy',ok:r.status!==500&&r.status!==404,warn:r.status===401||r.status===403});
+    const _kk = localStorage.getItem('kms_kie_key')||'';
+    const r = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/api/v1/chat/credit',method:'GET',apiKey:_kk||'test'}),signal:AbortSignal.timeout(5000)});
+    const txt = await r.text(); let d; try{d=JSON.parse(txt);}catch{d={};}
+    checks.push({name:'KIE Proxy',ok:r.ok&&(d.code===200||d.data!==undefined),warn:r.ok&&d.code!==200});
   }catch{ checks.push({name:'KIE Proxy',ok:false}); }
 
   // localStorage
