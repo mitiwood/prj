@@ -82,8 +82,47 @@ async function ensureTable() {
     await sb("/comments?select=id&limit=1");
     _sbAvailable = true;
   } catch (e) {
-    console.warn("[comments] Supabase table not available:", e.message.slice(0, 80));
-    _sbAvailable = false;
+    console.warn("[comments] table not found, creating...", e.message.slice(0, 80));
+    /* Supabase SQL 실행으로 테이블 자동 생성 시도 */
+    try {
+      const sqlRes = await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
+        method: "POST",
+        headers: {
+          apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: CREATE_TABLE_SQL }),
+      });
+      if (sqlRes.ok) {
+        console.log("[comments] table created via rpc");
+        _sbAvailable = true;
+        return;
+      }
+    } catch (_) {}
+    /* rpc 실패 시 직접 POST로 첫 데이터 삽입 시도 (테이블 존재 확인) */
+    try {
+      const testRes = await fetch(`${SB_URL}/rest/v1/comments`, {
+        method: "POST",
+        headers: {
+          apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          track_id: "_init_", author_name: "system", content: "table init",
+          is_hidden: true, created_at: new Date().toISOString(),
+        }),
+      });
+      if (testRes.ok || testRes.status === 201) {
+        _sbAvailable = true;
+        /* 초기화 레코드 삭제 */
+        await fetch(`${SB_URL}/rest/v1/comments?track_id=eq._init_`, {
+          method: "DELETE",
+          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: "return=minimal" },
+        });
+      }
+    } catch (_) {}
+    if (!_sbAvailable) console.warn("[comments] Supabase not available, using memory fallback");
   }
 }
 
