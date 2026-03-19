@@ -6957,19 +6957,25 @@ function mpStopViz(){
   });
 }
 
+let _fpAudioGenId=0; /* 오디오 세대 ID — stale 이벤트 방지 */
+
+function _destroyFpAudio(){
+  if(!fpAudio) return;
+  fpAudio.pause();
+  try{ fpAudio.removeAttribute('src'); fpAudio.load(); }catch(e){}
+  fpAudio=null;
+  clearInterval(fpVizTimer);
+  mpStopViz(); fpStopViz();
+}
+
 function showMiniPlayer(idx){
   const h = historyData[idx];
   if(!h) return;
   fpCurrentIdx = idx;
 
-  /* ── 모든 오디오 소스 정지 후 기존 오디오 정리 ── */
+  /* ── 모든 오디오 소스 정지 후 기존 오디오 완전 해제 ── */
   stopAllAudio();
-  if(fpAudio){
-    fpAudio.src = '';
-    fpAudio = null;
-    clearInterval(fpVizTimer);
-    mpStopViz(); fpStopViz();
-  }
+  _destroyFpAudio();
 
   /* 썸네일 */
   const thumb = $('mp-thumb');
@@ -6989,13 +6995,15 @@ function showMiniPlayer(idx){
   try{ new URL(_safeAudioUrl); }catch(e){ toast('잘못된 오디오 URL','err'); return; }
 
   /* ── 새 오디오 생성 ── */
+  const genId = ++_fpAudioGenId;
   const audio = new Audio();
   audio.crossOrigin='anonymous';
-  audio.preload='none';
+  audio.preload='auto';
   audio.src = _safeAudioUrl;
   fpAudio = audio;
 
   audio.addEventListener('timeupdate',()=>{
+    if(genId!==_fpAudioGenId) return; /* stale 체크 */
     if(!audio.duration) return;
     const pct = (audio.currentTime / audio.duration) * 100;
     const fill=$('mp-prog-fill'); if(fill) fill.style.width = pct + '%';
@@ -7010,6 +7018,7 @@ function showMiniPlayer(idx){
   });
 
   audio.addEventListener('ended',()=>{
+    if(genId!==_fpAudioGenId) return; /* stale 체크 */
     const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
     _setPlayIcon(pb, false, false);
     _setPlayIcon(fpb, false, true);
@@ -7019,40 +7028,38 @@ function showMiniPlayer(idx){
     while(next < historyData.length && !historyData[next]?.audio_url) next++;
     if(next < historyData.length){
       setTimeout(()=> showMiniPlayer(next), 600);
-      toast(`⏭ 다음 곡: ${historyData[next]?.title||'무제'}`,'',2000);
     } else {
-      toast('🎵 마지막 곡이에요','',2000);
+      toast('마지막 곡이에요','',2000);
     }
   });
 
   audio.addEventListener('error',(e)=>{
+    if(genId!==_fpAudioGenId) return; /* stale 체크 */
     const code = e.target?.error?.code;
     const msgs = {1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg = msgs[code] || '재생 오류';
     const src = e.target?.src||'';
-    /* code 4 = 포맷 미지원 또는 잘못된 URL → 재시도 의미없음 */
     if(code === 4){
-      /* 자체 도메인 URL이면 audio_url이 비어있는 것 → 조용히 처리 */
       if(src.includes(window.location.hostname) && !src.includes('/cdn') && !src.includes('audio')){
         console.warn('[Audio] 유효하지 않은 오디오 URL:', src.slice(0,80));
       } else {
         console.warn('[Audio Error]', msg, src.slice(0,80));
-        toast('🔇 오디오를 재생할 수 없어요','err',3000);
+        toast('오디오를 재생할 수 없어요','err',3000);
       }
       return;
     }
     console.warn('[Audio Error]', msg, src.slice(0,60));
-    /* 네트워크 오류만 재시도 1회 */
     if(!audio._retried && code === 2){
       audio._retried = true;
-      setTimeout(()=>{ audio.load(); audio.play().catch(()=>{}); }, 1500);
-      toast('🔄 오디오 재연결 중...','',2000);
+      setTimeout(()=>{ if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});} }, 1500);
+      toast('오디오 재연결 중...','',2000);
     } else {
-      toast('🔇 '+msg,'err',3000);
+      toast(msg,'err',3000);
     }
   });
 
   audio.play().then(()=>{
+    if(genId!==_fpAudioGenId) return; /* stale 체크 */
     const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
     _setPlayIcon(pb, true, false);
     _setPlayIcon(fpb, true, true);
@@ -7063,8 +7070,7 @@ function showMiniPlayer(idx){
 }
 
 function hideMiniPlayer(){
-  if(fpAudio){ fpAudio.pause(); fpAudio = null; }
-  mpStopViz();
+  _destroyFpAudio();
   $('mini-player').classList.remove('on');
   document.body.classList.remove('mp-on');
   /* 풀플레이어도 닫기 */
@@ -7645,25 +7651,17 @@ function _doOpenFullPlayer(idx){
   document.body.classList.remove('mp-on');
   document.body.style.overflow='hidden';
 
-  /* ── 모든 오디오 완전 정지 ── */
+  /* ── 모든 오디오 완전 정지 + 해제 ── */
   stopAllAudio();
-  clearInterval(fpVizTimer);
-  fpStopViz();
-  /* 이전 fpAudio 완전 해제 */
-  if(fpAudio){
-    fpAudio.pause();
-    fpAudio.removeAttribute('src');
-    fpAudio.load(); /* 리소스 해제 */
-    fpAudio=null;
-  }
+  _destroyFpAudio();
 
-  if(!h.audio_url){toast('오디오 URL 없음 — 곡 재생성이 필요합니다','err');return;}
+  if(!h.audio_url){toast('오디오 URL 없음','err');return;}
   const _audioUrl = (h.audio_url||'').trim();
   if(!_audioUrl || _audioUrl === window.location.origin + '/' || _audioUrl === window.location.href){
-    toast('오디오 URL이 올바르지 않아요 — 곡을 다시 생성해주세요','err',3000);
+    toast('오디오 URL이 올바르지 않아요','err',3000);
     return;
   }
-  try{new URL(_audioUrl);}catch(e){toast('잘못된 오디오 URL: '+_audioUrl.slice(0,40),'err');return;}
+  try{new URL(_audioUrl);}catch(e){toast('잘못된 오디오 URL','err');return;}
   if(!/^https?:\/\//i.test(_audioUrl)){toast('지원하지 않는 오디오 URL 형식','err');return;}
   h.audio_url = _audioUrl;
 
@@ -7674,15 +7672,17 @@ function _doOpenFullPlayer(idx){
   $('fp-dur').textContent='0:00';
   _setPlayIcon($('fp-play-btn'),false,true);
 
-  /* 새 오디오 생성 */
+  /* 새 오디오 생성 — genId로 stale 이벤트 차단 */
+  const genId = ++_fpAudioGenId;
   const audio=new Audio();
   audio.preload='auto';
   audio.crossOrigin='anonymous';
-  audio._fpId=Date.now(); /* 고유 ID로 stale 체크 */
   fpAudio=audio;
 
+  console.log('[FP] 새 오디오 생성 genId='+genId, 'idx='+idx, 'url='+_audioUrl.slice(-40));
+
   audio.addEventListener('timeupdate',()=>{
-    if(fpAudio!==audio)return; /* stale 체크 */
+    if(genId!==_fpAudioGenId)return;
     if(!audio.duration)return;
     const pct=(audio.currentTime/audio.duration)*100;
     $('fp-prog-fill').style.width=pct+'%';
@@ -7692,40 +7692,43 @@ function _doOpenFullPlayer(idx){
     if(fpSyncMode&&fpTimestampLines.length)fpSyncLyrics(audio.currentTime);
   });
   audio.addEventListener('ended',()=>{
-    if(fpAudio!==audio)return;
+    if(genId!==_fpAudioGenId)return;
     _setPlayIcon($('fp-play-btn'),false,true);fpStopViz();fpPlayNext();
   });
   audio.addEventListener('error',(ev)=>{
-    if(fpAudio!==audio)return;
+    if(genId!==_fpAudioGenId)return;
     const code=ev.target?.error?.code;
     const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg=msgs[code]||'재생 오류';
     if(code===4){
-      console.warn('[FP Audio Error]',code);
-      toast('🔇 오디오를 재생할 수 없어요','err',3000);
+      console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
+      toast('오디오를 재생할 수 없어요','err',3000);
       return;
     }
-    console.warn('[FP Audio Error]',code,h.audio_url?.slice(0,80));
+    console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
     if(!audio._fpRetried&&code===2){
       audio._fpRetried=true;
-      setTimeout(()=>{if(fpAudio===audio){audio.load();audio.play().catch(()=>{});}},1500);
-      toast('🔄 재연결 중...','',2000);
+      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
+      toast('오디오 재연결 중...','',2000);
     } else {
-      toast('🔇 '+msg,'err',4000);
+      toast(msg,'err',4000);
     }
   });
   /* canplay 대기 후 재생 */
   audio.addEventListener('canplay',function _onCanPlay(){
     audio.removeEventListener('canplay',_onCanPlay);
-    if(fpAudio!==audio)return; /* stale 체크 */
+    if(genId!==_fpAudioGenId)return;
     audio.play().then(()=>{
-      if(fpAudio!==audio)return;
-      _setPlayIcon($('fp-play-btn'),true,true);fpStartViz();
+      if(genId!==_fpAudioGenId)return;
+      console.log('[FP] 재생 시작 genId='+genId, 'title='+h.title);
+      _setPlayIcon($('fp-play-btn'),true,true);
+      _setPlayIcon($('mp-play-btn'),true,false);
+      fpStartViz();
     }).catch((e)=>{
       if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
     });
   });
-  audio.src=h.audio_url;
+  audio.src=_audioUrl;
   audio.load();
 
   /* 시크 */
