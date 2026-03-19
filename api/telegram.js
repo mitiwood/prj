@@ -22,7 +22,7 @@ async function tgApi(method, body = null) {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
   const opts = { method: body ? 'POST' : 'GET' };
   if (body) {
-    opts.headers = { 'Content-Type': 'application/json' };
+    opts.headers = { 'Content-Type': 'application/json; charset=utf-8' };
     opts.body = JSON.stringify(body);
   }
   const r = await fetch(url, opts);

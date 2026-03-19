@@ -23,7 +23,7 @@ function _tgNotify(event, data) {
   const label = event === 'new_user' ? '신규 가입' : '로그인';
   const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
   fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }),
   }).catch(() => {});
 }

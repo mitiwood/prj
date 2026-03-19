@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         chat_id: TG_CHAT,
         text: msg,

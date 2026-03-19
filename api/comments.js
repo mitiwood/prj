@@ -21,7 +21,7 @@ function _tgComment(author, text, trackId) {
   const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const msg = `💬 *새 댓글*\n작성자: ${author || "익명"}\n내용: ${(text || "").slice(0, 100)}\n⏰ ${ts}`;
   fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json; charset=utf-8" },
     body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }),
   }).catch(() => {});
 }
