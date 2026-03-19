@@ -16,11 +16,15 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
 
-async function _tgComment(author, text, trackId) {
+async function _tgComment(author, text, trackTitle) {
   if (!TG_TOKEN || !TG_CHAT) return;
   try {
     const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    const msg = `💬 *새 댓글*\n작성자: ${author || "익명"}\n내용: ${(text || "").slice(0, 100)}\n⏰ ${ts}`;
+    let msg = `💬 *새 댓글*\n`;
+    msg += `작성자: ${author || "익명"}\n`;
+    msg += `내용: ${(text || "").slice(0, 200)}\n`;
+    if(trackTitle) msg += `곡: ${trackTitle}\n`;
+    msg += `⏰ ${ts}`;
     const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }), "utf-8");
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
@@ -150,14 +154,14 @@ export default async function handler(req, res) {
     if (_sbAvailable) {
       try {
         const created = await sb("/comments", { method: "POST", body: JSON.stringify(row) });
-        await _tgComment(row.author, row.text, row.track_id);
+        await _tgComment(row.author_name, row.content, row.track_id);
         return res.status(200).json({ success: true, comment: created?.[0] || row, source: "supabase" });
       } catch (e) { console.warn("[comments POST sb]", e.message); }
     }
     row.id = crypto.randomUUID?.() || `mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     _mem.push(row);
     if (_mem.length > 1000) _mem = _mem.slice(-1000);
-    await _tgComment(row.author, row.text, row.track_id);
+    await _tgComment(row.author_name, row.content, row.track_id);
     return res.status(200).json({ success: true, comment: row, source: "memory" });
   }
 

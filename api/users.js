@@ -21,8 +21,15 @@ async function _tgNotify(event, data) {
   try {
     const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     const icon = event === 'new_user' ? '🆕' : '👤';
-    const label = event === 'new_user' ? '신규 가입' : '로그인';
-    const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
+    const label = event === 'new_user' ? '신규 가입' : '재방문 로그인';
+    const device = data.isMobile ? '📱 모바일' : '💻 PC';
+    let text = `${icon} *${label}*\n`;
+    text += `이름: ${data.name||'?'}\n`;
+    text += `소셜: ${data.provider||'?'}\n`;
+    if(data.email) text += `이메일: ${data.email}\n`;
+    text += `디바이스: ${device}\n`;
+    if(data.loginCount > 1) text += `방문횟수: ${data.loginCount}회\n`;
+    text += `⏰ ${ts}`;
     const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -102,9 +109,9 @@ export default async function handler(req, res) {
           body: JSON.stringify(entry),
         });
         if (entry.login_count <= 1) {
-          await _tgNotify('new_user', { name, provider });
+          await _tgNotify('new_user', { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count });
         } else {
-          await _tgNotify('login', { name, provider });
+          await _tgNotify('login', { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count });
         }
         return res.status(200).json({ success: true, source: 'supabase' });
       } catch (e) {

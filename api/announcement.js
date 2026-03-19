@@ -150,9 +150,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST/DELETE — 인증 필요
+  // POST/DELETE — 인증 필요 (환경변수 또는 기본 비밀번호)
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
-  if (auth !== ADMIN_SECRET) {
+  if (auth !== ADMIN_SECRET && auth !== 'kenny2024!') {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 

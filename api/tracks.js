@@ -21,13 +21,15 @@ async function _tgNotify(event, data) {
   if (!TG_TOKEN || !TG_CHAT) return { skipped: true, reason: "no token/chat" };
   try {
     const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
-    const label = { music_created: "새 곡 생성", mv_created: "MV 완성", new_user: "새 로그인", comment: "새 댓글", track_deleted: "트랙 삭제" }[event] || event;
+    const icon = { music_created: "🎵", mv_created: "🎬", track_deleted: "🗑" }[event] || "📌";
+    const label = { music_created: "새 곡 생성 완료", mv_created: "뮤직비디오 완성", track_deleted: "트랙 삭제" }[event] || event;
+    const modeLabel = { custom: "커스텀", simple: "심플", youtube: "YouTube", mv: "MV", vocal: "보컬변환" };
     let text = `${icon} *${label}*\n`;
-    if (data.title) text += `제목: ${data.title}\n`;
-    if (data.mode) text += `모드: ${data.mode}\n`;
+    if (data.title) text += `곡명: ${data.title}\n`;
+    if (data.mode) text += `모드: ${modeLabel[data.mode] || data.mode}\n`;
     if (data.user) text += `생성자: ${data.user}\n`;
-    if (data.author) text += `작성자: ${data.author}\n`;
+    if (data.tags) text += `장르: ${data.tags}\n`;
+    if (data.provider) text += `소셜: ${data.provider}\n`;
     text += `⏰ ${ts}`;
     const jsonPayload = JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
     const body = Buffer.from(jsonPayload, "utf-8");
@@ -189,6 +191,8 @@ export default async function handler(req, res) {
           title: title || "무제",
           mode: genMode || "custom",
           user: owner_name || "익명",
+          tags: tags || "",
+          provider: owner_provider || "",
         });
       } catch(tgErr) { _tgResult = { error: tgErr.message }; }
       return res.status(200).json({ success: true, source: src, tg: _tgResult });
