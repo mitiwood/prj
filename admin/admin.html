@@ -191,7 +191,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="header-right">
         <span class="admin-badge">Admin</span>
         <span id="auto-refresh-label" style="font-size:11px;color:var(--t3);">10초 후 갱신</span>
-        <button class="btn" onclick="loadData();renderUsersAdmin();const _k=localStorage.getItem('kms_kie_key')||document.getElementById('kie-api-input')?.value.trim();if(_k)fetchKieUsageForStats(_k);adminToast('✅ 갱신됨');">🔄 즉시 갱신</button>
+        <button class="btn" onclick="loadData().then(()=>adminToast('✅ 갱신됨')).catch(()=>{});">🔄 즉시 갱신</button>
       </div>
     </div>
     <div class="admin-content">
@@ -256,7 +256,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
           <span>🔄 30초마다 자동 갱신</span>
           <span>마지막: <b id="dash-last-sync" style="color:var(--t2);">-</b></span>
-          <button class="btn" onclick="loadData();adminToast('✅ 갱신됨')" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
+          <button class="btn" onclick="loadData().then(()=>adminToast('✅ 갱신됨')).catch(()=>{});" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
         </div>
 
         <!-- kie.ai 외부 링크 카드 -->
@@ -3061,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const mSec = document.getElementById('sec-managers');
   if(mSec){
     const obs2 = new MutationObserver(()=>{
-      if(mSec.classList.contains('on')) renderManagers();
+      if(mSec.classList.contains('on')) renderManagersSection();
     });
     obs2.observe(mSec, {attributes:true, attributeFilter:['class']});
   }
@@ -3069,13 +3069,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 // ── 대시보드 통계 업데이트 (신고 건수 포함) ──
 const _origLoadData = loadData;
-loadData = function(){
-  _origLoadData();
-  // 신고 건수 업데이트
+loadData = async function(){
+  await _origLoadData();
   const pendingReports = getReports().filter(r=>r.status==='pending').length;
   const reportStat = document.getElementById('stat-reports');
   if(reportStat) reportStat.textContent = pendingReports;
-  // 마지막 갱신 시각 표시
   const lastSync = document.getElementById('dash-last-sync');
   if(lastSync) lastSync.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 };
@@ -3751,8 +3749,8 @@ function openUserDetail(userName, provider){
 //  loadData 확장 — 주간 트렌드 + 감사 로그 미리보기
 // ══════════════════════════════════════════════
 const _origLoadData2 = loadData;
-loadData = function(){
-  _origLoadData2();
+loadData = async function(){
+  await _origLoadData2();
   renderWeeklyTrends();
   renderDashAuditPreview();
 };
