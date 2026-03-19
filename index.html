@@ -3052,7 +3052,7 @@ body.mp-on .view{padding-bottom:118px;}
           </div>
           <div class="settings-item-right">›</div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="if(confirm('최근 생성 내역을 모두 삭제할까요?')){historyData=[];saveHistory();updateHistBadge();renderHistoryView();toast('🗑 전체 삭제','',2000);}">
+        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="_showSettingsConfirm('히스토리 초기화','저장된 생성 내역을 모두 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.','삭제',()=>{historyData=[];saveHistory();updateHistBadge();renderHistoryView();renderSettings();toast('히스토리가 삭제되었어요','ok',2000);})">
           <div class="settings-item-left">
             <div class="settings-item-icon">🗑</div>
             <div>
@@ -4002,6 +4002,64 @@ function _showLogoutDonePopup(){
     window.location.replace('/');
   };
 }
+
+/* ── 설정 탭 범용 바텀시트 confirm ── */
+function _showSettingsConfirm(title, desc, actionLabel, onConfirm, isDanger=true){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
+  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px env(safe-area-inset-bottom,32px);border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${title}</div>
+      <div style="font-size:13px;color:#a09ab8;line-height:1.6;">${desc}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="_sc_confirm" style="width:100%;padding:15px;border-radius:12px;border:none;background:${isDanger?'linear-gradient(135deg,#ef4444,#dc2626)':'linear-gradient(135deg,#7c3aed,#a855f7)'};color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px ${isDanger?'rgba(239,68,68,.35)':'rgba(124,58,237,.35)'};">${actionLabel}</button>
+      <button id="_sc_cancel" style="width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=>{
+    overlay.style.opacity='1';
+    overlay.firstElementChild.style.transform='translateY(0)';
+  });
+  const close=()=>{
+    overlay.firstElementChild.style.transform='translateY(100%)';
+    overlay.style.opacity='0';
+    setTimeout(()=>overlay.remove(),300);
+  };
+  document.getElementById('_sc_cancel').onclick=close;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+  document.getElementById('_sc_confirm').onclick=()=>{close();onConfirm();};
+}
+
+/* ── 설정 탭 범용 바텀시트 안내 (확인만) ── */
+function _showSettingsAlert(title, desc, onDone){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
+  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px env(safe-area-inset-bottom,32px);border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${title}</div>
+      <div style="font-size:13px;color:#a09ab8;line-height:1.6;">${desc}</div>
+    </div>
+    <button id="_sa_ok" style="width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">확인</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=>{
+    overlay.style.opacity='1';
+    overlay.firstElementChild.style.transform='translateY(0)';
+  });
+  const close=()=>{
+    overlay.firstElementChild.style.transform='translateY(100%)';
+    overlay.style.opacity='0';
+    setTimeout(()=>overlay.remove(),300);
+    if(onDone) onDone();
+  };
+  document.getElementById('_sa_ok').onclick=close;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+}
+
 function updateLoginUI(){
   /* 설정탭 로그인 버튼 갱신 */
   const loginBtn=$('settings-login-btn');
@@ -6863,11 +6921,13 @@ $('hes-dl-btn').addEventListener('click',()=>{
 
 $('hes-del-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
-  if(!confirm('이 곡을 삭제할까요?'))return;
-  historyData.splice(_hesIdx,1);
-  saveHistory();updateHistBadge();renderHistoryView();
-  closeHistEditSheet();
-  toast('🗑 삭제되었습니다','',1500);
+  const t=historyData[_hesIdx];
+  _showSettingsConfirm('곡 삭제',`"${t?.title||'이 곡'}"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.`,'삭제',()=>{
+    historyData.splice(_hesIdx,1);
+    saveHistory();updateHistBadge();renderHistoryView();
+    closeHistEditSheet();
+    toast('삭제되었어요','ok',1500);
+  });
 });
 
 
@@ -8066,11 +8126,13 @@ function saveFpEdits(){
 
 function fpDeleteCurrent(){
   if(fpCurrentIdx<0)return;
-  if(!confirm(`"${historyData[fpCurrentIdx]?.title||'이 곡'}"을 삭제할까요?`))return;
-  historyData.splice(fpCurrentIdx,1);
-  saveHistory();updateHistBadge();renderHistoryView();
-  closeFullPlayer();
-  toast('🗑 삭제되었습니다');
+  const t=historyData[fpCurrentIdx];
+  _showSettingsConfirm('곡 삭제',`"${t?.title||'이 곡'}"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.`,'삭제',()=>{
+    historyData.splice(fpCurrentIdx,1);
+    saveHistory();updateHistBadge();renderHistoryView();
+    closeFullPlayer();
+    toast('삭제되었어요','ok',1500);
+  });
 }
 
 /* 공유 */
@@ -8174,9 +8236,10 @@ function deleteHistory(idx,e){
 }
 
 $('clear-all-btn').addEventListener('click',()=>{
-  if(!confirm('최근 생성 내역을 모두 삭제할까요?'))return;
-  historyData=[];saveHistory();updateHistBadge();renderHistoryView();
-  toast('🗑 전체 삭제되었습니다');
+  _showSettingsConfirm('히스토리 초기화','저장된 생성 내역을 모두 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.','전체 삭제',()=>{
+    historyData=[];saveHistory();updateHistBadge();renderHistoryView();
+    toast('히스토리가 삭제되었어요','ok',2000);
+  });
 });
 
 /* ── 커뮤니티 필터 ── */
@@ -8492,8 +8555,8 @@ const _GENRE_KEYS={
   ost:['ost','cinematic','epic','film','오에스티','영화'],
 };
 function getCommTracks(){
-  /* Supabase 서버 데이터만 사용 — 로컬 historyData 폴백 제거 */
-  let all = _sbLoaded ? _sbTracks : [];
+  /* Supabase 서버 데이터 사용 — _sbLoaded 체크 제거 (항상 _sbTracks 반환) */
+  let all = _sbTracks || [];
 
   if(_commActiveGenre&&_commActiveGenre!=='all'){
     const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
@@ -8507,20 +8570,16 @@ async function renderCommunity(force=false){
   const list=$('comm-list');
   if(!list)return;
 
-  /* 캐시가 있으면 즉시 렌더, 없으면 로딩 표시 */
-  if(!_sbLoaded || !_sbTracks.length){
+  /* 캐시 있으면 즉시 렌더 (깜빡임 방지) */
+  if(_sbLoaded && _sbTracks.length){
+    _renderCommContent(heroWrap, list);
+  } else {
     list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--t3);"><div style="font-size:28px;margin-bottom:10px;">🎵</div><div>커뮤니티 곡 불러오는 중...</div></div>';
     heroWrap.innerHTML='';
-    await _loadSbTracks(true);
-  } else {
-    /* 캐시로 즉시 렌더 후 백그라운드 갱신 */
-    _renderCommContent(heroWrap, list);
-    if(force || (Date.now() - _sbLoadedAt) > _SB_CACHE_TTL){
-      _loadSbTracks(true).then(()=>_renderCommContent(heroWrap, list));
-    }
-    return;
   }
 
+  /* 항상 서버에서 최신 데이터 로드 */
+  await _loadSbTracks(true);
   _renderCommContent(heroWrap, list);
 }
 
@@ -8886,8 +8945,9 @@ function commShowMore(idx){
   const tracks=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
   const t=tracks[idx+1];
   if(!t)return;
-  const choice=confirm(`"${t.title}"\n\n재생하기를 누르면 전체 플레이어에서 재생됩니다.`);
-  if(choice)t&&commPlayByHIdx(t._hIdx);
+  _showSettingsConfirm('곡 재생',`"${t.title}"<br>전체 플레이어에서 재생할까요?`,'재생하기',()=>{
+    if(t)commPlayByHIdx(t._hIdx);
+  }, false);
 }
 /* hIdx(historyData 인덱스)로 직접 커뮤니티 트랙 재생 */
 function commPlayByHIdx(hIdx){
@@ -10636,7 +10696,11 @@ async function _submitComment(){
   try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:_cUser.name||'익명',author_avatar:_cUser.avatar||'',author_provider:_cUser.provider||'guest'})});
   _cancelReply();await _loadComments();const list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;}catch(e){toast('댓글 전송 실패','err');}
 }
-async function _deleteMyComment(id){if(!confirm('이 댓글을 삭제할까요?'))return;try{await fetch('/api/comments?id='+id,{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();}catch(e){toast('삭제 실패','err');}}
+async function _deleteMyComment(id){
+  _showSettingsConfirm('댓글 삭제','이 댓글을 삭제할까요?','삭제',async()=>{
+    try{await fetch('/api/comments?id='+id,{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();toast('삭제되었어요','ok',1500);}catch(e){toast('삭제 실패','err');}
+  });
+}
 </script>
 
 <!-- ── Push Notification (Service Worker) ── -->
