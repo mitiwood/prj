@@ -3932,7 +3932,7 @@ async function _ytDoGenerate(){
 
   /* UI 로딩 시작 */
   _ytGenerating = true;
-  _globalGenerating = true;
+  _globalGenerating = true; _syncGenButtons();
   const ytBtn  = $('yt-gen-btn');
   const ytSpin = $('yt-gen-spinner');
   const ytTxt  = $('yt-gen-txt');
@@ -4040,7 +4040,7 @@ async function _ytDoGenerate(){
     toast('❌ '+ytErrMsg,'err',5000);
   }finally{
     _ytGenerating     = false;
-    _globalGenerating = false;
+    _globalGenerating = false; _syncGenButtons();
     if(ytBtn)  { ytBtn.disabled=false; ytBtn.style.opacity='1'; }
     if(ytSpin) ytSpin.style.display='none';
     if(ytTxt)  ytTxt.textContent='▶ YouTube 스타일로 생성';
@@ -4505,7 +4505,7 @@ async function generateMV(){
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   if(_globalGenerating){_showGeneratingPopup();return;}
-  _globalGenerating = true;
+  _globalGenerating = true; _syncGenButtons();
   const prompt=($('mv-prompt')?.value||'').trim();
   genLock();
   const btn=$('mv-gen-btn'),spinner=$('mv-gen-spinner'),txt=$('mv-gen-txt');
@@ -4651,7 +4651,7 @@ async function generateMV(){
     else if(/403|permission|plan/i.test(e.message))msg='❌ 유료 플랜에서 지원됩니다';
     resultArea.innerHTML=`<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">${esc(msg)}</div></div>`;
   }finally{
-    _globalGenerating = false;
+    _globalGenerating = false; _syncGenButtons();
     btn.disabled=false;
     if(spinner)spinner.classList.remove('on');
     if(txt)txt.textContent='🎬 뮤직비디오 생성하기';
@@ -5122,10 +5122,10 @@ async function _autoLyricsAndGenerate(){
       toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
     }
     /* 바로 생성 — _afterLyrics 플래그로 잠금 우회 */
-    setTimeout(()=>{ _globalGenerating=false; generate({_afterLyrics:true}); },800);
+    setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate({_afterLyrics:true}); },800);
   }catch(e){
     clearInterval(ti);
-    _globalGenerating = false;
+    _globalGenerating = false; _syncGenButtons();
     const msg=(e.message||'').toLowerCase();
     const isInternal=msg.includes('model is empty')||msg.includes('model')||msg.includes('internal');
     toast(isInternal?'❌ 가사 생성에 실패했어요. 다시 시도해주세요.':'❌ 자동 작사 실패: '+e.message,'err',4000);
@@ -5138,7 +5138,12 @@ $('gen-btn').addEventListener('click',generate);
 $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
-let _globalGenerating = false; /* 전역 생성 잠금 */
+let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
+/* 전역 생성 중 → 모든 생성 버튼 disabled / 완료 → active */
+function _syncGenButtons(){
+  const ids=['gen-btn','simple-gen-btn','yt-gen-btn','mv-gen-btn'];
+  ids.forEach(id=>{const b=$(id);if(b){b.disabled=_globalGenerating;if(_globalGenerating)b.style.opacity='.5';else b.style.opacity='';}});
+}
 async function generate(overrideParams){
   const _modeKey=currentMode||'custom';
   const apiKey=kieApiKey;
@@ -5174,7 +5179,7 @@ async function generate(overrideParams){
       }
     }
   }
-  _globalGenerating = true;
+  _globalGenerating = true; _syncGenButtons();
   /* 모드별 입력값 수집 */
   const isSimple=currentMode==='simple';
   const isYT=currentMode==='youtube' || !!overrideParams?._ytMode;
@@ -5216,7 +5221,7 @@ async function generate(overrideParams){
     if(!hasLyrics && !hasDesc && !hasAiStyle) missingFields.push({id:'lyrics', label:'가사 또는 스타일 설명', hint:'가사를 직접 입력하거나 AI 도구로 스타일을 설정하세요'});
     if(!hasMood && !hasDesc && !hasAiStyle) missingFields.push({id:'mood', label:'분위기', hint:'어떤 분위기의 곡을 원하시나요?'});
     if(missingFields.length >= 1){
-      _globalGenerating = false;
+      _globalGenerating = false; _syncGenButtons();
       showInputGuideSheet(missingFields);
       return;
     }
@@ -5229,7 +5234,7 @@ async function generate(overrideParams){
       lyricsText = overrideParams?.styleStr || $('prompt').value.trim() || 'YouTube cover music';
     } else if(isCustom){
       toast('✍️ 가사가 없어요. AI가 자동으로 작사 후 음악을 생성할게요!','',2500);
-      _globalGenerating = false;
+      _globalGenerating = false; _syncGenButtons();
       await _autoLyricsAndGenerate();
       return;
     } else if(isSimple){
@@ -5237,7 +5242,7 @@ async function generate(overrideParams){
       const simpleInput = $('simple-prompt');
       const simplePrompt = simpleInput?.value.trim();
       if(!simplePrompt){
-        _globalGenerating = false;
+        _globalGenerating = false; _syncGenButtons();
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;';
         overlay.innerHTML = `<div style="background:#1e1e2a;border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(124,58,237,.2);">
@@ -5400,7 +5405,7 @@ async function generate(overrideParams){
     toast('❌ '+errMsg,'err',5000);
     console.error('[generateMusic error]',e.message);
   }finally{
-    _globalGenerating = false;
+    _globalGenerating = false; _syncGenButtons();
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
     if(activeSpinner){activeSpinner.style.display='none';}
     if(activeTxt){activeTxt.textContent=isSimple?'⚡ 음악 생성하기':isYT?'▶ YouTube로 생성':' ✦ 음악 생성하기';}
