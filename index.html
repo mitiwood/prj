@@ -4452,31 +4452,45 @@ function mvClearTrack(){
   });
 }
 
-/* AI 프롬프트 생성 */
+/* AI 프롬프트 생성 — 빠른작사와 동일한 방식 (Gemini 2.5 Flash 스트리밍) */
 $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
-  const apiKey=kieApiKey;
-  if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
   const spinner=$('mv-prompt-spinner');const btn=$('mv-ai-prompt-btn');
+  const ta=$('mv-prompt');
   if(spinner)spinner.style.display='inline-block';if(btn)btn.disabled=true;
+  if(ta){ta.value='';ta.placeholder='✨ AI 프롬프트 생성 중...';}
+
+  _lyricsGenCancelled = false;
+  showLyricsGenPopup('stream');
+
   try{
-    /* 최근 히스토리에서 태그/제목 참고 */
     const ref=historyData[0];
-    const hint=ref?`Music track: "${ref.title||''}", tags: ${ref.tags||''}`:
+    const hint=ref?`Music: "${ref.title||''}", style: ${ref.tags||''}`:
       'A Korean pop music video';
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:400,
-        messages:[{role:'user',content:`Generate a detailed English text-to-video prompt for a music video based on: ${hint}. 
-Return ONLY the prompt text, no explanation. Make it vivid, cinematic, 100-200 words.`}]
-      })
+    const trackSel=$('mv-track-sel');
+    const selTrack=trackSel?.value?historyData.find(h=>h.id===trackSel.value):null;
+    const trackHint=selTrack?` Selected track: "${selTrack.title}", tags: ${selTrack.tags||''}`:'';
+
+    const sys='당신은 전문 뮤직비디오 감독입니다. 텍스트-투-비디오 AI를 위한 영문 프롬프트를 작성하세요. 프롬프트만 출력하고 설명은 하지 마세요.';
+    const usr=`다음 음악에 어울리는 뮤직비디오 프롬프트를 영문으로 작성해주세요 (100~200단어). 시네마틱하고 생동감 있게. ${hint}${trackHint}`;
+
+    await callClaudeStream(sys, usr, (partial)=>{
+      if(_lyricsGenCancelled) throw new Error('취소됨');
+      if(ta) ta.value=partial;
+      const sub=document.getElementById('_lyricsgen_sub');
+      if(sub){const words=partial.split(/\s+/).length;sub.innerHTML=`${words}단어 작성 중...<br><span style="font-size:11px;color:#6b6780;">거의 다 됐어요!</span>`;}
     });
-    const d=await resp.json();
-    const txt=d.content?.[0]?.text?.trim()||'';
-    if(txt){const ta=$('mv-prompt');if(ta)ta.value=txt;toast('✨ 프롬프트 생성 완료','ok',2000);}
-  }catch(e){toast('프롬프트 생성 실패: '+e.message,'err');}
-  finally{if(spinner)spinner.style.display='none';if(btn)btn.disabled=false;}
+    if(_lyricsGenCancelled) return;
+    hideLyricsGenPopup();
+    if(ta){ta.classList.add('flash');setTimeout(()=>ta.classList.remove('flash'),2000);}
+    toast('✨ 프롬프트 생성 완료! 확인 후 생성 버튼을 눌러주세요','ok',3000);
+  }catch(e){
+    hideLyricsGenPopup();
+    if(!_lyricsGenCancelled) toast('프롬프트 생성 실패: '+e.message,'err');
+  }finally{
+    if(spinner)spinner.style.display='none';if(btn)btn.disabled=false;
+    if(ta)ta.placeholder='예: A dreamy cityscape at night with neon lights...';
+  }
 });
 
 /* MV 생성 버튼 */
