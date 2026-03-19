@@ -2791,10 +2791,9 @@ async function sendAnnouncement() {
   btn.disabled = true; btn.textContent = '발송 중...';
   if(result) result.textContent = '';
   try {
-    const pw = localStorage.getItem('kms_admin_pw') || 'kenny2024!';
-    const r = await fetch('/api/announcement', {
+    const r = await adminFetch('/api/announcement', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + pw },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, icon, type, url, target, expiresHours })
     });
     const txt = await r.text();
@@ -2816,10 +2815,8 @@ async function sendAnnouncement() {
 async function deleteAnnouncement() {
   if(!confirm('현재 활성 공지를 삭제할까요?')) return;
   try {
-    const pw = localStorage.getItem('kms_admin_pw') || 'kenny2024!';
-    const r = await fetch('/api/announcement', {
+    const r = await adminFetch('/api/announcement', {
       method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + pw }
     });
     const txt = await r.text();
     let d; try { d = JSON.parse(txt); } catch { throw new Error('서버 응답 오류 (HTTP ' + r.status + ')'); }
