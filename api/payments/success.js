@@ -7,14 +7,16 @@ const TOSS_SECRET = process.env.TOSS_SECRET_KEY || "test_sk_zXLkKEypNArWmo50nX3l
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
-function _tgNotify(text) {
+async function _tgNotify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
-  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
-    body,
-  }).catch(() => {});
+  try {
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+      body,
+    });
+  } catch(e) { console.warn("[TG]", e.message); }
 }
 
 const PLANS = {
@@ -113,7 +115,7 @@ export default async function handler(req, res) {
 
     /* 4) 텔레그램 알림 */
     const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-    _tgNotify(`💰 *결제 완료*\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`);
+    await _tgNotify(`💰 *결제 완료*\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`);
 
     /* 5) 프론트로 리다이렉트 */
     return res.redirect(`/?payment=success&plan=${plan}`);

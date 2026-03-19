@@ -17,24 +17,25 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
 
-function _tgNotify(event, data) {
-  console.log("[TG] token:", TG_TOKEN ? "set(" + TG_TOKEN.slice(0, 6) + "...)" : "EMPTY", "chat:", TG_CHAT || "EMPTY");
-  if (!TG_TOKEN || !TG_CHAT) { console.log("[TG] skipped — missing token/chat"); return; }
-  const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-  const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
-  const label = { music_created: "새 곡 생성", mv_created: "MV 완성", new_user: "새 로그인", comment: "새 댓글", track_deleted: "트랙 삭제" }[event] || event;
-  let text = `${icon} *${label}*\n`;
-  if (data.title) text += `제목: ${data.title}\n`;
-  if (data.mode) text += `모드: ${data.mode}\n`;
-  if (data.user) text += `생성자: ${data.user}\n`;
-  if (data.author) text += `작성자: ${data.author}\n`;
-  text += `⏰ ${ts}`;
-  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
-    body,
-  }).catch(() => {});
+async function _tgNotify(event, data) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  try {
+    const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
+    const label = { music_created: "새 곡 생성", mv_created: "MV 완성", new_user: "새 로그인", comment: "새 댓글", track_deleted: "트랙 삭제" }[event] || event;
+    let text = `${icon} *${label}*\n`;
+    if (data.title) text += `제목: ${data.title}\n`;
+    if (data.mode) text += `모드: ${data.mode}\n`;
+    if (data.user) text += `생성자: ${data.user}\n`;
+    if (data.author) text += `작성자: ${data.author}\n`;
+    text += `⏰ ${ts}`;
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+      body,
+    });
+  } catch(e) { console.warn("[TG]", e.message); }
 }
 
 async function sb(path, opts = {}) {
@@ -178,8 +179,8 @@ export default async function handler(req, res) {
           if (_mem.length > 500) _mem = _mem.slice(0, 500);
         }
       }
-      /* 텔레그램 알림 (비동기, 실패해도 무시) */
-      _tgNotify(video_url ? "mv_created" : "music_created", {
+      /* 텔레그램 알림 (응답 전에 완료 대기) */
+      await _tgNotify(video_url ? "mv_created" : "music_created", {
         title: title || "무제",
         mode: genMode || "custom",
         user: owner_name || "익명",
@@ -310,8 +311,7 @@ export default async function handler(req, res) {
         method: "DELETE",
         prefer: "return=minimal",
       });
-      const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-      _tgNotify("track_deleted", { title: `트랙 ID: ${id}`, user: "관리자" });
+      await _tgNotify("track_deleted", { title: `트랙 ID: ${id}`, user: "관리자" });
       return res.status(200).json({ success: true });
     } catch (e) {
       return res.status(500).json({ error: e.message });

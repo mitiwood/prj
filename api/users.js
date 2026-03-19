@@ -16,18 +16,20 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 /* in-memory fallback (Supabase 미연동 시) */
 let _memStore = [];
 
-function _tgNotify(event, data) {
+async function _tgNotify(event, data) {
   if (!TG_TOKEN || !TG_CHAT) return;
-  const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-  const icon = event === 'new_user' ? '🆕' : '👤';
-  const label = event === 'new_user' ? '신규 가입' : '로그인';
-  const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
-  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
-    body,
-  }).catch(() => {});
+  try {
+    const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const icon = event === 'new_user' ? '🆕' : '👤';
+    const label = event === 'new_user' ? '신규 가입' : '로그인';
+    const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
+      body,
+    });
+  } catch(e) { console.warn('[TG]', e.message); }
 }
 
 async function sbFetch(path, options = {}) {
@@ -100,9 +102,9 @@ export default async function handler(req, res) {
           body: JSON.stringify(entry),
         });
         if (entry.login_count <= 1) {
-          _tgNotify('new_user', { name, provider });
+          await _tgNotify('new_user', { name, provider });
         } else {
-          _tgNotify('login', { name, provider });
+          await _tgNotify('login', { name, provider });
         }
         return res.status(200).json({ success: true, source: 'supabase' });
       } catch (e) {

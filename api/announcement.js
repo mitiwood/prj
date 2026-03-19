@@ -14,14 +14,16 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 
-function _tgNotify(text) {
+async function _tgNotify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
-  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
-    body,
-  }).catch(() => {});
+  try {
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
+      body,
+    });
+  } catch(e) { console.warn('[TG]', e.message); }
 }
 
 let _memAnnouncement = null;
@@ -195,7 +197,7 @@ export default async function handler(req, res) {
         _memAnnouncement = { ...annData, id: 'mem-' + Date.now(), createdAt: now.toISOString(), expiresAt: annData.expires_at };
       }
       const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-      _tgNotify(`📣 *인앱 공지 발송*\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`);
+      await _tgNotify(`📣 *인앱 공지 발송*\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`);
       return res.status(200).json({ success: true, storage: sbOk ? 'supabase' : 'memory' });
     } catch (e) {
       // 최후 폴백: 메모리 저장
