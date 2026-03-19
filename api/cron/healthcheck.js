@@ -74,18 +74,22 @@ export default async function handler(req, res) {
   );
   checks.push({ name: "Supabase DB", ...sbResult });
 
-  /* DB 통계 (Supabase 정상일 때만) */
+  /* DB 통계 (Supabase 정상일 때만) — HEAD + Content-Range 카운트 */
   if (sbResult.ok) {
-    try {
-      const [tracks, users, comments] = await Promise.all([
-        probe(`${SB_URL}/rest/v1/tracks?select=id&limit=5000`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: "application/json" } }),
-        probe(`${SB_URL}/rest/v1/users?select=id&limit=5000`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: "application/json" } }),
-        probe(`${SB_URL}/rest/v1/comments?select=id&limit=5000`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: "application/json" } }),
-      ]);
-      dbStats.tracks = tracks.ok ? JSON.parse(tracks.body || "[]").length : "?";
-      dbStats.users = users.ok ? JSON.parse(users.body || "[]").length : "?";
-      dbStats.comments = comments.ok ? JSON.parse(comments.body || "[]").length : "?";
-    } catch {}
+    const sbH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: "application/json", Prefer: "count=exact" };
+    async function sbCount(table) {
+      try {
+        const ac = new AbortController();
+        const tm = setTimeout(() => ac.abort(), 6000);
+        const r = await fetch(`${SB_URL}/rest/v1/${table}?select=id&limit=0`, { signal: ac.signal, headers: sbH });
+        clearTimeout(tm);
+        const range = r.headers.get("content-range") || "";
+        const m = range.match(/\/(\d+)/);
+        return m ? parseInt(m[1]) : "?";
+      } catch { return "?"; }
+    }
+    const [tc, uc, cc] = await Promise.all([sbCount("tracks"), sbCount("users"), sbCount("comments")]);
+    dbStats = { tracks: tc, users: uc, comments: cc };
   }
 
   /* ═══ 2. KIE.ai (음악생성) ═══ */
@@ -102,9 +106,10 @@ export default async function handler(req, res) {
     probe(`${BASE}/api/auth/kakao`, { timeout: 5000 }),
     probe(`${BASE}/api/auth/naver`, { timeout: 5000 }),
   ]);
-  checks.push({ name: "Google OAuth", ok: google.status === 307 || google.status === 302, status: google.status, ms: google.ms });
-  checks.push({ name: "Kakao OAuth", ok: kakao.status === 307 || kakao.status === 302, status: kakao.status, ms: kakao.ms });
-  checks.push({ name: "Naver OAuth", ok: naver.status === 307 || naver.status === 302, status: naver.status, ms: naver.ms });
+  /* OAuth 리다이렉트(307/302) 또는 200(내부 fetch가 따라감) 모두 정상 */
+  checks.push({ name: "Google OAuth", ok: google.ok, status: google.status, ms: google.ms });
+  checks.push({ name: "Kakao OAuth", ok: kakao.ok, status: kakao.status, ms: kakao.ms });
+  checks.push({ name: "Naver OAuth", ok: naver.ok, status: naver.status, ms: naver.ms });
 
   /* ═══ 4. Telegram Bot ═══ */
   const tgResult = await probe(`https://api.telegram.org/bot${TG_TOKEN}/getMe`);
