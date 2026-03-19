@@ -10037,28 +10037,57 @@ function _showImageAnalysisResult(a, imgUrl){
     }
 
     overlay.remove();
-    toast('✅ 스타일 적용됨! 가사를 생성합니다...','ok',2000);
+    toast('✅ 스타일 적용됨! AI가 가사를 생성합니다...','ok',2000);
 
-    /* 가사 자동 생성 */
+    /* 가사 스트리밍 생성 → 완료 후 자동 음악 생성 */
+    const textarea = $('prompt');
+    if(textarea){ textarea.value = ''; textarea.style.display = ''; textarea.placeholder = '⚡ AI 가사 생성 중...'; }
+    $('lyrics-preview-wrap')?.classList.remove('on');
+
+    _lyricsGenCancelled = false;
+    showLyricsGenPopup('stream');
+
     try {
       const lyricsTheme = a.lyrics_theme || a.visual_summary || '';
       const genre = a.suggested_genre || '';
       const emotion = (a.emotion?.primary || '') + (a.emotion?.secondary ? ', '+a.emotion.secondary : '');
-      const lyricsPrompt = `Write song lyrics in Korean (4 verses + chorus) based on:\nTheme: ${lyricsTheme}\nGenre: ${genre}\nEmotion: ${emotion}\nStyle: ${styleStr}\n\nFormat with [Verse 1], [Chorus] etc. Only output lyrics, no explanation.`;
+      const refArtist = ($('ref-artist')?.value||'').trim();
+      const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
 
-      const lyricsRes = await fetch(KIE_CLAUDE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+kieApiKey },
-        body: JSON.stringify({ messages:[{role:'user',content:lyricsPrompt}], stream:false })
+      const sys = `당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.`;
+      const usr = `다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요:\n테마: ${lyricsTheme}\n장르: ${genre}\n감정: ${emotion}\n스타일: ${styleStr}${artistHint}`;
+
+      const lyrics = await callClaudeStream(sys, usr, (partial) => {
+        if(_lyricsGenCancelled) throw new Error('취소됨');
+        if(textarea){ textarea.value = partial; textarea.scrollTop = textarea.scrollHeight; }
+        const sub = document.getElementById('_lyricsgen_sub');
+        if(sub){ const lines = partial.split('\n').filter(l=>l.trim()).length; sub.innerHTML = `${lines}줄 작성 중...<br><span style="font-size:11px;color:#6b6780;">이미지 감성을 가사로 담고 있어요 🎨</span>`; }
       });
-      const lyricsData = await lyricsRes.json();
-      const lyrics = lyricsData?.choices?.[0]?.message?.content || '';
-      if(lyrics){
-        const lyricsEl = $('lyrics-input');
-        if(lyricsEl){ lyricsEl.value = lyrics; lyricsEl.dispatchEvent(new Event('input')); }
-        toast('✅ 가사 생성 완료! 생성 버튼을 눌러주세요','ok',3000);
+
+      if(_lyricsGenCancelled) return;
+      hideLyricsGenPopup();
+
+      /* 가사 노출 */
+      if(lyrics && textarea){
+        textarea.style.display = '';
+        try{ renderLyricsPreview(textarea.value, true); }catch(e){}
+        textarea.classList.add('flash');
+        setTimeout(()=>textarea.classList.remove('flash'), 2000);
+        textarea.scrollIntoView({behavior:'smooth', block:'center'});
+        toast('✅ 가사 완료! 음악을 자동 생성합니다 🎵','ok',2000);
+        trackUsage('lyrics', {mode:'img-analysis-stream'});
+
+        /* 1초 후 자동 음악 생성 */
+        await new Promise(r=>setTimeout(r, 1000));
+        generate({_afterLyrics:true});
+      } else {
+        toast('가사가 비어있어요 — 직접 입력해주세요','err',2000);
       }
-    } catch(e){ console.warn('[img-lyrics]', e.message); toast('가사 생성 실패 — 직접 입력해주세요','err',2000); }
+    } catch(e){
+      hideLyricsGenPopup();
+      if(!_lyricsGenCancelled){ console.warn('[img-lyrics]', e.message); toast('❌ 가사 생성 실패: '+e.message,'err',3000); }
+      if(textarea) textarea.placeholder = '가사를 직접 입력하거나 AI 자동 작사를 이용하세요';
+    }
   });
   document.body.appendChild(overlay);
 }
