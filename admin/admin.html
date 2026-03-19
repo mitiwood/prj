@@ -1688,7 +1688,7 @@ async function _fetchServerData(){
         id:t.id, taskId:t.task_id||'', title:t.title||'무제',
         audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
         tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
-        created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+        created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
         _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
       }));
     }
@@ -1801,7 +1801,7 @@ async function renderTracksAdmin(){
           id:t.id, taskId:t.task_id||'', title:t.title||'무제',
           audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
           tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
-          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
           _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
           _source:'supabase'
         }));
@@ -2257,7 +2257,7 @@ async function renderCommunityAdmin(){
           audio_url:t.audio_url||'', image_url:t.image_url||'',
           tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
           is_public:t.is_public!==false,
-          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
           _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
           _source:d.source||'supabase',
         }));
@@ -2303,7 +2303,8 @@ function _renderCommTable(){
     const ml=modeLabel[t.genMode||'custom']||'커스텀';
     const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
     const srcIcon=t._source==='supabase'?'<span title="Supabase" style="font-size:9px;color:var(--acc3);">☁️</span>':'<span title="로컬" style="font-size:9px;color:var(--t3);">💾</span>';
-    const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'');
+    const ratingStars=t._commRating?'⭐'.repeat(t._commRating):'';
+    const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'')+' '+(ratingStars||'☆0');
     const isHidden = t.is_public===false;
     const visBtn = t.id
       ? (isHidden

@@ -896,6 +896,13 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-reaction-sm.disliked{color:var(--t3);opacity:.6;}
 .comm-play-sm{color:var(--acc3);font-size:13px;}
 .comm-play-sm:hover{color:var(--acc);}
+/* 별점 */
+.star-rating{display:inline-flex;gap:1px;align-items:center;}
+.star-rating .star{cursor:pointer;font-size:14px;color:rgba(255,255,255,.15);transition:color .12s;line-height:1;padding:0 1px;}
+.star-rating .star.on{color:#fbbf24;}
+.star-rating .star:hover,.star-rating .star:hover~.star{color:rgba(251,191,36,.5);}
+.star-rating-sm .star{font-size:11px;}
+.star-rating-val{font-size:10px;color:var(--t3);margin-left:3px;font-weight:600;}
 .comm-comment-cnt{font-size:10px;font-weight:700;color:var(--acc3);min-width:0;}
 .comm-comment-cnt:empty{display:none;}
 .comm-comment-cnt[data-n="0"]{display:none;}
@@ -3131,6 +3138,16 @@ body.mp-on .view{padding-bottom:118px;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
             <span class="fp-side-lbl">싫어요</span>
           </button>
+          <div class="fp-side-btn" id="fp-rating-wrap" title="별점" style="height:auto;padding:4px 2px;">
+            <div class="star-rating" id="fp-star-rating">
+              <span class="star" data-star="1" onclick="fpRate(1)">★</span>
+              <span class="star" data-star="2" onclick="fpRate(2)">★</span>
+              <span class="star" data-star="3" onclick="fpRate(3)">★</span>
+              <span class="star" data-star="4" onclick="fpRate(4)">★</span>
+              <span class="star" data-star="5" onclick="fpRate(5)">★</span>
+            </div>
+            <span class="fp-side-lbl">별점</span>
+          </div>
           <button class="fp-side-btn" onclick="fpOpenShare()" title="공유">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             <span class="fp-side-lbl">공유</span>
@@ -3779,6 +3796,7 @@ function _rowToTrack(t){
     disliked:false,
     isNew:   (Date.now()-(t.created||0)) < 86400000,
     plays:   t.comm_plays || 0,
+    rating:  t.comm_rating || 0,
     _owner:  t.owner_name ? {
       name:     t.owner_name,
       avatar:   t.owner_avatar   || '',
@@ -7385,8 +7403,9 @@ function _doOpenFullPlayer(idx){
   /* MV 뱃지 */
   $('fp-header-title').textContent=hasVideo?'🎬 뮤직비디오 재생 중':'지금 재생 중';
 
-  /* 좋아요 상태 */
+  /* 좋아요 상태 + 별점 복원 */
   fpUpdateLikeUI();
+  fpRestoreRating();
 
   /* 리셋 */
   $('fp-prog-fill').style.width='0%';
@@ -8302,6 +8321,9 @@ function _renderCommContent(heroWrap, list){
         <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">
           💔
         </button>
+        <span class="star-rating star-rating-sm" data-rating-id="${sid}" onclick="event.stopPropagation()">
+          ${[1,2,3,4,5].map(n=>`<span class="star${n<=t.rating?' on':''}" data-star="${n}" onclick="commRateSb('${sid}',${n})">★</span>`).join('')}
+        </span>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">
           💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span>
         </button>
@@ -8340,6 +8362,58 @@ async function _loadCommentCounts(trackIds){
 function _setCommentBadge(tid,cnt){
   const label=cnt>100?'N':cnt>0?String(cnt):'';
   document.querySelectorAll(`.comm-comment-cnt[data-cnt-id="${tid}"]`).forEach(el=>{el.textContent=label;el.dataset.n=String(cnt);});
+}
+
+/* ── 별점 시스템 ── */
+async function commRateSb(sbId, rating){
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(t) t.rating=rating;
+  /* UI 즉시 업데이트 */
+  _updateStarUI(sbId, rating);
+  /* 로컬 히스토리에도 반영 */
+  const h=historyData.find(h=>h.id===sbId);
+  if(h){h._rating=rating;saveHistory();}
+  /* 서버 저장 */
+  try{
+    await fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action=rate',{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rating})
+    });
+  }catch(e){console.warn('[rate]',e.message);}
+  toast(['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][rating]+' 별점 등록!','ok',1500);
+}
+function _updateStarUI(sbId, rating){
+  document.querySelectorAll(`.star-rating[data-rating-id="${sbId}"] .star`).forEach(el=>{
+    el.classList.toggle('on', parseInt(el.dataset.star)<=rating);
+  });
+}
+/* 풀플레이어 별점 */
+function fpRate(rating){
+  const h=historyData[fpCurrentIdx];
+  if(!h)return;
+  h._rating=rating;saveHistory();
+  /* 풀플레이어 별 UI 업데이트 */
+  document.querySelectorAll('#fp-star-rating .star').forEach(el=>{
+    el.classList.toggle('on', parseInt(el.dataset.star)<=rating);
+  });
+  /* 서버 저장 (sbId가 있으면) */
+  const sbId=h.id||'';
+  if(sbId){
+    fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action=rate',{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rating})
+    }).catch(()=>{});
+  }
+  toast(['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][rating]+' 별점 등록!','ok',1500);
+}
+/* 풀플레이어 열 때 별점 복원 */
+function fpRestoreRating(){
+  const h=historyData[fpCurrentIdx];
+  if(!h)return;
+  const rating=h._rating||0;
+  document.querySelectorAll('#fp-star-rating .star').forEach(el=>{
+    el.classList.toggle('on', parseInt(el.dataset.star)<=rating);
+  });
 }
 
 /* 상세 패널 HTML 빌더 */

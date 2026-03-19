@@ -169,6 +169,26 @@ export default async function handler(req, res) {
     const action = req.query?.action || "like"; // like|unlike|dislike|undislike|hide|show
     if (!id) return res.status(400).json({ error: "id required" });
 
+    /* 별점 처리 */
+    if (action === "rate") {
+      let b = req.body;
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const rating = Math.min(5, Math.max(0, parseInt(b?.rating || "0")));
+      try {
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH", prefer: "return=minimal",
+          body: JSON.stringify({ comm_rating: rating }),
+        });
+        const idx = _mem.findIndex(t => t.id === id);
+        if (idx >= 0) _mem[idx].comm_rating = rating;
+        return res.status(200).json({ success: true, comm_rating: rating, source: "supabase" });
+      } catch (e) {
+        const idx = _mem.findIndex(t => t.id === id);
+        if (idx >= 0) { _mem[idx].comm_rating = rating; return res.status(200).json({ success: true, comm_rating: rating, source: "memory" }); }
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     /* 숨기기/공개 처리 */
     if (action === "hide" || action === "show") {
       if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
