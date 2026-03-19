@@ -32,36 +32,8 @@ async function sb(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-async function sbSQL(sql) {
-  if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-    method: "POST",
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify({ query: sql }),
-  });
-  // Also try the raw SQL endpoint if rpc fails
-  if (!r.ok) {
-    const r2 = await fetch(`${SB_URL}/sql`, {
-      method: "POST",
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify({ query: sql }),
-    });
-    if (!r2.ok) {
-      const txt = await r2.text();
-      throw new Error(`SQL ${r2.status}: ${txt.slice(0, 200)}`);
-    }
-    return r2.text();
-  }
-  return r.text();
-}
+/* Supabase REST API로 테이블 생성 (PostgREST에는 DDL이 없으므로 pg_net or http extension 필요)
+   테이블이 없으면 메모리 폴백으로 동작하고, Supabase Dashboard에서 수동 생성 권장 */
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS comments (
@@ -81,27 +53,17 @@ CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);
 
 let _tableChecked = false;
 
+let _sbAvailable = false;
 async function ensureTable() {
   if (_tableChecked) return;
+  _tableChecked = true;
+  if (!SB_URL || !SB_KEY) return;
   try {
-    // Try a simple query first — if table exists this succeeds
     await sb("/comments?select=id&limit=1");
-    _tableChecked = true;
+    _sbAvailable = true;
   } catch (e) {
-    if (e.message.includes("42P01") || e.message.includes("does not exist") || e.message.includes("relation") || e.message.includes("PGRST205") || e.message.includes("schema cache")) {
-      console.log("[comments] Table not found, creating...");
-      try {
-        await sbSQL(CREATE_TABLE_SQL);
-        _tableChecked = true;
-        console.log("[comments] Table created successfully");
-      } catch (sqlErr) {
-        console.warn("[comments] Auto-create table failed:", sqlErr.message);
-        // Table might have been created by another instance
-        _tableChecked = true;
-      }
-    } else {
-      throw e;
-    }
+    console.warn("[comments] Supabase table not available:", e.message.slice(0, 80));
+    _sbAvailable = false;
   }
 }
 
@@ -118,94 +80,52 @@ export default async function handler(req, res) {
   const authHdr = req.headers.authorization || "";
   const isAdmin = authHdr === `Bearer ${ADMIN_PWD}`;
 
+  await ensureTable();
+
   /* ─── GET: 댓글 조회 ─── */
   if (req.method === "GET") {
     const trackId = req.query?.track_id;
     if (!trackId) return res.status(400).json({ error: "track_id required" });
 
-    try {
-      await ensureTable();
-      let filter = `/comments?track_id=eq.${encodeURIComponent(trackId)}&order=created_at.asc&select=*`;
-      if (!isAdmin) {
-        filter += "&is_hidden=eq.false";
-      }
-      const rows = await sb(filter);
-      return res.status(200).json({
-        comments: rows || [],
-        total: (rows || []).length,
-        source: "supabase",
-      });
-    } catch (e) {
-      console.warn("[comments GET]", e.message);
-      let list = _mem.filter((c) => c.track_id === trackId);
-      if (!isAdmin) list = list.filter((c) => !c.is_hidden);
-      list = [...list].sort(
-        (a, b) => new Date(a.created_at) - new Date(b.created_at),
-      );
-      return res.status(200).json({
-        comments: list,
-        total: list.length,
-        source: "memory",
-        note: e.message,
-      });
+    if (_sbAvailable) {
+      try {
+        let filter = `/comments?track_id=eq.${encodeURIComponent(trackId)}&order=created_at.asc&select=*`;
+        if (!isAdmin) filter += "&is_hidden=eq.false";
+        const rows = await sb(filter);
+        return res.status(200).json({ comments: rows || [], total: (rows || []).length, source: "supabase" });
+      } catch (e) { console.warn("[comments GET sb]", e.message); }
     }
+    let list = _mem.filter((c) => c.track_id === trackId);
+    if (!isAdmin) list = list.filter((c) => !c.is_hidden);
+    list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    return res.status(200).json({ comments: list, total: list.length, source: "memory" });
   }
 
   /* ─── POST: 댓글 작성 ─── */
   if (req.method === "POST") {
-    try {
-      let b = req.body;
-      if (typeof b === "string") {
-        try {
-          b = JSON.parse(b);
-        } catch {
-          b = {};
-        }
-      }
-      b = b || {};
-      const { track_id, parent_id, content, author_name, author_avatar, author_provider } = b;
-      if (!track_id || !content) {
-        return res.status(400).json({ error: "track_id and content required" });
-      }
+    let b = req.body;
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    b = b || {};
+    const { track_id, parent_id, content, author_name, author_avatar, author_provider } = b;
+    if (!track_id || !content) return res.status(400).json({ error: "track_id and content required" });
 
-      const row = {
-        track_id,
-        parent_id: parent_id || null,
-        author_name: author_name || "익명",
-        author_avatar: author_avatar || "",
-        author_provider: author_provider || "guest",
-        content: content.slice(0, 2000),
-        created_at: new Date().toISOString(),
-        is_hidden: false,
-      };
+    const row = {
+      track_id, parent_id: parent_id || null,
+      author_name: author_name || "익명", author_avatar: author_avatar || "",
+      author_provider: author_provider || "guest",
+      content: content.slice(0, 2000), created_at: new Date().toISOString(), is_hidden: false,
+    };
 
+    if (_sbAvailable) {
       try {
-        await ensureTable();
-        const created = await sb("/comments", {
-          method: "POST",
-          body: JSON.stringify(row),
-        });
-        return res.status(200).json({
-          success: true,
-          comment: created?.[0] || row,
-          source: "supabase",
-        });
-      } catch (e) {
-        console.warn("[comments POST]", e.message);
-        // Memory fallback — generate a uuid-like id
-        row.id = crypto.randomUUID?.() || `mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        _mem.push(row);
-        if (_mem.length > 1000) _mem = _mem.slice(-1000);
-        return res.status(200).json({
-          success: true,
-          comment: row,
-          source: "memory",
-          note: e.message,
-        });
-      }
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
+        const created = await sb("/comments", { method: "POST", body: JSON.stringify(row) });
+        return res.status(200).json({ success: true, comment: created?.[0] || row, source: "supabase" });
+      } catch (e) { console.warn("[comments POST sb]", e.message); }
     }
+    row.id = crypto.randomUUID?.() || `mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    _mem.push(row);
+    if (_mem.length > 1000) _mem = _mem.slice(-1000);
+    return res.status(200).json({ success: true, comment: row, source: "memory" });
   }
 
   /* ─── PATCH: 관리자 숨김/공개 ─── */
@@ -216,26 +136,16 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: "id required" });
 
     const isHidden = action === "hide";
-    try {
-      await ensureTable();
-      await sb(`/comments?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        prefer: "return=minimal",
-        body: JSON.stringify({ is_hidden: isHidden }),
-      });
-      // Also update memory fallback
-      const idx = _mem.findIndex((c) => c.id === id);
-      if (idx >= 0) _mem[idx].is_hidden = isHidden;
-      return res.status(200).json({ success: true, is_hidden: isHidden, source: "supabase" });
-    } catch (e) {
-      console.warn("[comments PATCH]", e.message);
-      const idx = _mem.findIndex((c) => c.id === id);
-      if (idx >= 0) {
-        _mem[idx].is_hidden = isHidden;
-        return res.status(200).json({ success: true, is_hidden: isHidden, source: "memory" });
-      }
-      return res.status(404).json({ error: "not found" });
+    if (_sbAvailable) {
+      try {
+        await sb(`/comments?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ is_hidden: isHidden }) });
+        const mi = _mem.findIndex((c) => c.id === id); if (mi >= 0) _mem[mi].is_hidden = isHidden;
+        return res.status(200).json({ success: true, is_hidden: isHidden, source: "supabase" });
+      } catch (e) { console.warn("[comments PATCH sb]", e.message); }
     }
+    const mi = _mem.findIndex((c) => c.id === id);
+    if (mi >= 0) { _mem[mi].is_hidden = isHidden; return res.status(200).json({ success: true, is_hidden: isHidden, source: "memory" }); }
+    return res.status(404).json({ error: "not found" });
   }
 
   /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자 또는 작성자 본인 ─── */
@@ -243,26 +153,16 @@ export default async function handler(req, res) {
     const id = req.query?.id;
     if (!id) return res.status(400).json({ error: "id required" });
 
-    try {
-      await ensureTable();
-      await sb(`/comments?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        prefer: "return=minimal",
-        body: JSON.stringify({ is_hidden: true }),
-      });
-      // Also update memory fallback
-      const idx = _mem.findIndex((c) => c.id === id);
-      if (idx >= 0) _mem[idx].is_hidden = true;
-      return res.status(200).json({ success: true, source: "supabase" });
-    } catch (e) {
-      console.warn("[comments DELETE]", e.message);
-      const idx = _mem.findIndex((c) => c.id === id);
-      if (idx >= 0) {
-        _mem[idx].is_hidden = true;
-        return res.status(200).json({ success: true, source: "memory" });
-      }
-      return res.status(404).json({ error: "not found" });
+    if (_sbAvailable) {
+      try {
+        await sb(`/comments?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ is_hidden: true }) });
+        const mi = _mem.findIndex((c) => c.id === id); if (mi >= 0) _mem[mi].is_hidden = true;
+        return res.status(200).json({ success: true, source: "supabase" });
+      } catch (e) { console.warn("[comments DELETE sb]", e.message); }
     }
+    const mi = _mem.findIndex((c) => c.id === id);
+    if (mi >= 0) { _mem[mi].is_hidden = true; return res.status(200).json({ success: true, source: "memory" }); }
+    return res.status(404).json({ error: "not found" });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
