@@ -355,8 +355,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="admin-section" id="sec-community">
         <div class="sec-hdr">
           <h2>커뮤니티 관리</h2>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <input class="table-search" id="comm-search" placeholder="제목/소유자 검색..." oninput="filterCommunity()">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);padding:4px 10px;border-radius:8px;border:1px solid var(--border);" onclick="toggleCommHidden()">
+              <div id="comm-hidden-toggle" class="toggle" style="width:32px;height:18px;"></div>
+              <span>숨김 표시 <span id="comm-count" style="font-size:10px;color:var(--t3);"></span></span>
+            </label>
+            <button class="btn" onclick="batchCommAction('show')" style="font-size:11px;">👁 선택 노출</button>
             <button class="btn" onclick="batchCommAction('hide')" style="font-size:11px;">🙈 선택 숨기기</button>
             <button class="btn btn-red" onclick="batchCommAction('delete')" style="font-size:11px;">🗑 선택 삭제</button>
           </div>
@@ -2070,6 +2075,9 @@ async function fetchKieUsage(){
   }
 }
 
+let _commShowHidden = false; /* 숨김 트랙 표시 토글 */
+let _commAllTracksCache = [];
+
 async function renderCommunityAdmin(){
   const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
@@ -2085,6 +2093,7 @@ async function renderCommunityAdmin(){
           id:t.id, taskId:t.task_id||'', title:t.title||'무제',
           audio_url:t.audio_url||'', image_url:t.image_url||'',
           tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
+          is_public:t.is_public!==false,
           _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
           _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
           _source:d.source||'supabase',
@@ -2094,18 +2103,34 @@ async function renderCommunityAdmin(){
   }catch(e){ console.warn('[Admin] Supabase 실패:',e.message); }
   if(!allTracks.length){
     const h=getHistory();
-    allTracks=h.filter(t=>t.audio_url).map((t,i)=>({...t,_hIdx:i,_source:'local'}));
+    allTracks=h.filter(t=>t.audio_url).map((t,i)=>({...t,is_public:true,_hIdx:i,_source:'local'}));
   }
-  allTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+  _commAllTracksCache = allTracks;
+  _renderCommTable();
+}
+
+function _renderCommTable(){
+  const tbody=document.getElementById('comm-tbody');
+  if(!tbody) return;
+  const allTracks = _commAllTracksCache;
+  const publicTracks = allTracks.filter(t=>t.is_public!==false);
+  const hiddenTracks = allTracks.filter(t=>t.is_public===false);
+  const displayTracks = _commShowHidden ? allTracks : publicTracks;
+  displayTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+
+  /* 통계 업데이트 */
   const cnt=document.getElementById('comm-count');
-  if(cnt) cnt.textContent='('+allTracks.length+'곡)';
-  if(!allTracks.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">생성된 음악이 없습니다</td></tr>';
+  if(cnt) cnt.textContent='(공개 '+publicTracks.length+'곡 / 숨김 '+hiddenTracks.length+'곡)';
+  const toggleEl=document.getElementById('comm-hidden-toggle');
+  if(toggleEl) toggleEl.className=_commShowHidden?'toggle on':'toggle';
+
+  if(!displayTracks.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3);">표시할 트랙이 없습니다</td></tr>';
     return;
   }
   const provColor={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
   const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
-  tbody.innerHTML=allTracks.map((t,i)=>{
+  tbody.innerHTML=displayTracks.map((t,i)=>{
     const o=t._owner||{};
     const isGuest=!o.name||o.name==='익명'||o.provider==='guest'||!o.provider;
     const pc=provColor[o.provider]||'badge-acc';
@@ -2116,24 +2141,55 @@ async function renderCommunityAdmin(){
     const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
     const srcIcon=t._source==='supabase'?'<span title="Supabase" style="font-size:9px;color:var(--acc3);">☁️</span>':'<span title="로컬" style="font-size:9px;color:var(--t3);">💾</span>';
     const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'');
-    const hideBtn=t.id
-      ?'<button class="btn" onclick="hideSbTrack(\''+esc(t.id)+'\','+i+')" style="font-size:11px;padding:3px 7px;background:rgba(255,165,0,.15);color:#ffa500;border:1px solid rgba(255,165,0,.3);">숨기기</button>'
-      :(t._hIdx!=null?'<button class="btn" onclick="hideLocalTrack('+t._hIdx+','+i+')" style="font-size:11px;padding:3px 7px;background:rgba(255,165,0,.15);color:#ffa500;border:1px solid rgba(255,165,0,.3);">숨기기</button>':'');
+    const isHidden = t.is_public===false;
+    const visBtn = t.id
+      ? (isHidden
+        ? '<button class="btn" onclick="showSbTrack(\''+esc(t.id)+'\')" style="font-size:11px;padding:3px 7px;background:rgba(0,221,160,.12);color:var(--grn);border:1px solid rgba(0,221,160,.3);">노출</button>'
+        : '<button class="btn" onclick="hideSbTrack(\''+esc(t.id)+'\','+i+')" style="font-size:11px;padding:3px 7px;background:rgba(255,165,0,.15);color:#ffa500;border:1px solid rgba(255,165,0,.3);">숨기기</button>')
+      : '';
     const deleteBtn=t._source==='supabase'&&t.id
       ?'<button class="btn btn-red" onclick="deleteCommTrack(\''+esc(t.id)+'\')" style="font-size:11px;padding:3px 7px;">삭제</button>'
       :'';
-    return '<tr id="comm-row-'+i+'">'
+    const statusBadge = isHidden
+      ? '<span class="badge badge-red" style="font-size:9px;">숨김</span>'
+      : '<span class="badge badge-grn" style="font-size:9px;">공개</span>';
+    const rowStyle = isHidden ? 'opacity:0.55;background:rgba(255,69,96,.03);' : '';
+    return '<tr id="comm-row-'+i+'" style="'+rowStyle+'">'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
-      +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b>'+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
+      +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b> '+statusBadge+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
       +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
       +'<td><span class="badge" style="background:rgba(124,58,237,.15);color:var(--acc2);">'+ml+'</span></td>'
       +'<td style="font-size:11px;">'+likesHtml+'</td>'
       +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
       +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
         +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
-        +hideBtn+deleteBtn
+        +visBtn+deleteBtn
       +'</div></td></tr>';
   }).join('');
+}
+
+/* 숨김 트랙 표시 토글 */
+function toggleCommHidden(){
+  _commShowHidden = !_commShowHidden;
+  _renderCommTable();
+  adminToast(_commShowHidden ? '숨김 트랙 포함 표시' : '공개 트랙만 표시');
+}
+
+/* 트랙 노출 (숨김 해제) */
+async function showSbTrack(id){
+  try{
+    const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action=show',{
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+    });
+    const d = await r.json();
+    if(d.success){
+      adminToast('✅ 커뮤니티에 다시 노출됩니다');
+      addAudit('show','트랙 노출 복원','ID: '+id);
+      renderCommunityAdmin();
+    } else {
+      adminToast('❌ 노출 실패: '+(d.error||''));
+    }
+  }catch(e){ adminToast('❌ 오류: '+e.message); }
 }
 
 async function deleteCommTrack(id){
@@ -3917,7 +3973,8 @@ function filterCommunity(){
 async function batchCommAction(action){
   const checked = [...document.querySelectorAll('#comm-tbody input[type=checkbox]:checked')];
   if(!checked.length){ adminToast('선택된 트랙이 없습니다'); return; }
-  const label = action==='delete' ? '삭제' : '숨기기';
+  const labels = {delete:'삭제',hide:'숨기기',show:'노출'};
+  const label = labels[action]||action;
   if(!confirm(checked.length+'곡을 '+label+'할까요?')) return;
   let success = 0, fail = 0;
   for(const chk of checked){
@@ -3929,13 +3986,14 @@ async function batchCommAction(action){
         const d = await r.json();
         if(d.success) success++; else fail++;
       } else {
-        const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{method:'PATCH',headers:{'Content-Type':'application/json'}});
+        const apiAction = action==='show'?'show':'hide';
+        const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+apiAction,{method:'PATCH',headers:{'Content-Type':'application/json'}});
         const d = await r.json();
         if(d.success) success++; else fail++;
       }
     }catch{ fail++; }
   }
-  addAudit(action==='delete'?'delete':'hide', `커뮤니티 일괄 ${label}`, `${success}건 성공, ${fail}건 실패`);
+  addAudit(action==='delete'?'delete':action, `커뮤니티 일괄 ${label}`, `${success}건 성공, ${fail}건 실패`);
   adminToast(`✅ ${success}건 ${label} 완료`+(fail?` (${fail}건 실패)`:``));
   renderCommunityAdmin();
 }
