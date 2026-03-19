@@ -92,18 +92,23 @@ export default async function handler(req, res) {
   /* ─── 디버그: Supabase 연결 상태 확인 ─── */
   if (req.method === "GET" && req.query?.debug === "sb") {
     let sbTest = "not_tested";
+    const t0 = Date.now();
     try {
+      const ac = new AbortController();
+      const tm = setTimeout(() => ac.abort(), 5000);
       const testR = await fetch(`${SB_URL}/rest/v1/tracks?select=id&limit=1`, {
+        signal: ac.signal,
         headers: {
           apikey: SB_KEY,
           Authorization: `Bearer ${SB_KEY}`,
           Accept: "application/json",
         },
       });
+      clearTimeout(tm);
       const testTxt = await testR.text();
-      sbTest = `status=${testR.status} body=${testTxt.slice(0, 200)}`;
+      sbTest = `status=${testR.status} time=${Date.now()-t0}ms body=${testTxt.slice(0, 200)}`;
     } catch (e) {
-      sbTest = `error: ${e.message}`;
+      sbTest = `error: ${e.message} time=${Date.now()-t0}ms`;
     }
     return res.status(200).json({
       hasSbUrl: !!SB_URL,
