@@ -8780,9 +8780,9 @@ function startAnnPoll() {
   _annPollTimer = setInterval(checkAnnouncement, 30000);
 }
 startAnnPoll();
-/* 탭 복귀 시 즉시 체크 */
+/* 탭 복귀 시 즉시 체크 — 단, 이미 본 공지는 다시 안 뜸 (seen 기록 유지) */
 document.addEventListener('visibilitychange', () => {
-  if(!document.hidden) { _lastAnnId = null; checkAnnouncement(); }
+  if(!document.hidden) checkAnnouncement();
 });
 
 const _ANN_TYPE_MAP = {
@@ -8816,21 +8816,35 @@ function showAnnModal(a) {
   }
 }
 
+function _markAnnSeen(annId, hours) {
+  if(!annId) return;
+  const until = Date.now() + hours * 3600 * 1000;
+  localStorage.setItem(_ANN_SEEN_KEY + '_' + annId, String(until));
+  _lastAnnId = annId; /* 폴링에서도 다시 안 뜨게 */
+}
+
 function closeAnnouncement(e) {
   if(e && e.target !== document.getElementById('ann-overlay') && !e.target.closest('#ann-overlay') && e.target !== e.currentTarget) return;
   const overlay = document.getElementById('ann-overlay');
   if(!overlay) return;
-  // "오늘 하루 보지 않기" 처리
+  const annId = overlay.dataset.annId;
   const noShow = document.getElementById('ann-no-show');
-  if(noShow?.checked && overlay.dataset.annId) {
-    const until = Date.now() + 24 * 3600 * 1000;
-    localStorage.setItem(_ANN_SEEN_KEY + '_' + overlay.dataset.annId, String(until));
+  if(noShow?.checked) {
+    /* "오늘 하루 보지 않기" 체크됨 → 24시간 */
+    _markAnnSeen(annId, 24);
+  } else {
+    /* 닫기만 눌러도 1시간 동안 다시 안 뜸 */
+    _markAnnSeen(annId, 1);
   }
   overlay.style.display = 'none';
 }
 
 function goAnnouncement() {
-  closeAnnouncement();
+  const overlay = document.getElementById('ann-overlay');
+  const annId = overlay?.dataset.annId;
+  /* 확인하기 클릭 → 이 공지는 다시 안 뜸 (7일) */
+  _markAnnSeen(annId, 168);
+  if(overlay) overlay.style.display = 'none';
   if(_annUrl && _annUrl !== location.href) {
     if(_annUrl.startsWith(location.origin) || _annUrl.startsWith('/')) {
       location.href = _annUrl;
