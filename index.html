@@ -557,8 +557,12 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
    HISTORY VIEW
 ══════════════════════════════ */
 .hist-view-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
 }
+.hist-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.hist-tab{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.hist-tab.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.hist-tab:hover:not(.on){border-color:var(--acc3);color:var(--t1);}
 .hist-view-title{font-size:20px;font-weight:800;}
 .hist-view-count{font-size:12px;color:var(--t3);margin-top:2px;}
 .clear-all-btn{
@@ -2588,6 +2592,12 @@ body.mp-on .view{padding-bottom:118px;}
         <div class="hist-view-count" id="hist-view-count">0곡 저장됨</div>
       </div>
       <button class="clear-all-btn" id="clear-all-btn">전체 삭제</button>
+    </div>
+    <!-- 음악/뮤비 탭 -->
+    <div class="hist-tabs" id="hist-tabs">
+      <button class="hist-tab on" data-htab="all" onclick="_switchHistTab('all')">전체</button>
+      <button class="hist-tab" data-htab="music" onclick="_switchHistTab('music')">🎵 음악</button>
+      <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">🎬 뮤비</button>
     </div>
     <div id="history-view-grid"></div>
   </div>
@@ -6130,27 +6140,46 @@ function updateHistBadge(){
 }
 
 /* ── HISTORY VIEW ── */
+let _histTabFilter = 'all';
+function _switchHistTab(tab){
+  _histTabFilter = tab;
+  document.querySelectorAll('.hist-tab').forEach(t=>t.classList.toggle('on',t.dataset.htab===tab));
+  renderHistoryView();
+}
 function renderHistoryView(){
   const grid=$('history-view-grid');
   const count=$('hist-view-count');
   if(!grid)return;
-  if(count)count.textContent=`${historyData.length}곡 저장됨`;
-  if(!historyData.length){
-    grid.innerHTML=`<div class="hist-empty"><div class="he-icon">🎵</div><div class="he-txt">아직 생성된 음악이 없어요</div><div class="he-sub">음악 만들기 탭에서 첫 곡을 만들어보세요!</div></div>`;
+
+  /* 탭 필터 적용 */
+  const filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
+    if(_histTabFilter==='music') return !h.video_url;
+    if(_histTabFilter==='mv') return !!h.video_url;
+    return true;
+  });
+  const musicCount = historyData.filter(h=>!h.video_url).length;
+  const mvCount = historyData.filter(h=>!!h.video_url).length;
+  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount})`;
+
+  if(!filtered.length){
+    const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : '아직 생성된 음악이 없어요';
+    grid.innerHTML=`<div class="hist-empty"><div class="he-icon">${_histTabFilter==='mv'?'🎬':'🎵'}</div><div class="he-txt">${emptyMsg}</div><div class="he-sub">음악 만들기 탭에서 첫 곡을 만들어보세요!</div></div>`;
     return;
   }
-  grid.innerHTML=`<div class="hist-view-grid">${historyData.map((h,idx)=>{
+  grid.innerHTML=`<div class="hist-view-grid">${filtered.map((h)=>{
+    const idx=h._origIdx;
     const hasVideo=!!h.video_url;
     const thumbContent=hasVideo
       ?`<video src="${esc(h.video_url)}" muted playsinline preload="none"></video>`
       :h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'🎵';
     const timeAgo=formatTimeAgo(h.created);
     const tagLabel=h.tags?.split(',')[0]?.trim()||'';
+    const typeBadge=hasVideo?'<div class="hist-type-badge">🎬</div>':'<div class="hist-type-badge" style="background:rgba(124,58,237,.6);">🎵</div>';
     return`
     <div class="hist-card" data-hist-idx="${idx}" role="button" tabindex="0">
       <div class="hist-thumb">
         ${thumbContent}
-        ${hasVideo?`<div class="hist-type-badge">🎬</div>`:''}
+        ${typeBadge}
         <div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>
       </div>
       <div class="hist-info">
@@ -6922,7 +6951,11 @@ function _doOpenFullPlayer(idx){
 
   /* 배경 블러 */
   const bg=$('fp-bg');
-  if(h.image_url){
+  if(h.video_url){
+    /* MV — 어두운 그라데이션 배경 */
+    bg.style.backgroundImage='none';
+    bg.style.background='linear-gradient(135deg,#0a0020 0%,#1a0537 50%,#0d001a 100%)';
+  } else if(h.image_url){
     bg.style.backgroundImage=`url(${h.image_url})`;
     bg.style.backgroundSize='cover';
     bg.style.backgroundPosition='center';
@@ -6932,15 +6965,24 @@ function _doOpenFullPlayer(idx){
     bg.style.background='linear-gradient(135deg,#3A0078 0%,#0d001a 100%)';
   }
 
-  /* 커버 */
+  /* 커버 — MV이면 비디오 루프 재생 */
   const cov=$('fp-cover');
-  cov.innerHTML=h.image_url
-    ?`<img src="${esc(h.image_url)}" alt="" onerror="this.style.display='none'">`
-    :'<span style="font-size:72px">🎵</span>';
+  const hasVideo=!!h.video_url;
+  if(hasVideo){
+    cov.innerHTML=`<video src="${esc(h.video_url)}" muted loop playsinline autoplay style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></video>`;
+    cov.style.aspectRatio='16/9';
+  } else {
+    cov.innerHTML=h.image_url
+      ?`<img src="${esc(h.image_url)}" alt="" onerror="this.style.display='none'">`
+      :'<span style="font-size:72px">🎵</span>';
+    cov.style.aspectRatio='';
+  }
 
   /* 정보 */
   $('fp-title').textContent=h.title||'무제';
   $('fp-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
+  /* MV 뱃지 */
+  $('fp-header-title').textContent=hasVideo?'🎬 뮤직비디오 재생 중':'지금 재생 중';
 
   /* 좋아요 상태 */
   fpUpdateLikeUI();
@@ -6953,7 +6995,11 @@ function _doOpenFullPlayer(idx){
   $('fp-play-btn').textContent='▶';
   fpTimestampLines=[];
 
-  /* 가사 렌더 */
+  /* 가사 렌더 — MV는 연결된 오디오 트랙에서 가사 찾기 */
+  if(!h.lyrics && hasVideo){
+    const linkedAudio = historyData.find(x=>x.audio_url===h.audio_url && x.lyrics && x.id!==h.id);
+    if(linkedAudio) h.lyrics = linkedAudio.lyrics;
+  }
   fpRenderLyrics(h);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
