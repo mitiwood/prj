@@ -2088,6 +2088,50 @@ async function fetchKieUsage(){
 let _commShowHidden = false; /* 숨김 트랙 표시 토글 */
 let _commAllTracksCache = [];
 
+/* ── 댓글 관리 ── */
+async function renderCommentsAdmin(){
+  const wrap=document.getElementById('comments-admin-list');if(!wrap)return;
+  wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);">불러오는 중...</div>';
+  try{
+    /* 모든 트랙의 댓글을 가져오기 위해 공개 트랙 목록 먼저 조회 */
+    const tr=await fetch('/api/tracks?public=true&limit=500').then(r=>r.json());
+    const tracks=tr.tracks||[];
+    let allComments=[];
+    /* 트랙별 댓글 로드 (관리자 권한) */
+    for(const t of tracks.slice(0,50)){
+      try{
+        const cr=await fetch('/api/comments?track_id='+encodeURIComponent(t.id),{headers:{'Authorization':'Bearer '+ADMIN_PWD}}).then(r=>r.json());
+        (cr.comments||[]).forEach(c=>{c._trackTitle=t.title||'무제';allComments.push(c);});
+      }catch(e){}
+    }
+    allComments.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    if(!allComments.length){wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">등록된 댓글이 없습니다.</div>';return;}
+    wrap.innerHTML=`<div style="font-size:12px;color:var(--t3);margin-bottom:8px;">총 ${allComments.length}개 댓글</div>`+
+      allComments.map(c=>{
+        const time=new Date(c.created_at).toLocaleString('ko-KR');
+        const hidden=c.is_hidden?'<span style="color:var(--red);font-size:10px;"> [숨김]</span>':'';
+        const reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
+        return`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:var(--t3);">${esc(c._trackTitle)} · ${time}${hidden}${reply}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">${esc(c.author_name||'익명')} <span style="font-size:10px;color:var(--t3);">(${c.author_provider||'guest'})</span></div>
+            <div style="font-size:13px;color:var(--t1);line-height:1.5;word-break:break-word;">${esc(c.content)}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button class="btn btn-sm" onclick="toggleCommentAdmin('${c.id}',${!c.is_hidden})" style="font-size:11px;">${c.is_hidden?'👁 공개':'🚫 숨김'}</button>
+          </div>
+        </div>`;
+      }).join('');
+  }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:20px;">로드 실패: '+e.message+'</div>';}
+}
+async function toggleCommentAdmin(id,hide){
+  try{
+    await fetch('/api/comments?id='+id+'&action='+(hide?'hide':'show'),{method:'PATCH',headers:{'Authorization':'Bearer '+ADMIN_PWD}});
+    toast(hide?'댓글 숨김 처리':'댓글 공개 처리','ok');
+    renderCommentsAdmin();
+  }catch(e){toast('실패: '+e.message,'err');}
+}
+
 async function renderCommunityAdmin(){
   const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
