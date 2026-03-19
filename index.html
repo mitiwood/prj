@@ -4198,7 +4198,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
   audio.addEventListener('pause',setPause);
 
   playBtn.onclick=()=>{
-    if(audio.paused){audio.play().catch(()=>{});}else{audio.pause();}
+    if(audio.paused){stopAllAudio();audio.play().catch(()=>{});}else{audio.pause();}
   };
   prog.onclick=e=>{
     if(!audio.duration)return;
@@ -5887,7 +5887,8 @@ function togglePlay(btn){
     });
     return;
   }
-  /* 결과 카드 내 다른 트랙 정지 */
+  /* 모든 오디오 정지 후 재생 */
+  stopAllAudio();
   if(activeAudio){
     activeAudio.pause();stopViz(activeAudio._idx);
     const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);
@@ -6257,10 +6258,10 @@ function showMiniPlayer(idx){
   if(!h) return;
   fpCurrentIdx = idx;
 
-  /* ── 기존 오디오 완전 정리 (src="" 로 스트림 차단) ── */
+  /* ── 모든 오디오 소스 정지 후 기존 오디오 정리 ── */
+  stopAllAudio();
   if(fpAudio){
-    fpAudio.pause();
-    fpAudio.src = '';     /* 브라우저가 계속 버퍼링/재생하는 것 완전 차단 */
+    fpAudio.src = '';
     fpAudio = null;
     clearInterval(fpVizTimer);
     mpStopViz(); fpStopViz();
@@ -6654,22 +6655,39 @@ function renderHistory(){updateHistBadge();}
 
 /* ── kie.ai lyrics 응답에서 0번째 가사 추출 ── */
 function _extractLyricsFromResponse(d){
+  /* 유효한 가사인지 확인 (깨진 인코딩 필터) */
+  const _isValid=(t)=>t && t.length>10 && !/[\ufffd]{3,}/.test(t) && /[\uAC00-\uD7AF]|[a-zA-Z]/.test(t);
+
   /* 1. 직접 text 필드 */
-  if(d.response?.text) return d.response.text;
-  if(d.text) return d.text;
-  /* 2. data 배열 → 0번째 인덱스 */
-  if(Array.isArray(d.data) && d.data.length > 0){
-    return d.data[0].text || d.data[0].lyric || d.data[0].lyrics || '';
+  if(d.response?.text && _isValid(d.response.text)) return d.response.text;
+  if(d.text && _isValid(d.text)) return d.text;
+
+  /* 2. response.data 배열 (kie.ai lyrics 공식 응답) → 유효한 첫 번째 선택 */
+  if(Array.isArray(d.response?.data)){
+    for(const item of d.response.data){
+      const t=item.text||item.lyric||'';
+      if(_isValid(t)) return t;
+    }
   }
-  /* 3. sunoData 배열 → 0번째 인덱스 */
-  if(Array.isArray(d.response?.sunoData) && d.response.sunoData.length > 0){
-    return d.response.sunoData[0].text || d.response.sunoData[0].lyric || d.response.sunoData[0].lyrics || '';
+  /* 3. data 배열 */
+  if(Array.isArray(d.data)){
+    for(const item of d.data){
+      const t=item.text||item.lyric||item.lyrics||'';
+      if(_isValid(t)) return t;
+    }
   }
-  /* 4. response.data 배열 → 0번째 */
-  if(Array.isArray(d.response?.data) && d.response.data.length > 0){
-    return d.response.data[0].text || d.response.data[0].lyric || '';
+  /* 4. sunoData 배열 */
+  if(Array.isArray(d.response?.sunoData)){
+    for(const item of d.response.sunoData){
+      const t=item.text||item.lyric||item.lyrics||'';
+      if(_isValid(t)) return t;
+    }
   }
-  return '';
+  /* 5. 폴백: 유효성 무시하고 아무 텍스트라도 */
+  const fb = d.response?.text || d.text
+    || d.response?.data?.[0]?.text || d.data?.[0]?.text
+    || d.response?.sunoData?.[0]?.text || '';
+  return fb;
 }
 
 /* ── 공통 가사 생성 헬퍼 (kie.ai + Claude 폴백) ── */
@@ -7508,7 +7526,8 @@ function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyri
   player.classList.add('on');
   document.body.style.overflow='hidden';
 
-  /* 오디오 설정 */
+  /* 모든 오디오 정지 후 노래방 재생 */
+  stopAllAudio();
   const audio=new Audio(audioUrl);
   kpAudio=audio;
 
@@ -8093,7 +8112,8 @@ function commPlay(i){
     return;
   }
   if(commPlayingIdx>=0){const old=document.getElementById(`comm-play-${commPlayingIdx}`);if(old)old.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
-  /* 새 재생 */
+  /* 모든 오디오 정지 후 새 재생 */
+  stopAllAudio();
   const audio=new Audio(t.audioUrl);commAudio=audio;commPlayingIdx=i;
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
