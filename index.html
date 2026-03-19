@@ -3287,8 +3287,8 @@ function switchTab(viewId){
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
-const POLL_INTERVAL = 2000;  /* 2초 간격 (기존 3초 → 빠른 완료 감지) */
-const MAX_POLLS = 75;         /* 최대 150초 대기 */
+const POLL_INTERVAL = 1500;  /* 1.5초 간격 */
+const MAX_POLLS = 90;         /* 최대 ~200초 대기 */
 
 /* ── 장르 ── */
 /* 트랙 데이터 전역 저장 (노래방 플레이어에서 가사 접근용) */
@@ -3698,7 +3698,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
       const ltid=ld?.data?.taskId||ld?.taskId;
       if(ltid){
         for(let i=0;i<30;i++){
-          await sleep(3000);
+          await sleep(i<3?800:i<10?1500:2500);
           const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid);
           if((lr?.data?.status||'').toUpperCase()==='SUCCESS'){
             const text=lr?.data?.response?.text||lr?.data?.text||'';
@@ -4336,7 +4336,7 @@ async function generateMV(){
     /* Step 2: 폴링 */
     let pct=5;
     for(let i=0;i<90;i++){
-      await sleep(4000);
+      await sleep(i<5?1500:i<20?2500:3500);
       pct=Math.min(92,5+Math.round((i/90)*87));
       const pbar=$('mv-pbar'),ptxt=$('mv-prog-txt');
       if(pbar)pbar.style.width=pct+'%';
@@ -4600,10 +4600,10 @@ async function kieRequest(apiKey,method,path,body){
 }
 
 async function pollResult(apiKey,taskId){
-  /* 최적화 폴링: 초기 5회(1초) → 중간 15회(2초) → 이후(3초) */
+  /* 최적화 폴링: 초기 3회(500ms) → 다음 7회(1초) → 이후(2초) */
   let elapsed = 0;
   for(let i=0;i<MAX_POLLS;i++){
-    const interval = i < 5 ? 1000 : i < 20 ? 2000 : 3000;
+    const interval = i < 3 ? 500 : i < 10 ? 1000 : 2000;
     await sleep(interval);
     elapsed += interval;
     try{
@@ -4689,7 +4689,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
     const taskId=data?.data?.taskId||data?.taskId;
     if(!taskId)throw new Error('가사 생성 taskId 없음');
     for(let i=0;i<30;i++){
-      await sleep(i < 5 ? 1500 : 2500);
+      await sleep(i < 3 ? 800 : i < 10 ? 1200 : 2000);
       const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
       const d=res?.data;if(!d)continue;
       const status=(d.status||'').toUpperCase();
@@ -4790,7 +4790,7 @@ async function _autoLyricsAndGenerate(){
     const taskId=data?.data?.taskId||data?.taskId;
     if(!taskId)throw new Error('가사 생성 taskId 없음');
     for(let i=0;i<60;i++){
-      await sleep(3000);
+      await sleep(i<3?800:i<10?1500:2500);
       const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
       const d=res?.data;if(!d)continue;
       if((d.status||'').toUpperCase()==='SUCCESS'){
@@ -5143,7 +5143,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
 
     /* Step 2: 폴링 — /market/common/get-task-detail */
     for(let i=0;i<80;i++){
-      await sleep(4000);
+      await sleep(i<5?1000:i<20?2000:3000);
       try{
         const res=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${mvTaskId}`);
         console.log(`[MV Kling] poll ${i}:`, JSON.stringify(res).slice(0,400));
@@ -5278,7 +5278,7 @@ $('vc-submit-btn').addEventListener('click',async()=>{
     if(!taskId)throw new Error('보컬 변경 taskId 없음 — '+JSON.stringify(data).slice(0,120));
     let result=null;
     for(let i=0;i<40;i++){
-      await sleep(4000);
+      await sleep(i<5?1000:i<15?2000:3000);
       try{
         const res=await kieRequest(apiKey,'GET',`/api/v1/generate/record-info?taskId=${taskId}`);
         const st=res?.data;if(!st)continue;
