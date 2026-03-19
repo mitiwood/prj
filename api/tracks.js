@@ -12,8 +12,28 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
 
 let _mem = []; // fallback
+
+function _tgNotify(event, data) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
+  const label = { music_created: "새 곡 생성", mv_created: "MV 완성", new_user: "새 로그인", comment: "새 댓글", track_deleted: "트랙 삭제" }[event] || event;
+  let text = `${icon} *${label}*\n`;
+  if (data.title) text += `제목: ${data.title}\n`;
+  if (data.mode) text += `모드: ${data.mode}\n`;
+  if (data.user) text += `생성자: ${data.user}\n`;
+  if (data.author) text += `작성자: ${data.author}\n`;
+  text += `⏰ ${ts}`;
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }),
+  }).catch(() => {});
+}
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
@@ -139,13 +159,14 @@ export default async function handler(req, res) {
         comm_plays: 0,
         created_at: new Date(now).toISOString(),
       };
+      let src = "memory";
       try {
         await sb("/tracks?on_conflict=id", {
           method: "POST",
           prefer: "resolution=merge-duplicates",
           body: JSON.stringify(row),
         });
-        return res.status(200).json({ success: true, source: "supabase" });
+        src = "supabase";
       } catch (e) {
         console.warn("[tracks POST]", e.message);
         const idx = _mem.findIndex((t) => t.id === id);
@@ -154,10 +175,14 @@ export default async function handler(req, res) {
           _mem.unshift(row);
           if (_mem.length > 500) _mem = _mem.slice(0, 500);
         }
-        return res
-          .status(200)
-          .json({ success: true, source: "memory", note: e.message });
       }
+      /* 텔레그램 알림 (비동기, 실패해도 무시) */
+      _tgNotify(video_url ? "mv_created" : "music_created", {
+        title: title || "무제",
+        mode: genMode || "custom",
+        user: owner_name || "익명",
+      });
+      return res.status(200).json({ success: true, source: src });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
@@ -283,6 +308,8 @@ export default async function handler(req, res) {
         method: "DELETE",
         prefer: "return=minimal",
       });
+      const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+      _tgNotify("track_deleted", { title: `트랙 ID: ${id}`, user: "관리자" });
       return res.status(200).json({ success: true });
     } catch (e) {
       return res.status(500).json({ error: e.message });

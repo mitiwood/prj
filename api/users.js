@@ -10,8 +10,23 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service_role key
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+
 /* in-memory fallback (Supabase 미연동 시) */
 let _memStore = [];
+
+function _tgNotify(event, data) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  const icon = event === 'new_user' ? '🆕' : '👤';
+  const label = event === 'new_user' ? '신규 가입' : '로그인';
+  const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }),
+  }).catch(() => {});
+}
 
 async function sbFetch(path, options = {}) {
   if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('Supabase not configured');
@@ -82,6 +97,11 @@ export default async function handler(req, res) {
           prefer: 'resolution=merge-duplicates',
           body: JSON.stringify(entry),
         });
+        if (entry.login_count <= 1) {
+          _tgNotify('new_user', { name, provider });
+        } else {
+          _tgNotify('login', { name, provider });
+        }
         return res.status(200).json({ success: true, source: 'supabase' });
       } catch (e) {
         console.warn('[users POST] Supabase 실패, memory fallback:', e.message);
