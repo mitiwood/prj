@@ -1163,6 +1163,23 @@ tr:hover td{background:rgba(255,255,255,.02);}
 const ADMIN_PW_KEY='kms_admin_pw';
 const DEFAULT_PW='kenny2024!';
 
+/* 관리자 비밀번호 — 세션 > 로컬 > 기본값 순으로 */
+function getAdminPw(){
+  return sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+}
+
+/* 인증 헤더 포함 fetch — 401이면 DEFAULT_PW로 재시도 */
+async function adminFetch(url, options={}){
+  const pw = getAdminPw();
+  const headers = {...(options.headers||{}), 'Authorization':'Bearer '+pw};
+  let r = await fetch(url, {...options, headers, signal:options.signal||AbortSignal.timeout(8000)});
+  if(r.status===401 && pw !== DEFAULT_PW){
+    headers['Authorization'] = 'Bearer '+DEFAULT_PW;
+    r = await fetch(url, {...options, headers, signal:AbortSignal.timeout(8000)});
+  }
+  return r;
+}
+
 function gateLogin(){
   const inputPw=document.getElementById('gate-pw').value;
   const adminPw=localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
@@ -1295,13 +1312,9 @@ async function loadKieLogs(){
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase + kie.ai에서 로그 불러오는 중...</td></tr>';
 
-  var adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
   var tracks = [];
   try {
-    var r = await fetch('/api/tracks?limit=500', {
-      headers: { 'Authorization': 'Bearer ' + adminPw },
-      signal: AbortSignal.timeout(8000)
-    });
+    var r = await adminFetch('/api/tracks?limit=500');
     var raw = await r.text();
     if(r.ok && raw.trim().startsWith('{')) {
       var d = JSON.parse(raw);
@@ -1412,11 +1425,8 @@ async function loadVercelDeployments(){
   const el = document.getElementById('vercel-deployments');
   if(!el) return;
   el.innerHTML = '<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px;">⏳ 불러오는 중...</div>';
-  const adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
   try{
-    const r = await fetch('/api/logs?type=deployments', {
-      headers: { Authorization: 'Bearer '+adminPw }
-    });
+    const r = await adminFetch('/api/logs?type=deployments');
     const d = await r.json();
     const deps = d.deployments || [];
     if(!deps.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px;">배포 기록 없음</div>'; return; }
@@ -1448,11 +1458,8 @@ async function loadVercelLog(depId, depUrl){
   card.style.display = 'block';
   body.textContent = '⏳ 로그 불러오는 중...';
   if(title) title.textContent = depUrl || depId;
-  const adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
   try{
-    const r = await fetch(`/api/logs?type=events&id=${encodeURIComponent(depId)}`, {
-      headers: { Authorization: 'Bearer '+adminPw }
-    });
+    const r = await adminFetch(`/api/logs?type=events&id=${encodeURIComponent(depId)}`);
     const events = await r.json();
     const lines = (Array.isArray(events)?events:[])
       .filter(ev=>ev.type==='stdout'||ev.type==='stderr'||ev.type==='command'||ev.type==='build')
@@ -1563,10 +1570,9 @@ let _allAdminTracks=[];
 async function renderTracksAdmin(){
   const tbody=document.getElementById('tracks-tbody');
   if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
-  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let h=[];
   try{
-    const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
+    const r=await adminFetch('/api/tracks?limit=500');
     const raw=await r.text();
     if(r.ok&&raw.trim().startsWith('{')){
       const d=JSON.parse(raw);
@@ -1940,10 +1946,9 @@ async function renderCommunityAdmin(){
   const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
-  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let allTracks=[];
   try{
-    const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
+    const r=await adminFetch('/api/tracks?limit=500');
     const raw=await r.text();
     if(r.ok&&raw.trim().startsWith('{')){
       const d=JSON.parse(raw);
@@ -2005,9 +2010,8 @@ async function renderCommunityAdmin(){
 
 async function deleteCommTrack(id){
   if(!confirm('Supabase에서 완전 삭제할까요?')) return;
-  const pw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   try{
-    const r=await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
+    const r=await adminFetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE'});
     const d=await r.json();
     if(d.success){adminToast('✅ 삭제 완료');renderCommunityAdmin();}
     else adminToast('❌ 삭제 실패: '+(d.error||''));
@@ -2068,11 +2072,10 @@ function adminPlayComm(url, title, idx){
   };
 }
 async function hideSbTrack(id, rowIdx){
-  const adminPw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   try{
-    const r = await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{
+    const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{
       method:'PATCH',
-      headers:{'Authorization':'Bearer '+adminPw,'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json'},
     });
     const d = await r.json();
     if(d.success){
@@ -2084,7 +2087,6 @@ async function hideSbTrack(id, rowIdx){
   }catch(e){ adminToast('❌ 오류: '+e.message); }
 }
 async function hideLocalTrack(hIdx, rowIdx){
-  const adminPw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let h = getHistory();
   if(h[hIdx]){
     const trackId = h[hIdx].id;
@@ -2093,9 +2095,9 @@ async function hideLocalTrack(hIdx, rowIdx){
     localStorage.setItem('kms_history', JSON.stringify(h));
     if(trackId){
       try{
-        await fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&action=hide',{
+        await adminFetch('/api/tracks?id='+encodeURIComponent(trackId)+'&action=hide',{
           method:'PATCH',
-          headers:{'Authorization':'Bearer '+adminPw,'Content-Type':'application/json'},
+          headers:{'Content-Type':'application/json'},
         });
       }catch(e){ console.warn('[hideLocalTrack] Supabase 업데이트 실패:', e.message); }
     }
@@ -2119,12 +2121,11 @@ function switchUserTab(tab){
 }
 
 async function renderUsersAdmin(showToast=false){
-  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let loginUsers=[];
 
   /* Supabase에서 사용자 조회 */
   try{
-    const r=await fetch('/api/users',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(6000)});
+    const r=await adminFetch('/api/users');
     const raw=await r.text();
     if(r.ok&&raw.trim().startsWith('{')){
       const d=JSON.parse(raw);
@@ -3604,18 +3605,17 @@ async function batchCommAction(action){
   if(!checked.length){ adminToast('선택된 트랙이 없습니다'); return; }
   const label = action==='delete' ? '삭제' : '숨기기';
   if(!confirm(checked.length+'곡을 '+label+'할까요?')) return;
-  const pw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let success = 0, fail = 0;
   for(const chk of checked){
     const id = chk.dataset.trackId;
     if(!id){ fail++; continue; }
     try{
       if(action==='delete'){
-        const r = await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
+        const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE'});
         const d = await r.json();
         if(d.success) success++; else fail++;
       } else {
-        const r = await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{method:'PATCH',headers:{'Authorization':'Bearer '+pw,'Content-Type':'application/json'}});
+        const r = await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{method:'PATCH',headers:{'Content-Type':'application/json'}});
         const d = await r.json();
         if(d.success) success++; else fail++;
       }
