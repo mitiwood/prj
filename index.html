@@ -8296,16 +8296,18 @@ function _renderCommContent(heroWrap, list){
 
   /* ── 리스트 (첨부 디자인: community-item 스타일) ── */
   list.innerHTML=rest.map((t,i)=>{
-    const ownerName=t._owner?.name||currentUser?.name||'익명';
-    const ownerAvatar=t._owner?.avatar||currentUser?.avatar||'';
+    const ownerName=t._owner?.name||'익명';
+    const ownerAvatar=t._owner?.avatar||'';
     const sid=esc(t._sbId||'');
+    /* 본인 트랙인지 확인 */
+    const isMine=currentUser && t._owner?.name===currentUser.name && t._owner?.provider===currentUser.provider;
     return `<div class="comm-list-item" data-sbid="${sid}" onclick="commPlaySb('${sid}')">
       <div class="comm-list-img">
         ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
           :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`}
       </div>
       <div class="comm-list-info">
-        <div class="comm-list-title">${esc(t.title)}${t.isNew?' <span class="cs-new">NEW</span>':''}</div>
+        <div class="comm-list-title">${esc(t.title)}${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
         <div class="comm-list-meta">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:13px;height:13px;border-radius:50%;margin-right:3px;vertical-align:middle;" onerror="this.style.display='none'">`:''}<span style="color:var(--t3);font-size:11px;">${esc(ownerName)}</span>
           ${t.tags?`<span class="cs-genre" style="margin-left:4px;">${esc(t.tags)}</span>`:''}
@@ -8328,6 +8330,9 @@ function _renderCommContent(heroWrap, list){
           💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span>
         </button>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
+        ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -8636,10 +8641,22 @@ function commShareSheet(sbId){
       <div class="comm-share-title">🔗 공유하기</div>
       <div class="comm-share-sub">"${esc(title)}"</div>
       <div class="comm-share-grid">
-        <div class="comm-share-item" id="_sh_kakao"><div class="comm-share-icon">💬</div><div class="comm-share-label">카카오톡</div></div>
-        <div class="comm-share-item" id="_sh_x"><div class="comm-share-icon">𝕏</div><div class="comm-share-label">X (트위터)</div></div>
-        <div class="comm-share-item" id="_sh_fb"><div class="comm-share-icon">📘</div><div class="comm-share-label">페이스북</div></div>
-        <div class="comm-share-item" id="_sh_native"><div class="comm-share-icon">📲</div><div class="comm-share-label">더보기</div></div>
+        <div class="comm-share-item" id="_sh_kakao">
+          <div class="comm-share-icon"><svg width="28" height="28" viewBox="0 0 256 256"><path fill="#3C1E1E" d="M128 36C70.6 36 24 72.7 24 117.6c0 29 19.2 54.4 48.1 68.8l-9.8 36.2c-.8 2.9 2.5 5.2 5 3.5l42.7-28.3c5.9.8 12 1.3 18 1.3 57.4 0 104-36.7 104-81.6S185.4 36 128 36"/></svg></div>
+          <div class="comm-share-label">카카오톡</div>
+        </div>
+        <div class="comm-share-item" id="_sh_x">
+          <div class="comm-share-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
+          <div class="comm-share-label">X</div>
+        </div>
+        <div class="comm-share-item" id="_sh_fb">
+          <div class="comm-share-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></div>
+          <div class="comm-share-label">페이스북</div>
+        </div>
+        <div class="comm-share-item" id="_sh_native">
+          <div class="comm-share-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div>
+          <div class="comm-share-label">더보기</div>
+        </div>
       </div>
       <div class="comm-share-url">
         <input type="text" id="_sh_url" value="${esc(shareUrl)}" readonly>
