@@ -5765,10 +5765,11 @@ async function generate(overrideParams){
 
     /* 서버에 트랙 저장 (admin 전체 조회용) */
     tracks.forEach(t=>{
+      console.log('[GenDone] track keys:', Object.keys(t).join(','), 'audioUrl:', t.audioUrl?.slice(0,50), 'audio_url:', t.audio_url?.slice(0,50));
       _saveTrackToServer({
         id:t.id, taskId,
         title:t.title||'무제',
-        audio_url:t.audioUrl||t.audio_url||'',
+        audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:t.tags||styleStr,
         lyrics:savedLyrics||'',
@@ -7253,7 +7254,8 @@ function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(history
 
 /* 서버(/api/tracks)에 트랙 저장 — Supabase 저장 */
 function _saveTrackToServer(track){
-  if(!track?.id || !track?.audio_url) return;
+  console.log('[SaveTrack] called:', track?.id?.slice(0,20), 'audio:', !!track?.audio_url, 'title:', track?.title?.slice(0,30));
+  if(!track?.id || !track?.audio_url){ console.warn('[SaveTrack] SKIPPED — missing id or audio_url'); return; }
   const payload = {
     id:             track.id,
     taskId:         track.taskId         || '',
