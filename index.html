@@ -5247,7 +5247,11 @@ async function pollResult(apiKey,taskId){
       }
       /* sunoData null → status SUCCESS인데 tracks 없는 경우 최대 5회 더 대기 */
       if(status==='SUCCESS'){
-        if(tracks.length) return tracks;
+        if(tracks.length){
+          console.log('[pollResult] SUCCESS tracks[0] keys:', Object.keys(tracks[0]).join(','));
+          console.log('[pollResult] audioUrl:', tracks[0].audioUrl?.slice(0,60), 'audio_url:', tracks[0].audio_url?.slice(0,60), 'song_path:', tracks[0].song_path?.slice(0,60));
+          return tracks;
+        }
         if(i < MAX_POLLS-2){ continue; }
         throw new Error('트랙 데이터를 받지 못했어요 (sunoData null) — 다시 시도해주세요');
       }
