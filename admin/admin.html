@@ -2597,7 +2597,8 @@ function updatePushPreview(){
 }
 
 /* 구독 현황 로드 */
-function loadPushStats(){
+async function loadPushStats(){
+  await fetchPushHistory();
   const subs = getPushSubscriptions();
   const hist = getPushHistory();
   if(document.getElementById('push-sub-count'))  document.getElementById('push-sub-count').textContent  = subs.length + '명';
@@ -2610,8 +2611,45 @@ function getPushSubscriptions(){
   /* 실 서비스에서는 서버 DB에서 가져옴. 현재는 로컬에서 수집된 구독 목록 사용 */
   try{ return JSON.parse(localStorage.getItem('kms_push_subs')||'[]'); }catch{ return []; }
 }
-function getPushHistory(){
-  try{ return JSON.parse(localStorage.getItem(PUSH_HISTORY_KEY)||'[]'); }catch{ return []; }
+let _pushHistoryCache = [];
+function getPushHistory(){ return _pushHistoryCache; }
+async function fetchPushHistory(){
+  const pw = getAdminPw();
+  try {
+    const r = await fetch('/api/push-history?limit=200', { headers:{ 'Authorization':'Bearer '+pw }, signal:AbortSignal.timeout(6000) });
+    const txt = await r.text();
+    let d; try{ d=JSON.parse(txt); }catch{ d=null; }
+    if(d && Array.isArray(d.history)){
+      _pushHistoryCache = d.history.map(h=>({
+        id:h.id, title:h.title||'', body:h.body||'', url:h.url||'', target:h.target||'all',
+        sentAt: h.created_at ? new Date(h.created_at).getTime() : 0,
+        sent:h.sent||0, failed:h.failed||0, total:h.total||0,
+        loginCount:h.login_count||0, subCount:h.sub_count||0,
+        recipients: typeof h.recipients==='string' ? JSON.parse(h.recipients||'[]') : (h.recipients||[]),
+        isLocalTest:!!h.is_test, _dbId:h.id
+      }));
+    }
+  } catch(e) { console.warn('[fetchPushHistory]', e.message); }
+  /* localStorage 폴백 병합 (DB에 없는 로컬 기록) */
+  try {
+    const local = JSON.parse(localStorage.getItem(PUSH_HISTORY_KEY)||'[]');
+    if(local.length && !_pushHistoryCache.length) _pushHistoryCache = local;
+  } catch{}
+  return _pushHistoryCache;
+}
+async function savePushHistoryToDB(entry){
+  const pw = getAdminPw();
+  try {
+    await fetch('/api/push-history', {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+pw},
+      body: JSON.stringify({
+        title:entry.title, body:entry.body, url:entry.url, target:entry.target,
+        sent:entry.sent||0, failed:entry.failed||0, total:entry.total||0,
+        sub_count:entry.subCount||0, login_count:entry.loginCount||0,
+        recipients:entry.recipients||[], is_test:!!entry.isLocalTest
+      })
+    });
+  } catch(e){ console.warn('[savePushHistory]', e.message); }
 }
 
 let _pushHistPage = 0;
@@ -2697,18 +2735,27 @@ function resendPush(idx){
   window.scrollTo({top:document.getElementById('push-title').offsetTop-100,behavior:'smooth'});
 }
 
-function deletePushHist(idx){
+async function deletePushHist(idx){
   if(!confirm('이 발송 기록을 삭제할까요?'))return;
   const hist=getPushHistory();
+  const h=hist[idx];
+  if(h && h._dbId){
+    const pw=getAdminPw();
+    try{ await fetch('/api/push-history?id='+h._dbId,{method:'DELETE',headers:{'Authorization':'Bearer '+pw}}); }catch{}
+  }
   hist.splice(idx,1);
+  _pushHistoryCache=hist;
   localStorage.setItem(PUSH_HISTORY_KEY,JSON.stringify(hist));
   renderPushHistory();loadPushStats();
   adminToast('🗑 삭제됨');
 }
 
-function clearPushHistory(){
+async function clearPushHistory(){
   if(!confirm('전체 발송 히스토리를 삭제할까요?'))return;
+  const pw=getAdminPw();
+  try{ await fetch('/api/push-history?all=true',{method:'DELETE',headers:{'Authorization':'Bearer '+pw}}); }catch{}
   localStorage.removeItem(PUSH_HISTORY_KEY);
+  _pushHistoryCache=[];
   _pushHistPage=0;
   renderPushHistory();loadPushStats();
   adminToast('🗑 전체 히스토리 삭제됨');
@@ -2899,11 +2946,14 @@ async function sendPush(){
     } catch(e){ console.warn('[sendPush] InApp error:', e.message); }
   }
 
-  /* 히스토리 저장 */
+  /* 히스토리 저장 (DB + localStorage) */
   const recipients = target === 'select' ? [..._pushSelectedUsers] : loginUsers.map(u=>u.name||u.email||'익명');
+  const histEntry = { title, body, url, target, sentAt: Date.now(), sent, failed, total,
+    loginCount: loginUsers.length, subCount: subs.length, recipients };
+  savePushHistoryToDB(histEntry);
   const hist = getPushHistory();
-  hist.unshift({ title, body, url, target, sentAt: Date.now(), sent, failed, total,
-    loginCount: loginUsers.length, subCount: subs.length, recipients });
+  hist.unshift(histEntry);
+  _pushHistoryCache = hist;
   localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,100)));
 
   if(result){
@@ -2956,10 +3006,13 @@ async function testLocalPush(){
   };
   localStorage.setItem('kms_announcement', JSON.stringify(ann));
 
-  /* 히스토리 */
+  /* 히스토리 (DB + localStorage) */
+  const testEntry = { title, body, url, target: 'test', sentAt: Date.now(), sent: 1, failed: 0, total: 1,
+    loginCount: loginUsers.length, subCount: 0, isLocalTest: true };
+  savePushHistoryToDB(testEntry);
   const hist = getPushHistory();
-  hist.unshift({ title, body, url, target: 'test', sentAt: Date.now(), sent: 1, failed: 0, total: 1,
-    loginCount: loginUsers.length, subCount: 0, isLocalTest: true });
+  hist.unshift(testEntry);
+  _pushHistoryCache = hist;
   localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,50)));
 
   if(result){
