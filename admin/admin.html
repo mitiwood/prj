@@ -257,7 +257,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
         <!-- 자동 갱신 상태 바 -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
-          <span>🔄 30초마다 자동 갱신</span>
+          <span>🔄 10초마다 실시간 갱신</span>
           <span>마지막: <b id="dash-last-sync" style="color:var(--t2);">-</b></span>
           <button class="btn" onclick="loadData().then(()=>adminToast('✅ 갱신됨')).catch(()=>{});" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
         </div>
@@ -3932,13 +3932,20 @@ async function tryManagerLogin(loginId, pw){
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(initAccountSession, 100);
   
-  /* ── 30초마다 전체 데이터 자동 갱신 (서버 API 호출) ── */
-  setInterval(()=>{ loadData(); }, 30000);
+  /* ── 10초마다 전체 데이터 실시간 갱신 (서버 API 호출) ── */
+  setInterval(()=>{
+    loadData();
+    /* 현재 열려있는 섹션도 갱신 */
+    const curSec = document.querySelector('.admin-section.on')?.id?.replace('sec-','');
+    if(curSec === 'tracks') renderTracksAdmin();
+    if(curSec === 'community') renderCommunityAdmin();
+    if(curSec === 'users') renderUsersAdmin();
+  }, 10000);
   /* 카운트다운 표시 */
-  let _autoRefreshTick = 30;
+  let _autoRefreshTick = 10;
   const _autoLabel = document.getElementById('auto-refresh-label');
   setInterval(()=>{
-    _autoRefreshTick = _autoRefreshTick <= 1 ? 30 : _autoRefreshTick - 1;
+    _autoRefreshTick = _autoRefreshTick <= 1 ? 10 : _autoRefreshTick - 1;
     if(_autoLabel) _autoLabel.textContent = _autoRefreshTick + '초 후 갱신';
   }, 1000);
   
