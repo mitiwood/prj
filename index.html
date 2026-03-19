@@ -2028,23 +2028,18 @@ body.mp-on .view{padding-bottom:118px;}
           <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
         </div>
 
-        <!-- 곡 제목 -->
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon">✏️</span> 곡 제목
-            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
-          </div>
-          <input class="title-input" id="song-title" type="text" placeholder="예: 새벽 세 시의 고백">
-        </div>
+        <!-- 곡 제목 / 곡 설명 (내부 사용, UI 비노출) -->
+        <input type="hidden" id="song-title" value="">
+        <input type="hidden" id="song-desc" value="">
 
-        <!-- 곡 설명 / 분위기 -->
-        <div class="form-grp">
+        <!-- AI 스타일 도구 -->
+        <div class="form-grp" id="ai-style-tools">
           <div class="form-label">
-            <span class="form-label-icon">🎨</span> 곡 설명 / 분위기
-            <span class="form-label-hint">장르·감성·악기 등</span>
+            <span class="form-label-icon">🎨</span> AI 스타일 도구
+            <span class="form-label-hint">AI가 최적의 스타일을 찾아드려요</span>
           </div>
-          <input class="title-input" id="song-desc" type="text" placeholder="예: Warm acoustic pop, 감성적인 피아노, 잔잔한 새벽 분위기">
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <div class="ref-artist-tags" id="ai-style-applied" style="min-height:0;margin-bottom:6px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="ai-assist-btn" id="trend-btn" onclick="aiTrendStyle()">
               <span class="lspin" id="trend-spinner" style="display:none;"></span>
               🌐 트렌드 추천
@@ -3726,6 +3721,9 @@ document.querySelectorAll('.mtab').forEach(tab=>{
       if(titleEl && titleEl.dataset.autoFilled==='1'){ titleEl.value=''; delete titleEl.dataset.autoFilled; }
       if(descEl && descEl.dataset.autoFilled==='1'){ descEl.value=''; delete descEl.dataset.autoFilled; }
       _autoFilledFromOtherMode=false;
+      /* AI 스타일 태그도 초기화 */
+      const aiStyleEl=document.getElementById('ai-style-applied');
+      if(aiStyleEl) aiStyleEl.innerHTML='';
     }
     const panel=$('panel-'+currentMode);if(panel)panel.classList.add('on');
     /* 현재 모드 결과 섹션만 표시, 나머지 숨김 */
@@ -4839,13 +4837,12 @@ $('lyrics-btn').addEventListener('click',async()=>{
           hideLyricsGenPopup();
           const promptEl=$('prompt');
           promptEl.value=text;
+          promptEl.style.display='';
           promptEl.classList.add('flash');
           setTimeout(()=>promptEl.classList.remove('flash'),2000);
           renderLyricsPreview(text);
           $('lyrics-preview-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
-          toast('✅ 가사 생성 완료! 잠시 후 음악을 생성합니다...','ok',2500);
-          /* 1.5초 후 자동 생성 */
-          setTimeout(()=>generate({_afterLyrics:true}),1500);
+          toast('✅ 가사 생성 완료! 가사를 확인 후 음악 생성 버튼을 눌러주세요 🎵','ok',3500);
           return;
         }
       }
@@ -5040,9 +5037,13 @@ async function generate(overrideParams){
     const hasLyrics = !!lyricsText;
     const hasDesc = !!songDesc;
     const missingFields = [];
+    const hasMood = !!$('mood')?.value;
+    const hasRefArtist = !!($('ref-artist')?.value||'').trim();
+    const hasAiStyle = !!($('ai-style-applied')?.children.length);
     if(!hasGenre) missingFields.push({id:'genre', label:'장르 / 스타일', hint:'어떤 장르의 음악을 원하시나요?'});
-    if(!hasLyrics && !hasDesc) missingFields.push({id:'lyrics', label:'가사 또는 곡 설명', hint:'가사를 직접 입력하거나 AI 자동 작사를 사용하세요'});
-    if(missingFields.length >= 2){
+    if(!hasLyrics && !hasDesc && !hasAiStyle) missingFields.push({id:'lyrics', label:'가사 또는 스타일 설명', hint:'가사를 직접 입력하거나 AI 도구로 스타일을 설정하세요'});
+    if(!hasMood && !hasDesc && !hasAiStyle) missingFields.push({id:'mood', label:'분위기', hint:'어떤 분위기의 곡을 원하시나요?'});
+    if(missingFields.length >= 1){
       _globalGenerating = false;
       showInputGuideSheet(missingFields);
       return;
@@ -5100,6 +5101,14 @@ async function generate(overrideParams){
   }
   const lyricsLang=$('lyrics-lang')?.value;
   if(lyricsLang){styleStr=[styleStr,`${lyricsLang} lyrics`].filter(Boolean).join(', ');}
+
+  /* 스타일 강도 & 창의성을 프롬프트 스타일에도 반영 */
+  if(isCustom){
+    if(sw >= 0.8) styleStr=[styleStr,'strictly genre-faithful, authentic production'].filter(Boolean).join(', ');
+    else if(sw <= 0.3) styleStr=[styleStr,'genre-blending, creative fusion'].filter(Boolean).join(', ');
+    if(wc >= 0.8) styleStr=[styleStr,'experimental, unique arrangement, avant-garde elements'].filter(Boolean).join(', ');
+    else if(wc <= 0.3) styleStr=[styleStr,'conventional structure, polished production'].filter(Boolean).join(', ');
+  }
 
   const prompt=lyricsText||styleStr;
   lastLyricsInput=lyricsText;
@@ -7989,6 +7998,9 @@ function commHeroLike(){
   if(hero._hIdx>=0){const h=historyData[hero._hIdx];if(h){h._commLiked=newLiked;h._commLikes=newLikes;h._commDisliked=false;saveHistory();}}
   const btn=$('comm-hero-like');
   if(btn){btn.classList.toggle('liked',newLiked);btn.innerHTML=(newLiked?'❤️':'🤍')+' 좋아요 <span id="comm-hero-like-cnt">'+newLikes+'</span>';}
+  /* 커버 위 좋아요 뱃지도 업데이트 */
+  const badge=document.querySelector('.comm-featured-like-badge');
+  if(badge) badge.textContent='❤️ 좋아요 '+(newLikes>0?newLikes:0);
   toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
 }
 function commHeroDislike(){
@@ -8621,10 +8633,10 @@ function showLyricsGenPopup(type){
   _lyricsGenOverlay.innerHTML = `
     <div class="lyrics-gen-box">
       <div class="lyrics-gen-icon">${isStream ? '⚡' : '✍️'}</div>
-      <div class="lyrics-gen-title">${isStream ? '빠른 작사 중...' : 'AI 자동 작사 중...'}</div>
+      <div class="lyrics-gen-title">작업중입니다</div>
       <div class="lyrics-gen-sub" id="_lyricsgen_sub">
         ${isStream ? 'AI가 실시간으로 가사를 작성하고 있어요' : 'kie.ai가 감성적인 가사를 생성하고 있어요'}<br>
-        <span style="font-size:11px;color:#6b6780;">잠시만 기다려주세요 ☕</span>
+        <span style="font-size:11px;color:#6b6780;">완료되면 가사 입력폼에 자동으로 채워집니다 ☕</span>
       </div>
       <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" id="_lyricsgen_bar"></div></div>
       <button class="lyrics-gen-cancel" onclick="_cancelLyricsGen()">취소</button>
@@ -8732,19 +8744,22 @@ async function aiTrendStyle(){
   toast('🌐 최신 트렌드 검색 중...', '', 3000);
   try{
     const genre = $('genre-sub')?.value || $('genre-cat')?.value || 'K-pop';
+    const moodContext = $('mood')?.value ? ` 분위기: ${$('mood').value}` : '';
     const result = await callClaudeWithSearch(
-      `2025년 현재 ${genre} 음악에서 가장 핫한 스타일 키워드 8개를 쉼표로 구분해서 영문으로만 답해줘. 각각 2~4단어 구문으로. 예: "cinematic trap, emotional 808s, dark RnB, lo-fi reverb, dreamy synth pop, Y2K revival, hyperpop, ambient trap"`
+      `2025년 현재 ${genre} 음악에서 가장 핫한 트렌드 스타일 키워드 10개를 쉼표로 구분해서 영문으로만 답해줘.${moodContext} 각각 2~5단어의 구체적인 프로덕션 스타일 구문으로. 실제 차트 상위곡, 신보, 트렌드를 반영해줘. 예: "cinematic trap drop, airy falsetto hook, heavy 808 sub-bass, dreamy ambient synth, Y2K pop revival, dark R&B, lo-fi bedroom pop, hyperpop glitch, phonk drift beat, emotional piano ballad"`
     );
     if(result){
-      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<50).slice(0,8);
+      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<50).slice(0,10);
       if(chips.length){
         showAiAssistSheet({
           title: '🌐 트렌드 스타일 추천',
-          sub: `${genre} 최신 트렌드 — 원하는 스타일을 선택하세요 (복수 선택 가능)`,
+          sub: `${genre} 2025 최신 트렌드 — 원하는 스타일을 선택하세요 (복수 선택 가능)`,
           chips,
           onApply: (val)=>{
             const el = $('song-desc');
-            if(el){ el.value = val; toast('✅ 트렌드 스타일 적용됨!','ok',2000); }
+            if(el) el.value = val;
+            _updateAiStyleApplied(val);
+            toast('✅ 트렌드 스타일 적용됨!','ok',2000);
           }
         });
       }
@@ -8766,25 +8781,27 @@ async function aiMoodToStyle(){
   const moodVal = $('mood')?.value || '';
   const genreVal = $('genre-sub')?.value || $('genre-cat')?.value || '';
 
-  if(!currentDesc && !currentTitle && !moodVal && !genreVal){
-    toast('제목, 장르, 분위기 중 하나를 먼저 입력해주세요', 'err'); return;
-  }
+  /* 장르/분위기 없으면 기본값 사용 */
+  const hasAnyContext = currentDesc || currentTitle || moodVal || genreVal;
 
   btn.disabled = true; spinner.style.display='inline-block';
   toast('✨ AI 스타일 분석 중...', '', 2500);
   try{
-    const context = [
+    const context = hasAnyContext ? [
       currentTitle && `곡 제목: ${currentTitle}`,
       currentDesc && `설명: ${currentDesc}`,
       moodVal && `분위기: ${moodVal}`,
       genreVal && `장르: ${genreVal}`
-    ].filter(Boolean).join(' / ');
-    const sys = '당신은 음악 프로듀서입니다. 주어진 정보에 어울리는 Suno AI 스타일 태그 6가지를 쉼표로 구분해서 영문으로만 답하세요. 각각 다른 방향성/느낌을 제시하세요.';
-    const usr = `다음 정보에 맞는 음악 스타일 태그 6가지: ${context}`;
+    ].filter(Boolean).join(' / ') : '트렌디한 K-Pop / 감성적인 분위기';
+    const refArtist = ($('ref-artist')?.value||'').trim();
+    const artistContext = refArtist ? ` 레퍼런스 아티스트: ${refArtist}.` : '';
+    const sys = '당신은 10년 경력 음악 프로듀서입니다. Suno AI에서 고퀄리티 곡을 생성하기 위한 구체적인 스타일 태그를 제안하세요. 각 태그는 프로덕션 방식, 보컬 스타일, 악기, 분위기, 리듬 패턴 등 실제 음악적 요소를 반영해야 합니다. 8가지를 쉼표로 구분해서 영문으로만 답하세요.';
+    const usr = `다음 정보에 어울리는 구체적인 음악 프로덕션 스타일 태그 8가지: ${context}${artistContext}
+각각 다른 음악적 측면을 커버하세요: (1)장르 세부 (2)보컬 (3)비트/리듬 (4)악기 (5)사운드 텍스처 (6)분위기 (7)프로덕션 기법 (8)에너지/템포`;
     let result = '';
     await callClaudeStream(sys, usr, (p) => { result = p; });
     if(result){
-      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,6);
+      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,8);
       if(chips.length){
         showAiAssistSheet({
           title: '✨ AI 스타일 제안',
@@ -8792,7 +8809,9 @@ async function aiMoodToStyle(){
           chips,
           onApply: (val)=>{
             const el = $('song-desc');
-            if(el){ el.value = val; toast('✅ 스타일 적용됨!','ok',2000); }
+            if(el) el.value = val;
+            _updateAiStyleApplied(val);
+            toast('✅ 스타일 적용됨!','ok',2000);
           }
         });
       }
@@ -8811,7 +8830,17 @@ async function aiImageToStyle(input){
   if(!file) return;
   if(file.size > 5 * 1024 * 1024){ toast('5MB 이하 이미지만 가능합니다','err'); return; }
 
-  toast('📸 이미지 분석 중...', '', 4000);
+  /* 이미지 분석 팝업 표시 */
+  const _imgOverlay = document.createElement('div');
+  _imgOverlay.className = 'lyrics-gen-overlay';
+  _imgOverlay.innerHTML = `<div class="lyrics-gen-box">
+    <div class="lyrics-gen-icon">📸</div>
+    <div class="lyrics-gen-title">이미지 분석 중...</div>
+    <div class="lyrics-gen-sub">이미지의 분위기, 감정, 색감, 계절감을<br>음악 스타일로 변환하고 있어요</div>
+    <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" style="animation:lyricsGenBar 8s linear;"></div></div>
+  </div>`;
+  document.body.appendChild(_imgOverlay);
+
   try{
     const base64 = await new Promise((res,rej) => {
       const r = new FileReader();
@@ -8822,6 +8851,10 @@ async function aiImageToStyle(input){
     const mediaType = file.type || 'image/jpeg';
     const imgUrl = `data:${mediaType};base64,${base64}`;
 
+    const genreContext = $('genre-sub')?.value || $('genre-cat')?.value || '';
+    const moodContext = $('mood')?.value || '';
+    const contextHint = [genreContext && `장르: ${genreContext}`, moodContext && `분위기: ${moodContext}`].filter(Boolean).join(', ');
+
     const res = await fetch(KIE_CLAUDE_URL, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
@@ -8830,33 +8863,54 @@ async function aiImageToStyle(input){
           role: 'user',
           content: [
             { type:'image_url', image_url:{ url: imgUrl } },
-            { type:'text', text: '이 이미지의 분위기, 감정, 색감, 계절감을 분석해서 Suno AI 음악 생성에 적합한 영문 스타일 태그 6개를 쉼표로 구분해서만 답하세요. 각각 다른 음악적 요소를 반영하세요. 예: "melancholic indie, warm golden hour, soft reverb, nostalgic 90s, acoustic guitar, lo-fi haze"' }
+            { type:'text', text: `이 이미지를 깊이 분석해서 Suno AI 음악 생성에 최적화된 영문 스타일 태그 8개를 쉼표로 구분해서만 답하세요.${contextHint ? ' 참고 정보: '+contextHint+'.' : ''}
+분석 관점: (1)이미지의 주요 감정/무드 (2)색감에서 느껴지는 온도감 (3)계절/시간대 느낌 (4)공간감/텍스처 (5)어울리는 악기/사운드 (6)장르 제안 (7)보컬 스타일 (8)프로덕션 기법.
+각 태그는 2~5단어의 구체적인 음악 프로덕션 용어로. 예: "melancholic piano ballad, warm golden hour reverb, soft falsetto vocal, nostalgic 90s synth, acoustic fingerpicking, lo-fi tape haze, cinematic string arrangement, ambient rain texture"` }
           ]
         }],
         stream: false, include_thoughts: false, reasoning_effort:'low'
       })
     });
+    _imgOverlay.remove();
     const data = await res.json();
     const result = data?.choices?.[0]?.message?.content || '';
     if(result){
-      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,6);
+      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,8);
       if(chips.length){
         showAiAssistSheet({
           title: '📸 이미지 분위기 분석',
-          sub: '이미지에서 추출된 음악 스타일 — 원하는 것을 선택하세요',
+          sub: '이미지에서 추출된 음악 스타일 — 원하는 것을 선택하세요 (복수 선택 가능)',
           chips,
           onApply: (val)=>{
             const el = $('song-desc');
-            if(el){ el.value = val; toast('✅ 이미지 분위기 적용됨!','ok',2000); }
+            if(el) el.value = val;
+            _updateAiStyleApplied(val);
+            toast('✅ 이미지 분위기 적용됨!','ok',2000);
           }
         });
       }
     }
   }catch(e){
+    _imgOverlay?.remove();
     toast('❌ 이미지 분석 실패: '+e.message, 'err', 4000);
   }finally{
     input.value = '';
   }
+}
+
+/* ── AI 스타일 적용 태그 표시 헬퍼 ── */
+function _updateAiStyleApplied(val){
+  const el = $('ai-style-applied');
+  if(!el) return;
+  const tags = val.split(',').map(s=>s.trim()).filter(Boolean);
+  el.innerHTML = tags.map(t=>`<span class="ref-artist-tag" style="cursor:pointer;" onclick="this.remove();_syncAiStyleFromTags()">${t} ✕</span>`).join('');
+}
+function _syncAiStyleFromTags(){
+  const el = $('ai-style-applied');
+  if(!el) return;
+  const tags = [...el.querySelectorAll('.ref-artist-tag')].map(t=>t.textContent.replace(' ✕','').trim()).filter(Boolean);
+  const descEl = $('song-desc');
+  if(descEl) descEl.value = tags.join(', ');
 }
 
 /* ── 5. 🎤 레퍼런스 아티스트 스타일 분석 ── */
@@ -8876,17 +8930,17 @@ async function analyzeRefArtist(){
   if(hintEl) hintEl.style.display = 'none';
 
   try{
-    const sys = '당신은 음악 전문가입니다. 아티스트의 음악 스타일을 Suno AI 프롬프트에 직접 쓸 수 있는 영문 태그로 분석하세요.';
-    const usr = `"${artistVal}" 아티스트의 핵심 음악 스타일을 영문 키워드 5개로만 답하세요. 쉼표 구분. 예: "trap soul, melodic hooks, auto-tune, 808 bass, dark atmospheric"`;
+    const sys = '당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 구체적인 프로덕션 스타일, 보컬 특성, 악기 편성, 사운드 텍스처를 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
+    const usr = `"${artistVal}" 아티스트의 실제 음악 사운드를 완벽히 재현하기 위한 핵심 스타일 태그를 8개 추출하세요. 다음 카테고리별 1-2개씩: (1)장르/서브장르 (2)보컬 스타일 (3)프로덕션/비트 특성 (4)악기/사운드 텍스처 (5)분위기/에너지. 쉼표 구분 영문만. 예: "dark trap, breathy falsetto vocals, heavy 808 sub-bass, ethereal synth pads, melancholic atmospheric, lo-fi reverb, minimalist beat, ambient textures"`;
     let result = '';
     await callClaudeStream(sys, usr, (p)=>{ result = p; });
     if(result){
-      const tags = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>1 && s.length<40).slice(0,5);
+      const tags = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>1 && s.length<50).slice(0,8);
       if(tags.length && tagsEl){
         tagsEl.innerHTML = tags.map(t=>`<span class="ref-artist-tag">${t}</span>`).join('');
-        /* 스타일 필드에 자동 주입 */
-        _refArtistStyleTags = tags.join(', ');
-        if(hintEl){ hintEl.textContent = `✅ "${artistVal}" 스타일이 곡 생성에 반영됩니다`; hintEl.style.display='block'; }
+        /* 스타일 필드에 자동 주입 — 아티스트명 + 분석 태그 모두 포함 */
+        _refArtistStyleTags = `inspired by ${artistVal}, ${tags.join(', ')}`;
+        if(hintEl){ hintEl.textContent = `✅ "${artistVal}" 사운드가 곡 생성에 반영됩니다 (${tags.length}개 스타일 태그 추출)`; hintEl.style.display='block'; }
       }
     }
   }catch(e){
@@ -8907,15 +8961,38 @@ function showInputGuideSheet(missingFields){
         <div class="input-guide-field-label">🎵 장르 / 스타일</div>
         <div style="font-size:12px;color:#a09ab8;margin-bottom:8px;">${f.hint}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${['K-Pop','Hip-Hop','Electronic','Rock','Lo-Fi','Jazz','Acoustic','R&B','Pop','Indie'].map(g=>`<button class="ai-sheet-chip" onclick="this.classList.toggle('on')" data-genre="${g}">${g}</button>`).join('')}
+          ${['K-Pop','Hip-Hop','Electronic','Rock','Lo-Fi','Jazz','Classical','Acoustic','R&B','Pop','Indie','Ballad'].map(g=>`<button class="ai-sheet-chip" onclick="this.classList.toggle('on')" data-genre="${g}">${g}</button>`).join('')}
         </div>
       </div>`;
     }
     if(f.id === 'lyrics'){
       return `<div class="input-guide-field">
-        <div class="input-guide-field-label">📝 가사 / 곡 설명</div>
+        <div class="input-guide-field-label">📝 가사 또는 곡 설명</div>
         <div style="font-size:12px;color:#a09ab8;margin-bottom:8px;">${f.hint}</div>
-        <textarea id="_guide_lyrics" placeholder="예: 헤어진 연인을 그리워하는 감성적인 발라드&#10;또는 직접 가사 입력..." rows="3"></textarea>
+        <textarea id="_guide_lyrics" placeholder="예: 헤어진 연인을 그리워하는 감성적인 발라드&#10;또는 직접 가사를 입력해주세요...&#10;&#10;[Verse 1]&#10;여기에 가사..." rows="4" style="width:100%;background:#16152a;border:1px solid rgba(124,58,237,.25);border-radius:10px;color:#f1f0f5;padding:10px 12px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="ai-assist-btn" id="_guide_quick_lyrics" style="font-size:11px;flex:1;">⚡ 빠른 작사</button>
+          <button class="ai-assist-btn" id="_guide_ai_lyrics" style="font-size:11px;flex:1;">✍️ AI 자동 작사</button>
+        </div>
+      </div>`;
+    }
+    if(f.id === 'mood'){
+      return `<div class="input-guide-field">
+        <div class="input-guide-field-label">🎨 분위기</div>
+        <div style="font-size:12px;color:#a09ab8;margin-bottom:8px;">${f.hint}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${[
+            {v:'happy, uplifting', l:'밝고 신나는'},
+            {v:'sad, emotional', l:'슬프고 감성적인'},
+            {v:'calm, relaxing', l:'잔잔하고 편안한'},
+            {v:'dark, intense', l:'어둡고 강렬한'},
+            {v:'romantic, dreamy', l:'로맨틱하고 몽환적인'},
+            {v:'epic, cinematic', l:'웅장하고 영화적인'},
+            {v:'energetic, hype', l:'에너지 넘치는'},
+            {v:'nostalgic, retro', l:'노스탤직하고 레트로'},
+            {v:'chill, lofi', l:'칠하고 로파이'}
+          ].map(m=>`<button class="ai-sheet-chip" onclick="this.parentElement.querySelectorAll('.ai-sheet-chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')" data-mood="${m.v}">${m.l}</button>`).join('')}
+        </div>
       </div>`;
     }
     return '';
@@ -8927,24 +9004,53 @@ function showInputGuideSheet(missingFields){
       <div class="ai-sheet-title">⚠️ 입력 정보가 부족해요</div>
       <div class="ai-sheet-sub">아래 항목을 채워주시면 더 완성도 높은 음악이 만들어져요!</div>
       ${fieldsHtml}
-      <button class="ai-sheet-apply-btn" id="_guide_apply" style="margin-top:8px;">✦ 이대로 생성하기</button>
+      <button class="ai-sheet-apply-btn" id="_guide_apply" style="margin-top:12px;">✦ 적용하고 생성하기</button>
       <button class="ai-sheet-cancel-btn" onclick="this.closest('.ai-sheet-overlay').remove()">취소</button>
     </div>`;
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+
+  /* 빠른 작사 / AI 자동 작사 버튼 연결 */
+  const quickBtn = overlay.querySelector('#_guide_quick_lyrics');
+  if(quickBtn) quickBtn.addEventListener('click', ()=>{ overlay.remove(); streamLyricsGenerate(); });
+  const aiBtn = overlay.querySelector('#_guide_ai_lyrics');
+  if(aiBtn) aiBtn.addEventListener('click', ()=>{ overlay.remove(); $('lyrics-btn').click(); });
+
   overlay.querySelector('#_guide_apply').addEventListener('click', ()=>{
     /* 장르 선택 반영 */
-    const selGenres = [...overlay.querySelectorAll('.ai-sheet-chip.on')].map(c=>c.dataset.genre).filter(Boolean);
+    const selGenres = [...overlay.querySelectorAll('[data-genre].on')].map(c=>c.dataset.genre).filter(Boolean);
     if(selGenres.length){
+      /* 실제 장르 버튼 활성화 시뮬레이션 */
+      const genreMap = {'K-Pop':'pop','Hip-Hop':'hiphop','Electronic':'electronic','Rock':'rock','Lo-Fi':'lofi','Jazz':'jazz','Classical':'classical','Acoustic':'acoustic','R&B':'pop','Pop':'pop','Indie':'rock','Ballad':'pop'};
+      const cat = genreMap[selGenres[0]] || 'pop';
+      const catEl = $('genre-cat');
+      if(catEl){ catEl.value = cat; catEl.dispatchEvent(new Event('change')); }
+      /* 곡 설명에도 반영 */
       const descEl = $('song-desc');
       if(descEl && !descEl.value.trim()) descEl.value = selGenres.join(', ');
+      _updateAiStyleApplied(selGenres.join(', '));
+    }
+    /* 분위기 선택 반영 */
+    const selMood = overlay.querySelector('[data-mood].on');
+    if(selMood){
+      const moodEl = $('mood');
+      if(moodEl) moodEl.value = selMood.dataset.mood;
     }
     /* 가사/설명 반영 */
     const guideText = overlay.querySelector('#_guide_lyrics')?.value?.trim();
     if(guideText){
       const promptEl = $('prompt');
       const descEl = $('song-desc');
-      if(promptEl && !promptEl.value.trim()) promptEl.value = guideText;
-      else if(descEl && !descEl.value.trim()) descEl.value = guideText;
+      /* 가사인지 설명인지 판별: [Verse] 등 섹션 태그나 줄바꿈이 있으면 가사 */
+      const isLyrics = guideText.includes('\n') || /\[.+?\]/.test(guideText) || guideText.length > 100;
+      if(isLyrics && promptEl && !promptEl.value.trim()){
+        promptEl.value = guideText;
+        renderLyricsPreview(guideText);
+      } else if(descEl && !descEl.value.trim()){
+        descEl.value = guideText;
+        _updateAiStyleApplied(guideText);
+      } else if(promptEl && !promptEl.value.trim()){
+        promptEl.value = guideText;
+      }
     }
     overlay.remove();
     /* 입력 안내 완료 후 생성 진행 */

@@ -110,8 +110,34 @@ tr:hover td{background:rgba(255,255,255,.02);}
 /* 토스트 */
 #admin-toast{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:10px 16px;font-size:12px;font-weight:600;color:var(--t1);z-index:9999;transform:translateY(60px);opacity:0;transition:all .25s;pointer-events:none;}
 #admin-toast.on{transform:translateY(0);opacity:1;}
+/* 감사 로그 */
+.audit-entry{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;background:var(--bg3);margin-bottom:6px;font-size:12px;transition:background .15s;}
+.audit-entry:hover{background:rgba(168,85,247,.06);}
+.audit-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.audit-body{flex:1;min-width:0;}
+.audit-action{font-weight:700;color:var(--t1);}
+.audit-detail{font-size:11px;color:var(--t3);margin-top:2px;}
+.audit-time{font-size:10px;color:var(--t3);flex-shrink:0;text-align:right;min-width:60px;}
+.audit-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+/* 유저 상세 모달 */
+.user-detail-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;}
+.user-detail-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:520px;max-height:80vh;overflow-y:auto;}
+.user-detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.user-detail-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--bg3);}
+.user-detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.user-detail-stat{background:var(--bg3);border-radius:10px;padding:10px;text-align:center;}
+.user-detail-stat .val{font-size:18px;font-weight:800;}
+.user-detail-stat .lbl{font-size:10px;color:var(--t3);margin-top:2px;}
+/* 헬스체크 */
+.health-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px;}
+.health-item{background:var(--bg3);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;}
+.health-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.health-ok{background:var(--grn);}
+.health-err{background:var(--red);}
+.health-warn{background:var(--ylw);}
+.health-label{font-size:11px;color:var(--t2);}
 /* 반응형 */
-@media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.user-detail-stats{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
@@ -146,6 +172,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
+      <div class="snav-item" data-sec="audit" onclick="switchSec('audit')"><span class="snav-icon">📝</span>감사 로그</div>
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')" id="snav-managers"><span class="snav-icon">👔</span>매니저 관리</div>
       <div class="snav-item" data-sec="logs" onclick="switchSec('logs')"><span class="snav-icon">📋</span>로그 보기</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
@@ -190,6 +217,40 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <div class="bar-chart" id="top-chart"></div>
           </div>
         </div>
+        <!-- 시스템 헬스체크 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h4>🏥 시스템 상태</h4>
+            <button class="btn" onclick="runHealthCheck()" style="font-size:11px;padding:4px 10px;">🔄 체크</button>
+          </div>
+          <div class="health-grid" id="health-grid">
+            <div class="health-item"><div class="health-dot health-warn"></div><div class="health-label">확인 중...</div></div>
+          </div>
+        </div>
+
+        <!-- 7일 활동 트렌드 -->
+        <div class="chart-row" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <h4>📅 최근 7일 생성 트렌드</h4>
+            <div class="bar-chart" id="weekly-trend-chart"></div>
+          </div>
+          <div class="chart-card">
+            <h4>👥 최근 7일 로그인 트렌드</h4>
+            <div class="bar-chart" id="weekly-login-chart"></div>
+          </div>
+        </div>
+
+        <!-- 최근 감사 로그 미리보기 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h4>📝 최근 관리자 활동</h4>
+            <button class="btn" onclick="switchSec('audit')" style="font-size:11px;padding:4px 10px;">전체 보기 →</button>
+          </div>
+          <div id="dash-audit-preview" style="max-height:180px;overflow-y:auto;">
+            <div style="color:var(--t3);font-size:12px;text-align:center;padding:16px;">활동 기록 없음</div>
+          </div>
+        </div>
+
         <!-- 자동 갱신 상태 바 -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
           <span>🔄 10초마다 자동 갱신</span>
@@ -290,7 +351,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
       <!-- 커뮤니티 -->
       <div class="admin-section" id="sec-community">
-        <div class="sec-hdr"><h2>커뮤니티 관리</h2></div>
+        <div class="sec-hdr">
+          <h2>커뮤니티 관리</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input class="table-search" id="comm-search" placeholder="제목/소유자 검색..." oninput="filterCommunity()">
+            <button class="btn" onclick="batchCommAction('hide')" style="font-size:11px;">🙈 선택 숨기기</button>
+            <button class="btn btn-red" onclick="batchCommAction('delete')" style="font-size:11px;">🗑 선택 삭제</button>
+          </div>
+        </div>
         
         <!-- kie.ai 로그 불러오기 -->
         <div class="settings-group" style="margin-bottom:16px;">
@@ -318,7 +386,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
             <button class="btn btn-acc" onclick="renderCommunityAdmin()">🔄 새로고침</button>
           </div>
-          <table><thead><tr><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>출처</th><th>생성일</th><th>공개</th><th>관리</th></tr></thead>
+          <table><thead><tr><th><input type="checkbox" id="comm-chk-all" onchange="toggleAllComm(this)"></th><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>출처</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="comm-tbody"></tbody></table>
         </div>
       </div>
@@ -892,8 +960,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="admin-section" id="sec-logs">
         <div class="sec-hdr"><h2>📋 로그 보기</h2></div>
 
-        <!-- 로그 접근 게이트 -->
-        <div id="log-gate" style="max-width:400px;margin:40px auto;text-align:center;">
+        <!-- 로그 접근 게이트 (숨김 처리 - 관리자 자동 인증) -->
+        <div id="log-gate" style="display:none;max-width:400px;margin:40px auto;text-align:center;">
           <div style="font-size:32px;margin-bottom:16px;">🔐</div>
           <div style="font-size:15px;font-weight:700;margin-bottom:8px;">로그 접근 인증</div>
           <div style="font-size:12px;color:var(--t3);margin-bottom:20px;">로그 열람은 별도 접근키가 필요합니다</div>
@@ -902,8 +970,46 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div id="log-gate-err" style="display:none;color:var(--red);font-size:12px;margin-top:8px;">❌ 접근 키가 올바르지 않습니다</div>
         </div>
 
-        <!-- 로그 본문 (인증 후) -->
-        <div id="log-content" style="display:none;">
+        <!-- 로그 본문 -->
+        <div id="log-content" style="display:block;">
+
+          <!-- kie.ai 생성 로그 -->
+          <div class="chart-card" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4>🎵 kie.ai 생성 로그</h4>
+              <div style="display:flex;gap:8px;">
+                <a href="https://kie.ai/logs" target="_blank" class="btn" style="font-size:11px;padding:4px 10px;text-decoration:none;">kie.ai 대시보드 ↗</a>
+                <button class="btn btn-acc" onclick="loadKieLogs()" style="font-size:11px;padding:4px 10px;">🔄 새로고침</button>
+              </div>
+            </div>
+            <div id="kie-log-stats" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;"></div>
+            <div style="overflow-x:auto;">
+              <table class="admin-table" id="kie-log-table">
+                <thead><tr>
+                  <th style="width:40px;">No</th>
+                  <th>곡 제목</th>
+                  <th>생성자</th>
+                  <th>모드</th>
+                  <th>상태</th>
+                  <th>생성일</th>
+                  <th>액션</th>
+                </tr></thead>
+                <tbody id="kie-log-tbody">
+                  <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로그 섹션 진입 시 자동 로드됩니다</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- kie.ai 태스크 상세 -->
+          <div class="chart-card" style="margin-bottom:16px;display:none;" id="kie-task-detail-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4>📄 태스크 상세 <span id="kie-task-detail-title" style="font-size:11px;color:var(--t3);"></span></h4>
+              <button class="btn" onclick="document.getElementById('kie-task-detail-card').style.display='none'" style="font-size:11px;padding:4px 10px;">닫기</button>
+            </div>
+            <pre id="kie-task-detail-body" style="background:var(--bg3);border-radius:8px;padding:12px;font-size:11px;color:var(--t2);overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-all;font-family:monospace;"></pre>
+          </div>
+
           <!-- Vercel 배포 현황 -->
           <div class="chart-card" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -919,7 +1025,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
           </div>
 
           <!-- 빌드 로그 뷰어 -->
-          <div class="chart-card" style="margin-bottom:16px;" id="vercel-log-card" style="display:none;">
+          <div class="chart-card" style="margin-bottom:16px;display:none;" id="vercel-log-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <h4>📄 빌드 로그 <span id="vercel-log-title" style="font-size:11px;color:var(--t3);"></span></h4>
               <button class="btn" onclick="document.getElementById('vercel-log-card').style.display='none'" style="font-size:11px;padding:4px 10px;">닫기</button>
@@ -938,6 +1044,89 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
+      <!-- 감사 로그 -->
+      <div class="admin-section" id="sec-audit">
+        <div class="sec-hdr">
+          <h2>📝 감사 로그</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-acc" onclick="renderAuditLog()">🔄 새로고침</button>
+            <button class="btn" onclick="exportAuditCsv()">📥 CSV 내보내기</button>
+            <button class="btn btn-red" onclick="clearAuditLog()">🗑 초기화</button>
+          </div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-val" id="audit-total">0</div><div class="stat-label">전체 기록</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="audit-today">0</div><div class="stat-label">오늘 활동</div></div>
+          <div class="stat-card"><div class="stat-icon">🗑</div><div class="stat-val" id="audit-deletes">0</div><div class="stat-label">삭제 작업</div></div>
+          <div class="stat-card"><div class="stat-icon">🚫</div><div class="stat-val" id="audit-bans">0</div><div class="stat-label">차단 작업</div></div>
+        </div>
+        <div class="audit-filter-bar">
+          <select class="table-search" id="audit-type-filter" onchange="renderAuditLog()" style="width:120px;">
+            <option value="">전체 유형</option>
+            <option value="login">로그인</option>
+            <option value="delete">삭제</option>
+            <option value="hide">숨기기</option>
+            <option value="ban">차단</option>
+            <option value="announce">공지</option>
+            <option value="push">푸시</option>
+            <option value="manager">매니저</option>
+            <option value="setting">설정</option>
+          </select>
+          <input class="table-search" id="audit-search" placeholder="검색..." oninput="renderAuditLog()">
+          <span id="audit-filter-count" style="font-size:11px;color:var(--t3);"></span>
+        </div>
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>활동 기록</h3>
+            <span id="audit-page-info" style="font-size:11px;color:var(--t3);"></span>
+          </div>
+          <div id="audit-log-list" style="padding:12px;max-height:600px;overflow-y:auto;">
+            <div style="text-align:center;padding:32px;color:var(--t3);">기록 없음</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 사용자 상세 모달 -->
+<div id="user-detail-modal" class="user-detail-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="user-detail-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-size:11px;color:var(--t3);">사용자 상세 정보</span>
+      <button class="btn" onclick="document.getElementById('user-detail-modal').style.display='none'" style="padding:4px 10px;font-size:11px;">✕ 닫기</button>
+    </div>
+    <div class="user-detail-header">
+      <div id="ud-avatar" style="width:56px;height:56px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>
+      <div>
+        <div id="ud-name" style="font-size:16px;font-weight:800;"></div>
+        <div id="ud-provider" style="font-size:12px;color:var(--t3);"></div>
+        <div id="ud-email" style="font-size:11px;color:var(--t3);"></div>
+      </div>
+    </div>
+    <div class="user-detail-stats">
+      <div class="user-detail-stat"><div class="val" id="ud-logins">0</div><div class="lbl">로그인</div></div>
+      <div class="user-detail-stat"><div class="val" id="ud-tracks">0</div><div class="lbl">생성 곡</div></div>
+      <div class="user-detail-stat"><div class="val" id="ud-likes">0</div><div class="lbl">좋아요</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:var(--t3);margin-bottom:4px;">마지막 로그인</div>
+        <div id="ud-lastlogin" style="font-size:12px;font-weight:600;"></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:var(--t3);margin-bottom:4px;">디바이스</div>
+        <div id="ud-device" style="font-size:12px;font-weight:600;"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">최근 생성 곡</div>
+      <div id="ud-tracks-list" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="ud-push-btn" style="flex:1;font-size:12px;">🔔 알림 보내기</button>
+      <button class="btn btn-red" id="ud-ban-btn" style="flex:1;font-size:12px;">🚫 차단하기</button>
     </div>
   </div>
 </div>
@@ -1026,7 +1215,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
@@ -1038,15 +1227,18 @@ function switchSec(id){
   if(id==='reports') renderReportsAdmin();
   if(id==='usage') loadUsageAdmin();
   if(id==='logs') initLogSection();
+  if(id==='audit') renderAuditLog();
 }
 
 /* ══════════════════════════════════════════════
    로그 뷰어
 ══════════════════════════════════════════════ */
 const _LOG_KEY = '02b67a9618e9c4e91b09888bfbfddb2b';
+const _KIE_LOG_API_KEY = '02b67a9618e9c4e91b09888bfbfddb2b';
 /* Vercel 토큰은 서버(/api/logs)에서 관리 — 클라이언트에 노출 안 함 */
-let _logUnlocked = false;
+let _logUnlocked = true; /* 관리자 자동 인증 */
 let _appLogs = [];
+let _kieLogData = [];
 
 /* 앱 이벤트 로그 캡처 (console.warn/error 오버라이드) */
 (function captureConsoleLogs(){
@@ -1070,6 +1262,7 @@ function logGateLogin(){
     _logUnlocked = true;
     document.getElementById('log-gate').style.display = 'none';
     document.getElementById('log-content').style.display = 'block';
+    loadKieLogs();
     loadVercelDeployments();
     const el = document.getElementById('app-log-body');
     if(el) el.textContent = _appLogs.length ? _appLogs.join('\n') : '로그 없음';
@@ -1239,8 +1432,33 @@ function loadData(){
 
 // ── 트랙 관리 ──
 let _filteredTracks=[];
-function renderTracksAdmin(){
-  const h=getHistory();
+let _allAdminTracks=[];
+async function renderTracksAdmin(){
+  const tbody=document.getElementById('tracks-tbody');
+  if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
+  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+  let h=[];
+  try{
+    const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
+    const raw=await r.text();
+    if(r.ok&&raw.trim().startsWith('{')){
+      const d=JSON.parse(raw);
+      if(Array.isArray(d.tracks)){
+        h=d.tracks.map(t=>({
+          id:t.id, taskId:t.task_id||'', title:t.title||'무제',
+          audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
+          tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
+          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+          _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
+          _source:'supabase'
+        }));
+      }
+    }
+  }catch(e){ console.warn('[Admin] Supabase 트랙 조회 실패:',e.message); }
+  /* Supabase 실패 시 localStorage 폴백 */
+  if(!h.length) h=getHistory();
+  h.sort((a,b)=>(b.created||0)-(a.created||0));
+  _allAdminTracks=h;
   _filteredTracks=h;
   /* 통계 업데이트 */
   const loggedIn = h.filter(t => t._owner && t._owner.provider !== 'guest').length;
@@ -1292,7 +1510,7 @@ function filterTracks(){
   const q=(document.getElementById('track-search')?.value||'').toLowerCase();
   const m=document.getElementById('track-mode-filter')?.value||'';
   const u=document.getElementById('track-user-filter')?.value||'';
-  const h=getHistory();
+  const h=_allAdminTracks.length?_allAdminTracks:getHistory();
   const filtered=h.filter(t=>{
     const titleMatch = (t.title||'').toLowerCase().includes(q) || (t._owner?.name||'').toLowerCase().includes(q);
     const modeMatch  = !m || t.genMode===m;
@@ -2785,7 +3003,7 @@ document.addEventListener('DOMContentLoaded', ()=>{ startDashAutoRefresh(); });
 //  매니저 관리 시스템
 // ══════════════════════════════════════════════
 const MGR_ROLES = {
-  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','settings'] },
+  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','logs','settings'] },
   super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push'] },
   manager: { label:'📋 매니저',       color:'#3b82f6', secs:['dashboard','tracks','community','reports'] },
   viewer:  { label:'👁 뷰어',         color:'#10b981', secs:['dashboard','usage'] }
