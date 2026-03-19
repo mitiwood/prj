@@ -114,3 +114,44 @@ DROP TRIGGER IF EXISTS users_updated_at ON public.users;
 CREATE TRIGGER users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- ============================================================
+-- 8. 결제 (Toss Payments)
+-- ============================================================
+
+-- 8-1. users 테이블에 플랜/크레딧 컬럼 추가
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS plan         TEXT NOT NULL DEFAULT 'free',
+  ADD COLUMN IF NOT EXISTS credits      INTEGER NOT NULL DEFAULT 2,
+  ADD COLUMN IF NOT EXISTS plan_expires TIMESTAMPTZ;
+
+-- 8-2. payments 테이블
+CREATE TABLE IF NOT EXISTS public.payments (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id      TEXT NOT NULL UNIQUE,
+  user_name     TEXT,
+  user_provider TEXT,
+  payment_key   TEXT NOT NULL UNIQUE,
+  amount        INTEGER NOT NULL,
+  plan          TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'DONE',
+  method        TEXT,
+  cancel_reason TEXT,
+  canceled_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  approved_at   TIMESTAMPTZ
+);
+
+-- 8-3. RLS
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+-- 서비스 롤만 전체 접근
+CREATE POLICY payments_service_all ON public.payments
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- 8-4. 인덱스
+CREATE INDEX IF NOT EXISTS idx_payments_order       ON public.payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user        ON public.payments(user_name, user_provider);
+CREATE INDEX IF NOT EXISTS idx_payments_status      ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_created     ON public.payments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_payment_key ON public.payments(payment_key);
