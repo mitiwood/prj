@@ -6121,16 +6121,28 @@ function showMiniPlayer(idx){
 
   audio.addEventListener('error',(e)=>{
     const code = e.target?.error?.code;
-    const msgs = {1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'지원하지 않는 형식'};
+    const msgs = {1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg = msgs[code] || '재생 오류';
-    console.error('[Audio Error]', msg, e.target?.src?.slice(0,60));
-    /* 재시도 1회 */
-    if(!audio._retried){
+    const src = e.target?.src||'';
+    /* code 4 = 포맷 미지원 또는 잘못된 URL → 재시도 의미없음 */
+    if(code === 4){
+      /* 자체 도메인 URL이면 audio_url이 비어있는 것 → 조용히 처리 */
+      if(src.includes(window.location.hostname) && !src.includes('/cdn') && !src.includes('audio')){
+        console.warn('[Audio] 유효하지 않은 오디오 URL:', src.slice(0,80));
+      } else {
+        console.warn('[Audio Error]', msg, src.slice(0,80));
+        toast('🔇 오디오를 재생할 수 없어요','err',3000);
+      }
+      return;
+    }
+    console.warn('[Audio Error]', msg, src.slice(0,60));
+    /* 네트워크 오류만 재시도 1회 */
+    if(!audio._retried && code === 2){
       audio._retried = true;
       setTimeout(()=>{ audio.load(); audio.play().catch(()=>{}); }, 1500);
       toast('🔄 오디오 재연결 중...','',2000);
     } else {
-      toast('🔇 오디오 '+msg,'err',3000);
+      toast('🔇 '+msg,'err',3000);
     }
   });
 
@@ -6671,16 +6683,25 @@ function _doOpenFullPlayer(idx){
   audio.addEventListener('ended',()=>{$('fp-play-btn').textContent='▶';fpStopViz();});
   audio.addEventListener('error',(ev)=>{
     const code=ev.target?.error?.code;
-    const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'지원하지 않는 형식'};
+    const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg=msgs[code]||'재생 오류';
-    console.error('[FP Audio Error]',code,h.audio_url?.slice(0,80));
-    /* 재시도 1회 */
-    if(!audio._fpRetried){
-      audio._fpRetried = true;
-      setTimeout(()=>{ audio.load(); audio.play().catch(()=>{}); }, 1500);
+    const src=ev.target?.src||'';
+    if(code===4){
+      if(src.includes(window.location.hostname)&&!src.includes('/cdn')&&!src.includes('audio')){
+        console.warn('[FP Audio] 유효하지 않은 URL');
+      } else {
+        console.warn('[FP Audio Error]',code,src.slice(0,80));
+        toast('🔇 오디오를 재생할 수 없어요','err',3000);
+      }
+      return;
+    }
+    console.warn('[FP Audio Error]',code,h.audio_url?.slice(0,80));
+    if(!audio._fpRetried&&code===2){
+      audio._fpRetried=true;
+      setTimeout(()=>{ audio.load(); audio.play().catch(()=>{}); },1500);
       toast('🔄 재연결 중...','',2000);
     } else {
-      toast('🔇 '+msg+' — URL을 확인하세요','err',4000);
+      toast('🔇 '+msg,'err',4000);
     }
   });
   audio.play().then(()=>{$('fp-play-btn').textContent='⏸';fpStartViz();}).catch((e)=>{

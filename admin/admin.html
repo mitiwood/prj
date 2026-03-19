@@ -147,6 +147,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')" id="snav-managers"><span class="snav-icon">👔</span>매니저 관리</div>
+      <div class="snav-item" data-sec="logs" onclick="switchSec('logs')"><span class="snav-icon">📋</span>로그 보기</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
     </div>
     <div class="sidebar-footer">
@@ -887,6 +888,56 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
+      <!-- 로그 보기 -->
+      <div class="admin-section" id="sec-logs">
+        <div class="sec-hdr"><h2>📋 로그 보기</h2></div>
+
+        <!-- 로그 접근 게이트 -->
+        <div id="log-gate" style="max-width:400px;margin:40px auto;text-align:center;">
+          <div style="font-size:32px;margin-bottom:16px;">🔐</div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px;">로그 접근 인증</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:20px;">로그 열람은 별도 접근키가 필요합니다</div>
+          <input type="password" id="log-gate-input" class="settings-input" placeholder="접근 키 입력" style="width:100%;margin-bottom:10px;">
+          <button class="btn btn-acc" onclick="logGateLogin()" style="width:100%;">확인</button>
+          <div id="log-gate-err" style="display:none;color:var(--red);font-size:12px;margin-top:8px;">❌ 접근 키가 올바르지 않습니다</div>
+        </div>
+
+        <!-- 로그 본문 (인증 후) -->
+        <div id="log-content" style="display:none;">
+          <!-- Vercel 배포 현황 -->
+          <div class="chart-card" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4>🚀 Vercel 배포 현황</h4>
+              <div style="display:flex;gap:8px;">
+                <a href="https://vercel.com/mitiwood/ai-music-studio" target="_blank" class="btn" style="font-size:11px;padding:4px 10px;text-decoration:none;">Vercel 대시보드 ↗</a>
+                <button class="btn btn-acc" onclick="loadVercelDeployments()" style="font-size:11px;padding:4px 10px;">🔄 새로고침</button>
+              </div>
+            </div>
+            <div id="vercel-deployments">
+              <div style="color:var(--t3);font-size:13px;text-align:center;padding:20px;">배포 목록 불러오는 중...</div>
+            </div>
+          </div>
+
+          <!-- 빌드 로그 뷰어 -->
+          <div class="chart-card" style="margin-bottom:16px;" id="vercel-log-card" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4>📄 빌드 로그 <span id="vercel-log-title" style="font-size:11px;color:var(--t3);"></span></h4>
+              <button class="btn" onclick="document.getElementById('vercel-log-card').style.display='none'" style="font-size:11px;padding:4px 10px;">닫기</button>
+            </div>
+            <pre id="vercel-log-body" style="background:var(--bg3);border-radius:8px;padding:12px;font-size:11px;color:var(--t2);overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-all;font-family:monospace;"></pre>
+          </div>
+
+          <!-- 앱 이벤트 로그 (브라우저 캡처) -->
+          <div class="chart-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h4>🖥 앱 이벤트 로그 (실시간)</h4>
+              <button class="btn" onclick="document.getElementById('app-log-body').textContent='';_appLogs=[];" style="font-size:11px;padding:4px 10px;">지우기</button>
+            </div>
+            <pre id="app-log-body" style="background:var(--bg3);border-radius:8px;padding:12px;font-size:11px;color:var(--grn);overflow:auto;max-height:300px;white-space:pre-wrap;word-break:break-all;font-family:monospace;">로그 없음</pre>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -975,7 +1026,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
@@ -986,6 +1037,115 @@ function switchSec(id){
   if(id==='managers') renderManagers();
   if(id==='reports') renderReportsAdmin();
   if(id==='usage') loadUsageAdmin();
+  if(id==='logs') initLogSection();
+}
+
+/* ══════════════════════════════════════════════
+   로그 뷰어
+══════════════════════════════════════════════ */
+const _LOG_KEY = '02b67a9618e9c4e91b09888bfbfddb2b';
+/* Vercel 토큰은 서버(/api/logs)에서 관리 — 클라이언트에 노출 안 함 */
+let _logUnlocked = false;
+let _appLogs = [];
+
+/* 앱 이벤트 로그 캡처 (console.warn/error 오버라이드) */
+(function captureConsoleLogs(){
+  const _origWarn = console.warn;
+  const _origError = console.error;
+  function pushLog(level, args){
+    const ts = new Date().toLocaleTimeString('ko-KR');
+    const msg = args.map(a=>typeof a==='object'?JSON.stringify(a).slice(0,200):String(a)).join(' ');
+    _appLogs.unshift('['+ts+'] ['+level+'] '+msg);
+    if(_appLogs.length > 200) _appLogs = _appLogs.slice(0,200);
+    const el = document.getElementById('app-log-body');
+    if(el && _logUnlocked) el.textContent = _appLogs.join('\n');
+  }
+  console.warn  = (...a)=>{ _origWarn.apply(console,a);  pushLog('WARN', a); };
+  console.error = (...a)=>{ _origError.apply(console,a); pushLog('ERR',  a); };
+})();
+
+function logGateLogin(){
+  const val = (document.getElementById('log-gate-input')?.value||'').trim();
+  if(val === _LOG_KEY){
+    _logUnlocked = true;
+    document.getElementById('log-gate').style.display = 'none';
+    document.getElementById('log-content').style.display = 'block';
+    loadVercelDeployments();
+    const el = document.getElementById('app-log-body');
+    if(el) el.textContent = _appLogs.length ? _appLogs.join('\n') : '로그 없음';
+  } else {
+    const err = document.getElementById('log-gate-err');
+    if(err){ err.style.display='block'; setTimeout(()=>err.style.display='none',2500); }
+  }
+}
+document.getElementById('log-gate-input')?.addEventListener('keydown', e=>{ if(e.key==='Enter') logGateLogin(); });
+
+function initLogSection(){
+  if(_logUnlocked){
+    document.getElementById('log-gate').style.display = 'none';
+    document.getElementById('log-content').style.display = 'block';
+    loadVercelDeployments();
+  }
+}
+
+async function loadVercelDeployments(){
+  const el = document.getElementById('vercel-deployments');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px;">⏳ 불러오는 중...</div>';
+  const adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
+  try{
+    const r = await fetch('/api/logs?type=deployments', {
+      headers: { Authorization: 'Bearer '+adminPw }
+    });
+    const d = await r.json();
+    const deps = d.deployments || [];
+    if(!deps.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px;">배포 기록 없음</div>'; return; }
+    const stateColor = {READY:'var(--grn)',ERROR:'var(--red)',BUILDING:'var(--ylw)',CANCELED:'var(--t3)',QUEUED:'var(--acc)'};
+    el.innerHTML = deps.map(dep=>{
+      const dt = new Date(dep.createdAt).toLocaleString('ko-KR');
+      const sc = stateColor[dep.state]||'var(--t2)';
+      const url = dep.url ? 'https://'+dep.url : '';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg3);margin-bottom:6px;cursor:pointer;" onclick="loadVercelLog('${dep.uid}','${dep.url||''}')">
+        <div style="width:10px;height:10px;border-radius:50%;background:${sc};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--t1);">${dep.state||'?'} <span style="font-size:10px;color:var(--t3);">${dep.uid.slice(0,12)}...</span></div>
+          <div style="font-size:10px;color:var(--t3);">${dt} ${dep.meta?.githubCommitMessage?'— '+dep.meta.githubCommitMessage.slice(0,60):''}</div>
+        </div>
+        ${url?`<a href="${url}" target="_blank" onclick="event.stopPropagation()" style="font-size:10px;color:var(--acc);text-decoration:none;">↗ 열기</a>`:''}
+        <span style="font-size:10px;color:var(--t3);">로그 보기 ▶</span>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px;">Vercel API 오류: ${e.message}</div>`;
+  }
+}
+
+async function loadVercelLog(depId, depUrl){
+  const card = document.getElementById('vercel-log-card');
+  const body = document.getElementById('vercel-log-body');
+  const title = document.getElementById('vercel-log-title');
+  if(!card||!body) return;
+  card.style.display = 'block';
+  body.textContent = '⏳ 로그 불러오는 중...';
+  if(title) title.textContent = depUrl || depId;
+  const adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
+  try{
+    const r = await fetch(`/api/logs?type=events&id=${encodeURIComponent(depId)}`, {
+      headers: { Authorization: 'Bearer '+adminPw }
+    });
+    const events = await r.json();
+    const lines = (Array.isArray(events)?events:[])
+      .filter(ev=>ev.type==='stdout'||ev.type==='stderr'||ev.type==='command'||ev.type==='build')
+      .map(ev=>{
+        const ts = ev.created ? new Date(ev.created).toLocaleTimeString('ko-KR') : '';
+        const txt = ev.payload?.text || ev.text || '';
+        return `[${ts}] ${txt}`;
+      }).join('\n');
+    body.textContent = lines || '(로그 없음)';
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  }catch(e){
+    body.textContent = 'Vercel 로그 API 오류: '+e.message;
+  }
 }
 
 // ── 데이터 로드 (localStorage에서) ──
@@ -1189,13 +1349,26 @@ function adminPlayTrack(url, title, btn, idx){
   const audio = wrap.querySelector('audio');
   if(!audio) return;
 
+  if(!url || !/^https?:\/\//i.test(url)){
+    adminToast('⚠️ 유효하지 않은 오디오 URL');
+    return;
+  }
   audio.src = url;
   wrap.style.display = 'block';
   btn.textContent = '⏸ 정지';
   _adminCurrentAudio = audio;
 
+  /* error 이벤트 먼저 등록 (DOMException Uncaught 방지) */
+  audio.addEventListener('error', ()=>{
+    adminToast('⚠️ 오디오 재생 불가');
+    btn.textContent = '▶ 재생';
+    wrap.style.display = 'none';
+    _adminCurrentAudio = null;
+    _adminCurrentIdx = -1;
+  }, {once:true});
+
   audio.play().catch(e => {
-    adminToast('⚠️ 재생 실패: ' + e.message);
+    if(e.name !== 'AbortError') adminToast('⚠️ 재생 실패: ' + (e.message||e.name));
     btn.textContent = '▶ 재생';
     wrap.style.display = 'none';
     _adminCurrentAudio = null;
@@ -1501,11 +1674,16 @@ async function deleteCommTrack(id){
 let _commAdminAudio = null;
 let _commAdminPlayingIdx = -1;
 function adminPlayComm(url, title, idx){
+  /* URL 유효성 검사 */
+  if(!url || !/^https?:\/\//i.test(url)){
+    adminToast('⚠️ 유효하지 않은 오디오 URL');
+    return;
+  }
   const btn = document.getElementById('aplay-btn-'+idx);
   /* 같은 트랙 클릭 → 토글 */
   if(_commAdminPlayingIdx === idx && _commAdminAudio){
     if(_commAdminAudio.paused){
-      _commAdminAudio.play();
+      _commAdminAudio.play().catch(()=>{});
       if(btn) btn.textContent = '⏸ 일시정지';
     } else {
       _commAdminAudio.pause();
@@ -1519,16 +1697,25 @@ function adminPlayComm(url, title, idx){
     const oldBtn = document.getElementById('aplay-btn-'+_commAdminPlayingIdx);
     if(oldBtn) oldBtn.textContent = '▶ 재생';
   }
-  const audio = document.getElementById('apl-comm-'+idx);
-  if(!audio){ adminToast('재생 불가: 오디오 없음'); return; }
+  /* 기존 inline audio 대신 새 Audio 객체 사용 (DOMException 방지) */
+  const audio = new Audio(url);
   _commAdminAudio = audio;
   _commAdminPlayingIdx = idx;
+  /* error 이벤트 핸들러 먼저 등록 */
+  audio.addEventListener('error', ()=>{
+    adminToast('⚠️ 오디오 재생 불가 (포맷 미지원 또는 URL 오류)');
+    if(btn) btn.textContent = '▶ 재생';
+    _commAdminAudio = null;
+    _commAdminPlayingIdx = -1;
+  });
   audio.play().then(()=>{
     if(btn) btn.textContent = '⏸ 일시정지';
     adminToast('▶ ' + title);
   }).catch(e=>{
-    adminToast('재생 오류: '+e.message);
+    if(e.name !== 'AbortError') adminToast('재생 오류: '+(e.message||e.name));
     if(btn) btn.textContent = '▶ 재생';
+    _commAdminAudio = null;
+    _commAdminPlayingIdx = -1;
   });
   audio.onended = () => {
     if(btn) btn.textContent = '▶ 재생';
