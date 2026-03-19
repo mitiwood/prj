@@ -3424,7 +3424,7 @@ async function _loadSbTracks(force=false){
   if(!force && _sbLoaded && (Date.now() - _sbLoadedAt) < _SB_CACHE_TTL) return;
   _sbLoading = true;
   try{
-    const r = await fetch('/api/tracks?public=true&limit=200');
+    const r = await fetch('/api/tracks?public=true&limit=500');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
