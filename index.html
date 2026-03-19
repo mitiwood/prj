@@ -895,6 +895,9 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-reaction-sm.disliked{color:var(--t3);opacity:.6;}
 .comm-play-sm{color:var(--acc3);font-size:13px;}
 .comm-play-sm:hover{color:var(--acc);}
+.comm-comment-cnt{font-size:10px;font-weight:700;color:var(--acc3);min-width:0;}
+.comm-comment-cnt:empty{display:none;}
+.comm-comment-cnt[data-n="0"]{display:none;}
 /* 공유 바텀시트 */
 .comm-share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
 .comm-share-box{width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 36px;border-top:1px solid rgba(255,255,255,.1);}
@@ -8096,7 +8099,7 @@ async function renderCommunity(force=false){
         <button class="comm-reaction-btn${hero.disliked?' disliked':''}" id="comm-hero-dislike" onclick="commHeroDislike()">
           💔 싫어요
         </button>
-        <button class="comm-reaction-btn" onclick="openCommentSheet('${esc(hero._sbId||'')}')">💬 댓글</button>
+        <button class="comm-reaction-btn" onclick="openCommentSheet('${esc(hero._sbId||'')}')">💬 댓글 <span class="comm-comment-cnt" data-cnt-id="${esc(hero._sbId||'')}"></span></button>
         <button class="comm-reaction-btn" onclick="commOpenDetail(0,true)">🎵 가사・정보</button>
       </div>
     </div>
@@ -8140,14 +8143,32 @@ async function renderCommunity(force=false){
           💔
         </button>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">
-          💬
+          💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span>
         </button>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
       </div>
     </div>`;
   }).join('');
+
+  /* 댓글 카운트 비동기 로드 */
+  _loadCommentCounts([hero._sbId, ...rest.map(t=>t._sbId)].filter(Boolean));
 }
 
+/* 댓글 카운트 배지 업데이트 */
+async function _loadCommentCounts(trackIds){
+  for(const tid of trackIds){
+    try{
+      const r=await fetch('/api/comments?track_id='+encodeURIComponent(tid));
+      const d=await r.json();
+      const cnt=(d.comments||[]).length;
+      const label=cnt>100?'N':cnt>0?String(cnt):'';
+      document.querySelectorAll(`.comm-comment-cnt[data-cnt-id="${tid}"]`).forEach(el=>{
+        el.textContent=label;
+        el.dataset.n=String(cnt);
+      });
+    }catch(e){}
+  }
+}
 
 /* 상세 패널 HTML 빌더 */
 function buildDetailPanel(id,t){
