@@ -7832,7 +7832,13 @@ async function renderCommunity(force=false){
         <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">
           ${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span>
         </button>
+        <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">
+          💔
+        </button>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.6);">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -8014,6 +8020,19 @@ function commLikeSb(sbId){
   const h=historyData.find(h=>h.id===sbId);
   if(h){h._commLiked=newLiked;h._commDisliked=false;h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));saveHistory();}
   toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
+  renderCommunity();
+}
+
+/* Supabase sbId로 싫어요 */
+function commDislikeSb(sbId){
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(!t)return;
+  const newDisliked=!t.disliked;
+  _sbReact(sbId,newDisliked?'dislike':'undislike');
+  t.disliked=newDisliked;t.dislikes=Math.max(0,(t.dislikes||0)+(newDisliked?1:-1));t.liked=false;
+  const h=historyData.find(h=>h.id===sbId);
+  if(h){h._commDisliked=newDisliked;h._commLiked=false;h._commDislikes=Math.max(0,(h._commDislikes||0)+(newDisliked?1:-1));saveHistory();}
+  toast(newDisliked?'💔 싫어요':'싫어요 취소','',1200);
   renderCommunity();
 }
 
