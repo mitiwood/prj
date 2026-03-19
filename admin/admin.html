@@ -1188,7 +1188,7 @@ async function adminFetch(url, options={}){
   return r;
 }
 
-function gateLogin(){
+async function gateLogin(){
   const inputPw=document.getElementById('gate-pw').value;
   const savedPw=localStorage.getItem(ADMIN_PW_KEY);
 
@@ -1207,15 +1207,17 @@ function gateLogin(){
   
   /* 매니저 로그인 (아이디:비밀번호 형식) */
   const parts=inputPw.split(':');
-  if(parts.length===2){
-    const mgr=tryManagerLogin(parts[0].trim(),parts[1].trim());
+  if(parts.length>=2){
+    const mgrId=parts[0].trim();
+    const mgrPw=parts.slice(1).join(':').trim();
+    const mgr=await tryManagerLogin(mgrId,mgrPw);
     if(mgr){
       document.getElementById('admin-gate').style.display='none';
       document.getElementById('admin-app').style.display='flex';
       currentAccount={role:mgr.role,name:mgr.name,id:mgr.id};
       sessionStorage.setItem(CURRENT_ACCOUNT_KEY,JSON.stringify(currentAccount));
       switchSec('dashboard');
-      setTimeout(()=>{initAccountSession();adminToast('✅ '+mgr.name+'님 로그인');},100);
+      setTimeout(()=>{initAccountSession();loadData();adminToast('✅ '+mgr.name+'님 로그인');},100);
       return;
     }
   }
