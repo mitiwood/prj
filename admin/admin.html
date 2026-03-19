@@ -855,6 +855,16 @@ tr:hover td{background:rgba(255,255,255,.02);}
           </table>
         </div>
 
+        <!-- 매니저 로그인 URL -->
+        <div class="chart-card" style="margin-bottom:16px;border:1px solid rgba(168,85,247,.3);">
+          <h4 style="margin-bottom:8px;">🔗 매니저 로그인 페이지</h4>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input class="settings-input" value="https://ai-music-studio-bice.vercel.app/admin/login.html" readonly style="flex:1;min-width:200px;font-size:11px;" onclick="this.select();document.execCommand('copy');adminToast('📋 URL 복사됨')">
+            <a href="login.html" target="_blank" class="btn btn-acc" style="font-size:12px;text-decoration:none;">열기 →</a>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:6px;">매니저에게 이 URL과 아이디/비밀번호를 전달하세요</div>
+        </div>
+
         <!-- 권한 레벨 설명 -->
         <div class="admin-table-wrap">
           <div class="admin-table-header"><h3>🔐 권한 레벨 안내</h3></div>
@@ -3240,10 +3250,32 @@ async function saveManager(){
     });
     const d = await r.json();
     if(d.success){
-      adminToast('✅ 매니저 '+(d.action==='updated'?'수정':'추가')+' 완료');
       document.getElementById('mgr-modal').style.display = 'none';
       await loadManagersFromServer();
       renderManagersSection();
+
+      if(d.action==='created' && email){
+        adminToast('✅ 매니저 추가 완료 — 이메일 발송 중...');
+        /* 이메일 알림 발송 */
+        try{
+          const nr = await adminFetch('/api/notify-manager', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ name, mgr_id:id, email, role, memo })
+          });
+          const nd = await nr.json();
+          if(nd.method==='resend') adminToast('✅ 매니저 추가 + 이메일 발송 완료!');
+          else if(nd.method==='manual'){
+            /* Resend 미설정 → mailto 열기 */
+            const loginUrl = 'https://ai-music-studio-bice.vercel.app/admin/login.html';
+            const mailBody = `안녕하세요 ${name}님,\n\nKMS 매니저 계정이 생성되었습니다.\n\n아이디: ${id}\n권한: ${role}\n\n로그인: ${loginUrl}\n비밀번호는 관리자에게 문의하세요.`;
+            const mailUrl = 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('[KMS] 매니저 계정 생성 안내')+'&body='+encodeURIComponent(mailBody);
+            window.open(mailUrl,'_blank');
+            adminToast('✅ 매니저 추가 완료 — 이메일 클라이언트가 열립니다');
+          }
+        }catch(e){ adminToast('✅ 매니저 추가 완료 (이메일 발송 실패: '+e.message+')'); }
+      } else {
+        adminToast('✅ 매니저 '+(d.action==='updated'?'수정':'추가')+' 완료');
+      }
     } else {
       adminToast('❌ '+(d.error||'저장 실패'));
     }

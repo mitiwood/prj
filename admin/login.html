@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMS Manager Login</title>
+<style>
+:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--card:#16161f;--card2:#1e1e2a;--border:rgba(255,255,255,.07);--acc:#a855f7;--acc2:#7c3aed;--t1:#f0f0f8;--t2:#b0b0c8;--t3:#666680;--red:#ff4560;--grn:#00dda0;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--t1);font-family:'Pretendard',-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-wrap{width:100%;max-width:400px;padding:20px;}
+.login-card{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;text-align:center;}
+.login-logo{font-size:36px;margin-bottom:12px;}
+.login-title{font-size:20px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.login-sub{font-size:12px;color:var(--t3);margin-bottom:28px;}
+.form-group{margin-bottom:14px;text-align:left;}
+.form-label{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;display:block;}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:14px;font-family:inherit;transition:border-color .2s;}
+.form-input:focus{outline:none;border-color:var(--acc);}
+.form-input::placeholder{color:var(--t3);}
+.login-btn{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:opacity .15s;}
+.login-btn:hover{opacity:.9;}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;}
+.login-error{font-size:12px;color:var(--red);margin-top:10px;display:none;text-align:center;}
+.login-success{display:none;text-align:center;padding:20px 0;}
+.login-success .icon{font-size:48px;margin-bottom:12px;}
+.login-success .msg{font-size:14px;font-weight:700;color:var(--grn);margin-bottom:6px;}
+.login-success .detail{font-size:12px;color:var(--t3);}
+.role-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px;}
+.login-footer{margin-top:20px;font-size:11px;color:var(--t3);text-align:center;}
+.login-footer a{color:var(--acc);text-decoration:none;}
+.login-footer a:hover{text-decoration:underline;}
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:11px;color:var(--t3);}
+.admin-link{display:block;width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;text-decoration:none;text-align:center;}
+.admin-link:hover{background:rgba(168,85,247,.1);color:var(--acc);border-color:rgba(168,85,247,.3);}
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <!-- 로그인 폼 -->
+    <div id="login-form">
+      <div class="login-logo">🛡️</div>
+      <div class="login-title">Manager Login</div>
+      <div class="login-sub">Kenny's Music Studio 매니저 전용 로그인</div>
+
+      <div class="form-group">
+        <label class="form-label">아이디</label>
+        <input class="form-input" id="mgr-login-id" type="text" placeholder="매니저 아이디 입력" autocomplete="username" autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <input class="form-input" id="mgr-login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
+      </div>
+
+      <button class="login-btn" id="login-btn" onclick="doLogin()">로그인</button>
+      <div class="login-error" id="login-error">아이디 또는 비밀번호가 올바르지 않습니다</div>
+
+      <div class="divider"><span>또는</span></div>
+      <a href="admin.html" class="admin-link">👑 관리자(Admin) 로그인 →</a>
+    </div>
+
+    <!-- 로그인 성공 -->
+    <div class="login-success" id="login-success">
+      <div class="icon">✅</div>
+      <div class="msg" id="success-name">로그인 성공!</div>
+      <div class="detail" id="success-role">매니저</div>
+      <div class="role-badge" id="success-badge" style="background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3);">매니저</div>
+      <div style="margin-top:20px;">
+        <button class="login-btn" onclick="goAdmin()">관리자 페이지로 이동 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-footer">
+    <p>관리자에게 매니저 계정을 요청하세요</p>
+    <p style="margin-top:4px;"><a href="/">← 앱으로 돌아가기</a></p>
+  </div>
+</div>
+
+<script>
+const MGR_ROLES = {
+  admin:   { label:'👑 관리자', color:'#ef4444' },
+  super:   { label:'🔧 슈퍼매니저', color:'#f59e0b' },
+  manager: { label:'📋 매니저', color:'#3b82f6' },
+  viewer:  { label:'👁 뷰어', color:'#10b981' }
+};
+
+document.getElementById('mgr-login-pw').addEventListener('keydown', e=>{
+  if(e.key==='Enter') doLogin();
+});
+document.getElementById('mgr-login-id').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('mgr-login-pw').focus();
+});
+
+async function doLogin(){
+  const id = document.getElementById('mgr-login-id').value.trim();
+  const pw = document.getElementById('mgr-login-pw').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+
+  if(!id || !pw){ err.textContent='아이디와 비밀번호를 입력하세요'; err.style.display='block'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+  err.style.display = 'none';
+
+  try{
+    const r = await fetch('/api/managers', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', mgr_id:id, pw_hash:btoa(pw) })
+    });
+    const d = await r.json();
+
+    if(r.ok && d.success && d.manager){
+      const mgr = d.manager;
+      const ri = MGR_ROLES[mgr.role] || MGR_ROLES.manager;
+
+      // 세션 저장
+      sessionStorage.setItem('kms_admin_account', JSON.stringify({
+        role: mgr.role, name: mgr.name, id: mgr.id
+      }));
+      sessionStorage.setItem('kms_admin_session', 'manager_session');
+      localStorage.setItem('kms_admin_auth', '1');
+
+      // 성공 화면
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('login-success').style.display = 'block';
+      document.getElementById('success-name').textContent = mgr.name + '님, 환영합니다!';
+      document.getElementById('success-role').textContent = ri.label + ' 권한으로 접속합니다';
+      const badge = document.getElementById('success-badge');
+      badge.textContent = ri.label;
+      badge.style.background = ri.color + '22';
+      badge.style.color = ri.color;
+      badge.style.borderColor = ri.color + '55';
+    } else {
+      err.textContent = d.error || '아이디 또는 비밀번호가 올바르지 않습니다';
+      err.style.display = 'block';
+    }
+  }catch(e){
+    err.textContent = '서버 연결 실패: ' + e.message;
+    err.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '로그인';
+}
+
+function goAdmin(){
+  location.href = 'admin.html';
+}
+</script>
+</body>
+</html>
