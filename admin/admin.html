@@ -1242,9 +1242,8 @@ function switchSec(id){
   if(id==='community')renderCommunityAdmin();
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
-  if(id==='managers') renderManagersSection();
+  if(id==='managers'){ loadManagersFromServer().then(()=>renderManagersSection()); }
   if(id==='reports') loadReports();
-  if(id==='managers') renderManagers();
   if(id==='reports') renderReportsAdmin();
   if(id==='usage') loadUsageAdmin();
   if(id==='logs') initLogSection();
@@ -2926,10 +2925,30 @@ function clearUsageLog(){
 }
 
 
-// ── 매니저 관리 ──
+// ── 매니저 관리 (서버 API 연동) ──
 const MGR_KEY = 'kms_managers';
-function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
-function saveManagers(list){ localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
+let _mgrCache = []; /* 서버에서 로드한 매니저 캐시 */
+
+function getManagers(){ return _mgrCache; }
+function saveManagers(list){ _mgrCache = list; localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
+
+/* 서버에서 매니저 목록 로드 */
+async function loadManagersFromServer(){
+  try{
+    const r = await adminFetch('/api/managers');
+    const d = await r.json();
+    if(Array.isArray(d.managers)){
+      _mgrCache = d.managers.map(m=>({
+        name:m.name, id:m.mgr_id, email:m.email||'', role:m.role||'manager',
+        memo:m.memo||'', active:m.active!==false, pwHash:'', _serverId:m.id,
+        lastAccess:m.lastAccess||0, createdAt:m.createdAt||Date.now()
+      }));
+      localStorage.setItem(MGR_KEY, JSON.stringify(_mgrCache));
+    }
+  }catch(e){ console.warn('[Mgr] 서버 로드 실패:', e.message);
+    try{ _mgrCache = JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ _mgrCache=[]; }
+  }
+}
 
 
 // ── 신고 관리 ──
@@ -3158,7 +3177,7 @@ function editManager(i){
   if(rb) rb.checked = true;
   document.getElementById('mgr-modal').style.display = 'flex';
 }
-function saveManager(){
+async function saveManager(){
   const name = document.getElementById('mgr-name').value.trim();
   const id   = document.getElementById('mgr-id').value.trim();
   const pw   = document.getElementById('mgr-pw').value;
@@ -3169,50 +3188,80 @@ function saveManager(){
   if(!name){ adminToast('⚠️ 이름을 입력하세요'); return; }
   if(!id)  { adminToast('⚠️ 아이디를 입력하세요'); return; }
   if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ adminToast('⚠️ 아이디: 영문/숫자/언더스코어 3~20자'); return; }
-  
-  const managers = getManagers();
-  
+
   if(_editingMgrIdx === -1){
-    /* 추가 모드 */
     if(!pw || pw.length < 8){ adminToast('⚠️ 비밀번호 8자 이상'); return; }
-    if(managers.find(m=>m.id===id)){ adminToast('⚠️ 이미 존재하는 아이디'); return; }
-    managers.push({
-      name, id, email,
-      pwHash: btoa(pw),
-      role, memo,
-      active: true,
-      createdAt: Date.now()
-    });
-    adminToast('✅ 매니저 추가 완료');
-  } else {
-    /* 편집 모드 */
-    const m = managers[_editingMgrIdx];
-    m.name = name;
-    m.email = email;
-    m.role = role;
-    m.memo = memo;
-    if(pw && pw.length >= 8) m.pwHash = btoa(pw);
-    else if(pw && pw.length > 0) { adminToast('⚠️ 비밀번호 8자 이상'); return; }
-    m.updatedAt = Date.now();
-    adminToast('✅ 매니저 정보 수정 완료');
+  } else if(pw && pw.length > 0 && pw.length < 8){
+    adminToast('⚠️ 비밀번호 8자 이상'); return;
   }
 
-  saveManagers(managers);
-  document.getElementById('mgr-modal').style.display = 'none';
-  renderManagersSection();
+  const body = { name, mgr_id: id, email, role, memo };
+  if(pw && pw.length >= 8) body.pw_hash = btoa(pw);
+  if(_editingMgrIdx >= 0){
+    const m = getManagers()[_editingMgrIdx];
+    if(m?._serverId) body.edit_id = m._serverId;
+  }
+
+  try{
+    const r = await adminFetch('/api/managers', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if(d.success){
+      adminToast('✅ 매니저 '+(d.action==='updated'?'수정':'추가')+' 완료');
+      document.getElementById('mgr-modal').style.display = 'none';
+      await loadManagersFromServer();
+      renderManagersSection();
+    } else {
+      adminToast('❌ '+(d.error||'저장 실패'));
+    }
+  }catch(e){ adminToast('❌ 오류: '+e.message); }
 }
-function toggleManagerActive(i){
-  const managers = getManagers();
-  if(!managers[i]) return;
-  managers[i].active = managers[i].active === false ? true : false;
-  saveManagers(managers);
-  renderManagersSection();
-  adminToast(managers[i].active ? '✅ 활성화됨' : '비활성화됨');
+async function toggleManagerActive(i){
+  const m = getManagers()[i];
+  if(!m) return;
+  const newActive = m.active === false;
+  try{
+    await adminFetch('/api/managers', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: m._serverId, active: newActive })
+    });
+    await loadManagersFromServer();
+    renderManagersSection();
+    adminToast(newActive ? '✅ 활성화됨' : '비활성화됨');
+  }catch(e){ adminToast('❌ '+e.message); }
 }
-function deleteManager(i){
+async function deleteManager(i){
   if(!confirm('이 매니저를 삭제할까요?')) return;
+  const m = getManagers()[i];
+  if(!m) return;
+  try{
+    await adminFetch('/api/managers?id='+(m._serverId||''), { method: 'DELETE' });
+    await loadManagersFromServer();
+    renderManagersSection();
+    adminToast('🗑 매니저 삭제됨');
+  }catch(e){ adminToast('❌ '+e.message); }
+}
+
+/* 매니저 로그인 (서버 검증) */
+async function tryManagerLogin(loginId, pw){
+  try{
+    const r = await fetch('/api/managers', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'login', mgr_id: loginId, pw_hash: btoa(pw) })
+    });
+    if(!r.ok) return null;
+    const d = await r.json();
+    if(d.success && d.manager) return d.manager;
+  }catch(e){ console.warn('[MgrLogin]', e.message); }
+  /* 폴백: localStorage */
   const managers = getManagers();
-  managers.splice(i,1);
+  return managers.find(m=>m.id===loginId && m.pwHash===btoa(pw) && m.active!==false) || null;
+}
   saveManagers(managers);
   renderManagersSection();
   adminToast('삭제됨');

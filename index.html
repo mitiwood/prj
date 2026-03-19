@@ -3345,7 +3345,7 @@ function switchTab(viewId){
   if(viewId==='settings-view')document.body.classList.add('tab-settings');
   window.scrollTo({top:0,behavior:'smooth'});
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view')try{renderCommunity();}catch(e){console.error(e);}
+  if(viewId==='community-view')try{renderCommunity(true);}catch(e){console.error(e);}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
@@ -3388,10 +3388,14 @@ let _sbMyTracks  = [];   /* 현재 로그인 사용자의 트랙 */
 let _sbLoaded    = false;
 let _sbMyLoaded  = false;
 let _sbLoading   = false;
+let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
+const _SB_CACHE_TTL = 30000; /* 30초 캐시 */
 
-/* 커뮤니티 공개 트랙 로드 */
+/* 커뮤니티 공개 트랙 로드 — 30초 캐시, 탭 전환 시 자동 리프레시 */
 async function _loadSbTracks(force=false){
-  if(_sbLoading || (_sbLoaded && !force)) return;
+  if(_sbLoading) return;
+  /* 캐시 만료 확인 */
+  if(!force && _sbLoaded && (Date.now() - _sbLoadedAt) < _SB_CACHE_TTL) return;
   _sbLoading = true;
   try{
     const r = await fetch('/api/tracks?public=true&limit=200');
@@ -3400,6 +3404,7 @@ async function _loadSbTracks(force=false){
     if(Array.isArray(d.tracks)){
       _sbTracks = d.tracks.map(_rowToTrack);
       _sbLoaded = true;
+      _sbLoadedAt = Date.now();
     }
   }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
   _sbLoading = false;

@@ -56,10 +56,26 @@ CREATE TABLE IF NOT EXISTS public.announcements (
   expires_at      TIMESTAMPTZ DEFAULT NULL
 );
 
--- 4. RLS 활성화
+-- 4. managers 테이블 (매니저 계정)
+CREATE TABLE IF NOT EXISTS public.managers (
+  id              BIGSERIAL   PRIMARY KEY,
+  name            TEXT        NOT NULL,
+  mgr_id          TEXT        NOT NULL UNIQUE,
+  pw_hash         TEXT        NOT NULL,
+  email           TEXT        DEFAULT '',
+  role            TEXT        DEFAULT 'manager',
+  memo            TEXT        DEFAULT '',
+  active          BOOLEAN     DEFAULT TRUE,
+  last_access     BIGINT      DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. RLS 활성화
 ALTER TABLE public.tracks        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.managers      ENABLE ROW LEVEL SECURITY;
 
 -- 5. 공개 읽기 정책 (anon 키)
 DROP POLICY IF EXISTS "tracks_public_read"  ON public.tracks;
@@ -78,6 +94,9 @@ CREATE POLICY "users_service_write"  ON public.users
   FOR ALL USING (auth.role() = 'service_role');
 DROP POLICY IF EXISTS "announcements_service_write" ON public.announcements;
 CREATE POLICY "announcements_service_write" ON public.announcements
+  FOR ALL USING (auth.role() = 'service_role');
+DROP POLICY IF EXISTS "managers_service_write" ON public.managers;
+CREATE POLICY "managers_service_write" ON public.managers
   FOR ALL USING (auth.role() = 'service_role');
 
 -- 6. 인덱스
