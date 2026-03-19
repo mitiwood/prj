@@ -9829,9 +9829,9 @@ function _cancelReply(){_commentReplyTo=null;const b=document.getElementById('_c
 async function _submitComment(){
   const input=document.getElementById('_comment_input');const content=(input?.value||'').trim();
   if(!content){toast('댓글을 입력해주세요','err');return;}
-  if(!currentUser){toast('로그인 후 댓글을 남길 수 있어요','err');openLoginSheet();return;}
+  const _cUser = currentUser || {name:'익명',avatar:'',provider:'guest'};
   input.value='';
-  try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:currentUser.name||'익명',author_avatar:currentUser.avatar||'',author_provider:currentUser.provider||'guest'})});
+  try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:_cUser.name||'익명',author_avatar:_cUser.avatar||'',author_provider:_cUser.provider||'guest'})});
   _cancelReply();await _loadComments();const list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;}catch(e){toast('댓글 전송 실패','err');}
 }
 async function _deleteMyComment(id){if(!confirm('이 댓글을 삭제할까요?'))return;try{await fetch('/api/comments?id='+id,{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();}catch(e){toast('삭제 실패','err');}}

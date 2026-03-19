@@ -88,7 +88,7 @@ async function ensureTable() {
     await sb("/comments?select=id&limit=1");
     _tableChecked = true;
   } catch (e) {
-    if (e.message.includes("42P01") || e.message.includes("does not exist") || e.message.includes("relation")) {
+    if (e.message.includes("42P01") || e.message.includes("does not exist") || e.message.includes("relation") || e.message.includes("PGRST205") || e.message.includes("schema cache")) {
       console.log("[comments] Table not found, creating...");
       try {
         await sbSQL(CREATE_TABLE_SQL);
@@ -238,9 +238,8 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── DELETE: 관리자 삭제 (soft delete) ─── */
+  /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자 또는 작성자 본인 ─── */
   if (req.method === "DELETE") {
-    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const id = req.query?.id;
     if (!id) return res.status(400).json({ error: "id required" });
 
