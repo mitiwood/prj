@@ -1987,6 +1987,11 @@ body.mp-on .view{padding-bottom:118px;}
 .ai-sheet-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:12px;color:#c4bfe0;cursor:pointer;transition:all .15s;}
 .ai-sheet-chip.on{background:rgba(124,58,237,.3);border-color:#7c3aed;color:#e9d5ff;}
 .ai-sheet-apply-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* 이미지 분석 결과 카드 */
+.img-a-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;}
+.img-a-label{font-size:10px;color:rgba(255,255,255,.4);margin-bottom:3px;}
+.img-a-val{font-size:13px;font-weight:700;color:#e2e0f0;text-transform:capitalize;}
+.img-a-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;text-transform:capitalize;}
 .ai-sheet-cancel-btn{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;margin-top:8px;}
 
 /* ── 입력 안내 바텀시트 ── */
@@ -9191,25 +9196,51 @@ async function aiImageToStyle(input){
   _imgOverlay.className = 'lyrics-gen-overlay';
   _imgOverlay.innerHTML = `<div class="lyrics-gen-box">
     <div class="lyrics-gen-icon">📸</div>
-    <div class="lyrics-gen-title">이미지 분석 중...</div>
-    <div class="lyrics-gen-sub">이미지의 분위기, 감정, 색감, 계절감을<br>음악 스타일로 변환하고 있어요</div>
-    <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" style="animation:lyricsGenBar 8s linear;"></div></div>
+    <div class="lyrics-gen-title">이미지 심층 분석 중...</div>
+    <div class="lyrics-gen-sub">색감, 분위기, 감정, 공간감, 시간대를<br>AI가 음악 프로덕션 요소로 변환합니다</div>
+    <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" style="animation:lyricsGenBar 12s linear;"></div></div>
   </div>`;
   document.body.appendChild(_imgOverlay);
 
   try{
+    /* 이미지 리사이즈 (max 1024px) — API 토큰 절약 + 속도 */
     const base64 = await new Promise((res,rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1024;
+        let w = img.width, h = img.height;
+        if(w > MAX || h > MAX){ const r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r); }
+        const cvs = document.createElement('canvas'); cvs.width=w; cvs.height=h;
+        cvs.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(cvs.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      };
+      img.onerror = rej;
+      img.src = URL.createObjectURL(file);
     });
-    const mediaType = file.type || 'image/jpeg';
-    const imgUrl = `data:${mediaType};base64,${base64}`;
+    const imgUrl = `data:image/jpeg;base64,${base64}`;
 
     const genreContext = $('genre-sub')?.value || $('genre-cat')?.value || '';
     const moodContext = $('mood')?.value || '';
-    const contextHint = [genreContext && `장르: ${genreContext}`, moodContext && `분위기: ${moodContext}`].filter(Boolean).join(', ');
+    const contextHint = [genreContext && `Selected genre: ${genreContext}`, moodContext && `Mood: ${moodContext}`].filter(Boolean).join('. ');
+
+    /* 심층 분석 프롬프트 — JSON 구조로 다차원 분석 */
+    const analysisPrompt = `You are an expert music producer and visual analyst. Analyze this image deeply and return a JSON object (ONLY valid JSON, no markdown) with these fields:
+
+{
+  "visual_summary": "1-sentence description of the image in Korean",
+  "emotion": { "primary": "english emotion word", "secondary": "english emotion word", "intensity": "low/medium/high" },
+  "color_mood": { "temperature": "warm/cool/neutral", "palette": "describe dominant colors in English", "brightness": "dark/medium/bright" },
+  "scene": { "time_of_day": "dawn/morning/afternoon/golden_hour/dusk/night", "season": "spring/summer/autumn/winter/none", "setting": "indoor/outdoor/urban/nature/abstract" },
+  "music_style_tags": ["8 specific English music production tags, each 2-5 words, optimized for Suno AI"],
+  "suggested_genre": "best matching music genre",
+  "suggested_bpm_range": "e.g. 70-90",
+  "suggested_key": "e.g. C minor",
+  "vocal_style": "e.g. breathy whisper, powerful belt",
+  "instruments": ["top 4 instruments that match the image mood"],
+  "production_style": "e.g. lo-fi bedroom, cinematic orchestral",
+  "song_title_idea": "creative Korean song title inspired by the image",
+  "lyrics_theme": "1-sentence Korean lyrics theme suggestion"
+}${contextHint ? '\n\nContext: '+contextHint : ''}`;
 
     const res = await fetch(KIE_CLAUDE_URL, {
       method: 'POST',
@@ -9219,9 +9250,7 @@ async function aiImageToStyle(input){
           role: 'user',
           content: [
             { type:'image_url', image_url:{ url: imgUrl } },
-            { type:'text', text: `이 이미지를 깊이 분석해서 Suno AI 음악 생성에 최적화된 영문 스타일 태그 8개를 쉼표로 구분해서만 답하세요.${contextHint ? ' 참고 정보: '+contextHint+'.' : ''}
-분석 관점: (1)이미지의 주요 감정/무드 (2)색감에서 느껴지는 온도감 (3)계절/시간대 느낌 (4)공간감/텍스처 (5)어울리는 악기/사운드 (6)장르 제안 (7)보컬 스타일 (8)프로덕션 기법.
-각 태그는 2~5단어의 구체적인 음악 프로덕션 용어로. 예: "melancholic piano ballad, warm golden hour reverb, soft falsetto vocal, nostalgic 90s synth, acoustic fingerpicking, lo-fi tape haze, cinematic string arrangement, ambient rain texture"` }
+            { type:'text', text: analysisPrompt }
           ]
         }],
         stream: false
@@ -9229,29 +9258,105 @@ async function aiImageToStyle(input){
     });
     _imgOverlay.remove();
     const data = await res.json();
-    const result = data?.choices?.[0]?.message?.content || '';
-    if(result){
-      const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,8);
-      if(chips.length){
-        showAiAssistSheet({
-          title: '📸 이미지 분위기 분석',
-          sub: '이미지에서 추출된 음악 스타일 — 원하는 것을 선택하세요 (복수 선택 가능)',
-          chips,
-          onApply: (val)=>{
-            const el = $('song-desc');
-            if(el) el.value = val;
-            _updateAiStyleApplied(val);
-            toast('✅ 이미지 분위기 적용됨!','ok',2000);
-          }
-        });
-      }
+    const rawText = data?.choices?.[0]?.message?.content || '';
+    if(!rawText){ toast('❌ 분석 결과가 비어있어요','err'); return; }
+
+    /* JSON 추출 (코드블록 포함 대응) */
+    let analysis;
+    try {
+      const jsonStr = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+      analysis = JSON.parse(jsonStr);
+    } catch {
+      /* JSON 파싱 실패 시 태그만 추출 (폴백) */
+      const chips = rawText.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s&&s.length>2&&s.length<60).slice(0,8);
+      if(chips.length){ showAiAssistSheet({ title:'📸 이미지 분석', sub:'스타일 태그를 선택하세요', chips, onApply:(val)=>{ const el=$('song-desc'); if(el)el.value=val; _updateAiStyleApplied(val); toast('✅ 적용됨!','ok'); } }); }
+      return;
     }
+
+    /* 고도화된 분석 결과 시트 */
+    _showImageAnalysisResult(analysis, imgUrl);
+
   }catch(e){
     _imgOverlay?.remove();
     toast('❌ 이미지 분석 실패: '+e.message, 'err', 4000);
   }finally{
     input.value = '';
   }
+}
+
+/* ── 이미지 분석 결과 고도화 시트 ── */
+function _showImageAnalysisResult(a, imgUrl){
+  const emo = a.emotion || {};
+  const color = a.color_mood || {};
+  const scene = a.scene || {};
+  const tags = a.music_style_tags || [];
+  const instruments = a.instruments || [];
+
+  const tempIcon = {'warm':'🔥','cool':'❄️','neutral':'🌤️'}[color.temperature]||'🎨';
+  const timeIcon = {'dawn':'🌅','morning':'☀️','afternoon':'🌤️','golden_hour':'🌇','dusk':'🌆','night':'🌙'}[scene.time_of_day]||'⏰';
+  const seasonIcon = {'spring':'🌸','summer':'☀️','autumn':'🍂','winter':'❄️'}[scene.season]||'';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ai-sheet-overlay';
+  overlay.innerHTML = `
+    <div class="ai-sheet-box" style="max-height:88vh;overflow-y:auto;padding-bottom:24px;">
+      <div class="ai-sheet-handle"></div>
+      <div class="ai-sheet-title">📸 이미지 심층 분석 결과</div>
+      ${a.visual_summary ? `<div style="font-size:13px;color:var(--t2);text-align:center;margin:4px 0 12px;line-height:1.5;">"${esc(a.visual_summary)}"</div>` : ''}
+
+      <!-- 분석 카드 그리드 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="img-a-card"><div class="img-a-label">감정</div><div class="img-a-val">${esc(emo.primary||'—')}${emo.secondary?' / '+esc(emo.secondary):''}</div><div class="img-a-sub">강도: ${emo.intensity||'medium'}</div></div>
+        <div class="img-a-card"><div class="img-a-label">${tempIcon} 색감</div><div class="img-a-val">${esc(color.temperature||'—')}</div><div class="img-a-sub">${esc(color.palette||'')} · ${color.brightness||''}</div></div>
+        <div class="img-a-card"><div class="img-a-label">${timeIcon} 시간/계절</div><div class="img-a-val">${esc(scene.time_of_day||'—')} ${seasonIcon}</div><div class="img-a-sub">${esc(scene.season||'')} · ${esc(scene.setting||'')}</div></div>
+        <div class="img-a-card"><div class="img-a-label">🎵 장르</div><div class="img-a-val">${esc(a.suggested_genre||'—')}</div><div class="img-a-sub">BPM ${esc(a.suggested_bpm_range||'—')} · ${esc(a.suggested_key||'')}</div></div>
+      </div>
+
+      <!-- 보컬/프로덕션 -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <div class="img-a-card" style="flex:1;"><div class="img-a-label">🎤 보컬</div><div class="img-a-val" style="font-size:12px;">${esc(a.vocal_style||'—')}</div></div>
+        <div class="img-a-card" style="flex:1;"><div class="img-a-label">🎛️ 프로덕션</div><div class="img-a-val" style="font-size:12px;">${esc(a.production_style||'—')}</div></div>
+      </div>
+
+      <!-- 악기 -->
+      ${instruments.length ? `<div style="margin-bottom:12px;"><div style="font-size:11px;color:var(--t3);margin-bottom:6px;">🎸 추천 악기</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${instruments.map(i=>`<span style="background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:4px 10px;font-size:11px;color:var(--acc3);">${esc(i)}</span>`).join('')}</div></div>` : ''}
+
+      <!-- 곡 제목/가사 테마 제안 -->
+      ${a.song_title_idea || a.lyrics_theme ? `<div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        ${a.song_title_idea ? `<div style="font-size:13px;font-weight:700;color:var(--acc3);margin-bottom:4px;">💡 "${esc(a.song_title_idea)}"</div>` : ''}
+        ${a.lyrics_theme ? `<div style="font-size:12px;color:var(--t2);">${esc(a.lyrics_theme)}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          ${a.song_title_idea ? `<button class="btn btn-acc" onclick="_imgApplyTitle('${esc(a.song_title_idea).replace(/'/g,"\\'")}')" style="font-size:11px;padding:4px 10px;">제목 적용</button>` : ''}
+          ${a.lyrics_theme ? `<button class="btn" onclick="_imgApplyLyricsTheme('${esc(a.lyrics_theme).replace(/'/g,"\\'")}')" style="font-size:11px;padding:4px 10px;">가사 테마 적용</button>` : ''}
+        </div>
+      </div>` : ''}
+
+      <!-- 스타일 태그 선택 -->
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">🎶 음악 스타일 태그 (선택 후 적용)</div>
+      <div class="ai-sheet-chips" id="_aichips">${tags.map((c,i)=>`<div class="ai-sheet-chip${i<4?' on':''}" data-val="${esc(c)}" onclick="this.classList.toggle('on')">${esc(c)}</div>`).join('')}</div>
+      <button class="ai-sheet-apply-btn" id="_aiapply">✅ 선택 스타일 적용</button>
+      <button class="ai-sheet-cancel-btn" onclick="this.closest('.ai-sheet-overlay').remove()">닫기</button>
+    </div>`;
+
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelector('#_aiapply').addEventListener('click', ()=>{
+    const selected = [...overlay.querySelectorAll('.ai-sheet-chip.on')].map(c=>c.dataset.val);
+    if(selected.length){
+      const el = $('song-desc');
+      if(el) el.value = selected.join(', ');
+      _updateAiStyleApplied(selected.join(', '));
+      toast('✅ 이미지 분석 스타일 적용됨!','ok',2000);
+    }
+    overlay.remove();
+  });
+  document.body.appendChild(overlay);
+}
+
+function _imgApplyTitle(t){
+  const el=$('song-title'); if(el){el.value=t; toast('✅ 제목 적용: '+t,'ok',1500);}
+}
+function _imgApplyLyricsTheme(t){
+  const el=$('lyrics-input'); if(el){el.value=(el.value?el.value+'\n\n':'')+t; toast('✅ 가사 테마 추가됨','ok',1500);}
 }
 
 /* ── AI 스타일 적용 태그 표시 헬퍼 ── */
