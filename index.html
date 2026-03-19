@@ -7279,15 +7279,14 @@ function _saveTrackToServer(track){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(payload),
   }).then(r=>r.json()).then(d=>{
+    console.log('[SaveTrack] response:', JSON.stringify(d));
     if(d.source==='supabase'){
-      /* Supabase 저장 성공 → 커뮤니티 캐시 갱신 */
       _sbLoaded=false;
-      /* 커뮤니티 탭이 현재 열려 있으면 즉시 새로고침 */
       if(document.getElementById('community-view')?.classList.contains('on')){
         renderCommunity(true);
       }
     }
-  }).catch(()=>{});
+  }).catch(e=>{ console.error('[SaveTrack] error:', e.message); });
 }
 
 /* ════════════════════════════════════
