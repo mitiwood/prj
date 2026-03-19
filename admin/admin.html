@@ -797,16 +797,31 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <!-- 발송 대상 -->
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">발송 대상</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                  <input type="radio" name="push-target" value="all" checked id="pt-all"> 전체 구독자
+                  <input type="radio" name="push-target" value="all" checked id="pt-all" onchange="toggleUserSelect()"> 전체 구독자
                 </label>
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                  <input type="radio" name="push-target" value="logged"> 로그인 사용자만
+                  <input type="radio" name="push-target" value="logged" onchange="toggleUserSelect()"> 로그인 사용자만
                 </label>
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                  <input type="radio" name="push-target" value="test"> 테스트 (나만)
+                  <input type="radio" name="push-target" value="select" onchange="toggleUserSelect()"> 특정 사용자 선택
                 </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                  <input type="radio" name="push-target" value="test" onchange="toggleUserSelect()"> 테스트 (나만)
+                </label>
+              </div>
+              <!-- 특정 사용자 선택 UI -->
+              <div id="push-user-select-wrap" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="font-size:12px;font-weight:700;color:var(--t2);">사용자 선택 <span id="push-selected-count" style="color:var(--acc);font-size:11px;">(0명 선택)</span></div>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn" onclick="pushSelectAll()" style="font-size:10px;padding:3px 8px;">전체 선택</button>
+                    <button class="btn" onclick="pushDeselectAll()" style="font-size:10px;padding:3px 8px;">전체 해제</button>
+                  </div>
+                </div>
+                <input class="table-search" id="push-user-search" placeholder="사용자 검색..." oninput="filterPushUsers()" style="width:100%;margin-bottom:8px;">
+                <div id="push-user-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
               </div>
             </div>
 
@@ -824,11 +839,18 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
         <!-- 발송 히스토리 -->
         <div class="admin-table-wrap">
-          <div class="admin-table-header"><h3>📋 발송 히스토리</h3></div>
-          <table><thead><tr><th>제목</th><th>내용</th><th>대상</th><th>발송일</th><th>성공/실패</th></tr></thead>
+          <div class="admin-table-header">
+            <h3>📋 발송 히스토리 <span id="push-hist-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+            <div style="display:flex;gap:6px;">
+              <input class="table-search" id="push-hist-search" placeholder="검색..." oninput="renderPushHistory()">
+              <button class="btn btn-red" onclick="clearPushHistory()" style="font-size:11px;padding:4px 10px;">🗑 전체 삭제</button>
+            </div>
+          </div>
+          <table><thead><tr><th style="width:30px;">No</th><th>제목</th><th>내용</th><th>대상</th><th>수신자</th><th>발송일</th><th>결과</th><th>액션</th></tr></thead>
           <tbody id="push-history-tbody">
-            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
           </tbody></table>
+          <div id="push-hist-paging" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;"></div>
         </div>
       </div>
 
@@ -2287,14 +2309,7 @@ function filterUsers(){
 }
 
 function sendPushToUser(name){
-  /* 특정 사용자에게 개별 알림 — 푸시탭으로 이동 후 이름 표시 */
-  switchSec('push');
-  const titleEl=document.getElementById('push-title');
-  const bodyEl=document.getElementById('push-body');
-  if(titleEl) titleEl.value="🎵 Kenny's Music Studio";
-  if(bodyEl)  bodyEl.value=name+'님, 새 소식이 있어요!';
-  updatePushPreview();
-  adminToast('📝 '+name+'님 대상 알림을 작성해주세요');
+  sendPushToUserDirect(name);
 }
 
 function banUser(name){
@@ -2533,22 +2548,104 @@ function getPushHistory(){
   try{ return JSON.parse(localStorage.getItem(PUSH_HISTORY_KEY)||'[]'); }catch{ return []; }
 }
 
+let _pushHistPage = 0;
+const _PUSH_HIST_PER = 10;
+
 function renderPushHistory(){
   const hist = getPushHistory();
   const tbody = document.getElementById('push-history-tbody');
+  const countEl = document.getElementById('push-hist-count');
+  const pagingEl = document.getElementById('push-hist-paging');
   if(!tbody) return;
-  if(!hist.length){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>';
+
+  /* 검색 필터 */
+  const q = (document.getElementById('push-hist-search')?.value||'').toLowerCase();
+  const filtered = q ? hist.filter(h=>(h.title+h.body+(h.recipients||[]).join(',')).toLowerCase().includes(q)) : hist;
+
+  if(countEl) countEl.textContent = `(총 ${filtered.length}건)`;
+
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>';
+    if(pagingEl) pagingEl.innerHTML = '';
     return;
   }
-  tbody.innerHTML = hist.slice(0,20).map(h=>`
-    <tr>
+
+  /* 페이징 */
+  const totalPages = Math.ceil(filtered.length / _PUSH_HIST_PER);
+  if(_pushHistPage >= totalPages) _pushHistPage = totalPages - 1;
+  const start = _pushHistPage * _PUSH_HIST_PER;
+  const page = filtered.slice(start, start + _PUSH_HIST_PER);
+
+  const targetLabel = t => ({all:'전체',logged:'로그인',select:'지정',test:'테스트'}[t]||t);
+  const targetBadge = t => t==='select'?'badge-ylw':t==='test'?'badge-red':'badge-acc';
+
+  tbody.innerHTML = page.map((h,i)=>{
+    const no = filtered.length - start - i;
+    const recip = h.recipients && h.recipients.length ? h.recipients.join(', ') : '-';
+    const elapsed = _timeAgo(h.sentAt);
+    return `<tr>
+      <td style="color:var(--t3);font-size:11px;">${no}</td>
       <td style="font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.title)}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2);">${esc(h.body)}</td>
-      <td><span class="badge badge-acc">${h.target==='all'?'전체':h.target==='logged'?'로그인':'테스트'}</span></td>
-      <td style="font-size:11px;color:var(--t3);">${new Date(h.sentAt).toLocaleString('ko-KR')}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2);">${esc(h.body)}</td>
+      <td><span class="badge ${targetBadge(h.target)}">${targetLabel(h.target)}</span></td>
+      <td style="font-size:11px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(recip)}">${h.target==='select'?esc(recip):'-'}</td>
+      <td style="font-size:11px;color:var(--t3);" title="${new Date(h.sentAt).toLocaleString('ko-KR')}">${elapsed}</td>
       <td><span class="badge ${h.sent>0?'badge-grn':'badge-red'}">${h.sent||0}/${h.total||0}</span></td>
-    </tr>`).join('');
+      <td class="table-action-row">
+        <button class="btn" onclick="resendPush(${start+i})" style="font-size:10px;padding:3px 8px;" title="재발송">🔁</button>
+        <button class="btn btn-red" onclick="deletePushHist(${start+i})" style="font-size:10px;padding:3px 8px;" title="삭제">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  /* 페이징 버튼 */
+  if(pagingEl && totalPages > 1){
+    let pg = '';
+    pg += `<button class="btn" onclick="_pushHistPage=0;renderPushHistory()" style="font-size:10px;padding:3px 6px;" ${_pushHistPage===0?'disabled':''}>&laquo;</button>`;
+    pg += `<button class="btn" onclick="_pushHistPage--;renderPushHistory()" style="font-size:10px;padding:3px 6px;" ${_pushHistPage===0?'disabled':''}>&lsaquo;</button>`;
+    pg += `<span style="font-size:11px;color:var(--t3);">${_pushHistPage+1} / ${totalPages}</span>`;
+    pg += `<button class="btn" onclick="_pushHistPage++;renderPushHistory()" style="font-size:10px;padding:3px 6px;" ${_pushHistPage>=totalPages-1?'disabled':''}>&rsaquo;</button>`;
+    pg += `<button class="btn" onclick="_pushHistPage=${totalPages-1};renderPushHistory()" style="font-size:10px;padding:3px 6px;" ${_pushHistPage>=totalPages-1?'disabled':''}>&raquo;</button>`;
+    pagingEl.innerHTML = pg;
+  } else if(pagingEl) pagingEl.innerHTML = '';
+}
+
+function _timeAgo(ts){
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return '방금 전';
+  if(s<3600) return Math.floor(s/60)+'분 전';
+  if(s<86400) return Math.floor(s/3600)+'시간 전';
+  if(s<604800) return Math.floor(s/86400)+'일 전';
+  return new Date(ts).toLocaleDateString('ko-KR');
+}
+
+function resendPush(idx){
+  const hist=getPushHistory();
+  const h=hist[idx];
+  if(!h) return;
+  document.getElementById('push-title').value=h.title||'';
+  document.getElementById('push-body').value=h.body||'';
+  document.getElementById('push-url').value=h.url||ADMIN_APP_URL;
+  updatePushPreview();
+  adminToast('📝 이전 발송 내용이 복원됐습니다. 수정 후 발송하세요.');
+  window.scrollTo({top:document.getElementById('push-title').offsetTop-100,behavior:'smooth'});
+}
+
+function deletePushHist(idx){
+  if(!confirm('이 발송 기록을 삭제할까요?'))return;
+  const hist=getPushHistory();
+  hist.splice(idx,1);
+  localStorage.setItem(PUSH_HISTORY_KEY,JSON.stringify(hist));
+  renderPushHistory();loadPushStats();
+  adminToast('🗑 삭제됨');
+}
+
+function clearPushHistory(){
+  if(!confirm('전체 발송 히스토리를 삭제할까요?'))return;
+  localStorage.removeItem(PUSH_HISTORY_KEY);
+  _pushHistPage=0;
+  renderPushHistory();loadPushStats();
+  adminToast('🗑 전체 히스토리 삭제됨');
 }
 
 async function checkVapid(){
@@ -2573,9 +2670,91 @@ async function checkVapid(){
 function getLoginUsersForPush(target){
   const all = getLoginUsers();
   if(target === 'all') return all;
-  if(target === 'logged') return all; // 모두 로그인 사용자
+  if(target === 'logged') return all;
+  if(target === 'select') return all.filter(u => _pushSelectedUsers.has(u.name||u.email||u.id));
   if(target === 'mobile') return all.filter(u => u.ua && /iPhone|iPad|Android|Mobile/i.test(u.ua));
   return all;
+}
+
+/* ── 특정 사용자 선택 기능 ── */
+let _pushSelectedUsers = new Set();
+
+function toggleUserSelect(){
+  const target = document.querySelector('input[name="push-target"]:checked')?.value;
+  const wrap = document.getElementById('push-user-select-wrap');
+  if(!wrap) return;
+  if(target === 'select'){
+    wrap.style.display = 'block';
+    renderPushUserList();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function renderPushUserList(){
+  const list = document.getElementById('push-user-list');
+  if(!list) return;
+  const users = getLoginUsers();
+  if(!users.length){
+    list.innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:12px;">로그인 사용자가 없습니다</div>';
+    return;
+  }
+  const q = (document.getElementById('push-user-search')?.value||'').toLowerCase();
+  const filtered = q ? users.filter(u=>(u.name||u.email||'').toLowerCase().includes(q)) : users;
+  list.innerHTML = filtered.map(u => {
+    const key = u.name||u.email||u.id;
+    const checked = _pushSelectedUsers.has(key) ? 'checked' : '';
+    const device = u.ua && /iPhone|iPad|Android|Mobile/i.test(u.ua) ? '📱' : '💻';
+    const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ko-KR') : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px;background:var(--bg2);transition:background .1s;" onmouseover="this.style.background='rgba(168,85,247,.08)'" onmouseout="this.style.background='var(--bg2)'">
+      <input type="checkbox" ${checked} onchange="togglePushUser('${esc(key)}',this.checked)" style="accent-color:var(--acc);">
+      <span>${device}</span>
+      <span style="font-weight:600;color:var(--t1);flex:1;">${esc(u.name||u.email||'익명')}</span>
+      <span style="font-size:10px;color:var(--t3);">${lastLogin}</span>
+    </label>`;
+  }).join('');
+  updateSelectedCount();
+}
+
+function togglePushUser(key, checked){
+  if(checked) _pushSelectedUsers.add(key);
+  else _pushSelectedUsers.delete(key);
+  updateSelectedCount();
+}
+
+function pushSelectAll(){
+  const users = getLoginUsers();
+  users.forEach(u => _pushSelectedUsers.add(u.name||u.email||u.id));
+  renderPushUserList();
+}
+
+function pushDeselectAll(){
+  _pushSelectedUsers.clear();
+  renderPushUserList();
+}
+
+function filterPushUsers(){
+  renderPushUserList();
+}
+
+function updateSelectedCount(){
+  const el = document.getElementById('push-selected-count');
+  if(el) el.textContent = `(${_pushSelectedUsers.size}명 선택)`;
+}
+
+/* 사용자 상세 모달에서 알림 보내기 — 해당 사용자 자동 선택 */
+function sendPushToUserDirect(name){
+  switchSec('push');
+  _pushSelectedUsers.clear();
+  _pushSelectedUsers.add(name);
+  document.querySelector('input[name="push-target"][value="select"]').checked = true;
+  toggleUserSelect();
+  const titleEl=document.getElementById('push-title');
+  const bodyEl=document.getElementById('push-body');
+  if(titleEl) titleEl.value="🎵 Kenny's Music Studio";
+  if(bodyEl) bodyEl.value=name+'님, 새 소식이 있어요!';
+  updatePushPreview();
+  adminToast('📝 '+name+'님이 선택됐습니다. 내용 작성 후 발송하세요.');
 }
 
 async function sendPush(){
@@ -2589,6 +2768,7 @@ async function sendPush(){
   if(!title){ adminToast('⚠️ 제목을 입력하세요'); return; }
   if(!body){  adminToast('⚠️ 내용을 입력하세요'); return; }
   if(body.length > 120){ adminToast('⚠️ 내용이 120자를 초과합니다'); return; }
+  if(target === 'select' && _pushSelectedUsers.size === 0){ adminToast('⚠️ 발송할 사용자를 선택하세요'); return; }
 
   const subs = getPushSubscriptions();
   const loginUsers = getLoginUsersForPush(target);
@@ -2654,10 +2834,11 @@ async function sendPush(){
   }
 
   /* 히스토리 저장 */
+  const recipients = target === 'select' ? [..._pushSelectedUsers] : loginUsers.map(u=>u.name||u.email||'익명');
   const hist = getPushHistory();
   hist.unshift({ title, body, url, target, sentAt: Date.now(), sent, failed, total,
-    loginCount: loginUsers.length, subCount: subs.length });
-  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,50)));
+    loginCount: loginUsers.length, subCount: subs.length, recipients });
+  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,100)));
 
   if(result){
     if(sent > 0){
