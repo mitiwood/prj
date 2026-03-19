@@ -883,6 +883,21 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-reaction-sm{display:flex;align-items:center;gap:3px;padding:5px 8px;border-radius:16px;border:1px solid var(--border);background:var(--bg);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;}
 .comm-reaction-sm:hover{border-color:var(--acc3);color:var(--acc3);}
 .comm-reaction-sm.liked{color:#ff6482;border-color:rgba(255,100,130,.3);}
+.comm-play-sm{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--acc3);font-size:12px;min-width:32px;justify-content:center;}
+.comm-play-sm:hover{background:rgba(124,58,237,.3);}
+/* 공유 바텀시트 */
+.comm-share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
+.comm-share-box{width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 36px;border-top:1px solid rgba(255,255,255,.1);}
+.comm-share-title{font-size:16px;font-weight:800;color:#f1f0f5;text-align:center;margin-bottom:4px;}
+.comm-share-sub{font-size:12px;color:#a09ab8;text-align:center;margin-bottom:16px;}
+.comm-share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.comm-share-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:all .15s;}
+.comm-share-item:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);}
+.comm-share-icon{font-size:24px;}
+.comm-share-label{font-size:10px;color:var(--t3);font-weight:600;}
+.comm-share-url{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:12px;}
+.comm-share-url input{flex:1;background:none;border:none;color:#f1f0f5;font-size:12px;font-family:inherit;outline:none;}
+.comm-share-url button{flex-shrink:0;padding:6px 14px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
 .settings-banner{
   background:linear-gradient(135deg,#1a0537,#3d1a5a);
   border-radius:var(--r);padding:20px;margin-bottom:16px;
@@ -7809,13 +7824,13 @@ async function renderCommunity(force=false){
         </div>
       </div>
       <div class="comm-list-actions">
+        <button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">
+          ▶
+        </button>
         <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">
           ${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span>
         </button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSb('${sid}')" title="공유">↗</button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.6);">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
       </div>
     </div>`;
   }).join('');
@@ -8002,19 +8017,82 @@ function commLikeSb(sbId){
 
 /* Supabase sbId로 공유 */
 function commShareSb(sbId){
+  commShareSheet(sbId);
+}
+function commShareSheet(sbId){
   const t=_sbTracks.find(x=>x._sbId===sbId);
   if(!t)return;
   const title=t.title||'나의 노래';
   const audioUrl=t.audioUrl||'';
   const imgUrl=t.img||'';
-  const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  const shareText='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요 🎸';
   const params=new URLSearchParams({t:title});
   if(audioUrl)params.set('play',audioUrl);
   if(imgUrl)params.set('img',imgUrl);
-  const url=window.location.origin+'/api/share?'+params.toString();
-  _updateOgTags(title,imgUrl,url);
-  if(navigator.share){navigator.share({title,text,url}).catch(()=>{});}
-  else{navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500));}
+  const shareUrl=window.location.origin+'/api/share?'+params.toString();
+  _updateOgTags(title,imgUrl,shareUrl);
+
+  const overlay=document.createElement('div');
+  overlay.className='comm-share-overlay';
+  overlay.innerHTML=`
+    <div class="comm-share-box">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 14px;"></div>
+      <div class="comm-share-title">🔗 공유하기</div>
+      <div class="comm-share-sub">"${esc(title)}"</div>
+      <div class="comm-share-grid">
+        <div class="comm-share-item" id="_sh_kakao"><div class="comm-share-icon">💬</div><div class="comm-share-label">카카오톡</div></div>
+        <div class="comm-share-item" id="_sh_x"><div class="comm-share-icon">𝕏</div><div class="comm-share-label">X (트위터)</div></div>
+        <div class="comm-share-item" id="_sh_fb"><div class="comm-share-icon">📘</div><div class="comm-share-label">페이스북</div></div>
+        <div class="comm-share-item" id="_sh_native"><div class="comm-share-icon">📲</div><div class="comm-share-label">더보기</div></div>
+      </div>
+      <div class="comm-share-url">
+        <input type="text" id="_sh_url" value="${esc(shareUrl)}" readonly>
+        <button id="_sh_copy">복사</button>
+      </div>
+      <button style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;" id="_sh_close">닫기</button>
+    </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+
+  /* 카카오톡 */
+  overlay.querySelector('#_sh_kakao').onclick=()=>{
+    if(window.Kakao?.Share){
+      try{
+        Kakao.Share.sendDefault({objectType:'feed',content:{title,description:shareText.split('\\n')[0],imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
+      }catch(e){window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank');}
+    } else {
+      window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank');
+    }
+    overlay.remove();
+  };
+  /* X (Twitter) */
+  overlay.querySelector('#_sh_x').onclick=()=>{
+    window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText)+'&url='+encodeURIComponent(shareUrl),'_blank');
+    overlay.remove();
+  };
+  /* 페이스북 */
+  overlay.querySelector('#_sh_fb').onclick=()=>{
+    window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(shareUrl),'_blank');
+    overlay.remove();
+  };
+  /* 네이티브 공유 (Web Share API) */
+  overlay.querySelector('#_sh_native').onclick=()=>{
+    if(navigator.share){
+      navigator.share({title,text:shareText,url:shareUrl}).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(()=>toast('🔗 링크 복사됨!','ok'));
+    }
+    overlay.remove();
+  };
+  /* 복사 */
+  overlay.querySelector('#_sh_copy').onclick=()=>{
+    navigator.clipboard.writeText(shareUrl).then(()=>{
+      overlay.querySelector('#_sh_copy').textContent='✅ 복사됨';
+      setTimeout(()=>overlay.remove(),800);
+      toast('🔗 링크 복사됨!','ok',1500);
+    });
+  };
+  overlay.querySelector('#_sh_close').onclick=()=>overlay.remove();
 }
 
 /* Supabase sbId로 삭제 (로컬에서만 제거) */
