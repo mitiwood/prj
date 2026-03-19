@@ -3236,11 +3236,11 @@ body.mp-on .view{padding-bottom:118px;}
         </div>
       </div>
       <div class="fp-controls">
-        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡" style="display:none;" id="fp-prev-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;">10</span></button>
         <button class="fp-play-btn" id="fp-play-btn"><svg id="fp-play-icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;">10</span></button>
-        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡" style="display:none;" id="fp-next-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
       </div>
       <!-- 볼륨 UI 제거 -->
       <div class="fp-viz" id="fp-viz">
@@ -6973,6 +6973,9 @@ function showMiniPlayer(idx){
   if(!h) return;
   fpCurrentIdx = idx;
 
+  /* 커뮤니티 리스트 포커스 연동 */
+  _syncCommListPlaying(h);
+
   /* ── 모든 오디오 소스 정지 후 기존 오디오 완전 해제 ── */
   stopAllAudio();
   _destroyFpAudio();
@@ -7693,7 +7696,8 @@ function _doOpenFullPlayer(idx){
   });
   audio.addEventListener('ended',()=>{
     if(genId!==_fpAudioGenId)return;
-    _setPlayIcon($('fp-play-btn'),false,true);fpStopViz();fpPlayNext();
+    _setPlayIcon($('fp-play-btn'),false,true);fpStopViz();
+    /* TODO: 자동 다음곡 비활성화 — 인덱스 동기화 해결 후 복원 */
   });
   audio.addEventListener('error',(ev)=>{
     if(genId!==_fpAudioGenId)return;
@@ -7794,25 +7798,8 @@ function fpPlayPrev(){
   _doOpenFullPlayer(fpCurrentIdx-1);
 }
 
-/* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
-(function(){
-  const el=$('fullplayer');
-  let _fpTX=0, _fpTY=0, _fpTTime=0;
-  el.addEventListener('touchstart',function(e){
-    _fpTX=e.touches[0].clientX;
-    _fpTY=e.touches[0].clientY;
-    _fpTTime=Date.now();
-  },{passive:true});
-  el.addEventListener('touchend',function(e){
-    const dx=_fpTX-e.changedTouches[0].clientX;
-    const dy=_fpTY-e.changedTouches[0].clientY;
-    const dt=Date.now()-_fpTTime;
-    if(dt>400||Math.abs(dx)<70)return; /* 너무 느리거나 짧은 스와이프 무시 */
-    if(Math.abs(dy)>Math.abs(dx))return; /* 세로 스크롤 우선 */
-    if(dx>0) fpPlayNext();   /* ← 좌 스와이프 → 다음곡 */
-    else fpPlayPrev();        /* → 우 스와이프 → 이전곡 */
-  },{passive:true});
-})();
+/* 풀플레이어 스와이프 제스처 — 히든 처리 (이전/다음 곡 비활성화) */
+/* TODO: historyData 인덱스 동기화 문제 해결 후 복원 */
 
 function fpStartViz(){
   clearInterval(fpVizTimer);
