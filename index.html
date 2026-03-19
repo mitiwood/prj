@@ -4840,8 +4840,8 @@ $('lyrics-btn').addEventListener('click',async()=>{
           promptEl.style.display='';
           promptEl.classList.add('flash');
           setTimeout(()=>promptEl.classList.remove('flash'),2000);
-          renderLyricsPreview(text);
-          $('lyrics-preview-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+          renderLyricsPreview(text, true);
+          promptEl.scrollIntoView({behavior:'smooth',block:'center'});
           toast('✅ 가사 생성 완료! 가사를 확인 후 음악 생성 버튼을 눌러주세요 🎵','ok',3500);
           return;
         }
@@ -4855,7 +4855,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
 
 
 /* ── 커스텀 모드 가사 미리보기 ── */
-function renderLyricsPreview(text){
+function renderLyricsPreview(text, keepTextareaVisible){
   const wrap=$('lyrics-preview-wrap');
   const body=$('lp-body');
   if(!wrap||!body)return;
@@ -4873,9 +4873,14 @@ function renderLyricsPreview(text){
   });
   body.innerHTML=html;
   wrap.classList.add('on');
-  /* textarea 숨기고 preview 표시 */
-  $('prompt').style.display='none';
-  $('lp-edit-btn').textContent='✏️ 직접 편집';
+  /* keepTextareaVisible=true면 textarea를 숨기지 않음 (AI 작사 후 가사 확인용) */
+  if(!keepTextareaVisible){
+    $('prompt').style.display='none';
+    $('lp-edit-btn').textContent='✏️ 직접 편집';
+  } else {
+    $('prompt').style.display='';
+    $('lp-edit-btn').textContent='👁 미리보기';
+  }
 }
 
 function lpToggleEdit(){
@@ -4934,8 +4939,10 @@ async function _autoLyricsAndGenerate(){
         const text=d.response?.text||d.text||'';
         if(text){
           clearInterval(ti);
-          $('prompt').value=text;
-          renderLyricsPreview(text);
+          const _p=$('prompt');
+          _p.value=text;
+          _p.style.display='';
+          renderLyricsPreview(text, true);
           /* 제목 자동 생성 */
           if(!$('song-title').value.trim()){
             const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
@@ -8680,7 +8687,10 @@ async function streamLyricsGenerate(){
 
   const textarea = $('prompt');
   textarea.value = '';
+  textarea.style.display = '';
   textarea.placeholder = '⚡ AI 가사 생성 중...';
+  /* 미리보기 숨기고 textarea 보이게 */
+  $('lyrics-preview-wrap')?.classList.remove('on');
 
   _lyricsGenCancelled = false;
   showLyricsGenPopup('stream');
@@ -8698,8 +8708,12 @@ async function streamLyricsGenerate(){
     });
     if(_lyricsGenCancelled) return;
     hideLyricsGenPopup();
-    /* 가사 미리보기 업데이트 */
-    try{ renderLyricsPreview(textarea.value); }catch(e){}
+    /* 가사를 입력폼(textarea)에 보이게 유지 + 미리보기도 표시 */
+    textarea.style.display='';
+    try{ renderLyricsPreview(textarea.value, true); }catch(e){}
+    textarea.classList.add('flash');
+    setTimeout(()=>textarea.classList.remove('flash'),2000);
+    textarea.scrollIntoView({behavior:'smooth',block:'center'});
     /* 완료 팝업 살짝 보여주기 */
     toast('✅ 가사 생성 완료! 음악 생성 버튼을 눌러주세요 🎵', 'ok', 3000);
     trackUsage('lyrics', {mode:'stream-claude'});
