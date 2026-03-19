@@ -9854,18 +9854,30 @@ async function aiImageToStyle(input){
   if(!file) return;
   if(file.size > 5 * 1024 * 1024){ toast('5MB 이하 이미지만 가능합니다','err'); return; }
 
-  /* 이미지 분석 팝업 표시 */
+  /* 이미지 분석 팝업 표시 (백분율 프로그레스) */
   const _imgOverlay = document.createElement('div');
   _imgOverlay.className = 'lyrics-gen-overlay';
   _imgOverlay.innerHTML = `<div class="lyrics-gen-box">
     <div class="lyrics-gen-icon">📸</div>
-    <div class="lyrics-gen-title">이미지 심층 분석 중...</div>
-    <div class="lyrics-gen-sub">색감, 분위기, 감정, 공간감, 시간대를<br>AI가 음악 프로덕션 요소로 변환합니다</div>
-    <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" style="animation:lyricsGenBar 12s linear;"></div></div>
+    <div class="lyrics-gen-title" id="_img-progress-title">이미지 준비 중...</div>
+    <div class="lyrics-gen-sub" id="_img-progress-sub">이미지를 최적화하고 있어요</div>
+    <div style="margin:12px 0 4px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:11px;color:var(--t3);" id="_img-progress-step">1/4 단계</span>
+      <span style="font-size:13px;font-weight:800;color:var(--acc3);" id="_img-progress-pct">0%</span>
+    </div>
+    <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" id="_img-progress-bar" style="width:0%;transition:width .5s;"></div></div>
   </div>`;
   document.body.appendChild(_imgOverlay);
+  const _imgP = (pct, step, title, sub) => {
+    const el = _imgOverlay.querySelector('#_img-progress-pct'); if(el) el.textContent = pct + '%';
+    const bar = _imgOverlay.querySelector('#_img-progress-bar'); if(bar) bar.style.width = pct + '%';
+    const st = _imgOverlay.querySelector('#_img-progress-step'); if(st) st.textContent = step;
+    const tt = _imgOverlay.querySelector('#_img-progress-title'); if(tt) tt.textContent = title;
+    const sb = _imgOverlay.querySelector('#_img-progress-sub'); if(sb) sb.innerHTML = sub;
+  };
 
   try{
+    _imgP(10, '1/4 단계', '이미지 최적화 중...', '해상도를 조정하고 있어요');
     /* 이미지 리사이즈 (max 1024px) — API 토큰 절약 + 속도 */
     const base64 = await new Promise((res,rej) => {
       const img = new Image();
@@ -9882,6 +9894,7 @@ async function aiImageToStyle(input){
     });
     const imgUrl = `data:image/jpeg;base64,${base64}`;
 
+    _imgP(30, '2/4 단계', 'AI 분석 요청 중...', '색감, 분위기, 감정을 분석합니다');
     const genreContext = $('genre-sub')?.value || $('genre-cat')?.value || '';
     const moodContext = $('mood')?.value || '';
     const contextHint = [genreContext && `Selected genre: ${genreContext}`, moodContext && `Mood: ${moodContext}`].filter(Boolean).join('. ');
@@ -9905,6 +9918,7 @@ async function aiImageToStyle(input){
   "lyrics_theme": "1-sentence Korean lyrics theme suggestion"
 }${contextHint ? '\n\nContext: '+contextHint : ''}`;
 
+    _imgP(50, '3/4 단계', 'AI가 분석 중...', '음악 프로덕션 요소로 변환 중이에요');
     const res = await fetch(KIE_CLAUDE_URL, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
@@ -9919,8 +9933,10 @@ async function aiImageToStyle(input){
         stream: false
       })
     });
-    _imgOverlay.remove();
+    _imgP(90, '4/4 단계', '분석 완료!', '결과를 정리하고 있어요');
     const data = await res.json();
+    await new Promise(r=>setTimeout(r,400));
+    _imgOverlay.remove();
     const rawText = data?.choices?.[0]?.message?.content || '';
     if(!rawText){ toast('❌ 분석 결과가 비어있어요','err'); return; }
 
@@ -10002,15 +10018,43 @@ function _showImageAnalysisResult(a, imgUrl){
     </div>`;
 
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
-  overlay.querySelector('#_aiapply').addEventListener('click', ()=>{
+  overlay.querySelector('#_aiapply').addEventListener('click', async ()=>{
     const selected = [...overlay.querySelectorAll('.ai-sheet-chip.on')].map(c=>c.dataset.val);
-    if(selected.length){
-      const el = $('song-desc');
-      if(el) el.value = selected.join(', ');
-      _updateAiStyleApplied(selected.join(', '));
-      toast('✅ 이미지 분석 스타일 적용됨!','ok',2000);
+    if(!selected.length){ toast('스타일을 선택하세요','err'); return; }
+    const styleStr = selected.join(', ');
+    const el = $('song-desc');
+    if(el) el.value = styleStr;
+    _updateAiStyleApplied(styleStr);
+
+    /* 제목 자동 적용 */
+    if(a.song_title_idea){
+      const titleEl = $('song-title');
+      if(titleEl && !titleEl.value) titleEl.value = a.song_title_idea;
     }
+
     overlay.remove();
+    toast('✅ 스타일 적용됨! 가사를 생성합니다...','ok',2000);
+
+    /* 가사 자동 생성 */
+    try {
+      const lyricsTheme = a.lyrics_theme || a.visual_summary || '';
+      const genre = a.suggested_genre || '';
+      const emotion = (a.emotion?.primary || '') + (a.emotion?.secondary ? ', '+a.emotion.secondary : '');
+      const lyricsPrompt = `Write song lyrics in Korean (4 verses + chorus) based on:\nTheme: ${lyricsTheme}\nGenre: ${genre}\nEmotion: ${emotion}\nStyle: ${styleStr}\n\nFormat with [Verse 1], [Chorus] etc. Only output lyrics, no explanation.`;
+
+      const lyricsRes = await fetch(KIE_CLAUDE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+kieApiKey },
+        body: JSON.stringify({ messages:[{role:'user',content:lyricsPrompt}], stream:false })
+      });
+      const lyricsData = await lyricsRes.json();
+      const lyrics = lyricsData?.choices?.[0]?.message?.content || '';
+      if(lyrics){
+        const lyricsEl = $('lyrics-input');
+        if(lyricsEl){ lyricsEl.value = lyrics; lyricsEl.dispatchEvent(new Event('input')); }
+        toast('✅ 가사 생성 완료! 생성 버튼을 눌러주세요','ok',3000);
+      }
+    } catch(e){ console.warn('[img-lyrics]', e.message); toast('가사 생성 실패 — 직접 입력해주세요','err',2000); }
   });
   document.body.appendChild(overlay);
 }
