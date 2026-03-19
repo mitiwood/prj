@@ -5769,14 +5769,14 @@ async function generate(overrideParams){
 
     /* 서버에 트랙 저장 (admin 전체 조회용) */
     tracks.forEach(t=>{
-      console.log('[GenDone] track keys:', Object.keys(t).join(','), 'audioUrl:', t.audioUrl?.slice(0,50), 'audio_url:', t.audio_url?.slice(0,50));
+      const _lyrics = lastLyricsInput || t.lyric || t.lyrics || t.lrc || '';
       _saveTrackToServer({
         id:t.id, taskId,
         title:t.title||'무제',
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:t.tags||styleStr,
-        lyrics:savedLyrics||'',
+        lyrics:_lyrics,
         genMode:currentMode,
         owner_name:currentUser?.name||'익명',
         owner_avatar:currentUser?.avatar||'',
