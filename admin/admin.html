@@ -3119,6 +3119,8 @@ function renderAccountBadge(){
 }
 
 /* 매니저 섹션 렌더링 */
+const SEC_TITLES = {dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'로그 보기',audit:'감사 로그'};
+
 function renderManagersSection(){
   const tbody = document.getElementById('managers-tbody');
   if(!tbody) return;
@@ -3129,11 +3131,12 @@ function renderManagersSection(){
   }
   tbody.innerHTML = managers.map((m,i)=>{
     const ri = MGR_ROLES[m.role] || MGR_ROLES.manager;
-    const allowedStr = (ri.secs||[]).slice(0,3).map(s=>titles[s]||s).join(', ') + (ri.secs?.length>3?` 외 ${ri.secs.length-3}개`:'');
+    const allowedStr = (ri.secs||[]).slice(0,3).map(s=>SEC_TITLES[s]||s).join(', ') + (ri.secs?.length>3?` 외 ${ri.secs.length-3}개`:'');
     const lastAccess = m.lastAccess ? new Date(m.lastAccess).toLocaleString('ko-KR') : '-';
+    const mgrId = m.id || m.mgr_id || '-';
     return `<tr>
       <td style="font-weight:700;">${esc(m.name)}</td>
-      <td style="font-family:monospace;color:var(--t2);">${esc(m.id)}</td>
+      <td style="font-family:monospace;color:var(--t2);">${esc(mgrId)}</td>
       <td><span style="background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">${ri.label}</span></td>
       <td style="font-size:11px;color:var(--t3);">${allowedStr}</td>
       <td><span class="badge ${m.active!==false?'badge-grn':'badge-red'}">${m.active!==false?'활성':'비활성'}</span></td>
@@ -3142,7 +3145,7 @@ function renderManagersSection(){
         <div style="display:flex;gap:6px;">
           <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editManager(${i})">편집</button>
           <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="toggleManagerActive(${i})">${m.active!==false?'비활성화':'활성화'}</button>
-          <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:var(--red)44;" onclick="deleteManager(${i})">삭제</button>
+          <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);" onclick="deleteManager(${i})">삭제</button>
         </div>
       </td>
     </tr>`;
