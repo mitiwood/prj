@@ -33,13 +33,20 @@ async function sb(path) {
 
 async function tgSend(text) {
   if (!TG_TOKEN || !TG_CHAT) return false;
-  const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }),
-  });
-  const d = await r.json();
-  return d.ok;
+  const controller = new AbortController();
+  const tm = setTimeout(() => controller.abort(), 8000);
+  try {
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+      body,
+    });
+    const d = await r.json();
+    return d.ok;
+  } catch(e) { console.warn("[TG cron]", e.message); return false; }
+  finally { clearTimeout(tm); }
 }
 
 export default async function handler(req, res) {
