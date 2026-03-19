@@ -3770,24 +3770,37 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     btn.disabled=true;sp.style.display='inline-block';txt.textContent='AI 생성 중...';
     try{
       const base='감성적인 한국 팝송, 따뜻하고 서정적인';
-      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base}); trackUsage('lyrics',{mode:'auto-lyrics'});
-      const ltid=ld?.data?.taskId||ld?.taskId;
-      if(ltid){
-        for(let i=0;i<30;i++){
-          await sleep(i<3?800:i<10?1500:2500);
-          const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid);
-          if((lr?.data?.status||'').toUpperCase()==='SUCCESS'){
-            const text=lr?.data?.response?.text||lr?.data?.text||'';
-            if(text){
-              $('simple-prompt').value=text;
-              const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
-              const autoTitle=firstLine.slice(0,20)||'AI 생성곡';
-              $('song-title').value=autoTitle;
-              toast('✅ AI 가사+제목 생성 완료!','ok',2000);
-              break;
+      let text='';
+      try{
+        const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:base, callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'auto-lyrics'});
+        const ltid=ld?.data?.taskId||ld?.taskId;
+        if(ltid){
+          for(let i=0;i<40;i++){
+            await sleep(i<3?800:i<10?1500:2500);
+            let d=null;
+            try{ const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid); d=lr?.data; }
+            catch(e){ try{ const r2=await kieRequest(kieApiKey,'GET','/api/v1/jobs/recordInfo?taskId='+ltid); d=r2?.data; }catch(e2){} }
+            if(!d) continue;
+            const st=(d.status||d.callbackType||'').toUpperCase();
+            if(st==='SUCCESS'||st==='COMPLETE'){
+              text=d.response?.text||d.text||'';
+              if(!text&&Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
+              if(text) break;
             }
+            if(st==='FAILED'||st==='ERROR') break;
           }
         }
+      }catch(e){ console.warn('[simple-lyrics] kie.ai 실패:', e.message); }
+      /* 폴백: Claude */
+      if(!text){
+        text = await callClaudeStream('당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.', `감성적인 한국 팝송 가사를 작성해주세요: "${base}"`, ()=>{}) || '';
+      }
+      if(text){
+        $('simple-prompt').value=text;
+        const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
+        const autoTitle=firstLine.slice(0,20)||'AI 생성곡';
+        $('song-title').value=autoTitle;
+        toast('✅ AI 가사+제목 생성 완료!','ok',2000);
       }
     }catch(e){toast('자동 생성 실패: '+e.message,'err');}
     finally{btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';}
@@ -4676,25 +4689,16 @@ $('yt-analyze-btn').addEventListener('click', async () => {
       self.disabled = true; self.textContent = '⏳ 가사 생성 중...';
       try{
         const lyricsPrompt = [analysis.description||title, analysis.mood_tags||analysis.mood||''].filter(Boolean).join(', ');
-        const ld = await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt});
-        const ltid = ld?.data?.taskId || ld?.taskId;
-        if(!ltid) throw new Error('taskId 없음');
-        let lyrics = '';
-        for(let i=0; i<25; i++){
-          await sleep(2000);
-          const lr = await kieRequest(kieApiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`);
-          const st = (lr?.data?.status||'').toUpperCase();
-          if(st==='SUCCESS'){ lyrics = lr?.data?.response?.text||lr?.data?.text||''; break; }
-          if(st==='FAILED'||st==='ERROR') throw new Error('가사 생성 실패');
-        }
+        let lyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt);
         if(lyrics){
           const ta = document.getElementById('yt-lyrics-ta');
           if(ta) ta.value = lyrics;
           toast('✅ 가사 생성 완료!','ok',2000);
           trackUsage('lyrics',{mode:'yt-lyrics'});
-        }
+        } else { toast('가사 생성에 실패했어요. 다시 시도해주세요.','err',3000); }
       }catch(e){
-        toast('가사 생성 실패: '+e.message,'err',3000);
+        const msg=(e.message||'').toLowerCase();
+        toast(msg.includes('model')?'가사 생성에 실패했어요. 다시 시도해주세요.':'가사 생성 실패: '+e.message,'err',3000);
       }finally{
         self.disabled = false; self.textContent = '✦ AI 가사 다시 생성';
       }
@@ -4795,7 +4799,7 @@ async function downloadFile(url,filename){
   }
 }
 
-/* ── AI 자동 작사 ── */
+/* ── AI 자동 작사 (kie.ai lyrics API + 폴백: Claude 스트리밍) ── */
 $('lyrics-btn').addEventListener('click',async()=>{
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
@@ -4803,7 +4807,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
   const mood=$('mood').value||'';
   const desc=($('song-desc')?.value||'').trim();
   const titleVal=($('song-title')?.value||'').trim();
-  /* song-desc 우선 → 없으면 장르/분위기 조합 */
+  const refArtist=($('ref-artist')?.value||'').trim();
   const base=desc||[sub,mood].filter(Boolean).join(', ')||'감성적인 노래';
   const lyricsPrompt=titleVal?`${titleVal}: ${base}`:base;
 
@@ -4817,39 +4821,94 @@ $('lyrics-btn').addEventListener('click',async()=>{
   const toastInterval=setInterval(()=>{
     elapsed+=1;
     const sub=document.getElementById('_lyricsgen_sub');
-    if(sub) sub.innerHTML=`kie.ai 작사 중... <b style="color:#a78bfa;">${elapsed}초</b><br><span style="font-size:11px;color:#6b6780;">보통 15~30초 소요됩니다</span>`;
+    if(sub) sub.innerHTML=`AI 작사 중... <b style="color:#a78bfa;">${elapsed}초</b><br><span style="font-size:11px;color:#6b6780;">보통 15~30초 소요됩니다</span>`;
   },1000);
 
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt}); trackUsage('lyrics',{mode:'yt-lyrics'});
-    const taskId=data?.data?.taskId||data?.taskId;
-    if(!taskId)throw new Error('가사 생성 taskId 없음');
-    for(let i=0;i<30;i++){
-      if(_lyricsGenCancelled) return;
-      await sleep(i < 3 ? 800 : i < 10 ? 1200 : 2000);
-      const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
-      const d=res?.data;if(!d)continue;
-      const status=(d.status||'').toUpperCase();
-      if(status==='SUCCESS'){
-        const text=d.response?.text||d.text||'';
-        if(text){
-          clearInterval(toastInterval);
-          hideLyricsGenPopup();
-          const promptEl=$('prompt');
-          promptEl.value=text;
-          promptEl.style.display='';
-          promptEl.classList.add('flash');
-          setTimeout(()=>promptEl.classList.remove('flash'),2000);
-          renderLyricsPreview(text, true);
-          promptEl.scrollIntoView({behavior:'smooth',block:'center'});
-          toast('✅ 가사 생성 완료! 가사를 확인 후 음악 생성 버튼을 눌러주세요 🎵','ok',3500);
-          return;
+    /* 1차 시도: kie.ai lyrics API (callBackUrl 포함) */
+    let text = '';
+    let kieSuccess = false;
+    try{
+      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt, callBackUrl:CALLBACK});
+      trackUsage('lyrics',{mode:'auto-lyrics'});
+      const taskId=data?.data?.taskId||data?.taskId;
+      if(taskId){
+        for(let i=0;i<40;i++){
+          if(_lyricsGenCancelled) return;
+          await sleep(i < 3 ? 800 : i < 10 ? 1200 : 2000);
+          /* 공식 폴링 엔드포인트 시도 */
+          let d = null;
+          try{
+            const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
+            d=res?.data;
+          }catch(pollErr){
+            /* record-info 실패 시 jobs/recordInfo 폴백 */
+            try{
+              const res2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${taskId}`);
+              d=res2?.data;
+            }catch(e2){}
+          }
+          if(!d) continue;
+          const status=(d.status||d.callbackType||'').toUpperCase();
+          if(status==='SUCCESS'||status==='COMPLETE'){
+            /* 응답 구조: data.response.text 또는 data.data[].text 배열 */
+            text = d.response?.text || d.text || '';
+            if(!text && Array.isArray(d.data)){
+              text = d.data.map(item=>item.text||'').filter(Boolean)[0] || '';
+            }
+            if(!text && Array.isArray(d.response?.sunoData)){
+              text = d.response.sunoData.map(item=>item.text||item.lyric||'').filter(Boolean)[0] || '';
+            }
+            if(text){ kieSuccess=true; break; }
+          }
+          if(status==='FAILED'||status==='ERROR'){
+            const errMsg = d.msg||d.error_message||d.response?.error_message||'';
+            /* "model is empty" 등 내부 에러는 무시하고 폴백 */
+            console.warn('[lyrics] kie.ai 실패:', errMsg);
+            break;
+          }
         }
       }
-      if(status==='FAILED'||status==='ERROR')throw new Error('가사 생성 실패');
+    }catch(kieErr){
+      console.warn('[lyrics] kie.ai API 오류:', kieErr.message);
     }
-    throw new Error('가사 생성 시간 초과 — 잠시 후 다시 시도해주세요');
-  }catch(e){clearInterval(toastInterval);hideLyricsGenPopup();if(!_lyricsGenCancelled)toast('❌ '+e.message,'err',5000);}
+
+    /* 2차 폴백: kie.ai 실패 시 Claude 스트리밍으로 작사 */
+    if(!text && !_lyricsGenCancelled){
+      const subEl = document.getElementById('_lyricsgen_sub');
+      if(subEl) subEl.innerHTML = 'Claude AI로 작사 전환 중...<br><span style="font-size:11px;color:#6b6780;">거의 다 됐어요!</span>';
+      const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
+      const sys = '당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
+      const usr = `다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${lyricsPrompt}"${artistHint}`;
+      text = await callClaudeStream(sys, usr, (partial)=>{
+        if(_lyricsGenCancelled) throw new Error('취소됨');
+        const subEl2 = document.getElementById('_lyricsgen_sub');
+        if(subEl2){ const lines=partial.split('\n').filter(l=>l.trim()).length; subEl2.innerHTML=`${lines}줄 작성 중...<br><span style="font-size:11px;color:#6b6780;">거의 다 됐어요!</span>`; }
+      }) || '';
+    }
+
+    if(_lyricsGenCancelled) return;
+    if(!text) throw new Error('가사 생성에 실패했어요. 다시 시도해주세요.');
+
+    clearInterval(toastInterval);
+    hideLyricsGenPopup();
+    const promptEl=$('prompt');
+    promptEl.value=text;
+    promptEl.style.display='';
+    promptEl.classList.add('flash');
+    setTimeout(()=>promptEl.classList.remove('flash'),2000);
+    renderLyricsPreview(text, true);
+    promptEl.scrollIntoView({behavior:'smooth',block:'center'});
+    toast('✅ 가사 생성 완료! 가사를 확인 후 음악 생성 버튼을 눌러주세요 🎵','ok',3500);
+  }catch(e){
+    clearInterval(toastInterval);hideLyricsGenPopup();
+    if(!_lyricsGenCancelled){
+      /* "model is empty" 등 내부 에러 메시지는 사용자에게 노출하지 않음 */
+      const msg = (e.message||'').toLowerCase();
+      const isInternal = msg.includes('model is empty') || msg.includes('model') || msg.includes('internal');
+      toast(isInternal ? '❌ 가사 생성에 실패했어요. 다시 시도해주세요.' : '❌ '+e.message,'err',5000);
+    }
+  }
   finally{$('lyrics-btn').disabled=false;$('lyrics-spinner').style.display='none';}
 });
 
@@ -4918,6 +4977,7 @@ async function _autoLyricsAndGenerate(){
   const mood=$('mood').value||'';
   const desc=($('song-desc')?.value||'').trim();
   const titleVal=($('song-title')?.value||'').trim();
+  const refArtist=($('ref-artist')?.value||'').trim();
   const base=desc||[sub,mood].filter(Boolean).join(', ')||'감성적인 노래';
   const lyricsPrompt=titleVal?`${titleVal}: ${base}`:base;
 
@@ -4926,44 +4986,66 @@ async function _autoLyricsAndGenerate(){
   btn.disabled=true;sp.style.display='inline-block';txt.textContent='작사 중...';
 
   let elapsed=0;
-  const ti=setInterval(()=>{elapsed++;toast(`✍️ AI 작사 중... ${elapsed}초`,'',1500);},1000);
+  const ti=setInterval(()=>{elapsed++;},1000);
   try{
-    const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt});
-    const taskId=data?.data?.taskId||data?.taskId;
-    if(!taskId)throw new Error('가사 생성 taskId 없음');
-    for(let i=0;i<60;i++){
-      await sleep(i<3?800:i<10?1500:2500);
-      const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`);
-      const d=res?.data;if(!d)continue;
-      if((d.status||'').toUpperCase()==='SUCCESS'){
-        const text=d.response?.text||d.text||'';
-        if(text){
-          clearInterval(ti);
-          const _p=$('prompt');
-          _p.value=text;
-          _p.style.display='';
-          renderLyricsPreview(text, true);
-          /* 제목 자동 생성 */
-          if(!$('song-title').value.trim()){
-            const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
-            const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||'나의 노래';
-            $('song-title').value=autoTitle;
-            toast('✅ 가사+제목 생성 완료! 음악을 생성합니다...','ok',2500);
-          } else {
-            toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
+    let text = '';
+
+    /* 1차: kie.ai lyrics API */
+    try{
+      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt, callBackUrl:CALLBACK});
+      const taskId=data?.data?.taskId||data?.taskId;
+      if(taskId){
+        for(let i=0;i<40;i++){
+          await sleep(i<3?800:i<10?1500:2500);
+          let d=null;
+          try{ const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`); d=res?.data; }
+          catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${taskId}`); d=r2?.data; }catch(e2){} }
+          if(!d) continue;
+          const status=(d.status||d.callbackType||'').toUpperCase();
+          if(status==='SUCCESS'||status==='COMPLETE'){
+            text=d.response?.text||d.text||'';
+            if(!text && Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
+            if(!text && Array.isArray(d.response?.sunoData)) text=d.response.sunoData.map(x=>x.text||x.lyric||'').filter(Boolean)[0]||'';
+            if(text) break;
           }
-          /* 바로 생성 — _afterLyrics 플래그로 잠금 우회 */
-          setTimeout(()=>{ _globalGenerating=false; generate({_afterLyrics:true}); },800);
-          return;
+          if(status==='FAILED'||status==='ERROR') break;
         }
       }
-      if(['FAILED','ERROR'].includes((d.status||'').toUpperCase()))throw new Error('가사 생성 실패');
+    }catch(e){ console.warn('[auto-lyrics] kie.ai 실패:', e.message); }
+
+    /* 2차 폴백: Claude 스트리밍 */
+    if(!text){
+      toast('✍️ Claude AI로 작사 중...','',2000);
+      const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
+      const sys = '당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
+      const usr = `다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${lyricsPrompt}"${artistHint}`;
+      text = await callClaudeStream(sys, usr, ()=>{}) || '';
     }
-    throw new Error('가사 생성 시간 초과');
+
+    clearInterval(ti);
+    if(!text) throw new Error('가사 생성 실패');
+
+    const _p=$('prompt');
+    _p.value=text;
+    _p.style.display='';
+    renderLyricsPreview(text, true);
+    /* 제목 자동 생성 */
+    if(!$('song-title').value.trim()){
+      const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
+      const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||'나의 노래';
+      $('song-title').value=autoTitle;
+      toast('✅ 가사+제목 생성 완료! 음악을 생성합니다...','ok',2500);
+    } else {
+      toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
+    }
+    /* 바로 생성 — _afterLyrics 플래그로 잠금 우회 */
+    setTimeout(()=>{ _globalGenerating=false; generate({_afterLyrics:true}); },800);
   }catch(e){
     clearInterval(ti);
     _globalGenerating = false;
-    toast('❌ 자동 작사 실패: '+e.message,'err',4000);
+    const msg=(e.message||'').toLowerCase();
+    const isInternal=msg.includes('model is empty')||msg.includes('model')||msg.includes('internal');
+    toast(isInternal?'❌ 가사 생성에 실패했어요. 다시 시도해주세요.':'❌ 자동 작사 실패: '+e.message,'err',4000);
   }finally{
     btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';
   }
@@ -6567,41 +6649,64 @@ function renderHistory(){updateHistBadge();}
 
 /* ── HISTORY SAVE ── */
 
+/* ── 공통 가사 생성 헬퍼 (kie.ai + Claude 폴백) ── */
+async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
+  let text='';
+  /* 1차: kie.ai lyrics API */
+  try{
+    const ld=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt, callBackUrl:CALLBACK});
+    const ltid=ld?.data?.taskId||ld?.taskId;
+    if(ltid){
+      for(let i=0;i<40;i++){
+        await sleep(i<3?800:i<10?1500:2500);
+        let d=null;
+        try{ const r=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`); d=r?.data; }
+        catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${ltid}`); d=r2?.data; }catch(e2){} }
+        if(!d) continue;
+        const st=(d.status||d.callbackType||'').toUpperCase();
+        if(st==='SUCCESS'||st==='COMPLETE'){
+          text=d.response?.text||d.text||'';
+          if(!text&&Array.isArray(d.data)) text=d.data.map(x=>x.text||'').filter(Boolean)[0]||'';
+          if(!text&&Array.isArray(d.response?.sunoData)) text=d.response.sunoData.map(x=>x.text||x.lyric||'').filter(Boolean)[0]||'';
+          if(text) break;
+        }
+        if(st==='FAILED'||st==='ERROR') break;
+      }
+    }
+  }catch(e){ console.warn('[lyrics] kie.ai 실패:', e.message); }
+  /* 2차 폴백: Claude */
+  if(!text){
+    try{
+      const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
+      const sys='당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
+      const usr=`다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${prompt}"${artistHint}`;
+      text = await callClaudeStream(sys, usr, ()=>{}) || '';
+    }catch(e){ console.warn('[lyrics] Claude 폴백 실패:', e.message); }
+  }
+  return text;
+}
+
 /* ── 가사 자동 보완 (백그라운드) ── */
 async function _autoFillLyrics(track, apiKey){
   if(!apiKey || !track?.id) return;
   try{
     const base = [track.title, (track.tags||'').split(',')[0]].filter(Boolean).join(', ') || '감성적인 노래';
-    const ld = await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:base});
-    const ltid = ld?.data?.taskId||ld?.taskId;
-    if(!ltid) return;
-    for(let i=0;i<20;i++){
-      await sleep(2000);
-      const lr = await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`);
-      const st = (lr?.data?.status||'').toUpperCase();
-      if(st==='SUCCESS'){
-        const text = lr?.data?.response?.text||lr?.data?.text||'';
-        if(text){
-          /* historyData에서 해당 트랙 찾아서 가사 업데이트 */
-          const idx = historyData.findIndex(h=>h.id===track.id);
-          if(idx>=0){
-            historyData[idx].lyrics = text;
-            saveHistory();
-            /* 서버 트랙도 업데이트 */
-            fetch('/api/tracks', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({...historyData[idx], lyrics:text,
-                owner_name:currentUser?.name||'익명',
-                owner_avatar:currentUser?.avatar||'',
-                owner_provider:currentUser?.provider||'guest',
-              })
-            }).catch(()=>{});
-          }
-          return;
-        }
+    const text = await _kieLyricsWithFallback(apiKey, base);
+    if(text){
+      const idx = historyData.findIndex(h=>h.id===track.id);
+      if(idx>=0){
+        historyData[idx].lyrics = text;
+        saveHistory();
+        fetch('/api/tracks', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({...historyData[idx], lyrics:text,
+            owner_name:currentUser?.name||'익명',
+            owner_avatar:currentUser?.avatar||'',
+            owner_provider:currentUser?.provider||'guest',
+          })
+        }).catch(()=>{});
       }
-      if(st==='FAILED'||st==='ERROR') return;
     }
   }catch(e){ console.warn('[AutoLyrics]', e.message); }
 }
@@ -8496,7 +8601,8 @@ async function checkAnnouncement() {
   try {
     const r = await fetch('/api/announcement');
     if(!r.ok) return;
-    const d = await r.json();
+    const txt = await r.text();
+    let d; try { d = JSON.parse(txt); } catch { return; }
     if(!d.hasAnnouncement || !d.announcement) return;
     const a = d.announcement;
     // 대상 체크

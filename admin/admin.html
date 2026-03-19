@@ -175,6 +175,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="audit" onclick="switchSec('audit')"><span class="snav-icon">📝</span>감사 로그</div>
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')" id="snav-managers"><span class="snav-icon">👔</span>매니저 관리</div>
       <div class="snav-item" data-sec="logs" onclick="switchSec('logs')"><span class="snav-icon">📋</span>로그 보기</div>
+      <div class="snav-item" data-sec="kielogs" onclick="switchSec('kielogs')"><span class="snav-icon">🔗</span>kie.ai 로그</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
     </div>
     <div class="sidebar-footer">
@@ -878,49 +879,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
-      <!-- 매니저 추가/편집 모달 -->
-      <div id="add-manager-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;">
-        <div style="background:var(--bg2);border-radius:16px;padding:28px;width:min(420px,92vw);border:1px solid var(--border);">
-          <h3 id="mgr-modal-title" style="margin-bottom:20px;font-size:16px;">+ 매니저 추가</h3>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">이름 *</div>
-              <input class="settings-input" id="mgr-name" placeholder="홍길동" style="width:100%;">
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">아이디 *</div>
-              <input class="settings-input" id="mgr-id" placeholder="manager1" style="width:100%;">
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">비밀번호 * <span style="color:var(--t3);font-weight:400;">(8자 이상)</span></div>
-              <input class="settings-input" id="mgr-pw" type="password" placeholder="비밀번호 입력" style="width:100%;">
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">권한 레벨 *</div>
-              <div style="display:flex;flex-direction:column;gap:6px;" id="mgr-role-select">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
-                  <input type="radio" name="mgr-role" value="super"> <span style="font-size:13px;"><span style="color:#f59e0b;">🔧</span> 슈퍼 매니저 — 설정 제외 전체</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
-                  <input type="radio" name="mgr-role" value="manager" checked> <span style="font-size:13px;"><span style="color:#3b82f6;">📋</span> 매니저 — 콘텐츠 관리</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
-                  <input type="radio" name="mgr-role" value="viewer"> <span style="font-size:13px;"><span style="color:#10b981;">👁</span> 뷰어 — 조회만</span>
-                </label>
-              </div>
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">메모</div>
-              <input class="settings-input" id="mgr-memo" placeholder="예: CS팀 담당자" style="width:100%;">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:20px;">
-            <button class="btn btn-acc" onclick="saveManager()" style="flex:1;">저장</button>
-            <button class="btn" onclick="closeManagerModal()" style="flex:1;">취소</button>
-          </div>
-        </div>
-      </div>
-
       <!-- 설정 -->
       <div class="admin-section" id="sec-settings">
         <div class="sec-hdr"><h2>앱 설정</h2></div>
@@ -1044,6 +1002,23 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
+      <!-- kie.ai 로그 (iframe) -->
+      <div class="admin-section" id="sec-kielogs">
+        <div class="sec-hdr">
+          <h2>🔗 kie.ai 로그</h2>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" onclick="document.getElementById('kie-iframe').src='https://kie.ai/logs'">🔄 새로고침</button>
+            <a href="https://kie.ai/logs" target="_blank" class="btn btn-acc" style="text-decoration:none;">새 탭에서 열기 ↗</a>
+          </div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+          <iframe id="kie-iframe" src="" style="width:100%;height:calc(100vh - 160px);border:none;background:#fff;border-radius:14px;" allow="clipboard-read; clipboard-write"></iframe>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center;">
+          ⚠️ kie.ai에서 iframe 접근을 차단할 경우 "새 탭에서 열기"를 이용하세요
+        </div>
+      </div>
+
       <!-- 감사 로그 -->
       <div class="admin-section" id="sec-audit">
         <div class="sec-hdr">
@@ -1133,29 +1108,52 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <div id="admin-toast"></div>
 
-      <!-- 매니저 추가/수정 모달 -->
-      <div id="mgr-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:440px;">
-          <h3 style="margin:0 0 20px;font-size:17px;" id="mgr-modal-title">🛡️ 매니저 추가</h3>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div><div class="field-label">이름 *</div><input class="settings-input" id="mgr-name" placeholder="홍길동" style="width:100%;"></div>
-            <div><div class="field-label">이메일 / 소셜 ID</div><input class="settings-input" id="mgr-email" placeholder="example@email.com" style="width:100%;"></div>
-            <div><div class="field-label">권한 *</div>
-              <select id="mgr-role" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;">
-                <option value="MODERATOR">MODERATOR — 음악/신고 관리</option>
-                <option value="VIEWER">VIEWER — 통계 열람만</option>
-                <option value="ADMIN">ADMIN — 전체 관리</option>
-              </select>
-            </div>
-            <div><div class="field-label">메모</div><input class="settings-input" id="mgr-note" placeholder="담당 영역, 연락처 등" style="width:100%;"></div>
-          </div>
-          <input type="hidden" id="mgr-edit-idx">
-          <div style="display:flex;gap:10px;margin-top:20px;">
-            <button class="btn btn-acc" onclick="saveManager()" style="flex:1;">저장</button>
-            <button class="btn" onclick="closeMgrModal()">취소</button>
-          </div>
+<!-- 매니저 추가/수정 모달 (통합) -->
+<div id="mgr-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:440px;">
+    <h3 style="margin:0 0 20px;font-size:17px;" id="mgr-modal-title">🛡️ 매니저 추가</h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">이름 *</div>
+        <input class="settings-input" id="mgr-name" placeholder="홍길동" style="width:100%;">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">아이디 * <span style="color:var(--t3);font-weight:400;">(로그인용, 영문/숫자 3~20자)</span></div>
+        <input class="settings-input" id="mgr-id" placeholder="manager1" style="width:100%;">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">비밀번호 * <span style="color:var(--t3);font-weight:400;">(8자 이상)</span></div>
+        <input class="settings-input" id="mgr-pw" type="password" placeholder="비밀번호 입력" style="width:100%;">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">이메일</div>
+        <input class="settings-input" id="mgr-email" placeholder="example@email.com" style="width:100%;">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">권한 레벨 *</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+            <input type="radio" name="mgr-role-radio" value="super"> <span style="font-size:13px;"><span style="color:#f59e0b;">🔧</span> 슈퍼 매니저 — 설정 제외 전체</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+            <input type="radio" name="mgr-role-radio" value="manager" checked> <span style="font-size:13px;"><span style="color:#3b82f6;">📋</span> 매니저 — 콘텐츠 관리</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:8px;border:1px solid var(--border);">
+            <input type="radio" name="mgr-role-radio" value="viewer"> <span style="font-size:13px;"><span style="color:#10b981;">👁</span> 뷰어 — 조회만</span>
+          </label>
         </div>
       </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;">메모</div>
+        <input class="settings-input" id="mgr-memo" placeholder="예: CS팀 담당자" style="width:100%;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-acc" onclick="saveManager()" style="flex:1;">저장</button>
+      <button class="btn" onclick="document.getElementById('mgr-modal').style.display='none'" style="flex:1;">취소</button>
+    </div>
+  </div>
+</div>
 
 
 <script>
@@ -1238,7 +1236,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',audit:'📝 감사 로그'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
@@ -1250,6 +1248,7 @@ function switchSec(id){
   if(id==='reports') renderReportsAdmin();
   if(id==='usage') loadUsageAdmin();
   if(id==='logs') initLogSection();
+  if(id==='kielogs'){const f=document.getElementById('kie-iframe');if(f&&!f.src.includes('kie.ai'))f.src='https://kie.ai/logs';}
   if(id==='audit') renderAuditLog();
 }
 
@@ -2336,7 +2335,8 @@ function updateAnnPreview() {
 async function loadCurrentAnnouncement() {
   try {
     const r = await fetch('/api/announcement');
-    const d = await r.json();
+    const txt = await r.text();
+    let d; try { d = JSON.parse(txt); } catch { d = { hasAnnouncement: false }; }
     const badge  = document.getElementById('ann-active-badge');
     const delBtn = document.getElementById('ann-delete-btn');
     const wrap   = document.getElementById('ann-current-wrap');
@@ -2383,7 +2383,8 @@ async function sendAnnouncement() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + pw },
       body: JSON.stringify({ title, body, icon, type, url, target, expiresHours })
     });
-    const d = await r.json();
+    const txt = await r.text();
+    let d; try { d = JSON.parse(txt); } catch { throw new Error('서버 응답 오류 (HTTP ' + r.status + ')'); }
     if(d.success) {
       if(result) result.textContent = '✅ 공지가 등록됐습니다! 앱 방문 시 팝업으로 표시됩니다.';
       adminToast('✅ 인앱 공지 발송 완료!');
@@ -2406,7 +2407,8 @@ async function deleteAnnouncement() {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + pw }
     });
-    const d = await r.json();
+    const txt = await r.text();
+    let d; try { d = JSON.parse(txt); } catch { throw new Error('서버 응답 오류 (HTTP ' + r.status + ')'); }
     if(d.success) { adminToast('✅ 공지가 삭제됐습니다'); loadCurrentAnnouncement(); }
   } catch(e) { adminToast('❌ ' + e.message); }
 }

@@ -1,14 +1,35 @@
-// /api/announcement.js — 인앱 공지 관리 API (Supabase 저장)
-const { createClient } = require('@supabase/supabase-js');
+/**
+ * /api/announcement — 인앱 공지 관리 API
+ * GET    → 현재 활성 공지 조회 (인증 불필요)
+ * POST   → 공지 등록 (관리자 인증)
+ * DELETE → 공지 삭제 (관리자 인증)
+ *
+ * Supabase REST API 직접 사용 (SDK 불필요)
+ */
 
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
-// 인메모리 폴백 (Supabase 없을 때)
 let _memAnnouncement = null;
 
-function getSupabase() {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return null;
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+async function sb(path, opts = {}) {
+  if (!SB_URL || !SB_KEY) throw new Error('no_supabase');
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+    ...opts,
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json; charset=utf-8',
+      Accept: 'application/json; charset=utf-8',
+      Prefer: opts.prefer || 'return=representation',
+      ...(opts.headers || {}),
+    },
+  });
+  const text = await r.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  return { data, status: r.status, ok: r.ok };
 }
 
 function isExpired(ann) {
@@ -17,26 +38,22 @@ function isExpired(ann) {
   return false;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const supabase = getSupabase();
+  const hasSb = !!(SB_URL && SB_KEY);
 
   // GET — 현재 활성 공지 조회 (인증 불필요)
   if (req.method === 'GET') {
     try {
       let ann = null;
-      if (supabase) {
-        const { data } = await supabase
-          .from('announcements')
-          .select('*')
-          .eq('active', true)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        ann = data?.[0] || null;
+      if (hasSb) {
+        const { data } = await sb('/announcements?active=eq.true&order=created_at.desc&limit=1');
+        ann = Array.isArray(data) ? data[0] || null : null;
       } else {
         ann = _memAnnouncement;
       }
@@ -88,12 +105,19 @@ module.exports = async (req, res) => {
         expires_at: expiresHours ? new Date(now.getTime() + expiresHours * 3600000).toISOString() : null,
       };
 
-      if (supabase) {
+      if (hasSb) {
         // 기존 공지 비활성화
-        await supabase.from('announcements').update({ active: false }).eq('active', true);
+        await sb('/announcements?active=eq.true', {
+          method: 'PATCH',
+          body: JSON.stringify({ active: false }),
+        });
         // 새 공지 등록
-        const { error } = await supabase.from('announcements').insert([annData]);
-        if (error) throw error;
+        const { ok, data } = await sb('/announcements', {
+          method: 'POST',
+          body: JSON.stringify(annData),
+          prefer: 'return=minimal',
+        });
+        if (!ok) throw new Error(JSON.stringify(data));
       } else {
         _memAnnouncement = { ...annData, id: 'mem-' + Date.now(), createdAt: now.toISOString(), expiresAt: annData.expires_at };
       }
@@ -106,8 +130,11 @@ module.exports = async (req, res) => {
   // DELETE — 공지 삭제
   if (req.method === 'DELETE') {
     try {
-      if (supabase) {
-        await supabase.from('announcements').update({ active: false }).eq('active', true);
+      if (hasSb) {
+        await sb('/announcements?active=eq.true', {
+          method: 'PATCH',
+          body: JSON.stringify({ active: false }),
+        });
       } else {
         _memAnnouncement = null;
       }
@@ -118,4 +145,4 @@ module.exports = async (req, res) => {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-};
+}
