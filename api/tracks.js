@@ -48,20 +48,27 @@ async function _tgNotify(event, data) {
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
-  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-    ...opts,
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json; charset=utf-8",
-      Accept: "application/json; charset=utf-8",
-      Prefer: opts.prefer || "return=representation",
-      ...(opts.headers || {}),
-    },
-  });
-  const txt = await r.text();
-  if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
-  return txt ? JSON.parse(txt) : null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000); /* 8초 타임아웃 */
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+      ...opts,
+      signal: controller.signal,
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        "Content-Type": "application/json; charset=utf-8",
+        Accept: "application/json; charset=utf-8",
+        Prefer: opts.prefer || "return=representation",
+        ...(opts.headers || {}),
+      },
+    });
+    const txt = await r.text();
+    if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
+    return txt ? JSON.parse(txt) : null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default async function handler(req, res) {
@@ -81,6 +88,16 @@ export default async function handler(req, res) {
   const ownerProv = req.query?.provider || "";
   const limit = Math.min(parseInt(req.query?.limit || "200"), 500);
   const offset = parseInt(req.query?.offset || "0");
+
+  /* ─── 디버그: Supabase 연결 상태 확인 ─── */
+  if (req.method === "GET" && req.query?.debug === "sb") {
+    return res.status(200).json({
+      hasSbUrl: !!SB_URL,
+      sbUrlPrefix: SB_URL ? SB_URL.slice(0, 30) + "..." : "MISSING",
+      hasSbKey: !!SB_KEY,
+      sbKeyPrefix: SB_KEY ? SB_KEY.slice(0, 10) + "..." : "MISSING",
+    });
+  }
 
   /* ─── GET ─── */
   if (req.method === "GET") {
