@@ -2931,91 +2931,6 @@ const MGR_KEY = 'kms_managers';
 function getManagers(){ try{ return JSON.parse(localStorage.getItem(MGR_KEY)||'[]'); }catch{ return []; } }
 function saveManagers(list){ localStorage.setItem(MGR_KEY, JSON.stringify(list)); }
 
-function renderManagers(){
-  const mgrs = getManagers();
-  const tbody = document.getElementById('managers-tbody');
-  const cnt   = document.getElementById('mgr-count');
-  if(cnt) cnt.textContent = mgrs.length + '명';
-  if(!tbody) return;
-  if(!mgrs.length){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다</td></tr>';
-    return;
-  }
-  const roleBadge = r => r==='ADMIN' ? '<span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">ADMIN</span>'
-    : r==='MODERATOR' ? '<span style="background:#f97316;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">MOD</span>'
-    : '<span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">VIEW</span>';
-  tbody.innerHTML = mgrs.map((m,i)=>`
-    <tr>
-      <td style="font-weight:700;">${esc(m.name)}</td>
-      <td style="font-size:12px;color:var(--t3);">${esc(m.email||'-')}</td>
-      <td>${roleBadge(m.role)}</td>
-      <td><span class="badge ${m.active!==false?'badge-grn':'badge-red'}">${m.active!==false?'활성':'비활성'}</span></td>
-      <td style="font-size:11px;color:var(--t3);">${new Date(m.createdAt||Date.now()).toLocaleDateString('ko-KR')}</td>
-      <td style="font-size:12px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.note||'-')}</td>
-      <td>
-        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="editManager(${i})">✏️ 수정</button>
-        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="toggleManagerStatus(${i})">${m.active!==false?'비활성화':'활성화'}</button>
-        <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);" onclick="deleteManager(${i})">🗑</button>
-      </td>
-    </tr>`).join('');
-}
-
-function openAddManagerModal(){
-  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 추가';
-  document.getElementById('mgr-name').value  = '';
-  document.getElementById('mgr-email').value = '';
-  document.getElementById('mgr-role').value  = 'MODERATOR';
-  document.getElementById('mgr-note').value  = '';
-  document.getElementById('mgr-edit-idx').value = '';
-  document.getElementById('mgr-modal').style.display = 'flex';
-}
-function editManager(idx){
-  const m = getManagers()[idx];
-  if(!m) return;
-  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 수정';
-  document.getElementById('mgr-name').value  = m.name;
-  document.getElementById('mgr-email').value = m.email||'';
-  document.getElementById('mgr-role').value  = m.role||'MODERATOR';
-  document.getElementById('mgr-note').value  = m.note||'';
-  document.getElementById('mgr-edit-idx').value = idx;
-  document.getElementById('mgr-modal').style.display = 'flex';
-}
-function closeMgrModal(){ document.getElementById('mgr-modal').style.display = 'none'; }
-function saveManager(){
-  const name  = document.getElementById('mgr-name').value.trim();
-  const email = document.getElementById('mgr-email').value.trim();
-  const role  = document.getElementById('mgr-role').value;
-  const note  = document.getElementById('mgr-note').value.trim();
-  const editIdx = document.getElementById('mgr-edit-idx').value;
-  if(!name){ adminToast('⚠️ 이름을 입력하세요'); return; }
-  const mgrs = getManagers();
-  if(editIdx !== ''){
-    mgrs[parseInt(editIdx)] = {...mgrs[parseInt(editIdx)], name, email, role, note, updatedAt: Date.now()};
-    adminToast('✅ 매니저 정보 수정 완료');
-  } else {
-    mgrs.push({ name, email, role, note, active:true, createdAt:Date.now() });
-    adminToast('✅ 매니저 추가 완료');
-  }
-  saveManagers(mgrs);
-  closeMgrModal();
-  renderManagers();
-}
-function toggleManagerStatus(idx){
-  const mgrs = getManagers();
-  if(!mgrs[idx]) return;
-  mgrs[idx].active = mgrs[idx].active === false ? true : false;
-  saveManagers(mgrs);
-  renderManagers();
-  adminToast(mgrs[idx].active ? '✅ 활성화됨' : '비활성화됨');
-}
-function deleteManager(idx){
-  if(!confirm('이 매니저를 삭제하시겠습니까?')) return;
-  const mgrs = getManagers();
-  mgrs.splice(idx,1);
-  saveManagers(mgrs);
-  renderManagers();
-  adminToast('🗑 매니저 삭제됨');
-}
 
 // ── 신고 관리 ──
 const REPORT_KEY = 'kms_reports';
@@ -3219,35 +3134,36 @@ function renderManagersSection(){
 let _editingMgrIdx = -1;
 function openAddManagerModal(){
   _editingMgrIdx = -1;
-  document.getElementById('mgr-modal-title').textContent = '+ 매니저 추가';
+  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 추가';
   document.getElementById('mgr-name').value = '';
   document.getElementById('mgr-id').value   = '';
   document.getElementById('mgr-pw').value   = '';
+  document.getElementById('mgr-email').value = '';
   document.getElementById('mgr-memo').value = '';
-  document.querySelector('input[name="mgr-role"][value="manager"]').checked = true;
-  document.getElementById('add-manager-modal').style.display = 'flex';
+  const rb = document.querySelector('input[name="mgr-role-radio"][value="manager"]');
+  if(rb) rb.checked = true;
+  document.getElementById('mgr-modal').style.display = 'flex';
 }
 function editManager(i){
   const m = getManagers()[i];
   if(!m) return;
   _editingMgrIdx = i;
-  document.getElementById('mgr-modal-title').textContent = '매니저 편집';
+  document.getElementById('mgr-modal-title').textContent = '🛡️ 매니저 편집';
   document.getElementById('mgr-name').value = m.name||'';
   document.getElementById('mgr-id').value   = m.id||'';
   document.getElementById('mgr-pw').value   = '';
+  document.getElementById('mgr-email').value = m.email||'';
   document.getElementById('mgr-memo').value = m.memo||'';
-  const rb = document.querySelector(`input[name="mgr-role"][value="${m.role||'manager'}"]`);
+  const rb = document.querySelector(`input[name="mgr-role-radio"][value="${m.role||'manager'}"]`);
   if(rb) rb.checked = true;
-  document.getElementById('add-manager-modal').style.display = 'flex';
-}
-function closeManagerModal(){
-  document.getElementById('add-manager-modal').style.display = 'none';
+  document.getElementById('mgr-modal').style.display = 'flex';
 }
 function saveManager(){
   const name = document.getElementById('mgr-name').value.trim();
   const id   = document.getElementById('mgr-id').value.trim();
   const pw   = document.getElementById('mgr-pw').value;
-  const role = document.querySelector('input[name="mgr-role"]:checked')?.value || 'manager';
+  const email = document.getElementById('mgr-email')?.value.trim()||'';
+  const role = document.querySelector('input[name="mgr-role-radio"]:checked')?.value || 'manager';
   const memo = document.getElementById('mgr-memo').value.trim();
 
   if(!name){ adminToast('⚠️ 이름을 입력하세요'); return; }
@@ -3261,8 +3177,8 @@ function saveManager(){
     if(!pw || pw.length < 8){ adminToast('⚠️ 비밀번호 8자 이상'); return; }
     if(managers.find(m=>m.id===id)){ adminToast('⚠️ 이미 존재하는 아이디'); return; }
     managers.push({
-      name, id,
-      pwHash: btoa(pw), /* 간단한 인코딩 (실 서비스에서는 bcrypt 사용) */
+      name, id, email,
+      pwHash: btoa(pw),
       role, memo,
       active: true,
       createdAt: Date.now()
@@ -3272,15 +3188,17 @@ function saveManager(){
     /* 편집 모드 */
     const m = managers[_editingMgrIdx];
     m.name = name;
+    m.email = email;
     m.role = role;
     m.memo = memo;
     if(pw && pw.length >= 8) m.pwHash = btoa(pw);
     else if(pw && pw.length > 0) { adminToast('⚠️ 비밀번호 8자 이상'); return; }
+    m.updatedAt = Date.now();
     adminToast('✅ 매니저 정보 수정 완료');
   }
-  
+
   saveManagers(managers);
-  closeManagerModal();
+  document.getElementById('mgr-modal').style.display = 'none';
   renderManagersSection();
 }
 function toggleManagerActive(i){
@@ -3338,9 +3256,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(hint) hint.innerHTML += '<div style="font-size:10px;color:var(--t3);margin-top:4px;">매니저: <span style="color:var(--acc);">아이디:비밀번호</span> 형식으로 입력</div>';
   
   /* 모달 외부 클릭 닫기 */
-  document.getElementById('add-manager-modal')?.addEventListener('click', e=>{
-    if(e.target.id==='add-manager-modal') closeManagerModal();
-  });
+  /* mgr-modal 외부 클릭 닫기는 모달 자체 onclick으로 처리 */
 });
 
 // ══════════════════════════════════════════════
