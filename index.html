@@ -890,22 +890,22 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-list-info{flex:1;min-width:0;}
 .comm-list-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;color:var(--t1);}
 .comm-list-meta{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden;}
-.comm-list-actions{display:flex;align-items:center;gap:0;padding-top:6px;border-top:1px solid rgba(255,255,255,.04);}
-.comm-reaction-sm{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:8px 0;border-radius:8px;border:none;background:none;color:var(--t3);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.comm-list-duration{font-size:11px;color:var(--t3);font-weight:500;flex-shrink:0;margin-left:auto;padding-left:8px;}
+.comm-list-actions{display:flex;align-items:center;gap:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;}
+.comm-reaction-sm{display:flex;align-items:center;gap:2px;padding:4px 6px;border-radius:8px;border:none;background:none;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
 .comm-reaction-sm:hover{color:var(--t1);background:rgba(255,255,255,.06);}
 .comm-reaction-sm.liked{color:#ff6482;}
 .comm-reaction-sm.disliked{color:var(--t3);opacity:.6;}
-.comm-play-sm{color:var(--acc3);font-size:16px;}
+.comm-play-sm{color:var(--acc3);font-size:13px;}
 .comm-play-sm:hover{color:var(--acc);}
 /* 별점 */
 .star-rating{display:inline-flex;gap:1px;align-items:center;}
 .star-rating .star{cursor:pointer;font-size:14px;color:rgba(255,255,255,.15);transition:color .12s;line-height:1;padding:0 1px;}
 .star-rating .star.on{color:#fbbf24;}
 .star-rating .star:hover,.star-rating .star:hover~.star{color:rgba(251,191,36,.5);}
-.comm-list-actions .star-rating{flex:1;justify-content:center;}
-.star-rating-sm .star{font-size:14px;}
+.star-rating-sm .star{font-size:11px;}
 .star-rating-val{font-size:10px;color:var(--t3);margin-left:3px;font-weight:600;}
-.comm-comment-cnt{font-size:12px;font-weight:700;color:var(--acc3);min-width:0;}
+.comm-comment-cnt{font-size:10px;font-weight:700;color:var(--acc3);min-width:0;}
 .comm-comment-cnt:empty{display:none;}
 .comm-comment-cnt[data-n="0"]{display:none;}
 /* 공유 바텀시트 */
@@ -2124,8 +2124,8 @@ body.mp-on .view{padding-bottom:118px;}
   .comm-list-item{gap:6px;padding:10px 8px;}
   .comm-list-img{width:40px;height:40px;}
   .comm-list-title{font-size:12px;}
-  .comm-list-actions{gap:0;}
-  .comm-reaction-sm{padding:6px 0;font-size:13px;}
+  .comm-list-actions{gap:1px;}
+  .comm-reaction-sm{padding:3px 5px;font-size:10px;}
 
   /* 댓글 */
   .comment-sheet{max-height:85vh;border-radius:12px 12px 0 0;}
@@ -2173,7 +2173,7 @@ body.mp-on .view{padding-bottom:118px;}
   .comm-featured-cover{height:150px;}
   .fp-cover{max-height:260px;}
   .comm-list-actions{gap:0;}
-  .comm-reaction-sm{padding:5px 0;font-size:12px;}
+  .comm-reaction-sm{padding:2px 4px;font-size:9px;}
 }
 
 /* iOS safe area */
@@ -8359,6 +8359,7 @@ function _renderCommContent(heroWrap, list){
             ${t.tags?`<span class="cs-genre" style="margin-left:4px;">${esc(t.tags)}</span>`:''}
           </div>
         </div>
+        ${t.duration?`<span class="comm-list-duration">${typeof t.duration==='number'?formatTime(t.duration):t.duration}</span>`:''}
       </div>
       <div class="comm-list-actions">
         <button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">
@@ -8378,7 +8379,7 @@ function _renderCommContent(heroWrap, list){
         </button>
         <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
         ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>`:''}
       </div>
     </div>`;
