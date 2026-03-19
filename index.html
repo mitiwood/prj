@@ -8716,6 +8716,8 @@ document.addEventListener('DOMContentLoaded', ()=>{ if(typeof _renderSettingsExt
 <!-- ── 인앱 공지 수신 ── -->
 <script>
 const _ANN_SEEN_KEY = 'kms_ann_seen';
+let _lastAnnId = null;
+let _annPollTimer = null;
 
 async function checkAnnouncement() {
   try {
@@ -8734,10 +8736,24 @@ async function checkAnnouncement() {
     const seenKey = _ANN_SEEN_KEY + '_' + a.id;
     const seenUntil = localStorage.getItem(seenKey);
     if(seenUntil && Date.now() < parseInt(seenUntil)) return;
+    // 이미 같은 공지를 표시 중이면 스킵
+    if(_lastAnnId === a.id) return;
+    _lastAnnId = a.id;
     // 팝업 표시
     showAnnModal(a);
   } catch(e) { /* 조용히 실패 */ }
 }
+
+/* 30초마다 새 공지 폴링 — 접속 중인 모든 사용자에게 실시간 전달 */
+function startAnnPoll() {
+  if(_annPollTimer) return;
+  _annPollTimer = setInterval(checkAnnouncement, 30000);
+}
+startAnnPoll();
+/* 탭 복귀 시 즉시 체크 */
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden) { _lastAnnId = null; checkAnnouncement(); }
+});
 
 const _ANN_TYPE_MAP = {
   info:    { color: '#a855f7', bg: 'rgba(168,85,247,.2)', border: 'rgba(168,85,247,.35)', label: '📌 공지' },
