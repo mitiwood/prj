@@ -43,8 +43,12 @@ export default async function handler(req, res) {
   if (!msg) msg = "테스트 메시지";
 
   try {
-    const p = new URLSearchParams({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" });
-    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`);
+    const jsonBody = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }), "utf-8");
+    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(jsonBody.length) },
+      body: jsonBody,
+    });
     const d = await r.json();
     if (d.ok) {
       return res.status(200).json({ success: true, message_id: d.result?.message_id });

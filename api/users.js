@@ -11,7 +11,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service_role key
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 
 /* in-memory fallback (Supabase 미연동 시) */
 let _memStore = [];
@@ -22,8 +22,12 @@ function _tgNotify(event, data) {
   const icon = event === 'new_user' ? '🆕' : '👤';
   const label = event === 'new_user' ? '신규 가입' : '로그인';
   const text = `${icon} *${label}*\n이름: ${data.name||'?'}\n소셜: ${data.provider||'?'}\n⏰ ${ts}`;
-  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' });
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
+  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
+    body,
+  }).catch(() => {});
 }
 
 async function sbFetch(path, options = {}) {

@@ -9,7 +9,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const DEFAULT_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+const DEFAULT_CHAT_ID = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
 function checkAuth(req) {
@@ -19,17 +19,19 @@ function checkAuth(req) {
 
 async function tgApi(method, body = null) {
   if (!BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN not configured');
-  let url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
-  let opts = { method: 'GET' };
-  if (body) {
-    /* URL query 방식으로 전송 — 한글 인코딩 문제 우회 */
-    const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(body)) {
-      if (v !== undefined && v !== null) params.append(k, String(v));
-    }
-    url += '?' + params.toString();
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
+  if (!body) {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.description || 'Telegram API error');
+    return d.result;
   }
-  const r = await fetch(url, opts);
+  const jsonBytes = Buffer.from(JSON.stringify(body), 'utf-8');
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(jsonBytes.length) },
+    body: jsonBytes,
+  });
   const d = await r.json();
   if (!d.ok) throw new Error(d.description || 'Telegram API error');
   return d.result;

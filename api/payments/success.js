@@ -5,12 +5,16 @@ const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const TOSS_SECRET = process.env.TOSS_SECRET_KEY || "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
+const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 function _tgNotify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
-  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
+  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+    body,
+  }).catch(() => {});
 }
 
 const PLANS = {

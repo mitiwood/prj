@@ -12,7 +12,7 @@ const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
+const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
 
@@ -20,8 +20,12 @@ function _tgComment(author, text, trackId) {
   if (!TG_TOKEN || !TG_CHAT) return;
   const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const msg = `💬 *새 댓글*\n작성자: ${author || "익명"}\n내용: ${(text || "").slice(0, 100)}\n⏰ ${ts}`;
-  const p = new URLSearchParams({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" });
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
+  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }), "utf-8");
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+    body,
+  }).catch(() => {});
 }
 
 async function sb(path, opts = {}) {

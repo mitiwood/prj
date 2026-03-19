@@ -13,7 +13,7 @@ const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
+const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
 
@@ -28,8 +28,12 @@ function _tgNotify(event, data) {
   if (data.user) text += `생성자: ${data.user}\n`;
   if (data.author) text += `작성자: ${data.author}\n`;
   text += `⏰ ${ts}`;
-  const p = new URLSearchParams({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
-  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?${p}`).catch(() => {});
+  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
+    body,
+  }).catch(() => {});
 }
 
 async function sb(path, opts = {}) {
