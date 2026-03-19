@@ -2730,9 +2730,15 @@ function resendPush(idx){
   document.getElementById('push-title').value=h.title||'';
   document.getElementById('push-body').value=h.body||'';
   document.getElementById('push-url').value=h.url||ADMIN_APP_URL;
+  /* 대상 복원 */
+  const targetRadio=document.querySelector('input[name="push-target"][value="'+(h.target||'all')+'"]');
+  if(targetRadio) targetRadio.checked=true;
   updatePushPreview();
-  adminToast('📝 이전 발송 내용이 복원됐습니다. 수정 후 발송하세요.');
+  adminToast('📝 이전 발송 내용이 복원됐습니다. [발송] 버튼을 누르면 재발송됩니다.');
   window.scrollTo({top:document.getElementById('push-title').offsetTop-100,behavior:'smooth'});
+  /* 발송 버튼 강조 */
+  const btn=document.getElementById('push-send-btn');
+  if(btn){btn.style.animation='pulse .6s 2';setTimeout(()=>btn.style.animation='',1500);}
 }
 
 async function deletePushHist(idx){
