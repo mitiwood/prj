@@ -3217,13 +3217,7 @@ body.mp-on .view{padding-bottom:118px;}
         <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;">10</span></button>
         <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
       </div>
-      <div class="fp-bottom-bar">
-        <div class="fp-vol-wrap">
-          <div class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/></svg></div>
-          <input type="range" class="fp-vol-slider" id="fp-vol-slider" min="0" max="1" step="0.01" value="1">
-          <div class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
-        </div>
-      </div>
+      <!-- 볼륨 UI 제거 -->
       <div class="fp-viz" id="fp-viz">
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
@@ -7538,10 +7532,18 @@ function _doOpenFullPlayer(idx){
   try{new URL(_audioUrl);}catch(e){toast('잘못된 오디오 URL: '+_audioUrl.slice(0,40),'err');return;}
   if(!/^https?:\/\//i.test(_audioUrl)){toast('지원하지 않는 오디오 URL 형식','err');return;}
   h.audio_url = _audioUrl; /* 정규화 */
+  /* 이전 오디오 완전 해제 */
+  if(fpAudio){fpAudio.pause();fpAudio.src='';fpAudio=null;}
   const audio=new Audio();
-  audio.preload='none';
-  audio.src=h.audio_url;
+  audio.preload='auto';
+  audio.crossOrigin='anonymous';
   fpAudio=audio;
+
+  /* 프로그레스 초기화 */
+  $('fp-prog-fill').style.width='0%';
+  $('fp-prog-thumb').style.left='0%';
+  $('fp-cur').textContent='0:00';
+  $('fp-dur').textContent='0:00';
 
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
@@ -7576,9 +7578,15 @@ function _doOpenFullPlayer(idx){
       toast('🔇 '+msg,'err',4000);
     }
   });
-  audio.play().then(()=>{_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}).catch((e)=>{
-    if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
+  /* canplay 대기 후 재생 (모바일 호환) */
+  audio.addEventListener('canplay',function _onCanPlay(){
+    audio.removeEventListener('canplay',_onCanPlay);
+    audio.play().then(()=>{_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}).catch((e)=>{
+      if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
+    });
   });
+  audio.src=h.audio_url;
+  audio.load();
 
   /* 시크 */
   $('fp-prog-wrap').onclick=e=>{
@@ -7626,10 +7634,6 @@ $('fp-play-btn').addEventListener('click',()=>{
 });
 
 /* 볼륨 슬라이더 */
-$('fp-vol-slider')?.addEventListener('input', e=>{
-  if(fpAudio) fpAudio.volume = parseFloat(e.target.value);
-});
-
 function fpSeekRel(sec){
   if(!fpAudio?.duration)return;
   fpAudio.currentTime=Math.max(0,Math.min(fpAudio.duration,fpAudio.currentTime+sec));
