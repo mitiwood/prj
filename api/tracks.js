@@ -18,7 +18,7 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 let _mem = []; // fallback
 
 async function _tgNotify(event, data) {
-  if (!TG_TOKEN || !TG_CHAT) return;
+  if (!TG_TOKEN || !TG_CHAT) return { skipped: true, reason: "no token/chat" };
   try {
     const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
@@ -29,13 +29,16 @@ async function _tgNotify(event, data) {
     if (data.user) text += `생성자: ${data.user}\n`;
     if (data.author) text += `작성자: ${data.author}\n`;
     text += `⏰ ${ts}`;
-    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
-    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    const jsonPayload = JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
+    const body = Buffer.from(jsonPayload, "utf-8");
+    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
       body,
     });
-  } catch(e) { console.warn("[TG]", e.message); }
+    const d = await r.json();
+    return { sent: true, ok: d.ok, message_id: d.result?.message_id, error: d.ok ? null : d.description };
+  } catch(e) { return { sent: false, error: e.message }; }
 }
 
 async function sb(path, opts = {}) {
@@ -180,12 +183,15 @@ export default async function handler(req, res) {
         }
       }
       /* 텔레그램 알림 (응답 전에 완료 대기) */
-      await _tgNotify(video_url ? "mv_created" : "music_created", {
-        title: title || "무제",
-        mode: genMode || "custom",
-        user: owner_name || "익명",
-      });
-      return res.status(200).json({ success: true, source: src });
+      let _tgResult = null;
+      try {
+        _tgResult = await _tgNotify(video_url ? "mv_created" : "music_created", {
+          title: title || "무제",
+          mode: genMode || "custom",
+          user: owner_name || "익명",
+        });
+      } catch(tgErr) { _tgResult = { error: tgErr.message }; }
+      return res.status(200).json({ success: true, source: src, tg: _tgResult });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
