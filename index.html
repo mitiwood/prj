@@ -3673,7 +3673,7 @@ let _sbLoaded    = false;
 let _sbMyLoaded  = false;
 let _sbLoading   = false;
 let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
-const _SB_CACHE_TTL = 30000; /* 30초 캐시 */
+const _SB_CACHE_TTL = 10000; /* 10초 캐시 — 관리자 숨기기/노출 즉시 반영 */
 
 /* 커뮤니티 공개 트랙 로드 — 30초 캐시, 탭 전환 시 자동 리프레시 */
 async function _loadSbTracks(force=false){
@@ -9334,7 +9334,13 @@ function startAnnPoll() {
 startAnnPoll();
 /* 탭 복귀 시 즉시 체크 — 단, 이미 본 공지는 다시 안 뜸 (seen 기록 유지) */
 document.addEventListener('visibilitychange', () => {
-  if(!document.hidden) checkAnnouncement();
+  if(!document.hidden){
+    checkAnnouncement();
+    /* 탭 복귀 시 커뮤니티 캐시 무효화 → 관리자 숨기기/노출 즉시 반영 */
+    _sbLoadedAt = 0;
+    const commView = document.getElementById('community-view');
+    if(commView && commView.style.display !== 'none') renderCommunity(true);
+  }
 });
 
 const _ANN_TYPE_MAP = {
