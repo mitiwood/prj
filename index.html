@@ -3288,7 +3288,7 @@ function switchTab(viewId){
 }
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
 const POLL_INTERVAL = 1500;  /* 1.5초 간격 */
-const MAX_POLLS = 90;         /* 최대 ~200초 대기 */
+const MAX_POLLS = 160;        /* 최대 ~5분 대기 */
 
 /* ── 장르 ── */
 /* 트랙 데이터 전역 저장 (노래방 플레이어에서 가사 접근용) */
@@ -4600,31 +4600,33 @@ async function kieRequest(apiKey,method,path,body){
 }
 
 async function pollResult(apiKey,taskId){
-  /* 최적화 폴링: 초기 3회(500ms) → 다음 7회(1초) → 이후(2초) */
+  /* 폴링: 초기 3회(500ms) → 다음 7회(1초) → 이후(2초) → 80초 이후(3초) */
   let elapsed = 0;
+  let _noDataCount = 0;
   for(let i=0;i<MAX_POLLS;i++){
-    const interval = i < 3 ? 500 : i < 10 ? 1000 : 2000;
+    const interval = i < 3 ? 500 : i < 10 ? 1000 : elapsed < 80000 ? 2000 : 3000;
     await sleep(interval);
     elapsed += interval;
     try{
       const data=await kieRequest(apiKey,'GET',`/api/v1/generate/record-info?taskId=${taskId}`);
-      const st=data?.data;if(!st)continue;
+      const st=data?.data;
+      if(!st){ _noDataCount++; if(_noDataCount>5) console.warn('[poll] no data x'+_noDataCount); continue; }
+      _noDataCount=0;
       const status=(st.status||'').toUpperCase();
       /* sunoData 외 다양한 응답 구조 대응 */
       const tracks=st.response?.sunoData||st.sunoData||st.tracks||st.response?.tracks||[];
       const sec = Math.round(elapsed/1000);
       const dots = '.'.repeat((i%3)+1);
       $('ld-sub').innerHTML=`상태: <b style="color:var(--acc)">${status||'대기 중'}</b> (${sec}초 경과${dots})<br>
-        ${sec<20?'AI가 작곡 중이에요 🎼':(sec<40?'편곡 & 보컬 녹음 중 🎤':(sec<70?'마스터링 중 🎧':'거의 다 됐어요! ✨'))}`;
+        ${sec<30?'AI가 작곡 중이에요 🎼':(sec<70?'편곡 & 보컬 녹음 중 🎤':(sec<120?'마스터링 중 🎧':'거의 다 됐어요! ✨'))}`;
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
         throw new Error('가사에 부적절한 단어가 포함되어 있어요 — 가사를 수정 후 다시 시도해주세요');
       }
-      /* sunoData null → status SUCCESS인데 tracks 없는 경우 재시도 */
+      /* sunoData null → status SUCCESS인데 tracks 없는 경우 최대 5회 더 대기 */
       if(status==='SUCCESS'){
         if(tracks.length) return tracks;
-        /* sunoData null이면 1회 더 대기 */
         if(i < MAX_POLLS-2){ continue; }
         throw new Error('트랙 데이터를 받지 못했어요 (sunoData null) — 다시 시도해주세요');
       }
@@ -4633,8 +4635,9 @@ async function pollResult(apiKey,taskId){
         throw new Error('생성 실패'+detail+' — 가사를 수정하거나 다시 시도해주세요');
       }
     }catch(e){
-      if(e.message.includes('생성 실패')||e.message.includes('FAILED'))throw e;
-      /* 일시적 네트워크 오류는 무시 */
+      /* 인증 오류나 명확한 API 오류는 즉시 중단 */
+      if(/401|403|크레딧|부적절|생성 실패|FAILED/i.test(e.message)) throw e;
+      /* 일시적 네트워크 오류는 무시하고 재시도 */
       console.warn('[poll] retry',i,e.message);
     }
   }
