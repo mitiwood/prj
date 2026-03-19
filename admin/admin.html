@@ -3124,8 +3124,8 @@ document.addEventListener('DOMContentLoaded', ()=>{ startDashAutoRefresh(); });
 //  매니저 관리 시스템
 // ══════════════════════════════════════════════
 const MGR_ROLES = {
-  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','logs','settings'] },
-  super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push'] },
+  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','logs','settings','audit'] },
+  super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push','audit'] },
   manager: { label:'📋 매니저',       color:'#3b82f6', secs:['dashboard','tracks','community','reports'] },
   viewer:  { label:'👁 뷰어',         color:'#10b981', secs:['dashboard','usage'] }
 };
@@ -3404,6 +3404,398 @@ window.submitReport = function(trackTitle, type, reason, reporter){
 
 /* 신고 탭 진입 시 로드 */
 const _origSwitchSecRep = switchSec;
+
+
+// ══════════════════════════════════════════════
+//  감사 로그 (Audit Log) 시스템
+// ══════════════════════════════════════════════
+const AUDIT_KEY = 'kms_audit_log';
+const AUDIT_ICONS = {
+  login:'🔑', delete:'🗑', hide:'🙈', ban:'🚫',
+  announce:'📣', push:'🔔', manager:'🛡️', setting:'⚙️',
+  show:'👁', resolve:'✅', export:'📥', other:'📝'
+};
+
+function getAuditLog(){ try{ return JSON.parse(localStorage.getItem(AUDIT_KEY)||'[]'); }catch{ return []; } }
+function saveAuditLog(log){ localStorage.setItem(AUDIT_KEY, JSON.stringify(log.slice(0,500))); }
+
+function addAudit(type, action, detail=''){
+  const log = getAuditLog();
+  const actor = currentAccount?.name || '관리자';
+  const role = currentAccount?.role || 'admin';
+  log.unshift({ type, action, detail, actor, role, ts: Date.now() });
+  saveAuditLog(log);
+}
+
+function renderAuditLog(){
+  const log = getAuditLog();
+  const typeF = document.getElementById('audit-type-filter')?.value || '';
+  const searchF = (document.getElementById('audit-search')?.value || '').toLowerCase();
+  const filtered = log.filter(e => {
+    if(typeF && e.type !== typeF) return false;
+    if(searchF && !(e.action+' '+e.detail+' '+e.actor).toLowerCase().includes(searchF)) return false;
+    return true;
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const el = id => document.getElementById(id);
+  if(el('audit-total')) el('audit-total').textContent = log.length;
+  if(el('audit-today')) el('audit-today').textContent = log.filter(e=>e.ts>=today.getTime()).length;
+  if(el('audit-deletes')) el('audit-deletes').textContent = log.filter(e=>e.type==='delete').length;
+  if(el('audit-bans')) el('audit-bans').textContent = log.filter(e=>e.type==='ban').length;
+  if(el('audit-filter-count')) el('audit-filter-count').textContent = filtered.length+'건';
+
+  const list = document.getElementById('audit-log-list');
+  if(!list) return;
+  if(!filtered.length){
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);">기록 없음</div>';
+    return;
+  }
+  list.innerHTML = filtered.slice(0,100).map(e => {
+    const icon = AUDIT_ICONS[e.type] || '📝';
+    const time = new Date(e.ts).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const roleBadge = e.role==='admin'?'👑':'📋';
+    return `<div class="audit-entry">
+      <div class="audit-icon">${icon}</div>
+      <div class="audit-body">
+        <div class="audit-action">${esc(e.action)}</div>
+        <div class="audit-detail">${esc(e.detail)} · ${roleBadge} ${esc(e.actor)}</div>
+      </div>
+      <div class="audit-time">${time}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDashAuditPreview(){
+  const log = getAuditLog().slice(0,5);
+  const el = document.getElementById('dash-audit-preview');
+  if(!el) return;
+  if(!log.length){ el.innerHTML='<div style="color:var(--t3);font-size:12px;text-align:center;padding:16px;">활동 기록 없음</div>'; return; }
+  el.innerHTML = log.map(e=>{
+    const icon=AUDIT_ICONS[e.type]||'📝';
+    const time=new Date(e.ts).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div class="audit-entry"><div class="audit-icon">${icon}</div><div class="audit-body"><div class="audit-action" style="font-size:11px;">${esc(e.action)}</div><div class="audit-detail">${esc(e.actor)} · ${time}</div></div></div>`;
+  }).join('');
+}
+
+function exportAuditCsv(){
+  const log = getAuditLog();
+  if(!log.length){ adminToast('내보낼 기록 없음'); return; }
+  const header = ['유형','액션','상세','실행자','권한','일시'];
+  const rows = log.map(e=>[e.type,e.action.replace(/,/g,' '),e.detail.replace(/,/g,' '),e.actor,e.role,new Date(e.ts).toLocaleString('ko-KR')]);
+  const csv = [header,...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'),{href:url,download:'kms_audit_'+new Date().toISOString().slice(0,10)+'.csv'});
+  a.click(); URL.revokeObjectURL(url);
+  adminToast('📥 감사 로그 CSV 다운로드됨');
+}
+
+function clearAuditLog(){
+  if(!confirm('감사 로그를 전부 삭제할까요?')) return;
+  localStorage.removeItem(AUDIT_KEY);
+  addAudit('setting','감사 로그 초기화');
+  renderAuditLog();
+  adminToast('✅ 감사 로그 초기화됨');
+}
+
+
+// ══════════════════════════════════════════════
+//  시스템 헬스체크
+// ══════════════════════════════════════════════
+async function runHealthCheck(){
+  const grid = document.getElementById('health-grid');
+  if(!grid) return;
+  grid.innerHTML = '<div class="health-item"><div class="health-dot health-warn"></div><div class="health-label">확인 중...</div></div>';
+  const checks = [];
+
+  // Supabase
+  try{
+    const r = await fetch('/api/tracks?limit=1',{signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    checks.push({name:'Supabase',ok:r.ok&&d.source==='supabase',warn:r.ok&&d.source!=='supabase'});
+  }catch{ checks.push({name:'Supabase',ok:false}); }
+
+  // Users API
+  try{
+    const pw = localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+    const r = await fetch('/api/users',{headers:{'Authorization':'Bearer '+pw},signal:AbortSignal.timeout(5000)});
+    checks.push({name:'Users API',ok:r.ok});
+  }catch{ checks.push({name:'Users API',ok:false}); }
+
+  // VAPID
+  try{
+    const r = await fetch('/api/vapid-keys',{signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    checks.push({name:'VAPID',ok:!!d.publicKey,warn:!d.publicKey});
+  }catch{ checks.push({name:'VAPID',ok:false}); }
+
+  // Announcement API
+  try{
+    const r = await fetch('/api/announcement',{signal:AbortSignal.timeout(5000)});
+    checks.push({name:'공지 API',ok:r.ok});
+  }catch{ checks.push({name:'공지 API',ok:false}); }
+
+  // KIE Proxy
+  try{
+    const r = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/api/v1/chat/credit',method:'GET',apiKey:'test'}),signal:AbortSignal.timeout(5000)});
+    checks.push({name:'KIE Proxy',ok:r.status!==500&&r.status!==404,warn:r.status===401||r.status===403});
+  }catch{ checks.push({name:'KIE Proxy',ok:false}); }
+
+  // localStorage
+  const lsUsed = JSON.stringify(localStorage).length;
+  checks.push({name:'localStorage',ok:lsUsed<4000000,warn:lsUsed>=3000000,detail:Math.round(lsUsed/1024)+'KB'});
+
+  grid.innerHTML = checks.map(c=>{
+    const dot = c.ok ? 'health-ok' : c.warn ? 'health-warn' : 'health-err';
+    const status = c.ok ? '정상' : c.warn ? '경고' : '오류';
+    return `<div class="health-item"><div class="health-dot ${dot}"></div><div class="health-label">${c.name}<br><span style="font-size:9px;color:var(--t3);">${status}${c.detail?' · '+c.detail:''}</span></div></div>`;
+  }).join('');
+}
+
+
+// ══════════════════════════════════════════════
+//  주간 트렌드 차트
+// ══════════════════════════════════════════════
+function renderWeeklyTrends(){
+  const h = getHistory();
+  const loginUsers = getLoginUsers();
+  const now = new Date();
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    const dayLabel = (d.getMonth()+1)+'/'+(d.getDate());
+    const tracks = h.filter(t=>t.created&&new Date(t.created)>=d&&new Date(t.created)<next).length;
+    const logins = loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=d&&new Date(u.lastLogin)<next).length;
+    days.push({label:dayLabel, tracks, logins});
+  }
+  const maxT = Math.max(...days.map(d=>d.tracks),1);
+  const maxL = Math.max(...days.map(d=>d.logins),1);
+  const tChart = document.getElementById('weekly-trend-chart');
+  const lChart = document.getElementById('weekly-login-chart');
+  if(tChart) tChart.innerHTML = days.map(d=>`<div class="bar-item"><div class="bar-label">${d.label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.tracks/maxT*100)}%"></div></div><div class="bar-val">${d.tracks}</div></div>`).join('');
+  if(lChart) lChart.innerHTML = days.map(d=>`<div class="bar-item"><div class="bar-label">${d.label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.logins/maxL*100)}%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div><div class="bar-val">${d.logins}</div></div>`).join('');
+}
+
+
+// ══════════════════════════════════════════════
+//  커뮤니티 일괄 관리
+// ══════════════════════════════════════════════
+function toggleAllComm(el){
+  document.querySelectorAll('#comm-tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);
+}
+
+function filterCommunity(){
+  const q = (document.getElementById('comm-search')?.value||'').toLowerCase();
+  const rows = document.querySelectorAll('#comm-tbody tr');
+  rows.forEach(r=>{
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+async function batchCommAction(action){
+  const checked = [...document.querySelectorAll('#comm-tbody input[type=checkbox]:checked')];
+  if(!checked.length){ adminToast('선택된 트랙이 없습니다'); return; }
+  const label = action==='delete' ? '삭제' : '숨기기';
+  if(!confirm(checked.length+'곡을 '+label+'할까요?')) return;
+  const pw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+  let success = 0, fail = 0;
+  for(const chk of checked){
+    const id = chk.dataset.trackId;
+    if(!id){ fail++; continue; }
+    try{
+      if(action==='delete'){
+        const r = await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
+        const d = await r.json();
+        if(d.success) success++; else fail++;
+      } else {
+        const r = await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{method:'PATCH',headers:{'Authorization':'Bearer '+pw,'Content-Type':'application/json'}});
+        const d = await r.json();
+        if(d.success) success++; else fail++;
+      }
+    }catch{ fail++; }
+  }
+  addAudit(action==='delete'?'delete':'hide', `커뮤니티 일괄 ${label}`, `${success}건 성공, ${fail}건 실패`);
+  adminToast(`✅ ${success}건 ${label} 완료`+(fail?` (${fail}건 실패)`:``));
+  renderCommunityAdmin();
+}
+
+
+// ══════════════════════════════════════════════
+//  사용자 상세 모달
+// ══════════════════════════════════════════════
+let _allLoginUsersCache = [];
+
+function openUserDetail(userName, provider){
+  const modal = document.getElementById('user-detail-modal');
+  if(!modal) return;
+  const user = _allLoginUsersCache.find(u=>u.name===userName&&(u.provider||'')===(provider||''));
+  if(!user){ adminToast('사용자 정보 없음'); return; }
+  const h = getHistory();
+  const userTracks = h.filter(t=>t._owner?.name===userName);
+  const totalLikes = userTracks.reduce((a,t)=>a+(t._commLikes||0),0);
+
+  const avatarEl = document.getElementById('ud-avatar');
+  if(user.avatar) avatarEl.innerHTML = '<img src="'+esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">';
+  else avatarEl.innerHTML = '<span style="font-size:24px;">👤</span>';
+  document.getElementById('ud-name').textContent = user.name;
+  document.getElementById('ud-provider').textContent = (user.provider||'guest').toUpperCase();
+  document.getElementById('ud-email').textContent = user.email||'';
+  document.getElementById('ud-logins').textContent = user.loginCount||1;
+  document.getElementById('ud-tracks').textContent = userTracks.length;
+  document.getElementById('ud-likes').textContent = totalLikes;
+  document.getElementById('ud-lastlogin').textContent = user.lastLogin ? new Date(user.lastLogin).toLocaleString('ko-KR') : '-';
+
+  const ua = user.ua||'';
+  let device = 'PC';
+  if(/iPhone/i.test(ua)) device='iPhone';
+  else if(/iPad/i.test(ua)) device='iPad';
+  else if(/Android/i.test(ua)) device='Android';
+  else if(/Mac/i.test(ua)) device='Mac';
+  document.getElementById('ud-device').textContent = device;
+
+  const tracksList = document.getElementById('ud-tracks-list');
+  if(userTracks.length){
+    tracksList.innerHTML = userTracks.slice(0,10).map(t=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:var(--bg3);margin-bottom:4px;">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;border-radius:6px;object-fit:cover;">':'🎵'}</div>
+        <div style="flex:1;min-width:0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.title||'무제')}</div>
+        <div style="font-size:10px;color:var(--t3);">❤️${t._commLikes||0}</div>
+      </div>`).join('');
+  } else {
+    tracksList.innerHTML = '<div style="font-size:12px;color:var(--t3);text-align:center;padding:12px;">생성 곡 없음</div>';
+  }
+
+  document.getElementById('ud-push-btn').onclick = ()=>{ modal.style.display='none'; sendPushToUser(userName); };
+  document.getElementById('ud-ban-btn').onclick  = ()=>{ modal.style.display='none'; banUser(userName); };
+  modal.style.display = 'flex';
+}
+
+
+// ══════════════════════════════════════════════
+//  기존 함수에 감사 로그 주입
+// ══════════════════════════════════════════════
+(function patchAuditLogging(){
+  const _origDeleteTrackByIdx = deleteTrackByIdx;
+  deleteTrackByIdx = function(i){
+    const h = getHistory();
+    const t = h[i];
+    addAudit('delete','트랙 삭제',t?.title||'인덱스 '+i);
+    _origDeleteTrackByIdx(i);
+  };
+
+  const _origDeleteCommTrack = deleteCommTrack;
+  deleteCommTrack = async function(id){
+    addAudit('delete','커뮤니티 트랙 삭제','ID: '+id);
+    return _origDeleteCommTrack(id);
+  };
+
+  const _origHideSbTrack = hideSbTrack;
+  hideSbTrack = async function(id, rowIdx){
+    addAudit('hide','커뮤니티 트랙 숨기기','ID: '+id);
+    return _origHideSbTrack(id, rowIdx);
+  };
+
+  const _origBanUser = banUser;
+  banUser = function(name){
+    addAudit('ban','사용자 차단',name);
+    _origBanUser(name);
+  };
+
+  const _origSendAnn = sendAnnouncement;
+  sendAnnouncement = async function(){
+    const title = document.getElementById('ann-title')?.value?.trim()||'';
+    addAudit('announce','인앱 공지 발송',title);
+    return _origSendAnn();
+  };
+
+  const _origSendPush = sendPush;
+  sendPush = async function(){
+    const title = document.getElementById('push-title')?.value?.trim()||'';
+    addAudit('push','푸시 알림 발송',title);
+    return _origSendPush();
+  };
+
+  const _origSavePw = savePw;
+  savePw = function(){
+    addAudit('setting','관리자 비밀번호 변경');
+    _origSavePw();
+  };
+
+  const _origDeleteSelected = deleteSelected;
+  deleteSelected = function(){
+    const cnt = document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked').length;
+    addAudit('delete','트랙 일괄 삭제',cnt+'곡');
+    _origDeleteSelected();
+  };
+})();
+
+
+// ══════════════════════════════════════════════
+//  loadData 확장 — 주간 트렌드 + 감사 로그 미리보기
+// ══════════════════════════════════════════════
+const _origLoadData2 = loadData;
+loadData = function(){
+  _origLoadData2();
+  renderWeeklyTrends();
+  renderDashAuditPreview();
+};
+
+// 페이지 최초 로드 시 헬스체크
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(()=>{ runHealthCheck(); }, 2000);
+});
+
+
+// ══════════════════════════════════════════════
+//  renderUsersAdmin 확장 — 사용자 이름 클릭 시 상세 모달
+// ══════════════════════════════════════════════
+const _origRenderUsersAdmin = renderUsersAdmin;
+renderUsersAdmin = async function(showToast=false){
+  await _origRenderUsersAdmin(showToast);
+  try{ _allLoginUsersCache = getLoginUsers(); }catch{}
+  document.querySelectorAll('#users-login-tbody tr').forEach(row=>{
+    const nameCell = row.querySelector('td:nth-child(2)');
+    if(!nameCell) return;
+    const name = nameCell.textContent.trim().split('\n')[0].trim();
+    const provBadge = row.querySelector('.badge');
+    const prov = provBadge ? provBadge.textContent.trim() : '';
+    nameCell.style.cursor = 'pointer';
+    nameCell.title = '클릭하여 상세 보기';
+    nameCell.onclick = ()=> openUserDetail(name, prov);
+  });
+};
+
+
+// ══════════════════════════════════════════════
+//  renderCommunityAdmin 확장 — 체크박스 추가
+// ══════════════════════════════════════════════
+const _origRenderCommAdmin = renderCommunityAdmin;
+renderCommunityAdmin = async function(){
+  await _origRenderCommAdmin();
+  document.querySelectorAll('#comm-tbody tr').forEach((row)=>{
+    if(row.querySelector('input[type=checkbox]')) return;
+    const firstTd = row.querySelector('td');
+    if(!firstTd) return;
+    const chkTd = document.createElement('td');
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    let trackId = '';
+    const hideBtn = row.querySelector('button[onclick*="hideSbTrack"]');
+    const delBtn = row.querySelector('button[onclick*="deleteCommTrack"]');
+    if(hideBtn){
+      const m = hideBtn.getAttribute('onclick').match(/hideSbTrack\('([^']+)'/);
+      if(m) trackId = m[1];
+    } else if(delBtn){
+      const m = delBtn.getAttribute('onclick').match(/deleteCommTrack\('([^']+)'/);
+      if(m) trackId = m[1];
+    }
+    chk.dataset.trackId = trackId;
+    chkTd.appendChild(chk);
+    row.insertBefore(chkTd, firstTd);
+  });
+};
+
 
 </script>
 </body>

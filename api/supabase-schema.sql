@@ -42,22 +42,42 @@ CREATE TABLE IF NOT EXISTS public.users (
   UNIQUE(name, provider)
 );
 
--- 3. RLS 활성화
-ALTER TABLE public.tracks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.users  ENABLE ROW LEVEL SECURITY;
+-- 3. announcements 테이블 (인앱 공지)
+CREATE TABLE IF NOT EXISTS public.announcements (
+  id              BIGSERIAL   PRIMARY KEY,
+  title           TEXT        NOT NULL,
+  body            TEXT        NOT NULL,
+  icon            TEXT        DEFAULT '🎵',
+  type            TEXT        DEFAULT 'info',
+  url             TEXT        DEFAULT '',
+  target          TEXT        DEFAULT 'all',
+  active          BOOLEAN     DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  expires_at      TIMESTAMPTZ DEFAULT NULL
+);
 
--- 4. 공개 읽기 정책 (anon 키)
+-- 4. RLS 활성화
+ALTER TABLE public.tracks        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+-- 5. 공개 읽기 정책 (anon 키)
 DROP POLICY IF EXISTS "tracks_public_read"  ON public.tracks;
 DROP POLICY IF EXISTS "users_public_read"   ON public.users;
-CREATE POLICY "tracks_public_read"  ON public.tracks FOR SELECT USING (true);
-CREATE POLICY "users_public_read"   ON public.users  FOR SELECT USING (true);
+CREATE POLICY "tracks_public_read"        ON public.tracks        FOR SELECT USING (true);
+CREATE POLICY "users_public_read"         ON public.users         FOR SELECT USING (true);
+DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
+CREATE POLICY "announcements_public_read" ON public.announcements FOR SELECT USING (true);
 
--- 5. 서버 쓰기 정책 (service_role 키)
+-- 6. 서버 쓰기 정책 (service_role 키)
 DROP POLICY IF EXISTS "tracks_service_write" ON public.tracks;
 DROP POLICY IF EXISTS "users_service_write"  ON public.users;
 CREATE POLICY "tracks_service_write" ON public.tracks
   FOR ALL USING (auth.role() = 'service_role');
 CREATE POLICY "users_service_write"  ON public.users
+  FOR ALL USING (auth.role() = 'service_role');
+DROP POLICY IF EXISTS "announcements_service_write" ON public.announcements;
+CREATE POLICY "announcements_service_write" ON public.announcements
   FOR ALL USING (auth.role() = 'service_role');
 
 -- 6. 인덱스
