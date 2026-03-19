@@ -1,110 +1,156 @@
 /**
- * /api/tracks — 생성된 트랙 서버 저장/조회
- * GET:  공개 트랙 목록 (커뮤니티용)
- * POST: 트랙 저장
- * PATCH /api/tracks?id=xxx&action=like : 좋아요 증가
+ * /api/tracks — Supabase 트랙 API (완전판)
+ *
+ * GET  ?public=true                   → 커뮤니티 공개 트랙 (인증 불필요)
+ * GET  ?owner=name&provider=xxx       → 특정 사용자 트랙 (인증 불필요)
+ * GET  Authorization: Bearer ADMIN    → 관리자 전체 조회
+ * POST                                → 트랙 저장
+ * PATCH ?id=xxx&action=like|unlike|dislike|undislike → 좋아요/싫어요
+ * DELETE ?id=xxx  Authorization       → 관리자 삭제
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL    = process.env.SUPABASE_URL;
+const SB_KEY    = process.env.SUPABASE_SERVICE_KEY;
+const ADMIN_PWD = process.env.ADMIN_SECRET || 'kenny2024!';
 
-async function sbFetch(path, options = {}) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('Supabase not configured');
-  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
-    ...options,
+let _mem = []; // fallback
+
+async function sb(path, opts = {}) {
+  if (!SB_URL || !SB_KEY) throw new Error('no_supabase');
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+    ...opts,
     headers: {
-      'apikey':        SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      apikey:          SB_KEY,
+      Authorization:   `Bearer ${SB_KEY}`,
       'Content-Type':  'application/json',
-      'Prefer':        options.prefer || '',
-      ...(options.headers || {}),
+      Prefer:          opts.prefer || 'return=representation',
+      ...(opts.headers || {}),
     },
   });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 200)}`);
-  return text ? JSON.parse(text) : null;
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0,200)}`);
+  return txt ? JSON.parse(txt) : null;
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* ── GET: 공개 트랙 목록 ── */
+  const authHdr  = req.headers.authorization || '';
+  const isAdmin  = authHdr === `Bearer ${ADMIN_PWD}`;
+  const isPublic = req.query?.public === 'true';
+  const ownerName= req.query?.owner || '';
+  const ownerProv= req.query?.provider || '';
+  const limit    = Math.min(parseInt(req.query?.limit || '200'), 500);
+  const offset   = parseInt(req.query?.offset || '0');
+
+  /* ─── GET ─── */
   if (req.method === 'GET') {
-    const limit  = Math.min(parseInt(req.query?.limit||'50'), 100);
-    const offset = parseInt(req.query?.offset||'0');
+    if (!isPublic && !ownerName && !isAdmin)
+      return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const tracks = await sbFetch(
-        `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}`
-      );
-      return res.status(200).json({ tracks, total: tracks.length });
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
+      let filter;
+      if (isAdmin) {
+        filter = `/tracks?order=created.desc&limit=${limit}&offset=${offset}&select=*`;
+      } else if (ownerName) {
+        filter = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created.desc&limit=${limit}&select=*`;
+      } else {
+        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created.desc&limit=${limit}&offset=${offset}&select=*`;
+      }
+      const rows = await sb(filter);
+      return res.status(200).json({ tracks: rows||[], total:(rows||[]).length, source:'supabase' });
+    } catch(e) {
+      console.warn('[tracks GET]', e.message);
+      let list = isAdmin ? _mem : _mem.filter(t=>t.is_public);
+      if (ownerName) list = _mem.filter(t=>t.owner_name===ownerName && t.owner_provider===ownerProv);
+      list = [...list].sort((a,b)=>(b.created||0)-(a.created||0));
+      return res.status(200).json({ tracks:list, total:list.length, source:'memory', note:e.message });
     }
   }
 
-  /* ── POST: 트랙 저장 ── */
+  /* ─── POST: 저장 ─── */
   if (req.method === 'POST') {
     try {
-      let body = req.body;
-      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-      body = body || {};
-
-      const { id, taskId, title, audio_url, video_url, image_url, tags, lyrics,
-              genMode, owner_name, owner_avatar, owner_provider, is_public, raw_data } = body;
-
-      if (!id || !audio_url) return res.status(400).json({ error: 'id and audio_url required' });
-
-      const entry = {
-        id, task_id: taskId||'', title: title||'무제',
-        audio_url, video_url: video_url||'', image_url: image_url||'',
-        tags: tags||'', lyrics: lyrics||'', gen_mode: genMode||'custom',
-        owner_name: owner_name||'', owner_avatar: owner_avatar||'',
-        owner_provider: owner_provider||'',
-        is_public: is_public !== false,
-        raw_data: raw_data || {},
+      let b = req.body;
+      if (typeof b === 'string') { try{b=JSON.parse(b);}catch{b={};} }
+      b = b||{};
+      const { id,taskId,title,audio_url,video_url,image_url,tags,lyrics,
+              genMode,owner_name,owner_avatar,owner_provider } = b;
+      if (!id||!audio_url) return res.status(400).json({error:'id and audio_url required'});
+      const now = Date.now();
+      const row = {
+        id,
+        task_id:        taskId         || '',
+        title:          title          || '무제',
+        audio_url,
+        video_url:      video_url      || '',
+        image_url:      image_url      || '',
+        tags:           tags           || '',
+        lyrics:         (lyrics||'').slice(0,5000),
+        gen_mode:       genMode        || 'custom',
+        owner_name:     owner_name     || '익명',
+        owner_avatar:   owner_avatar   || '',
+        owner_provider: owner_provider || 'guest',
+        is_public:      true,
+        comm_likes:     0,
+        comm_dislikes:  0,
+        comm_plays:     0,
+        created:        now,
+        created_at:     new Date(now).toISOString(),
       };
-
-      await sbFetch('/tracks?on_conflict=id', {
-        method: 'POST',
-        prefer: 'resolution=merge-duplicates',
-        body: JSON.stringify(entry),
-      });
-      return res.status(200).json({ success: true });
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
-    }
+      try {
+        await sb('/tracks?on_conflict=id', { method:'POST', prefer:'resolution=merge-duplicates', body:JSON.stringify(row) });
+        return res.status(200).json({success:true, source:'supabase'});
+      } catch(e) {
+        console.warn('[tracks POST]', e.message);
+        const idx=_mem.findIndex(t=>t.id===id);
+        if(idx>=0) _mem[idx]={..._mem[idx],...row};
+        else { _mem.unshift(row); if(_mem.length>500) _mem=_mem.slice(0,500); }
+        return res.status(200).json({success:true, source:'memory', note:e.message});
+      }
+    } catch(e) { return res.status(500).json({error:e.message}); }
   }
 
-  /* ── PATCH: 좋아요/재생수 증가 ── */
+  /* ─── PATCH: 좋아요/싫어요 토글 ─── */
   if (req.method === 'PATCH') {
-    const { id, action } = req.query || {};
-    if (!id) return res.status(400).json({ error: 'id required' });
+    const id     = req.query?.id;
+    const action = req.query?.action || 'like'; // like|unlike|dislike|undislike
+    if (!id) return res.status(400).json({error:'id required'});
+    const col   = action.includes('dislike') ? 'comm_dislikes' : 'comm_likes';
+    const delta = action.startsWith('un') ? -1 : 1;
     try {
-      const col = action === 'play' ? 'comm_plays' : 'comm_likes';
-      /* Supabase RPC로 atomic increment */
-      const result = await sbFetch(
-        `/rpc/increment_track_${col === 'comm_likes' ? 'likes' : 'plays'}`,
-        { method: 'POST', body: JSON.stringify({ track_id: id }) }
-      ).catch(async () => {
-        /* fallback: 읽기→쓰기 */
-        const [track] = await sbFetch(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
-        if (!track) throw new Error('track not found');
-        const newVal = (track[col]||0) + 1;
-        await sbFetch(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: 'PATCH', prefer: 'return=minimal',
-          body: JSON.stringify({ [col]: newVal }),
+      try {
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
+        const cur  = Math.max(0,(rows?.[0]?.[col]||0)+delta);
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method:'PATCH', prefer:'return=minimal',
+          body: JSON.stringify({[col]:cur}),
         });
-        return { [col]: newVal };
-      });
-      return res.status(200).json({ success: true, ...result });
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
-    }
+        return res.status(200).json({success:true, [col]:cur, source:'supabase'});
+      } catch(e) {
+        const idx=_mem.findIndex(t=>t.id===id);
+        if(idx>=0){
+          _mem[idx][col]=Math.max(0,(_mem[idx][col]||0)+delta);
+          return res.status(200).json({success:true,[col]:_mem[idx][col],source:'memory'});
+        }
+        return res.status(404).json({error:'not found'});
+      }
+    } catch(e) { return res.status(500).json({error:e.message}); }
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  /* ─── DELETE: 관리자 삭제 ─── */
+  if (req.method === 'DELETE') {
+    if (!isAdmin) return res.status(401).json({error:'Unauthorized'});
+    const id = req.query?.id;
+    if (!id) return res.status(400).json({error:'id required'});
+    try {
+      await sb(`/tracks?id=eq.${encodeURIComponent(id)}`,{method:'DELETE',prefer:'return=minimal'});
+      return res.status(200).json({success:true});
+    } catch(e) { return res.status(500).json({error:e.message}); }
+  }
+
+  return res.status(405).json({error:'Method not allowed'});
 }

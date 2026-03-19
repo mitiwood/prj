@@ -3314,6 +3314,100 @@ const PRESET_MAP={
 
 /* ── 상태 ── */
 let historyData=JSON.parse(localStorage.getItem('kms_history')||'[]');
+
+/* ── Supabase 클라이언트 헬퍼 (서버리스 없이 직접 호출) ──
+   index.html은 anon 키로 SELECT만, 쓰기는 /api/tracks 통해 서버에서
+*/
+const KMS_SB_URL = ''; /* Vercel 환경변수로 /api/config에서 주입 */
+
+/* ── 트랙 캐시 ── */
+let _sbTracks    = [];   /* Supabase에서 받아온 전체 커뮤니티 트랙 */
+let _sbMyTracks  = [];   /* 현재 로그인 사용자의 트랙 */
+let _sbLoaded    = false;
+let _sbMyLoaded  = false;
+let _sbLoading   = false;
+
+/* 커뮤니티 공개 트랙 로드 */
+async function _loadSbTracks(force=false){
+  if(_sbLoading || (_sbLoaded && !force)) return;
+  _sbLoading = true;
+  try{
+    const r = await fetch('/api/tracks?public=true&limit=200');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    if(Array.isArray(d.tracks)){
+      _sbTracks = d.tracks.map(_rowToTrack);
+      _sbLoaded = true;
+    }
+  }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
+  _sbLoading = false;
+}
+
+/* 내 트랙 로드 (로그인한 경우) */
+async function _loadMyTracks(force=false){
+  if(!currentUser || currentUser.provider==='guest') return;
+  if(_sbMyLoaded && !force) return;
+  try{
+    const name = encodeURIComponent(currentUser.name||'');
+    const prov = encodeURIComponent(currentUser.provider||'');
+    const r = await fetch('/api/tracks?owner='+name+'&provider='+prov+'&limit=200');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    if(Array.isArray(d.tracks)){
+      _sbMyTracks = d.tracks.map(_rowToTrack);
+      _sbMyLoaded = true;
+      /* historyData에 병합 (로컬에 없는 것만) */
+      _sbMyTracks.forEach(st=>{
+        const exists = historyData.find(h=>h.id===st._sbId||h.taskId===st.taskId);
+        if(!exists){
+          historyData.unshift({
+            id:st._sbId, taskId:st.taskId||'',
+            title:st.title, audio_url:st.audioUrl,
+            video_url:st.videoUrl||'', image_url:st.img,
+            tags:st.allTags, lyrics:st.lyrics,
+            created:st._created, type:'audio',
+            genMode:st._genMode,
+            _owner:st._owner,
+            _fromSb:true,
+          });
+        }
+      });
+      historyData = historyData.sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,200);
+      saveHistory(); updateHistBadge();
+    }
+  }catch(e){ console.warn('[SB] 내 트랙 로드 실패:', e.message); }
+}
+
+/* Supabase row → 커뮤니티 트랙 포맷 변환 */
+function _rowToTrack(t){
+  return {
+    _sbId:   t.id,
+    taskId:  t.task_id || '',
+    title:   t.title   || '무제',
+    tags:    (t.tags||'').split(',')[0]?.trim()||'',
+    allTags: (t.tags||'').toLowerCase(),
+    img:     t.image_url  || '',
+    dur:     '—',
+    audioUrl:t.audio_url  || '',
+    videoUrl:t.video_url  || '',
+    lyrics:  t.lyrics     || '',
+    description:'',
+    likes:   t.comm_likes    || 0,
+    dislikes:t.comm_dislikes || 0,
+    liked:   false,
+    disliked:false,
+    isNew:   (Date.now()-(t.created||0)) < 86400000,
+    plays:   t.comm_plays || 0,
+    _owner:  t.owner_name ? {
+      name:     t.owner_name,
+      avatar:   t.owner_avatar   || '',
+      provider: t.owner_provider || 'guest',
+    } : null,
+    _genMode: t.gen_mode || 'custom',
+    _created: t.created  || 0,
+    _hIdx:    -1,
+  };
+}
 let activeAudio=null,activeVizTimer=null;
 let instOn=false,vocalGender='',currentMode='custom';
 let extendAudioId=null,toastTmr=null;
@@ -3756,6 +3850,22 @@ async function _ytDoGenerate(){
     showCompletionPopup('youtube','');
     setTimeout(gotoHistoryTab,600);
 
+    /* 서버에 트랙 저장 */
+    tracks.forEach(t=>{
+      _saveTrackToServer({
+        id:t.id, taskId,
+        title:t.title||songTitle||'YouTube Cover',
+        audio_url:t.audioUrl||t.audio_url||'',
+        image_url:t.imageUrl||t.image_url||'',
+        tags:t.tags||ytStyle,
+        lyrics:ytLyrics||'',
+        genMode:'youtube',
+        owner_name:currentUser?.name||'익명',
+        owner_avatar:currentUser?.avatar||'',
+        owner_provider:currentUser?.provider||'guest',
+      });
+    });
+
   }catch(e){
     clearInterval(_tipTimer);
     $('loading-card').classList.remove('on');
@@ -3878,6 +3988,8 @@ function _saveLoginUser(user){
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
     /* 로그인 사용자 목록에 추가 (관리자 통계용) */
     _saveLoginUser(user);
+    /* Supabase에서 내 트랙 로드 */
+    setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
     /* 푸시 구독 요청 */
     setTimeout(()=>{ if(window.kmsRequestPush) window.kmsRequestPush(); }, 1500);
     /* URL 파라미터 제거 */
@@ -4882,6 +4994,22 @@ async function generate(overrideParams){
     saveHistory();updateHistBadge();
     showCompletionPopup(currentMode||'custom', '');
     setTimeout(gotoHistoryTab,600);
+
+    /* 서버에 트랙 저장 (admin 전체 조회용) */
+    tracks.forEach(t=>{
+      _saveTrackToServer({
+        id:t.id, taskId,
+        title:t.title||'무제',
+        audio_url:t.audioUrl||t.audio_url||'',
+        image_url:t.imageUrl||t.image_url||'',
+        tags:t.tags||styleStr,
+        lyrics:savedLyrics||'',
+        genMode:currentMode,
+        owner_name:currentUser?.name||'익명',
+        owner_avatar:currentUser?.avatar||'',
+        owner_provider:currentUser?.provider||'guest',
+      });
+    });
 
     if(makeMV){
       const mvTrack=tracks[0];
@@ -6216,6 +6344,35 @@ function renderHistory(){updateHistBadge();}
 /* ── HISTORY SAVE ── */
 function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(historyData));}
 
+/* 서버(/api/tracks)에 트랙 저장 — Supabase 저장 */
+function _saveTrackToServer(track){
+  if(!track?.id || !track?.audio_url) return;
+  const payload = {
+    id:             track.id,
+    taskId:         track.taskId         || '',
+    title:          track.title          || '무제',
+    audio_url:      track.audio_url,
+    video_url:      track.video_url      || '',
+    image_url:      track.image_url      || '',
+    tags:           track.tags           || '',
+    lyrics:         track.lyrics         || '',
+    genMode:        track.genMode        || 'custom',
+    owner_name:     track._owner?.name     || currentUser?.name     || '익명',
+    owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
+    owner_provider: track._owner?.provider || currentUser?.provider || 'guest',
+  };
+  fetch('/api/tracks',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload),
+  }).then(r=>r.json()).then(d=>{
+    if(d.source==='supabase'){
+      /* Supabase 저장 성공 → 커뮤니티 캐시 갱신 */
+      _sbLoaded=false;
+    }
+  }).catch(()=>{});
+}
+
 /* ════════════════════════════════════
    전역 생성 락 (동시 생성 방지)
 ════════════════════════════════════ */
@@ -7118,22 +7275,25 @@ const _GENRE_KEYS={
   ost:['ost','cinematic','epic','film','오에스티','영화'],
 };
 function getCommTracks(){
-  /* audio_url 있는 곡 전부 커뮤니티 노출 (로그인 여부 무관) */
-  let all=historyData
-    .map((h,i)=>({
-      _hIdx:i, title:h.title||'무제',
-      tags:(h.tags||'').split(',')[0]?.trim()||'',
-      allTags:(h.tags||'').toLowerCase(),
-      img:h.image_url||'', dur:'—',
-      audioUrl:h.audio_url||'', videoUrl:h.video_url||'',
-      lyrics:h.lyrics||'', description:h.description||'',
-      likes:h._commLikes||0, liked:h._commLiked||false,
-      disliked:h._commDisliked||false,
-      isNew:(Date.now()-(h.created||0))<3600000*24,
-      plays:h._commPlays||0,
-      _owner: h._owner||null,
-    }))
-    .filter(t=>t.audioUrl);
+  /* _sbTracks(Supabase) 우선, 없으면 historyData fallback */
+  let all = (_sbLoaded && _sbTracks.length)
+    ? _sbTracks
+    : historyData.filter(h=>h.audio_url).map((h,i)=>({
+        _sbId:   h.id||'',
+        _hIdx:   i,
+        title:   h.title||'무제',
+        tags:    (h.tags||'').split(',')[0]?.trim()||'',
+        allTags: (h.tags||'').toLowerCase(),
+        img:     h.image_url||'', dur:'—',
+        audioUrl:h.audio_url||'', videoUrl:h.video_url||'',
+        lyrics:  h.lyrics||'', description:'',
+        likes:   h._commLikes||0, dislikes:h._commDislikes||0,
+        liked:   h._commLiked||false, disliked:h._commDisliked||false,
+        isNew:   (Date.now()-(h.created||0))<86400000,
+        plays:   h._commPlays||0, _owner:h._owner||null,
+        _genMode:h.genMode||'custom', _created:h.created||0,
+      }));
+
   if(_commActiveGenre&&_commActiveGenre!=='all'){
     const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
     all=all.filter(t=>kws.some(k=>t.allTags.includes(k)||t.title.toLowerCase().includes(k)));
@@ -7141,18 +7301,24 @@ function getCommTracks(){
   return all;
 }
 
-function renderCommunity(){
+async function renderCommunity(force=false){
   const heroWrap=$('comm-hero-wrap');
   const list=$('comm-list');
   if(!list)return;
 
+  /* 로딩 표시 */
+  if(!_sbLoaded || force){
+    list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--t3);"><div style="font-size:28px;margin-bottom:10px;">🎵</div><div>커뮤니티 곡 불러오는 중...</div></div>';
+    heroWrap.innerHTML='';
+    await _loadSbTracks(force);
+  }
+
   let tracks=getCommTracks();
   if(!tracks.length){
     heroWrap.innerHTML='';
-    const isLoggedIn=currentUser&&currentUser.provider!=='guest';
     list.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--t3);">
       <div style="font-size:40px;margin-bottom:12px;">🎵</div>
-      <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">${isLoggedIn?'아직 생성된 음악이 없어요':'아직 생성된 음악이 없어요'}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 생성된 음악이 없어요</div>
       <div style="font-size:12px;">음악 만들기에서 첫 곡을 만들어보세요!</div>
     </div>`;
     return;
@@ -7462,32 +7628,55 @@ function commSeekLine(el){
 }
 
 /* 히어로 좋아요 */
+/* ── 서버 좋아요/싫어요 반영 헬퍼 ── */
+function _sbReact(sbId, action){
+  if(!sbId) return;
+  fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action='+action, {method:'PATCH'})
+    .then(r=>r.json())
+    .then(d=>{
+      const t=_sbTracks.find(t=>t._sbId===sbId);
+      if(!t) return;
+      if(d.comm_likes    !== undefined) t.likes    = d.comm_likes;
+      if(d.comm_dislikes !== undefined) t.dislikes = d.comm_dislikes;
+    }).catch(()=>{});
+}
+
 function commHeroLike(){
-  const tracks=getCommTracks();if(!tracks.length)return;
-  const sorted=[...tracks].sort((a,b)=>b.likes-a.likes);
-  const hero=sorted[0];const h=historyData[hero._hIdx];if(!h)return;
-  h._commLiked=!h._commLiked;if(h._commLiked)h._commDisliked=false;
-  h._commLikes=(h._commLikes||0)+(h._commLiked?1:-1);if(h._commLikes<0)h._commLikes=0;
-  saveHistory();
-  const btn=$('comm-hero-like');const cnt=$('comm-hero-like-cnt');
-  if(btn){btn.classList.toggle('liked',h._commLiked);btn.innerHTML=`${h._commLiked?'❤️':'🤍'} 좋아요 <span id="comm-hero-like-cnt">${h._commLikes}</span>`;}
-  toast(h._commLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
+  const sorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
+  const hero=sorted[0]; if(!hero) return;
+  const newLiked = !hero.liked;
+  const newLikes = Math.max(0,(hero.likes||0)+(newLiked?1:-1));
+  _sbReact(hero._sbId, newLiked?'like':'unlike');
+  /* 캐시 */
+  if(_sbLoaded){const t=_sbTracks.find(t=>t._sbId===hero._sbId);if(t){t.liked=newLiked;t.likes=newLikes;t.disliked=false;}}
+  if(hero._hIdx>=0){const h=historyData[hero._hIdx];if(h){h._commLiked=newLiked;h._commLikes=newLikes;h._commDisliked=false;saveHistory();}}
+  const btn=$('comm-hero-like');
+  if(btn){btn.classList.toggle('liked',newLiked);btn.innerHTML=(newLiked?'❤️':'🤍')+' 좋아요 <span id="comm-hero-like-cnt">'+newLikes+'</span>';}
+  toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
 }
 function commHeroDislike(){
-  const tracks=getCommTracks();if(!tracks.length)return;
-  const sorted=[...tracks].sort((a,b)=>b.likes-a.likes);
-  const hero=sorted[0];const h=historyData[hero._hIdx];if(!h)return;
-  h._commDisliked=!h._commDisliked;if(h._commDisliked)h._commLiked=false;
-  saveHistory();
-  const btn=$('comm-hero-dislike');if(btn)btn.classList.toggle('disliked',h._commDisliked);
-  toast(h._commDisliked?'👎 싫어요':'싫어요 취소','',1200);
+  const sorted=[...getCommTracks()].sort((a,b)=>b.likes-a.likes);
+  const hero=sorted[0]; if(!hero) return;
+  const newDisliked = !hero.disliked;
+  const newDislikes = Math.max(0,(hero.dislikes||0)+(newDisliked?1:-1));
+  _sbReact(hero._sbId, newDisliked?'dislike':'undislike');
+  /* 캐시 */
+  if(_sbLoaded){const t=_sbTracks.find(t=>t._sbId===hero._sbId);if(t){t.disliked=newDisliked;t.dislikes=newDislikes;if(newDisliked)t.liked=false;}}
+  if(hero._hIdx>=0){const h=historyData[hero._hIdx];if(h){h._commDisliked=newDisliked;h._commDislikes=newDislikes;if(newDisliked){h._commLiked=false;h._commLikes=Math.max(0,(h._commLikes||0)-1);}saveHistory();}}
+  const btn=$('comm-hero-dislike');if(btn)btn.classList.toggle('disliked',newDisliked);
+  toast(newDisliked?'👎 싫어요':'싫어요 취소','',1200);
 }
 
 /* 리스트 좋아요 */
 function commLikeByHIdx(hIdx){
-  const h=historyData[hIdx];if(!h)return;
-  h._commLiked=!h._commLiked;if(h._commLiked)h._commDisliked=false;
-  h._commLikes=(h._commLikes||0)+(h._commLiked?1:-1);if(h._commLikes<0)h._commLikes=0;
+  const sbTrack = _sbTracks.find(t=>t._hIdx===hIdx);
+  const sbId = sbTrack?._sbId || historyData[hIdx]?.id;
+  const newLiked = sbTrack ? !sbTrack.liked : !(historyData[hIdx]?._commLiked);
+  _sbReact(sbId, newLiked?'like':'unlike');
+  if(sbTrack){ sbTrack.liked=newLiked; sbTrack.likes=Math.max(0,(sbTrack.likes||0)+(newLiked?1:-1)); sbTrack.disliked=false; }
+  const h=historyData[hIdx]; if(!h) return;
+  h._commLiked=newLiked; h._commDisliked=false;
+  h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));
   saveHistory();
   toast(h._commLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
   renderCommunity();
@@ -8285,7 +8474,7 @@ function urlBase64ToUint8Array(b64){
 
 /* 로그인 후 또는 페이지 로드 시 구독 시도 */
 window.addEventListener('load', ()=>{
-  /* 기존 kms_push_sub → kms_push_subs 마이그레이션 (1회) */
+  /* kms_push_sub → kms_push_subs 마이그레이션 */
   try{
     const single = localStorage.getItem('kms_push_sub');
     if(single && Notification.permission === 'granted'){
@@ -8299,6 +8488,14 @@ window.addEventListener('load', ()=>{
   }catch(e){}
   /* 알림 권한이 이미 있으면 바로 등록 */
   if(Notification.permission === 'granted') registerPushSW();
+  /* Supabase: 커뮤니티 트랙 백그라운드 로드 */
+  setTimeout(()=>{
+    _loadSbTracks();
+    /* 로그인 사용자면 내 트랙도 로드 */
+    if(currentUser && currentUser.provider!=='guest'){
+      _loadMyTracks();
+    }
+  }, 1000);
 });
 
 /* 외부에서 호출 가능 — 소셜 로그인 완료 후 호출 */

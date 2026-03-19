@@ -1008,8 +1008,9 @@ function loadData(){
   const totalLikes=h.reduce((a,t)=>a+(t._commLikes||0),0);
   const mvCount=h.filter(t=>t.video_url).length;
   const todayCount=h.filter(t=>t.created&&new Date(t.created)>=today).length;
-  const commCount=h.filter(t=>t.audio_url&&t._owner).length;
-  const users=[...new Set(h.map(t=>t._owner?.name).filter(Boolean))];
+  /* 모든 곡 카운트 (게스트 포함) */
+  const commCount=h.filter(t=>t.audio_url).length;
+  const users=[...new Set(h.map(t=>t._owner?.name||'게스트').filter(Boolean))];
 
   document.getElementById('stat-total').textContent=h.length;
   document.getElementById('stat-likes').textContent=totalLikes;
@@ -1418,87 +1419,80 @@ async function fetchKieUsage(){
 }
 
 async function renderCommunityAdmin(){
-  const tbody = document.getElementById('comm-tbody');
+  const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
-  tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 불러오는 중...</td></tr>';
-
-  /* localStorage 곡 + 서버 Supabase 곡 병합 */
-  let allTracks = [];
-
-  /* 1) localStorage 전체 히스토리 (audio_url 있는 것 전부) */
-  const h = getHistory();
-  const localTracks = h.filter(t => t.audio_url).map(t => ({
-    ...t,
-    _source: 'local',
-    _hIdx: h.indexOf(t),
-  }));
-  allTracks = [...localTracks];
-
-  /* 2) 서버 Supabase 곡 조회 (있는 경우) */
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
+  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  let allTracks=[];
   try{
-    const r = await fetch('/api/tracks?limit=100', { signal: AbortSignal.timeout(5000) });
-    const raw = await r.text();
-    if(r.ok && raw.trim().startsWith('{')){
-      const d = JSON.parse(raw);
-      if(Array.isArray(d.tracks) && d.tracks.length > 0){
-        d.tracks.forEach(st => {
-          const exists = allTracks.find(t => t.id === st.id || t.taskId === st.task_id);
-          if(!exists){
-            allTracks.push({
-              id: st.id,
-              taskId: st.task_id,
-              title: st.title,
-              audio_url: st.audio_url,
-              video_url: st.video_url,
-              image_url: st.image_url,
-              tags: st.tags,
-              lyrics: st.lyrics,
-              created: new Date(st.created_at).getTime(),
-              _commLikes: st.comm_likes,
-              _owner: { name:st.owner_name, avatar:st.owner_avatar, provider:st.owner_provider },
-              _source: 'server',
-            });
-          }
-        });
+    const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
+    const raw=await r.text();
+    if(r.ok&&raw.trim().startsWith('{')){
+      const d=JSON.parse(raw);
+      if(Array.isArray(d.tracks)){
+        allTracks=d.tracks.map(t=>({
+          id:t.id, taskId:t.task_id||'', title:t.title||'무제',
+          audio_url:t.audio_url||'', image_url:t.image_url||'',
+          tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
+          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+          _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
+          _source:d.source||'supabase',
+        }));
       }
     }
-  }catch(e){ /* Supabase 미연동 시 무시 */ }
-
-  /* 최신순 정렬 */
-  allTracks.sort((a,b) => (b.created||0) - (a.created||0));
-
+  }catch(e){ console.warn('[Admin] Supabase 실패:',e.message); }
   if(!allTracks.length){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">생성된 음악이 없습니다</td></tr>';
+    const h=getHistory();
+    allTracks=h.filter(t=>t.audio_url).map((t,i)=>({...t,_hIdx:i,_source:'local'}));
+  }
+  allTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+  const cnt=document.getElementById('comm-count');
+  if(cnt) cnt.textContent='('+allTracks.length+'곡)';
+  if(!allTracks.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">생성된 음악이 없습니다</td></tr>';
     return;
   }
-
-  tbody.innerHTML = allTracks.map((t,i) => `
-    <tr>
-      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
-      <td class="td-title">
-        ${esc(t.title||'무제')}
-        <div style="font-size:9px;color:var(--t3);margin-top:2px;">${t._source==='server'?'☁️ 서버':'💾 로컬'} · ${t.genMode||t.gen_mode||'?'}</div>
-      </td>
-      <td>
-        ${t._owner?.avatar?('<img src="'+esc(t._owner.avatar)+'" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):''} 
-        ${esc(t._owner?.name||'익명')}
-        <span class="badge badge-acc" style="margin-left:4px;">${t._owner?.provider||'?'}</span>
-      </td>
-      <td>${t._commLikes||0}</td>
-      <td style="font-size:11px;white-space:nowrap;">${t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
-      <td><div class="table-action-row" style="gap:6px;align-items:center;flex-wrap:wrap;">
-        ${t.audio_url?`
-          <button class="btn btn-acc" id="aplay-btn-${i}" onclick="adminPlayComm('${esc(t.audio_url)}','${esc(t.title||'무제')}',${i})" style="font-size:12px;padding:5px 12px;min-width:60px;">▶ 재생</button>
-          <audio id="apl-comm-${i}" src="${esc(t.audio_url)}" preload="none"></audio>
-        `:''}
-        ${t._source!=='server'&&t._hIdx!=null?`<button class="btn btn-red" onclick="hideFromComm(${t._hIdx})" style="font-size:11px;padding:3px 8px;">숨기기</button>`:''}
-      </div></td>
-    </tr>`).join('');
-
-  /* 카운트 업데이트 */
-  const cnt = document.getElementById('comm-count');
-  if(cnt) cnt.textContent = '('+allTracks.length+'곡)';
+  const provColor={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
+  tbody.innerHTML=allTracks.map((t,i)=>{
+    const o=t._owner||{};
+    const isGuest=!o.name||o.name==='익명'||o.provider==='guest'||!o.provider;
+    const pc=provColor[o.provider]||'badge-acc';
+    const avHtml=(!isGuest&&o.avatar)?('<img src="'+esc(o.avatar)+'" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):'' ;
+    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">'):'🎵';
+    const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const ml=modeLabel[t.genMode||'custom']||'커스텀';
+    const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
+    const srcIcon=t._source==='supabase'?'<span title="Supabase" style="font-size:9px;color:var(--acc3);">☁️</span>':'<span title="로컬" style="font-size:9px;color:var(--t3);">💾</span>';
+    const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'');
+    const deleteBtn=t._source==='supabase'&&t.id
+      ?'<button class="btn btn-red" onclick="deleteCommTrack(\''+esc(t.id)+'\')" style="font-size:11px;padding:3px 7px;">삭제</button>'
+      :(t._hIdx!=null?'<button class="btn btn-red" onclick="hideFromComm('+t._hIdx+')" style="font-size:11px;padding:3px 7px;">숨기기</button>':'');
+    return '<tr>'
+      +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
+      +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b>'+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
+      +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
+      +'<td><span class="badge" style="background:rgba(124,58,237,.15);color:var(--acc2);">'+ml+'</span></td>'
+      +'<td style="font-size:11px;">'+likesHtml+'</td>'
+      +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
+      +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
+        +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
+        +deleteBtn
+      +'</div></td></tr>';
+  }).join('');
 }
+
+async function deleteCommTrack(id){
+  if(!confirm('Supabase에서 완전 삭제할까요?')) return;
+  const pw=sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  try{
+    const r=await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
+    const d=await r.json();
+    if(d.success){adminToast('✅ 삭제 완료');renderCommunityAdmin();}
+    else adminToast('❌ 삭제 실패: '+(d.error||''));
+  }catch(e){adminToast('❌ 오류: '+e.message);}
+}
+
 
 /* ── 커뮤니티 즉각 재생 ── */
 let _commAdminAudio = null;
@@ -1561,139 +1555,125 @@ function switchUserTab(tab){
 }
 
 async function renderUsersAdmin(showToast=false){
-  const h = getHistory();
-  /* 서버 우선 조회 → fallback: localStorage */
-  let loginUsers = getLoginUsers();
+  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  let loginUsers=[];
+
+  /* Supabase에서 사용자 조회 */
   try{
-    const adminPw = sessionStorage.getItem('kms_admin_session') || document.getElementById('admin-pw')?.value || 'kenny2024!';
-    const r = await fetch('/api/users', {
-      headers:{ 'Authorization':'Bearer '+adminPw },
-      signal: AbortSignal.timeout(5000)
-    });
-    /* text()로 먼저 받아 HTML 에러페이지 방어 */
-    const raw = await r.text();
-    if(r.ok && raw.trim().startsWith('{')){
-      const d = JSON.parse(raw);
-      if(Array.isArray(d.users) && d.users.length > 0){
-        /* 서버 데이터와 localStorage 머지 */
-        const merged = [...d.users];
-        loginUsers.forEach(u => {
-          const exists = merged.find(s => s.name===u.name && s.provider===u.provider);
-          if(!exists) merged.push(u);
-        });
-        loginUsers = merged.sort((a,b) => (b.lastLogin||0) - (a.lastLogin||0));
-        /* 머지된 목록 localStorage에도 저장 (다음 조회 시 캐시) */
-        try{ localStorage.setItem('kms_login_users', JSON.stringify(loginUsers.slice(0,200))); }catch{}
+    const r=await fetch('/api/users',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(6000)});
+    const raw=await r.text();
+    if(r.ok&&raw.trim().startsWith('{')){
+      const d=JSON.parse(raw);
+      if(Array.isArray(d.users)&&d.users.length>0){
+        loginUsers=d.users.map(u=>({
+          name:u.name, provider:u.provider, email:u.email||'',
+          avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
+          loginCount:u.login_count||1,
+          lastLogin:u.last_login||0,
+        })).sort((a,b)=>(b.lastLogin||0)-(a.lastLogin||0));
       }
-    } else if(!r.ok){
-      console.warn('[Admin] /api/users', r.status, raw.slice(0,80));
     }
-  }catch(e){
-    /* timeout 또는 네트워크 오류 - localStorage 사용 */
-    console.warn('[Admin] 서버 사용자 조회 실패, localStorage 사용:', e.message);
-  }
-  const today = new Date(); today.setHours(0,0,0,0);
-  const now = Date.now();
-  const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5분
-  const onlineUsers = loginUsers.filter(u => u.lastLogin && (now - u.lastLogin) < ONLINE_THRESHOLD);
+  }catch(e){ console.warn('[Admin] 사용자 조회 실패:',e.message); }
+
+  /* fallback: localStorage */
+  if(!loginUsers.length) loginUsers=getLoginUsers();
+
+  const now=Date.now();
+  const ONLINE=5*60*1000;
+  const today=new Date(); today.setHours(0,0,0,0);
+
   if(showToast){
-    adminToast(`✅ 전체 ${loginUsers.length}명 조회됨 (최근 5분: ${onlineUsers.length}명)`);
+    const online=loginUsers.filter(u=>(now-(u.lastLogin||0))<ONLINE).length;
+    adminToast('✅ '+loginUsers.length+'명 조회 (최근 5분: '+online+'명)');
   }
 
-  /* 통계 */
-  const creatorMap = {};
+  /* 통계 - Supabase tracks에서 집계 */
+  const h=getHistory();
+  const creatorMap={};
   h.forEach(t=>{
     if(t._owner?.name){
       const k=t._owner.name+'__'+t._owner.provider;
       if(!creatorMap[k]) creatorMap[k]={...t._owner,count:0,likes:0,last:0};
-      creatorMap[k].count++;
-      creatorMap[k].likes+=(t._commLikes||0);
+      creatorMap[k].count++; creatorMap[k].likes+=(t._commLikes||0);
       if((t.created||0)>creatorMap[k].last) creatorMap[k].last=t.created||0;
     }
   });
-  const creators = Object.values(creatorMap);
-  const todayLogins = loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=today).length;
-  const pushSubs = getPushSubscriptions().length;
+  const creators=Object.values(creatorMap);
+  const todayLogins=loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=today).length;
+  const pushSubs=getPushSubscriptions().length;
 
   const ustatT=document.getElementById('ustat-total');
   const ustatC=document.getElementById('ustat-creator');
   const ustatTd=document.getElementById('ustat-today');
   const ustatP=document.getElementById('ustat-push');
-  if(ustatT) ustatT.textContent = loginUsers.length;
-  if(ustatC) ustatC.textContent = creators.length;
-  if(ustatTd) ustatTd.textContent = todayLogins;
-  if(ustatP) ustatP.textContent = pushSubs;
+  if(ustatT) ustatT.textContent=loginUsers.length;
+  if(ustatC) ustatC.textContent=creators.length;
+  if(ustatTd) ustatTd.textContent=todayLogins;
+  if(ustatP) ustatP.textContent=pushSubs;
 
-  const loginCnt = document.getElementById('login-user-count');
-  if(loginCnt) loginCnt.textContent = '(' + loginUsers.length + '명)';
+  const loginCnt=document.getElementById('login-user-count');
+  if(loginCnt) loginCnt.textContent='('+loginUsers.length+'명)';
 
-  /* 로그인 사용자 테이블 */
-  const loginTbody = document.getElementById('users-login-tbody');
+  const loginTbody=document.getElementById('users-login-tbody');
   if(loginTbody){
     if(!loginUsers.length){
-      loginTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로그인 기록이 없습니다. 앱에서 소셜 로그인 시 자동 기록됩니다.</td></tr>';
+      loginTbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">로그인 기록이 없습니다</td></tr>';
     } else {
-      loginTbody.innerHTML = loginUsers.map((u,i)=>{
-        const creatorKey = u.name+'__'+u.provider;
-        const cInfo = creatorMap[creatorKey];
-        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
-        const ua = u.ua || '';
-        let deviceIcon = '🖥', deviceLabel = 'PC';
-        if(/iPhone/i.test(ua))       { deviceIcon='📱'; deviceLabel='iPhone'; }
-        else if(/iPad/i.test(ua))    { deviceIcon='📱'; deviceLabel='iPad'; }
-        else if(/Android/i.test(ua)) { deviceIcon='📱'; deviceLabel='Android'; }
-        else if(/Mac/i.test(ua))     { deviceIcon='💻'; deviceLabel='Mac'; }
-        const isOnline = u.lastLogin && (now - u.lastLogin) < ONLINE_THRESHOLD;
-        return `<tr style="${isOnline?'background:rgba(34,197,94,.05);':''}">
-          <td style="position:relative;">
-            ${u.avatar?`<img src="${esc(u.avatar)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>'}
-            ${isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':''}
-          </td>
-          <td style="font-weight:600;">${esc(u.name)}
-            <div style="font-size:10px;color:var(--t3);">${esc(u.email||'')}</div>
-          </td>
-          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
-          <td style="text-align:center;">
-            <span style="font-size:14px;">${deviceIcon}</span>
-            <div style="font-size:9px;color:var(--t3);margin-top:1px;">${deviceLabel}</div>
-          </td>
-          <td style="text-align:center;font-weight:700;">${u.loginCount||1}회</td>
-          <td style="font-size:11px;color:var(--t3);">
-            ${u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}
-            ${isOnline?'<div style="font-size:9px;color:var(--grn);margin-top:1px;">🟢 온라인</div>':''}
-          </td>
-          <td style="text-align:center;">${cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—'}</td>
-          <td><div style="display:flex;gap:4px;">
-            <button class="btn" onclick="sendPushToUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🔔</button>
-            <button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫</button>
-          </div></td>
-        </tr>`;
+      const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+      loginTbody.innerHTML=loginUsers.map((u,i)=>{
+        const pc=provColors[u.provider||'']||'badge-acc';
+        const ua=u.ua||'';
+        let dIcon='🖥'; let dLabel='PC';
+        if(/iPhone/i.test(ua)){dIcon='📱';dLabel='iPhone';}
+        else if(/iPad/i.test(ua)){dIcon='📱';dLabel='iPad';}
+        else if(/Android/i.test(ua)){dIcon='📱';dLabel='Android';}
+        else if(/Mac/i.test(ua)){dIcon='💻';dLabel='Mac';}
+        const isOnline=(now-(u.lastLogin||0))<ONLINE;
+        const timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+        const cInfo=creatorMap[u.name+'__'+u.provider];
+        return '<tr style="'+(isOnline?'background:rgba(34,197,94,.04);':'')+'">'
+          +'<td style="position:relative;">'
+            +(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
+            +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
+          +'</td>'
+          +'<td style="font-weight:600;">'+esc(u.name)+'<div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
+          +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
+          +'<td style="text-align:center;"><span style="font-size:14px;">'+dIcon+'</span><div style="font-size:9px;color:var(--t3);">'+dLabel+'</div></td>'
+          +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'회</td>'
+          +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(isOnline?'<div style="font-size:9px;color:var(--grn);">🟢 온라인</div>':'')+'</td>'
+          +'<td style="text-align:center;">'+(cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—')+'</td>'
+          +'<td><div style="display:flex;gap:4px;">'
+            +'<button class="btn" onclick="sendPushToUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🔔</button>'
+            +'<button class="btn btn-red" onclick="banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🚫</button>'
+          +'</div></td>'
+          +'</tr>';
       }).join('');
     }
   }
 
-  /* 생성 기여자 테이블 */
-  const creatorTbody = document.getElementById('users-creator-tbody');
+  /* 생성 기여자 */
+  const creatorTbody=document.getElementById('users-creator-tbody');
   if(creatorTbody){
     if(!creators.length){
       creatorTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">생성 기여자가 없습니다</td></tr>';
     } else {
-      const sorted = [...creators].sort((a,b)=>b.count-a.count);
-      creatorTbody.innerHTML = sorted.map((u,i)=>{
-        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
-        return `<tr>
-          <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>'}</td>
-          <td style="font-weight:600;">${esc(u.name)}</td>
-          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
-          <td style="text-align:center;font-weight:800;color:var(--acc3);">${u.count}곡</td>
-          <td style="text-align:center;">${u.likes}</td>
-          <td style="font-size:11px;color:var(--t3);">${u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—'}</td>
-          <td><button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫 차단</button></td>
-        </tr>`;
+      const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+      creatorTbody.innerHTML=[...creators].sort((a,b)=>b.count-a.count).map((u,i)=>{
+        const pc=provColors[u.provider||'']||'badge-acc';
+        return '<tr>'
+          +'<td>'+(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">':'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;">🎵</div>')+'</td>'
+          +'<td style="font-weight:600;">'+esc(u.name)+'</td>'
+          +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
+          +'<td style="text-align:center;font-weight:800;color:var(--acc3);">'+u.count+'곡</td>'
+          +'<td style="text-align:center;">'+u.likes+'</td>'
+          +'<td style="font-size:11px;color:var(--t3);">'+(u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—')+'</td>'
+          +'<td><button class="btn btn-red" onclick="banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🚫 차단</button></td>'
+          +'</tr>';
       }).join('');
     }
   }
 }
+
 
 function filterUsers(){
   const q=(document.getElementById('user-search')?.value||'').toLowerCase();
