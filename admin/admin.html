@@ -3262,21 +3262,6 @@ async function tryManagerLogin(loginId, pw){
   const managers = getManagers();
   return managers.find(m=>m.id===loginId && m.pwHash===btoa(pw) && m.active!==false) || null;
 }
-  saveManagers(managers);
-  renderManagersSection();
-  adminToast('삭제됨');
-}
-
-/* 매니저 로그인 처리 */
-function tryManagerLogin(id, pw){
-  const managers = getManagers();
-  const m = managers.find(m=>m.id===id && m.pwHash===btoa(pw) && m.active!==false);
-  if(!m) return null;
-  /* 마지막 접속 시간 업데이트 */
-  m.lastAccess = Date.now();
-  saveManagers(managers);
-  return m;
-}
 
 
 
