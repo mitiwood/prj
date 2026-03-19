@@ -892,18 +892,18 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-list-meta{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden;}
 .comm-list-duration{font-size:11px;color:var(--t3);font-weight:500;flex-shrink:0;margin-left:auto;padding-left:8px;}
 .comm-list-actions{display:flex;align-items:center;gap:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;}
-.comm-reaction-sm{display:flex;align-items:center;gap:3px;padding:5px 8px;border-radius:8px;border:none;background:none;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.comm-reaction-sm{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:none;background:none;color:var(--t3);font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
 .comm-reaction-sm:hover{color:var(--t1);background:rgba(255,255,255,.06);}
 .comm-reaction-sm.liked{color:#ff6482;}
 .comm-reaction-sm.disliked{color:var(--t3);opacity:.6;}
-.comm-play-sm{color:var(--acc3);font-size:15px;}
+.comm-play-sm{color:var(--acc3);font-size:18px;}
 .comm-play-sm:hover{color:var(--acc);}
 /* 별점 */
 .star-rating{display:inline-flex;gap:1px;align-items:center;}
 .star-rating .star{cursor:pointer;font-size:14px;color:rgba(255,255,255,.15);transition:color .12s;line-height:1;padding:0 1px;}
 .star-rating .star.on{color:#fbbf24;}
 .star-rating .star:hover,.star-rating .star:hover~.star{color:rgba(251,191,36,.5);}
-.star-rating-sm .star{font-size:13px;}
+.star-rating-sm .star{font-size:15px;}
 .star-rating-val{font-size:10px;color:var(--t3);margin-left:3px;font-weight:600;}
 .comm-comment-cnt{font-size:10px;font-weight:700;color:var(--acc3);min-width:0;}
 .comm-comment-cnt:empty{display:none;}
@@ -2125,7 +2125,7 @@ body.mp-on .view{padding-bottom:118px;}
   .comm-list-img{width:40px;height:40px;}
   .comm-list-title{font-size:12px;}
   .comm-list-actions{gap:2px;}
-  .comm-reaction-sm{padding:4px 6px;font-size:11px;}
+  .comm-reaction-sm{padding:5px 8px;font-size:13px;}
 
   /* 댓글 */
   .comment-sheet{max-height:85vh;border-radius:12px 12px 0 0;}
@@ -2173,7 +2173,7 @@ body.mp-on .view{padding-bottom:118px;}
   .comm-featured-cover{height:150px;}
   .fp-cover{max-height:260px;}
   .comm-list-actions{gap:1px;}
-  .comm-reaction-sm{padding:3px 5px;font-size:10px;}
+  .comm-reaction-sm{padding:4px 6px;font-size:12px;}
 }
 
 /* iOS safe area */
@@ -3140,7 +3140,7 @@ body.mp-on .view{padding-bottom:118px;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
             <span class="fp-side-lbl">싫어요</span>
           </button>
-          <div class="fp-side-btn" id="fp-rating-wrap" title="별점" style="height:auto;padding:4px 2px;">
+          <div class="fp-side-btn" id="fp-rating-wrap" title="별점" style="display:none;height:auto;padding:4px 2px;">
             <div class="star-rating" id="fp-star-rating">
               <span class="star" data-star="1" onclick="fpRate(1)">★</span>
               <span class="star" data-star="2" onclick="fpRate(2)">★</span>
@@ -7592,23 +7592,23 @@ function fpPlayPrev(){
   _doOpenFullPlayer(fpCurrentIdx-1);
 }
 
-/* 풀플레이어 스와이프 제스처 — 위로: 다음곡, 아래로: 이전곡 */
+/* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
 (function(){
   const el=$('fullplayer');
-  let _fpTouchY=0, _fpTouchTime=0, _fpSwiping=false;
+  let _fpTX=0, _fpTY=0, _fpTTime=0;
   el.addEventListener('touchstart',function(e){
-    _fpTouchY=e.touches[0].clientY;
-    _fpTouchTime=Date.now();
-    _fpSwiping=true;
+    _fpTX=e.touches[0].clientX;
+    _fpTY=e.touches[0].clientY;
+    _fpTTime=Date.now();
   },{passive:true});
   el.addEventListener('touchend',function(e){
-    if(!_fpSwiping)return;
-    _fpSwiping=false;
-    const dy=_fpTouchY-e.changedTouches[0].clientY;
-    const dt=Date.now()-_fpTouchTime;
-    if(dt>500||Math.abs(dy)<60)return; /* 너무 느리거나 짧은 스와이프 무시 */
-    if(dy>0) fpPlayNext();   /* 위로 스와이프 → 다음곡 */
-    else fpPlayPrev();        /* 아래로 스와이프 → 이전곡 */
+    const dx=_fpTX-e.changedTouches[0].clientX;
+    const dy=_fpTY-e.changedTouches[0].clientY;
+    const dt=Date.now()-_fpTTime;
+    if(dt>400||Math.abs(dx)<70)return; /* 너무 느리거나 짧은 스와이프 무시 */
+    if(Math.abs(dy)>Math.abs(dx))return; /* 세로 스크롤 우선 */
+    if(dx>0) fpPlayNext();   /* ← 좌 스와이프 → 다음곡 */
+    else fpPlayPrev();        /* → 우 스와이프 → 이전곡 */
   },{passive:true});
 })();
 
