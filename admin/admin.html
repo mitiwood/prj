@@ -161,7 +161,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <h1 id="sec-title">대시보드</h1>
       <div class="header-right">
         <span class="admin-badge">Admin</span>
-        <button class="btn" onclick="loadData()">🔄 새로고침</button>
+        <span id="auto-refresh-label" style="font-size:11px;color:var(--t3);">10초 후 갱신</span>
+        <button class="btn" onclick="loadData();renderUsersAdmin();const _k=localStorage.getItem('kms_kie_key')||document.getElementById('kie-api-input')?.value.trim();if(_k)fetchKieUsageForStats(_k);adminToast('✅ 갱신됨');">🔄 즉시 갱신</button>
       </div>
     </div>
     <div class="admin-content">
@@ -188,6 +189,32 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <div class="bar-chart" id="top-chart"></div>
           </div>
         </div>
+        <!-- 자동 갱신 상태 바 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
+          <span>🔄 10초마다 자동 갱신</span>
+          <span>마지막: <b id="dash-last-sync" style="color:var(--t2);">-</b></span>
+          <button class="btn" onclick="loadData();adminToast('✅ 갱신됨')" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
+        </div>
+
+        <!-- kie.ai 외부 링크 카드 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h4>🔗 kie.ai 대시보드 바로가기</h4>
+            <span style="font-size:10px;color:var(--t3);">로그인 필요</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="https://kie.ai/usage" target="_blank" class="btn btn-acc" style="font-size:12px;padding:8px 14px;text-decoration:none;">📊 사용량 현황</a>
+            <a href="https://kie.ai/logs" target="_blank" class="btn" style="font-size:12px;padding:8px 14px;text-decoration:none;">📋 생성 로그</a>
+            <a href="https://kie.ai/billing" target="_blank" class="btn" style="font-size:12px;padding:8px 14px;text-decoration:none;">💳 결제 현황</a>
+            <a href="https://kie.ai/pricing" target="_blank" class="btn" style="font-size:12px;padding:8px 14px;text-decoration:none;">💰 요금 안내</a>
+            <a href="https://kie.ai/api-key" target="_blank" class="btn" style="font-size:12px;padding:8px 14px;text-decoration:none;">🔑 API Key 관리</a>
+          </div>
+          <div id="kie-balance-row" style="background:var(--bg3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--t2);margin-top:10px;display:none;">
+            💳 잔여 크레딧: <strong id="kie-balance" style="color:var(--grn);">-</strong>
+            <span style="color:var(--t3);font-size:10px;margin-left:8px;">(API Key 입력 후 자동 조회)</span>
+          </div>
+        </div>
+
         <!-- API 사용량 & 비용 분석 -->
         <div class="chart-card" style="margin-bottom:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -211,8 +238,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
               <div style="font-size:9px;color:var(--t3);" id="cost-note">크레딧 기준 추산</div>
             </div>
           </div>
-          <div id="kie-balance-row" style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t2);display:none;">
-            <span>💳 kie.ai 잔여 크레딧: </span><strong id="kie-balance" style="color:var(--grn);">-</strong>
+          <div id="kie-balance-row2" style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t2);display:none;">
+            <span>💳 kie.ai 잔여 크레딧: </span><strong id="kie-balance2" style="color:var(--grn);">-</strong>
             <span style="margin-left:12px;">📊 이번 달 사용: </span><strong id="kie-used">-</strong>
           </div>
         </div>
@@ -230,8 +257,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="admin-section" id="sec-tracks">
         <div class="sec-hdr">
           <h2>음악 관리</h2>
-          <div style="display:flex;gap:8px;">
-            <input class="table-search" id="track-search" placeholder="제목 검색..." oninput="filterTracks()">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input class="table-search" id="track-search" placeholder="제목/사용자 검색..." oninput="filterTracks()">
             <select class="table-search" id="track-mode-filter" onchange="filterTracks()" style="width:110px;">
               <option value="">전체 모드</option>
               <option value="custom">커스텀</option>
@@ -239,11 +266,23 @@ tr:hover td{background:rgba(255,255,255,.02);}
               <option value="youtube">YouTube</option>
               <option value="mv">MV</option>
             </select>
+            <select class="table-search" id="track-user-filter" onchange="filterTracks()" style="width:110px;">
+              <option value="">전체 사용자</option>
+              <option value="loggedin">로그인 사용자</option>
+              <option value="guest">게스트</option>
+            </select>
+            <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄</button>
             <button class="btn btn-red" onclick="deleteSelected()">🗑 선택 삭제</button>
           </div>
         </div>
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="tstat-total">0</div><div class="stat-label">전체 곡</div></div>
+          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="tstat-loggedin">0</div><div class="stat-label">로그인 생성</div></div>
+          <div class="stat-card"><div class="stat-icon">🕵️</div><div class="stat-val" id="tstat-guest">0</div><div class="stat-label">게스트 생성</div></div>
+          <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="tstat-mv">0</div><div class="stat-label">MV 포함</div></div>
+        </div>
         <div class="admin-table-wrap">
-          <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>모드</th><th>가사</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
+          <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>생성자</th><th>모드</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="tracks-tbody"></tbody></table>
         </div>
       </div>
@@ -389,6 +428,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <button class="btn" onclick="promptKieKeyAndFetch()" style="font-size:11px;">💳 kie.ai 잔액 조회</button>
             <button class="btn" onclick="exportUsageCsv()" style="font-size:11px;">📥 CSV 내보내기</button>
           </div>
+        </div>
+        <!-- kie.ai 외부 링크 -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+          <a href="https://kie.ai/usage" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">📊 kie.ai 사용량 ↗</a>
+          <a href="https://kie.ai/logs" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">📋 생성 로그 ↗</a>
+          <a href="https://kie.ai/billing" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">💳 결제 현황 ↗</a>
+          <a href="https://kie.ai/pricing" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">💰 요금표 ↗</a>
+          <span style="font-size:10px;color:var(--t3);align-self:center;">kie.ai 로그인 필요</span>
         </div>
 
         <!-- 요약 카드 -->
@@ -952,11 +999,18 @@ function getUser(){
 function loadData(){
   const h=getHistory();
   const today=new Date();today.setHours(0,0,0,0);
+  /* kie.ai 크레딧 자동 조회 (저장된 키 있고 kie-balance가 표시 중이면) */
+  const _kieKey = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
+  const _kbRow = document.getElementById('kie-balance-row');
+  if(_kieKey && _kbRow) {
+    fetchKieUsageForStats(_kieKey).catch(()=>{});
+  }
   const totalLikes=h.reduce((a,t)=>a+(t._commLikes||0),0);
   const mvCount=h.filter(t=>t.video_url).length;
   const todayCount=h.filter(t=>t.created&&new Date(t.created)>=today).length;
-  const commCount=h.filter(t=>t.audio_url&&t._owner).length;
-  const users=[...new Set(h.map(t=>t._owner?.name).filter(Boolean))];
+  /* 모든 곡 카운트 (게스트 포함) */
+  const commCount=h.filter(t=>t.audio_url).length;
+  const users=[...new Set(h.map(t=>t._owner?.name||'게스트').filter(Boolean))];
 
   document.getElementById('stat-total').textContent=h.length;
   document.getElementById('stat-likes').textContent=totalLikes;
@@ -1028,37 +1082,64 @@ let _filteredTracks=[];
 function renderTracksAdmin(){
   const h=getHistory();
   _filteredTracks=h;
+  /* 통계 업데이트 */
+  const loggedIn = h.filter(t => t._owner && t._owner.provider !== 'guest').length;
+  const guest = h.filter(t => !t._owner || t._owner.provider === 'guest').length;
+  const mv = h.filter(t => t.video_url).length;
+  const ts = document.getElementById('tstat-total');    if(ts) ts.textContent = h.length;
+  const tl = document.getElementById('tstat-loggedin'); if(tl) tl.textContent = loggedIn;
+  const tg = document.getElementById('tstat-guest');    if(tg) tg.textContent = guest;
+  const tm = document.getElementById('tstat-mv');       if(tm) tm.textContent = mv;
   renderTracksTable(h);
 }
 function renderTracksTable(list){
   const tbody=document.getElementById('tracks-tbody');
-  tbody.innerHTML=list.map((t,i)=>`
-    <tr>
-      <td><input type="checkbox" data-idx="${i}"></td>
-      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
-      <td class="td-title">${esc(t.title||'무제')}</td>
-      <td><span class="badge badge-acc">${t.genMode||'custom'}</span></td>
-      <td><span class="badge ${t.lyrics?'badge-grn':'badge-red'}">${t.lyrics?'있음':'없음'}</span></td>
-      <td><span class="badge ${t.audio_url?'badge-grn':'badge-red'}">${t.audio_url?'있음':'없음'}</span></td>
-      <td>${t.created?new Date(t.created).toLocaleString('ko-KR'):'—'}</td>
-      <td><div class="table-action-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
-        ${t.audio_url?`
-          <div class="admin-audio-row" style="gap:6px;">
-            <button class="btn btn-acc" onclick="adminPlayTrack('${esc(t.audio_url)}','${esc(t.title||'track')}',this,${i})" style="padding:5px 12px;font-size:12px;min-width:66px;" id="aplay-btn-${i}">▶ 재생</button>
-            <button class="btn" onclick="adminDownloadTrack('${esc(t.audio_url)}','${esc(t.title||'track')}')" title="다운로드" style="padding:5px 10px;font-size:12px;">⬇ 저장</button>
-          </div>
-          <div id="apl-${i}" style="display:none;margin-top:2px;">
-            <audio class="admin-audio-player" controls style="width:200px;"></audio>
-          </div>` : '<span style="color:var(--t3);font-size:11px;">URL 없음</span>'}
-        <button class="btn btn-red" onclick="deleteTrackByIdx(${i})" style="font-size:11px;padding:3px 8px;">🗑 삭제</button>
-      </div></td>
-    </tr>`).join('');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">데이터 없음</td></tr>';return;}
+  const provCol={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  tbody.innerHTML=list.map((t,i)=>{
+    const owner=t._owner;
+    const isGuest=!owner||owner.provider==='guest';
+    const pc=provCol[owner&&owner.provider||'']||'badge-acc';
+    const avHtml=(owner&&owner.avatar)?('<img src="'+esc(owner.avatar)+'" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;">'):('');
+    const ownerBadge=isGuest
+      ?'<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">게스트</span>'
+      :(avHtml+'<span class="badge '+pc+'">'+esc((owner&&owner.name)||'?')+'</span>');
+    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">'):'🎵';
+    const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const au=t.audio_url?esc(t.audio_url):'';
+    const tl=esc(t.title||'track');
+    const audioHtml=t.audio_url
+      ?('<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+        +'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayTrack(this.dataset.url,this.dataset.title,this,'+i+')" style="padding:5px 12px;font-size:12px;min-width:66px;">▶ 재생</button>'
+        +'<button class="btn" data-url="'+au+'" data-title="'+tl+'" onclick="adminDownloadTrack(this.dataset.url,this.dataset.title)" style="padding:5px 10px;font-size:12px;">⬇ 저장</button>'
+        +'</div>'
+        +'<div id="apl-'+i+'" style="display:none;margin-top:2px;"><audio class="admin-audio-player" controls style="width:200px;"></audio></div>')
+      :'<span style="color:var(--t3);font-size:11px;">URL 없음</span>';
+    return '<tr>'
+      +'<td><input type="checkbox" data-idx="'+i+'"></td>'
+      +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
+      +'<td class="td-title">'+esc(t.title||'무제')+'</td>'
+      +'<td>'+ownerBadge+'</td>'
+      +'<td><span class="badge badge-acc">'+(t.genMode||'custom')+'</span></td>'
+      +'<td><span class="badge '+(t.audio_url?'badge-grn':'badge-red')+'">'+(t.audio_url?'있음':'없음')+'</span></td>'
+      +'<td style="font-size:11px;">'+timeStr+'</td>'
+      +'<td><div class="table-action-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'+audioHtml
+      +'<button class="btn btn-red" onclick="deleteTrackByIdx('+i+')" style="font-size:11px;padding:3px 8px;">🗑 삭제</button>'
+      +'</div></td></tr>';
+  }).join('');
 }
 function filterTracks(){
   const q=(document.getElementById('track-search')?.value||'').toLowerCase();
   const m=document.getElementById('track-mode-filter')?.value||'';
+  const u=document.getElementById('track-user-filter')?.value||'';
   const h=getHistory();
-  const filtered=h.filter(t=>(t.title||'').toLowerCase().includes(q)&&(!m||t.genMode===m));
+  const filtered=h.filter(t=>{
+    const titleMatch = (t.title||'').toLowerCase().includes(q) || (t._owner?.name||'').toLowerCase().includes(q);
+    const modeMatch  = !m || t.genMode===m;
+    const isGuest = !t._owner || t._owner.provider==='guest';
+    const userMatch  = !u || (u==='guest'?isGuest:!isGuest);
+    return titleMatch && modeMatch && userMatch;
+  });
   _filteredTracks=filtered;
   renderTracksTable(filtered);
 }
@@ -1199,99 +1280,107 @@ async function kieProxyRequest(apiKey, path, method='GET', body=null){
 }
 
 async function fetchKieLogs(){
-  const apiKey=document.getElementById('kie-api-input')?.value.trim();
-  if(!apiKey){adminToast('⚠️ API Key를 입력하세요');return;}
-  const statusRow=document.getElementById('kie-status-row');
-  const status=document.getElementById('kie-status');
-  statusRow.style.display='flex';
-  status.textContent='🔄 로딩 중...';
+  const apiKey = document.getElementById('kie-api-input')?.value.trim();
+  if(!apiKey){ adminToast('⚠️ API Key를 입력하세요'); return; }
+  const statusRow = document.getElementById('kie-status-row');
+  const status    = document.getElementById('kie-status');
+  statusRow.style.display = 'flex';
+  status.textContent = '🔄 kie.ai 연결 확인 중...';
 
-  /* kie.ai 공식 Suno API 엔드포인트 (docs.kie.ai 기준) */
-  const endpoints = [
-    '/api/v1/generate/record-list?pageSize=50&pageNum=1',
-    '/api/v1/generate/record-list?page_size=50&page=1',
-    '/api/v1/generate/records?pageSize=50&pageNum=1',
-    '/api/v1/generate/list?pageSize=50&pageNum=1',
-  ];
-
-  let list = [];
-  let foundEndpoint = '';
-  const triedErrors = [];
-
-  for(const ep of endpoints){
-    try{
-      status.textContent = `🔄 시도 중: ${ep.split('?')[0]}`;
-      const data = await kieProxyRequest(apiKey, ep);
-
-      /* kie.ai 응답 구조 다양하게 파싱 */
-      let raw = null;
-      if(Array.isArray(data?.data?.list))       raw = data.data.list;
-      else if(Array.isArray(data?.data?.records)) raw = data.data.records;
-      else if(Array.isArray(data?.data))          raw = data.data;
-      else if(Array.isArray(data?.list))          raw = data.list;
-      else if(Array.isArray(data?.records))       raw = data.records;
-
-      /* code 200 또는 ok 응답이면 성공 (빈 배열도 OK) */
-      const isOk = (data?.code === 200 || data?.code === 0 || data?.success === true || data?.status === 'ok');
-      if(raw !== null || isOk){
-        list = raw || [];
-        foundEndpoint = ep;
-        break;
-      }
-    }catch(e){
-      triedErrors.push(`${ep.split('?')[0]}: ${e.message}`);
+  /* ── STEP 1: API Key 유효성 확인 (/api/v1/chat/credit) ── */
+  let creditOk = false, credit = null;
+  try {
+    const cd = await kieProxyRequest(apiKey, '/api/v1/chat/credit');
+    /* 응답 구조: { code:200, data:{ totalCredits, usedCredits, availableCredits } } */
+    credit = cd?.data?.availableCredits ?? cd?.data?.totalCredits ?? cd?.data?.balance ?? cd?.balance ?? null;
+    creditOk = (cd?.code === 200 || cd?.code === 0 || credit !== null);
+    if(credit !== null) {
+      const kb = document.getElementById('kie-balance');
+      const kr = document.getElementById('kie-balance-row');
+      if(kb) kb.textContent = Number(credit).toLocaleString() + ' 크레딧';
+      if(kr) kr.style.display = 'block';
+      /* usage 탭 동기화 */
+      const ub = document.getElementById('u-kie-balance');
+      const uk = document.getElementById('u-kie-krw');
+      if(ub) ub.textContent = Number(credit).toLocaleString() + ' cr';
+      if(uk) uk.textContent = '≈ ₩' + Math.round(Number(credit)*13.5).toLocaleString();
     }
+  } catch(e) {
+    console.warn('[KieLogs] credit check:', e.message);
   }
 
-  if(!foundEndpoint){
-    const errDetail = triedErrors.length ? '<br><span style="font-size:10px;color:rgba(255,255,255,.3);">'+triedErrors.map(e=>'• '+esc(e)).join('<br>')+'</span>' : '';
-    status.innerHTML=`<span style="color:var(--red);">❌ 사용 가능한 엔드포인트를 찾지 못했습니다.<br>
+  if(!creditOk) {
+    status.innerHTML = `<span style="color:var(--red);">❌ API Key 인증 실패<br>
       <span style="font-size:11px;color:var(--t3);">
-        • API Key가 올바른지 확인 (kie.ai 대시보드 → API Key 탭)<br>
-        • kie.ai Suno API 플랜이 활성 상태인지 확인<br>
+        • API Key가 올바른지 확인 (kie.ai → <a href="https://kie.ai/api-key" target="_blank" style="color:var(--acc3);">API Key 페이지 ↗</a>)<br>
         • API Key 앞뒤 공백 없는지 확인
       </span>
-      ${errDetail}
       <br><button class="btn" onclick="fetchKieLogs()" style="margin-top:8px;font-size:11px;">🔄 다시 시도</button>
     </span>`;
-    adminToast('❌ kie.ai 연결 실패 — API Key 및 플랜 확인 필요');
+    adminToast('❌ kie.ai API Key 인증 실패');
     return;
   }
 
-  if(!list.length){
-    status.innerHTML='<span style="color:var(--ylw);">⚠️ 생성된 트랙이 없습니다 (엔드포인트: '+foundEndpoint.split('?')[0]+')</span>';
-    adminToast('로그 없음');
+  status.textContent = `✅ API Key 확인됨${credit!==null?' (잔여: '+Number(credit).toLocaleString()+'cr)':''} — taskId로 로그 조회 중...`;
+
+  /* ── STEP 2: localStorage historyData에서 taskId 수집 → record-info 조회 ──
+     kie.ai 공식 문서에 "record-list" 엔드포인트 없음
+     유일한 조회 방법: GET /api/v1/generate/record-info?taskId=xxx (단건)
+  */
+  const h = getHistory();
+  const taskIds = [...new Set(
+    h.filter(t => t.taskId && t.taskId.length > 6 && !t._kieRefreshed)
+     .map(t => t.taskId)
+  )].slice(0, 30); /* 최대 30개 */
+
+  if(!taskIds.length) {
+    status.innerHTML = `<span style="color:var(--grn);">✅ API Key 정상
+      ${credit!==null?'<br>💳 잔여 크레딧: <b>'+Number(credit).toLocaleString()+'</b> cr':''}
+      <br><span style="font-size:11px;color:var(--t3);">앱에서 음악을 생성하면 여기서 상태를 확인할 수 있어요.</span>
+      <br><a href="https://kie.ai/logs" target="_blank" class="btn" style="margin-top:8px;font-size:11px;display:inline-block;">🔗 kie.ai 전체 로그 보기 ↗</a>
+    </span>`;
+    adminToast('✅ API Key 정상 — 앱에서 곡을 생성 후 조회하세요');
     return;
   }
 
-  /* localStorage historyData에 병합 */
-  let h=getHistory();
-  let added=0;
-  list.forEach(item=>{
-    const audioUrl=item.audioUrl||item.audio_url||item.streamAudioUrl||'';
-    if(!audioUrl)return;
-    const taskId=item.taskId||item.id||item.task_id||'';
-    const existing=h.find(t=>t.id===taskId||t.taskId===taskId);
-    if(!existing){
-      h.unshift({
-        id:taskId||('kie-'+Date.now()+Math.random()),
-        taskId:taskId,
-        title:item.title||item.prompt?.slice(0,30)||'kie.ai 트랙',
-        audio_url:audioUrl,
-        video_url:item.videoUrl||item.video_url||'',
-        image_url:item.imageUrl||item.image_url||item.coverUrl||'',
-        tags:item.tags||item.style||item.genre||'',
-        lyrics:item.lyric||item.lyrics||'',
-        created:item.createdAt||item.created_at||item.createTime?new Date(item.createdAt||item.created_at||item.createTime).getTime():Date.now(),
-        type:'audio', genMode:'custom', _kieLog:true,
-        _owner:{name:'kie.ai 사용자',avatar:'',provider:'kie'},
-      });
-      added++;
+  status.textContent = `🔄 ${taskIds.length}개 taskId 상태 조회 중...`;
+
+  let refreshed = 0, failed = 0;
+  for(let i = 0; i < taskIds.length; i++) {
+    const tid = taskIds[i];
+    status.textContent = `🔄 (${i+1}/${taskIds.length}) taskId 조회: ${tid.slice(0,12)}...`;
+    try {
+      const res = await kieProxyRequest(apiKey, `/api/v1/generate/record-info?taskId=${tid}`);
+      const d = res?.data;
+      if(!d) continue;
+      const sunoArr = d.response?.sunoData || d.sunoData || [];
+      const idx = h.findIndex(t => t.taskId === tid);
+      if(idx >= 0 && sunoArr.length) {
+        const s = sunoArr[0];
+        /* 최신 정보로 갱신 */
+        if(s.audioUrl || s.audio_url) h[idx].audio_url = s.audioUrl || s.audio_url || h[idx].audio_url;
+        if(s.imageUrl || s.image_url) h[idx].image_url = s.imageUrl || s.image_url || h[idx].image_url;
+        if(s.title)  h[idx].title  = s.title;
+        if(s.tags)   h[idx].tags   = s.tags;
+        if(s.lyric||s.lyrics) h[idx].lyrics = s.lyric||s.lyrics||h[idx].lyrics;
+        h[idx]._kieStatus   = d.status || 'UNKNOWN';
+        h[idx]._kieRefreshed = Date.now();
+        refreshed++;
+      }
+    } catch(e) {
+      failed++;
+      console.warn('[KieLogs] taskId', tid, e.message);
     }
-  });
-  localStorage.setItem('kms_history',JSON.stringify(h.slice(0,200)));
-  status.innerHTML=`<span style="color:var(--grn);">✅ ${list.length}개 확인 / ${added}개 신규 추가 (${foundEndpoint.split('?')[0]})</span>`;
-  adminToast('✅ kie.ai 로그 '+added+'개 추가됨');
+    await new Promise(r => setTimeout(r, 120)); /* 120ms 간격 (rate limit 방어) */
+  }
+
+  localStorage.setItem('kms_history', JSON.stringify(h.slice(0, 200)));
+
+  status.innerHTML = `<span style="color:var(--grn);">✅ ${taskIds.length}개 조회 완료 (갱신: ${refreshed}개${failed?', 실패: '+failed+'개':''})
+    ${credit!==null?'<br>💳 잔여 크레딧: <b>'+Number(credit).toLocaleString()+'</b> cr':''}
+    <br><a href="https://kie.ai/logs" target="_blank" style="color:var(--acc3);font-size:11px;">🔗 kie.ai 전체 로그 확인 ↗</a>
+  </span>`;
+  adminToast(`✅ kie.ai ${refreshed}개 트랙 갱신됨`);
   renderCommunityAdmin(); loadData();
 }
 
@@ -1302,26 +1391,16 @@ async function fetchKieUsage(){
   if(!apiKey){ adminToast('⚠️ 커뮤니티 탭에서 kie.ai API Key 입력 후 이용하세요'); return; }
   adminToast('🔍 잔여 크레딧 조회 중...');
 
-  /* kie.ai 크레딧 조회 — 공식 엔드포인트 (docs.kie.ai 기준) */
-  const credEndpoints = [
-    { ep: '/api/v1/user/balance',   bKey: d => d?.data?.balance ?? d?.balance },
-    { ep: '/api/v1/user/info',      bKey: d => d?.data?.credits ?? d?.data?.remainCredits },
-    { ep: '/api/v1/account',        bKey: d => d?.data?.credits ?? d?.data?.balance },
-  ];
+  /* kie.ai 크레딧 조회 — 공식: GET /api/v1/chat/credit (docs.kie.ai/common-api/get-account-credits) */
   let balance = null, used = null;
-  let lastErr = '';
-
-  for(const {ep, bKey} of credEndpoints){
-    try{
-      const d = await kieProxyRequest(apiKey, ep);
-      const b = bKey(d);
-      if(b != null){ balance = Number(b); used = d?.data?.usedCredits ?? d?.usedCredits ?? 0; break; }
-    }catch(e){
-      lastErr = e.message;
-      /* HTML 응답 = 엔드포인트 없음 → 조용히 스킵 */
-      if(!e.message.includes('엔드포인트 없음') && !e.message.includes('HTML'))
-        console.warn('[KieCred]', ep, e.message);
-    }
+  try {
+    const d = await kieProxyRequest(apiKey, '/api/v1/chat/credit');
+    /* 응답: { code:200, data:{ totalCredits, usedCredits, availableCredits } } */
+    balance = d?.data?.availableCredits ?? d?.data?.totalCredits ?? d?.data?.balance ?? d?.balance ?? null;
+    used    = d?.data?.usedCredits ?? d?.data?.used ?? 0;
+    if(balance !== null) balance = Number(balance);
+  } catch(e) {
+    console.warn('[KieCred] /api/v1/chat/credit:', e.message);
   }
 
   const row = document.getElementById('kie-balance-row');
@@ -1339,33 +1418,81 @@ async function fetchKieUsage(){
   }
 }
 
-function renderCommunityAdmin(){
-  const h=getHistory();
-  const comm=h.filter(t=>t.audio_url&&t._owner);
+async function renderCommunityAdmin(){
   const tbody=document.getElementById('comm-tbody');
-  if(!comm.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">커뮤니티에 공개된 음악이 없습니다</td></tr>`;return;}
-  tbody.innerHTML=comm.map((t,i)=>`
-    <tr>
-      <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
-      <td class="td-title">${esc(t.title||'무제')}</td>
-      <td>
-        ${t._owner?.avatar?`<img src="${esc(t._owner.avatar)}" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display='none'">`:''}
-        ${esc(t._owner?.name||'익명')}
-        <span class="badge badge-acc" style="margin-left:4px;">${t._owner?.provider||'?'}</span>
-      </td>
-      <td>${t._commLikes||0}</td>
-      <td><span class="badge ${t._kieLog?'badge-ylw':'badge-grn'}">${t._kieLog?'kie.ai':'앱 생성'}</span></td>
-      <td style="font-size:11px;white-space:nowrap;">${t.created?new Date(t.created).toLocaleString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
-      <td><span class="badge badge-grn">공개</span></td>
-      <td><div class="table-action-row" style="gap:6px;align-items:center;flex-wrap:wrap;">
-        ${t.audio_url?`
-          <button class="btn btn-acc" id="aplay-btn-${i}" onclick="adminPlayComm('${esc(t.audio_url)}','${esc(t.title||'무제')}',${i})" style="font-size:12px;padding:5px 12px;min-width:60px;">▶ 재생</button>
-          <audio id="apl-comm-${i}" src="${esc(t.audio_url)}" preload="none"></audio>
-        `:''}
-        <button class="btn btn-red" onclick="hideFromComm(${h.indexOf(t)})" style="font-size:11px;padding:3px 8px;">숨기기</button>
-      </div></td>
-    </tr>`).join('');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
+  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  let allTracks=[];
+  try{
+    const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
+    const raw=await r.text();
+    if(r.ok&&raw.trim().startsWith('{')){
+      const d=JSON.parse(raw);
+      if(Array.isArray(d.tracks)){
+        allTracks=d.tracks.map(t=>({
+          id:t.id, taskId:t.task_id||'', title:t.title||'무제',
+          audio_url:t.audio_url||'', image_url:t.image_url||'',
+          tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
+          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+          _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
+          _source:d.source||'supabase',
+        }));
+      }
+    }
+  }catch(e){ console.warn('[Admin] Supabase 실패:',e.message); }
+  if(!allTracks.length){
+    const h=getHistory();
+    allTracks=h.filter(t=>t.audio_url).map((t,i)=>({...t,_hIdx:i,_source:'local'}));
+  }
+  allTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+  const cnt=document.getElementById('comm-count');
+  if(cnt) cnt.textContent='('+allTracks.length+'곡)';
+  if(!allTracks.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">생성된 음악이 없습니다</td></tr>';
+    return;
+  }
+  const provColor={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
+  tbody.innerHTML=allTracks.map((t,i)=>{
+    const o=t._owner||{};
+    const isGuest=!o.name||o.name==='익명'||o.provider==='guest'||!o.provider;
+    const pc=provColor[o.provider]||'badge-acc';
+    const avHtml=(!isGuest&&o.avatar)?('<img src="'+esc(o.avatar)+'" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):'' ;
+    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">'):'🎵';
+    const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const ml=modeLabel[t.genMode||'custom']||'커스텀';
+    const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
+    const srcIcon=t._source==='supabase'?'<span title="Supabase" style="font-size:9px;color:var(--acc3);">☁️</span>':'<span title="로컬" style="font-size:9px;color:var(--t3);">💾</span>';
+    const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'');
+    const deleteBtn=t._source==='supabase'&&t.id
+      ?'<button class="btn btn-red" onclick="deleteCommTrack(\''+esc(t.id)+'\')" style="font-size:11px;padding:3px 7px;">삭제</button>'
+      :(t._hIdx!=null?'<button class="btn btn-red" onclick="hideFromComm('+t._hIdx+')" style="font-size:11px;padding:3px 7px;">숨기기</button>':'');
+    return '<tr>'
+      +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
+      +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b>'+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
+      +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
+      +'<td><span class="badge" style="background:rgba(124,58,237,.15);color:var(--acc2);">'+ml+'</span></td>'
+      +'<td style="font-size:11px;">'+likesHtml+'</td>'
+      +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
+      +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
+        +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
+        +deleteBtn
+      +'</div></td></tr>';
+  }).join('');
 }
+
+async function deleteCommTrack(id){
+  if(!confirm('Supabase에서 완전 삭제할까요?')) return;
+  const pw=sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  try{
+    const r=await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
+    const d=await r.json();
+    if(d.success){adminToast('✅ 삭제 완료');renderCommunityAdmin();}
+    else adminToast('❌ 삭제 실패: '+(d.error||''));
+  }catch(e){adminToast('❌ 오류: '+e.message);}
+}
+
 
 /* ── 커뮤니티 즉각 재생 ── */
 let _commAdminAudio = null;
@@ -1405,10 +1532,26 @@ function adminPlayComm(url, title, idx){
     _commAdminPlayingIdx = -1;
   };
 }
-function hideFromComm(i){
+async function hideFromComm(i){
+  const adminPw = sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  /* localStorage 업데이트 */
   let h=getHistory();
-  if(h[i])h[i]._owner=null;
-  localStorage.setItem('kms_history',JSON.stringify(h));
+  if(h[i]){
+    const trackId = h[i].id;
+    h[i]._hidden = true;
+    h[i]._owner = null;
+    localStorage.setItem('kms_history',JSON.stringify(h));
+    /* Supabase is_public=false 업데이트 */
+    if(trackId){
+      try{
+        await fetch('/api/tracks/hide?id='+encodeURIComponent(trackId), {
+          method:'PATCH',
+          headers:{'Authorization':'Bearer '+adminPw,'Content-Type':'application/json'},
+          body: JSON.stringify({is_public:false}),
+        });
+      }catch(e){ console.warn('[hideFromComm] Supabase 업데이트 실패:', e.message); }
+    }
+  }
   adminToast('✅ 커뮤니티에서 숨겼습니다');
   renderCommunityAdmin();
 }
@@ -1427,112 +1570,126 @@ function switchUserTab(tab){
   document.getElementById('utab-creator').className = tab==='creator' ? 'btn btn-acc' : 'btn';
 }
 
-function renderUsersAdmin(showToast=false){
-  const h = getHistory();
-  /* localStorage에서 최신 로그인 사용자 목록 재조회 */
-  const loginUsers = getLoginUsers();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const now = Date.now();
-  const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5분
-  const onlineUsers = loginUsers.filter(u => u.lastLogin && (now - u.lastLogin) < ONLINE_THRESHOLD);
+async function renderUsersAdmin(showToast=false){
+  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  let loginUsers=[];
+
+  /* Supabase에서 사용자 조회 */
+  try{
+    const r=await fetch('/api/users',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(6000)});
+    const raw=await r.text();
+    if(r.ok&&raw.trim().startsWith('{')){
+      const d=JSON.parse(raw);
+      if(Array.isArray(d.users)&&d.users.length>0){
+        loginUsers=d.users.map(u=>({
+          name:u.name, provider:u.provider, email:u.email||'',
+          avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
+          loginCount:u.login_count||1,
+          lastLogin:u.last_login||0,
+        })).sort((a,b)=>(b.lastLogin||0)-(a.lastLogin||0));
+      }
+    }
+  }catch(e){ console.warn('[Admin] 사용자 조회 실패:',e.message); }
+
+  /* fallback: localStorage */
+  if(!loginUsers.length) loginUsers=getLoginUsers();
+
+  const now=Date.now();
+  const ONLINE=5*60*1000;
+  const today=new Date(); today.setHours(0,0,0,0);
+
   if(showToast){
-    adminToast(`✅ 전체 ${loginUsers.length}명 조회됨 (최근 5분: ${onlineUsers.length}명)`);
+    const online=loginUsers.filter(u=>(now-(u.lastLogin||0))<ONLINE).length;
+    adminToast('✅ '+loginUsers.length+'명 조회 (최근 5분: '+online+'명)');
   }
 
-  /* 통계 */
-  const creatorMap = {};
+  /* 통계 - Supabase tracks에서 집계 */
+  const h=getHistory();
+  const creatorMap={};
   h.forEach(t=>{
     if(t._owner?.name){
       const k=t._owner.name+'__'+t._owner.provider;
       if(!creatorMap[k]) creatorMap[k]={...t._owner,count:0,likes:0,last:0};
-      creatorMap[k].count++;
-      creatorMap[k].likes+=(t._commLikes||0);
+      creatorMap[k].count++; creatorMap[k].likes+=(t._commLikes||0);
       if((t.created||0)>creatorMap[k].last) creatorMap[k].last=t.created||0;
     }
   });
-  const creators = Object.values(creatorMap);
-  const todayLogins = loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=today).length;
-  const pushSubs = getPushSubscriptions().length;
+  const creators=Object.values(creatorMap);
+  const todayLogins=loginUsers.filter(u=>u.lastLogin&&new Date(u.lastLogin)>=today).length;
+  const pushSubs=getPushSubscriptions().length;
 
   const ustatT=document.getElementById('ustat-total');
   const ustatC=document.getElementById('ustat-creator');
   const ustatTd=document.getElementById('ustat-today');
   const ustatP=document.getElementById('ustat-push');
-  if(ustatT) ustatT.textContent = loginUsers.length;
-  if(ustatC) ustatC.textContent = creators.length;
-  if(ustatTd) ustatTd.textContent = todayLogins;
-  if(ustatP) ustatP.textContent = pushSubs;
+  if(ustatT) ustatT.textContent=loginUsers.length;
+  if(ustatC) ustatC.textContent=creators.length;
+  if(ustatTd) ustatTd.textContent=todayLogins;
+  if(ustatP) ustatP.textContent=pushSubs;
 
-  const loginCnt = document.getElementById('login-user-count');
-  if(loginCnt) loginCnt.textContent = '(' + loginUsers.length + '명)';
+  const loginCnt=document.getElementById('login-user-count');
+  if(loginCnt) loginCnt.textContent='('+loginUsers.length+'명)';
 
-  /* 로그인 사용자 테이블 */
-  const loginTbody = document.getElementById('users-login-tbody');
+  const loginTbody=document.getElementById('users-login-tbody');
   if(loginTbody){
     if(!loginUsers.length){
-      loginTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로그인 기록이 없습니다. 앱에서 소셜 로그인 시 자동 기록됩니다.</td></tr>';
+      loginTbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">로그인 기록이 없습니다</td></tr>';
     } else {
-      loginTbody.innerHTML = loginUsers.map((u,i)=>{
-        const creatorKey = u.name+'__'+u.provider;
-        const cInfo = creatorMap[creatorKey];
-        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
-        const ua = u.ua || '';
-        let deviceIcon = '🖥', deviceLabel = 'PC';
-        if(/iPhone/i.test(ua))       { deviceIcon='📱'; deviceLabel='iPhone'; }
-        else if(/iPad/i.test(ua))    { deviceIcon='📱'; deviceLabel='iPad'; }
-        else if(/Android/i.test(ua)) { deviceIcon='📱'; deviceLabel='Android'; }
-        else if(/Mac/i.test(ua))     { deviceIcon='💻'; deviceLabel='Mac'; }
-        const isOnline = u.lastLogin && (now - u.lastLogin) < ONLINE_THRESHOLD;
-        return `<tr style="${isOnline?'background:rgba(34,197,94,.05);':''}">
-          <td style="position:relative;">
-            ${u.avatar?`<img src="${esc(u.avatar)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>'}
-            ${isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':''}
-          </td>
-          <td style="font-weight:600;">${esc(u.name)}
-            <div style="font-size:10px;color:var(--t3);">${esc(u.email||'')}</div>
-          </td>
-          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
-          <td style="text-align:center;">
-            <span style="font-size:14px;">${deviceIcon}</span>
-            <div style="font-size:9px;color:var(--t3);margin-top:1px;">${deviceLabel}</div>
-          </td>
-          <td style="text-align:center;font-weight:700;">${u.loginCount||1}회</td>
-          <td style="font-size:11px;color:var(--t3);">
-            ${u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}
-            ${isOnline?'<div style="font-size:9px;color:var(--grn);margin-top:1px;">🟢 온라인</div>':''}
-          </td>
-          <td style="text-align:center;">${cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—'}</td>
-          <td><div style="display:flex;gap:4px;">
-            <button class="btn" onclick="sendPushToUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🔔</button>
-            <button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫</button>
-          </div></td>
-        </tr>`;
+      const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+      loginTbody.innerHTML=loginUsers.map((u,i)=>{
+        const pc=provColors[u.provider||'']||'badge-acc';
+        const ua=u.ua||'';
+        let dIcon='🖥'; let dLabel='PC';
+        if(/iPhone/i.test(ua)){dIcon='📱';dLabel='iPhone';}
+        else if(/iPad/i.test(ua)){dIcon='📱';dLabel='iPad';}
+        else if(/Android/i.test(ua)){dIcon='📱';dLabel='Android';}
+        else if(/Mac/i.test(ua)){dIcon='💻';dLabel='Mac';}
+        const isOnline=(now-(u.lastLogin||0))<ONLINE;
+        const timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+        const cInfo=creatorMap[u.name+'__'+u.provider];
+        return '<tr style="'+(isOnline?'background:rgba(34,197,94,.04);':'')+'">'
+          +'<td style="position:relative;">'
+            +(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
+            +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
+          +'</td>'
+          +'<td style="font-weight:600;">'+esc(u.name)+'<div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
+          +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
+          +'<td style="text-align:center;"><span style="font-size:14px;">'+dIcon+'</span><div style="font-size:9px;color:var(--t3);">'+dLabel+'</div></td>'
+          +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'회</td>'
+          +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(isOnline?'<div style="font-size:9px;color:var(--grn);">🟢 온라인</div>':'')+'</td>'
+          +'<td style="text-align:center;">'+(cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—')+'</td>'
+          +'<td><div style="display:flex;gap:4px;">'
+            +'<button class="btn" onclick="sendPushToUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🔔</button>'
+            +'<button class="btn btn-red" onclick="banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🚫</button>'
+          +'</div></td>'
+          +'</tr>';
       }).join('');
     }
   }
 
-  /* 생성 기여자 테이블 */
-  const creatorTbody = document.getElementById('users-creator-tbody');
+  /* 생성 기여자 */
+  const creatorTbody=document.getElementById('users-creator-tbody');
   if(creatorTbody){
     if(!creators.length){
       creatorTbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">생성 기여자가 없습니다</td></tr>';
     } else {
-      const sorted = [...creators].sort((a,b)=>b.count-a.count);
-      creatorTbody.innerHTML = sorted.map((u,i)=>{
-        const provColor = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',kie:'badge-acc'}[u.provider||'']||'badge-acc';
-        return `<tr>
-          <td>${u.avatar?`<img src="${esc(u.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>'}</td>
-          <td style="font-weight:600;">${esc(u.name)}</td>
-          <td><span class="badge ${provColor}">${u.provider||'?'}</span></td>
-          <td style="text-align:center;font-weight:800;color:var(--acc3);">${u.count}곡</td>
-          <td style="text-align:center;">${u.likes}</td>
-          <td style="font-size:11px;color:var(--t3);">${u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—'}</td>
-          <td><button class="btn btn-red" onclick="banUser('${esc(u.name)}')" style="font-size:11px;padding:4px 8px;">🚫 차단</button></td>
-        </tr>`;
+      const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+      creatorTbody.innerHTML=[...creators].sort((a,b)=>b.count-a.count).map((u,i)=>{
+        const pc=provColors[u.provider||'']||'badge-acc';
+        return '<tr>'
+          +'<td>'+(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">':'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;">🎵</div>')+'</td>'
+          +'<td style="font-weight:600;">'+esc(u.name)+'</td>'
+          +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
+          +'<td style="text-align:center;font-weight:800;color:var(--acc3);">'+u.count+'곡</td>'
+          +'<td style="text-align:center;">'+u.likes+'</td>'
+          +'<td style="font-size:11px;color:var(--t3);">'+(u.last?new Date(u.last).toLocaleDateString('ko-KR'):'—')+'</td>'
+          +'<td><button class="btn btn-red" onclick="banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;">🚫 차단</button></td>'
+          +'</tr>';
       }).join('');
     }
   }
 }
+
 
 function filterUsers(){
   const q=(document.getElementById('user-search')?.value||'').toLowerCase();
@@ -2167,30 +2324,22 @@ async function fetchKieUsageForStats(apiKey){
   const balK = document.getElementById('u-kie-krw');
   if(bal) bal.textContent = '조회 중...';
 
-  const endpoints = [
-    { ep: '/api/v1/user/balance', bKey: d => d?.data?.balance ?? d?.balance },
-    { ep: '/api/v1/user/info',    bKey: d => d?.data?.credits ?? d?.data?.remainCredits },
-  ];
-  for(const {ep, bKey} of endpoints){
-    try{
-      const d = await kieProxyRequest(apiKey, ep);
-      const b = bKey(d);
-      if(b != null){
-        const num = Number(b);
-        if(bal)  bal.textContent  = num.toLocaleString() + ' cr';
-        if(balK) balK.textContent = '≈ ₩' + Math.round(num*13.5).toLocaleString();
-        const kb = document.getElementById('kie-balance');
-        if(kb) kb.textContent = num + ' 크레딧 (≈ ₩' + Math.round(num*13.5).toLocaleString() + ')';
-        const kbrow = document.getElementById('kie-balance-row');
-        if(kbrow) kbrow.style.display = 'block';
-        return;
-      }
-    }catch(e){
-      if(!e.message.includes('엔드포인트 없음') && !e.message.includes('HTML'))
-        console.warn('[KieStats]', ep, e.message);
+  try {
+    const d = await kieProxyRequest(apiKey, '/api/v1/chat/credit');
+    const num = Number(d?.data?.availableCredits ?? d?.data?.totalCredits ?? d?.data?.balance ?? d?.balance ?? 0);
+    if(num >= 0) {
+      if(bal)  bal.textContent  = num.toLocaleString() + ' cr';
+      if(balK) balK.textContent = '≈ ₩' + Math.round(num*13.5).toLocaleString();
+      const kb = document.getElementById('kie-balance');
+      if(kb) kb.textContent = num.toLocaleString() + ' 크레딧 (≈ ₩' + Math.round(num*13.5).toLocaleString() + ')';
+      const kbrow = document.getElementById('kie-balance-row');
+      if(kbrow) kbrow.style.display = 'block';
+      return;
     }
+  } catch(e) {
+    console.warn('[KieStats]', e.message);
   }
-  if(bal) bal.innerHTML = '<a href="https://kie.ai/ko/logs" target="_blank" style="color:var(--acc3);font-size:11px;">대시보드 확인 →</a>';
+  if(bal) bal.innerHTML = '<a href="https://kie.ai/api-key" target="_blank" style="color:var(--acc3);font-size:11px;">API Key 확인 ↗</a>';
 }
 
 function exportUsageCsv(){
@@ -2402,7 +2551,31 @@ loadData = function(){
   const pendingReports = getReports().filter(r=>r.status==='pending').length;
   const reportStat = document.getElementById('stat-reports');
   if(reportStat) reportStat.textContent = pendingReports;
+  // 마지막 갱신 시각 표시
+  const lastSync = document.getElementById('dash-last-sync');
+  if(lastSync) lastSync.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 };
+
+/* ── 대시보드 10초 자동 갱신 ── */
+let _dashAutoTimer = null;
+function startDashAutoRefresh(){
+  if(_dashAutoTimer) return;
+  _dashAutoTimer = setInterval(()=>{
+    /* 대시보드 섹션이 표시 중일 때만 갱신 */
+    const sec = document.getElementById('sec-dashboard');
+    if(sec && sec.classList.contains('on')){
+      loadData();
+      /* API 키 있으면 크레딧도 갱신 */
+      const key = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
+      if(key) fetchKieUsageForStats(key).catch(()=>{});
+    }
+  }, 10000);
+}
+function stopDashAutoRefresh(){
+  if(_dashAutoTimer){ clearInterval(_dashAutoTimer); _dashAutoTimer = null; }
+}
+/* 페이지 로드 시 자동 시작 */
+document.addEventListener('DOMContentLoaded', ()=>{ startDashAutoRefresh(); });
 
 
 // ══════════════════════════════════════════════
@@ -2592,6 +2765,22 @@ function tryManagerLogin(id, pw){
 /* 페이지 로드 시 세션 초기화 */
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(initAccountSession, 100);
+  
+  /* ── 10초마다 전체 데이터 자동 갱신 ── */
+  setInterval(()=>{
+    loadData();
+    renderUsersAdmin();
+    /* kie.ai 크레딧 갱신 (저장된 키 있으면) */
+    const _k = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
+    if(_k) fetchKieUsageForStats(_k);
+  }, 10000);
+  /* 카운트다운 표시 */
+  let _autoRefreshTick = 10;
+  const _autoLabel = document.getElementById('auto-refresh-label');
+  setInterval(()=>{
+    _autoRefreshTick = _autoRefreshTick <= 1 ? 10 : _autoRefreshTick - 1;
+    if(_autoLabel) _autoLabel.textContent = _autoRefreshTick + '초 후 갱신';
+  }, 1000);
   
   /* 게이트 힌트 업데이트 */
   const hint = document.querySelector('.gate-hint, #gate-hint');
