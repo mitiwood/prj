@@ -4369,6 +4369,7 @@ async function generateMV(){
             });
             historyData=historyData.slice(0,30);
             saveHistory();updateHistBadge();
+            _saveTrackToServer({id:historyData[0].id,taskId:mvTaskId,title:mvTitle,audio_url:linkedTrack?.audio_url||'',video_url:videoUrl,image_url:linkedTrack?.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
 
             /* 결과 렌더 */
             resultArea.innerHTML=`
@@ -5193,6 +5194,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
     trackUsage('mv', {mode:'mv', title:mvEntry.title||''});
             historyData=historyData.slice(0,30);
             saveHistory();renderHistory();
+            _saveTrackToServer({id:mvEntry.id,taskId:mvEntry.taskId||'',title:mvEntry.title,audio_url:mvEntry.audio_url||'',video_url:mvEntry.video_url||'',image_url:mvEntry.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
             /* results-mv에도 카드 추가 */
             const mvInner=$('results-inner-mv');
             if(mvInner){
@@ -5299,6 +5301,7 @@ $('vc-submit-btn').addEventListener('click',async()=>{
       </div>`;
     historyData.unshift({id:result.id||Date.now().toString(),taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:result.imageUrl||'',tags:'보컬 변경',lyrics:'',created:Date.now(),type:'audio'});
     historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    _saveTrackToServer({id:historyData[0].id,taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:result.imageUrl||'',tags:'보컬 변경',lyrics:'',genMode:'vocal',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
     toast('🎙 보컬 교체 완성!','ok');
   }catch(e){
     $('vc-result').innerHTML=`<div style="font-size:12px;color:var(--red);padding:8px;">❌ ${esc(e.message)}</div>`;
