@@ -2016,7 +2016,7 @@ body.mp-on .view{padding-bottom:118px;}
 
   <!-- ── 헤더 ── -->
   <header class="app-header">
-    <div class="logo">Kenny's <span>Music</span> Studio<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.0</span></div>
+    <div class="logo">Kenny's <span>Music</span> Studio<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.1</span></div>
 
   </header>
 
@@ -2999,6 +2999,57 @@ body.mp-on .view{padding-bottom:118px;}
   </div>
 </div>
 
+
+<!-- ── 음악+영상 합치기 플레이어 ── -->
+<div id="mv-merge-overlay" style="display:none;position:fixed;inset:0;z-index:99990;background:#0a0a15;">
+  <div style="height:100%;display:flex;flex-direction:column;">
+    <!-- 상단 바 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;flex-shrink:0;">
+      <button onclick="closeMvMerge()" style="background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:8px;">✕</button>
+      <div style="font-size:14px;font-weight:700;color:var(--t1);">🎵+🎬 음악 합치기</div>
+      <div style="width:36px;"></div>
+    </div>
+    <!-- 영상 영역 -->
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;" id="mv-merge-video-wrap">
+      <video id="mv-merge-video" muted loop playsinline style="width:100%;max-height:60vh;object-fit:contain;border-radius:12px;"></video>
+      <!-- 루프 모드 표시 -->
+      <div id="mv-merge-loop-badge" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);padding:4px 10px;border-radius:12px;font-size:11px;color:#fff;">🔁 영상 루프</div>
+    </div>
+    <!-- 음악 선택 영역 -->
+    <div style="padding:12px 16px;flex-shrink:0;" id="mv-merge-track-area">
+      <div id="mv-merge-current" style="display:none;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:10px 14px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="mv-merge-thumb" style="width:40px;height:40px;border-radius:8px;background:var(--bg2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;">🎵</div>
+          <div style="flex:1;min-width:0;">
+            <div id="mv-merge-track-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="mv-merge-track-tags" style="font-size:10px;color:var(--acc3);"></div>
+          </div>
+          <button onclick="mvMergeChangeTrack()" style="background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--t2);font-size:11px;cursor:pointer;font-family:inherit;">변경</button>
+        </div>
+      </div>
+      <button id="mv-merge-pick-btn" onclick="mvMergePickTrack()" style="width:100%;padding:12px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:10px;color:var(--acc3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🎵 음악 선택하기</button>
+    </div>
+    <!-- 컨트롤 -->
+    <div style="padding:0 16px 8px;flex-shrink:0;">
+      <!-- 프로그레스바 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span id="mv-merge-cur" style="font-size:11px;color:var(--t3);min-width:32px;">0:00</span>
+        <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;cursor:pointer;position:relative;" id="mv-merge-prog-wrap" onclick="mvMergeSeek(event)">
+          <div id="mv-merge-prog" style="height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;width:0%;transition:width .1s;"></div>
+        </div>
+        <span id="mv-merge-dur" style="font-size:11px;color:var(--t3);min-width:32px;">0:00</span>
+      </div>
+      <!-- 버튼 -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding-bottom:env(safe-area-inset-bottom,12px);">
+        <button onclick="mvMergeToggleLoop()" id="mv-merge-loop-btn" style="background:none;border:none;color:var(--acc3);font-size:14px;cursor:pointer;padding:8px;" title="루프 모드">🔁</button>
+        <button onclick="mvMergeSeekRel(-10)" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:8px;">⏮</button>
+        <button onclick="mvMergeTogglePlay()" id="mv-merge-play-btn" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 18px rgba(124,58,237,.5);">▶</button>
+        <button onclick="mvMergeSeekRel(10)" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:8px;">⏭</button>
+        <button onclick="mvMergeDownload()" style="background:none;border:none;color:var(--t2);font-size:14px;cursor:pointer;padding:8px;" title="다운로드">⬇️</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ── 풀플레이어 편집 바텀시트 ── -->
 <div id="fp-edit-sheet">
@@ -4611,6 +4662,11 @@ async function generateMV(){
                   <button class="dl-btn lnk" onclick="navigator.clipboard.writeText('${esc(videoUrl)}').then(()=>toast('🔗 복사됨!','ok'))">🔗 링크 복사</button>
                   ${linkedTrack?`<button class="dl-btn" onclick="openFullPlayer(0)" style="color:var(--acc3);">🎵 음악 플레이어</button>`:''}
                 </div>
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                  <button class="dl-btn" onclick="openMvMergePlayer('${esc(videoUrl)}',${linkedTrack?'0':'null'})" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(236,72,153,.2));border:1px solid rgba(124,58,237,.35);color:var(--acc3);padding:12px;font-size:13px;font-weight:700;border-radius:10px;">
+                    🎵+🎬 음악 합치기 — 영상 루프 재생
+                  </button>
+                </div>
               </div>`;
             /* 결과 섹션에도 추가 */
             const sec=$('results-mv');const inner=$('results-inner-mv');
@@ -4658,6 +4714,130 @@ async function generateMV(){
     genUnlock();
   }
 }
+
+/* ══════════════════════════════════════════════
+   음악+영상 합치기 (MV Merge Player)
+══════════════════════════════════════════════ */
+let _mvMergeAudio = null;
+let _mvMergeVideoUrl = '';
+let _mvMergeLoopMode = 'loop';
+let _mvMergePlaying = false;
+let _mvMergeLinkedIdx = null;
+
+function openMvMergePlayer(videoUrl, linkedIdx){
+  _mvMergeVideoUrl = videoUrl;
+  _mvMergeLinkedIdx = linkedIdx;
+  const overlay = $('mv-merge-overlay');
+  if(!overlay) return;
+  overlay.style.display = 'block';
+  stopAllAudio();
+  const vid = $('mv-merge-video');
+  vid.src = videoUrl; vid.loop = true; vid.muted = true;
+  vid.play().catch(()=>{});
+  if(linkedIdx !== null && linkedIdx !== undefined && historyData[linkedIdx]){
+    _mvMergeSetTrack(linkedIdx);
+  } else {
+    $('mv-merge-current').style.display = 'none';
+    $('mv-merge-pick-btn').style.display = 'block';
+  }
+}
+function closeMvMerge(){
+  $('mv-merge-overlay').style.display = 'none';
+  const vid = $('mv-merge-video'); if(vid){ vid.pause(); vid.src = ''; }
+  if(_mvMergeAudio){ _mvMergeAudio.pause(); _mvMergeAudio = null; }
+  _mvMergePlaying = false;
+}
+function _mvMergeSetTrack(idx){
+  const h = historyData[idx]; if(!h || !h.audio_url) return;
+  _mvMergeLinkedIdx = idx;
+  $('mv-merge-track-title').textContent = h.title || '무제';
+  $('mv-merge-track-tags').textContent = (h.tags||'').split(',')[0]?.trim() || '';
+  const thumb = $('mv-merge-thumb');
+  if(thumb) thumb.innerHTML = h.image_url ? '<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">' : '🎵';
+  $('mv-merge-current').style.display = 'flex';
+  $('mv-merge-pick-btn').style.display = 'none';
+  if(_mvMergeAudio){ _mvMergeAudio.pause(); }
+  _mvMergeAudio = new Audio(h.audio_url);
+  _mvMergeAudio.addEventListener('loadedmetadata', function(){ $('mv-merge-dur').textContent = _fmtTime(_mvMergeAudio.duration); });
+  _mvMergeAudio.addEventListener('timeupdate', _mvMergeOnTime);
+  _mvMergeAudio.addEventListener('ended', function(){
+    _mvMergePlaying = false; $('mv-merge-play-btn').textContent = '▶';
+    var vid = $('mv-merge-video'); if(vid){ vid.pause(); vid.currentTime = 0; }
+  });
+}
+function mvMergePickTrack(){
+  var musicTracks = historyData.filter(function(h){ return h.audio_url && !h.video_url; });
+  if(!musicTracks.length){ toast('생성된 음악이 없어요','err'); return; }
+  var overlay = document.createElement('div'); overlay.className = 'ai-sheet-overlay';
+  var listHtml = musicTracks.slice(0,20).map(function(h){
+    var realIdx = historyData.indexOf(h);
+    var thumbHtml = h.image_url ? '<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">' : '🎵';
+    return '<div onclick="document.querySelector(\'.ai-sheet-overlay\')?.remove();_mvMergeSetTrack('+realIdx+')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);margin-bottom:6px;transition:all .15s;">'
+      +'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">'+thumbHtml+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(h.title||'무제')+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);">'+esc((h.tags||'').split(',')[0]?.trim()||'')+'</div></div></div>';
+  }).join('');
+  overlay.innerHTML = '<div class="ai-sheet-box" style="max-height:75vh;"><div class="ai-sheet-handle"></div>'
+    +'<div class="ai-sheet-title">🎵 음악 선택</div><div class="ai-sheet-sub">영상과 합칠 음악을 선택하세요</div>'
+    +'<div style="overflow-y:auto;max-height:50vh;">'+listHtml+'</div>'
+    +'<button class="ai-sheet-cancel-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove()">닫기</button></div>';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+function mvMergeChangeTrack(){ mvMergePickTrack(); }
+function mvMergeTogglePlay(){
+  if(!_mvMergeAudio){ toast('먼저 음악을 선택하세요','err'); return; }
+  var vid = $('mv-merge-video');
+  if(_mvMergePlaying){
+    _mvMergeAudio.pause(); if(vid) vid.pause();
+    _mvMergePlaying = false; $('mv-merge-play-btn').textContent = '▶';
+  } else {
+    stopAllAudio(); _mvMergeAudio.play();
+    if(vid){ vid.currentTime = 0; vid.play().catch(function(){}); }
+    _mvMergePlaying = true; $('mv-merge-play-btn').textContent = '⏸';
+  }
+}
+function mvMergeSeekRel(sec){
+  if(!_mvMergeAudio) return;
+  _mvMergeAudio.currentTime = Math.max(0, Math.min(_mvMergeAudio.duration||0, _mvMergeAudio.currentTime + sec));
+}
+function mvMergeSeek(e){
+  if(!_mvMergeAudio?.duration) return;
+  var rect = $('mv-merge-prog-wrap').getBoundingClientRect();
+  _mvMergeAudio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * _mvMergeAudio.duration;
+}
+function _mvMergeOnTime(){
+  if(!_mvMergeAudio?.duration) return;
+  $('mv-merge-prog').style.width = (_mvMergeAudio.currentTime / _mvMergeAudio.duration) * 100 + '%';
+  $('mv-merge-cur').textContent = _fmtTime(_mvMergeAudio.currentTime);
+}
+function mvMergeToggleLoop(){
+  _mvMergeLoopMode = _mvMergeLoopMode === 'loop' ? 'pingpong' : 'loop';
+  var vid = $('mv-merge-video');
+  if(_mvMergeLoopMode === 'pingpong'){
+    $('mv-merge-loop-badge').textContent = '🔄 핑퐁 루프';
+    $('mv-merge-loop-btn').textContent = '🔄';
+    /* 핑퐁: 영상 끝에서 재생속도 반전 */
+    if(vid){ vid.loop = false; vid.addEventListener('ended', _mvPingPongHandler); }
+    toast('🔄 핑퐁 루프','',1500);
+  } else {
+    $('mv-merge-loop-badge').textContent = '🔁 영상 루프';
+    $('mv-merge-loop-btn').textContent = '🔁';
+    if(vid){ vid.loop = true; vid.removeEventListener('ended', _mvPingPongHandler); vid.playbackRate = 1; }
+    toast('🔁 일반 루프','',1500);
+  }
+}
+function _mvPingPongHandler(){
+  /* 역재생 미지원이므로 처음부터 재생 (루프와 동일하지만 약간의 페이드 느낌) */
+  var vid = $('mv-merge-video'); if(!vid || !_mvMergePlaying) return;
+  vid.currentTime = 0; vid.play().catch(function(){});
+}
+function mvMergeDownload(){
+  if(!_mvMergeVideoUrl){ toast('영상이 없어요','err'); return; }
+  var title = _mvMergeLinkedIdx !== null ? (historyData[_mvMergeLinkedIdx]?.title||'mv') : 'mv';
+  downloadFile(_mvMergeVideoUrl, title + '_MV.mp4');
+}
+function _fmtTime(s){ if(!s||isNaN(s))return '0:00'; var m=Math.floor(s/60); return m+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 
 /* 악기 버튼 멀티셀렉트 */
 let selectedInstruments=[];
@@ -7869,6 +8049,7 @@ async function renderCommunity(force=false){
         <button class="comm-reaction-btn${hero.disliked?' disliked':''}" id="comm-hero-dislike" onclick="commHeroDislike()">
           💔 싫어요
         </button>
+        <button class="comm-reaction-btn" onclick="openCommentSheet('${esc(hero._sbId||'')}')">💬 댓글</button>
         <button class="comm-reaction-btn" onclick="commOpenDetail(0,true)">🎵 가사・정보</button>
       </div>
     </div>
@@ -7911,10 +8092,10 @@ async function renderCommunity(force=false){
         <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">
           💔
         </button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.6);">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">
+          💬
         </button>
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
       </div>
     </div>`;
   }).join('');
