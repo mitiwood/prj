@@ -1053,34 +1053,42 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* ══════════════════════════════
    FULLPLAYER
 ══════════════════════════════ */
+/* ══════════════════════════════
+   FULL PLAYER — Apple Music Style
+══════════════════════════════ */
 #fullplayer{
   position:fixed;inset:0;z-index:500;
-  background:var(--bg);transform:translateY(100%);
+  background:#000;transform:translateY(100%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   display:flex;flex-direction:column;overflow:hidden;
 }
 #fullplayer.on{transform:translateY(0);}
-.fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(40px) brightness(.3);transform:scale(1.1);}
+.fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.25) saturate(1.4);transform:scale(1.2);}
 .fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;width:100%;}
-.fp-header{display:flex;align-items:center;justify-content:space-between;padding:50px 20px 14px;}
+.fp-header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,50px) 20px 10px;}
 .fp-back{
-  width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);
-  border:none;color:#fff;font-size:22px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-family:inherit;
+  width:32px;height:32px;border-radius:50%;background:none;
+  border:none;color:rgba(255,255,255,.7);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
 }
-.fp-header-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.6);}
-.fp-scroll{flex:1;overflow-y:auto;padding:0 20px 20px;}
-.fp-cover-wrap{text-align:center;margin-bottom:12px;}
+.fp-back svg{width:24px;height:24px;}
+.fp-header-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.5px;text-transform:uppercase;}
+.fp-scroll{flex:1;overflow-y:auto;padding:0 24px 24px;display:flex;flex-direction:column;justify-content:center;}
+/* 커버 — Apple Music 대형 라운드 */
+.fp-cover-wrap{text-align:center;margin-bottom:24px;}
 .fp-cover{
-  width:160px;height:160px;border-radius:16px;display:inline-block;
+  width:280px;height:280px;border-radius:20px;display:inline-block;
   overflow:hidden;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
   display:inline-flex;align-items:center;justify-content:center;
-  font-size:48px;box-shadow:0 8px 40px rgba(0,0,0,.6);
+  box-shadow:0 16px 60px rgba(0,0,0,.7),0 4px 20px rgba(0,0,0,.4);
+  transition:transform .3s;
 }
 .fp-cover img{width:100%;height:100%;object-fit:cover;}
+.fp-cover svg{width:64px;height:64px;color:rgba(255,255,255,.15);}
+/* 곡 정보 */
 .fp-info{text-align:left;margin-bottom:0;}
-.fp-title{font-size:20px;font-weight:800;margin-bottom:4px;}
-.fp-tags{font-size:12px;color:rgba(255,255,255,.5);}
+.fp-title{font-size:22px;font-weight:800;margin-bottom:2px;letter-spacing:-.3px;}
+.fp-tags{font-size:13px;color:rgba(255,255,255,.45);font-weight:500;}
 .fp-actions{display:flex;justify-content:center;gap:20px;margin-bottom:14px;}
 .fp-act-btn{
   display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -1089,35 +1097,48 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .fp-act-btn:hover{color:#fff;}
 .fp-act-icon{font-size:20px;}
-.fp-prog-section{margin-bottom:18px;}
+/* 프로그레스 바 — Apple Music 슬림 */
+.fp-prog-section{margin-bottom:12px;margin-top:24px;}
 .fp-prog-wrap{
-  width:100%;height:4px;background:rgba(255,255,255,.15);
-  border-radius:2px;cursor:pointer;position:relative;margin-bottom:7px;
+  width:100%;height:4px;background:rgba(255,255,255,.12);
+  border-radius:2px;cursor:pointer;position:relative;margin-bottom:6px;
 }
-.fp-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;}
+.fp-prog-fill{height:100%;background:rgba(255,255,255,.95);border-radius:2px;width:0%;transition:width .15s linear;}
 .fp-prog-thumb{
-  width:14px;height:14px;border-radius:50%;background:#fff;
-  position:absolute;top:-5px;left:0%;transform:translateX(-50%);
-  box-shadow:0 2px 8px rgba(0,0,0,.4);
+  width:0;height:0;position:absolute;top:0;left:0%;
+  opacity:0;transition:all .15s;
 }
-.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.4);}
-.fp-controls{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:20px;}
+.fp-prog-wrap:hover .fp-prog-thumb,
+.fp-prog-wrap:active .fp-prog-thumb{
+  width:12px;height:12px;border-radius:50%;background:#fff;
+  top:-4px;opacity:1;transform:translateX(-50%);
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.35);font-weight:500;font-variant-numeric:tabular-nums;}
+/* 컨트롤 — Apple Music 스타일 */
+.fp-controls{display:flex;align-items:center;justify-content:center;gap:36px;margin-bottom:16px;}
 .fp-play-btn{
-  width:60px;height:60px;border-radius:50%;
-  background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);
-  color:#fff;font-size:20px;cursor:pointer;display:flex;
-  align-items:center;justify-content:center;transition:all .15s;
+  width:64px;height:64px;border-radius:50%;
+  background:none;border:none;
+  color:#fff;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;transition:all .12s;
+  -webkit-tap-highlight-color:transparent;
 }
-.fp-play-btn:hover{background:rgba(255,255,255,.25);}
+.fp-play-btn svg{width:42px;height:42px;fill:#fff;}
+.fp-play-btn:active{transform:scale(.9);opacity:.7;}
 .fp-ctrl-btn{
-  width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);
-  border:none;color:rgba(255,255,255,.6);font-size:16px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
+  width:44px;height:44px;border-radius:50%;background:none;
+  border:none;color:rgba(255,255,255,.7);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+  -webkit-tap-highlight-color:transparent;
 }
-.fp-ctrl-btn:hover{background:rgba(255,255,255,.15);color:#fff;}
+.fp-ctrl-btn svg{width:28px;height:28px;fill:currentColor;}
+.fp-ctrl-btn:active{transform:scale(.85);opacity:.6;}
+/* 비주얼라이저 */
 .fp-viz{display:flex;align-items:center;gap:2px;height:24px;justify-content:center;margin-bottom:10px;}
-.fp-vbar{width:3px;background:rgba(255,255,255,.25);border-radius:2px;height:8px;}
-.fp-vbar.active{height:24px;background:rgba(255,255,255,.7);}
+.fp-vbar{width:3px;background:rgba(255,255,255,.15);border-radius:2px;height:8px;}
+.fp-vbar.active{height:24px;background:rgba(255,255,255,.6);}
+/* 가사 */
 .fp-lyrics-section{margin-top:8px;}
 .fp-lyrics-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);}
 .fp-lyrics-toggle{
@@ -1135,6 +1156,19 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .fp-lyric-sec{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:2px;text-transform:uppercase;display:block;margin:14px 0 4px;opacity:.8;}
 .fp-lyric-sec:first-child{margin-top:0;}
 .fp-lyrics-mode-btn{padding:4px 10px;border-radius:var(--rx);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* 하단 볼륨/추가 컨트롤 — Apple Music */
+.fp-bottom-bar{display:flex;align-items:center;justify-content:space-between;padding:0 8px;margin-bottom:8px;}
+.fp-vol-wrap{display:flex;align-items:center;gap:8px;flex:1;max-width:260px;margin:0 auto;}
+.fp-vol-icon{color:rgba(255,255,255,.4);display:flex;align-items:center;}
+.fp-vol-icon svg{width:16px;height:16px;fill:currentColor;}
+.fp-vol-slider{
+  -webkit-appearance:none;appearance:none;flex:1;height:3px;
+  background:rgba(255,255,255,.12);border-radius:2px;outline:none;
+}
+.fp-vol-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:#fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4);
+}
 
 /* ══════════════════════════════
    SHARE SHEET
@@ -1561,19 +1595,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 }
 .fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;}
 
-/* ── fp 버튼 보라색 통일 ── */
-.fp-play-btn{
-  background:linear-gradient(135deg,var(--acc),var(--acc2)) !important;
-  border:none !important;
-  box-shadow:0 4px 18px rgba(124,58,237,.5) !important;
-}
-.fp-play-btn:hover{filter:brightness(1.12) !important;}
-.fp-ctrl-btn{
-  background:rgba(124,58,237,.18) !important;
-  border:1px solid rgba(124,58,237,.3) !important;
-  color:var(--acc3) !important;
-}
-.fp-ctrl-btn:hover{background:rgba(124,58,237,.35) !important;color:#fff !important;}
+/* ── fp 버튼 Apple Music 스타일 ── */
 .fp-act-btn{color:rgba(255,255,255,.5);}
 .fp-act-btn:hover{color:#fff;}
 .fp-act-btn.liked .fp-act-icon{filter:drop-shadow(0 0 6px rgba(255,100,130,.7));}
@@ -2098,12 +2120,14 @@ body.mp-on .view{padding-bottom:118px;}
   #mini-player .mp-body{padding:6px 10px;}
   .mp-title{font-size:13px;}
 
-  /* 풀플레이어 */
+  /* 풀플레이어 — Apple Music mobile */
   .fp-inner{padding:0 10px;}
-  .fp-cover{border-radius:12px;}
-  .fp-title{font-size:18px;}
-  .fp-controls{gap:16px;}
-  .fp-play-btn{width:52px;height:52px;font-size:22px;}
+  .fp-cover{width:240px;height:240px;border-radius:16px;}
+  .fp-title{font-size:20px;}
+  .fp-controls{gap:28px;}
+  .fp-play-btn{width:56px;height:56px;}
+  .fp-play-btn svg{width:36px;height:36px;}
+  .fp-ctrl-btn svg{width:24px;height:24px;}
   .fp-side-actions{gap:4px;}
   .fp-side-btn{width:34px;height:34px;font-size:14px;}
   .fp-lyrics-main{max-height:160px;padding:0 2px;}
@@ -2171,7 +2195,7 @@ body.mp-on .view{padding-bottom:118px;}
   .genre-btn{font-size:10px;padding:6px 6px;}
   .adv-instrument-grid{grid-template-columns:repeat(3,1fr);}
   .comm-featured-cover{height:150px;}
-  .fp-cover{max-height:260px;}
+  .fp-cover{width:200px;height:200px;border-radius:14px;}
   .comm-list-actions{gap:1px;}
   .comm-reaction-sm{padding:4px 6px;font-size:12px;}
 }
@@ -3040,7 +3064,7 @@ body.mp-on .view{padding-bottom:118px;}
   <div class="mp-prog-bar"><div class="mp-prog-fill" id="mp-prog-fill"></div></div>
 
   <div class="mp-body">
-    <div class="mp-thumb" id="mp-thumb">🎵</div>
+    <div class="mp-thumb" id="mp-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" style="color:rgba(255,255,255,.3);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
     <div class="mp-info" id="mp-info-area">
       <div class="mp-title" id="mp-title">재생 중</div>
       <div class="mp-sub" id="mp-sub"></div>
@@ -3051,9 +3075,9 @@ body.mp-on .view{padding-bottom:118px;}
       </div>
     </div>
     <div class="mp-controls">
-      <button class="mp-play-btn" id="mp-play-btn" title="재생/일시정지">▶</button>
-      <button class="mp-next-btn" id="mp-next-btn" title="다음 곡">⏭</button>
-      <button class="mp-close-btn" id="mp-close-btn" title="닫기">✕</button>
+      <button class="mp-play-btn" id="mp-play-btn" title="재생/일시정지"><svg id="mp-play-icon" viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg></button>
+      <button class="mp-next-btn" id="mp-next-btn" title="다음 곡"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+      <button class="mp-close-btn" id="mp-close-btn" title="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="12" height="12"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
   </div>
 </div>
@@ -3127,13 +3151,13 @@ body.mp-on .view{padding-bottom:118px;}
   <div class="fp-bg" id="fp-bg"></div>
   <div class="fp-inner">
     <div class="fp-header">
-      <button class="fp-back" id="fp-back">⌄</button>
-      <div class="fp-header-title">지금 재생 중</div>
-      <div style="width:36px;"></div>
+      <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="fp-header-title">재생 중</div>
+      <div style="width:32px;"></div>
     </div>
     <div class="fp-scroll" id="fp-scroll">
       <div class="fp-cover-wrap">
-        <div class="fp-cover" id="fp-cover">🎵</div>
+        <div class="fp-cover" id="fp-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64" style="color:rgba(255,255,255,.15);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <!-- 가사 오버레이 (커버 위) -->
         <div class="fp-lyrics-overlay" id="fp-lyrics-overlay">
           <div class="fp-lyrics-overlay-box" id="fp-lyrics-overlay-box"></div>
@@ -3199,9 +3223,16 @@ body.mp-on .view{padding-bottom:118px;}
         </div>
       </div>
       <div class="fp-controls">
-        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡">⏮</button>
-        <button class="fp-play-btn" id="fp-play-btn">▶</button>
-        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡">⏭</button>
+        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button class="fp-play-btn" id="fp-play-btn"><svg id="fp-play-icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></button>
+        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+      </div>
+      <div class="fp-bottom-bar">
+        <div class="fp-vol-wrap">
+          <div class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/></svg></div>
+          <input type="range" class="fp-vol-slider" id="fp-vol-slider" min="0" max="1" step="0.01" value="1">
+          <div class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
       </div>
       <div class="fp-viz" id="fp-viz">
         <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
@@ -3653,7 +3684,7 @@ function switchTab(viewId){
     if(fpAudio && !fpAudio.paused){
       mpStartViz?.();
       const mpBtn = $('mp-play-btn');
-      if(mpBtn) mpBtn.textContent = '⏸';
+      if(mpBtn) _setPlayIcon(mpBtn, true, false);
     }
   }
   document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
@@ -6871,8 +6902,8 @@ function showMiniPlayer(idx){
 
   audio.addEventListener('ended',()=>{
     const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
-    if(pb) pb.textContent='▶';
-    if(fpb) fpb.textContent='▶';
+    _setPlayIcon(pb, false, false);
+    _setPlayIcon(fpb, false, true);
     mpStopViz(); fpStopViz();
     /* 다음 곡 히스토리에서 audio_url 있는 것 */
     let next = fpCurrentIdx + 1;
@@ -6914,8 +6945,8 @@ function showMiniPlayer(idx){
 
   audio.play().then(()=>{
     const pb=$('mp-play-btn'),fpb=$('fp-play-btn');
-    if(pb) pb.textContent='⏸';
-    if(fpb) fpb.textContent='⏸';
+    _setPlayIcon(pb, true, false);
+    _setPlayIcon(fpb, true, true);
     mpStartViz(); fpStartViz();
   }).catch(err=>{
     if(err.name !== 'AbortError') console.warn('[play() failed]', err.message);
@@ -7102,7 +7133,7 @@ function expandToFullPlayer(){
     const cov = $('fp-cover');
     if(cov) cov.innerHTML = h.image_url
       ? `<img src="${esc(h.image_url)}" alt="" onerror="this.style.display='none'">`
-      : '<span style="font-size:72px">🎵</span>';
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64" style="color:rgba(255,255,255,.15);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
 
     /* 정보 */
     const titleEl=$('fp-title'); if(titleEl) titleEl.textContent = h.title || '무제';
@@ -7126,7 +7157,7 @@ function expandToFullPlayer(){
 
     /* 재생 버튼 */
     const pb=$('fp-play-btn');
-    if(pb) pb.textContent = fpAudio && !fpAudio.paused ? '⏸' : '▶';
+    _setPlayIcon(pb, fpAudio && !fpAudio.paused, true);
 
     /* 가사 렌더 */
     fpTimestampLines = [];
@@ -7172,13 +7203,13 @@ $('mp-play-btn').addEventListener('click', e=>{
   if(!fpAudio) return;
   if(fpAudio.paused){
     fpAudio.play();
-    $('mp-play-btn').textContent = '⏸';
-    $('fp-play-btn').textContent = '⏸';
+    _setPlayIcon($('mp-play-btn'), true, false);
+    _setPlayIcon($('fp-play-btn'), true, true);
     mpStartViz(); fpStartViz();
   } else {
     fpAudio.pause();
-    $('mp-play-btn').textContent = '▶';
-    $('fp-play-btn').textContent = '▶';
+    _setPlayIcon($('mp-play-btn'), false, false);
+    _setPlayIcon($('fp-play-btn'), false, true);
     mpStopViz(); fpStopViz();
   }
 });
@@ -7406,6 +7437,15 @@ function gotoHistoryTab(){
 
 /* ── 풀스크린 플레이어 ── */
 let fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
+/* SVG 아이콘 — 재생/일시정지 */
+const _SVG_PLAY='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg>';
+const _SVG_PAUSE='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+const _SVG_FP_PLAY='<svg viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21"/></svg>';
+const _SVG_FP_PAUSE='<svg viewBox="0 0 24 24" fill="#fff"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+function _setPlayIcon(el, playing, isFp){
+  if(!el) return;
+  el.innerHTML = playing ? (isFp ? _SVG_FP_PAUSE : _SVG_PAUSE) : (isFp ? _SVG_FP_PLAY : _SVG_PLAY);
+}
 
 function openFullPlayer(idx){
   const h=historyData[idx];
@@ -7458,7 +7498,7 @@ function _doOpenFullPlayer(idx){
   } else {
     cov.innerHTML=h.image_url
       ?`<img src="${esc(h.image_url)}" alt="" onerror="this.style.display='none'">`
-      :'<span style="font-size:72px">🎵</span>';
+      :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64" style="color:rgba(255,255,255,.15);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
     cov.style.aspectRatio='';
   }
 
@@ -7466,7 +7506,7 @@ function _doOpenFullPlayer(idx){
   $('fp-title').textContent=h.title||'무제';
   $('fp-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
   /* MV 뱃지 */
-  $('fp-header-title').textContent=hasVideo?'🎬 뮤직비디오 재생 중':'지금 재생 중';
+  $('fp-header-title').textContent=hasVideo?'뮤직비디오 재생 중':'재생 중';
 
   /* 좋아요 상태 + 별점 복원 */
   fpUpdateLikeUI();
@@ -7477,7 +7517,7 @@ function _doOpenFullPlayer(idx){
   $('fp-prog-thumb').style.left='0%';
   $('fp-cur').textContent='0:00';
   $('fp-dur').textContent='0:00';
-  $('fp-play-btn').textContent='▶';
+  _setPlayIcon($('fp-play-btn'), false, true);
   fpTimestampLines=[];
 
   /* 가사 렌더 — MV는 연결된 오디오 트랙에서 가사 찾기 */
@@ -7522,7 +7562,7 @@ function _doOpenFullPlayer(idx){
     $('fp-dur').textContent=formatTime(audio.duration);
     if(fpSyncMode&&fpTimestampLines.length)fpSyncLyrics(audio.currentTime);
   });
-  audio.addEventListener('ended',()=>{$('fp-play-btn').textContent='▶';fpStopViz();fpPlayNext();});
+  audio.addEventListener('ended',()=>{_setPlayIcon($('fp-play-btn'),false,true);fpStopViz();fpPlayNext();});
   audio.addEventListener('error',(ev)=>{
     const code=ev.target?.error?.code;
     const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
@@ -7546,7 +7586,7 @@ function _doOpenFullPlayer(idx){
       toast('🔇 '+msg,'err',4000);
     }
   });
-  audio.play().then(()=>{$('fp-play-btn').textContent='⏸';fpStartViz();}).catch((e)=>{
+  audio.play().then(()=>{_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}).catch((e)=>{
     if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
   });
 
@@ -7576,7 +7616,7 @@ $('fp-back').addEventListener('click',()=>{
   /* 음악은 계속 재생 */
   if(fpAudio && !fpAudio.paused){
     mpStartViz();
-    $('mp-play-btn').textContent='⏸';
+    _setPlayIcon($('mp-play-btn'), true, false);
   }
 });
 
@@ -7584,15 +7624,20 @@ $('fp-play-btn').addEventListener('click',()=>{
   if(!fpAudio)return;
   if(fpAudio.paused){
     fpAudio.play();
-    $('fp-play-btn').textContent='⏸';
-    $('mp-play-btn').textContent='⏸';
+    _setPlayIcon($('fp-play-btn'), true, true);
+    _setPlayIcon($('mp-play-btn'), true, false);
     fpStartViz(); mpStartViz();
   } else {
     fpAudio.pause();
-    $('fp-play-btn').textContent='▶';
-    $('mp-play-btn').textContent='▶';
+    _setPlayIcon($('fp-play-btn'), false, true);
+    _setPlayIcon($('mp-play-btn'), false, false);
     fpStopViz(); mpStopViz();
   }
+});
+
+/* 볼륨 슬라이더 */
+$('fp-vol-slider')?.addEventListener('input', e=>{
+  if(fpAudio) fpAudio.volume = parseFloat(e.target.value);
 });
 
 function fpSeekRel(sec){
@@ -7720,7 +7765,7 @@ function fpSeekToLine(el){
   const n=fpTimestampLines.length;
   /* 균등 분할 시간으로 이동 */
   fpAudio.currentTime=(fpAudio.duration/n)*li;
-  if(fpAudio.paused){fpAudio.play();$('fp-play-btn').textContent='⏸';fpStartViz();}
+  if(fpAudio.paused){fpAudio.play();_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}
   /* 즉시 싱크 */
   fpTimestampLines.forEach((l,i)=>{
     l.classList.toggle('active',i===li);
@@ -8405,7 +8450,7 @@ function _renderCommContent(heroWrap, list){
             :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`}
         </div>
         <div class="comm-list-info">
-          <div class="comm-list-title">${esc(t.title)}${t.duration?` <span class="comm-list-duration">${typeof t.duration==='number'?formatTime(t.duration):t.duration}</span>`:''}${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
+          <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}"></span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
           <div class="comm-list-meta">
             ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:13px;height:13px;border-radius:50%;margin-right:3px;vertical-align:middle;" onerror="this.style.display='none'">`:''}<span style="color:var(--t3);font-size:11px;">${esc(ownerName)}</span>
             ${t.tags?`<span class="cs-genre" style="margin-left:4px;">${esc(t.tags)}</span>`:''}
@@ -8438,6 +8483,30 @@ function _renderCommContent(heroWrap, list){
 
   /* 댓글 카운트 비동기 로드 */
   _loadCommentCounts([hero._sbId, ...rest.map(t=>t._sbId)].filter(Boolean));
+  /* 재생시간 비동기 로드 */
+  _loadCommDurations(rest);
+}
+
+
+/* 커뮤니티 리스트 재생시간 비동기 로드 */
+const _durCache={};
+function _loadCommDurations(tracks){
+  tracks.forEach(t=>{
+    if(!t.audioUrl||!t._sbId)return;
+    const el=document.getElementById('comm-dur-'+t._sbId);
+    if(!el)return;
+    if(_durCache[t._sbId]){el.textContent=_durCache[t._sbId];return;}
+    const a=new Audio();
+    a.preload='metadata';
+    a.src=t.audioUrl;
+    a.addEventListener('loadedmetadata',()=>{
+      const d=formatTime(a.duration);
+      _durCache[t._sbId]=d;
+      el.textContent=d;
+      a.src='';
+    });
+    a.addEventListener('error',()=>{a.src='';});
+  });
 }
 
 /* 댓글 카운트 배지 업데이트 — 병렬 로드 + 캐시 */
