@@ -8993,7 +8993,7 @@ function renderPlanUI(){
   const ucu=$('us-cost-usd'); if(ucu) ucu.textContent='$'+_costUsd.toFixed(3);
 
   /* 플랜 카드 current 표시 */
-  ['free','pro','creator'].forEach(p=>{
+  ['free','basic','pro','unlimited'].forEach(p=>{
     const card=document.getElementById('plan-card-'+p);
     const btn=document.getElementById('btn-'+p);
     if(!card||!btn) return;
@@ -9009,23 +9009,110 @@ function renderPlanUI(){
 
 function selectPlan(type){ /* 카드 클릭 시 강조만 */ }
 
-function upgradePlan(type){
-  /* 실 서비스에서는 결제 페이지 연동 */
-  const info={pro:{label:'Pro',price:'₩9,900'},creator:{label:'Creator',price:'₩29,900'}}[type];
-  if(!info) return;
-  if(confirm(`💜 ${info.label} 플랜으로 업그레이드할까요?
+/* ── 토스페이먼츠 결제 연동 ── */
+let _tossPayments = null;
+let _tossClientKey = null;
+const _TOSS_PLANS = {
+  basic:     { price: 4900,  label: 'Basic',     credits: 30 },
+  pro:       { price: 9900,  label: 'Pro',       credits: 100 },
+  unlimited: { price: 19900, label: 'Unlimited', credits: 999999 }
+};
 
-가격: ${info.price}/월
-
-(현재는 데모 버전입니다. 결제 연동 후 정식 서비스됩니다)`)){
-    /* 데모: 플랜 변경 */
-    const startDate = new Date().toISOString();
-    const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
-    localStorage.setItem('kms_plan', JSON.stringify({type, startDate, endDate}));
-    toast(`✅ ${info.label} 플랜 활성화됨! (데모)`,'',3000);
-    renderPlanUI();
+async function _initToss(){
+  if(_tossPayments) return _tossPayments;
+  try {
+    /* 서버에서 클라이언트 키 가져오기 */
+    if(!_tossClientKey){
+      const r = await fetch('/api/toss-config');
+      const d = await r.json();
+      _tossClientKey = d.clientKey;
+    }
+    if(!_tossClientKey){
+      toast('결제 설정이 필요합니다 (TOSS_CLIENT_KEY)','',3000);
+      return null;
+    }
+    /* SDK 동적 로드 */
+    if(!window.TossPayments){
+      await new Promise((resolve, reject)=>{
+        const s = document.createElement('script');
+        s.src = 'https://js.tosspayments.com/v1/payment';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    _tossPayments = window.TossPayments(_tossClientKey);
+    return _tossPayments;
+  } catch(e){
+    console.error('[Toss] init error:', e);
+    toast('결제 초기화 실패','',3000);
+    return null;
   }
 }
+
+async function upgradePlan(type){
+  const planDef = _TOSS_PLANS[type];
+  if(!planDef){ toast('잘못된 플랜입니다','',2000); return; }
+
+  /* 로그인 확인 */
+  const user = (()=>{ try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch{return null;} })();
+  if(!user || !user.name){
+    toast('로그인 후 이용 가능합니다','',3000);
+    return;
+  }
+
+  const toss = await _initToss();
+  if(!toss) return;
+
+  const orderId = 'KMS-' + type.toUpperCase() + '-' + Date.now();
+  const orderName = `KMS ${planDef.label} 플랜 (월정액)`;
+
+  try {
+    await toss.requestPayment('카드', {
+      amount: planDef.price,
+      orderId: orderId,
+      orderName: orderName,
+      customerName: user.name,
+      successUrl: location.origin + '/api/payments/success?plan=' + type + '&userName=' + encodeURIComponent(user.name) + '&userProvider=' + encodeURIComponent(user.provider||''),
+      failUrl: location.origin + '/?payment=fail&plan=' + type,
+    });
+  } catch(e){
+    if(e.code === 'USER_CANCEL'){
+      toast('결제가 취소되었습니다','',2000);
+    } else {
+      console.error('[Toss] payment error:', e);
+      toast('결제 오류: ' + (e.message||'알 수 없는 오류'),'',3000);
+    }
+  }
+}
+
+/* 결제 성공 콜백 처리 (리다이렉트 후) */
+async function _handlePaymentResult(){
+  const params = new URLSearchParams(location.search);
+
+  /* 실패 */
+  if(params.get('payment') === 'fail'){
+    toast('결제가 실패했습니다: ' + (params.get('message')||''),'',4000);
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+
+  /* 성공 */
+  if(params.get('payment') === 'success'){
+    const plan = params.get('plan');
+    const planDef = _TOSS_PLANS[plan];
+    if(planDef){
+      const startDate = new Date().toISOString();
+      const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
+      localStorage.setItem('kms_plan', JSON.stringify({type:plan, startDate, endDate}));
+      toast(`✅ ${planDef.label} 플랜이 활성화됐습니다!`,'',4000);
+      renderPlanUI();
+    }
+    history.replaceState(null, '', location.pathname);
+  }
+}
+/* 앱 로드 시 결제 결과 확인 */
+window.addEventListener('load', _handlePaymentResult);
 
 /* renderSettings 확장 — 플랜 UI + 통계 갱신 (무한루프 방지: function 재정의 금지) */
 function _renderSettingsExtended(){
