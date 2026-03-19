@@ -254,7 +254,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
         <!-- 자동 갱신 상태 바 -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
-          <span>🔄 10초마다 자동 갱신</span>
+          <span>🔄 30초마다 자동 갱신</span>
           <span>마지막: <b id="dash-last-sync" style="color:var(--t2);">-</b></span>
           <button class="btn" onclick="loadData();adminToast('✅ 갱신됨')" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
         </div>
@@ -1474,42 +1474,76 @@ async function loadVercelLog(depId, depUrl){
 }
 
 // ── 데이터 로드 (localStorage에서) ──
-function getHistory(){
-  try{return JSON.parse(localStorage.getItem('kms_history')||'[]');}catch{return [];}
-}
+/* ── 서버 데이터 캐시 ── */
+let _serverTracks = [];
+let _serverUsers = [];
+let _dataLoaded = false;
+
+function getHistory(){ return _serverTracks; }
+function getLoginUsers(){ return _serverUsers; }
 function getUser(){
   try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch{return null;}
 }
 
-function loadData(){
-  const h=getHistory();
+/* 서버에서 트랙+사용자 데이터 로드 */
+async function _fetchServerData(){
+  /* 트랙 로드 */
+  try{
+    const r=await adminFetch('/api/tracks?limit=500');
+    const d=await r.json();
+    if(Array.isArray(d.tracks)){
+      _serverTracks=d.tracks.map(t=>({
+        id:t.id, taskId:t.task_id||'', title:t.title||'무제',
+        audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
+        tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
+        created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0,
+        _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
+      }));
+    }
+  }catch(e){ console.warn('[loadData] tracks:', e.message); }
+
+  /* 사용자 로드 */
+  try{
+    const r=await adminFetch('/api/users');
+    const d=await r.json();
+    if(Array.isArray(d.users)){
+      _serverUsers=d.users.map(u=>({
+        name:u.name, provider:u.provider, email:u.email||'',
+        avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
+        loginCount:u.login_count||1, lastLogin:u.last_login||0,
+      }));
+    }
+  }catch(e){ console.warn('[loadData] users:', e.message); }
+
+  _dataLoaded = true;
+}
+
+async function loadData(){
+  await _fetchServerData();
+  const h=_serverTracks;
   const today=new Date();today.setHours(0,0,0,0);
-  /* kie.ai 크레딧 자동 조회 (저장된 키 있고 kie-balance가 표시 중이면) */
+
   const _kieKey = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
-  const _kbRow = document.getElementById('kie-balance-row');
-  if(_kieKey && _kbRow) {
-    fetchKieUsageForStats(_kieKey).catch(()=>{});
-  }
+  if(_kieKey) fetchKieUsageForStats(_kieKey).catch(()=>{});
+
   const totalLikes=h.reduce((a,t)=>a+(t._commLikes||0),0);
   const mvCount=h.filter(t=>t.video_url).length;
   const todayCount=h.filter(t=>t.created&&new Date(t.created)>=today).length;
-  /* 모든 곡 카운트 (게스트 포함) */
   const commCount=h.filter(t=>t.audio_url).length;
-  const users=[...new Set(h.map(t=>t._owner?.name||'게스트').filter(Boolean))];
 
   document.getElementById('stat-total').textContent=h.length;
   document.getElementById('stat-likes').textContent=totalLikes;
-  document.getElementById('stat-users').textContent=getLoginUsers().length;
+  document.getElementById('stat-users').textContent=_serverUsers.length;
   document.getElementById('stat-mv').textContent=mvCount;
   document.getElementById('stat-today').textContent=todayCount;
   document.getElementById('stat-comm').textContent=commCount;
-  /* 구독자 수 */
+
   const subs=getPushSubscriptions();
   const subEl=document.getElementById('stat-subs');
   if(subEl)subEl.textContent=subs.length;
-  /* 비용 계산 (kie.ai 크레딧 기준: 곡당 약 10 크레딧=$0.10=₩135, MV 약 100 크레딧=$1=₩1,350) */
-  const MUSIC_COST_KRW=150; /* 곡 1개 */
-  const MV_COST_KRW=1500;   /* MV 1편 */
+
+  const MUSIC_COST_KRW=150;
+  const MV_COST_KRW=1500;
   const musicCost=h.filter(t=>!t.video_url).length*MUSIC_COST_KRW;
   const mvCost2=mvCount*MV_COST_KRW;
   const totalCost=musicCost+mvCost2;
@@ -1518,7 +1552,6 @@ function loadData(){
   const cd=document.getElementById('stat-cost-detail');
   if(ce)ce.textContent=fmt(totalCost);
   if(cd)cd.textContent=`곡 ${fmt(musicCost)} + MV ${fmt(mvCost2)}`;
-  /* 비용 그리드 */
   const cmu=document.getElementById('cost-music');
   const cmv=document.getElementById('cost-mv');
   const ct=document.getElementById('cost-total');
@@ -1530,7 +1563,6 @@ function loadData(){
   if(cmc)cmc.textContent=(h.length-mvCount)+'곡';
   if(cvc)cvc.textContent=mvCount+'편';
 
-  // 모드별 차트
   const modeCounts={custom:0,simple:0,youtube:0,mv:0};
   h.forEach(t=>{const m=t.genMode||'custom';if(modeCounts[m]!==undefined)modeCounts[m]++;});
   const total=h.length||1;
@@ -1538,16 +1570,14 @@ function loadData(){
     `<div class="bar-item"><div class="bar-label">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[m]}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/total*100)}%"></div></div><div class="bar-val">${n}</div></div>`
   ).join('');
 
-  // Top 5
   const top5=[...h].sort((a,b)=>(b._commLikes||0)-(a._commLikes||0)).slice(0,5);
   const maxL=top5[0]?._commLikes||1;
   document.getElementById('top-chart').innerHTML=top5.map(t=>
     `<div class="bar-item"><div class="bar-label" style="font-size:10px;">${(t.title||'무제').slice(0,6)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round((t._commLikes||0)/maxL*100)}%"></div></div><div class="bar-val">${t._commLikes||0}</div></div>`
   ).join('');
 
-  // 최근 트랙 테이블
   const tbody=document.getElementById('recent-tbody');
-  tbody.innerHTML=h.slice(0,10).map((t,i)=>`
+  if(tbody) tbody.innerHTML=h.slice(0,10).map((t,i)=>`
     <tr>
       <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
       <td class="td-title">${esc(t.title||'무제')}</td>
@@ -2104,10 +2134,7 @@ async function hideLocalTrack(hIdx, rowIdx){
   adminToast('✅ 커뮤니티에서 숨겼습니다');
 }
 
-// ── 사용자 관리 ──
-function getLoginUsers(){
-  try{ return JSON.parse(localStorage.getItem('kms_login_users')||'[]'); }catch{ return []; }
-}
+// ── 사용자 관리 ── (getLoginUsers는 상단에서 _serverUsers 반환)
 
 let _uTabCurrent = 'login';
 function switchUserTab(tab){
@@ -3272,19 +3299,13 @@ async function tryManagerLogin(loginId, pw){
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(initAccountSession, 100);
   
-  /* ── 10초마다 전체 데이터 자동 갱신 ── */
-  setInterval(()=>{
-    loadData();
-    renderUsersAdmin();
-    /* kie.ai 크레딧 갱신 (저장된 키 있으면) */
-    const _k = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
-    if(_k) fetchKieUsageForStats(_k);
-  }, 10000);
+  /* ── 30초마다 전체 데이터 자동 갱신 (서버 API 호출) ── */
+  setInterval(()=>{ loadData(); }, 30000);
   /* 카운트다운 표시 */
-  let _autoRefreshTick = 10;
+  let _autoRefreshTick = 30;
   const _autoLabel = document.getElementById('auto-refresh-label');
   setInterval(()=>{
-    _autoRefreshTick = _autoRefreshTick <= 1 ? 10 : _autoRefreshTick - 1;
+    _autoRefreshTick = _autoRefreshTick <= 1 ? 30 : _autoRefreshTick - 1;
     if(_autoLabel) _autoLabel.textContent = _autoRefreshTick + '초 후 갱신';
   }, 1000);
   
