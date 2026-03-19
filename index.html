@@ -853,12 +853,15 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-featured-bg{width:100%;height:100%;background:linear-gradient(135deg,#1a0537,#3d1a5a,#0f2a4a);display:flex;align-items:center;justify-content:center;color:var(--acc);opacity:.5;}
 .comm-featured-badge-wrap{position:absolute;top:12px;right:12px;}
 .comm-featured-like-badge{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);padding:5px 10px;border-radius:12px;font-size:12px;color:#fff;}
-.comm-featured-play-row{position:absolute;bottom:14px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:10px;}
-.comm-featured-play-btn{width:44px;height:44px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;box-shadow:0 4px 16px rgba(245,158,11,.5);}
-.comm-featured-play-btn:hover{transform:scale(1.08);}
-.comm-featured-prog{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;cursor:pointer;}
-.comm-featured-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;transition:width .1s;}
-.comm-featured-time{font-size:11px;color:rgba(255,255,255,.75);flex-shrink:0;}
+.comm-featured-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.93);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 6px 28px rgba(0,0,0,.55);z-index:20;}
+.comm-featured-play-btn:hover{transform:translate(-50%,-50%) scale(1.1);}
+.comm-featured-play-btn.playing{background:var(--acc);box-shadow:0 6px 28px rgba(124,58,237,.6);}
+.comm-featured-cover-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.05),rgba(0,0,0,.4));pointer-events:none;z-index:1;}
+.comm-featured-badge-wrap{z-index:15;}
+.comm-featured-prog-wrap{display:flex;align-items:center;gap:8px;padding:8px 16px 0;}
+.comm-featured-prog{flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:2px;cursor:pointer;}
+.comm-featured-prog-fill{height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .1s;}
+.comm-featured-time{font-size:11px;color:var(--t3);flex-shrink:0;}
 .comm-featured-info{padding:14px 16px;}
 .comm-featured-title{font-size:18px;font-weight:700;margin-bottom:4px;}
 .comm-featured-desc{font-size:13px;color:var(--t2);margin-bottom:12px;}
@@ -4030,38 +4033,91 @@ function _saveLoginUser(user){
 })();
 
 function _showSharedPlayer(title, audioUrl, imgUrl){
-  /* 기존 공유 플레이어 있으면 제거 */
   document.getElementById('shared-player-wrap')?.remove();
-
-  const wrap = document.createElement('div');
-  wrap.id = 'shared-player-wrap';
-  wrap.style.cssText='position:fixed;inset:0;z-index:10500;display:flex;align-items:flex-end;background:rgba(0,0,0,.7);';
+  const wrap=document.createElement('div');
+  wrap.id='shared-player-wrap';
+  wrap.style.cssText='position:fixed;inset:0;z-index:10500;display:flex;align-items:flex-end;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);';
   wrap.innerHTML=`
-  <div style="width:100%;background:linear-gradient(180deg,#1a1030 0%,#0d0d1a 100%);border-radius:20px 20px 0 0;padding:24px 20px 40px;animation:slideUp .35s cubic-bezier(.22,1,.36,1);">
-    <div style="width:36px;height:3px;background:#555;border-radius:2px;margin:0 auto 20px;"></div>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-      <div style="width:60px;height:60px;border-radius:12px;overflow:hidden;background:#1e1535;flex-shrink:0;">
-        ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;">🎵</div>'}
+  <div style="width:100%;max-width:520px;margin:0 auto;background:linear-gradient(180deg,#1c1035 0%,#0e0d1a 100%);border-radius:24px 24px 0 0;padding:0 0 calc(32px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.08);animation:slideUp .38s cubic-bezier(.22,1,.36,1);">
+    <!-- 핸들 -->
+    <div style="display:flex;justify-content:center;padding:14px 0 0;">
+      <div style="width:40px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;"></div>
+    </div>
+    <!-- 라벨 -->
+    <div style="text-align:center;font-size:11px;font-weight:700;color:#a78bfa;letter-spacing:.05em;padding:10px 0 0;">✦ 공유된 AI 음악</div>
+    <!-- 앨범아트 + 정보 -->
+    <div style="display:flex;align-items:center;gap:16px;padding:14px 24px 0;">
+      <div style="width:72px;height:72px;border-radius:14px;overflow:hidden;background:#1e1535;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.5);">
+        ${imgUrl?`<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;">`:'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;">🎵</div>'}
       </div>
-      <div>
-        <div style="font-size:13px;color:#a78bfa;font-weight:600;margin-bottom:4px;">✦ 공유된 AI 음악</div>
-        <div style="font-size:17px;font-weight:800;color:#fff;">${title}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;">Kenny's Music Studio</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:17px;font-weight:800;color:#f0eeff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title.replace(/</g,'&lt;')}</div>
+        <div style="font-size:12px;color:#6b5f8a;margin-top:3px;">Kenny's Music Studio</div>
       </div>
     </div>
-    <audio id="shared-audio-el" src="${audioUrl}" style="width:100%;border-radius:8px;margin-bottom:12px;" controls preload="auto"></audio>
-    <div style="display:flex;gap:10px;margin-top:8px;">
-      <button onclick="window.location.href='/'" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">✦ 나도 만들기</button>
-      <button onclick="document.getElementById('shared-player-wrap').remove()" style="padding:12px 18px;background:#1e1535;color:#a78bfa;border:1px solid #7c3aed44;border-radius:12px;font-size:14px;cursor:pointer;">닫기</button>
+    <!-- 프로그레스 바 -->
+    <div style="padding:20px 24px 0;">
+      <div id="ssp-prog" style="width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;cursor:pointer;position:relative;">
+        <div id="ssp-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;transition:width .15s linear;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <span id="ssp-cur" style="font-size:11px;color:#6b5f8a;">0:00</span>
+        <span id="ssp-dur" style="font-size:11px;color:#6b5f8a;">—</span>
+      </div>
     </div>
+    <!-- 컨트롤 -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:28px;padding:16px 24px 0;">
+      <button id="ssp-prev" style="background:none;border:none;cursor:pointer;color:#7c5cbf;padding:8px;" onclick="document.getElementById('ssp-audio').currentTime=Math.max(0,document.getElementById('ssp-audio').currentTime-10)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button id="ssp-play" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(124,58,237,.5);transition:transform .15s;" onmousedown="this.style.transform='scale(.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(.94)'" ontouchend="this.style.transform=''">
+        <svg id="ssp-play-icon" width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
+      <button id="ssp-next" style="background:none;border:none;cursor:pointer;color:#7c5cbf;padding:8px;" onclick="document.getElementById('ssp-audio').currentTime=Math.min(document.getElementById('ssp-audio').duration||0,document.getElementById('ssp-audio').currentTime+10)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM14 6h2v12h-2z"/></svg>
+      </button>
+    </div>
+    <!-- 하단 버튼 -->
+    <div style="display:flex;gap:10px;padding:20px 24px 0;">
+      <button onclick="window.open('https://ai-music-studio-bice.vercel.app/','_blank')" style="flex:1;padding:14px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.02em;">✦ 나도 만들기</button>
+      <button onclick="document.getElementById('shared-player-wrap').remove()" style="padding:14px 20px;background:rgba(255,255,255,.06);color:#a09ab8;border:1px solid rgba(255,255,255,.1);border-radius:14px;font-size:14px;cursor:pointer;">닫기</button>
+    </div>
+    <audio id="ssp-audio" src="${audioUrl}" preload="auto" style="display:none;"></audio>
   </div>`;
   document.body.appendChild(wrap);
-  wrap.addEventListener('click', e=>{
-    if(e.target===wrap) wrap.remove();
+
+  const audio=document.getElementById('ssp-audio');
+  const playBtn=document.getElementById('ssp-play');
+  const playIcon=document.getElementById('ssp-play-icon');
+  const fill=document.getElementById('ssp-fill');
+  const cur=document.getElementById('ssp-cur');
+  const dur=document.getElementById('ssp-dur');
+  const prog=document.getElementById('ssp-prog');
+
+  const fmtT=s=>isNaN(s)?'0:00':Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60);
+  const setPause=()=>{playIcon.innerHTML='<polygon points="6 3 20 12 6 21 6 3"/>';};
+  const setPlay=()=>{playIcon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';};
+
+  audio.addEventListener('loadedmetadata',()=>{if(dur)dur.textContent=fmtT(audio.duration);});
+  audio.addEventListener('timeupdate',()=>{
+    if(audio.duration){fill.style.width=(audio.currentTime/audio.duration*100)+'%';}
+    cur.textContent=fmtT(audio.currentTime);
   });
-  /* 자동 재생 시도 */
-  const audio = document.getElementById('shared-audio-el');
-  if(audio) audio.play().catch(()=>{});
+  audio.addEventListener('ended',setPause);
+  audio.addEventListener('play',setPlay);
+  audio.addEventListener('pause',setPause);
+
+  playBtn.onclick=()=>{
+    if(audio.paused){audio.play().catch(()=>{});}else{audio.pause();}
+  };
+  prog.onclick=e=>{
+    if(!audio.duration)return;
+    const r=prog.getBoundingClientRect();
+    audio.currentTime=audio.duration*Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  };
+
+  wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove();});
+  audio.play().catch(()=>{});
 }
 
 /* ── 인스트루멘탈 ── */
@@ -6449,6 +6505,10 @@ function _saveTrackToServer(track){
     if(d.source==='supabase'){
       /* Supabase 저장 성공 → 커뮤니티 캐시 갱신 */
       _sbLoaded=false;
+      /* 커뮤니티 탭이 현재 열려 있으면 즉시 새로고침 */
+      if(document.getElementById('community-view')?.classList.contains('on')){
+        renderCommunity(true);
+      }
     }
   }).catch(()=>{});
 }
@@ -6971,7 +7031,7 @@ function fpOpenShare(){
   const params=new URLSearchParams({t:title});
   if(audioUrl) params.set('play', audioUrl);
   if(imgUrl)   params.set('img',  imgUrl);
-  const url=window.location.origin+'/?'+params.toString();
+  const url=window.location.origin+'/api/share?'+params.toString();
   _updateOgTags(title, imgUrl, url);
   /* 공유 이미지 미리보기 업데이트 */
   const prevImg = document.getElementById('share-preview-img');
@@ -7424,20 +7484,22 @@ async function renderCommunity(force=false){
         :`<div class="comm-featured-bg">
             <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           </div>`}
+      <div class="comm-featured-cover-grad"></div>
+      <!-- 중앙 재생 버튼 -->
+      <button class="comm-featured-play-btn" id="comm-hero-play-btn">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
       <!-- 상단 우측: 좋아요 뱃지 -->
-      <div class="comm-featured-badge-wrap">
+      <div class="comm-featured-badge-wrap" style="position:absolute;top:12px;right:12px;z-index:15;">
         <div class="comm-featured-like-badge">❤️ 좋아요 ${hero.likes>0?hero.likes:0}</div>
       </div>
-      <!-- 하단: 재생버튼 + 시간 -->
-      <div class="comm-featured-play-row">
-        <button class="comm-featured-play-btn" id="comm-hero-play-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </button>
-        <div class="comm-featured-prog" id="comm-hero-prog">
-          <div class="comm-featured-prog-fill" id="comm-hero-prog-fill"></div>
-        </div>
-        <span class="comm-featured-time" id="comm-hero-time">0:00</span>
+    </div>
+    <!-- 프로그레스바 (커버 아래) -->
+    <div class="comm-featured-prog-wrap">
+      <div class="comm-featured-prog" id="comm-hero-prog">
+        <div class="comm-featured-prog-fill" id="comm-hero-prog-fill"></div>
       </div>
+      <span class="comm-featured-time" id="comm-hero-time">0:00</span>
     </div>
     <div class="comm-featured-info">
       <div class="comm-featured-title">${esc(hero.title)}</div>
@@ -7468,7 +7530,8 @@ async function renderCommunity(force=false){
   list.innerHTML=rest.map((t,i)=>{
     const ownerName=t._owner?.name||currentUser?.name||'익명';
     const ownerAvatar=t._owner?.avatar||currentUser?.avatar||'';
-    return `<div class="comm-list-item" onclick="commPlayByHIdx(${t._hIdx})">
+    const sid=esc(t._sbId||'');
+    return `<div class="comm-list-item" onclick="commPlaySb('${sid}')">
       <div class="comm-list-num${i<3?' top':''}">${i+1}</div>
       <div class="comm-list-img">
         ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
@@ -7482,11 +7545,11 @@ async function renderCommunity(force=false){
         </div>
       </div>
       <div class="comm-list-actions">
-        <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeByHIdx(${t._hIdx})" title="좋아요">
+        <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">
           ${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span>
         </button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareByHIdx(${t._hIdx})" title="공유">↗</button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteByHIdx(${t._hIdx})" title="삭제" style="color:rgba(255,80,80,.6);">
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSb('${sid}')" title="공유">↗</button>
+        <button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.6);">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>
       </div>
@@ -7567,7 +7630,7 @@ function setupHeroAudio(hero){
   });
   audio.addEventListener('ended',()=>{
     if(playBtn){
-      playBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+      playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
       playBtn.classList.remove('playing');
     }
     commHeroPlaying=false;
@@ -7575,17 +7638,17 @@ function setupHeroAudio(hero){
   playBtn.onclick=()=>{
     if(!audio.paused){
       audio.pause();
-      playBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+      playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
       playBtn.classList.remove('playing');commHeroPlaying=false;return;
     }
     const _hSrc=getPlayingInfo();
     if(_hSrc){
       showAudioSwitchPopup(_hSrc,hero.title||'커뮤니티 트랙',()=>{
-        audio.play().then(()=>{playBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
+        audio.play().then(()=>{playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
       });
       return;
     }
-    audio.play().then(()=>{playBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
+    audio.play().then(()=>{playBtn.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';playBtn.classList.add('playing');commHeroPlaying=true;}).catch(e=>toast('재생 실패: '+e.message,'err'));
   };
   const prog=$('comm-hero-prog');
   if(prog)prog.onclick=e=>{
@@ -7613,6 +7676,73 @@ function commPlayByHIdx(hIdx){
   if(!h.audio_url){toast('오디오 URL이 없어요','err');return;}
   _stopCommAudio();
   showMiniPlayer(hIdx);
+}
+
+/* Supabase sbId로 커뮤니티 트랙 재생 */
+function commPlaySb(sbId){
+  if(!sbId){toast('트랙 ID 없음','err');return;}
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(!t){toast('트랙을 찾을 수 없어요','err');return;}
+  if(!t.audioUrl){toast('오디오가 없어요','err');return;}
+  let hIdx=historyData.findIndex(h=>h.id===sbId);
+  if(hIdx<0){
+    historyData.unshift({id:sbId,taskId:t.taskId||'',title:t.title,audio_url:t.audioUrl,video_url:t.videoUrl||'',image_url:t.img||'',tags:t.allTags,lyrics:t.lyrics||'',created:t._created,type:'audio',genMode:t._genMode,_owner:t._owner,_fromSb:true});
+    hIdx=0;
+    updateHistBadge();
+  }
+  _stopCommAudio();
+  showMiniPlayer(hIdx);
+}
+
+/* Supabase sbId로 좋아요 */
+function commLikeSb(sbId){
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(!t)return;
+  const newLiked=!t.liked;
+  _sbReact(sbId,newLiked?'like':'unlike');
+  t.liked=newLiked;t.likes=Math.max(0,(t.likes||0)+(newLiked?1:-1));t.disliked=false;
+  const h=historyData.find(h=>h.id===sbId);
+  if(h){h._commLiked=newLiked;h._commDisliked=false;h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));saveHistory();}
+  toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
+  renderCommunity();
+}
+
+/* Supabase sbId로 공유 */
+function commShareSb(sbId){
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(!t)return;
+  const title=t.title||'나의 노래';
+  const audioUrl=t.audioUrl||'';
+  const imgUrl=t.img||'';
+  const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  const params=new URLSearchParams({t:title});
+  if(audioUrl)params.set('play',audioUrl);
+  if(imgUrl)params.set('img',imgUrl);
+  const url=window.location.origin+'/api/share?'+params.toString();
+  _updateOgTags(title,imgUrl,url);
+  if(navigator.share){navigator.share({title,text,url}).catch(()=>{});}
+  else{navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500));}
+}
+
+/* Supabase sbId로 삭제 (로컬에서만 제거) */
+function commDeleteSb(sbId){
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  if(!t)return;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML='<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 숨기기</div><div style="font-size:13px;color:#a09ab8;">"'+esc(t.title||'이 곡')+'" 을 내 화면에서 숨길까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">숨기기</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_del_cancel').onclick=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector('#_del_confirm').onclick=()=>{
+    overlay.remove();
+    const tIdx=_sbTracks.findIndex(x=>x._sbId===sbId);
+    if(tIdx>=0)_sbTracks.splice(tIdx,1);
+    const hIdx=historyData.findIndex(h=>h.id===sbId);
+    if(hIdx>=0){historyData.splice(hIdx,1);saveHistory();}
+    toast('🗑 숨겼습니다','',1200);
+    renderCommunity();
+  };
 }
 
 /* 커뮤니티 오디오(hero + list) 전부 정지 */
