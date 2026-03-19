@@ -207,6 +207,64 @@ export default async function handler(req, res) {
     }
   }
 
+  /* ─── PATCH: 플레이리스트 추가 ─── */
+  if (req.method === "PATCH" && req.query?.action === "playlist") {
+    let b = req.body;
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const { track_id, title, audio_url, image_url, tags, owner_name, owner_provider } = b;
+    if (!owner_name) return res.status(400).json({ error: "로그인 필요" });
+    try {
+      // playlists 테이블에 upsert (track_id + owner로 중복 방지)
+      try {
+        await sb("/playlists", {
+          method: "POST",
+          prefer: "return=minimal,resolution=merge-duplicates",
+          body: JSON.stringify({
+            track_id: track_id || "",
+            title: title || "무제",
+            audio_url: audio_url || "",
+            image_url: image_url || "",
+            tags: tags || "",
+            owner_name,
+            owner_provider: owner_provider || "guest",
+          }),
+        });
+      } catch (sbErr) {
+        // 테이블 없으면 자동 생성 시도
+        if (sbErr.message?.includes("42P01") || sbErr.message?.includes("playlists")) {
+          await sb("", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `CREATE TABLE IF NOT EXISTS playlists (
+                id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+                track_id text NOT NULL,
+                title text DEFAULT '무제',
+                audio_url text DEFAULT '',
+                image_url text DEFAULT '',
+                tags text DEFAULT '',
+                owner_name text NOT NULL,
+                owner_provider text DEFAULT 'guest',
+                created_at timestamptz DEFAULT now(),
+                UNIQUE(track_id, owner_name, owner_provider)
+              )`
+            }),
+          }).catch(() => {});
+          // 재시도
+          await sb("/playlists", {
+            method: "POST",
+            prefer: "return=minimal,resolution=merge-duplicates",
+            body: JSON.stringify({ track_id: track_id || "", title: title || "무제", audio_url: audio_url || "", image_url: image_url || "", tags: tags || "", owner_name, owner_provider: owner_provider || "guest" }),
+          });
+        } else throw sbErr;
+      }
+      return res.status(200).json({ success: true });
+    } catch (e) {
+      console.warn("[playlist add]", e.message);
+      return res.status(500).json({ error: e.message?.slice(0, 100) });
+    }
+  }
+
   /* ─── PATCH: 좋아요/싫어요/숨기기 ─── */
   if (req.method === "PATCH") {
     const id = req.query?.id;
