@@ -54,14 +54,18 @@ export default async function handler(req, res) {
     try {
       let filter;
       if (isAdmin) {
-        filter = `/tracks?order=created.desc&limit=${limit}&offset=${offset}&select=*`;
+        filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created.desc&limit=${limit}&select=*`;
+        filter = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
       } else {
-        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created.desc&limit=${limit}&offset=${offset}&select=*`;
+        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       }
       const rows = await sb(filter);
-      return res.status(200).json({ tracks: rows||[], total:(rows||[]).length, source:'supabase' });
+      const mapped = (rows||[]).map(r => ({
+        ...r,
+        created: r.created_at ? new Date(r.created_at).getTime() : 0,
+      }));
+      return res.status(200).json({ tracks: mapped, total: mapped.length, source:'supabase' });
     } catch(e) {
       console.warn('[tracks GET]', e.message);
       let list = isAdmin ? _mem : _mem.filter(t=>t.is_public);
@@ -98,7 +102,6 @@ export default async function handler(req, res) {
         comm_likes:     0,
         comm_dislikes:  0,
         comm_plays:     0,
-        created:        now,
         created_at:     new Date(now).toISOString(),
       };
       try {
