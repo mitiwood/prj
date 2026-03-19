@@ -166,6 +166,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item on" data-sec="dashboard" onclick="switchSec('dashboard')"><span class="snav-icon">📊</span>대시보드</div>
       <div class="snav-item" data-sec="tracks" onclick="switchSec('tracks')"><span class="snav-icon">🎵</span>음악 관리</div>
       <div class="snav-item" data-sec="community" onclick="switchSec('community')"><span class="snav-icon">🌐</span>커뮤니티</div>
+      <div class="snav-item" data-sec="comments" onclick="switchSec('comments')"><span class="snav-icon">💬</span>댓글 관리</div>
       <div class="snav-item" data-sec="users" onclick="switchSec('users')"><span class="snav-icon">👥</span>사용자</div>
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')"><span class="snav-icon">🛡️</span>매니저</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
@@ -352,6 +353,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
 
       <!-- 커뮤니티 -->
+      <div class="admin-section" id="sec-comments" style="display:none;">
+        <div class="sec-hdr">
+          <h2>💬 댓글 관리</h2>
+          <button class="btn" onclick="renderCommentsAdmin()">🔄 새로고침</button>
+        </div>
+        <div id="comments-admin-list" style="margin-top:12px;">댓글을 불러오는 중...</div>
+      </div>
+
       <div class="admin-section" id="sec-community">
         <div class="sec-hdr">
           <h2>커뮤니티 관리</h2>
@@ -1340,10 +1349,11 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
+  if(id==='comments')renderCommentsAdmin();
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
   if(id==='managers'){ loadManagersFromServer().then(()=>renderManagersSection()); }

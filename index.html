@@ -909,6 +909,39 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-share-url{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:12px;}
 .comm-share-url input{flex:1;background:none;border:none;color:#f1f0f5;font-size:12px;font-family:inherit;outline:none;}
 .comm-share-url button{flex-shrink:0;padding:6px 14px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+/* ── 댓글 바텀시트 ── */
+.comment-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
+.comment-sheet{width:100%;max-width:480px;max-height:85vh;background:#1a1a2e;border-radius:20px 20px 0 0;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.1);}
+.comment-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:10px auto 0;}
+.comment-header{display:flex;align-items:center;padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
+.comment-header-title{font-size:16px;font-weight:800;color:#f1f0f5;}
+.comment-header-sub{font-size:12px;color:var(--t3);margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.comment-close{margin-left:auto;background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px 8px;}
+.comment-list{flex:1;overflow-y:auto;padding:12px 16px;min-height:200px;max-height:50vh;scroll-behavior:smooth;}
+.comment-item{margin-bottom:12px;}
+.comment-reply{margin-left:32px;padding-left:12px;border-left:2px solid rgba(124,58,237,.2);}
+.comment-row{display:flex;gap:10px;}
+.comment-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.comment-avatar-ph{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.comment-body{flex:1;min-width:0;}
+.comment-meta{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.comment-author{font-size:12px;font-weight:700;color:var(--t1);}
+.comment-me{color:var(--acc3);}
+.comment-time{font-size:10px;color:var(--t3);}
+.comment-text{font-size:13px;color:var(--t1);line-height:1.6;word-break:break-word;}
+.comment-act-row{display:flex;gap:8px;margin-top:4px;}
+.comment-act-btn{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:2px 0;font-family:inherit;}
+.comment-act-btn:hover{color:var(--acc3);}
+.comment-del{color:rgba(239,68,68,.5);}
+.comment-del:hover{color:var(--red);}
+.comment-reply-bar{display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(124,58,237,.08);border-top:1px solid rgba(124,58,237,.15);font-size:12px;color:var(--acc3);}
+.comment-reply-bar button{background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;}
+.comment-input-wrap{display:flex;align-items:center;gap:8px;padding:10px 16px 24px;border-top:1px solid rgba(255,255,255,.06);background:#16152a;}
+.comment-input-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.comment-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:9px 14px;color:#f1f0f5;font-size:13px;font-family:inherit;outline:none;}
+.comment-input:focus{border-color:var(--acc3);}
+.comment-input::placeholder{color:#6b6780;}
+.comment-send{padding:8px 16px;border-radius:20px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;}
 .settings-banner{
   background:linear-gradient(135deg,#1a0537,#3d1a5a);
   border-radius:var(--r);padding:20px;margin-bottom:16px;
@@ -9728,6 +9761,80 @@ function updateSliderLabel(type, val){
   if(el) el.textContent = label;
   if(descEl) descEl.textContent = desc;
 }
+
+/* ══════════════════════════════════════════════════
+   댓글 시스템
+   ══════════════════════════════════════════════════ */
+let _commentTrackId='',_commentData=[],_commentReplyTo=null,_commentPollTimer=null;
+
+function openCommentSheet(trackId){
+  if(!trackId)return;
+  _commentTrackId=trackId;_commentReplyTo=null;
+  const t=_sbTracks.find(x=>x._sbId===trackId);
+  let overlay=document.getElementById('_comment_overlay');
+  if(overlay)overlay.remove();
+  overlay=document.createElement('div');
+  overlay.id='_comment_overlay';
+  overlay.className='comment-overlay';
+  overlay.innerHTML=`
+    <div class="comment-sheet">
+      <div class="comment-handle"></div>
+      <div class="comment-header">
+        <div class="comment-header-title">💬 댓글</div>
+        <div class="comment-header-sub">${esc(t?.title||'트랙')}</div>
+        <button class="comment-close" onclick="closeCommentSheet()">✕</button>
+      </div>
+      <div class="comment-list" id="_comment_list"><div style="text-align:center;padding:30px;color:var(--t3);font-size:13px;">댓글 불러오는 중...</div></div>
+      <div class="comment-reply-bar" id="_comment_reply_bar" style="display:none;"><span id="_comment_reply_label"></span><button onclick="_cancelReply()">✕</button></div>
+      <div class="comment-input-wrap">
+        <img class="comment-input-avatar" src="${esc(currentUser?.avatar||'')}" onerror="this.style.display='none'" alt="">
+        <input class="comment-input" id="_comment_input" type="text" placeholder="댓글을 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_submitComment()">
+        <button class="comment-send" onclick="_submitComment()">전송</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closeCommentSheet();});
+  document.body.appendChild(overlay);
+  _loadComments();
+  _commentPollTimer=setInterval(_loadComments,10000);
+}
+function closeCommentSheet(){
+  document.getElementById('_comment_overlay')?.remove();
+  clearInterval(_commentPollTimer);_commentPollTimer=null;_commentTrackId='';_commentReplyTo=null;
+}
+async function _loadComments(){
+  if(!_commentTrackId)return;
+  try{const r=await fetch('/api/comments?track_id='+encodeURIComponent(_commentTrackId));const d=await r.json();_commentData=d.comments||[];_renderComments();}catch(e){console.warn('[comments]',e.message);}
+}
+function _renderComments(){
+  const list=document.getElementById('_comment_list');if(!list)return;
+  if(!_commentData.length){list.innerHTML='<div style="text-align:center;padding:40px 16px;color:var(--t3);"><div style="font-size:28px;margin-bottom:8px;">💬</div><div style="font-size:13px;">첫 번째 댓글을 남겨보세요!</div></div>';return;}
+  const roots=_commentData.filter(c=>!c.parent_id);
+  const replyMap={};_commentData.filter(c=>!!c.parent_id).forEach(c=>{if(!replyMap[c.parent_id])replyMap[c.parent_id]=[];replyMap[c.parent_id].push(c);});
+  list.innerHTML=roots.map(c=>_renderCI(c,replyMap,0)).join('');
+}
+function _renderCI(c,rm,depth){
+  const isMe=currentUser&&c.author_name===currentUser.name&&c.author_provider===currentUser.provider;
+  const ta=formatTimeAgo(new Date(c.created_at).getTime());
+  const av=c.author_avatar?`<img src="${esc(c.author_avatar)}" class="comment-avatar" onerror="this.textContent='👤'">`:'<div class="comment-avatar-ph">👤</div>';
+  const kids=rm[c.id]||[];
+  return`<div class="comment-item${depth?' comment-reply':''}" data-cid="${c.id}">
+    <div class="comment-row">${av}<div class="comment-body">
+      <div class="comment-meta"><span class="comment-author${isMe?' comment-me'  :''}">${esc(c.author_name||'익명')}${isMe?' (나)':''}</span><span class="comment-time">${ta}</span></div>
+      <div class="comment-text">${esc(c.content)}</div>
+      <div class="comment-act-row"><button class="comment-act-btn" onclick="_setReply('${c.id}','${esc(c.author_name||'')}')">↩ 답글</button>${isMe?'<button class="comment-act-btn comment-del" onclick="_deleteMyComment(\''+c.id+'\')">삭제</button>':''}</div>
+    </div></div>${kids.map(r=>_renderCI(r,rm,depth+1)).join('')}</div>`;
+}
+function _setReply(pid,name){_commentReplyTo={id:pid,name};const b=document.getElementById('_comment_reply_bar'),l=document.getElementById('_comment_reply_label');if(b)b.style.display='flex';if(l)l.textContent='↩ '+name+'에게 답글';document.getElementById('_comment_input')?.focus();}
+function _cancelReply(){_commentReplyTo=null;const b=document.getElementById('_comment_reply_bar');if(b)b.style.display='none';}
+async function _submitComment(){
+  const input=document.getElementById('_comment_input');const content=(input?.value||'').trim();
+  if(!content){toast('댓글을 입력해주세요','err');return;}
+  if(!currentUser){toast('로그인 후 댓글을 남길 수 있어요','err');openLoginSheet();return;}
+  input.value='';
+  try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:currentUser.name||'익명',author_avatar:currentUser.avatar||'',author_provider:currentUser.provider||'guest'})});
+  _cancelReply();await _loadComments();const list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;}catch(e){toast('댓글 전송 실패','err');}
+}
+async function _deleteMyComment(id){if(!confirm('이 댓글을 삭제할까요?'))return;try{await fetch('/api/comments?id='+id,{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();}catch(e){toast('삭제 실패','err');}}
 </script>
 
 <!-- ── Push Notification (Service Worker) ── -->
