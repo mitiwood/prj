@@ -26,17 +26,24 @@ const PLANS = {
 };
 
 async function sb(path, opts = {}) {
-  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-    ...opts,
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json; charset=utf-8",
-      Prefer: opts.prefer || "return=representation",
-      ...(opts.headers || {}),
-    },
-  });
-  return r;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+      ...opts,
+      signal: controller.signal,
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        "Content-Type": "application/json; charset=utf-8",
+        Prefer: opts.prefer || "return=representation",
+        ...(opts.headers || {}),
+      },
+    });
+    return r;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default async function handler(req, res) {

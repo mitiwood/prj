@@ -36,20 +36,27 @@ async function _tgComment(author, text, trackTitle) {
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
-  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-    ...opts,
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json; charset=utf-8",
-      Accept: "application/json; charset=utf-8",
-      Prefer: opts.prefer || "return=representation",
-      ...(opts.headers || {}),
-    },
-  });
-  const txt = await r.text();
-  if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
-  return txt ? JSON.parse(txt) : null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+      ...opts,
+      signal: controller.signal,
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        "Content-Type": "application/json; charset=utf-8",
+        Accept: "application/json; charset=utf-8",
+        Prefer: opts.prefer || "return=representation",
+        ...(opts.headers || {}),
+      },
+    });
+    const txt = await r.text();
+    if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
+    return txt ? JSON.parse(txt) : null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /* Supabase REST API로 테이블 생성 (PostgREST에는 DDL이 없으므로 pg_net or http extension 필요)

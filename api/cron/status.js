@@ -11,17 +11,24 @@ const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET || "kenn
 
 async function sb(path) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
-  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json; charset=utf-8",
-      Accept: "application/json; charset=utf-8",
-    },
-  });
-  const txt = await r.text();
-  if (!r.ok) throw new Error(`SB ${r.status}`);
-  return txt ? JSON.parse(txt) : [];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+      signal: controller.signal,
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        "Content-Type": "application/json; charset=utf-8",
+        Accept: "application/json; charset=utf-8",
+      },
+    });
+    const txt = await r.text();
+    if (!r.ok) throw new Error(`SB ${r.status}`);
+    return txt ? JSON.parse(txt) : [];
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function tgSend(text) {

@@ -10,22 +10,29 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error('no_supabase');
-  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-    ...opts,
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      'Content-Type': 'application/json; charset=utf-8',
-      Accept: 'application/json; charset=utf-8',
-      Prefer: opts.prefer || 'return=representation',
-      ...(opts.headers || {}),
-    },
-  });
-  const text = await r.text();
-  let data;
-  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  if (!r.ok) throw new Error(`SB ${r.status}: ${text.slice(0, 200)}`);
-  return data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+      ...opts,
+      signal: controller.signal,
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json; charset=utf-8',
+        Accept: 'application/json; charset=utf-8',
+        Prefer: opts.prefer || 'return=representation',
+        ...(opts.headers || {}),
+      },
+    });
+    const text = await r.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+    if (!r.ok) throw new Error(`SB ${r.status}: ${text.slice(0, 200)}`);
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function isAdmin(req) {
