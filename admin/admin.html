@@ -1170,11 +1170,12 @@ function gateLogin(){
   /* 관리자 로그인 */
   if(inputPw===adminPw){
     localStorage.setItem('kms_admin_auth','1');
+    sessionStorage.setItem('kms_admin_session', inputPw);
     document.getElementById('admin-gate').style.display='none';
     document.getElementById('admin-app').style.display='flex';
     currentAccount={role:'admin',name:'관리자',id:'admin'};
     sessionStorage.setItem(CURRENT_ACCOUNT_KEY,JSON.stringify(currentAccount));
-    loadData();document.getElementById('last-login-time')&&(document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR'));switchSec('dashboard');
+    loadData();renderUsersAdmin();document.getElementById('last-login-time')&&(document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR'));switchSec('dashboard');
     setTimeout(initAccountSession,100);
     return;
   }
@@ -1206,7 +1207,12 @@ if(localStorage.getItem('kms_admin_auth')==='1'){
   document.getElementById('admin-gate').style.display='none';
   document.getElementById('admin-app').style.display='flex';
   document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR');
+  /* 세션 비밀번호 복원 */
+  if(!sessionStorage.getItem('kms_admin_session')){
+    sessionStorage.setItem('kms_admin_session', localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW);
+  }
   loadData();
+  renderUsersAdmin();
 }
 
 // ── 섹션 전환 ──
@@ -1934,7 +1940,7 @@ async function renderCommunityAdmin(){
   const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
-  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let allTracks=[];
   try{
     const r=await fetch('/api/tracks?limit=500',{headers:{'Authorization':'Bearer '+adminPw},signal:AbortSignal.timeout(8000)});
@@ -1999,7 +2005,7 @@ async function renderCommunityAdmin(){
 
 async function deleteCommTrack(id){
   if(!confirm('Supabase에서 완전 삭제할까요?')) return;
-  const pw=sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  const pw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   try{
     const r=await fetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE',headers:{'Authorization':'Bearer '+pw}});
     const d=await r.json();
@@ -2062,7 +2068,7 @@ function adminPlayComm(url, title, idx){
   };
 }
 async function hideSbTrack(id, rowIdx){
-  const adminPw = sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  const adminPw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   try{
     const r = await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{
       method:'PATCH',
@@ -2078,7 +2084,7 @@ async function hideSbTrack(id, rowIdx){
   }catch(e){ adminToast('❌ 오류: '+e.message); }
 }
 async function hideLocalTrack(hIdx, rowIdx){
-  const adminPw = sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  const adminPw = sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let h = getHistory();
   if(h[hIdx]){
     const trackId = h[hIdx].id;
@@ -2113,7 +2119,7 @@ function switchUserTab(tab){
 }
 
 async function renderUsersAdmin(showToast=false){
-  const adminPw=sessionStorage.getItem('kms_admin_session')||document.getElementById('admin-pw')?.value||'kenny2024!';
+  const adminPw=sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
   let loginUsers=[];
 
   /* Supabase에서 사용자 조회 */
