@@ -1465,10 +1465,13 @@ async function renderCommunityAdmin(){
     const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
     const srcIcon=t._source==='supabase'?'<span title="Supabase" style="font-size:9px;color:var(--acc3);">☁️</span>':'<span title="로컬" style="font-size:9px;color:var(--t3);">💾</span>';
     const likesHtml='❤️'+(t._commLikes||0)+(t._commDislikes?' 👎'+(t._commDislikes):'');
+    const hideBtn=t.id
+      ?'<button class="btn" onclick="hideSbTrack(\''+esc(t.id)+'\','+i+')" style="font-size:11px;padding:3px 7px;background:rgba(255,165,0,.15);color:#ffa500;border:1px solid rgba(255,165,0,.3);">숨기기</button>'
+      :(t._hIdx!=null?'<button class="btn" onclick="hideLocalTrack('+t._hIdx+','+i+')" style="font-size:11px;padding:3px 7px;background:rgba(255,165,0,.15);color:#ffa500;border:1px solid rgba(255,165,0,.3);">숨기기</button>':'');
     const deleteBtn=t._source==='supabase'&&t.id
       ?'<button class="btn btn-red" onclick="deleteCommTrack(\''+esc(t.id)+'\')" style="font-size:11px;padding:3px 7px;">삭제</button>'
-      :(t._hIdx!=null?'<button class="btn btn-red" onclick="hideFromComm('+t._hIdx+')" style="font-size:11px;padding:3px 7px;">숨기기</button>':'');
-    return '<tr>'
+      :'';
+    return '<tr id="comm-row-'+i+'">'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
       +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b>'+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
       +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
@@ -1477,7 +1480,7 @@ async function renderCommunityAdmin(){
       +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
       +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
         +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
-        +deleteBtn
+        +hideBtn+deleteBtn
       +'</div></td></tr>';
   }).join('');
 }
@@ -1532,28 +1535,41 @@ function adminPlayComm(url, title, idx){
     _commAdminPlayingIdx = -1;
   };
 }
-async function hideFromComm(i){
+async function hideSbTrack(id, rowIdx){
   const adminPw = sessionStorage.getItem('kms_admin_session')||'kenny2024!';
-  /* localStorage 업데이트 */
-  let h=getHistory();
-  if(h[i]){
-    const trackId = h[i].id;
-    h[i]._hidden = true;
-    h[i]._owner = null;
-    localStorage.setItem('kms_history',JSON.stringify(h));
-    /* Supabase is_public=false 업데이트 */
+  try{
+    const r = await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=hide',{
+      method:'PATCH',
+      headers:{'Authorization':'Bearer '+adminPw,'Content-Type':'application/json'},
+    });
+    const d = await r.json();
+    if(d.success){
+      document.getElementById('comm-row-'+rowIdx)?.remove();
+      adminToast('✅ 숨겼습니다');
+    } else {
+      adminToast('❌ 숨기기 실패: '+(d.error||''));
+    }
+  }catch(e){ adminToast('❌ 오류: '+e.message); }
+}
+async function hideLocalTrack(hIdx, rowIdx){
+  const adminPw = sessionStorage.getItem('kms_admin_session')||'kenny2024!';
+  let h = getHistory();
+  if(h[hIdx]){
+    const trackId = h[hIdx].id;
+    h[hIdx]._hidden = true;
+    h[hIdx]._owner = null;
+    localStorage.setItem('kms_history', JSON.stringify(h));
     if(trackId){
       try{
-        await fetch('/api/tracks/hide?id='+encodeURIComponent(trackId), {
+        await fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&action=hide',{
           method:'PATCH',
           headers:{'Authorization':'Bearer '+adminPw,'Content-Type':'application/json'},
-          body: JSON.stringify({is_public:false}),
         });
-      }catch(e){ console.warn('[hideFromComm] Supabase 업데이트 실패:', e.message); }
+      }catch(e){ console.warn('[hideLocalTrack] Supabase 업데이트 실패:', e.message); }
     }
   }
+  document.getElementById('comm-row-'+rowIdx)?.remove();
   adminToast('✅ 커뮤니티에서 숨겼습니다');
-  renderCommunityAdmin();
 }
 
 // ── 사용자 관리 ──

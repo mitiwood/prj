@@ -162,11 +162,29 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── PATCH: 좋아요/싫어요 토글 ─── */
+  /* ─── PATCH: 좋아요/싫어요/숨기기 ─── */
   if (req.method === "PATCH") {
     const id = req.query?.id;
-    const action = req.query?.action || "like"; // like|unlike|dislike|undislike
+    const action = req.query?.action || "like"; // like|unlike|dislike|undislike|hide|show
     if (!id) return res.status(400).json({ error: "id required" });
+
+    /* 숨기기/공개 처리 */
+    if (action === "hide" || action === "show") {
+      if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
+      const isPublic = action === "show";
+      try {
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH", prefer: "return=minimal",
+          body: JSON.stringify({ is_public: isPublic }),
+        });
+        const idx = _mem.findIndex(t => t.id === id);
+        if (idx >= 0) _mem[idx].is_public = isPublic;
+        return res.status(200).json({ success: true, is_public: isPublic, source: "supabase" });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     const col = action.includes("dislike") ? "comm_dislikes" : "comm_likes";
     const delta = action.startsWith("un") ? -1 : 1;
     try {
