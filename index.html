@@ -4471,8 +4471,8 @@ $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
     const selTrack=trackSel?.value?historyData.find(h=>h.id===trackSel.value):null;
     const trackHint=selTrack?` Selected track: "${selTrack.title}", tags: ${selTrack.tags||''}`:'';
 
-    const sys='당신은 전문 뮤직비디오 감독입니다. 텍스트-투-비디오 AI를 위한 영문 프롬프트를 작성하세요. 프롬프트만 출력하고 설명은 하지 마세요.';
-    const usr=`다음 음악에 어울리는 뮤직비디오 프롬프트를 영문으로 작성해주세요 (100~200단어). 시네마틱하고 생동감 있게. ${hint}${trackHint}`;
+    const sys='당신은 전문 뮤직비디오 감독입니다. 텍스트-투-비디오 AI를 위한 프롬프트를 한국어로 작성하세요. 프롬프트만 출력하고 설명은 하지 마세요.';
+    const usr=`다음 음악에 어울리는 뮤직비디오 프롬프트를 한국어로 작성해주세요 (100~200단어). 시네마틱하고 생동감 있게 장면을 묘사하세요. ${hint}${trackHint}`;
 
     await callClaudeStream(sys, usr, (partial)=>{
       if(_lyricsGenCancelled) throw new Error('취소됨');
