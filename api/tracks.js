@@ -30,7 +30,10 @@ async function _tgNotify(event, data) {
     if (data.user) text += `생성자: ${data.user}\n`;
     if (data.tags) text += `장르: ${data.tags}\n`;
     if (data.provider) text += `소셜: ${data.provider}\n`;
-    text += `⏰ ${ts}`;
+    text += `⏰ ${ts}\n`;
+    if (data.audioUrl) text += `\n🎧 [음원 듣기](${data.audioUrl})`;
+    if (data.videoUrl) text += `\n🎬 [MV 보기](${data.videoUrl})`;
+    if (data.imageUrl) text += `\n🖼 [커버 이미지](${data.imageUrl})`;
     const jsonPayload = JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
     const body = Buffer.from(jsonPayload, "utf-8");
     const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
@@ -193,6 +196,9 @@ export default async function handler(req, res) {
           user: owner_name || "익명",
           tags: tags || "",
           provider: owner_provider || "",
+          audioUrl: audio_url || "",
+          videoUrl: video_url || "",
+          imageUrl: image_url || "",
         });
       } catch(tgErr) { _tgResult = { error: tgErr.message }; }
       return res.status(200).json({ success: true, source: src, tg: _tgResult });
