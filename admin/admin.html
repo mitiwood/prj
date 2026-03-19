@@ -1274,11 +1274,132 @@ function logGateLogin(){
 document.getElementById('log-gate-input')?.addEventListener('keydown', e=>{ if(e.key==='Enter') logGateLogin(); });
 
 function initLogSection(){
-  if(_logUnlocked){
-    document.getElementById('log-gate').style.display = 'none';
-    document.getElementById('log-content').style.display = 'block';
-    loadVercelDeployments();
+  _logUnlocked = true;
+  document.getElementById('log-gate').style.display = 'none';
+  document.getElementById('log-content').style.display = 'block';
+  loadKieLogs();
+  loadVercelDeployments();
+  var logEl = document.getElementById('app-log-body');
+  if(logEl) logEl.textContent = _appLogs.length ? _appLogs.join('\n') : '로그 없음';
+}
+
+/* ── kie.ai 생성 로그 불러오기 ── */
+async function loadKieLogs(){
+  var tbody = document.getElementById('kie-log-tbody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase + kie.ai에서 로그 불러오는 중...</td></tr>';
+
+  var adminPw = sessionStorage.getItem('kms_admin_session') || localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PW;
+  var tracks = [];
+  try {
+    var r = await fetch('/api/tracks?limit=500', {
+      headers: { 'Authorization': 'Bearer ' + adminPw },
+      signal: AbortSignal.timeout(8000)
+    });
+    var raw = await r.text();
+    if(r.ok && raw.trim().startsWith('{')) {
+      var d = JSON.parse(raw);
+      if(Array.isArray(d.tracks)) tracks = d.tracks;
+    }
+  } catch(e) { console.warn('[KieLogs] Supabase 실패:', e.message); }
+
+  if(!tracks.length) {
+    tracks = getHistory().filter(function(t){ return t.taskId || t.audio_url; }).map(function(t){
+      return {
+        task_id: t.taskId || '', title: t.title || '무제', audio_url: t.audio_url || '',
+        image_url: t.image_url || '', tags: t.tags || '', gen_mode: t.genMode || 'custom',
+        created: t.created || 0, owner_name: (t._owner && t._owner.name) || '익명',
+        owner_provider: (t._owner && t._owner.provider) || 'guest', comm_likes: t._commLikes || 0
+      };
+    });
   }
+
+  tracks.sort(function(a, b){ return (b.created || 0) - (a.created || 0); });
+  _kieLogData = tracks;
+
+  var apiKey = _KIE_LOG_API_KEY;
+  var taskTracks = tracks.filter(function(t){ return !!t.task_id; });
+  var detailTargets = taskTracks.slice(0, 20);
+
+  var statusMap = {};
+  await Promise.allSettled(detailTargets.map(function(t){
+    return kieProxyRequest(apiKey, '/api/v1/generate/record-info?taskId=' + t.task_id)
+      .then(function(d){ if(d && d.data) statusMap[t.task_id] = d.data; })
+      .catch(function(){});
+  }));
+
+  var statsEl = document.getElementById('kie-log-stats');
+  var successCount = Object.values(statusMap).filter(function(d){ return d.status === 'SUCCESS'; }).length;
+  var pendingCount = Object.values(statusMap).filter(function(d){ return d.status === 'PENDING' || d.status === 'TEXT_SUCCESS' || d.status === 'FIRST_SUCCESS'; }).length;
+  var failCount = Object.values(statusMap).filter(function(d){ return d.status && d.status.indexOf('FAILED') >= 0; }).length;
+  if(statsEl) {
+    statsEl.innerHTML =
+      '<div style="background:var(--bg3);border-radius:8px;padding:8px 14px;font-size:12px;"><span style="color:var(--t3);">전체</span> <strong style="color:var(--t1);">' + tracks.length + '</strong></div>'
+      + '<div style="background:var(--bg3);border-radius:8px;padding:8px 14px;font-size:12px;"><span style="color:var(--t3);">kie.ai 조회</span> <strong style="color:var(--acc);">' + detailTargets.length + '</strong></div>'
+      + '<div style="background:var(--bg3);border-radius:8px;padding:8px 14px;font-size:12px;"><span style="color:var(--t3);">성공</span> <strong style="color:var(--grn);">' + successCount + '</strong></div>'
+      + '<div style="background:var(--bg3);border-radius:8px;padding:8px 14px;font-size:12px;"><span style="color:var(--t3);">진행중</span> <strong style="color:var(--ylw);">' + pendingCount + '</strong></div>'
+      + '<div style="background:var(--bg3);border-radius:8px;padding:8px 14px;font-size:12px;"><span style="color:var(--t3);">실패</span> <strong style="color:var(--red);">' + failCount + '</strong></div>';
+  }
+
+  var _sl = {
+    'SUCCESS': '<span class="badge badge-grn">성공</span>',
+    'PENDING': '<span class="badge" style="background:rgba(234,179,8,.15);color:#eab308;">대기중</span>',
+    'TEXT_SUCCESS': '<span class="badge" style="background:rgba(234,179,8,.15);color:#eab308;">텍스트완료</span>',
+    'FIRST_SUCCESS': '<span class="badge" style="background:rgba(59,130,246,.15);color:#3b82f6;">1차완료</span>',
+    'CREATE_TASK_FAILED': '<span class="badge badge-red">생성실패</span>',
+    'GENERATE_AUDIO_FAILED': '<span class="badge badge-red">오디오실패</span>',
+    'CALLBACK_EXCEPTION': '<span class="badge badge-red">콜백오류</span>',
+    'SENSITIVE_WORD_ERROR': '<span class="badge badge-red">금칙어</span>'
+  };
+  var _ml = {custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
+  var _pc = {google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+
+  tbody.innerHTML = tracks.map(function(t, i) {
+    var tid = t.task_id || '';
+    var kieData = statusMap[tid];
+    var status = kieData ? (_sl[kieData.status] || '<span class="badge">' + esc(kieData.status) + '</span>') : (t.audio_url ? '<span class="badge badge-grn">완료</span>' : '<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">미확인</span>');
+    var isGuest = !t.owner_provider || t.owner_provider === 'guest';
+    var pc = _pc[t.owner_provider] || 'badge-acc';
+    var ownerBadge = isGuest
+      ? '<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">게스트</span>'
+      : '<span class="badge ' + pc + '">' + esc(t.owner_name || '?') + '</span>';
+    var ml = _ml[t.gen_mode || 'custom'] || '커스텀';
+    var timeStr = t.created ? new Date(t.created).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    var detailBtn = tid ? '<button class="btn" onclick="viewKieTaskDetail(\'' + esc(tid) + '\')" style="font-size:11px;padding:3px 8px;">상세</button>' : '';
+    var audioBtn = t.audio_url ? '<button class="btn btn-acc" onclick="window.open(\'' + esc(t.audio_url) + '\')" style="font-size:11px;padding:3px 8px;">▶</button>' : '';
+
+    return '<tr>'
+      + '<td style="font-size:11px;color:var(--t3);">' + (i + 1) + '</td>'
+      + '<td class="td-title">' + esc(t.title || '무제') + (tid ? '<div style="font-size:9px;color:var(--t3);margin-top:2px;">ID: ' + esc(tid.slice(0, 12)) + '...</div>' : '') + '</td>'
+      + '<td>' + ownerBadge + '</td>'
+      + '<td><span class="badge" style="background:rgba(124,58,237,.15);color:var(--acc2);">' + ml + '</span></td>'
+      + '<td>' + status + '</td>'
+      + '<td style="font-size:11px;color:var(--t3);">' + timeStr + '</td>'
+      + '<td><div style="display:flex;gap:4px;">' + audioBtn + detailBtn + '</div></td>'
+      + '</tr>';
+  }).join('');
+
+  if(!tracks.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">생성 로그가 없습니다</td></tr>';
+  }
+}
+
+/* kie.ai 태스크 상세 보기 */
+async function viewKieTaskDetail(taskId) {
+  var card = document.getElementById('kie-task-detail-card');
+  var titleEl = document.getElementById('kie-task-detail-title');
+  var bodyEl = document.getElementById('kie-task-detail-body');
+  if(!card || !bodyEl) return;
+  card.style.display = 'block';
+  if(titleEl) titleEl.textContent = 'taskId: ' + taskId.slice(0, 16) + '...';
+  bodyEl.textContent = '⏳ 조회 중...';
+  try {
+    var d = await kieProxyRequest(_KIE_LOG_API_KEY, '/api/v1/generate/record-info?taskId=' + taskId);
+    bodyEl.textContent = JSON.stringify(d, null, 2);
+  } catch(e) {
+    bodyEl.textContent = '❌ 조회 실패: ' + e.message;
+  }
+  card.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 async function loadVercelDeployments(){
