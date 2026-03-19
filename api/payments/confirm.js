@@ -26,6 +26,12 @@ async function sb(path, opts = {}) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,x-admin-key");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   /* ── GET: 결제 내역 (관리자 전용) ── */
   if (req.method === "GET") {
     const auth = req.headers["x-admin-key"] || req.query.key;
