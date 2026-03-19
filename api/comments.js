@@ -75,7 +75,7 @@ let _tableChecked = false;
 
 let _sbAvailable = false;
 async function ensureTable() {
-  if (_tableChecked) return;
+  if (_tableChecked && _sbAvailable) return;
   _tableChecked = true;
   if (!SB_URL || !SB_KEY) return;
   try {
