@@ -3749,7 +3749,7 @@ let _sbLoaded    = false;
 let _sbMyLoaded  = false;
 let _sbLoading   = false;
 let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
-const _SB_CACHE_TTL = 60000; /* 60초 캐시 */
+const _SB_CACHE_TTL = 10000; /* 10초 캐시 */
 
 /* 커뮤니티 공개 트랙 로드 — 캐시 우선, 백그라운드 갱신 */
 async function _loadSbTracks(force=false){
@@ -3778,22 +3778,23 @@ try{
   }
 }catch(e){}
 
-/* ── 커뮤니티 주기적 자동 갱신 (30초마다) ── */
+/* ── 커뮤니티 주기적 자동 갱신 (10초마다, 깜빡임 없음) ── */
 let _commPollTimer = null;
+let _commPrevJson = ''; /* 이전 데이터 스냅샷 (변경 감지용) */
 function _startCommPoll(){
   if(_commPollTimer) return;
   _commPollTimer = setInterval(async()=>{
     /* 커뮤니티 뷰가 열려있을 때만 갱신 */
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
-    const prevCount = _sbTracks.length;
+    const prevIds = _sbTracks.map(t=>t._sbId).join(',');
     await _loadSbTracks(true);
-    /* 새 트랙이 추가됐으면 리스트 갱신 */
-    if(_sbTracks.length !== prevCount){
+    const newIds = _sbTracks.map(t=>t._sbId).join(',');
+    /* 변경 있을 때만 리렌더 — 깜빡임 방지 */
+    if(newIds !== prevIds){
       try{ renderCommunity(); }catch(e){}
-      toast('🎵 새로운 곡이 추가됐어요!','ok',2000);
     }
-  }, 30000);
+  }, 10000);
 }
 /* 페이지 로드 시 폴링 시작 + 프리로드 */
 _startCommPoll();
@@ -3942,21 +3943,60 @@ function socialLogin(provider){
 function logout(){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">로그아웃</div><div style="font-size:13px;color:#a09ab8;">정말 로그아웃 하시겠습니까?</div></div><div style="display:flex;gap:10px;"><button id="_logout_cancel" style="flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_logout_confirm" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">로그아웃</button></div></div>`;
+  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 36px;border-top:1px solid rgba(255,255,255,.1);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">로그아웃</div>
+      <div style="font-size:13px;color:#a09ab8;">정말 로그아웃 하시겠습니까?</div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button id="_logout_cancel" style="flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button>
+      <button id="_logout_confirm" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">로그아웃</button>
+    </div></div>`;
   document.body.appendChild(overlay);
   document.getElementById('_logout_cancel').onclick=()=>overlay.remove();
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
   document.getElementById('_logout_confirm').onclick=()=>{
     overlay.remove();
+    /* 유저 상태 초기화 */
     currentUser=null;
+    historyData=[];
+    _sbTracks=[]; _sbLoaded=false; _sbLoadedAt=0;
+    _sbMyTracks=[]; _sbMyLoaded=false;
+    /* 캐시 완전 삭제 */
     localStorage.clear();
     sessionStorage.clear();
-    historyData=[];
+    /* 쿠키 전부 삭제 */
     document.cookie.split(';').forEach(c=>{
       document.cookie=c.replace(/^ +/,'').replace(/=.*/,'=;expires='+new Date(0).toUTCString()+';path=/');
     });
-    toast('로그아웃 되었습니다','',1200);
-    setTimeout(()=>window.location.replace('/'),1000);
+    /* SW 구독 해제 */
+    try{
+      navigator.serviceWorker?.getRegistration('/sw.js').then(reg=>{
+        reg?.pushManager?.getSubscription().then(sub=>sub?.unsubscribe());
+      });
+    }catch(e){}
+    /* 캐시 스토리지 삭제 */
+    try{ caches?.keys().then(ks=>ks.forEach(k=>caches.delete(k))); }catch(e){}
+    /* 완료 팝업 */
+    _showLogoutDonePopup();
+  };
+}
+
+function _showLogoutDonePopup(){
+  const popup=document.createElement('div');
+  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  popup.innerHTML=`<div style="background:#1e1e2a;border-radius:20px;padding:36px 28px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(124,58,237,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(168,85,247,.15));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" width="32" height="32"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+    <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">로그아웃 완료</div>
+    <div style="font-size:13px;color:#a09ab8;line-height:1.6;margin-bottom:24px;">로그아웃 되었습니다.<br>모든 캐시가 정리되었어요.</div>
+    <button id="_logout_done_btn" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(124,58,237,.4);">확인</button>
+  </div>`;
+  document.body.appendChild(popup);
+  document.getElementById('_logout_done_btn').onclick=()=>{
+    popup.remove();
+    window.location.replace('/');
   };
 }
 function updateLoginUI(){
@@ -9280,7 +9320,7 @@ function renderSettings(){
     if(nameEl)nameEl.textContent=currentUser.name||'사용자';
     if(subEl)subEl.textContent=currentUser.email||'로그인됨';
     if(avatarEl)avatarEl.textContent=currentUser.name?currentUser.name[0]:'👤';
-    if(loginBtn){loginBtn.textContent='로그아웃';loginBtn.onclick=()=>{currentUser=null;updateLoginUI();renderSettings();toast('로그아웃 완료','',1500);};}
+    if(loginBtn){loginBtn.textContent='로그아웃';loginBtn.onclick=logout;}
   } else {
     if(nameEl)nameEl.textContent='게스트';
     if(subEl)subEl.textContent='로그인하고 내 작곡을 저장하세요';
