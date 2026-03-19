@@ -170,6 +170,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')"><span class="snav-icon">🛡️</span>매니저</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
+      <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
       <div class="snav-item" data-sec="audit" onclick="switchSec('audit')"><span class="snav-icon">📝</span>감사 로그</div>
@@ -1052,6 +1053,70 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
 
       <!-- 감사 로그 -->
+      <!-- Claude 사용량 -->
+      <div class="admin-section" id="sec-claude">
+        <div class="sec-hdr">
+          <h2>🤖 Claude API 사용량</h2>
+          <button class="btn btn-acc" onclick="loadClaudeUsage()">🔄 새로고침</button>
+        </div>
+
+        <!-- 상태 카드 -->
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-icon">🔑</div><div class="stat-val" id="cl-api-status">-</div><div class="stat-label">API Key 상태</div></div>
+          <div class="stat-card"><div class="stat-icon">🧠</div><div class="stat-val" id="cl-model" style="font-size:14px;">-</div><div class="stat-label">사용 모델</div></div>
+          <div class="stat-card"><div class="stat-icon">📥</div><div class="stat-val" id="cl-input-tokens">-</div><div class="stat-label">입력 토큰 (테스트)</div></div>
+          <div class="stat-card"><div class="stat-icon">📤</div><div class="stat-val" id="cl-output-tokens">-</div><div class="stat-label">출력 토큰 (테스트)</div></div>
+        </div>
+
+        <!-- API 엔드포인트 목록 -->
+        <div class="admin-table-wrap" style="margin-bottom:16px;">
+          <div class="admin-table-header"><h3>📡 Claude API 사용 엔드포인트</h3></div>
+          <table>
+            <thead><tr><th>엔드포인트</th><th>용도</th><th>모델</th><th>Max Tokens</th></tr></thead>
+            <tbody id="cl-endpoints-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 비용 추산 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <h4>💰 비용 단가 (Anthropic 공식)</h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px;" id="cl-pricing-grid"></div>
+        </div>
+
+        <!-- 사용량 추산 (로컬 로그 기반) -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <h4>📊 이번 달 사용량 추산</h4>
+          <div class="stats-grid" style="margin-top:12px;">
+            <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-val" id="cl-month-calls">0</div><div class="stat-label">API 호출 수</div></div>
+            <div class="stat-card"><div class="stat-icon">📥</div><div class="stat-val" id="cl-month-input">0</div><div class="stat-label">입력 토큰</div></div>
+            <div class="stat-card"><div class="stat-icon">📤</div><div class="stat-val" id="cl-month-output">0</div><div class="stat-label">출력 토큰</div></div>
+            <div class="stat-card" style="border-color:rgba(168,85,247,.3);"><div class="stat-icon">💵</div><div class="stat-val" id="cl-month-cost" style="color:var(--acc);">$0.00</div><div class="stat-label">예상 비용</div></div>
+          </div>
+        </div>
+
+        <!-- API 호출 로그 -->
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>📋 최근 API 호출 로그</h3>
+            <button class="btn btn-red" onclick="clearClaudeLog()" style="font-size:11px;">🗑 초기화</button>
+          </div>
+          <table>
+            <thead><tr><th>일시</th><th>엔드포인트</th><th>입력</th><th>출력</th><th>비용</th></tr></thead>
+            <tbody id="cl-log-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">로그가 없습니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 외부 링크 -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+          <a href="https://console.anthropic.com/settings/usage" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">📊 Anthropic 사용량 대시보드 ↗</a>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">🔑 API Keys 관리 ↗</a>
+          <a href="https://console.anthropic.com/settings/billing" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">💳 결제 현황 ↗</a>
+          <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" class="btn" style="font-size:11px;text-decoration:none;">📖 모델 문서 ↗</a>
+        </div>
+      </div>
+
       <div class="admin-section" id="sec-audit">
         <div class="sec-hdr">
           <h2>📝 감사 로그</h2>
@@ -1270,7 +1335,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',push:'푸시 알림',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
@@ -1282,6 +1347,7 @@ function switchSec(id){
   if(id==='usage') loadUsageAdmin();
   if(id==='logs') initLogSection();
   if(id==='kielogs'){const f=document.getElementById('kie-iframe');if(f&&!f.src.includes('kie.ai'))f.src='https://kie.ai/logs';}
+  if(id==='claude') loadClaudeUsage();
   if(id==='audit') renderAuditLog();
 }
 
@@ -3285,7 +3351,7 @@ document.addEventListener('DOMContentLoaded', ()=>{ startDashAutoRefresh(); });
 //  매니저 관리 시스템
 // ══════════════════════════════════════════════
 const MGR_ROLES = {
-  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','push','managers','logs','settings','audit'] },
+  admin:   { label:'👑 관리자',       color:'#ef4444', secs:['dashboard','tracks','community','users','reports','usage','claude','push','managers','logs','settings','audit'] },
   super:   { label:'🔧 슈퍼매니저',   color:'#f59e0b', secs:['dashboard','tracks','community','users','reports','usage','push','audit'] },
   manager: { label:'📋 매니저',       color:'#3b82f6', secs:['dashboard','tracks','community','reports'] },
   viewer:  { label:'👁 뷰어',         color:'#10b981', secs:['dashboard','usage'] }
@@ -3337,7 +3403,7 @@ function renderAccountBadge(){
 }
 
 /* 매니저 섹션 렌더링 */
-const SEC_TITLES = {dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',push:'푸시 알림',settings:'설정',logs:'로그 보기',audit:'감사 로그'};
+const SEC_TITLES = {dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',users:'사용자',managers:'매니저 관리',reports:'신고 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',push:'푸시 알림',settings:'설정',logs:'로그 보기',audit:'감사 로그'};
 
 function renderManagersSection(){
   const tbody = document.getElementById('managers-tbody');
@@ -3989,6 +4055,125 @@ renderCommunityAdmin = async function(){
     chkTd.appendChild(chk);
     row.insertBefore(chkTd, firstTd);
   });
+};
+
+
+// ══════════════════════════════════════════════
+//  Claude API 사용량
+// ══════════════════════════════════════════════
+const CL_LOG_KEY = 'kms_claude_log';
+function getClaudeLog(){ try{ return JSON.parse(localStorage.getItem(CL_LOG_KEY)||'[]'); }catch{ return []; } }
+function saveClaudeLog(log){ localStorage.setItem(CL_LOG_KEY, JSON.stringify(log.slice(0,200))); }
+function clearClaudeLog(){
+  if(!confirm('Claude API 로그를 초기화할까요?')) return;
+  localStorage.removeItem(CL_LOG_KEY);
+  loadClaudeUsage();
+  adminToast('✅ 초기화됨');
+}
+
+async function loadClaudeUsage(){
+  const el = id => document.getElementById(id);
+
+  // 서버에서 사용량 데이터 로드
+  try{
+    const r = await adminFetch('/api/claude-usage');
+    const d = await r.json();
+
+    // API 상태
+    if(el('cl-api-status')){
+      if(d.apiStatus==='active') el('cl-api-status').innerHTML='<span style="color:var(--grn);">정상</span>';
+      else if(d.apiStatus==='error') el('cl-api-status').innerHTML='<span style="color:var(--red);">오류</span>';
+      else if(!d.apiKeyConfigured) el('cl-api-status').innerHTML='<span style="color:var(--ylw);">미설정</span>';
+      else el('cl-api-status').textContent=d.apiStatus||'-';
+    }
+
+    // 모델
+    if(el('cl-model')) el('cl-model').textContent = d.model || '-';
+
+    // 테스트 토큰
+    if(d.testUsage){
+      if(el('cl-input-tokens')) el('cl-input-tokens').textContent = (d.testUsage.input_tokens||0).toLocaleString();
+      if(el('cl-output-tokens')) el('cl-output-tokens').textContent = (d.testUsage.output_tokens||0).toLocaleString();
+    }
+
+    // 엔드포인트 테이블
+    const epTbody = el('cl-endpoints-tbody');
+    if(epTbody && d.endpoints){
+      epTbody.innerHTML = d.endpoints.map(ep=>`
+        <tr>
+          <td style="font-family:monospace;font-weight:700;color:var(--acc);">${esc(ep.path)}</td>
+          <td style="color:var(--t2);">${esc(ep.purpose)}</td>
+          <td><span class="badge badge-acc">${esc(d.model||'haiku')}</span></td>
+          <td>400</td>
+        </tr>`).join('');
+    }
+
+    // 비용 단가
+    const pGrid = el('cl-pricing-grid');
+    if(pGrid && d.pricing){
+      const p = d.pricing;
+      pGrid.innerHTML = `
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:var(--t3);">입력 토큰</div>
+          <div style="font-size:18px;font-weight:800;color:var(--acc);margin-top:4px;">$${p.input_per_1m}</div>
+          <div style="font-size:10px;color:var(--t3);">/ 1M tokens</div>
+          <div style="font-size:10px;color:var(--t3);">≈ ₩${Math.round(p.input_per_1m*1340).toLocaleString()}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:var(--t3);">출력 토큰</div>
+          <div style="font-size:18px;font-weight:800;color:var(--ylw);margin-top:4px;">$${p.output_per_1m}</div>
+          <div style="font-size:10px;color:var(--t3);">/ 1M tokens</div>
+          <div style="font-size:10px;color:var(--t3);">≈ ₩${Math.round(p.output_per_1m*1340).toLocaleString()}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:var(--t3);">모델</div>
+          <div style="font-size:13px;font-weight:800;color:var(--t1);margin-top:6px;">${esc(p.model)}</div>
+          <div style="font-size:10px;color:var(--grn);margin-top:2px;">가장 저렴</div>
+        </div>`;
+    }
+
+  }catch(e){ console.warn('[Claude] 로드 실패:', e.message); }
+
+  // 로컬 로그 기반 이번 달 사용량
+  const log = getClaudeLog();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const monthLog = log.filter(l=>l.ts >= monthStart);
+
+  let totalInput=0, totalOutput=0;
+  monthLog.forEach(l=>{ totalInput+=(l.input||0); totalOutput+=(l.output||0); });
+  const estCost = (totalInput/1e6)*0.80 + (totalOutput/1e6)*4.00;
+
+  if(el('cl-month-calls')) el('cl-month-calls').textContent = monthLog.length;
+  if(el('cl-month-input')) el('cl-month-input').textContent = totalInput.toLocaleString();
+  if(el('cl-month-output')) el('cl-month-output').textContent = totalOutput.toLocaleString();
+  if(el('cl-month-cost')) el('cl-month-cost').textContent = '$'+estCost.toFixed(4);
+
+  // 로그 테이블
+  const tbody = el('cl-log-tbody');
+  if(tbody){
+    if(!log.length){
+      tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t3);">로그가 없습니다<br><span style="font-size:11px;">앱에서 YouTube 분석 등을 사용하면 자동 기록됩니다</span></td></tr>';
+    } else {
+      tbody.innerHTML = log.slice(0,50).map(l=>{
+        const cost = ((l.input||0)/1e6)*0.80 + ((l.output||0)/1e6)*4.00;
+        return `<tr>
+          <td style="font-size:11px;color:var(--t3);">${new Date(l.ts).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+          <td style="font-family:monospace;color:var(--acc);font-size:11px;">${esc(l.endpoint||'-')}</td>
+          <td>${(l.input||0).toLocaleString()}</td>
+          <td>${(l.output||0).toLocaleString()}</td>
+          <td style="color:var(--ylw);">$${cost.toFixed(4)}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+}
+
+/* Claude API 호출 로깅 (앱에서 호출) */
+window.logClaudeCall = function(endpoint, inputTokens, outputTokens){
+  const log = getClaudeLog();
+  log.unshift({ ts:Date.now(), endpoint, input:inputTokens||0, output:outputTokens||0 });
+  saveClaudeLog(log);
 };
 
 
