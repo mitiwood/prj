@@ -22,7 +22,8 @@ async function sb(path, opts = {}) {
     headers: {
       apikey: SB_KEY,
       Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
+      Accept: "application/json; charset=utf-8",
       Prefer: opts.prefer || "return=representation",
       ...(opts.headers || {}),
     },
