@@ -91,11 +91,26 @@ export default async function handler(req, res) {
 
   /* ─── 디버그: Supabase 연결 상태 확인 ─── */
   if (req.method === "GET" && req.query?.debug === "sb") {
+    let sbTest = "not_tested";
+    try {
+      const testR = await fetch(`${SB_URL}/rest/v1/tracks?select=id&limit=1`, {
+        headers: {
+          apikey: SB_KEY,
+          Authorization: `Bearer ${SB_KEY}`,
+          Accept: "application/json",
+        },
+      });
+      const testTxt = await testR.text();
+      sbTest = `status=${testR.status} body=${testTxt.slice(0, 200)}`;
+    } catch (e) {
+      sbTest = `error: ${e.message}`;
+    }
     return res.status(200).json({
       hasSbUrl: !!SB_URL,
-      sbUrlPrefix: SB_URL ? SB_URL.slice(0, 30) + "..." : "MISSING",
+      sbUrlPrefix: SB_URL ? SB_URL.slice(0, 40) + "..." : "MISSING",
       hasSbKey: !!SB_KEY,
-      sbKeyPrefix: SB_KEY ? SB_KEY.slice(0, 10) + "..." : "MISSING",
+      sbKeyLen: SB_KEY ? SB_KEY.length : 0,
+      sbTest,
     });
   }
 
