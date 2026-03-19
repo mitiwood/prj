@@ -33,7 +33,7 @@ async function sbFetch(path, options = {}) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -92,6 +92,24 @@ export default async function handler(req, res) {
         else { _memStore.unshift(memEntry); if (_memStore.length > 200) _memStore = _memStore.slice(0, 200); }
         return res.status(200).json({ success: true, source: 'memory', note: e.message });
       }
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  /* ── DELETE: 사용자 삭제 (관리자 전용) ── */
+  if (req.method === 'DELETE') {
+    const auth = req.headers.authorization || '';
+    if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { name, provider } = req.query || {};
+    if (!name) return res.status(400).json({ error: 'name required' });
+    try {
+      let path = `/users?name=eq.${encodeURIComponent(name)}`;
+      if (provider) path += `&provider=eq.${encodeURIComponent(provider)}`;
+      await sbFetch(path, { method: 'DELETE' });
+      return res.status(200).json({ success: true });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
