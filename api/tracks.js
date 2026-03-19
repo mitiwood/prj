@@ -18,7 +18,8 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 let _mem = []; // fallback
 
 function _tgNotify(event, data) {
-  if (!TG_TOKEN || !TG_CHAT) return;
+  console.log("[TG] token:", TG_TOKEN ? "set(" + TG_TOKEN.slice(0, 6) + "...)" : "EMPTY", "chat:", TG_CHAT || "EMPTY");
+  if (!TG_TOKEN || !TG_CHAT) { console.log("[TG] skipped — missing token/chat"); return; }
   const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const icon = { music_created: "🎵", mv_created: "🎬", new_user: "👤", comment: "💬", track_deleted: "🗑" }[event] || "📌";
   const label = { music_created: "새 곡 생성", mv_created: "MV 완성", new_user: "새 로그인", comment: "새 댓글", track_deleted: "트랙 삭제" }[event] || event;
