@@ -1673,6 +1673,9 @@ async function loadVercelLog(depId, depUrl){
 let _serverTracks = [];
 let _serverUsers = [];
 let _dataLoaded = false;
+let _trackIdSet = new Set();   /* 캐시: 기존 트랙 ID */
+let _userKeySet = new Set();   /* 캐시: 기존 사용자 키 */
+let _lastFetchAt = 0;          /* 마지막 fetch 시각 */
 
 function getHistory(){ return _serverTracks; }
 function getLoginUsers(){ return _serverUsers; }
@@ -1680,37 +1683,98 @@ function getUser(){
   try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch{return null;}
 }
 
-/* 서버에서 트랙+사용자 데이터 로드 */
+function _mapTrack(t){
+  return {
+    id:t.id, taskId:t.task_id||'', title:t.title||'무제',
+    audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
+    tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
+    created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
+    _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
+  };
+}
+function _mapUser(u){
+  return {
+    name:u.name, provider:u.provider, email:u.email||'',
+    avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
+    loginCount:u.login_count||1, lastLogin:u.last_login||0,
+  };
+}
+
+/* 서버에서 트랙+사용자 데이터 로드 — 증분(incremental) 방식 */
 async function _fetchServerData(){
-  /* 트랙 로드 */
+  const isFirst = !_dataLoaded;
+
+  /* 트랙: 첫 로드는 전체, 이후는 마지막 fetch 이후 생성된 것만 */
   try{
-    const r=await adminFetch('/api/tracks?limit=500');
-    const d=await r.json();
+    let url = '/api/tracks?limit=500';
+    const r = await adminFetch(url);
+    const d = await r.json();
     if(Array.isArray(d.tracks)){
-      _serverTracks=d.tracks.map(t=>({
-        id:t.id, taskId:t.task_id||'', title:t.title||'무제',
-        audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
-        tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
-        created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
-        _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
-      }));
+      if(isFirst){
+        /* 첫 로드: 전체 교체 */
+        _serverTracks = d.tracks.map(_mapTrack);
+        _trackIdSet = new Set(_serverTracks.map(t=>t.id));
+      } else {
+        /* 증분: 새 항목만 추가 + 기존 항목 likes/dislikes 업데이트 */
+        const serverMap = new Map(d.tracks.map(t=>[t.id, t]));
+        let added = 0;
+        /* 새 트랙 추가 */
+        for(const raw of d.tracks){
+          if(!_trackIdSet.has(raw.id)){
+            _serverTracks.unshift(_mapTrack(raw));
+            _trackIdSet.add(raw.id);
+            added++;
+          }
+        }
+        /* 기존 트랙 좋아요/싫어요 등 수치만 업데이트 (DOM 재렌더 없이) */
+        for(const t of _serverTracks){
+          const raw = serverMap.get(t.id);
+          if(raw){
+            t._commLikes = raw.comm_likes||0;
+            t._commDislikes = raw.comm_dislikes||0;
+            t._commRating = raw.comm_rating||0;
+          }
+        }
+        /* 서버에서 삭제된 트랙 제거 */
+        const serverIds = new Set(d.tracks.map(t=>t.id));
+        const before = _serverTracks.length;
+        _serverTracks = _serverTracks.filter(t=>serverIds.has(t.id));
+        _trackIdSet = new Set(_serverTracks.map(t=>t.id));
+        if(added > 0) console.log('[Admin] 새 트랙 '+added+'개 추가');
+      }
+      _serverTracks.sort((a,b)=>(b.created||0)-(a.created||0));
     }
   }catch(e){ console.warn('[loadData] tracks:', e.message); }
 
-  /* 사용자 로드 */
+  /* 사용자: 동일한 증분 로직 */
   try{
     const r=await adminFetch('/api/users');
     const d=await r.json();
     if(Array.isArray(d.users)){
-      _serverUsers=d.users.map(u=>({
-        name:u.name, provider:u.provider, email:u.email||'',
-        avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
-        loginCount:u.login_count||1, lastLogin:u.last_login||0,
-      }));
+      if(isFirst){
+        _serverUsers = d.users.map(_mapUser);
+        _userKeySet = new Set(_serverUsers.map(u=>u.name+'::'+u.provider));
+      } else {
+        for(const raw of d.users){
+          const key = raw.name+'::'+raw.provider;
+          if(!_userKeySet.has(key)){
+            _serverUsers.push(_mapUser(raw));
+            _userKeySet.add(key);
+          } else {
+            /* 기존 사용자 로그인 횟수 등 업데이트 */
+            const existing = _serverUsers.find(u=>u.name===raw.name&&u.provider===raw.provider);
+            if(existing){
+              existing.loginCount = raw.login_count||1;
+              existing.lastLogin = raw.last_login||0;
+            }
+          }
+        }
+      }
     }
   }catch(e){ console.warn('[loadData] users:', e.message); }
 
   _dataLoaded = true;
+  _lastFetchAt = Date.now();
 }
 
 async function loadData(){
@@ -1792,26 +1856,15 @@ let _filteredTracks=[];
 let _allAdminTracks=[];
 async function renderTracksAdmin(){
   const tbody=document.getElementById('tracks-tbody');
-  if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
-  let h=[];
-  try{
-    const r=await adminFetch('/api/tracks?limit=500');
-    const raw=await r.text();
-    if(r.ok&&raw.trim().startsWith('{')){
-      const d=JSON.parse(raw);
-      if(Array.isArray(d.tracks)){
-        h=d.tracks.map(t=>({
-          id:t.id, taskId:t.task_id||'', title:t.title||'무제',
-          audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
-          tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
-          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
-          _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
-          _source:'supabase'
-        }));
-      }
-    }
-  }catch(e){ console.warn('[Admin] Supabase 트랙 조회 실패:',e.message); }
-  /* Supabase 실패 시 localStorage 폴백 */
+  /* 캐시에 데이터가 있으면 로딩 표시 생략 (깜빡임 방지) */
+  if(!_serverTracks.length && tbody){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
+  }
+  /* 캐시가 비어있으면 서버에서 로드 */
+  if(!_serverTracks.length){
+    await _fetchServerData();
+  }
+  let h = _serverTracks;
   if(!h.length) h=getHistory();
   h.sort((a,b)=>(b.created||0)-(a.created||0));
   _allAdminTracks=h;
@@ -3929,14 +3982,21 @@ async function tryManagerLogin(loginId, pw){
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(initAccountSession, 100);
   
-  /* ── 10초마다 전체 데이터 실시간 갱신 (서버 API 호출) ── */
-  setInterval(()=>{
+  /* ── 10초마다 증분 데이터 갱신 (캐시 기반, 깜빡임 없음) ── */
+  setInterval(async()=>{
+    const prevTrackCount = _serverTracks.length;
+    const prevUserCount = _serverUsers.length;
+    await _fetchServerData();
+    /* 통계(대시보드)는 항상 업데이트 */
     loadData();
-    /* 현재 열려있는 섹션도 갱신 */
-    const curSec = document.querySelector('.admin-section.on')?.id?.replace('sec-','');
-    if(curSec === 'tracks') renderTracksAdmin();
-    if(curSec === 'community') renderCommunityAdmin();
-    if(curSec === 'users') renderUsersAdmin();
+    /* 데이터가 변경된 경우에만 현재 섹션 리렌더 */
+    const changed = _serverTracks.length !== prevTrackCount || _serverUsers.length !== prevUserCount;
+    if(changed){
+      const curSec = document.querySelector('.admin-section.on')?.id?.replace('sec-','');
+      if(curSec === 'tracks') renderTracksAdmin();
+      if(curSec === 'community') renderCommunityAdmin();
+      if(curSec === 'users') renderUsersAdmin();
+    }
   }, 10000);
   /* 카운트다운 표시 */
   let _autoRefreshTick = 10;
