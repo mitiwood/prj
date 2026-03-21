@@ -369,7 +369,7 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 색상을 파란색으로\n수정 커뮤니티 탭 로딩 속도 개선');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
 
-  await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`);
+  const r1 = await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
   try {
     /* GitHub API로 Issue 생성 */
@@ -392,15 +392,14 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
     const ghTxt = await ghReq.text();
 
     if (!ghReq.ok) {
-      /* 에러 상세 전송 (Markdown 이스케이프) */
       const safeErr = ghTxt.slice(0, 200).replace(/[*_`\[\]]/g, '');
-      await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
-      return;
+      const r2 = await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
+      return { step: 'gh_fail', r1, r2, ghStatus: ghReq.status };
     }
 
     const issue = JSON.parse(ghTxt);
     const safeArg = arg.replace(/[*_`\[]/g, '');
-    await tgSend(chatId, [
+    const r2 = await tgSend(chatId, [
       `✅ 수정 요청 등록 완료!`,
       ``,
       `📋 Issue #${issue.number}`,
@@ -411,9 +410,11 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
       ``,
       `🔗 ${issue.html_url}`,
     ].join('\n'), { parse_mode: '' });
+    return { step: 'ok', r1, r2, issue: issue.number };
   } catch (e) {
     const safeMsg = (e.message || 'unknown').replace(/[*_`\[\]]/g, '');
-    await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
+    const r2 = await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
+    return { step: 'error', r1, r2, err: safeMsg };
   }
 };
 
