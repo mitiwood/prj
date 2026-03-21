@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         let existingCount = 0;
         let isNew = true;
         try {
-          const existing = await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count`);
+          const existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count`);
           if (existing?.length > 0) {
             existingCount = existing[0].login_count || 0;
             isNew = false;
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
       if (id) {
         path = `/users?id=eq.${encodeURIComponent(id)}`;
       } else {
-        path = `/users?name=eq.${encodeURIComponent(name)}`;
+        path = `/users?name=ilike.${encodeURIComponent(name)}`;
         if (provider) path += `&provider=eq.${encodeURIComponent(provider)}`;
       }
       await sbFetch(path, { method: 'DELETE' });

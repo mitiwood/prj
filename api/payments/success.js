@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       expiresAt.setMonth(expiresAt.getMonth() + 1);
       try {
         await sb(
-          `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+          `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
           {
             method: "PATCH",
             body: JSON.stringify({

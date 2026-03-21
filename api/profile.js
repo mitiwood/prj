@@ -59,12 +59,12 @@ export default async function handler(req, res) {
     try {
       /* 유저 정보 */
       const { data: users } = await sb('GET',
-        `/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits,login_count,created_at&limit=1`);
+        `/users?name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits,login_count,created_at&limit=1`);
       const user = users[0] || { name, provider, avatar: '', plan: 'free' };
 
       /* 곡 목록 */
       const { data: tracks, count: trackCount } = await sb('GET',
-        `/tracks?owner_name=eq.${encodeURIComponent(name)}&owner_provider=eq.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,tags,comm_likes,comm_plays,created_at&limit=50`);
+        `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,tags,comm_likes,comm_plays,created_at&limit=50`);
 
       /* 통계 */
       const totalLikes = (tracks || []).reduce((s, t) => s + (t.comm_likes || 0), 0);
@@ -74,12 +74,12 @@ export default async function handler(req, res) {
       let followerCount = 0, followingCount = 0;
       try {
         const { count: fc } = await sb('GET',
-          `/follows?following_name=eq.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
+          `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
         followerCount = fc || 0;
       } catch {}
       try {
         const { count: fc } = await sb('GET',
-          `/follows?follower_name=eq.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
+          `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
         followingCount = fc || 0;
       } catch {}
 
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       if (viewerName && viewerProvider) {
         try {
           const { data: fw } = await sb('GET',
-            `/follows?follower_name=eq.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=eq.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`);
+            `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`);
           isFollowing = fw?.length > 0;
         } catch {}
       }
@@ -126,12 +126,12 @@ export default async function handler(req, res) {
       try {
         if (action === 'unfollow') {
           await sb('DELETE',
-            `/follows?follower_name=eq.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=eq.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}`);
+            `/follows?follower_name=ilike.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=ilike.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}`);
           return res.status(200).json({ ok: true, action: 'unfollowed' });
         }
         /* 중복 체크 */
         const { data: existing } = await sb('GET',
-          `/follows?follower_name=eq.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=eq.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}&select=id&limit=1`);
+          `/follows?follower_name=ilike.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=ilike.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}&select=id&limit=1`);
         if (existing?.length > 0) return res.status(200).json({ ok: true, already: true });
 
         await sb('POST', '/follows', {

@@ -12,78 +12,24 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
-const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
-let _memPlaylists = []; // playlist fallback
-
-/* 카카오톡 나에게 보내기 알림 (내부 API 호출) */
-async function _kakaoNotify(event, data) {
-  try {
-    const r = await fetch(`https://ai-music-studio-bice.vercel.app/api/kakao-notify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, data }),
-    });
-    return await r.json();
-  } catch(e) { return { skipped: true, error: e.message }; }
-}
-
-async function _tgNotify(event, data) {
-  if (!TG_TOKEN || !TG_CHAT) return { skipped: true, reason: "no token/chat" };
-  try {
-    const ts = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    const icon = { music_created: "🎵", mv_created: "🎬", track_deleted: "🗑" }[event] || "📌";
-    const label = { music_created: "새 곡 생성 완료", mv_created: "뮤직비디오 완성", track_deleted: "트랙 삭제" }[event] || event;
-    const modeLabel = { custom: "커스텀", simple: "심플", youtube: "YouTube", mv: "MV", vocal: "보컬변환" };
-    let text = `${icon} ${label}\n`;
-    if (data.title) text += `곡명: ${data.title}\n`;
-    if (data.mode) text += `모드: ${modeLabel[data.mode] || data.mode}\n`;
-    if (data.user) text += `생성자: ${data.user}\n`;
-    if (data.tags) text += `장르: ${data.tags}\n`;
-    if (data.provider) text += `소셜: ${data.provider}\n`;
-    text += `⏰ ${ts}`;
-
-    /* plain text로 전송 (Markdown 파싱 에러 방지) */
-    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text }), "utf-8");
-    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
-      body,
-    });
-    const d = await r.json();
-    if (!d.ok) console.warn("[tracks _tgNotify]", d.description);
-    return { sent: true, ok: d.ok, message_id: d.result?.message_id, error: d.ok ? null : d.description };
-  } catch(e) {
-    console.error("[tracks _tgNotify] error:", e.message);
-    return { sent: false, error: e.message };
-  }
-}
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000); /* 8초 타임아웃 */
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1${path}`, {
-      ...opts,
-      signal: controller.signal,
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        "Content-Type": "application/json; charset=utf-8",
-        Accept: "application/json; charset=utf-8",
-        Prefer: opts.prefer || "return=representation",
-        ...(opts.headers || {}),
-      },
-    });
-    const txt = await r.text();
-    if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
-    return txt ? JSON.parse(txt) : null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+    ...opts,
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: opts.prefer || "return=representation",
+      ...(opts.headers || {}),
+    },
+  });
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`SB ${r.status}: ${txt.slice(0, 200)}`);
+  return txt ? JSON.parse(txt) : null;
 }
 
 export default async function handler(req, res) {
@@ -104,8 +50,6 @@ export default async function handler(req, res) {
   const limit = Math.min(parseInt(req.query?.limit || "200"), 500);
   const offset = parseInt(req.query?.offset || "0");
 
-
-
   /* ─── GET ─── */
   if (req.method === "GET") {
     if (!isPublic && !ownerName && !isAdmin)
@@ -115,7 +59,7 @@ export default async function handler(req, res) {
       if (isAdmin) {
         filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
+        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       }
@@ -135,14 +79,12 @@ export default async function handler(req, res) {
           (t) => t.owner_name === ownerName && t.owner_provider === ownerProv,
         );
       list = [...list].sort((a, b) => (b.created || 0) - (a.created || 0));
-      return res
-        .status(200)
-        .json({
-          tracks: list,
-          total: list.length,
-          source: "memory",
-          note: e.message,
-        });
+      return res.status(200).json({
+        tracks: list,
+        total: list.length,
+        source: "memory",
+        note: e.message,
+      });
     }
   }
 
@@ -194,14 +136,13 @@ export default async function handler(req, res) {
         comm_plays: 0,
         created_at: new Date(now).toISOString(),
       };
-      let src = "memory";
       try {
         await sb("/tracks?on_conflict=id", {
           method: "POST",
           prefer: "resolution=merge-duplicates",
           body: JSON.stringify(row),
         });
-        src = "supabase";
+        return res.status(200).json({ success: true, source: "supabase" });
       } catch (e) {
         console.warn("[tracks POST]", e.message);
         const idx = _mem.findIndex((t) => t.id === id);
@@ -210,64 +151,12 @@ export default async function handler(req, res) {
           _mem.unshift(row);
           if (_mem.length > 500) _mem = _mem.slice(0, 500);
         }
+        return res
+          .status(200)
+          .json({ success: true, source: "memory", note: e.message });
       }
-      /* 텔레그램 + 카카오 알림 (병렬 발송) */
-      let _tgResult = null;
-      let _kakaoResult = null;
-      const eventType = video_url ? "mv_created" : "music_created";
-      const eventData = {
-        title: title || "무제",
-        mode: genMode || "custom",
-        user: owner_name || "익명",
-        tags: tags || "",
-        provider: owner_provider || "",
-        audioUrl: audio_url || "",
-        videoUrl: video_url || "",
-        imageUrl: image_url || "",
-      };
-      try {
-        [_tgResult, _kakaoResult] = await Promise.allSettled([
-          _tgNotify(eventType, eventData),
-          _kakaoNotify(eventType, eventData),
-        ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { error: x.reason?.message }));
-      } catch(e) { /* ignore */ }
-      return res.status(200).json({ success: true, source: src, tg: _tgResult, kakao: _kakaoResult });
     } catch (e) {
       return res.status(500).json({ error: e.message });
-    }
-  }
-
-  /* ─── PATCH: 플레이리스트 추가 ─── */
-  if (req.method === "PATCH" && req.query?.action === "playlist") {
-    let b = req.body;
-    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-    const { track_id, title, audio_url, image_url, tags, owner_name, owner_provider } = b || {};
-    if (!owner_name) return res.status(400).json({ error: "로그인 필요" });
-    const row = {
-      track_id: track_id || "",
-      title: title || "무제",
-      audio_url: audio_url || "",
-      image_url: image_url || "",
-      tags: tags || "",
-      owner_name,
-      owner_provider: owner_provider || "guest",
-    };
-    try {
-      await sb("/playlists?on_conflict=track_id,owner_name,owner_provider", {
-        method: "POST",
-        prefer: "return=minimal,resolution=merge-duplicates",
-        body: JSON.stringify(row),
-      });
-      return res.status(200).json({ success: true, source: "supabase" });
-    } catch (e) {
-      console.warn("[playlist add sb]", e.message);
-      /* memory fallback */
-      const key = `${row.track_id}|${row.owner_name}|${row.owner_provider}`;
-      if (!_memPlaylists.find(p => `${p.track_id}|${p.owner_name}|${p.owner_provider}` === key)) {
-        _memPlaylists.unshift({ ...row, id: crypto.randomUUID?.() || Date.now().toString(36), created_at: new Date().toISOString() });
-        if (_memPlaylists.length > 200) _memPlaylists = _memPlaylists.slice(0, 200);
-      }
-      return res.status(200).json({ success: true, source: "memory" });
     }
   }
 
@@ -277,101 +166,88 @@ export default async function handler(req, res) {
     const action = req.query?.action || "like"; // like|unlike|dislike|undislike|hide|show
     if (!id) return res.status(400).json({ error: "id required" });
 
-    /* 별점 처리 */
-    if (action === "rate") {
-      let b = req.body;
-      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-      const rating = Math.min(5, Math.max(0, parseInt(b?.rating || "0")));
-      try {
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH", prefer: "return=minimal",
-          body: JSON.stringify({ comm_rating: rating }),
-        });
-        const idx = _mem.findIndex(t => t.id === id);
-        if (idx >= 0) _mem[idx].comm_rating = rating;
-        return res.status(200).json({ success: true, comm_rating: rating, source: "supabase" });
-      } catch (e) {
-        const idx = _mem.findIndex(t => t.id === id);
-        if (idx >= 0) { _mem[idx].comm_rating = rating; return res.status(200).json({ success: true, comm_rating: rating, source: "memory" }); }
-        return res.status(500).json({ error: e.message });
-      }
-    }
-
     /* 숨기기/공개 처리 */
     if (action === "hide" || action === "show") {
       if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
       const isPublic = action === "show";
       try {
         await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH", prefer: "return=minimal",
+          method: "PATCH",
+          prefer: "return=minimal",
           body: JSON.stringify({ is_public: isPublic }),
         });
-        const idx = _mem.findIndex(t => t.id === id);
+        const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) _mem[idx].is_public = isPublic;
-        return res.status(200).json({ success: true, is_public: isPublic, source: "supabase" });
+        return res
+          .status(200)
+          .json({ success: true, is_public: isPublic, source: "supabase" });
       } catch (e) {
         return res.status(500).json({ error: e.message });
       }
+      1;
     }
 
-    /* 좋아요/싫어요 — likes 테이블 기반 중복 방지 */
-    let b = req.body || {};
-    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-    const userName = b.userName || '';
-    const userProvider = b.userProvider || '';
-
     const col = action.includes("dislike") ? "comm_dislikes" : "comm_likes";
-    const likeType = action.includes("dislike") ? "dislike" : "like";
-    const isUndo = action.startsWith("un");
-
+    const delta = action.startsWith("un") ? -1 : 1;
     try {
-      /* likes 테이블에 유저별 투표 기록 (중복 방지) */
-      if (userName && userProvider) {
-        try {
-          if (isUndo) {
-            /* 투표 취소 */
-            await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}`, {
-              method: "DELETE", prefer: "return=minimal",
-            });
-          } else {
-            /* 중복 체크 */
-            const existing = await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}&select=id`);
-            if (existing?.length > 0) {
-              return res.status(200).json({ success: true, duplicate: true, message: "이미 투표했어요" });
-            }
-            /* 반대 투표 제거 (like↔dislike) */
-            const opposite = likeType === "like" ? "dislike" : "like";
-            try {
-              await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${opposite}`, {
-                method: "DELETE", prefer: "return=minimal",
-              });
-            } catch {}
-            /* 투표 기록 */
-            await sb(`/likes`, {
-              method: "POST", prefer: "return=minimal",
-              body: JSON.stringify({ user_name: userName, user_provider: userProvider, track_id: id, type: likeType }),
-            });
-          }
-        } catch (e) { console.warn("[likes table]", e.message); }
-      }
-
-      /* tracks 테이블 카운터 업데이트 (기존 호환) */
-      const delta = isUndo ? -1 : 1;
       try {
-        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
+        const rows = await sb(
+          `/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`,
+        );
         const cur = Math.max(0, (rows?.[0]?.[col] || 0) + delta);
         await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH", prefer: "return=minimal",
+          method: "PATCH",
+          prefer: "return=minimal",
           body: JSON.stringify({ [col]: cur }),
         });
-        return res.status(200).json({ success: true, [col]: cur, source: "supabase" });
+        return res
+          .status(200)
+          .json({ success: true, [col]: cur, source: "supabase" });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) {
           _mem[idx][col] = Math.max(0, (_mem[idx][col] || 0) + delta);
-          return res.status(200).json({ success: true, [col]: _mem[idx][col], source: "memory" });
+          return res
+            .status(200)
+            .json({ success: true, [col]: _mem[idx][col], source: "memory" });
         }
         return res.status(404).json({ error: "not found" });
+      }
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  /* ─── PATCH /hide: is_public 토글 (관리자) ─── */
+  /* URL: /api/tracks/hide?id=xxx 또는 /api/tracks?id=xxx&action=hide */
+  const isHideAction =
+    req.url?.includes("/hide") || req.query?.action === "hide";
+  if (req.method === "PATCH" && isHideAction) {
+    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.query?.id;
+    if (!id) return res.status(400).json({ error: "id required" });
+    try {
+      let b = req.body;
+      if (typeof b === "string") {
+        try {
+          b = JSON.parse(b);
+        } catch {
+          b = {};
+        }
+      }
+      const isPublic = b?.is_public ?? false;
+      try {
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          prefer: "return=minimal",
+          body: JSON.stringify({ is_public: isPublic }),
+        });
+        /* memory fallback */
+        const idx = _mem.findIndex((t) => t.id === id);
+        if (idx >= 0) _mem[idx].is_public = isPublic;
+        return res.status(200).json({ success: true, is_public: isPublic });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
       }
     } catch (e) {
       return res.status(500).json({ error: e.message });
@@ -388,15 +264,8 @@ export default async function handler(req, res) {
         method: "DELETE",
         prefer: "return=minimal",
       });
-      /* memory fallback cleanup */
-      const mi = _mem.findIndex((t) => t.id === id);
-      if (mi >= 0) _mem.splice(mi, 1);
-      await _tgNotify("track_deleted", { title: `트랙 ID: ${id}`, user: "관리자" });
       return res.status(200).json({ success: true });
     } catch (e) {
-      /* Supabase 실패 시 메모리에서라도 삭제 */
-      const mi = _mem.findIndex((t) => t.id === id);
-      if (mi >= 0) { _mem.splice(mi, 1); return res.status(200).json({ success: true, source: "memory" }); }
       return res.status(500).json({ error: e.message });
     }
   }

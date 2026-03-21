@@ -85,7 +85,7 @@ export default async function handler(req, res) {
           const { user_name, user_provider } = payments[0];
           if (user_name && user_provider) {
             await sb(
-              `/users?name=eq.${encodeURIComponent(user_name)}&provider=eq.${encodeURIComponent(user_provider)}`,
+              `/users?name=ilike.${encodeURIComponent(user_name)}&provider=eq.${encodeURIComponent(user_provider)}`,
               {
                 method: "PATCH",
                 body: JSON.stringify({

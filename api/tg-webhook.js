@@ -818,7 +818,7 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
         for (const u of allUsers.slice(0, 5)) {
           let songCount = 0;
           try {
-            const { data: ut } = await sb('GET', `/tracks?owner_name=eq.${encodeURIComponent(u.name)}&owner_provider=eq.${encodeURIComponent(u.provider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=500`);
+            const { data: ut } = await sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(u.name)}&owner_provider=eq.${encodeURIComponent(u.provider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=500`);
             songCount = ut?.length || 0;
           } catch {}
           const provIcon = { google: '🔵', kakao: '💬', naver: '🟢' }[u.provider] || '👤';

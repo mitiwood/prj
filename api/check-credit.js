@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       const patchData = { plan: newPlan, credits: limits.songs };
       if (newPlan === 'free') patchData.plan_expires = null;
       await sbFetch('PATCH',
-        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
         patchData
       );
       return res.status(200).json({ ok: true, plan: newPlan });
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   try {
     /* 1. 유저 조회 → plan 확인 */
     const users = await sbFetch('GET',
-      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=name,provider,plan,credits,plan_expires&limit=1`
+      `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=name,provider,plan,credits,plan_expires&limit=1`
     );
     const user = users[0];
     const plan = user?.plan || 'free';
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       if (new Date(user.plan_expires) < new Date()) {
         /* 만료 → free로 다운그레이드 */
         await sbFetch('PATCH',
-          `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+          `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
           { plan: 'free', credits: 5 }
         );
         return res.status(200).json({ ok: false, reason: 'plan_expired', plan: 'free' });
@@ -106,12 +106,12 @@ export default async function handler(req, res) {
     let used = 0;
     if (type === 'song') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks.length;
     } else if (type === 'mv') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks.length;
     } else {
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       const planCredits = { free: 5, pro: 50, creator: 999 };
       const expires = newPlan === 'free' ? null : new Date(Date.now() + 30*24*60*60*1000).toISOString();
       await sbFetch('PATCH',
-        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
         { plan: newPlan, credits: planCredits[newPlan] || 5, plan_expires: expires }
       );
       return res.status(200).json({ ok: true, plan: newPlan });
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
     if (action === 'deduct') {
       const newCredits = Math.max(0, (user?.credits || 0) - 1);
       await sbFetch('PATCH',
-        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
         { credits: newCredits }
       );
       return res.status(200).json({ ok: true, credits: newCredits });
