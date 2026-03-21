@@ -169,3 +169,29 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY settings_service_all ON public.settings
   FOR ALL USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- 10. live_notifications (실시간 알림)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.live_notifications (
+  id          TEXT PRIMARY KEY,
+  title       TEXT DEFAULT '',
+  body        TEXT DEFAULT '',
+  icon        TEXT DEFAULT '🔔',
+  type        TEXT DEFAULT 'info',
+  target      TEXT DEFAULT 'all',
+  ts          BIGINT DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.live_notifications ENABLE ROW LEVEL SECURITY;
+
+-- 공개 읽기 (접속 유저가 폴링)
+CREATE POLICY live_notifications_public_read ON public.live_notifications
+  FOR SELECT USING (true);
+
+-- 서비스 롤만 쓰기/삭제
+CREATE POLICY live_notifications_service_write ON public.live_notifications
+  FOR ALL USING (auth.role() = 'service_role');
+
+CREATE INDEX IF NOT EXISTS idx_live_notifications_created ON public.live_notifications(created_at DESC);

@@ -172,6 +172,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
+      <div class="snav-item" data-sec="live" onclick="switchSec('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
       <div class="snav-item" data-sec="audit" onclick="switchSec('audit')"><span class="snav-icon">📝</span>감사 로그</div>
@@ -609,6 +610,61 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
+
+      <!-- ⚡ 실시간 알림 -->
+      <div class="admin-section" id="sec-live">
+        <div class="sec-hdr"><h2>⚡ 실시간 알림</h2><p>접속 중인 모든 사용자(게스트 포함)에게 즉시 알림을 보냅니다. 10초 폴링 기반.</p></div>
+
+        <!-- 알림 발송 폼 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(168,85,247,.35);">
+          <div class="admin-table-header" style="background:rgba(168,85,247,.08);">
+            <h3>📨 알림 발송</h3>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn" onclick="_liveTemplate('update')">⬆️ 업데이트</button>
+              <button class="btn" onclick="_liveTemplate('event')">🎉 이벤트</button>
+              <button class="btn" onclick="_liveTemplate('feature')">🆕 신기능</button>
+              <button class="btn" onclick="_liveTemplate('maintenance')">🔧 점검</button>
+              <button class="btn" onclick="_liveTemplate('challenge')">🔥 챌린지</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="settings-input" id="live-icon" value="🔔" style="width:50px;text-align:center;font-size:20px;">
+              <input class="settings-input" id="live-title" placeholder="알림 제목" style="flex:1;">
+            </div>
+            <textarea id="live-body" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical;min-height:60px;" placeholder="알림 내용을 입력하세요..."></textarea>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-acc" onclick="_sendLiveNotify()" id="live-send-btn" style="padding:10px 24px;font-size:14px;">⚡ 실시간 발송</button>
+              <span id="live-send-result" style="font-size:12px;color:var(--grn);"></span>
+            </div>
+            <!-- 미리보기 -->
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;max-width:360px;">
+              <div style="font-size:10px;color:var(--t3);margin-bottom:8px;">미리보기 (사용자 화면)</div>
+              <div style="display:flex;align-items:flex-start;gap:12px;background:linear-gradient(135deg,#1e1e2a,#252536);border:1px solid rgba(168,85,247,.4);border-radius:12px;padding:12px;">
+                <div style="font-size:24px;" id="live-prev-icon">🔔</div>
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:#f1f0f5;" id="live-prev-title">알림 제목</div>
+                  <div style="font-size:11px;color:#a09ab8;margin-top:3px;" id="live-prev-body">알림 내용</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 발송 이력 (실시간 갱신) -->
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>📋 발송 이력 <span id="live-hist-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+            <div style="display:flex;gap:6px;">
+              <button class="btn" onclick="_loadLiveHistory()" style="font-size:11px;">🔄 새로고침</button>
+            </div>
+          </div>
+          <table><thead><tr><th style="width:30px;">No</th><th>아이콘</th><th>제목</th><th>내용</th><th>발송일</th><th>저장</th><th>액션</th></tr></thead>
+          <tbody id="live-history-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
+          </tbody></table>
+        </div>
+      </div>
 
       <!-- 푸시 알림 -->
       <div class="admin-section" id="sec-push">
@@ -4689,6 +4745,142 @@ window.logClaudeCall = function(endpoint, inputTokens, outputTokens){
   log.unshift({ ts:Date.now(), endpoint, input:inputTokens||0, output:outputTokens||0 });
   saveClaudeLog(log);
 };
+
+/* ══════════════════════════════
+   ⚡ 실시간 알림 관리
+══════════════════════════════ */
+
+/* 미리보기 실시간 갱신 */
+document.addEventListener('DOMContentLoaded', () => {
+  ['live-icon','live-title','live-body'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', _updateLivePreview);
+  });
+});
+
+function _updateLivePreview(){
+  const icon = document.getElementById('live-icon')?.value || '🔔';
+  const title = document.getElementById('live-title')?.value || '알림 제목';
+  const body = document.getElementById('live-body')?.value || '알림 내용';
+  const pi = document.getElementById('live-prev-icon'); if(pi) pi.textContent = icon;
+  const pt = document.getElementById('live-prev-title'); if(pt) pt.textContent = title;
+  const pb = document.getElementById('live-prev-body'); if(pb) pb.textContent = body;
+}
+
+function _liveTemplate(type){
+  const templates = {
+    update:      { icon:'⬆️', title:'업데이트 완료', body:'새로운 기능이 추가됐어요! 확인해보세요.' },
+    event:       { icon:'🎉', title:'이벤트 안내', body:'특별 이벤트가 진행 중이에요!' },
+    feature:     { icon:'🆕', title:'신기능 출시', body:'새로운 기능을 만나보세요!' },
+    maintenance: { icon:'🔧', title:'점검 안내', body:'잠시 후 서비스 점검이 예정되어 있어요.' },
+    challenge:   { icon:'🔥', title:'챌린지 공개', body:'새로운 챌린지에 참여해보세요!' },
+  };
+  const t = templates[type] || templates.update;
+  document.getElementById('live-icon').value = t.icon;
+  document.getElementById('live-title').value = t.title;
+  document.getElementById('live-body').value = t.body;
+  _updateLivePreview();
+}
+
+async function _sendLiveNotify(){
+  const icon = document.getElementById('live-icon')?.value || '🔔';
+  const title = document.getElementById('live-title')?.value?.trim();
+  const body = document.getElementById('live-body')?.value?.trim();
+  const btn = document.getElementById('live-send-btn');
+  const result = document.getElementById('live-send-result');
+
+  if(!title && !body){ alert('제목 또는 내용을 입력하세요'); return; }
+
+  btn.disabled = true; btn.textContent = '발송 중...';
+  try {
+    const r = await fetch('/api/live-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (_adminPwd || '') },
+      body: JSON.stringify({ title, body, icon, type: 'info', target: 'all' }),
+    });
+    const d = await r.json();
+    if(d.ok){
+      result.textContent = '✅ 발송 완료! (저장: ' + (d.saved || 'memory') + ')';
+      result.style.color = 'var(--grn)';
+      document.getElementById('live-title').value = '';
+      document.getElementById('live-body').value = '';
+      _updateLivePreview();
+      _loadLiveHistory();
+      if(typeof addAuditLog==='function') addAuditLog('live_notify', title, icon + ' ' + (body||'').slice(0,50));
+    } else {
+      result.textContent = '❌ ' + (d.error || '발송 실패');
+      result.style.color = '#ef4444';
+    }
+  } catch(e){
+    result.textContent = '❌ ' + e.message;
+    result.style.color = '#ef4444';
+  }
+  btn.disabled = false; btn.textContent = '⚡ 실시간 발송';
+  setTimeout(() => { result.textContent = ''; }, 5000);
+}
+
+async function _loadLiveHistory(){
+  const tbody = document.getElementById('live-history-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</td></tr>';
+
+  try {
+    const r = await fetch('/api/live-notify?history=true', {
+      headers: { Authorization: 'Bearer ' + (_adminPwd || '') },
+    });
+    const d = await r.json();
+    const list = d.notifications || [];
+    const countEl = document.getElementById('live-hist-count');
+    if(countEl) countEl.textContent = `(${list.length}건)`;
+
+    if(!list.length){
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((n, i) => {
+      const dt = new Date(n.created_at || n.ts).toLocaleString('ko-KR', { timeZone:'Asia/Seoul', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      return `<tr>
+        <td>${i+1}</td>
+        <td style="font-size:20px;">${n.icon||'🔔'}</td>
+        <td style="font-weight:700;">${(n.title||'').slice(0,30)}</td>
+        <td style="color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(n.body||'').slice(0,50)}</td>
+        <td style="font-size:11px;color:var(--t3);">${dt}</td>
+        <td style="font-size:11px;">${d.source||'?'}</td>
+        <td><button class="btn btn-red" onclick="_deleteLiveNotify('${n.id}')" style="font-size:10px;padding:2px 8px;">삭제</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:#ef4444;">로딩 실패: ${e.message}</td></tr>`;
+  }
+}
+
+async function _deleteLiveNotify(id){
+  if(!confirm('이 알림을 삭제할까요?')) return;
+  try {
+    await fetch('/api/live-notify?id=' + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + (_adminPwd || '') },
+    });
+    _loadLiveHistory();
+  } catch(e){ alert('삭제 실패: ' + e.message); }
+}
+
+/* 실시간 알림 탭 진입 시 자동 로드 */
+const _origSwitchSec = typeof switchSec === 'function' ? switchSec : null;
+if(_origSwitchSec){
+  const _wrapSwitch = switchSec;
+  switchSec = function(sec){
+    _wrapSwitch(sec);
+    if(sec === 'live') _loadLiveHistory();
+  };
+}
+
+/* 10초마다 이력 자동 갱신 (실시간 알림 탭 열려있을 때) */
+setInterval(() => {
+  const sec = document.getElementById('sec-live');
+  if(sec && sec.classList.contains('on')) _loadLiveHistory();
+}, 10000);
 
 
 </script>
