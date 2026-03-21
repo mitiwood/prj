@@ -2563,7 +2563,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
             <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
           </div>
           <textarea class="form-input" id="prompt" rows="4"
-            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..." oninput="_updateLyricsInfo()"></textarea>
+          <!-- 가사 도우미 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button onclick="_insertTag('[Verse]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Verse</button>
+              <button onclick="_insertTag('[Chorus]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Chorus</button>
+              <button onclick="_insertTag('[Bridge]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Bridge</button>
+              <button onclick="_insertTag('[Outro]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Outro</button>
+            </div>
+            <div id="lyrics-info" style="font-size:10px;color:var(--t3);">0자 · 0줄</div>
+          </div>
           <div class="lyrics-btn-row" id="lyrics-btn-row">
             <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
             <button class="ai-assist-btn" id="stream-lyrics-btn" onclick="streamLyricsGenerate()" style="font-size:12px;">
@@ -2675,7 +2685,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
           <div class="adv-section">
             <div class="adv-section-title">🎤 레퍼런스 아티스트 <span style="font-size:10px;color:var(--t3);font-weight:400;">(실제 아티스트 스타일 반영)</span></div>
             <div style="display:flex;gap:6px;">
-              <input class="neg-input" id="ref-artist" type="text" placeholder="예: BTS, IU, aespa, Billie Eilish..." style="flex:1;" onblur="analyzeRefArtist()">
+              <input class="neg-input" id="ref-artist" type="text" list="artist-suggestions" placeholder="예: BTS, IU, aespa, Billie Eilish..." style="flex:1;" onblur="analyzeRefArtist()">
+              <datalist id="artist-suggestions">
+                <option value="BTS"><option value="IU"><option value="aespa"><option value="NewJeans">
+                <option value="BLACKPINK"><option value="(G)I-DLE"><option value="Stray Kids"><option value="SEVENTEEN">
+                <option value="태양"><option value="DEAN"><option value="Crush"><option value="Zico">
+                <option value="Billie Eilish"><option value="The Weeknd"><option value="Taylor Swift"><option value="Drake">
+                <option value="Dua Lipa"><option value="Ed Sheeran"><option value="Bruno Mars"><option value="Ariana Grande">
+                <option value="Adele"><option value="Post Malone"><option value="Kendrick Lamar"><option value="SZA">
+                <option value="Coldplay"><option value="Imagine Dragons"><option value="Radiohead"><option value="Arctic Monkeys">
+                <option value="Daft Punk"><option value="Calvin Harris"><option value="Avicii"><option value="Marshmello">
+              </datalist>
               <button class="ai-assist-btn" id="ref-artist-btn" onclick="analyzeRefArtist()" style="flex-shrink:0;white-space:nowrap;">
                 <span class="lspin" id="ref-artist-spinner" style="display:none;"></span>
                 🔍 분석
@@ -2742,6 +2762,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 
       <!-- ━━━ 심플 패널 ━━━ -->
       <div class="mode-panel" id="panel-simple">
+        <!-- AI 작곡 어시스턴트 -->
+        <div id="ai-assistant-wrap" style="margin-bottom:14px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.2);border-radius:14px;">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🤖 AI 작곡 어시스턴트</div>
+          <div style="font-size:11px;color:var(--t2);margin-bottom:10px;">어떤 곡을 만들고 싶은지 자유롭게 말해주세요!</div>
+          <div style="display:flex;gap:6px;">
+            <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈 느낌의 곡" style="flex:1;font-size:12px;padding:10px 12px;">
+            <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✨ 추천</button>
+          </div>
+          <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
+        </div>
         <div class="form-grp">
           <div class="form-label">
             <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목
@@ -2817,6 +2847,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
           <span class="gen-spinner" id="simple-gen-spinner"></span>
           <span id="simple-gen-txt">⚡ 음악 생성하기</span>
         </button>
+        <button onclick="_simpleToCustom()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🎛 더 세밀하게 조정하기 → 커스텀 모드</button>
       </div>
 
       <!-- ━━━ YouTube 패널 ━━━ -->
@@ -3704,6 +3735,18 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
       <input class="neg-input" id="vc-style" type="text" placeholder="예: soulful R&B, powerful pop, soft ballad">
+    </div>
+    <!-- 보컬 라이브러리 프리셋 -->
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 프리셋</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button onclick="$('vc-prompt').value='sweet female vocal, K-Pop idol style, bright tone';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎀 걸그룹</button>
+        <button onclick="$('vc-prompt').value='deep male vocal, R&B smooth, soulful';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 R&B 남성</button>
+        <button onclick="$('vc-prompt').value='powerful female ballad vocal, emotional, wide range';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 발라드 여성</button>
+        <button onclick="$('vc-prompt').value='raspy male vocal, rock energy, raw emotion';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎸 록 남성</button>
+        <button onclick="$('vc-prompt').value='soft breathy female vocal, indie, whisper-like';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌙 인디 여성</button>
+        <button onclick="$('vc-prompt').value='aggressive male rap vocal, trap flow, hard';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 래퍼</button>
+      </div>
     </div>
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">가사 프롬프트</div>
@@ -6117,6 +6160,112 @@ $('gen-btn').addEventListener('click',generate);
 $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
 /* ══════════════════════════════
+   AI 작곡 어시스턴트 — gemini-2.5-flash 활용
+══════════════════════════════ */
+async function _aiAssistRecommend(){
+  const input = $('ai-assist-input')?.value.trim();
+  if(!input){ toast('어떤 곡을 만들고 싶은지 입력해주세요','err',2000); return; }
+
+  const btn = $('ai-assist-btn');
+  const result = $('ai-assist-result');
+  btn.disabled = true; btn.textContent = '분석 중...';
+  result.style.display = 'block';
+  result.innerHTML = '<span style="color:var(--t3);">AI가 분석 중...</span>';
+
+  try {
+    const sysPrompt = `You are a music production assistant for an AI music generation app. The user describes what kind of song they want. Respond in Korean with:
+1. 추천 장르 & 서브장르
+2. 분위기/무드
+3. BPM 범위
+4. 추천 악기
+5. 참조 아티스트 (있으면)
+6. 심플 모드용 설명 (영어, 한 줄)
+Keep it concise, use bullet points.`;
+
+    const apiKey = kieApiKey;
+    if(!apiKey) throw new Error('API 키 없음');
+
+    const r = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: input }
+        ],
+        max_tokens: 500,
+      }),
+    });
+    const d = await r.json();
+    const reply = d.choices?.[0]?.message?.content || '추천 결과를 생성할 수 없었어요.';
+
+    /* 결과 표시 + "적용" 버튼 */
+    const lines = reply.split('\n').filter(l=>l.trim());
+    const descLine = lines.find(l=>l.includes('설명') || l.includes('description')) || '';
+    const engDesc = descLine.replace(/.*[:：]\s*/, '').trim();
+
+    result.innerHTML = reply.replace(/\n/g,'<br>') +
+      `<div style="margin-top:10px;display:flex;gap:6px;">
+        <button onclick="$('simple-prompt').value='${engDesc.replace(/'/g,"\\'")}';toast('적용 완료!','',1500);$('ai-assist-result').style.display='none';" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✅ 심플 모드에 적용</button>
+        <button onclick="$('ai-assist-result').style.display='none'" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
+      </div>`;
+  } catch(e){
+    result.innerHTML = '❌ ' + e.message;
+  }
+  btn.disabled = false; btn.textContent = '✨ 추천';
+}
+
+/* ══════════════════════════════
+   심플 → 커스텀 모드 전환
+══════════════════════════════ */
+function _simpleToCustom(){
+  const desc = ($('simple-prompt')?.value||'').trim();
+  const title = ($('simple-song-title')?.value||'').trim();
+  const lyrics = ($('simple-lyrics')?.value||'').trim();
+  const mood = $('simple-mood')?.value||'';
+
+  /* 커스텀 모드로 전환 */
+  document.querySelector('.mtab[data-mode="custom"]')?.click();
+
+  /* 파라미터 이관 */
+  setTimeout(()=>{
+    if(title && $('song-title')) $('song-title').value = title;
+    if(desc && $('song-desc')) $('song-desc').value = desc;
+    if(lyrics && $('prompt')) { $('prompt').value = lyrics; _updateLyricsInfo(); }
+    if(mood && $('mood')) $('mood').value = mood;
+    toast('심플 모드 입력값이 커스텀 모드로 이관됐어요','',2000);
+  }, 100);
+}
+
+/* ══════════════════════════════
+   가사 에디터 도우미
+══════════════════════════════ */
+function _insertTag(tag){
+  const ta=$('prompt');
+  if(!ta) return;
+  const pos = ta.selectionStart||ta.value.length;
+  const before = ta.value.slice(0,pos);
+  const after = ta.value.slice(pos);
+  const insert = (before && !before.endsWith('\n') ? '\n' : '') + tag + '\n';
+  ta.value = before + insert + after;
+  ta.selectionStart = ta.selectionEnd = pos + insert.length;
+  ta.focus();
+  _updateLyricsInfo();
+}
+
+function _updateLyricsInfo(){
+  const ta=$('prompt');
+  const info=$('lyrics-info');
+  if(!ta||!info) return;
+  const text=ta.value;
+  const chars=text.length;
+  const lines=text ? text.split('\n').length : 0;
+  const lang = /[\uac00-\ud7a3]/.test(text) ? '한국어' : /[a-zA-Z]/.test(text) ? '영어' : '';
+  info.textContent = `${chars}자 · ${lines}줄${lang?' · '+lang:''}`;
+}
+
+/* ══════════════════════════════
    프리셋 시스템 — 원클릭 작곡 설정
 ══════════════════════════════ */
 const PRESETS = {
@@ -6237,6 +6386,7 @@ function buildOptimalPrompt({ genre, mood, songDesc, bpm, instruments, refArtist
 
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
+let _retryAttempted = false; /* 자동 재시도 1회 제한 */
 /* 전역 생성 중 → 모든 생성 버튼 disabled / 완료 → active */
 function _syncGenButtons(){
   const ids=['gen-btn','simple-gen-btn','yt-gen-btn','mv-gen-btn'];
@@ -6489,8 +6639,21 @@ async function generate(overrideParams){
     $('loading-card').classList.remove('on');
     clearInterval(typeof _tipTimer!=='undefined'?_tipTimer:null);
     let errMsg = e.message;
+    const isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
+    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !_retryAttempted;
+
+    /* 자동 재시도 (1회, 민감단어/크레딧 제외) */
+    if(isRetryable){
+      _retryAttempted = true;
+      toast('⏳ 생성 오류 발생 — 자동 재시도 중...','',3000);
+      console.warn('[generate] auto-retry:', errMsg);
+      setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, 2000);
+      return;
+    }
+    _retryAttempted = false;
+
     /* SENSITIVE_WORD → 친절한 안내 */
-    if(errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어')){
+    if(isSensitive){
       errMsg='가사에 부적절한 단어가 있어요 — 가사를 수정해주세요';
     } else if(errMsg.includes('callBackUrl')||errMsg.includes('422')){
       errMsg='요청 오류 — 잠시 후 다시 시도해주세요';
@@ -6784,9 +6947,20 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(tracks?.length){
-      lastTracks=tracks.map(t=>({...t,_inputLyrics:''}));
-      renderTracks(lastTracks,'연장된 트랙','',currentMode);
-      toast('🎵 연장 완료!','ok');
+      lastTracks=tracks.map(t=>({...t,_inputLyrics:'',_extendedFrom:extendAudioId,_extendChain:true}));
+      renderTracks(lastTracks,'연장된 트랙','extend',currentMode);
+      toast('🎵 연장 완료! 더 길게 만들려면 다시 연장하세요','ok',3000);
+      /* 연장된 트랙을 히스토리에 저장 */
+      tracks.forEach(t=>{
+        historyData.unshift({
+          id:t.id, title:(t.title||'연장된 트랙'), audio_url:t.audioUrl||t.audio_url||'',
+          image_url:t.imageUrl||t.image_url||'', tags:'extend', lyrics:'', created:Date.now(),
+          type:'audio', genMode:'extend', _extendedFrom:extendAudioId,
+          _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+        });
+      });
+      historyData=historyData.slice(0,30); saveHistory(); updateHistBadge();
+      trackUsage('song',{mode:'extend'});
     }
   }catch(e){
     $('loading-card').classList.remove('on');toast('❌ '+e.message,'err',5000);
@@ -10159,6 +10333,18 @@ function cancelLyricsEdit(idx){
       <div style="font-size:12px;color:var(--t3);margin-top:4px;">수정하고 싶은 부분만 바꾸고 다시 작곡하세요</div>
     </div>
     <div class="rc-sheet-body">
+      <!-- 리믹스 프리셋 -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">🎵 장르 리믹스 (원클릭)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="$('rc-sheet-desc').value='K-Pop Dance remix, bright synth';toast('K-Pop 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ K-Pop</button>
+          <button onclick="$('rc-sheet-desc').value='EDM remix, heavy bass drop';toast('EDM 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ EDM</button>
+          <button onclick="$('rc-sheet-desc').value='Lo-Fi chill remix, jazzy chords, vinyl';toast('Lo-Fi 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ Lo-Fi</button>
+          <button onclick="$('rc-sheet-desc').value='Acoustic stripped version, guitar only';toast('어쿠스틱 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ Acoustic</button>
+          <button onclick="$('rc-sheet-desc').value='Hip-Hop trap remix, 808 bass, dark';toast('힙합 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ Hip-Hop</button>
+          <button onclick="$('rc-sheet-desc').value='Orchestral cinematic version, epic strings';toast('오케스트라 리믹스 적용','',1500)" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">→ Orchestral</button>
+        </div>
+      </div>
       <div class="rc-field-group">
         <div class="rc-field-label">♪ 곡 제목 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
         <input class="rc-field-input" id="rc-sheet-title" type="text" placeholder="예: 새벽 세 시의 고백">
