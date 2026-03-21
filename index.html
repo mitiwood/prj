@@ -805,6 +805,21 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 [data-theme="light"] .hist-thumb-placeholder svg{stroke:rgba(124,58,237,.3);}
 [data-theme="light"] .hist-duration{background:rgba(0,0,0,.5);}
 [data-theme="light"] .hist-sort-btn.on{background:rgba(124,58,237,.08);}
+[data-theme="light"] .mf-search-input{background:#fff;border-color:rgba(0,0,0,.1);color:#1a1a1a;}
+[data-theme="light"] .mf-sort-btn{background:#fff;border-color:rgba(0,0,0,.08);color:#666;}
+[data-theme="light"] .mf-sort-btn.on{background:var(--acc);color:#fff;}
+[data-theme="light"] .mf-trending{background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.02));border-color:rgba(124,58,237,.1);}
+[data-theme="light"] .mf-trend-card,[data-theme="light"] .mf-creator-card{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mf-creator-card:hover{border-color:var(--acc);box-shadow:0 4px 16px rgba(0,0,0,.06);}
+[data-theme="light"] .mf-detail-hero{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mf-back-btn{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);}
+[data-theme="light"] .mf-stat-box{background:rgba(124,58,237,.04);}
+[data-theme="light"] .mf-follow-btn.following{background:#f5f5f5;border-color:rgba(0,0,0,.1);}
+[data-theme="light"] .mf-detail-top{background:rgba(124,58,237,.03);border-color:rgba(124,58,237,.08);}
+[data-theme="light"] .mf-trk-card:hover{background:rgba(0,0,0,.03);}
+[data-theme="light"] .mf-trk-play-btn{background:rgba(124,58,237,.06);}
+[data-theme="light"] .mf-trk-card:hover .mf-trk-play-btn{background:rgba(124,58,237,.12);}
+[data-theme="light"] .mf-preview-thumb{background:#f0f0f0;}
 /* 모바일 그리드 간격 */
 @media(max-width:360px){.hist-view-grid.grid-mode{gap:6px;}.hist-view-grid.grid-mode .hist-info{padding:8px 10px;}.hist-view-grid.grid-mode .hist-play-icon{width:36px;height:36px;font-size:14px;}}
 .hist-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:12px;padding:3px;}
@@ -10668,6 +10683,7 @@ function _renderPlaylistView(grid,countEl){
     +'<button onclick="_plPlayAll()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">▶ 전체 재생</button>'
     +'<button onclick="_plShuffle()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
     +'<button onclick="_plClearAll()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🗑</button>'
+    +'<button onclick="_plShareToCommunity()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.06);color:var(--acc);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" title="커뮤니티에 공유">🌐</button>'
     +'</div>';
   html+='<div class="hist-view-grid">';
   pl.forEach(function(item,i){
@@ -10726,6 +10742,21 @@ function _plClearAll(){
     toast('플레이리스트를 비웠어요','ok',1500);
   });
 }
+
+/* ── 플레이리스트 커뮤니티 공유 (Feature 8) ── */
+async function _plShareToCommunity(){
+  if(!currentUser||currentUser.provider==='guest'){toast('로그인 후 이용할 수 있어요','err',2000);return;}
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  if(pl.length<2){toast('공유하려면 2곡 이상 필요해요','err',2000);return;}
+  try{
+    for(var pi=0;pi<Math.min(pl.length,20);pi++){
+      var item=pl[pi];if(!item.id||!item.audio_url) continue;
+      await fetch('/api/tracks',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,action:'playlist',playlist_name:currentUser.name+'의 플레이리스트'})});
+    }
+    toast('🌐 플레이리스트를 커뮤니티에 공유했어요!','ok',2500);
+  }catch(e){toast('공유 실패','err',2500);}
+}
+window._plShareToCommunity=typeof _plShareToCommunity!=="undefined"?_plShareToCommunity:window._plShareToCommunity||function(){};
 
 /* ── MY 피드: 커뮤니티 크리에이터 음악 (고도화) ── */
 var _myFeedCreators=null;
@@ -10892,7 +10923,7 @@ function _renderCreatorDetailView(grid,countEl){
   if(canFollow){
     html+='<button id="mf-follow-btn" class="mf-follow-btn'+(isFollowing?' following':'')+'" data-following="'+(isFollowing?'1':'0')+'" data-name="'+esc(d.name)+'" data-provider="'+esc(d.provider)+'" onclick="_mfToggleFollow(this)">'+(isFollowing?'팔로잉':'팔로우')+'</button>';
   }
-  html+='<button class="mf-profile-btn" onclick="openCreatorProfile(\''+esc(d.name).replace(/'/g,"\\'")+'\',\''+esc(d.provider)+'\')">프로필 보기</button>';
+  html+='<button class="mf-profile-btn" data-mf-action="go-profile" data-mf-name="'+esc(d.name)+'" data-mf-provider="'+esc(d.provider)+'">프로필 보기</button>';
   html+='</div></div>';
 
   /* 로딩 */
@@ -10944,7 +10975,8 @@ function _renderCreatorDetailView(grid,countEl){
       +(plays>0?'<span>▶ '+plays+'</span>':'')
       +(tag1?'<span>'+esc(tag1)+'</span>':'')
       +'</div></div>'
-      +'<div class="mf-trk-play-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>'
+      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+i+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>'
+      +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+i+'" onclick="event.stopPropagation()">···</button>'
       +'</div>';
   });
   html+='</div>';
@@ -10954,8 +10986,13 @@ function _renderCreatorDetailView(grid,countEl){
   grid.onclick=function(e){
     var card=e.target.closest('[data-mf-action]');
     if(!card) return;
-    if(card.dataset.mfAction==='play-detail'){
+    var action=card.dataset.mfAction;
+    if(action==='play-detail'){
       _mfDetailPlay(parseInt(card.dataset.mfTrkIdx));
+    } else if(action==='trk-more'){
+      _mfOpenTrackMenu(parseInt(card.dataset.mfTrkIdx));
+    } else if(action==='go-profile'){
+      openCreatorProfile(card.dataset.mfName,card.dataset.mfProvider);
     }
   };
 }
