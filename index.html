@@ -3688,15 +3688,45 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 
 <script>
 'use strict';
-/* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇으로 전송 */
+/* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇(한국어)으로 전송 */
+const _errKo = (m) => {
+  const map = [
+    [/is not defined/i, '정의되지 않음'],
+    [/is not a function/i, '함수가 아님'],
+    [/Cannot read prop/i, '속성 읽기 실패 (null/undefined)'],
+    [/Cannot set prop/i, '속성 설정 실패 (null/undefined)'],
+    [/Unexpected token/i, '예상치 못한 토큰 (문법 오류)'],
+    [/Network error/i, '네트워크 오류'],
+    [/Failed to fetch/i, 'API 호출 실패'],
+    [/timeout/i, '시간 초과'],
+    [/SyntaxError/i, '문법 오류'],
+    [/TypeError/i, '타입 오류'],
+    [/RangeError/i, '범위 오류'],
+    [/ReferenceError/i, '참조 오류'],
+    [/AbortError/i, '요청 중단됨'],
+    [/QuotaExceeded/i, '저장 공간 초과'],
+  ];
+  for (const [re, ko] of map) { if (re.test(m)) return ko; }
+  return m;
+};
+const _errFile = (src) => {
+  if (!src) return '알 수 없는 파일';
+  if (src.includes('index.html')) return 'index.html (메인)';
+  const name = src.split('/').pop()?.split('?')[0] || src;
+  return name;
+};
 window.onerror = function(msg, src, line, col, err) {
-  const info = `[JS Error] ${msg}\n${src}:${line}:${col}\n${err?.stack||''}`.slice(0,500);
-  console.error(info);
+  const ko = _errKo(String(msg));
+  const file = _errFile(src);
+  const info = `🚨 JS 오류 발생\n\n❌ ${ko}\n📄 ${file} (${line}줄)\n💬 ${String(msg).slice(0,150)}\n\n${(err?.stack||'').split('\n').slice(0,3).join('\n')}`.slice(0,500);
+  console.error('[에러]', msg, src, line);
   try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(e){}
 };
 window.addEventListener('unhandledrejection', e => {
-  const info = `[Unhandled Promise] ${e.reason?.message||e.reason||'unknown'}\n${e.reason?.stack||''}`.slice(0,500);
-  console.error(info);
+  const reason = e.reason?.message || String(e.reason || '알 수 없는 오류');
+  const ko = _errKo(reason);
+  const info = `🚨 비동기 오류 발생\n\n❌ ${ko}\n💬 ${reason.slice(0,150)}\n\n${(e.reason?.stack||'').split('\n').slice(0,3).join('\n')}`.slice(0,500);
+  console.error('[비동기 에러]', reason);
   try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(ex){}
 });
 const KIE_BASE = 'https://api.kie.ai';
