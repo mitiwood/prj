@@ -20,23 +20,28 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[<>&]//g')
-          NUM=${{ github.event.issue.number }}
-          python3 -c "
-          import urllib.request, json
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          title = html.escape(os.environ.get('ISSUE_TITLE', ''))
+          num = os.environ.get('ISSUE_NUM', '?')
           msg = (
-            '<b>🤖 Claude Code 작업 시작</b>\n\n'
-            '📋 Issue #${NUM}\n'
-            '📝 ${TITLE}\n\n'
-            '⏳ <i>1/4 — 코드 체크아웃 중...</i>'
+            f'<b>🤖 Claude Code 작업 시작</b>\n\n'
+            f'📋 Issue #{num}\n'
+            f'📝 {title}\n\n'
+            f'⏳ <i>1/4 — 코드 체크아웃 중...</i>'
           )
-          payload = json.dumps({'chat_id':'${TG_CHAT}','text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/sendMessage', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          payload = json.dumps({'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           resp = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
-          print(resp['result']['message_id'])
-          " > /tmp/tg_msg_id.txt
-          echo "msg_id=$(cat /tmp/tg_msg_id.txt)" >> "$GITHUB_OUTPUT"
+          msg_id = resp['result']['message_id']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'msg_id={msg_id}\n')
+          PYEOF
 
       - uses: actions/checkout@v4
         with:
@@ -47,23 +52,29 @@ jobs:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[<>&]//g')
-          NUM=${{ github.event.issue.number }}
-          python3 -c "
-          import urllib.request, json
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          msg_id = os.environ.get('MSG_ID', '').strip()
+          title = html.escape(os.environ.get('ISSUE_TITLE', ''))
+          num = os.environ.get('ISSUE_NUM', '?')
+          if not msg_id: exit(0)
           msg = (
-            '<b>🤖 Claude Code 작업 진행 중</b>\n\n'
-            '📋 Issue #${NUM}\n'
-            '📝 ${TITLE}\n\n'
-            '✅ 1/4 — 코드 체크아웃 완료\n'
-            '⏳ <i>2/4 — Claude가 코드 분석 및 수정 중...</i>\n\n'
-            '🕐 최대 30분 소요'
+            f'<b>🤖 Claude Code 작업 진행 중</b>\n\n'
+            f'📋 Issue #{num}\n'
+            f'📝 {title}\n\n'
+            f'✅ 1/4 — 코드 체크아웃 완료\n'
+            f'⏳ <i>2/4 — Claude가 코드 분석 및 수정 중...</i>\n\n'
+            f'🕐 최대 30분 소요'
           )
-          payload = json.dumps({'chat_id':'${TG_CHAT}','message_id':int('${MSG_ID}'),'text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/editMessageText', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          payload = json.dumps({'chat_id': chat, 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/editMessageText', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           urllib.request.urlopen(req)
-          "
+          PYEOF
 
       - uses: anthropics/claude-code-action@beta
         id: claude
@@ -87,23 +98,29 @@ jobs:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[<>&]//g')
-          NUM=${{ github.event.issue.number }}
-          python3 -c "
-          import urllib.request, json
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          msg_id = os.environ.get('MSG_ID', '').strip()
+          title = html.escape(os.environ.get('ISSUE_TITLE', ''))
+          num = os.environ.get('ISSUE_NUM', '?')
+          if not msg_id: exit(0)
           msg = (
-            '<b>🤖 Claude Code 작업 진행 중</b>\n\n'
-            '📋 Issue #${NUM}\n'
-            '📝 ${TITLE}\n\n'
-            '✅ 1/4 — 코드 체크아웃 완료\n'
-            '✅ 2/4 — Claude 코드 수정 완료\n'
-            '⏳ <i>3/4 — PR 생성 중...</i>'
+            f'<b>🤖 Claude Code 작업 진행 중</b>\n\n'
+            f'📋 Issue #{num}\n'
+            f'📝 {title}\n\n'
+            f'✅ 1/4 — 코드 체크아웃 완료\n'
+            f'✅ 2/4 — Claude 코드 수정 완료\n'
+            f'⏳ <i>3/4 — PR 생성 중...</i>'
           )
-          payload = json.dumps({'chat_id':'${TG_CHAT}','message_id':int('${MSG_ID}'),'text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/editMessageText', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          payload = json.dumps({'chat_id': chat, 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/editMessageText', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           urllib.request.urlopen(req)
-          "
+          PYEOF
 
       - name: Notify success
         if: success()
@@ -111,27 +128,36 @@ jobs:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[<>&]//g')
-          NUM=${{ github.event.issue.number }}
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          python3 -c "
-          import urllib.request, json
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          msg_id = os.environ.get('MSG_ID', '').strip()
+          title = html.escape(os.environ.get('ISSUE_TITLE', ''))
+          num = os.environ.get('ISSUE_NUM', '?')
+          run_url = os.environ.get('RUN_URL', '')
           msg = (
-            '<b>✅ Claude Code 작업 완료!</b>\n\n'
-            '📋 Issue #${NUM}\n'
-            '📝 ${TITLE}\n\n'
-            '✅ 1/4 — 코드 체크아웃 완료\n'
-            '✅ 2/4 — Claude 코드 수정 완료\n'
-            '✅ 3/4 — PR 생성 완료\n'
-            '✅ 4/4 — 모든 작업 완료!\n\n'
-            '🔀 PR이 생성되었습니다. 머지 준비되면 알림이 올 거예요.\n'
-            '🔗 <a href=\"${RUN_URL}\">Actions 로그</a>'
+            f'<b>✅ Claude Code 작업 완료!</b>\n\n'
+            f'📋 Issue #{num}\n'
+            f'📝 {title}\n\n'
+            f'✅ 1/4 — 코드 체크아웃 완료\n'
+            f'✅ 2/4 — Claude 코드 수정 완료\n'
+            f'✅ 3/4 — PR 생성 완료\n'
+            f'✅ 4/4 — 모든 작업 완료!\n\n'
+            f'🔀 PR이 생성되었습니다.\n'
+            f'🔗 <a href="{run_url}">Actions 로그</a>'
           )
-          payload = json.dumps({'chat_id':'${TG_CHAT}','message_id':int('${MSG_ID}'),'text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/editMessageText', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          method = 'editMessageText' if msg_id else 'sendMessage'
+          p = {'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}
+          if msg_id: p['message_id'] = int(msg_id)
+          payload = json.dumps(p, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/{method}', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           urllib.request.urlopen(req)
-          "
+          PYEOF
 
       - name: Notify failure
         if: failure()
@@ -139,25 +165,29 @@ jobs:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[<>&]//g')
-          NUM=${{ github.event.issue.number }}
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          python3 -c "
-          import urllib.request, json
-          msg_id = '${MSG_ID}'.strip()
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          msg_id = os.environ.get('MSG_ID', '').strip()
+          title = html.escape(os.environ.get('ISSUE_TITLE', ''))
+          num = os.environ.get('ISSUE_NUM', '?')
+          run_url = os.environ.get('RUN_URL', '')
           msg = (
-            '<b>❌ Claude Code 작업 실패</b>\n\n'
-            '📋 Issue #${NUM}\n'
-            '📝 ${TITLE}\n\n'
-            '⚠️ 작업 중 오류가 발생했습니다.\n'
-            '🔗 <a href=\"${RUN_URL}\">로그 확인</a>'
+            f'<b>❌ Claude Code 작업 실패</b>\n\n'
+            f'📋 Issue #{num}\n'
+            f'📝 {title}\n\n'
+            f'⚠️ 작업 중 오류가 발생했습니다.\n'
+            f'🔗 <a href="{run_url}">로그 확인</a>'
           )
-          if msg_id and msg_id != '':
-            payload = json.dumps({'chat_id':'${TG_CHAT}','message_id':int(msg_id),'text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-            req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/editMessageText', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
-          else:
-            payload = json.dumps({'chat_id':'${TG_CHAT}','text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-            req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/sendMessage', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          method = 'editMessageText' if msg_id else 'sendMessage'
+          p = {'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}
+          if msg_id: p['message_id'] = int(msg_id)
+          payload = json.dumps(p, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/{method}', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           urllib.request.urlopen(req)
-          "
+          PYEOF

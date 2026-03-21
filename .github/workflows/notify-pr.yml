@@ -12,22 +12,28 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          PR_TITLE=$(echo '${{ github.event.pull_request.title }}' | sed 's/[<>&]//g')
-          PR_NUM=${{ github.event.pull_request.number }}
-          PR_URL="${{ github.event.pull_request.html_url }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          python3 -c "
-          import urllib.request, json
+          python3 << 'PYEOF'
+          import urllib.request, json, os, html
+          token = os.environ['TG_TOKEN']
+          chat = os.environ['TG_CHAT']
+          title = html.escape(os.environ.get('PR_TITLE', ''))
+          num = os.environ.get('PR_NUM', '?')
+          url = os.environ.get('PR_URL', '')
+          author = os.environ.get('PR_AUTHOR', '')
           msg = (
-            '<b>🔀 새 PR 생성됨</b>\n\n'
-            '📋 #${PR_NUM}: ${PR_TITLE}\n'
-            '👤 ${PR_AUTHOR}\n\n'
-            '머지하려면 텔레그램에서:\n'
-            '<code>머지 ${PR_NUM}</code>\n\n'
-            '🔗 <a href=\"${PR_URL}\">PR 보기</a>'
+            f'<b>🔀 새 PR 생성됨</b>\n\n'
+            f'📋 #{num}: {title}\n'
+            f'👤 {author}\n\n'
+            f'머지하려면 텔레그램에서:\n'
+            f'<code>머지 {num}</code>\n\n'
+            f'🔗 <a href="{url}">PR 보기</a>'
           )
-          payload = json.dumps({'chat_id':'${TG_CHAT}','text':msg,'parse_mode':'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request('https://api.telegram.org/bot${TG_TOKEN}/sendMessage', data=payload, headers={'Content-Type':'application/json; charset=utf-8'})
+          payload = json.dumps({'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
+          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
           urllib.request.urlopen(req)
-          "
+          PYEOF
