@@ -1522,6 +1522,17 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-list-item:active{opacity:.8;}
 .comm-my-section{margin-bottom:16px;}
 .comm-my-section-title{font-size:13px;font-weight:800;color:var(--acc3);padding:10px 4px 6px;display:flex;align-items:center;gap:6px;}
+.comm-my-stats{margin-bottom:14px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(59,130,246,.04));border:1px solid rgba(124,58,237,.15);border-radius:14px;cursor:pointer;transition:transform .15s;}
+.comm-my-stats:active{transform:scale(.98);}
+.comm-my-stats-header{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;}
+.comm-my-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.comm-my-stat{text-align:center;padding:8px;background:rgba(255,255,255,.04);border-radius:10px;}
+.comm-my-stat-num{font-size:18px;font-weight:800;color:var(--acc3);}
+.comm-my-stat-label{font-size:10px;color:var(--t3);margin-top:2px;}
+.comm-my-best{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:8px;}
+[data-theme="light"] .comm-my-stats{background:linear-gradient(135deg,rgba(124,58,237,.03),rgba(59,130,246,.02));border-color:rgba(124,58,237,.1);}
+[data-theme="light"] .comm-my-stat{background:rgba(0,0,0,.02);}
+[data-theme="light"] .comm-my-best{background:rgba(0,0,0,.02);}
 /* 재생 중 아이템 포커스 */
 .comm-list-item.playing{background:rgba(124,58,237,.1);border:1.5px solid var(--acc3);box-shadow:0 0 0 3px rgba(124,58,237,.12),0 4px 20px rgba(124,58,237,.15);}
 .comm-list-item.playing .comm-list-title{color:var(--acc3);}
@@ -12893,14 +12904,19 @@ function _renderCommContent(heroWrap, list){
       }
     }
 
-    /* 내 곡 섹션 (최신순 → 좋아요순) */
+    /* 내 곡 반응 요약 카드 (라이브러리에 이미 있으므로 리스트 대신 통계만) */
     if(myTracks.length){
-      html+=`<div class="comm-my-section"><div class="comm-my-section-title">🎵 내가 만든 곡 (${myTracks.length})</div>`;
-      myTracks.forEach((t,i)=>{
-        html+=_buildCommItem(t,i,true);
-        allListTracks.push(t);
-      });
-      html+=`</div>`;
+      var _myLikes=0,_myPlays=0,_myBest=myTracks[0];
+      myTracks.forEach(function(t){_myLikes+=(t.likes||0);_myPlays+=(t.plays||0);if((t.likes||0)>(_myBest.likes||0))_myBest=t;});
+      html+=`<div class="comm-my-stats" onclick="switchTab('history-view')">
+        <div class="comm-my-stats-header"><span>📊 내 곡 반응</span><span style="font-size:11px;color:var(--t3);font-weight:400;">${myTracks.length}곡 ›</span></div>
+        <div class="comm-my-stats-grid">
+          <div class="comm-my-stat"><div class="comm-my-stat-num">${_myLikes}</div><div class="comm-my-stat-label">좋아요</div></div>
+          <div class="comm-my-stat"><div class="comm-my-stat-num">${_myPlays}</div><div class="comm-my-stat-label">재생</div></div>
+          <div class="comm-my-stat"><div class="comm-my-stat-num">${myTracks.length}</div><div class="comm-my-stat-label">곡</div></div>
+        </div>
+        ${_myBest?`<div class="comm-my-best"><span style="font-size:10px;color:var(--t3);">인기 곡</span> <span style="font-size:12px;font-weight:700;color:var(--t1);">${esc(_myBest.title||'무제')}</span> <span style="font-size:10px;color:var(--acc3);">❤️${_myBest.likes||0} ▶${_myBest.plays||0}</span></div>`:''}
+      </div>`;
     }
 
     /* 다른 트랙 섹션 — 생성자별 그룹핑 */
