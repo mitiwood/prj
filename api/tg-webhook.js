@@ -35,7 +35,7 @@ const BASE       = 'https://ai-music-studio-bice.vercel.app';
 
 /* ── 유틸 ── */
 async function tgSend(chatId, text, opts = {}) {
-  if (!BOT_TOKEN) { console.warn('[TG] no BOT_TOKEN'); return { ok: false, reason: 'no_token' }; }
+  if (!BOT_TOKEN) return;
   const payload = {
     chat_id: chatId,
     text,
@@ -58,20 +58,14 @@ async function tgSend(chatId, text, opts = {}) {
       /* Markdown 파싱 실패 시 plain text로 재시도 */
       if (pm && r.status === 400 && errTxt.includes('parse')) {
         const retry = Buffer.from(JSON.stringify({ chat_id: chatId, text }), 'utf-8');
-        const r2 = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(retry.length) },
           body: retry,
         });
-        return { ok: r2.ok, retried: true, status: r2.status };
       }
-      return { ok: false, status: r.status, err: errTxt.slice(0, 100) };
     }
-    return { ok: true };
-  } catch (e) {
-    console.warn('[TG webhook] send err:', e.message);
-    return { ok: false, err: e.message };
-  }
+  } catch (e) { console.warn('[TG webhook] send err:', e.message); }
 }
 
 async function tgApi(method, body = null) {
@@ -143,7 +137,7 @@ PR — 최근 PR 목록 확인
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
-  return await tgSend(chatId, help);
+  await tgSend(chatId, help);
 };
 
 /* /상태 */
@@ -369,7 +363,7 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 색상을 파란색으로\n수정 커뮤니티 탭 로딩 속도 개선');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
 
-  const r1 = await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
+  await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
   try {
     /* GitHub API로 Issue 생성 */
@@ -393,13 +387,13 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
 
     if (!ghReq.ok) {
       const safeErr = ghTxt.slice(0, 200).replace(/[*_`\[\]]/g, '');
-      const r2 = await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
-      return { step: 'gh_fail', r1, r2, ghStatus: ghReq.status };
+      await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
+      return;
     }
 
     const issue = JSON.parse(ghTxt);
     const safeArg = arg.replace(/[*_`\[]/g, '');
-    const r2 = await tgSend(chatId, [
+    await tgSend(chatId, [
       `✅ 수정 요청 등록 완료!`,
       ``,
       `📋 Issue #${issue.number}`,
@@ -410,11 +404,9 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
       ``,
       `🔗 ${issue.html_url}`,
     ].join('\n'), { parse_mode: '' });
-    return { step: 'ok', r1, r2, issue: issue.number };
   } catch (e) {
     const safeMsg = (e.message || 'unknown').replace(/[*_`\[\]]/g, '');
-    const r2 = await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
-    return { step: 'error', r1, r2, err: safeMsg };
+    await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
   }
 };
 
@@ -537,21 +529,18 @@ export default async function handler(req, res) {
 
     /* 명령 실행 */
     const handler = COMMANDS[cmd];
-    let cmdResult = null;
     if (handler) {
       try {
-        cmdResult = await handler(chatId, arg);
+        await handler(chatId, arg);
       } catch (e) {
         console.error('[TG CMD error]', cmd, e.message);
         await tgSend(chatId, `❌ 명령 실행 오류: ${e.message}`);
-        cmdResult = { error: e.message };
       }
     } else {
-      const sr = await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
-      cmdResult = { unknown: cmd, sendResult: sr };
+      await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
     }
 
-    return res.status(200).json({ ok: true, cmd, debug: cmdResult });
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
