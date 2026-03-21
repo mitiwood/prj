@@ -494,13 +494,37 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
       <!-- 신고 -->
       <div class="admin-section" id="sec-reports">
-        <div class="sec-hdr"><h2>신고 관리</h2></div>
+        <div class="sec-hdr"><h2>🚩 신고 관리</h2><p>Supabase 실시간 연동 — 신고 접수 현황 및 처리</p></div>
+        <!-- 필터 탭 -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+          <button class="btn btn-acc" id="rpt-tab-pending" onclick="_rptFilter('pending')">대기중</button>
+          <button class="btn" id="rpt-tab-resolved" onclick="_rptFilter('resolved')">처리됨</button>
+          <button class="btn" id="rpt-tab-ignored" onclick="_rptFilter('ignored')">무시됨</button>
+          <button class="btn" id="rpt-tab-all" onclick="_rptFilter('all')">전체</button>
+          <div style="flex:1;"></div>
+          <button class="btn" onclick="loadReportsFromDB()" title="새로고침">🔄</button>
+        </div>
+        <!-- 통계 -->
+        <div style="display:flex;gap:12px;margin-bottom:16px;" id="rpt-stats">
+          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:#ef4444;" id="rpt-cnt-pending">0</div>
+            <div style="font-size:11px;color:var(--t3);">대기중</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:#22c55e;" id="rpt-cnt-resolved">0</div>
+            <div style="font-size:11px;color:var(--t3);">처리됨</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:var(--t3);" id="rpt-cnt-ignored">0</div>
+            <div style="font-size:11px;color:var(--t3);">무시됨</div>
+          </div>
+        </div>
         <div id="reports-empty" style="text-align:center;padding:48px;color:var(--t3);">
           <div style="font-size:32px;margin-bottom:12px;">✅</div>
           <div style="font-weight:700;">처리할 신고가 없습니다</div>
         </div>
         <div class="admin-table-wrap" id="reports-table" style="display:none;">
-          <table><thead><tr><th>트랙</th><th>신고 사유</th><th>신고일</th><th>처리</th></tr></thead>
+          <table><thead><tr><th>유형</th><th>대상</th><th>신고 사유</th><th>신고자</th><th>신고일</th><th>상태</th><th>처리</th></tr></thead>
           <tbody id="reports-tbody"></tbody></table>
         </div>
       </div>
@@ -3793,70 +3817,99 @@ async function loadManagersFromServer(){
 
 
 // ── 신고 관리 ──
-const REPORT_KEY = 'kms_reports';
-function getReports(){ try{ return JSON.parse(localStorage.getItem(REPORT_KEY)||'[]'); }catch{ return []; } }
-function saveReports(arr){ localStorage.setItem(REPORT_KEY, JSON.stringify(arr)); }
-
-function renderReportsAdmin(){
-  const reports = getReports();
+/* ── 신고 관리 (Supabase 연동) ── */
+let _rptData = [], _rptCurrentFilter = 'pending';
+async function loadReportsFromDB(){
+  try{
+    const r = await fetch('/api/reports?limit=200', {headers:{'Authorization':'Bearer '+ADMIN_SECRET}});
+    const j = await r.json();
+    _rptData = j.reports || [];
+    _renderReports();
+  }catch(e){ adminToast('신고 로드 실패: '+e.message,'err'); }
+}
+function _rptFilter(f){
+  _rptCurrentFilter = f;
+  document.querySelectorAll('[id^="rpt-tab-"]').forEach(b=>b.classList.remove('btn-acc'));
+  const t = document.getElementById('rpt-tab-'+f);
+  if(t) t.classList.add('btn-acc');
+  _renderReports();
+}
+function _renderReports(){
   const tbody = document.getElementById('reports-tbody');
   const empty = document.getElementById('reports-empty');
   const table = document.getElementById('reports-table');
   if(!tbody) return;
-  const pending = reports.filter(r=>r.status!=='resolved');
-  if(!pending.length){
+  // 통계
+  const pending = _rptData.filter(r=>r.status==='pending').length;
+  const resolved = _rptData.filter(r=>r.status==='resolved').length;
+  const ignored = _rptData.filter(r=>r.status==='ignored').length;
+  const pe = document.getElementById('rpt-cnt-pending'); if(pe) pe.textContent = pending;
+  const re = document.getElementById('rpt-cnt-resolved'); if(re) re.textContent = resolved;
+  const ig = document.getElementById('rpt-cnt-ignored'); if(ig) ig.textContent = ignored;
+  // 대시보드 stat 업데이트
+  const statR = document.getElementById('stat-reports'); if(statR) statR.textContent = pending;
+  // 필터
+  const filtered = _rptCurrentFilter==='all' ? _rptData : _rptData.filter(r=>r.status===_rptCurrentFilter);
+  if(!filtered.length){
     if(empty) empty.style.display='block';
     if(table) table.style.display='none';
     return;
   }
   if(empty) empty.style.display='none';
   if(table) table.style.display='block';
-  tbody.innerHTML = pending.map((r,i)=>`
-    <tr>
-      <td style="font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.trackTitle||'알 수 없음')}</td>
-      <td><span class="badge badge-red">${esc(r.reason||'기타')}</span></td>
-      <td style="font-size:11px;color:var(--t3);">${new Date(r.reportedAt||Date.now()).toLocaleDateString('ko-KR')}</td>
-      <td>
-        <button class="btn btn-acc" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="resolveReport(${i})">✅ 처리</button>
-        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="ignoreReport(${i})">무시</button>
-      </td>
-    </tr>`).join('');
+  const typeBadge = t => t==='track'?'<span class="badge badge-blue">트랙</span>':t==='comment'?'<span class="badge badge-yellow">댓글</span>':'<span class="badge badge-gray">사용자</span>';
+  const statusBadge = s => s==='pending'?'<span class="badge badge-red">대기</span>':s==='resolved'?'<span class="badge badge-green">처리됨</span>':'<span class="badge badge-gray">무시</span>';
+  tbody.innerHTML = filtered.map(r=>{
+    const d = r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+    const tid = esc(r.target_id||'');
+    const shortId = tid.length>16 ? tid.slice(0,16)+'...' : tid;
+    const isPending = r.status==='pending';
+    return `<tr>
+      <td>${typeBadge(r.target_type)}</td>
+      <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${tid}">${shortId}</td>
+      <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.reason||'사유 없음')}</td>
+      <td style="font-size:12px;">${esc(r.reporter_name||'익명')}</td>
+      <td style="font-size:11px;color:var(--t3);">${d}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="white-space:nowrap;">${isPending?`
+        <button class="btn btn-acc" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'resolved')">처리</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'ignored')">무시</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_rptDelete(${r.id})" title="삭제">🗑</button>
+      `:`<button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_rptDelete(${r.id})" title="삭제">🗑</button>`}</td>
+    </tr>`;
+  }).join('');
 }
-function resolveReport(idx){
-  const reports = getReports();
-  const pending = reports.filter(r=>r.status!=='resolved');
-  if(!pending[idx]) return;
-  const target = reports.find(r=>r===pending[idx]);
-  if(target) target.status = 'resolved';
-  saveReports(reports);
-  renderReportsAdmin();
-  adminToast('✅ 신고 처리 완료');
+async function _rptAction(id, status){
+  try{
+    const r = await fetch('/api/reports', {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},
+      body:JSON.stringify({id,status})
+    });
+    const j = await r.json();
+    if(j.ok){ adminToast(status==='resolved'?'처리 완료':'무시됨'); loadReportsFromDB(); }
+    else adminToast('실패: '+(j.error||''),'err');
+  }catch(e){ adminToast('오류: '+e.message,'err'); }
 }
-function ignoreReport(idx){
-  const reports = getReports();
-  const pending = reports.filter(r=>r.status!=='resolved');
-  if(!pending[idx]) return;
-  const target = reports.find(r=>r===pending[idx]);
-  if(target) target.status = 'ignored';
-  saveReports(reports);
-  renderReportsAdmin();
-  adminToast('신고 무시됨');
+async function _rptDelete(id){
+  if(!confirm('이 신고를 삭제하시겠습니까?')) return;
+  try{
+    const r = await fetch('/api/reports?id='+id, {
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+ADMIN_SECRET}
+    });
+    const j = await r.json();
+    if(j.ok){ adminToast('삭제됨'); loadReportsFromDB(); }
+    else adminToast('실패: '+(j.error||''),'err');
+  }catch(e){ adminToast('오류: '+e.message,'err'); }
 }
 
-// 신고 버튼 클릭 시 신고 등록 (index.html에서 postMessage로 받거나 localStorage 공유)
-function addReport(trackTitle, reason){
-  const reports = getReports();
-  reports.unshift({ trackTitle, reason, reportedAt: Date.now(), status:'pending' });
-  saveReports(reports.slice(0,100));
-}
-
-// ── reports 섹션 진입 시 렌더 ──
-const _origSwitchSec2 = switchSec;
+// ── reports 섹션 진입 시 로드 ──
 document.addEventListener('DOMContentLoaded', ()=>{
   const rSec = document.getElementById('sec-reports');
   if(rSec){
     const obs = new MutationObserver(()=>{
-      if(rSec.classList.contains('on')) renderReportsAdmin();
+      if(rSec.classList.contains('on')) loadReportsFromDB();
     });
     obs.observe(rSec, {attributes:true, attributeFilter:['class']});
   }
@@ -3873,9 +3926,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 const _origLoadData = loadData;
 loadData = async function(){
   await _origLoadData();
-  const pendingReports = getReports().filter(r=>r.status==='pending').length;
-  const reportStat = document.getElementById('stat-reports');
-  if(reportStat) reportStat.textContent = pendingReports;
+  try{ await loadReportsFromDB(); }catch{}
   const lastSync = document.getElementById('dash-last-sync');
   if(lastSync) lastSync.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 };

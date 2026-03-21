@@ -10574,11 +10574,14 @@ function _plClearAll(){
   });
 }
 
-/* ── MY 피드: 커뮤니티 크리에이터 음악 모아보기 ── */
-var _myFeedCreators=null; /* [{name,provider,avatar,trackCount,totalLikes,latestTrack}] */
+/* ── MY 피드: 커뮤니티 크리에이터 음악 (고도화) ── */
+var _myFeedCreators=null;
 var _myFeedLoading=false;
-var _myFeedDetail=null; /* 크리에이터 상세 뷰: {name,provider,tracks,profile} */
+var _myFeedDetail=null;
 var _myFeedDetailLoading=false;
+var _myFeedSort='popular'; /* popular | newest | tracks */
+var _myFeedSearch='';
+var _myFeedRawTracks=null;
 
 function _renderMyFeedView(grid,countEl){
   /* 크리에이터 상세 뷰가 열려있으면 상세 렌더 */
@@ -15037,7 +15040,7 @@ function _renderCI(c,rm,depth){
     <div class="comment-row">${av}<div class="comment-body">
       <div class="comment-meta"><span class="comment-author${isMe?' comment-me'  :''}">${esc(c.author_name||'익명')}${isMe?' (나)':''}</span><span class="comment-time">${ta}</span></div>
       <div class="comment-text">${esc(c.content)}</div>
-      <div class="comment-act-row"><button class="comment-act-btn" onclick="_setReply('${c.id}','${esc(c.author_name||'')}')">↩ 답글</button>${isMe?'<button class="comment-act-btn comment-del" onclick="_deleteMyComment(\''+c.id+'\')">삭제</button>':''}</div>
+      <div class="comment-act-row"><button class="comment-act-btn" onclick="_setReply('${c.id}','${esc(c.author_name||'')}')">↩ 답글</button>${isMe?'<button class="comment-act-btn comment-del" onclick="_deleteMyComment(\''+c.id+'\')">삭제</button>':'<button class="comment-act-btn" onclick="_reportComment(\''+c.id+'\',\''+esc(c.author_name||'')+'\',\''+esc((c.content||'').slice(0,30))+'\')" style="color:rgba(255,160,80,.6);">🚩</button>'}</div>
     </div></div>${kids.map(r=>_renderCI(r,rm,depth+1)).join('')}</div>`;
 }
 function _setReply(pid,name){_commentReplyTo={id:pid,name};const b=document.getElementById('_comment_reply_bar'),l=document.getElementById('_comment_reply_label');if(b)b.style.display='flex';if(l)l.textContent='↩ '+name+'에게 답글';document.getElementById('_comment_input')?.focus();}
