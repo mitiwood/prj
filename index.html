@@ -10584,17 +10584,27 @@ var _myFeedSearch='';
 var _myFeedRawTracks=null;
 
 function _renderMyFeedView(grid,countEl){
-  /* 크리에이터 상세 뷰가 열려있으면 상세 렌더 */
+  /* 크리에이터 상세 뷰 */
   if(_myFeedDetail){
     _renderCreatorDetailView(grid,countEl);
     return;
   }
-  /* 크리에이터 목록 뷰 */
   if(countEl) countEl.textContent='크리에이터';
   var html='';
 
-  /* 헤더 */
-  html+='<div class="myfeed-section-header" style="margin-bottom:12px;"><span class="myfeed-section-title" style="font-size:17px;">크리에이터 음악</span><span class="myfeed-section-count" style="font-size:12px;color:var(--t3);">커뮤니티에서 활동 중인 아티스트</span></div>';
+  /* ── 검색바 ── */
+  html+='<div class="mf-search-wrap">'
+    +'<svg class="mf-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+    +'<input class="mf-search-input" id="mf-search-input" type="text" placeholder="크리에이터 검색..." value="'+esc(_myFeedSearch)+'" oninput="_myFeedOnSearch(this.value)">'
+    +(_myFeedSearch?'<button class="mf-search-clear" onclick="_myFeedSearch=\'\';document.getElementById(\'mf-search-input\').value=\'\';renderHistoryView();">&times;</button>':'')
+    +'</div>';
+
+  /* ── 정렬 탭 ── */
+  html+='<div class="mf-sort-row">'
+    +'<button class="mf-sort-btn'+(_myFeedSort==='popular'?' on':'')+'" onclick="_myFeedSetSort(\'popular\')">인기순</button>'
+    +'<button class="mf-sort-btn'+(_myFeedSort==='newest'?' on':'')+'" onclick="_myFeedSetSort(\'newest\')">최신순</button>'
+    +'<button class="mf-sort-btn'+(_myFeedSort==='tracks'?' on':'')+'" onclick="_myFeedSetSort(\'tracks\')">곡 많은순</button>'
+    +'</div>';
 
   if(_myFeedLoading&&!_myFeedCreators){
     html+='<div style="padding:40px 0;text-align:center;color:var(--t3);font-size:13px;"><div class="mf-spinner"></div>크리에이터 불러오는 중...</div>';
@@ -15058,6 +15068,38 @@ async function _deleteMyComment(id){
     try{var _cu=currentUser||{};await fetch('/api/comments?id='+encodeURIComponent(id)+'&authorName='+encodeURIComponent(_cu.name||'')+'&authorProvider='+encodeURIComponent(_cu.provider||''),{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();toast('삭제되었어요','ok',1500);}catch(e){toast('삭제 실패','err');}
   });
 }
+/* ── 댓글 신고 ── */
+function _reportComment(commentId, authorName, contentPreview){
+  if(!currentUser||currentUser.provider==='guest'){toast('로그인 후 이용할 수 있습니다','warn',2000);return;}
+  const rKey='_reported_comments';
+  const reported=JSON.parse(localStorage.getItem(rKey)||'[]');
+  if(reported.includes(commentId)){toast('이미 신고한 댓글입니다','warn',2000);return;}
+  const reasons=['부적절한 내용','스팸/광고','욕설/혐오','기타'];
+  const overlay=document.createElement('div');
+  overlay.className='report-overlay';
+  overlay.innerHTML=`
+    <div class="report-sheet">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 14px;"></div>
+      <div class="report-title">🚩 댓글 신고</div>
+      <div class="report-sub">${esc(authorName)}님의 댓글: "${esc(contentPreview)}..."</div>
+      ${reasons.map(r=>`<button class="report-option" data-reason="${esc(r)}"><span class="report-option-icon">🚩</span><span class="report-option-text">${r}</span></button>`).join('')}
+      <button style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;" onclick="this.closest('.report-overlay').remove()">취소</button>
+    </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelectorAll('.report-option').forEach(btn=>{
+    btn.onclick=async()=>{
+      btn.disabled=true;btn.style.opacity='.5';
+      try{
+        const r=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'report',reporterName:currentUser.name,reporterProvider:currentUser.provider,targetType:'comment',targetId:commentId,reason:btn.dataset.reason+' | '+authorName+': '+contentPreview})});
+        const d=await r.json();
+        if(d.ok){reported.push(commentId);localStorage.setItem(rKey,JSON.stringify(reported));toast('댓글 신고가 접수되었습니다','ok',2500);}
+        else toast(d.error||'신고 처리 실패','err',2500);
+      }catch{toast('신고 처리 중 오류','err',2500);}
+      overlay.remove();
+    };
+  });
+  document.body.appendChild(overlay);
+}
 /* onclick 전역 노출 — 이 스크립트 블록의 함수 */
 window.aiTrendStyle=typeof aiTrendStyle!=="undefined"?aiTrendStyle:window.aiTrendStyle||function(){};
 window._compareModels=typeof _compareModels!=="undefined"?_compareModels:window._compareModels||function(){};
@@ -15066,6 +15108,7 @@ window._submitComment=typeof _submitComment!=="undefined"?_submitComment:window.
 window._deleteMyComment=typeof _deleteMyComment!=="undefined"?_deleteMyComment:window._deleteMyComment||function(){};
 window._setReply=typeof _setReply!=="undefined"?_setReply:window._setReply||function(){};
 window._cancelReply=typeof _cancelReply!=="undefined"?_cancelReply:window._cancelReply||function(){};
+window._reportComment=typeof _reportComment!=="undefined"?_reportComment:window._reportComment||function(){};
 window.closeCommentSheet=typeof closeCommentSheet!=="undefined"?closeCommentSheet:window.closeCommentSheet||function(){};
 window._cancelLyricsGen=typeof _cancelLyricsGen!=='undefined'?_cancelLyricsGen:function(){};
 window._applyAiRecommend=typeof _applyAiRecommend!=='undefined'?_applyAiRecommend:function(){};
