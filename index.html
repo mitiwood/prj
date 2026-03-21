@@ -3688,6 +3688,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 
 <script>
 'use strict';
+/* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇으로 전송 */
+window.onerror = function(msg, src, line, col, err) {
+  const info = `[JS Error] ${msg}\n${src}:${line}:${col}\n${err?.stack||''}`.slice(0,500);
+  console.error(info);
+  try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(e){}
+};
+window.addEventListener('unhandledrejection', e => {
+  const info = `[Unhandled Promise] ${e.reason?.message||e.reason||'unknown'}\n${e.reason?.stack||''}`.slice(0,500);
+  console.error(info);
+  try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(ex){}
+});
 const KIE_BASE = 'https://api.kie.ai';
 
 /* ── 탭 전환 (전역 함수 — onclick에서 직접 호출) ── */
