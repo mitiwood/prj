@@ -15,11 +15,30 @@ jobs:
       id-token: write
 
     steps:
+      - name: Notify start
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/[*_`\[\]]//g')
+          NUM=${{ github.event.issue.number }}
+          MSG="🤖 Claude Code 작업 시작
+
+          📋 Issue #${NUM}
+          📝 ${TITLE}
+
+          ⏳ 코드 분석 및 수정 중... (최대 30분)"
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data-binary "$(echo '{}' | jq -c --arg chat "$TG_CHAT" --arg text "$MSG" '{chat_id: $chat, text: $text}')"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@beta
+        id: claude
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           direct_prompt: |
@@ -33,3 +52,40 @@ jobs:
             - 수정 완료 후 변경 내용을 한국어로 요약해주세요
           allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git diff:*),Bash(git status:*)"
           timeout_minutes: 30
+
+      - name: Notify success
+        if: success()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          NUM=${{ github.event.issue.number }}
+          MSG="✅ Claude Code 작업 완료!
+
+          📋 Issue #${NUM} 처리됨
+          🔀 PR이 곧 생성됩니다.
+
+          머지 준비되면 알림이 올 거예요."
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data-binary "$(echo '{}' | jq -c --arg chat "$TG_CHAT" --arg text "$MSG" '{chat_id: $chat, text: $text}')"
+
+      - name: Notify failure
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          NUM=${{ github.event.issue.number }}
+          URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MSG="❌ Claude Code 작업 실패
+
+          📋 Issue #${NUM}
+          🔗 ${URL}
+
+          로그를 확인해주세요."
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data-binary "$(echo '{}' | jq -c --arg chat "$TG_CHAT" --arg text "$MSG" '{chat_id: $chat, text: $text}')"
