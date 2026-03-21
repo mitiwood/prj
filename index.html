@@ -3555,7 +3555,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
                 <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">🖼 이미지→영상 모드</div>
                 Step 1: 이미지 생성 → 미리보기 확인 → Step 2: 영상 변환
               </div>
-              <button class="gen-btn" id="mv-img-gen-btn" onclick="_mvGenerateImage()" style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin-bottom:10px;">
+              <button class="gen-btn" id="mv-img-gen-btn" style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin-bottom:10px;">
                 <span class="gen-spinner" id="mv-img-spinner"></span>
                 <span id="mv-img-txt">🖼 Step 1: 씬 이미지 생성</span>
               </button>
@@ -3563,11 +3563,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <div id="mv-img-preview" style="display:none;margin-bottom:10px;">
                 <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);position:relative;">
                   <img id="mv-img-preview-img" src="" alt="" style="width:100%;display:block;">
-                  <button onclick="_mvRegenerateImage()" style="position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:8px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px);">🔄 다시 생성</button>
+                  <button id="mv-img-regen-btn" style="position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:8px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px);">🔄 다시 생성</button>
                 </div>
                 <div style="font-size:11px;color:var(--t3);margin-top:6px;text-align:center;">마음에 드시면 아래 버튼으로 영상을 만들어보세요</div>
               </div>
-              <button class="gen-btn" id="mv-vid-from-img-btn" onclick="_mvConvertImageToVideo()" style="display:none;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
+              <button class="gen-btn" id="mv-vid-from-img-btn" style="display:none;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
                 <span class="gen-spinner" id="mv-vid-spinner"></span>
                 <span id="mv-vid-txt">🎬 Step 2: 이 이미지로 영상 만들기</span>
               </button>
@@ -8190,9 +8190,9 @@ async function _mvConvertImageToVideo(){
   }catch(e){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ '+esc(e.message)+'</div></div>';}
   finally{_globalGenerating=false;_syncGenButtons();btn.disabled=false;if(spinner)spinner.classList.remove('on');txt.textContent='🎬 Step 2: 이 이미지로 영상 만들기';}
 }
-window._mvGenerateImage=typeof _mvGenerateImage!=="undefined"?_mvGenerateImage:window._mvGenerateImage||function(){};
-window._mvRegenerateImage=typeof _mvRegenerateImage!=="undefined"?_mvRegenerateImage:window._mvRegenerateImage||function(){};
-window._mvConvertImageToVideo=typeof _mvConvertImageToVideo!=="undefined"?_mvConvertImageToVideo:window._mvConvertImageToVideo||function(){};
+if($('mv-img-gen-btn'))$('mv-img-gen-btn').addEventListener('click',_mvGenerateImage);
+if($('mv-img-regen-btn'))$('mv-img-regen-btn').addEventListener('click',_mvRegenerateImage);
+if($('mv-vid-from-img-btn'))$('mv-vid-from-img-btn').addEventListener('click',_mvConvertImageToVideo);
 
 /* ── 뮤직비디오 (Kling 2.6 Text-to-Video via Market API) ── */
 async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
