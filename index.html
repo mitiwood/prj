@@ -10925,6 +10925,7 @@ function _myFeedRefresh(){
   _myFeedCreators=null;
   _myFeedLoadError=false;
   _myFeedDetailCache={};
+  try{localStorage.removeItem('kms_myfeed_creators');}catch(e){}
   _loadMyFeedCreators();
 }
 
@@ -11097,17 +11098,48 @@ async function _mfToggleFollow(btn){
 /* 크리에이터 목록 로드 */
 function _loadMyFeedCreators(){
   _myFeedLoading=true;
+
+  /* 1) 메모리 캐시: _sbTracks (커뮤니티 로드 완료 시) */
   if(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0){
     _myFeedCreators=_groupCreatorsFromTracks(_sbTracks);
     _myFeedLoading=false;
+    _saveMyFeedCache(_myFeedCreators);
     if(_histTabFilter==='myfeed') renderHistoryView();
     return;
   }
-  fetch('/api/tracks?public=true&limit=200').then(function(r){return r.json();}).then(function(d){
+
+  /* 2) localStorage 캐시 (5분 TTL) */
+  try{
+    var cached=JSON.parse(localStorage.getItem('kms_myfeed_creators')||'null');
+    if(cached&&cached.list&&cached.list.length&&(Date.now()-cached.ts)<300000){
+      _myFeedCreators=cached.list;
+      _myFeedLoading=false;
+      if(_histTabFilter==='myfeed') renderHistoryView();
+      /* 백그라운드에서 커뮤니티 데이터 프리로드 */
+      _mfPreloadSbTracks();
+      return;
+    }
+  }catch(e){}
+
+  /* 3) 커뮤니티 캐시(localStorage kms_comm_cache) 활용 */
+  try{
+    var cc=JSON.parse(localStorage.getItem('kms_comm_cache')||'null');
+    if(cc&&cc.tracks&&cc.tracks.length){
+      _myFeedCreators=_groupCreatorsFromTracks(cc.tracks);
+      _myFeedLoading=false;
+      _saveMyFeedCache(_myFeedCreators);
+      if(_histTabFilter==='myfeed') renderHistoryView();
+      return;
+    }
+  }catch(e){}
+
+  /* 4) 최후 수단: API 직접 호출 */
+  fetch('/api/tracks?public=true&limit=100').then(function(r){return r.json();}).then(function(d){
     var tracks=(d.tracks||d.data||d||[]);
     _myFeedRawTracks=tracks;
     _myFeedCreators=_groupCreatorsFromRaw(tracks);
     _myFeedLoading=false;
+    _saveMyFeedCache(_myFeedCreators);
     if(_histTabFilter==='myfeed') renderHistoryView();
   }).catch(function(e){
     console.warn('[my-feed creators]',e);
@@ -11116,6 +11148,16 @@ function _loadMyFeedCreators(){
     _myFeedLoading=false;
     if(_histTabFilter==='myfeed') renderHistoryView();
   });
+}
+
+function _saveMyFeedCache(list){
+  try{localStorage.setItem('kms_myfeed_creators',JSON.stringify({list:list,ts:Date.now()}));}catch(e){}
+}
+
+function _mfPreloadSbTracks(){
+  /* _sbTracks가 없으면 커뮤니티 로드 트리거 */
+  if(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0) return;
+  if(typeof _loadSbTracks==='function') _loadSbTracks(false);
 }
 
 function _groupCreatorsFromTracks(sbTracks){
@@ -14531,7 +14573,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); } });
 
 /* ══════════════════════════════
-   Realtime 통합 폴링 (2초) — 플랜/좋아요/댓글/알림 통합
+   Realtime 통합 폴링 (30초) — 플랜/좋아요/댓글/알림 통합
 ══════════════════════════════ */
 let _realtimeSince = Date.now();
 async function _pollRealtime(){
@@ -14565,10 +14607,10 @@ async function _pollRealtime(){
     });
   } catch(e){}
 }
-/* 2초 간격 통합 폴링 */
-setInterval(_pollRealtime, 2000);
-/* 플랜 동기화는 10초 간격으로 유지 (서버 부하 방지) */
-setInterval(_syncPlanFromServer, 10000);
+/* 30초 간격 통합 폴링 (서버 부하 방지, 2초→30초) */
+setInterval(_pollRealtime, 30000);
+/* 플랜 동기화는 60초 간격 (서버 부하 방지) */
+setInterval(_syncPlanFromServer, 60000);
 
 /* ══════════════════════════════
    실시간 알림 수신 (10초 폴링)
