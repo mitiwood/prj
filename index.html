@@ -4010,23 +4010,36 @@ const _errFile = (src) => {
   const name = src.split('/').pop()?.split('?')[0] || src;
   return name;
 };
+/* ── 치명적 에러 → 텔레그램 + 카카오 동시 알림 ── */
+const _ERR_IGNORE = /no supported sources|ResizeObserver|Script error|AbortError|The play\(\) request|NotAllowedError|Loading chunk|timeout|net::ERR/i;
+let _errSendCooldown = 0; /* 도배 방지: 5초 쿨다운 */
+
+function _sendErrorAlert(info){
+  if(Date.now() - _errSendCooldown < 5000) return;
+  _errSendCooldown = Date.now();
+  const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
+  /* 텔레그램 */
+  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(e){}
+  /* 카카오 */
+  try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }); } catch(e){}
+}
+
 window.onerror = function(msg, src, line, col, err) {
   const s = String(msg);
-  /* 무시할 에러 — 미디어 소스 관련 (브라우저 내부) */
-  if(/no supported sources|ResizeObserver|Script error/i.test(s)) return;
+  if(_ERR_IGNORE.test(s)) return;
   const ko = _errKo(s);
   const file = _errFile(src);
   const info = `🚨 JS 오류 발생\n\n❌ ${ko}\n📄 ${file} (${line}줄)\n💬 ${s.slice(0,150)}\n\n${(err?.stack||'').split('\n').slice(0,3).join('\n')}`.slice(0,500);
   console.error('[에러]', msg, src, line);
-  try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(e){}
+  _sendErrorAlert(info);
 };
 window.addEventListener('unhandledrejection', e => {
   const reason = e.reason?.message || String(e.reason || '알 수 없는 오류');
-  if(/no supported sources|AbortError|The play\(\) request/i.test(reason)) return;
+  if(_ERR_IGNORE.test(reason)) return;
   const ko = _errKo(reason);
   const info = `🚨 비동기 오류 발생\n\n❌ ${ko}\n💬 ${reason.slice(0,150)}\n\n${(e.reason?.stack||'').split('\n').slice(0,3).join('\n')}`.slice(0,500);
   console.error('[비동기 에러]', reason);
-  try { fetch('/api/telegram', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer kenny2024!'}, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(ex){}
+  _sendErrorAlert(info);
 });
 const KIE_BASE = 'https://api.kie.ai';
 
