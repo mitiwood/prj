@@ -16,6 +16,7 @@ const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
+let _memPlaylists = []; // playlist fallback
 
 async function _tgNotify(event, data) {
   if (!TG_TOKEN || !TG_CHAT) return { skipped: true, reason: "no token/chat" };
@@ -220,57 +221,33 @@ export default async function handler(req, res) {
   if (req.method === "PATCH" && req.query?.action === "playlist") {
     let b = req.body;
     if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-    const { track_id, title, audio_url, image_url, tags, owner_name, owner_provider } = b;
+    const { track_id, title, audio_url, image_url, tags, owner_name, owner_provider } = b || {};
     if (!owner_name) return res.status(400).json({ error: "로그인 필요" });
+    const row = {
+      track_id: track_id || "",
+      title: title || "무제",
+      audio_url: audio_url || "",
+      image_url: image_url || "",
+      tags: tags || "",
+      owner_name,
+      owner_provider: owner_provider || "guest",
+    };
     try {
-      // playlists 테이블에 upsert (track_id + owner로 중복 방지)
-      try {
-        await sb("/playlists", {
-          method: "POST",
-          prefer: "return=minimal,resolution=merge-duplicates",
-          body: JSON.stringify({
-            track_id: track_id || "",
-            title: title || "무제",
-            audio_url: audio_url || "",
-            image_url: image_url || "",
-            tags: tags || "",
-            owner_name,
-            owner_provider: owner_provider || "guest",
-          }),
-        });
-      } catch (sbErr) {
-        // 테이블 없으면 자동 생성 시도
-        if (sbErr.message?.includes("42P01") || sbErr.message?.includes("playlists")) {
-          await sb("", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              query: `CREATE TABLE IF NOT EXISTS playlists (
-                id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-                track_id text NOT NULL,
-                title text DEFAULT '무제',
-                audio_url text DEFAULT '',
-                image_url text DEFAULT '',
-                tags text DEFAULT '',
-                owner_name text NOT NULL,
-                owner_provider text DEFAULT 'guest',
-                created_at timestamptz DEFAULT now(),
-                UNIQUE(track_id, owner_name, owner_provider)
-              )`
-            }),
-          }).catch(() => {});
-          // 재시도
-          await sb("/playlists", {
-            method: "POST",
-            prefer: "return=minimal,resolution=merge-duplicates",
-            body: JSON.stringify({ track_id: track_id || "", title: title || "무제", audio_url: audio_url || "", image_url: image_url || "", tags: tags || "", owner_name, owner_provider: owner_provider || "guest" }),
-          });
-        } else throw sbErr;
-      }
-      return res.status(200).json({ success: true });
+      await sb("/playlists?on_conflict=track_id,owner_name,owner_provider", {
+        method: "POST",
+        prefer: "return=minimal,resolution=merge-duplicates",
+        body: JSON.stringify(row),
+      });
+      return res.status(200).json({ success: true, source: "supabase" });
     } catch (e) {
-      console.warn("[playlist add]", e.message);
-      return res.status(500).json({ error: e.message?.slice(0, 100) });
+      console.warn("[playlist add sb]", e.message);
+      /* memory fallback */
+      const key = `${row.track_id}|${row.owner_name}|${row.owner_provider}`;
+      if (!_memPlaylists.find(p => `${p.track_id}|${p.owner_name}|${p.owner_provider}` === key)) {
+        _memPlaylists.unshift({ ...row, id: crypto.randomUUID?.() || Date.now().toString(36), created_at: new Date().toISOString() });
+        if (_memPlaylists.length > 200) _memPlaylists = _memPlaylists.slice(0, 200);
+      }
+      return res.status(200).json({ success: true, source: "memory" });
     }
   }
 
