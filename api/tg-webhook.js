@@ -162,6 +162,11 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `작업 [카테고리] — 구현 현황 (8카테고리 50항목)`,
     `고도화 — 진행률 조회 / 고도화 진행 <지시> — AI 구현`,
     ``,
+    `━━ 🧪 데이터 (3) ━━`,
+    `더미 — 아이돌 더미 데이터 현황`,
+    `더미추가 — 아이돌 트랙+팔로우 삽입`,
+    `더미삭제 — 아이돌 더미 데이터 전체 삭제`,
+    ``,
     `💡 슬래시(/) 없이 바로 입력!`,
     `💬 자연어도 OK (예: "뭐 했어", "서버 괜찮아?")`,
   ].join('\n');
@@ -1186,6 +1191,156 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
   msg += `\n🔧 구현: 고도화 진행 <지시>  (예: 고도화 진행 모듈 분리)`;
   await tgSend(chatId, msg, { parse_mode: '' });
   try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+};
+
+/* ── 더미 데이터 관리 ── */
+const DUMMY_IDOLS = [
+  { name:'카리나', provider:'kakao', tracks:[
+    {id:'dummy_karina_01',title:'Supernova',tags:'K-Pop, Dance, Synth, Energetic',likes:45,plays:312,style:'K-Pop, Dance, Synth, Space, Electronic, Powerful, Female Vocal',prompt:'[Verse 1]\n수백 개의 별빛 가운데\n나를 비추는 빛은 하나\n\n[Chorus]\nSupernova 터져버린 우주 속에\n너와 나의 gravity'},
+    {id:'dummy_karina_02',title:'Next Level',tags:'K-Pop, Cyberpunk, Dance, Electronic',likes:38,plays:287,style:'K-Pop, Cyberpunk, Dance, Aggressive, Electronic, Glitch, Futuristic, Female Vocal',prompt:'[Verse 1]\n광야를 걸어가는 나\n멈출 수 없어 이 느낌\n\n[Chorus]\nNext level 더 높이 날아\n한계 넘어 새로운 세계로'},
+  ]},
+  { name:'윈터', provider:'kakao', tracks:[
+    {id:'dummy_winter_01',title:'Whiplash',tags:'K-Pop, R&B, Smooth, Dreamy',likes:32,plays:198,style:'K-Pop, R&B, Smooth, Dreamy, Groovy, Female Vocal',prompt:'[Verse 1]\n차가운 바람 속에서\n너의 온기를 느껴\n\n[Chorus]\nWhiplash 마음을 흔들어\n멈출 수 없는 이 감정'},
+    {id:'dummy_winter_02',title:'Drama',tags:'K-Pop, Pop, Theatrical, Powerful',likes:28,plays:175,style:'K-Pop, Pop, Theatrical, Powerful, Orchestral, Female Vocal',prompt:'[Verse 1]\n무대 위의 나는 달라\n조명 아래 빛나는 순간\n\n[Chorus]\nDrama 시작된 이야기\n끝날 때까지 멈추지 않을게'},
+  ]},
+  { name:'지수', provider:'google', tracks:[
+    {id:'dummy_jisoo_01',title:'꽃 (FLOWER)',tags:'K-Pop, Elegant, Pop, Romantic',likes:52,plays:445,style:'K-Pop, Elegant, Pop, Romantic, Waltz, Strings, Female Vocal',prompt:'[Verse 1]\n바람에 흩날리는 꽃잎처럼\n너에게 다가가고 싶어\n\n[Chorus]\n꽃처럼 피어나는 사랑\n향기로운 이 순간을 기억해'},
+    {id:'dummy_jisoo_02',title:'All Eyes On Me',tags:'K-Pop, Confident, Dance, Bold',likes:41,plays:320,style:'K-Pop, Confident, Dance, Pop, Bold, Female Vocal',prompt:'[Verse 1]\n시선을 모두 모아\n이 무대는 나의 것\n\n[Chorus]\nAll eyes on me\n빛나는 이 순간을 놓치지 마'},
+  ]},
+  { name:'제니', provider:'google', tracks:[
+    {id:'dummy_jennie_01',title:'SOLO',tags:'K-Pop, Hip-Hop, Pop, Fierce',likes:58,plays:520,style:'K-Pop, Hip-Hop, Pop, Fierce, Confident, Trap, Female Vocal',prompt:'[Verse 1]\n혼자서도 빛나는 나\n누구에게도 기대지 않아\n\n[Chorus]\nI am going solo\n나는 나 혼자서도 충분해'},
+    {id:'dummy_jennie_02',title:'Mantra',tags:'K-Pop, Dark Pop, Electronic, Edgy',likes:35,plays:278,style:'K-Pop, Dark Pop, Electronic, Edgy, Heavy Bass, Female Vocal',prompt:'[Verse 1]\n어둠 속에서 울리는 주문\n나를 깨우는 리듬\n\n[Chorus]\nMantra 반복되는 주문\n멈출 수 없는 이 비트 위에'},
+  ]},
+  { name:'민지', provider:'naver', tracks:[
+    {id:'dummy_minji_01',title:'Hype Boy',tags:'K-Pop, Retro, Pop, Fresh',likes:61,plays:580,style:'K-Pop, Retro Pop, Fresh, Y2K, Groovy, Female Vocal',prompt:'[Verse 1]\n너를 처음 본 그날부터\n하루도 빠짐없이 생각해\n\n[Chorus]\n1 to 10 내 맘을 다 줄게\nHype boy 너만 바라봐'},
+    {id:'dummy_minji_02',title:'Super Shy',tags:'K-Pop, Dance Pop, Cute, Bright',likes:55,plays:490,style:'K-Pop, Dance Pop, Cute, Synth, Bright, Female Vocal',prompt:'[Verse 1]\n너 앞에만 서면 작아지는 나\n말하고 싶은데 용기가 안 나\n\n[Chorus]\nSuper shy super shy\n네 앞에선 아무 말도 못 해'},
+  ]},
+  { name:'하니', provider:'naver', tracks:[
+    {id:'dummy_hanni_01',title:'Ditto',tags:'K-Pop, Nostalgic, Lo-Fi Pop, Dreamy',likes:49,plays:410,style:'K-Pop, Nostalgic, Lo-Fi Pop, Dreamy, Soft, Female Vocal',prompt:'[Verse 1]\n나도 같은 마음이야\n말하지 않아도 알잖아\n\n[Chorus]\nDitto 너와 나 같은 마음\n하나가 되는 이 순간'},
+    {id:'dummy_hanni_02',title:'OMG',tags:'K-Pop, Pop, Playful, Catchy',likes:43,plays:355,style:'K-Pop, Pop, Playful, Catchy, Upbeat, Female Vocal',prompt:'[Verse 1]\n오늘도 네 생각에\n하루가 다 지나가\n\n[Chorus]\nOh my god 이게 사랑인가 봐\n멈출 수가 없어'},
+  ]},
+  { name:'장원영', provider:'kakao', tracks:[
+    {id:'dummy_wonyoung_01',title:'LOVE DIVE',tags:'K-Pop, Elegant, Pop, Glamorous',likes:64,plays:620,style:'K-Pop, Elegant, Pop, Glamorous, Dance, Female Vocal',prompt:'[Verse 1]\n깊은 바다 속으로\n빠져드는 이 감정\n\n[Chorus]\nLove dive 네 안에 빠져들어\n이 사랑의 깊이를 느껴봐'},
+    {id:'dummy_wonyoung_02',title:'Kitsch',tags:'K-Pop, Retro, Funky, Colorful',likes:47,plays:380,style:'K-Pop, Retro, Funky, Colorful, Pop, Female Vocal',prompt:'[Verse 1]\n키치한 나의 세계로\n초대할게 들어와\n\n[Chorus]\nKitsch 반짝이는 나의 우주\n평범함은 거부해'},
+  ]},
+  { name:'안유진', provider:'kakao', tracks:[
+    {id:'dummy_yujin_01',title:'Off The Record',tags:'K-Pop, Pop, Bright, Fresh',likes:36,plays:265,style:'K-Pop, Pop, Bright, Fresh, Acoustic, Female Vocal',prompt:'[Verse 1]\n카메라가 꺼진 뒤에\n진짜 내 모습을 보여줄게\n\n[Chorus]\nOff the record 솔직한 나\n꾸미지 않은 이 순간이 좋아'},
+    {id:'dummy_yujin_02',title:'해야 (HEYA)',tags:'K-Pop, Traditional, Dance, Powerful',likes:42,plays:340,style:'K-Pop, Traditional Fusion, Dance, Powerful, Female Vocal',prompt:'[Verse 1]\n해야 해야 떠올라라\n어둠을 밝혀줘\n\n[Chorus]\n해야 해야 비춰줘\n세상을 환하게 물들여줘'},
+  ]},
+  { name:'아이유', provider:'google', tracks:[
+    {id:'dummy_iu_01',title:'Blueming',tags:'K-Pop, Indie Pop, Bright, Romantic',likes:72,plays:780,style:'K-Pop, Indie Pop, Bright, Romantic, Acoustic Guitar, Female Vocal',prompt:'[Verse 1]\n보랏빛 하늘 아래서\n너를 만난 그 순간\n\n[Chorus]\n블루밍 피어나는 우리 사랑\n이 계절이 영원하길'},
+    {id:'dummy_iu_02',title:'좋은 날',tags:'K-Pop, Ballad, Emotional, Piano',likes:68,plays:720,style:'K-Pop, Pop Ballad, Emotional, Piano, High Note, Female Vocal',prompt:'[Verse 1]\n울고 싶지 않은데\n눈물이 자꾸 흘러\n\n[Chorus]\n좋은 날이 올 거야\n그날까지 조금만 기다려줘'},
+    {id:'dummy_iu_03',title:'Celebrity',tags:'K-Pop, Pop, Uplifting, Catchy',likes:56,plays:530,style:'K-Pop, Dance Pop, Uplifting, Catchy, Synth, Female Vocal',prompt:'[Verse 1]\n넌 이미 빛나고 있어\n아무도 모르게\n\n[Chorus]\nYou are my celebrity\n세상에서 가장 빛나는 사람'},
+  ]},
+  { name:'태연', provider:'google', tracks:[
+    {id:'dummy_taeyeon_01',title:'INVU',tags:'K-Pop, Dark Pop, Elegant, Synth',likes:50,plays:430,style:'K-Pop, Dark Pop, Elegant, Synth, Dance, Female Vocal',prompt:'[Verse 1]\n너를 향한 질투\n감출 수 없는 감정\n\n[Chorus]\nI-N-V-U\n이 마음을 어떡해'},
+    {id:'dummy_taeyeon_02',title:'Rain',tags:'K-Pop, Ballad, Emotional, Piano',likes:44,plays:365,style:'K-Pop, Ballad, Emotional, Piano, Melancholy, Female Vocal',prompt:'[Verse 1]\n비가 내리는 밤\n너의 목소리가 들려\n\n[Chorus]\n비처럼 쏟아지는 그리움\n멈출 수가 없어'},
+    {id:'dummy_taeyeon_03',title:'Weekend',tags:'K-Pop, Bossa Nova, Chill, Happy',likes:39,plays:298,style:'K-Pop, Bossa Nova, Chill, Happy, Acoustic, Female Vocal',prompt:'[Verse 1]\n월요일부터 금요일까지\n기다렸던 이 순간\n\n[Chorus]\n주말이야 함께 놀자\n아무 걱정 없이 즐겨봐'},
+  ]},
+  { name:'화사', provider:'kakao', tracks:[
+    {id:'dummy_hwasa_01',title:'Maria',tags:'K-Pop, Latin Pop, Bold, Powerful',likes:53,plays:460,style:'K-Pop, Latin Pop, Bold, Brass, Powerful Female Vocal, Dramatic',prompt:'[Verse 1]\n거울 속에 비친 나를 봐\n상처투성이지만 아름다워\n\n[Chorus]\nMaria 나를 위한 노래\n세상이 등을 돌려도\n나는 멈추지 않아'},
+    {id:'dummy_hwasa_02',title:'I Love My Body',tags:'K-Pop, R&B, Funk, Groovy',likes:47,plays:390,style:'K-Pop, R&B, Funk, Groovy, Confident, Female Vocal',prompt:'[Verse 1]\n오늘도 거울 앞에 서서\n나를 바라봐 있는 그대로\n\n[Chorus]\nI love my body\n있는 그대로의 나\n흔들리지 않을래'},
+  ]},
+];
+
+/* Supabase 직접 fetch (Prefer 커스텀 가능) */
+async function sbRaw(method, path, body = null, prefer = null) {
+  if (!SB_URL || !SB_KEY) throw new Error('Supabase 미설정');
+  const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json; charset=utf-8' };
+  if (prefer) headers.Prefer = prefer;
+  else if (method === 'POST') headers.Prefer = 'return=minimal';
+  else if (method === 'DELETE' || method === 'PATCH') headers.Prefer = 'return=minimal';
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, opts);
+  if (!r.ok) { const t = await r.text(); throw new Error(`SB ${r.status}: ${t.slice(0,100)}`); }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : [];
+}
+
+COMMANDS['더미'] = COMMANDS['dummy'] = async (chatId) => {
+  let msg = '🧪 아이돌 더미 데이터 현황\n\n';
+  try {
+    const tracks = await sbRaw('GET', '/tracks?id=like.dummy_*&select=id,title,owner_name,comm_likes,audio_url&order=comm_likes.desc');
+    const withAudio = tracks.filter(t => t.audio_url && t.audio_url.startsWith('http'));
+
+    msg += `트랙: ${tracks.length}곡 (음악 생성완료: ${withAudio.length}곡)\n\n`;
+
+    const grouped = {};
+    tracks.forEach(t => { if (!grouped[t.owner_name]) grouped[t.owner_name] = []; grouped[t.owner_name].push(t); });
+    Object.entries(grouped).sort((a,b) => b[1].length - a[1].length).forEach(([name, list]) => {
+      msg += `${name}: ${list.map(t=>(t.audio_url?.startsWith('http')?'🎵':'⬜')+t.title).join(', ')}\n`;
+    });
+
+    DUMMY_IDOLS.forEach(idol => {
+      if (!grouped[idol.name]) msg += `${idol.name}: (미등록)\n`;
+    });
+  } catch (e) { msg += '조회 실패: ' + e.message; }
+  await tgSend(chatId, msg, { parse_mode: '' });
+};
+
+COMMANDS['더미추가'] = COMMANDS['seed'] = async (chatId) => {
+  await tgSend(chatId, '🧪 아이돌 더미 데이터 삽입 시작...', { parse_mode: '' });
+  try {
+    // 1. 트랙 삽입
+    const trackData = [];
+    DUMMY_IDOLS.forEach(idol => {
+      idol.tracks.forEach(t => {
+        trackData.push({
+          id: t.id, title: t.title, tags: t.tags, lyrics: t.prompt,
+          gen_mode: 'custom', owner_name: idol.name, owner_avatar: '',
+          owner_provider: idol.provider, is_public: true,
+          comm_likes: t.likes, comm_plays: t.plays,
+          created: Date.now() - 86400000 * 2
+        });
+      });
+    });
+    await sbRaw('POST', '/tracks', trackData, 'resolution=ignore-duplicates,return=minimal');
+    const trackCount = trackData.length;
+
+    // 2. 팔로우 삽입
+    const creators = [{name:'Kenny LEE',provider:'google'},{name:'김재현',provider:'google'},{name:'Kenny',provider:'google'}];
+    const follows = [];
+    // 아이돌 → 크리에이터
+    DUMMY_IDOLS.forEach(idol => {
+      creators.forEach(cr => {
+        follows.push({ follower_name:idol.name, follower_provider:idol.provider, following_name:cr.name, following_provider:cr.provider });
+      });
+    });
+    // 아이돌 상호 팔로우 (일부)
+    const pairs = [[0,1],[0,4],[1,2],[2,3],[3,6],[4,5],[5,7],[6,7],[7,8],[8,9],[9,0],[1,8],[3,9],[5,6],[2,7],[10,0],[10,2],[10,8]];
+    pairs.forEach(([a,b]) => {
+      if (DUMMY_IDOLS[a] && DUMMY_IDOLS[b]) {
+        follows.push({ follower_name:DUMMY_IDOLS[a].name, follower_provider:DUMMY_IDOLS[a].provider, following_name:DUMMY_IDOLS[b].name, following_provider:DUMMY_IDOLS[b].provider });
+      }
+    });
+    // 크리에이터 → 아이돌 일부
+    [0,2,4,6,8,10].forEach(i => {
+      if (DUMMY_IDOLS[i]) follows.push({ follower_name:creators[0].name, follower_provider:creators[0].provider, following_name:DUMMY_IDOLS[i].name, following_provider:DUMMY_IDOLS[i].provider });
+    });
+    await sbRaw('POST', '/follows', follows, 'resolution=ignore-duplicates,return=minimal');
+
+    const msg = `✅ 더미 데이터 삽입 완료!\n\n🎵 트랙: ${trackCount}곡 (${DUMMY_IDOLS.length}명)\n👥 팔로우: ${follows.length}건\n\n아이돌: ${DUMMY_IDOLS.map(i=>i.name).join(', ')}\n\n⚠️ 오디오 없는 트랙은 커뮤니티에서 재생 불가\n실제 음악 생성은 CLI에서 seed 스크립트 실행 필요`;
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, '❌ 삽입 실패: ' + e.message, { parse_mode: '' });
+  }
+};
+
+COMMANDS['더미삭제'] = COMMANDS['unseed'] = async (chatId) => {
+  await tgSend(chatId, '🗑 아이돌 더미 데이터 삭제 중...', { parse_mode: '' });
+  try {
+    // 트랙 삭제
+    await sbRaw('DELETE', '/tracks?id=like.dummy_*');
+    // 팔로우 삭제 (아이돌 이름 기준)
+    const names = DUMMY_IDOLS.map(i => i.name);
+    for (const name of names) {
+      await sbRaw('DELETE', `/follows?or=(follower_name.eq.${encodeURIComponent(name)},following_name.eq.${encodeURIComponent(name)})`);
+    }
+    await tgSend(chatId, `✅ 더미 데이터 삭제 완료!\n\n삭제 대상: ${names.join(', ')}\n트랙 (dummy_*) + 팔로우 전부 제거됨`, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, '❌ 삭제 실패: ' + e.message, { parse_mode: '' });
+  }
 };
 
 COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
