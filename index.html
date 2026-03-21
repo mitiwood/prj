@@ -8130,7 +8130,7 @@ function _showGeneratingPopup(){
 /* ── 이미지→영상 2단계 UI ── */
 let _mvGeneratedImageUrl='';
 async function _mvGenerateImage(){
-  var apiKey=kieApiKey;if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  var apiKey=kieApiKey||'proxy';
   if(_globalGenerating){_showGeneratingPopup();return;}
   var prompt=($('mv-prompt')?.value||'').trim();if(!prompt){toast('프롬프트를 입력해주세요','err');return;}
   var btn=$('mv-img-gen-btn'),spinner=$('mv-img-spinner'),txt=$('mv-img-txt');
@@ -8161,7 +8161,7 @@ async function _mvGenerateImage(){
 function _mvRegenerateImage(){$('mv-img-preview').style.display='none';$('mv-vid-from-img-btn').style.display='none';_mvGeneratedImageUrl='';_mvGenerateImage();}
 async function _mvConvertImageToVideo(){
   if(!_mvGeneratedImageUrl){toast('먼저 이미지를 생성해주세요','err');return;}
-  var apiKey=kieApiKey;if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  var apiKey=kieApiKey||'proxy';
   if(_globalGenerating){_showGeneratingPopup();return;}
   var prompt=($('mv-prompt')?.value||'').trim()||'cinematic motion, smooth camera movement';
   var btn=$('mv-vid-from-img-btn'),spinner=$('mv-vid-spinner'),txt=$('mv-vid-txt');
@@ -8190,9 +8190,14 @@ async function _mvConvertImageToVideo(){
   }catch(e){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ '+esc(e.message)+'</div></div>';}
   finally{_globalGenerating=false;_syncGenButtons();btn.disabled=false;if(spinner)spinner.classList.remove('on');txt.textContent='🎬 Step 2: 이 이미지로 영상 만들기';}
 }
-if($('mv-img-gen-btn'))$('mv-img-gen-btn').addEventListener('click',_mvGenerateImage);
-if($('mv-img-regen-btn'))$('mv-img-regen-btn').addEventListener('click',_mvRegenerateImage);
-if($('mv-vid-from-img-btn'))$('mv-vid-from-img-btn').addEventListener('click',_mvConvertImageToVideo);
+/* img2vid 버튼 바인딩 — DOM 로드 후 실행 보장 */
+(function _bindImg2Vid(){
+  var a=document.getElementById('mv-img-gen-btn'),b=document.getElementById('mv-img-regen-btn'),c=document.getElementById('mv-vid-from-img-btn');
+  if(a){a.addEventListener('click',function(){_mvGenerateImage();});}
+  if(b){b.addEventListener('click',function(){_mvRegenerateImage();});}
+  if(c){c.addEventListener('click',function(){_mvConvertImageToVideo();});}
+  if(!a){document.addEventListener('DOMContentLoaded',_bindImg2Vid);}
+})();
 
 /* ── 뮤직비디오 (Kling 2.6 Text-to-Video via Market API) ── */
 async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
