@@ -15,7 +15,7 @@ jobs:
       - name: Wait for Vercel deploy
         run: sleep 30
 
-      - name: Check Vercel site is live
+      - name: Check site health
         id: health
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai-music-studio-bice.vercel.app")
@@ -37,57 +37,47 @@ jobs:
           COUNT=$(git diff --name-only HEAD~1 HEAD | wc -l | tr -d ' ')
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
-      - name: Send Telegram notification
+      - name: Send notification
         continue-on-error: true
         env:
-          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           COMMIT_MSG: ${{ steps.info.outputs.msg }}
           COMMIT_HASH: ${{ steps.info.outputs.hash }}
           COMMIT_AUTHOR: ${{ steps.info.outputs.author }}
           CHANGED_FILES: ${{ steps.info.outputs.files }}
           FILE_COUNT: ${{ steps.info.outputs.count }}
           HTTP_STATUS: ${{ steps.health.outputs.status }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
         run: |
           python3 << 'PYEOF'
-          import urllib.request, json, os, html
+          import urllib.request, json, os
 
-          token = os.environ['TG_TOKEN']
-          chat = os.environ['TG_CHAT']
-          msg = html.escape(os.environ.get('COMMIT_MSG', ''))
+          site = os.environ.get('SITE_URL', '')
+          secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
+          msg_text = os.environ.get('COMMIT_MSG', '')
           h = os.environ.get('COMMIT_HASH', '')
           author = os.environ.get('COMMIT_AUTHOR', '')
-          files = html.escape(os.environ.get('CHANGED_FILES', ''))
+          files = os.environ.get('CHANGED_FILES', '')
           count = os.environ.get('FILE_COUNT', '0')
           status = os.environ.get('HTTP_STATUS', '?')
-          run_url = os.environ.get('RUN_URL', '')
 
-          health = '✅ 사이트 정상 (200 OK)' if status == '200' else f'⚠️ 응답 코드: {status}'
+          health = '\u2705 사이트 정상' if status == '200' else f'\u26a0 응답: {status}'
 
           text = (
-            f'<b>🚀 Vercel 배포 완료</b>\n\n'
-            f'<b>커밋:</b> <code>{h}</code> {msg}\n'
-            f'<b>작성자:</b> {author}\n'
-            f'<b>변경 파일:</b> {count}개\n'
-            f'<code>{files}</code>\n\n'
-            f'{health}\n'
-            f'🔗 <a href="https://ai-music-studio-bice.vercel.app">사이트 확인</a>'
-            f' · <a href="{run_url}">Actions 로그</a>'
+            f'\U0001f680 배포 완료\n\n'
+            f'{h} {msg_text}\n'
+            f'{author} | {count}개 파일\n'
+            f'{files}\n\n'
+            f'{health}'
           )
 
-          payload = json.dumps({
-            'chat_id': chat,
-            'text': text,
-            'parse_mode': 'HTML',
-            'disable_web_page_preview': True
-          }, ensure_ascii=False).encode('utf-8')
-
-          req = urllib.request.Request(
-            f'https://api.telegram.org/bot{token}/sendMessage',
-            data=payload,
-            headers={'Content-Type': 'application/json; charset=utf-8'}
-          )
-          resp = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
-          print(f"Sent message_id: {resp['result']['message_id']}")
+          # Telegram via site API
+          try:
+            tg = json.dumps({'text': text, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+            urllib.request.urlopen(urllib.request.Request(
+              f'{site}/api/telegram', data=tg,
+              headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
+            ))
+          except Exception as e:
+            print(f'TG error: {e}')
           PYEOF
