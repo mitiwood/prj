@@ -11077,7 +11077,7 @@ window.addEventListener('load', ()=>{
   /* kms_push_sub → kms_push_subs 마이그레이션 */
   try{
     const single = localStorage.getItem('kms_push_sub');
-    if(single && Notification.permission === 'granted'){
+    if(single && typeof Notification !== 'undefined' && Notification.permission === 'granted'){
       const sub = JSON.parse(single);
       const arr = JSON.parse(localStorage.getItem('kms_push_subs')||'[]');
       if(sub?.endpoint && !arr.find(s=>s.endpoint===sub.endpoint)){
@@ -11087,7 +11087,7 @@ window.addEventListener('load', ()=>{
     }
   }catch(e){}
   /* 알림 권한이 이미 있으면 바로 등록 */
-  if(Notification.permission === 'granted') registerPushSW();
+  if(typeof Notification !== 'undefined' && Notification.permission === 'granted') registerPushSW();
   /* Supabase: 커뮤니티 트랙 백그라운드 로드 */
   setTimeout(()=>{
     _loadSbTracks();

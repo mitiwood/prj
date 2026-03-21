@@ -784,6 +784,26 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
       siteMs = `${Date.now() - t0}ms (${sr.status})`;
     } catch (e) { siteMs = '접속불가'; }
 
+    /* ── 7. 유저별 사용량 (상위 5명) ── */
+    let userStats = [];
+    try {
+      const { data: allUsers } = await sb('GET', '/users?select=name,provider,plan,credits,login_count,last_login&order=last_login.desc&limit=20');
+      if (allUsers?.length) {
+        /* 각 유저의 이번 달 트랙 수 조회 */
+        const monthStart = new Date();
+        monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+        for (const u of allUsers.slice(0, 5)) {
+          let songCount = 0;
+          try {
+            const { data: ut } = await sb('GET', `/tracks?owner_name=eq.${encodeURIComponent(u.name)}&owner_provider=eq.${encodeURIComponent(u.provider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=500`);
+            songCount = ut?.length || 0;
+          } catch {}
+          const provIcon = { google: '🔵', kakao: '💬', naver: '🟢' }[u.provider] || '👤';
+          userStats.push(`${provIcon} ${u.name} (${u.plan||'free'}) — ${songCount}곡/월, 로그인 ${u.login_count||1}회`);
+        }
+      }
+    } catch {}
+
     const msg = [
       `📊 전체 사용량 대시보드`,
       `⏰ ${ts()}`,
@@ -794,6 +814,9 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
       `💬 댓글: ${commentCount} / 오늘 +${todayComments}`,
       `💰 결제: ${payCount}건`,
       ``,
+      `━━ 유저별 사용량 (이번 달) ━━`,
+      ...(userStats.length ? userStats : ['데이터 없음']),
+      ``,
       `━━ 외부 서비스 ━━`,
       `🤖 Claude API: ${claudeStatus}`,
       `🎤 kie.ai: ${kieStatus}`,
@@ -803,13 +826,24 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
     ].join('\n');
     await tgSend(chatId, msg, { parse_mode: '' });
 
-    /* 카카오톡에도 전송 */
+    /* 카카오톡에도 전송 — 유저 사용량 기준 */
     try {
-      const kakaoMsg = `📊 사용량 (${ts()})\n트랙:${trackCount} 유저:${userCount} 댓글:${commentCount}\nClaude:${claudeStatus} kie:${kieStatus}\nToss:${tossMode} 사이트:${siteMs}`;
+      const lines = [
+        `📊 사용량 리포트 (${ts()})`,
+        ``,
+        `DB: 트랙 ${trackCount}곡 / 유저 ${userCount}명`,
+        `오늘: +${todayTracks}곡, +${todayUsers}명`,
+        ``,
+        `[유저별 이번달]`,
+        ...(userStats.length ? userStats.slice(0,3) : ['없음']),
+        ``,
+        `서비스: Claude ${claudeStatus}`,
+        `kie.ai ${kieStatus} / Toss ${tossMode}`,
+      ];
       await fetch(`${BASE}/api/kakao-notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-        body: JSON.stringify({ text: kakaoMsg }),
+        body: JSON.stringify({ text: lines.join('\n') }),
       });
     } catch {}
   } catch (e) {
