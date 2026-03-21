@@ -918,11 +918,14 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
 /* 리믹스 모달 */
-#remix-cover-modal,#remix-style-modal{z-index:900;}
+#remix-cover-modal{z-index:900;}
+#remix-style-modal.on{pointer-events:auto;opacity:1;}
+#remix-style-modal.on #rs-panel{transform:translateY(0);}
+body.mp-on #remix-style-modal #rs-panel{bottom:0;z-index:910;}
 #remaster-modal.on{pointer-events:auto;opacity:1;}
 #remaster-modal.on #rm-panel{transform:translateY(0);}
 body.mp-on #remaster-modal #rm-panel{bottom:0;z-index:910;}
-body.mp-on #remix-cover-modal .modal,body.mp-on #remix-style-modal .modal{padding-bottom:calc(62px + env(safe-area-inset-bottom,0));}
+body.mp-on #remix-cover-modal .modal{padding-bottom:calc(62px + env(safe-area-inset-bottom,0));}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -4076,43 +4079,62 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
   </div>
 </div>
 
-<!-- ── 리믹스: 스타일 재사용 모달 ── -->
-<div class="modal-backdrop" id="remix-style-modal">
-  <div class="modal" style="max-width:400px;width:100%;border-radius:16px;margin:20px;">
-    <button class="modal-close" id="remix-style-close">✕</button>
-    <div class="modal-title">➕ 스타일 재사용</div>
-    <div class="modal-sub">이 곡의 스타일로 완전히 새로운 곡을 만듭니다.</div>
-    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
-      <div id="rs-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
-      <div style="flex:1;min-width:0;">
-        <div id="rs-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
-        <div id="rs-tags" style="font-size:11px;color:var(--t3);margin-top:2px;">원본 스타일</div>
+<!-- ── 리믹스: 스타일 재사용 바텀시트 ── -->
+<div id="remix-style-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+  <div class="hes-backdrop" id="rs-backdrop"></div>
+  <div class="hes-panel" id="rs-panel" style="max-height:85vh;">
+    <div class="hes-handle"></div>
+    <!-- 트랙 정보 -->
+    <div class="hes-track-info">
+      <div class="hes-thumb" id="rs-thumb">🎵</div>
+      <div class="hes-info-text">
+        <div class="hes-track-name" id="rs-title">곡 제목</div>
+        <div class="hes-track-artist" id="rs-tags">원본 스타일</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:4px;background:rgba(52,211,153,.1);padding:4px 10px;border-radius:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span style="font-size:11px;color:#34d399;font-weight:700;">재사용</span>
       </div>
     </div>
-    <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">새 곡 제목 (선택)</div>
-      <input class="neg-input" id="rs-new-title" placeholder="새로운 제목을 입력하세요">
+    <!-- 스크롤 영역 -->
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:0 16px;">
+      <!-- 원본 스타일 정보 -->
+      <div style="padding:10px 12px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.12);border-radius:12px;margin-bottom:14px;font-size:12px;color:var(--t2);line-height:1.5;">
+        <div style="font-weight:700;color:#34d399;margin-bottom:4px;">➕ 스타일 재사용이란?</div>
+        원곡의 장르·분위기·악기를 유지하면서 완전히 새로운 가사와 멜로디로 곡을 만듭니다.
+      </div>
+      <!-- 새 곡 제목 -->
+      <div style="margin-bottom:12px;">
+        <div class="hes-edit-label">새 곡 제목 (선택)</div>
+        <input class="hes-edit-input" id="rs-new-title" placeholder="새로운 제목을 입력하세요">
+      </div>
+      <!-- 새 가사/프롬프트 -->
+      <div style="margin-bottom:12px;">
+        <div class="hes-edit-label">새 가사 또는 프롬프트</div>
+        <textarea class="hes-edit-textarea" id="rs-prompt" rows="4" placeholder="새로운 가사나 곡 설명을 입력하세요..."></textarea>
+      </div>
+      <!-- 스타일 유지 -->
+      <div style="margin-bottom:12px;">
+        <div class="hes-edit-label">스타일 유지 (수정 가능)</div>
+        <input class="hes-edit-input" id="rs-style" placeholder="예: K-Pop, 감성적인">
+      </div>
+      <!-- 모델 -->
+      <div style="margin-bottom:14px;">
+        <div class="hes-edit-label">모델</div>
+        <select class="hes-edit-input" id="rs-model" style="padding:10px 12px;">
+          <option value="V4_5">V4.5 (권장)</option>
+          <option value="V4_5PLUS">V4.5+</option>
+          <option value="V5">V5 (최신)</option>
+        </select>
+      </div>
     </div>
-    <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">새 가사 또는 프롬프트</div>
-      <textarea class="prompt-input" id="rs-prompt" rows="4" placeholder="새로운 가사나 설명을 입력하세요..."></textarea>
+    <!-- 하단 버튼 -->
+    <div style="padding:8px 16px 20px;border-top:1px solid var(--border);">
+      <button class="gen-btn" id="rs-submit-btn" style="width:100%;">
+        <span class="gen-spinner" id="rs-spinner"></span>
+        <span id="rs-btn-txt">➕ 새 곡 생성하기</span>
+      </button>
     </div>
-    <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">스타일 유지 (수정 가능)</div>
-      <input class="neg-input" id="rs-style" placeholder="예: K-Pop, 감성적인">
-    </div>
-    <div style="margin-bottom:16px;">
-      <div class="opt-label" style="margin-bottom:6px;">모델</div>
-      <select class="opt-select" id="rs-model">
-        <option value="V4_5">V4.5 (권장)</option>
-        <option value="V4_5PLUS">V4.5+</option>
-        <option value="V5">V5 (최신)</option>
-      </select>
-    </div>
-    <button class="gen-btn" id="rs-submit-btn">
-      <span class="gen-spinner" id="rs-spinner"></span>
-      <span id="rs-btn-txt">➕ 새 곡 생성하기</span>
-    </button>
   </div>
 </div>
 
@@ -8438,14 +8460,15 @@ $('rc-submit-btn').addEventListener('click',async()=>{
   }
 });
 
-/* ── 리믹스: 스타일 재사용 모달 ── */
+/* ── 리믹스: 스타일 재사용 바텀시트 ── */
 let _rsSourceIdx=-1;
+function _closeStyleReuse(){$('remix-style-modal').classList.remove('on');}
 $('hes-remix-style-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   _rsSourceIdx=_hesIdx;
   const thumb=$('rs-thumb');
-  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
   $('rs-title').textContent=h.title||'무제';
   $('rs-tags').textContent=h.tags||'';
   $('rs-style').value=h.tags||'';
@@ -8454,12 +8477,12 @@ $('hes-remix-style-btn').addEventListener('click',()=>{
   closeHistEditSheet();
   $('remix-style-modal').classList.add('on');
 });
-if($('remix-style-close'))$('remix-style-close').addEventListener('click',()=>$('remix-style-modal').classList.remove('on'));
-$('remix-style-modal')?.addEventListener('click',e=>{if(e.target===$('remix-style-modal'))$('remix-style-modal').classList.remove('on');});
+$('rs-backdrop').addEventListener('click',_closeStyleReuse);
 /* 스타일 재사용 생성 */
 $('rs-submit-btn').addEventListener('click',async()=>{
   if(_rsSourceIdx<0)return;
   const h=historyData[_rsSourceIdx];if(!h)return;
+  if(currentUser?.provider==='guest'){toast('스타일 재사용은 로그인 후 이용할 수 있어요','err',3000);_closeStyleReuse();openLoginSheet();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   const newPrompt=$('rs-prompt').value.trim();
@@ -8475,7 +8498,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음');
-    $('remix-style-modal').classList.remove('on');
+    _closeStyleReuse();
     $('loading-card').classList.add('on');
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
@@ -8495,8 +8518,9 @@ $('rs-submit-btn').addEventListener('click',async()=>{
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
     toast('새 곡이 완성됐어요!','ok',3000);
+    setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'style-reuse'});
     tracks.forEach(t=>{
       _saveTrackToServer({id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||rStyleStr,lyrics:newPrompt,genMode:'style-reuse',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
