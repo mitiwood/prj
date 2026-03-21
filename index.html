@@ -851,18 +851,18 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .hist-more:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--acc3);}
 /* 히스토리 편집 바텀시트 (Suno 스타일) */
-#hist-edit-sheet{position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+#hist-edit-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
 #hist-edit-sheet.on{pointer-events:auto;opacity:1;}
-.hes-backdrop{position:absolute;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);;}
+.hes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
 .hes-panel{
-  position:absolute;bottom:56px;left:0;right:0;
+  position:absolute;bottom:0;left:0;right:0;
   background:var(--card);border-radius:20px 20px 0 0;
   padding:0 0 env(safe-area-inset-bottom,0);
   transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
   max-width:480px;margin:0 auto;
   display:flex;flex-direction:column;max-height:70vh;
 }
-body.mp-on .hes-panel{bottom:calc(56px + 62px);max-height:60vh;}
 #hist-edit-sheet.on .hes-panel{transform:translateY(0);}
 .hes-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:12px auto 0;}
 /* 트랙 정보 */
@@ -1525,7 +1525,7 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 ══════════════════════════════ */
 #share-sheet{position:fixed;inset:0;z-index:10500;display:none;}
 #share-sheet.on{display:block;}
-.share-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
+.share-backdrop{position:absolute;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);}
 .share-panel{
   position:absolute;bottom:56px;left:50%;transform:translateX(-50%);
   width:100%;max-width:480px;
@@ -5056,8 +5056,8 @@ function _showLogoutDonePopup(){
 /* ── 설정 탭 범용 바텀시트 confirm ── */
 function _showSettingsConfirm(title, desc, actionLabel, onConfirm, isDanger=true){
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
-  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px env(safe-area-inset-bottom,32px);border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);z-index:10003;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
+  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 20px;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px;"></div>
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${title}</div>
@@ -5376,6 +5376,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   }
   if(!desc&&!moodVal){
     /* 빈 입력 → AI 자동 가사+제목 생성 후 generate */
+    if(!checkPlanLimit('song')) return;
     if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
     const btn=$('simple-gen-btn'),sp=$('simple-gen-spinner'),txt=$('simple-gen-txt');
     btn.disabled=true;sp.style.display='inline-block';txt.textContent='AI 생성 중...';
@@ -7901,6 +7902,7 @@ if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>
 $('extend-modal').addEventListener('click',e=>{if(e.target===$('extend-modal'))$('extend-modal').classList.remove('on');});
 $('extend-submit-btn').addEventListener('click',async()=>{
   if(_globalGenerating){_showGeneratingPopup();return;}
+  if(!checkPlanLimit('song')) return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   if(!extendAudioId){toast('오디오 ID 없음','err');return;}
@@ -8750,6 +8752,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
   if(_rcSourceIdx<0)return;
   const h=historyData[_rcSourceIdx];if(!h)return;
   if(currentUser?.provider==='guest'){toast('커버 생성은 로그인 후 이용할 수 있어요','err',3000);_closeCover();openLoginSheet();return;}
+  if(!checkPlanLimit('song')) return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   if(!h.audio_url){toast('원본 오디오 URL 없음','err');return;}
@@ -8849,6 +8852,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
   if(_rsSourceIdx<0)return;
   const h=historyData[_rsSourceIdx];if(!h)return;
   if(currentUser?.provider==='guest'){toast('스타일 재사용은 로그인 후 이용할 수 있어요','err',3000);_closeStyleReuse();openLoginSheet();return;}
+  if(!checkPlanLimit('song')) return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   const newPrompt=$('rs-prompt').value.trim();
@@ -8934,6 +8938,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
   if(_rmSourceIdx<0)return;
   const h=historyData[_rmSourceIdx];if(!h)return;
   if(currentUser?.provider==='guest'){toast('리마스터는 로그인 후 이용할 수 있어요','err',3000);_closeRemaster();openLoginSheet();return;}
+  if(!checkPlanLimit('song')) return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   $('rm-submit-btn').disabled=true;$('rm-spinner').style.display='block';$('rm-btn-txt').textContent='리마스터 중...';
@@ -9031,6 +9036,7 @@ $('vr-submit-btn').addEventListener('click', async () => {
     toast('보컬 제거는 로그인 후 이용할 수 있어요', 'err', 3000);
     _closeVR(); openLoginSheet(); return;
   }
+  if(!checkPlanLimit('song')) return;
   const apiKey = kieApiKey;
   if (!apiKey) { toast('API 키 로딩 중...', 'err'); return; }
   const tId = h.taskId || h.id, aId = h.id;
@@ -9909,7 +9915,7 @@ function _doOpenFullPlayer(idx){
   $('fp-title').textContent=h.title||'무제';
   $('fp-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
   /* MV 뱃지 */
-  $('fp-header-title').textContent=hasVideo?'뮤직비디오 재생 중':'재생 중';
+  var _fpHdr=$('fp-header-title'); if(_fpHdr) _fpHdr.textContent=hasVideo?'뮤직비디오 재생 중':'재생 중';
 
   /* 좋아요 상태 + 별점 복원 */
   fpUpdateLikeUI();
@@ -10157,30 +10163,23 @@ function fpAddToPlaylist(){
     +'</div></div>';
   document.body.appendChild(sheet);
 }
-async function _fpDoAddPlaylist(){
+function _fpDoAddPlaylist(){
   const h=historyData[fpCurrentIdx];
-  if(!h||!currentUser)return;
-  const btn=$('fp-pl-confirm-btn');
-  if(btn){btn.disabled=true;btn.textContent='추가 중...';}
-  try{
-    const r=await fetch('/api/tracks?action=playlist',{
-      method:'PATCH',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({track_id:h.id||h._sbId||'',title:h.title||'무제',audio_url:h.audio_url||'',image_url:h.image_url||'',tags:h.tags||'',owner_name:currentUser.name,owner_provider:currentUser.provider})
-    });
-    const sheet=document.getElementById('fp-pl-sheet');
-    if(r.ok){
-      $('fp-playlist-btn')?.classList.add('added');
-      toast('✅ 플레이리스트에 추가했어요','ok',1500);
-      if(sheet)sheet.remove();
-    } else {
-      const d=await r.json().catch(()=>({}));
-      toast(d.error||'추가 실패','err',2000);
-      if(btn){btn.disabled=false;btn.textContent='추가하기';}
-    }
-  }catch(e){
-    toast('네트워크 오류','err');
-    if(btn){btn.disabled=false;btn.textContent='추가하기';}
+  if(!h)return;
+  /* 로컬 플레이리스트에 저장 */
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var id=h.id||h._sbId||h.taskId||'';
+  if(pl.some(function(p){return p.id===id;})){
+    toast('이미 플레이리스트에 있어요','',1500);
+    var sheet=document.getElementById('fp-pl-sheet');if(sheet)sheet.remove();
+    return;
   }
+  pl.unshift({id:id,title:h.title||'무제',audio_url:h.audio_url||'',image_url:h.image_url||'',tags:h.tags||'',added:Date.now()});
+  if(pl.length>50)pl=pl.slice(0,50);
+  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  var fpBtn=$('fp-playlist-btn');if(fpBtn)fpBtn.classList.add('added');
+  toast('✅ 플레이리스트에 추가했어요','ok',1500);
+  var sheet=document.getElementById('fp-pl-sheet');if(sheet)sheet.remove();
 }
 
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
@@ -12258,9 +12257,12 @@ async function _syncPlansFromServer(){
       console.log('[Plan] synced from server:', Object.keys(d.plans).join(','));
     }
   } catch(e){ console.warn('[Plan] sync fail:', e.message); }
+  _planSynced = true;
 }
-/* 플랜 동기화는 DOMContentLoaded에서 실행 (레이스 방지) */
-setTimeout(_syncPlansFromServer, 500);
+var _planSynced = false;
+var _planSyncPromise = null;
+/* 플랜 동기화 — Promise로 래핑하여 생성 시 await 가능 */
+_planSyncPromise = new Promise(function(ok){ setTimeout(function(){ _syncPlansFromServer().then(ok).catch(ok); }, 500); });
 /* kie.ai 예상 단가 (USD → KRW 1,300 환산) */
 const COST_PER = {
   song:   { usd:0.05, label:'음악 생성' },
@@ -12295,6 +12297,8 @@ function trackUsage(type, meta={}){
 
 /* 플랜 제한 체크 — generate() 시작 전 호출 (클라이언트 즉시 + 서버 비동기 검증) */
 function checkPlanLimit(type){
+  /* 서버 플랜 동기화 미완료 시 백그라운드 트리거 (논블로킹) */
+  if(!_planSynced && _planSyncPromise) _planSyncPromise.catch(function(){});
   const plan = getPlan();
   const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
   const usage = getUsage();
@@ -13427,6 +13431,7 @@ function _cancelLyricsGen(){
 
 /* ── 1. ⚡ 빠른 작사 (스트리밍 — 팝업 + 타이핑 효과) ── */
 async function streamLyricsGenerate(){
+  if(!checkPlanLimit('lyrics')) return;
   if(!kieApiKey){ toast('API 키 로딩 중...','err'); return; }
   const title = ($('song-title')?.value||'').trim();
   const desc  = ($('song-desc')?.value||'').trim();
