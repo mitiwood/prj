@@ -8219,7 +8219,11 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     const taskId=data?.data?.taskId||data?.taskId||data?.task_id;
     if(!taskId)throw new Error('Cover taskId 없음');
     $('remix-cover-modal').classList.remove('on');
+    /* 음악만들기 탭으로 이동 + 로딩 표시 */
+    switchTab('create-view');
+    toast('🎤 커버 생성을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
+    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='커버 버전을 생성하고 있어요...<br>새로운 보컬 스타일 적용 중 🎤';
     $('ld-task').textContent=`Cover: ${taskId}`;
