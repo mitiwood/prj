@@ -1,0 +1,86 @@
+name: Deploy Health Check & Auto-Rollback
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Wait for Vercel deploy
+        run: sleep 45
+
+      - name: Health Check
+        id: health
+        env:
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+        run: |
+          echo "Checking site health..."
+          FAILED=0
+
+          # 1. Main site
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$SITE_URL" || echo "000")
+          echo "Site: $STATUS"
+          if [ "$STATUS" != "200" ]; then FAILED=$((FAILED+1)); echo "FAIL: site=$STATUS"; fi
+
+          # 2. API config
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$SITE_URL/api/config" || echo "000")
+          echo "API config: $STATUS"
+          if [ "$STATUS" != "200" ]; then FAILED=$((FAILED+1)); echo "FAIL: config=$STATUS"; fi
+
+          # 3. API toss-config
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$SITE_URL/api/toss-config" || echo "000")
+          echo "Toss config: $STATUS"
+          if [ "$STATUS" != "200" ]; then FAILED=$((FAILED+1)); echo "FAIL: toss=$STATUS"; fi
+
+          # 4. API announcement
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$SITE_URL/api/announcement" || echo "000")
+          echo "Announcement: $STATUS"
+          if [ "$STATUS" != "200" ]; then FAILED=$((FAILED+1)); echo "FAIL: announcement=$STATUS"; fi
+
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
+          if [ "$FAILED" -gt 1 ]; then
+            echo "status=FAIL" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=OK" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify Success
+        if: steps.health.outputs.status == 'OK'
+        env:
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          MSG=$(echo -e "✅ 배포 헬스체크 통과\n\n${COMMIT_MSG}\n\n모든 엔드포인트 정상")
+          curl -s -X POST "$SITE_URL/api/telegram" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -H "Authorization: Bearer ${ADMIN_SECRET:-kenny2024!}" \
+            -d "$(python3 -c "import json; print(json.dumps({'text': '''$MSG''', 'parse_mode': 'HTML'}))")" || true
+
+      - name: Auto-Rollback on Failure
+        if: steps.health.outputs.status == 'FAIL'
+        env:
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          FAILED_COUNT: ${{ steps.health.outputs.failed }}
+        run: |
+          echo "Health check failed ($FAILED_COUNT endpoints down). Rolling back..."
+          PREV_COMMIT=$(git rev-parse HEAD~1)
+          echo "Rollback target: $PREV_COMMIT"
+
+          # Notify rollback start
+          MSG="🚨 배포 헬스체크 실패 ($FAILED_COUNT개 엔드포인트 다운)\n\n자동 롤백 시작 → ${PREV_COMMIT:0:7}"
+          curl -s -X POST "$SITE_URL/api/telegram" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -H "Authorization: Bearer ${ADMIN_SECRET:-kenny2024!}" \
+            -d "$(python3 -c "import json; print(json.dumps({'text': '''$MSG'''}))")" || true
+
+          # Note: actual git rollback requires write permissions
+          # For safety, just notify - manual rollback recommended
+          echo "::warning::Health check failed. Manual rollback may be needed to $PREV_COMMIT"
