@@ -114,9 +114,23 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs) });
   }
 
-  /* POST — 메시지 전송 */
+  /* POST — 메시지 전송 / 삭제 */
   if (req.method === 'POST') {
-    const { room = 'general', content, author_name, author_avatar = '', author_provider = '', reply_to = null } = req.body || {};
+    const { action, msgId, room = 'general', content, author_name, author_avatar = '', author_provider = '', reply_to = null } = req.body || {};
+
+    /* 삭제 */
+    if (action === 'delete' && msgId) {
+      if (!author_name) return res.status(400).json({ error: 'author_name required' });
+      if (SB_URL && SB_KEY) {
+        try {
+          await sb('DELETE', `/chat_messages?id=eq.${msgId}&author_name=eq.${encodeURIComponent(author_name)}&author_provider=eq.${encodeURIComponent(author_provider || '')}`);
+          return res.status(200).json({ ok: true, deleted: true });
+        } catch (e) { return res.status(200).json({ ok: false, error: e.message }); }
+      }
+      _mem = _mem.filter(m => String(m.id) !== String(msgId));
+      return res.status(200).json({ ok: true, deleted: true });
+    }
+
     if (!content || !author_name) return res.status(400).json({ error: 'content and author_name required' });
     if (content.length > 500) return res.status(400).json({ error: 'message too long (max 500)' });
     if (author_provider === 'guest') return res.status(401).json({ error: 'login required' });

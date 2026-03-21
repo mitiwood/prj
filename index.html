@@ -1487,11 +1487,35 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .chat-date-sep::before,.chat-date-sep::after{content:'';position:absolute;top:50%;width:calc(50% - 50px);height:1px;background:var(--border);}
 .chat-date-sep::before{left:12px;}
 .chat-date-sep::after{right:12px;}
-/* ── 채팅 액션 (답장 버튼) ── */
-.chat-actions{display:none;position:absolute;top:-4px;right:12px;gap:2px;}
+/* ── 채팅 액션 (답장·삭제 버튼) ── */
+.chat-actions{display:none;position:absolute;top:-4px;right:12px;gap:2px;z-index:2;}
 .comm-chat-msg:hover .chat-actions,.comm-chat-msg.mine:hover .chat-actions{display:flex;}
 .comm-chat-msg.mine .chat-actions{right:auto;left:12px;}
-.chat-action-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.chat-action-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.chat-action-btn:hover{background:rgba(124,58,237,.1);}
+/* ── 이모지 리액션 ── */
+.chat-reactions{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;}
+.chat-reaction{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:11px;cursor:pointer;transition:all .15s;}
+.chat-reaction:hover,.chat-reaction.mine{border-color:var(--acc);background:rgba(124,58,237,.08);}
+.chat-reaction-cnt{font-size:10px;color:var(--t2);}
+.chat-react-picker{display:none;position:absolute;bottom:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px 6px;gap:2px;z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+.chat-react-picker.show{display:flex;}
+.chat-react-opt{font-size:16px;cursor:pointer;padding:2px 4px;border-radius:6px;transition:background .12s;}
+.chat-react-opt:hover{background:rgba(124,58,237,.1);}
+/* ── 새 메시지 배지 ── */
+.chat-new-badge{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;background:var(--acc);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.3);z-index:3;animation:chat-badge-in .2s;}
+@keyframes chat-badge-in{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+/* ── 이모지 피커 ── */
+.chat-emoji-picker{display:none;position:absolute;bottom:52px;right:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px;z-index:5;box-shadow:0 4px 16px rgba(0,0,0,.2);width:240px;max-height:180px;overflow-y:auto;}
+.chat-emoji-picker.show{display:block;}
+.chat-emoji-grid{display:flex;flex-wrap:wrap;gap:2px;}
+.chat-emoji-item{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border-radius:6px;transition:background .12s;}
+.chat-emoji-item:hover{background:rgba(124,58,237,.1);}
+.chat-emoji-cat{font-size:10px;color:var(--t3);font-weight:700;padding:4px 2px 2px;width:100%;}
+/* ── URL 링크 ── */
+.chat-link{color:var(--acc3);text-decoration:underline;cursor:pointer;word-break:break-all;}
+/* ── 멘션 ── */
+.chat-mention{color:var(--acc);font-weight:700;cursor:pointer;}
 /* ── 입력 영역 ── */
 .comm-chat-input-wrap{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg);}
 .comm-chat-input{flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;}
@@ -12827,8 +12851,11 @@ function _renderActivityFeed(){
   </div>`;
 }
 
-/* ── 커뮤니티 채팅 (고도화) ── */
-let _chatPollTimer=null,_chatLastTs=0,_chatReplyTo=null,_chatInsight=null;
+/* ── 커뮤니티 채팅 (고도화 v2) ── */
+let _chatPollTimer=null,_chatLastTs=0,_chatReplyTo=null,_chatInsight=null,_chatNewCount=0,_chatAutoScroll=true;
+const _chatReactions={}; /* msgId -> {emoji: Set(userName)} — 로컬 리액션 저장 */
+const _CHAT_EMOJIS=['😀','😂','🥹','😍','🤩','😎','🥳','😤','😭','🤔','👍','👎','❤️','🔥','💯','🎵','🎶','🎤','🎧','🎸','✨','💜','👏','🙌'];
+const _CHAT_REACT_QUICK=['👍','❤️','😂','🔥','💯','🎵'];
 
 function _renderChatUI(){
   const list=$('comm-list');if(!list) return;
@@ -12842,30 +12869,86 @@ function _renderChatUI(){
       <div class="chat-insight-item"><div class="chat-insight-num" id="ci-participants">0</div><div class="chat-insight-label">참여자</div></div>
       <div class="chat-insight-item"><div class="chat-insight-num" id="ci-top">-</div><div class="chat-insight-label">MVP</div></div>
     </div>
-    <div class="comm-chat-wrap">
+    <div class="comm-chat-wrap" style="position:relative;">
       <div class="comm-chat-list" id="comm-chat-list"><div style="text-align:center;padding:30px;color:var(--t3);">메시지 불러오는 중...</div></div>
+      <div id="chat-new-badge" class="chat-new-badge" style="display:none;" onclick="_chatScrollBottom()"></div>
       <div id="chat-reply-bar" class="chat-reply-bar" style="display:none;">
         <span id="chat-reply-text"></span>
         <button onclick="_chatCancelReply()">✕</button>
       </div>
-      <div class="comm-chat-input-wrap">
+      <div class="comm-chat-input-wrap" style="position:relative;">
+        <button onclick="_chatToggleEmoji()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">😀</button>
         <input class="comm-chat-input" id="comm-chat-input" type="text" placeholder="메시지를 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_sendChat()">
         <button class="comm-chat-send" onclick="_sendChat()">전송</button>
       </div>
+      <div class="chat-emoji-picker" id="chat-emoji-picker">
+        <div class="chat-emoji-cat">자주 쓰는</div>
+        <div class="chat-emoji-grid">${_CHAT_EMOJIS.map(e=>`<div class="chat-emoji-item" onclick="_chatInsertEmoji('${e}')">${e}</div>`).join('')}</div>
+      </div>
     </div>`;
-  _chatLastTs=0;_chatReplyTo=null;_loadChatMessages();
+  _chatLastTs=0;_chatReplyTo=null;_chatNewCount=0;_chatAutoScroll=true;
+  _loadChatMessages();
   if(_chatPollTimer)clearInterval(_chatPollTimer);
   _chatPollTimer=setInterval(_loadChatMessages,5000);
+  /* 스크롤 감지 — 맨 아래가 아니면 새 메시지 배지 표시 */
+  setTimeout(()=>{
+    const cl=$('comm-chat-list');if(!cl) return;
+    cl.addEventListener('scroll',()=>{
+      _chatAutoScroll=cl.scrollTop+cl.clientHeight>=cl.scrollHeight-40;
+      if(_chatAutoScroll){_chatNewCount=0;var b=$('chat-new-badge');if(b)b.style.display='none';}
+    });
+  },300);
+}
+
+function _chatScrollBottom(){
+  const cl=$('comm-chat-list');if(cl){cl.scrollTop=cl.scrollHeight;_chatAutoScroll=true;_chatNewCount=0;}
+  var b=$('chat-new-badge');if(b)b.style.display='none';
 }
 
 function _chatSetReply(name,content){
   _chatReplyTo={name,content:content.slice(0,100)};
   var bar=$('chat-reply-bar');if(bar){bar.style.display='flex';$('chat-reply-text').textContent='↩ '+name+': '+_chatReplyTo.content;}
   $('comm-chat-input')?.focus();
+  _chatCloseEmoji();
 }
 function _chatCancelReply(){
   _chatReplyTo=null;
   var bar=$('chat-reply-bar');if(bar)bar.style.display='none';
+}
+
+function _chatToggleEmoji(){
+  var el=$('chat-emoji-picker');if(!el) return;
+  el.classList.toggle('show');
+}
+function _chatCloseEmoji(){
+  var el=$('chat-emoji-picker');if(el) el.classList.remove('show');
+}
+function _chatInsertEmoji(emoji){
+  var inp=$('comm-chat-input');if(!inp) return;
+  inp.value+=emoji;inp.focus();
+}
+
+function _chatToggleReact(msgId,emoji){
+  if(!currentUser) return;
+  const key=msgId+'_'+emoji;
+  if(!_chatReactions[key]) _chatReactions[key]=new Set();
+  const set=_chatReactions[key];
+  const me=currentUser.name;
+  if(set.has(me)) set.delete(me); else set.add(me);
+  /* 리렌더 해당 메시지 리액션 영역 */
+  const el=document.querySelector(`[data-react-id="${msgId}"]`);
+  if(el) el.innerHTML=_buildReactionsHtml(msgId);
+}
+function _buildReactionsHtml(msgId){
+  let html='';
+  _CHAT_REACT_QUICK.forEach(emoji=>{
+    const key=msgId+'_'+emoji;
+    const set=_chatReactions[key];
+    if(!set||!set.size) return;
+    const isMine=currentUser&&set.has(currentUser.name);
+    html+=`<span class="chat-reaction${isMine?' mine':''}" onclick="_chatToggleReact('${msgId}','${emoji}')">${emoji}<span class="chat-reaction-cnt">${set.size}</span></span>`;
+  });
+  return html;
 }
 
 function _updateChatInsight(insight){
@@ -12887,6 +12970,19 @@ function _chatDateLabel(dateStr){
   return (d.getMonth()+1)+'월 '+d.getDate()+'일';
 }
 
+function _chatLinkify(text){
+  return text.replace(/(https?:\/\/[^\s<]+)/g,'<a class="chat-link" href="$1" target="_blank" rel="noopener" onclick="event.stopPropagation()">$1</a>');
+}
+function _chatMentionify(text){
+  return text.replace(/@(\S+)/g,'<span class="chat-mention" onclick="event.stopPropagation();openCreatorProfile(\'$1\',\'\')">@$1</span>');
+}
+function _chatFormatContent(raw){
+  let s=esc(raw);
+  s=_chatLinkify(s);
+  s=_chatMentionify(s);
+  return s;
+}
+
 async function _loadChatMessages(){
   try{
     const userQ=currentUser?.name?'&user='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||''):'';
@@ -12899,10 +12995,16 @@ async function _loadChatMessages(){
     const cl=$('comm-chat-list');if(!cl) return;
     if(!_chatLastTs) cl.innerHTML='';
     const isMe=m=>currentUser&&m.author_name===currentUser.name&&m.author_provider===currentUser.provider;
+    /* 새 메시지 배지 */
+    if(_chatLastTs&&!_chatAutoScroll){
+      _chatNewCount+=msgs.length;
+      var badge=$('chat-new-badge');if(badge){badge.style.display='block';badge.textContent='새 메시지 '+_chatNewCount+'개 ↓';}
+    }
     let lastDate='';
     const frag=msgs.map(m=>{
       const mine=isMe(m);
       const t=m.created_at?formatTimeAgo(new Date(m.created_at).getTime()):'';
+      const msgTime=m.created_at?new Date(m.created_at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
       const provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[m.author_provider]||'';
       const mDate=m.created_at?new Date(m.created_at).toDateString():'';
       let dateSep='';
@@ -12915,39 +13017,55 @@ async function _loadChatMessages(){
       }catch{}
       const safeName=esc(m.author_name||'익명').replace(/'/g,'&#39;');
       const safeContent=esc(m.content||'').replace(/'/g,'&#39;');
+      const msgId=m.id||('m_'+Date.parse(m.created_at));
       const avatarClick=!mine?` onclick="openCreatorProfile('${safeName}','${esc(m.author_provider||'')}')"`:' ';
-      return dateSep+`<div class="comm-chat-msg${mine?' mine':''}">
+      const deleteBtn=mine?`<button class="chat-action-btn" onclick="_chatDeleteMsg('${msgId}')" title="삭제">🗑</button>`:'';
+      const reactBtn=`<button class="chat-action-btn" onclick="this.nextElementSibling.classList.toggle('show')" title="리액션">😀</button><div class="chat-react-picker">${_CHAT_REACT_QUICK.map(e=>`<span class="chat-react-opt" onclick="_chatToggleReact('${msgId}','${e}');this.parentNode.classList.remove('show')">${e}</span>`).join('')}</div>`;
+      return dateSep+`<div class="comm-chat-msg${mine?' mine':''}" data-msg-id="${msgId}">
         <div class="comm-chat-avatar"${avatarClick}>${m.author_avatar?'<img src="'+esc(m.author_avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
-        <div>
+        <div style="min-width:0;">
           ${!mine?'<div class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</div>':''}
           ${replyHtml}
-          <div class="comm-chat-bubble" onclick="_chatSetReply('${safeName}','${safeContent}')">${esc(m.content)}</div>
-          <div class="comm-chat-time">${t}</div>
+          <div class="comm-chat-bubble" onclick="_chatSetReply('${safeName}','${safeContent}')">${_chatFormatContent(m.content)}</div>
+          <div class="chat-reactions" data-react-id="${msgId}">${_buildReactionsHtml(msgId)}</div>
+          <div class="comm-chat-time">${msgTime||t}</div>
         </div>
-        <div class="chat-actions"><button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button></div>
+        <div class="chat-actions" style="position:relative;">${reactBtn}<button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button>${deleteBtn}</div>
       </div>`;
     }).join('');
     if(_chatLastTs) cl.innerHTML+=frag; else cl.innerHTML=frag;
     if(msgs.length) _chatLastTs=new Date(msgs[msgs.length-1].created_at).getTime();
-    cl.scrollTop=cl.scrollHeight;
+    if(_chatAutoScroll) cl.scrollTop=cl.scrollHeight;
   }catch(e){console.warn('[chat]',e.message);}
+}
+
+async function _chatDeleteMsg(msgId){
+  if(!confirm('이 메시지를 삭제할까요?')) return;
+  try{
+    await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',msgId,author_name:currentUser.name,author_provider:currentUser.provider})});
+    const el=document.querySelector(`[data-msg-id="${msgId}"]`);if(el) el.remove();
+    toast('메시지 삭제됨','ok',1500);
+  }catch(e){toast('삭제 실패','err');}
 }
 
 async function _sendChat(){
   const inp=$('comm-chat-input');const content=(inp?.value||'').trim();
   if(!content){toast('메시지를 입력해주세요','err');return;}
   if(!currentUser||currentUser.provider==='guest'){toast('로그인이 필요해요','err');return;}
-  inp.value='';
+  inp.value='';_chatCloseEmoji();
   try{
     const body={room:'general',content,author_name:currentUser.name,author_avatar:currentUser.avatar||'',author_provider:currentUser.provider};
     if(_chatReplyTo) body.reply_to=_chatReplyTo;
     await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    _chatCancelReply();
+    _chatCancelReply();_chatAutoScroll=true;
     _chatLastTs=0;await _loadChatMessages();
   }catch(e){toast('전송 실패','err');}
 }
 window._sendChat=typeof _sendChat!=="undefined"?_sendChat:window._sendChat||function(){};
 window._chatSetReply=_chatSetReply;window._chatCancelReply=_chatCancelReply;
+window._chatToggleReact=_chatToggleReact;window._chatDeleteMsg=_chatDeleteMsg;
+window._chatInsertEmoji=_chatInsertEmoji;window._chatToggleEmoji=_chatToggleEmoji;
+window._chatScrollBottom=_chatScrollBottom;
 
 /* ── 리더보드 ── */
 let _lbPeriod='all';
