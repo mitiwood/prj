@@ -10663,7 +10663,7 @@ function fpAddToPlaylist(){
   sheet.style.cssText='position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);;" onclick="document.getElementById(\'fp-pl-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheetUp .25s ease-out;">'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -11017,14 +11017,29 @@ function _renderCreatorDetailView(grid,countEl){
     +'<button onclick="_mfDetailShuffle()" style="padding:11px 18px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
     +'</div>';
 
+  /* ── 트랙 정렬 ── */
+  html+='<div class="mf-trk-sort-row">'
+    +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='default'?' on':'')+'" onclick="_myFeedTrkSort=\'default\';renderHistoryView();">기본</button>'
+    +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='likes'?' on':'')+'" onclick="_myFeedTrkSort=\'likes\';renderHistoryView();">인기순</button>'
+    +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='plays'?' on':'')+'" onclick="_myFeedTrkSort=\'plays\';renderHistoryView();">재생순</button>'
+    +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='newest'?' on':'')+'" onclick="_myFeedTrkSort=\'newest\';renderHistoryView();">최신순</button>'
+    +'</div>';
+
+  /* 트랙 정렬 적용 */
+  var sortedTracks=d.tracks.slice();
+  if(_myFeedTrkSort==='likes') sortedTracks.sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
+  else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
+  else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+
   /* ── 트랙 리스트 (리치 카드) ── */
   html+='<div class="mf-detail-tracklist">';
-  d.tracks.forEach(function(t,i){
+  sortedTracks.forEach(function(t,i){
+    var origIdx=d.tracks.indexOf(t);
     var thumb=t.image_url?'<img src="'+esc(t.image_url)+'" alt="">':'<div class="mf-trk-thumb-ph">🎵</div>';
     var tag1=(t.tags||'').split(',')[0]?.trim()||'';
     var hasVideo=!!t.video_url;
     var likes=t.comm_likes||0, plays=t.comm_plays||0;
-    html+='<div class="mf-trk-card" data-mf-action="play-detail" data-mf-trk-idx="'+i+'">'
+    html+='<div class="mf-trk-card" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
       +'<div class="mf-trk-num">'+(i+1)+'</div>'
       +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
       +'<div class="mf-trk-info">'
@@ -11034,8 +11049,8 @@ function _renderCreatorDetailView(grid,countEl){
       +(plays>0?'<span>▶ '+plays+'</span>':'')
       +(tag1?'<span>'+esc(tag1)+'</span>':'')
       +'</div></div>'
-      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+i+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>'
-      +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+i+'" onclick="event.stopPropagation()">···</button>'
+      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>'
+      +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
       +'</div>';
   });
   html+='</div>';
@@ -11145,10 +11160,23 @@ function _groupCreatorsFromRaw(tracks){
 
 /* 크리에이터 상세 열기 */
 function _openCreatorDetail(name,provider){
+  _myFeedTrkSort='default';
   _myFeedDetail={name:name,provider:provider,tracks:[],profile:null};
+  var hv=document.getElementById('history-view');
+  if(hv) hv.scrollTop=0;
+  window.scrollTo({top:0,behavior:'smooth'});
+  /* 캐시 확인 (5분) */
+  var cKey=name+'::'+provider;
+  var cached=_myFeedDetailCache[cKey];
+  if(cached&&(Date.now()-cached.ts<300000)){
+    _myFeedDetail.tracks=cached.tracks;
+    _myFeedDetail.profile=cached.profile;
+    _myFeedDetailLoading=false;
+    renderHistoryView();
+    return;
+  }
   _myFeedDetailLoading=true;
   renderHistoryView();
-  /* API로 해당 크리에이터 전체 곡 로드 */
   var viewerQ='';
   if(typeof currentUser!=='undefined'&&currentUser&&currentUser.provider!=='guest'){
     viewerQ='&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider);
@@ -11159,6 +11187,7 @@ function _openCreatorDetail(name,provider){
       if(d.ok){
         _myFeedDetail.tracks=d.tracks||[];
         _myFeedDetail.profile=d.profile||null;
+        _myFeedDetailCache[cKey]={tracks:d.tracks||[],profile:d.profile||null,ts:Date.now()};
       }
       _myFeedDetailLoading=false;
       if(_histTabFilter==='myfeed') renderHistoryView();
@@ -11214,7 +11243,7 @@ function _mfOpenTrackMenu(idx){
   sheet.style.cssText='position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   var imgHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:24px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'mf-trk-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheetUp .25s ease-out;">'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(128,128,128,.3);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
