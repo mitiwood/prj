@@ -6438,48 +6438,49 @@ async function _aiAssistRecommend(){
   result.style.display = 'block';
   result.innerHTML = '<span style="color:var(--t3);">AI가 분석 중...</span>';
 
-  try {
-    const sysPrompt = `You are a music production assistant for an AI music generation app. The user describes what kind of song they want. Respond in Korean with:
+  const sysPrompt = `당신은 AI 음악 생성 앱의 작곡 어시스턴트입니다. 사용자가 원하는 곡을 설명하면 한국어로 답변하세요:
 1. 추천 장르 & 서브장르
 2. 분위기/무드
 3. BPM 범위
 4. 추천 악기
 5. 참조 아티스트 (있으면)
-6. 심플 모드용 설명 (영어, 한 줄)
-Keep it concise, use bullet points.`;
+6. 곡 설명 (영어, 한 줄) — 이 줄은 반드시 "설명:" 으로 시작
+간결하게, 항목별로 작성하세요.`;
 
-    const apiKey = kieApiKey;
-    if(!apiKey) throw new Error('API 키 없음');
+  try {
+    let reply = await callClaudeStream(sysPrompt, input, (partial)=>{
+      result.innerHTML = partial.replace(/\n/g,'<br>') + '<br><span style="color:var(--t3);">...</span>';
+    }) || '';
 
-    const r = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: sysPrompt },
-          { role: 'user', content: input }
-        ],
-        max_tokens: 500,
-      }),
-    });
-    const d = await r.json();
-    const reply = d.choices?.[0]?.message?.content || '추천 결과를 생성할 수 없었어요.';
+    if(!reply) throw new Error('AI 응답 없음');
 
-    /* 결과 표시 + "적용" 버튼 */
+    /* 영어 설명 + BPM 추출 */
     const lines = reply.split('\n').filter(l=>l.trim());
-    const descLine = lines.find(l=>l.includes('설명') || l.includes('description')) || '';
+    const descLine = lines.find(l=>/설명\s*[:：]/i.test(l)) || '';
     const engDesc = descLine.replace(/.*[:：]\s*/, '').trim();
+    const bpmLine = lines.find(l=>/BPM|bpm|템포/i.test(l)) || '';
+    const bpmVal = (bpmLine.match(/(\d{2,3})/)||[])[1] || '';
 
     result.innerHTML = reply.replace(/\n/g,'<br>') +
-      `<div style="margin-top:10px;display:flex;gap:6px;">
-        <button onclick="$('simple-prompt').value='${engDesc.replace(/'/g,"\\'")}';toast('적용 완료!','',1500);$('ai-assist-result').style.display='none';" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✅ 심플 모드에 적용</button>
-        <button onclick="$('ai-assist-result').style.display='none'" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
+      `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+        ${engDesc ? `<button onclick="_applyAiRecommend('${engDesc.replace(/'/g,"\\\\'")}','${bpmVal}')" style="padding:8px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✅ 적용하기</button>` : ''}
+        <button onclick="$('ai-assist-result').style.display='none'" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
       </div>`;
   } catch(e){
-    result.innerHTML = '❌ ' + e.message;
+    result.innerHTML = '❌ ' + (e.message||'추천 실패. 다시 시도해주세요.');
   }
   btn.disabled = false; btn.textContent = '✨ 추천';
+}
+/* 추천 결과를 심플 모드에 적용 */
+function _applyAiRecommend(desc, bpm){
+  if(desc) $('simple-prompt').value = desc;
+  if(bpm && $('simple-bpm-slider')){
+    $('simple-bpm-slider').value = bpm;
+    if($('s-bpm-display')) $('s-bpm-display').textContent = bpm;
+    if($('s-bpm-badge')) $('s-bpm-badge').textContent = bpm + ' BPM';
+  }
+  toast('✅ 추천이 적용됐어요!','ok',1500);
+  $('ai-assist-result').style.display = 'none';
 }
 
 /* ══════════════════════════════
