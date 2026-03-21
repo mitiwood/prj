@@ -961,6 +961,21 @@ export default async function handler(req, res) {
       arg = parts.slice(1).join(' ').trim();
     }
 
+    /* 자연어 → 명령 매핑 */
+    const NL_MAP = [
+      { re: /진행.*(어때|어디|상황|상태|됐|됨|완료|얼마)|어디.*까지|다\s*됐|끝났|작업.*추적/i, cmd: '진행상황' },
+      { re: /PR.*(있|목록|확인|열린|리스트)|풀리퀘/i, cmd: 'PR' },
+      { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
+      { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
+      { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
+    ];
+    if (!COMMANDS[cmd]) {
+      const full = text.toLowerCase();
+      for (const nl of NL_MAP) {
+        if (nl.re.test(full)) { cmd = nl.cmd; arg = ''; break; }
+      }
+    }
+
     /* 명령 실행 */
     const handler = COMMANDS[cmd];
     if (handler) {
