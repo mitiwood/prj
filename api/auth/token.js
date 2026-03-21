@@ -13,8 +13,9 @@ function base64url(str) {
   return Buffer.from(str).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
+import crypto from 'crypto';
+
 function hmac(data) {
-  const crypto = require('crypto');
   return crypto.createHmac('sha256', SECRET).update(data).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
