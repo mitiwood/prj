@@ -672,9 +672,28 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (arg) =>
     const p=UP[arg];
     return card(`🚀 Phase ${arg}: ${p.t} (${p.p}%)`, p.i.map((x,i)=>(i+1)+'. '+x).join('\n'), [{label:'전체 현황',msg:'고도화'}], ['고도화 2','고도화 3','고도화 4','고도화 5']);
   }
+  /* "고도화 진행 <지시>" → 구현 트리거 */
+  const isAction = arg && (arg.startsWith('진행') || arg.startsWith('구현') || arg.startsWith('추가') || arg.length > 10);
+  if (isAction) {
+    const instruction = arg.replace(/^(진행|구현|추가|개발)\s*/, '').trim() || arg;
+    if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+    try {
+      const ghReq = await fetch(`https://api.github.com/repos/${GH_REPO}/issues`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: `[고도화] ${instruction.slice(0,60)}`, body: `## 고도화 요청\n\n${instruction}\n\n> 카카오봇 고도화 명령`, labels: ['claude-fix'] }),
+      });
+      const issue = await ghReq.json();
+      if (ghReq.ok) {
+        return card('✅ 고도화 요청 등록!', `Issue #${issue.number}\n${instruction}\n\nClaude Code가 자동 구현 → PR 생성`, [{label:'Issue 보기',url:issue.html_url}], ['머지','PR','고도화']);
+      }
+      return text('Issue 생성 실패: ' + (issue.message||'').slice(0,100));
+    } catch (e) { return text('오류: ' + e.message); }
+  }
+
   const avg=Math.round(Object.values(UP).reduce((s,v)=>s+v.p,0)/Object.keys(UP).length);
   const lines=Object.entries(UP).map(([k,v])=>`Phase ${k} ${v.t}: ${'█'.repeat(v.p/10)}${'░'.repeat(10-v.p/10)} ${v.p}%`);
-  return card(`🚀 고도화 (${avg}%)`, lines.join('\n'), [{label:'Phase 3 상세',msg:'고도화 3'},{label:'Phase 5 상세',msg:'고도화 5'}], ['고도화 2','고도화 3','고도화 4','고도화 5']);
+  return card(`🚀 고도화 (${avg}%)`, lines.join('\n')+'\n\n구현: 고도화 진행 <지시>', [{label:'Phase 3',msg:'고도화 3'},{label:'구현 예시',msg:'고도화 진행 모듈 분리'}], ['고도화 2','고도화 3','고도화 5']);
 };
 
 const KIE_SECTIONS = {

@@ -160,7 +160,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `━━ 📖 레퍼런스 (2) ━━`,
     `kie [질문] — kie.ai API 문서 조회`,
     `작업 [카테고리] — 구현 현황 (8카테고리 50항목)`,
-    `고도화 [Phase] — 고도화 진행률 (Phase 2~6)`,
+    `고도화 — 진행률 조회 / 고도화 진행 <지시> — AI 구현`,
     ``,
     `💡 슬래시(/) 없이 바로 입력!`,
     `💬 자연어도 OK (예: "뭐 했어", "서버 괜찮아?")`,
@@ -1122,17 +1122,58 @@ const UPGRADE_PHASES = {
 };
 
 COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId, arg) => {
-  if (arg) {
-    const phase = UPGRADE_PHASES[arg] || Object.values(UPGRADE_PHASES).find(p => p.title.includes(arg));
-    if (phase) {
-      let msg = `🚀 Phase ${arg}: ${phase.title} (${phase.pct}%)\n\n`;
-      phase.items.forEach((item, i) => { msg += `${i+1}. ${item}\n`; });
-      await tgSend(chatId, msg, { parse_mode: '' });
-      try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
-      return;
-    }
+  /* Phase 번호만 → 조회 */
+  if (arg && UPGRADE_PHASES[arg]) {
+    const phase = UPGRADE_PHASES[arg];
+    let msg = `🚀 Phase ${arg}: ${phase.title} (${phase.pct}%)\n\n`;
+    phase.items.forEach((item, i) => { msg += `${i+1}. ${item}\n`; });
+    msg += `\n구현 요청: 고도화 진행 <지시사항>`;
+    await tgSend(chatId, msg, { parse_mode: '' });
+    try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+    return;
   }
 
+  /* "고도화 진행 <지시>" → GitHub Issue 생성 (구현 트리거) */
+  const isAction = arg && (arg.startsWith('진행') || arg.startsWith('구현') || arg.startsWith('추가') || arg.startsWith('개발') || arg.length > 10);
+  if (isAction) {
+    const instruction = arg.replace(/^(진행|구현|추가|개발)\s*/, '').trim() || arg;
+    if (!GH_TOKEN) { await tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' }); return; }
+    await tgSend(chatId, `🚀 고도화 요청 처리 중...\n\n📝 "${instruction}"`, { parse_mode: '' });
+    try {
+      const ghBody = JSON.stringify({
+        title: `[고도화] ${instruction.slice(0, 60)}`,
+        body: `## 고도화 요청\n\n${instruction}\n\n---\n> 텔레그램 봇 고도화 명령 · ${ts()}`,
+        labels: ['claude-fix'],
+      });
+      const ghReq = await fetch(`https://api.github.com/repos/${GH_REPO}/issues`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'kenny-music-bot' },
+        body: ghBody,
+      });
+      const ghTxt = await ghReq.text();
+      if (!ghReq.ok) {
+        await tgSend(chatId, `❌ Issue 생성 실패\n${ghTxt.slice(0,150)}`, { parse_mode: '' });
+        return;
+      }
+      const issue = JSON.parse(ghTxt);
+      await tgSend(chatId, [
+        `✅ 고도화 요청 등록!`,
+        ``,
+        `📋 Issue #${issue.number}`,
+        `📝 ${instruction}`,
+        ``,
+        `🤖 Claude Code가 자동으로 구현하고 PR을 생성합니다.`,
+        `완료되면 알림이 올 거예요.`,
+        ``,
+        `${issue.html_url}`,
+      ].join('\n'), { parse_mode: '' });
+    } catch (e) {
+      await tgSend(chatId, `❌ 오류: ${e.message}`, { parse_mode: '' });
+    }
+    return;
+  }
+
+  /* 인자 없음 → 전체 현황 */
   const totalItems = Object.values(UPGRADE_PHASES).reduce((s,p) => s + p.items.length, 0);
   const avgPct = Math.round(Object.values(UPGRADE_PHASES).reduce((s,p) => s + p.pct, 0) / Object.keys(UPGRADE_PHASES).length);
   let msg = `🚀 고도화 진행 현황 (${avgPct}%)\n⏰ ${ts()}\n\n`;
@@ -1140,7 +1181,9 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
     const bar = '█'.repeat(Math.round(v.pct/10)) + '░'.repeat(10-Math.round(v.pct/10));
     msg += `Phase ${k} ${v.title}: ${bar} ${v.pct}%\n`;
   });
-  msg += `\n총 ${totalItems}개 항목\n\n세부: 고도화 <Phase번호>\n예: 고도화 3, 고도화 리텐션`;
+  msg += `\n총 ${totalItems}개 항목`;
+  msg += `\n\n📖 조회: 고도화 <번호>  (예: 고도화 3)`;
+  msg += `\n🔧 구현: 고도화 진행 <지시>  (예: 고도화 진행 모듈 분리)`;
   await tgSend(chatId, msg, { parse_mode: '' });
   try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
 };
