@@ -5,13 +5,16 @@ const BASE = 'https://ai-music-studio-bice.vercel.app';
 
 /* 게스트 로그인 헬퍼 — JS 직접 실행 */
 async function loginAsGuest(page) {
-  await page.goto(BASE);
+  await page.goto(BASE, { waitUntil: 'networkidle', timeout: 20000 });
   await page.waitForSelector('.app-wrap', { timeout: 10000 });
   await page.evaluate(() => {
     if (typeof guestLogin === 'function') guestLogin();
     else if (typeof socialLogin === 'function') socialLogin('guest');
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1500);
+  /* 커뮤니티 트랙 로딩 대기 */
+  await page.waitForSelector('[data-sbid]', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
 }
 
 /* ── 1. 사이트 로딩 ── */
