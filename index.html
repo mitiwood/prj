@@ -14638,6 +14638,12 @@ function _editProfile() {
 function changeTheme(theme) {
   const body = document.body;
   
+  // 테마 유효성 검사
+  if (!theme || (theme !== 'dark' && theme !== 'light')) {
+    console.error('유효하지 않은 테마:', theme);
+    return;
+  }
+  
   // data-theme 속성 설정
   if (theme === 'dark') {
     body.removeAttribute('data-theme');
@@ -14658,6 +14664,9 @@ function changeTheme(theme) {
   };
   
   toast(`${themeNames[theme]} 테마가 적용되었어요`, 'ok', 2000);
+  
+  // 데이모드 테스트용 로그
+  console.log(`테마 변경 완료: ${theme} (${themeNames[theme]})`);
 }
 
 function updateThemeUI() {
@@ -14680,11 +14689,26 @@ function getCurrentTheme() {
 
 function initTheme() {
   const savedTheme = getCurrentTheme();
+  
+  // 데이모드 테스트용 초기화 로그
+  console.log(`테마 초기화: ${savedTheme}`);
+  
   if (savedTheme && savedTheme !== 'dark') {
     document.body.setAttribute('data-theme', savedTheme);
   }
+  
   // 설정 페이지가 로드되면 UI 업데이트
   setTimeout(updateThemeUI, 100);
+  
+  // 데이모드 테스트 확인용 - 테마가 제대로 적용되었는지 검증
+  setTimeout(() => {
+    const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+    if (currentTheme !== savedTheme) {
+      console.warn('테마 불일치 감지:', { saved: savedTheme, current: currentTheme });
+    } else {
+      console.log('테마 정상 적용 확인:', currentTheme);
+    }
+  }, 200);
 }
 
 /* ── INIT ── */
