@@ -18,6 +18,18 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 let _mem = []; // fallback
 let _memPlaylists = []; // playlist fallback
 
+/* 카카오톡 나에게 보내기 알림 (내부 API 호출) */
+async function _kakaoNotify(event, data) {
+  try {
+    const r = await fetch(`https://ai-music-studio-bice.vercel.app/api/kakao-notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, data }),
+    });
+    return await r.json();
+  } catch(e) { return { skipped: true, error: e.message }; }
+}
+
 async function _tgNotify(event, data) {
   if (!TG_TOKEN || !TG_CHAT) return { skipped: true, reason: "no token/chat" };
   try {
@@ -197,21 +209,27 @@ export default async function handler(req, res) {
           if (_mem.length > 500) _mem = _mem.slice(0, 500);
         }
       }
-      /* 텔레그램 알림 (응답 전에 완료 대기) */
+      /* 텔레그램 + 카카오 알림 (병렬 발송) */
       let _tgResult = null;
+      let _kakaoResult = null;
+      const eventType = video_url ? "mv_created" : "music_created";
+      const eventData = {
+        title: title || "무제",
+        mode: genMode || "custom",
+        user: owner_name || "익명",
+        tags: tags || "",
+        provider: owner_provider || "",
+        audioUrl: audio_url || "",
+        videoUrl: video_url || "",
+        imageUrl: image_url || "",
+      };
       try {
-        _tgResult = await _tgNotify(video_url ? "mv_created" : "music_created", {
-          title: title || "무제",
-          mode: genMode || "custom",
-          user: owner_name || "익명",
-          tags: tags || "",
-          provider: owner_provider || "",
-          audioUrl: audio_url || "",
-          videoUrl: video_url || "",
-          imageUrl: image_url || "",
-        });
-      } catch(tgErr) { _tgResult = { error: tgErr.message }; }
-      return res.status(200).json({ success: true, source: src, tg: _tgResult });
+        [_tgResult, _kakaoResult] = await Promise.allSettled([
+          _tgNotify(eventType, eventData),
+          _kakaoNotify(eventType, eventData),
+        ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { error: x.reason?.message }));
+      } catch(e) { /* ignore */ }
+      return res.status(200).json({ success: true, source: src, tg: _tgResult, kakao: _kakaoResult });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }

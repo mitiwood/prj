@@ -155,3 +155,17 @@ CREATE INDEX IF NOT EXISTS idx_payments_user        ON public.payments(user_name
 CREATE INDEX IF NOT EXISTS idx_payments_status      ON public.payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_created     ON public.payments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_payments_payment_key ON public.payments(payment_key);
+
+-- ============================================================
+-- 9. settings (키-값 저장소 — 카카오 토큰 등)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL DEFAULT '{}',
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY settings_service_all ON public.settings
+  FOR ALL USING (auth.role() = 'service_role');
