@@ -4836,7 +4836,7 @@ async function _sendLiveNotify(){
   try {
     const r = await fetch('/api/live-notify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (_adminPwd || '') },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (getAdminPw() || '') },
       body: JSON.stringify({ title, body, icon, type: 'info', target: 'all' }),
     });
     const d = await r.json();
@@ -4867,7 +4867,7 @@ async function _loadLiveHistory(){
 
   try {
     const r = await fetch('/api/live-notify?history=true', {
-      headers: { Authorization: 'Bearer ' + (_adminPwd || '') },
+      headers: { Authorization: 'Bearer ' + (getAdminPw() || '') },
     });
     const d = await r.json();
     const list = d.notifications || [];
@@ -4901,7 +4901,7 @@ async function _deleteLiveNotify(id){
   try {
     await fetch('/api/live-notify?id=' + id, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + (_adminPwd || '') },
+      headers: { Authorization: 'Bearer ' + (getAdminPw() || '') },
     });
     _loadLiveHistory();
   } catch(e){ alert('삭제 실패: ' + e.message); }
@@ -4931,7 +4931,7 @@ setInterval(() => {
 async function _loadPaymentData(){
   /* 유저 플랜 현황 */
   try {
-    const r = await fetch('/api/users', { headers: { Authorization: 'Bearer ' + (_adminPwd||'') } });
+    const r = await fetch('/api/users', { headers: { Authorization: 'Bearer ' + (getAdminPw()||'') } });
     const d = await r.json();
     const users = d.users || d.data || [];
     const tbody = document.getElementById('pay-user-tbody');
@@ -4982,7 +4982,7 @@ async function _loadPaymentData(){
 
   /* 결제 내역 */
   try {
-    const r = await fetch('/api/payments/confirm?key=' + encodeURIComponent(_adminPwd||''));
+    const r = await fetch('/api/payments/confirm?key=' + encodeURIComponent(getAdminPw()||''));
     const d = await r.json();
     const payments = d.payments || d.data || [];
     const tbody = document.getElementById('pay-history-tbody');
