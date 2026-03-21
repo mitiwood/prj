@@ -67,6 +67,17 @@ DROP POLICY IF EXISTS "announcements_service_write" ON public.announcements;
 CREATE POLICY "announcements_service_write" ON public.announcements FOR ALL USING (auth.role() = 'service_role');
 `;
 
+const ALL_TABLE_SQL = {
+  payments: `CREATE TABLE IF NOT EXISTS public.payments (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, order_id TEXT NOT NULL UNIQUE, user_name TEXT, user_provider TEXT, payment_key TEXT NOT NULL UNIQUE, amount INTEGER NOT NULL, plan TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'DONE', method TEXT, cancel_reason TEXT, canceled_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), approved_at TIMESTAMPTZ)`,
+  likes: `CREATE TABLE IF NOT EXISTS public.likes (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, track_id TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'like', value INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_name, user_provider, track_id, type))`,
+  follows: `CREATE TABLE IF NOT EXISTS public.follows (id BIGSERIAL PRIMARY KEY, follower_name TEXT NOT NULL, follower_provider TEXT NOT NULL, following_name TEXT NOT NULL, following_provider TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(follower_name, follower_provider, following_name, following_provider))`,
+  reports: `CREATE TABLE IF NOT EXISTS public.reports (id BIGSERIAL PRIMARY KEY, reporter_name TEXT NOT NULL, reporter_provider TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at TIMESTAMPTZ DEFAULT NOW())`,
+  notifications: `CREATE TABLE IF NOT EXISTS public.notifications (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, type TEXT NOT NULL, title TEXT DEFAULT '', body TEXT DEFAULT '', data JSONB DEFAULT '{}', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW())`,
+  live_notifications: `CREATE TABLE IF NOT EXISTS public.live_notifications (id TEXT PRIMARY KEY, title TEXT DEFAULT '', body TEXT DEFAULT '', icon TEXT DEFAULT '', type TEXT DEFAULT 'info', target TEXT DEFAULT 'all', ts BIGINT DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW())`,
+  settings: `CREATE TABLE IF NOT EXISTS public.settings (key TEXT PRIMARY KEY, value JSONB NOT NULL DEFAULT '{}', updated_at TIMESTAMPTZ DEFAULT NOW())`,
+  comments: `CREATE TABLE IF NOT EXISTS public.comments (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, track_id TEXT NOT NULL, parent_id TEXT, author_name TEXT DEFAULT '', author_avatar TEXT DEFAULT '', author_provider TEXT DEFAULT '', content TEXT DEFAULT '', is_hidden BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW())`,
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -77,7 +88,7 @@ export default async function handler(req, res) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
   if (auth !== ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
 
-  const tables = { tracks: false, users: false, announcements: false, managers: false };
+  const tables = { tracks:false, users:false, comments:false, announcements:false, managers:false, payments:false, likes:false, follows:false, reports:false, notifications:false, live_notifications:false, settings:false };
   for (const t of Object.keys(tables)) {
     tables[t] = await tableExists(t);
   }
@@ -96,11 +107,13 @@ export default async function handler(req, res) {
     const results = [];
 
     for (const t of missing) {
-      let sql = '';
+      let sql = ALL_TABLE_SQL[t] || '';
       let rls = '';
-      if (t === 'managers') { sql = MANAGERS_SQL; rls = MANAGERS_RLS; }
-      else if (t === 'announcements') { sql = ANNOUNCEMENTS_SQL; rls = ANNOUNCEMENTS_RLS; }
-      else continue;
+      if (t === 'managers') { sql = sql || MANAGERS_SQL; rls = MANAGERS_RLS; }
+      else if (t === 'announcements') { sql = sql || ANNOUNCEMENTS_SQL; rls = ANNOUNCEMENTS_RLS; }
+      if (!sql) continue;
+      /* RLS 자동 생성 */
+      if (!rls) rls = `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY`;
 
       try {
         // Supabase SDK의 rpc를 통해 SQL 실행
