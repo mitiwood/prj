@@ -160,11 +160,55 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── PATCH: 좋아요/싫어요/숨기기 ─── */
+  /* ─── PATCH: 좋아요/싫어요/숨기기/재생수/별점/플레이리스트 ─── */
   if (req.method === "PATCH") {
     const id = req.query?.id;
-    const action = req.query?.action || "like"; // like|unlike|dislike|undislike|hide|show
+    const action = req.query?.action || "like";
+
+    /* 플레이리스트 추가 — id 불필요 */
+    if (action === "playlist") {
+      let b = req.body || {};
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const { track_id, title, audio_url, image_url, tags, owner_name, owner_provider } = b;
+      if (!track_id) return res.status(400).json({ error: "track_id required" });
+      try {
+        await sb("/playlists", { method: "POST", prefer: "return=minimal", body: JSON.stringify({ track_id, title: title || "", audio_url: audio_url || "", image_url: image_url || "", tags: tags || "", owner_name: owner_name || "", owner_provider: owner_provider || "" }) });
+        return res.status(200).json({ success: true });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     if (!id) return res.status(400).json({ error: "id required" });
+
+    /* 재생수 카운팅 */
+    if (action === "play") {
+      try {
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=comm_plays`);
+        const cur = (rows?.[0]?.comm_plays || 0) + 1;
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ comm_plays: cur }) });
+        return res.status(200).json({ success: true, comm_plays: cur });
+      } catch (e) {
+        const idx = _mem.findIndex((t) => t.id === id);
+        if (idx >= 0) { _mem[idx].comm_plays = (_mem[idx].comm_plays || 0) + 1; return res.status(200).json({ success: true, comm_plays: _mem[idx].comm_plays, source: "memory" }); }
+        return res.status(200).json({ success: true });
+      }
+    }
+
+    /* 별점 */
+    if (action === "rate") {
+      let b = req.body || {};
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const rating = Math.max(0, Math.min(5, parseInt(b.rating) || 0));
+      try {
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ comm_rating: rating }) });
+        return res.status(200).json({ success: true, comm_rating: rating });
+      } catch (e) {
+        const idx = _mem.findIndex((t) => t.id === id);
+        if (idx >= 0) { _mem[idx].comm_rating = rating; }
+        return res.status(200).json({ success: true, comm_rating: rating, source: "memory" });
+      }
+    }
 
     /* 숨기기/공개 처리 */
     if (action === "hide" || action === "show") {
