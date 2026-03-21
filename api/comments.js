@@ -282,11 +282,28 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: "not found" });
   }
 
-  /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자만 ─── */
+  /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자 또는 작성자 본인 ─── */
   if (req.method === "DELETE") {
-    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const id = req.query?.id;
     if (!id) return res.status(400).json({ error: "id required" });
+    const authorName = req.query?.authorName || '';
+    const authorProvider = req.query?.authorProvider || '';
+
+    /* 관리자가 아니면 작성자 본인인지 확인 */
+    if (!isAdmin) {
+      if (!authorName) return res.status(401).json({ error: "Unauthorized" });
+      /* 댓글 작성자 조회 */
+      let comment = _mem.find(c => String(c.id) === String(id));
+      if (!comment && _sbAvailable) {
+        try {
+          const rows = await sb(`/comments?id=eq.${encodeURIComponent(id)}&select=author_name,author_provider`);
+          comment = rows?.[0];
+        } catch {}
+      }
+      if (!comment || comment.author_name !== authorName || comment.author_provider !== authorProvider) {
+        return res.status(403).json({ error: "본인 댓글만 삭제할 수 있어요" });
+      }
+    }
 
     if (_sbAvailable) {
       try {

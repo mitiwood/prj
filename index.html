@@ -2537,7 +2537,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
   <!-- ── 헤더 ── -->
   <header class="app-header">
     <div class="logo">Kenny's <span>Music</span> Studio<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.1</span></div>
-
+    <button onclick="openNotifSheet()" style="background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:6px;position:relative;" title="알림">🔔<span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ef4444;border-radius:50%;"></span></button>
   </header>
 
   <!-- ── 뷰 컨테이너 ── -->
@@ -10282,7 +10282,7 @@ function _buildCommItem(t,i,isMine){
         <!-- 2열: 사용자 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
-          <span style="color:var(--t2);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${provIcon} ${esc(ownerName)}</span>
+          <span onclick="event.stopPropagation();openProfileSheet('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--t2);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>
           ${t.likes>0?`<span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;">❤️ ${t.likes}</span>`:''}
         </div>
         <!-- 3열: 음악 스타일 -->
@@ -11346,6 +11346,62 @@ function cancelLyricsEdit(idx){
 
 </script>
 
+<!-- ── 프로필 시트 ── -->
+<div id="profile-sheet" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:85vh;overflow-y:auto;padding:20px 16px 36px;" id="profile-sheet-inner">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
+    <!-- 프로필 헤더 -->
+    <div style="text-align:center;margin-bottom:16px;">
+      <div id="pf-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--card);margin:0 auto 10px;overflow:hidden;border:2px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>
+      <div id="pf-name" style="font-size:18px;font-weight:800;color:var(--t1);"></div>
+      <div id="pf-provider" style="font-size:12px;color:var(--t3);margin-top:2px;"></div>
+      <div id="pf-plan" style="display:inline-block;font-size:10px;font-weight:700;padding:2px 10px;border-radius:12px;background:rgba(124,58,237,.15);color:var(--acc2);margin-top:6px;"></div>
+    </div>
+    <!-- 통계 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;text-align:center;">
+      <div style="background:var(--card);border-radius:10px;padding:10px 4px;">
+        <div id="pf-tracks" style="font-size:18px;font-weight:800;color:var(--t1);">-</div>
+        <div style="font-size:10px;color:var(--t3);">곡</div>
+      </div>
+      <div style="background:var(--card);border-radius:10px;padding:10px 4px;">
+        <div id="pf-likes" style="font-size:18px;font-weight:800;color:var(--t1);">-</div>
+        <div style="font-size:10px;color:var(--t3);">좋아요</div>
+      </div>
+      <div style="background:var(--card);border-radius:10px;padding:10px 4px;">
+        <div id="pf-followers" style="font-size:18px;font-weight:800;color:var(--t1);">-</div>
+        <div style="font-size:10px;color:var(--t3);">팔로워</div>
+      </div>
+      <div style="background:var(--card);border-radius:10px;padding:10px 4px;">
+        <div id="pf-following" style="font-size:18px;font-weight:800;color:var(--t1);">-</div>
+        <div style="font-size:10px;color:var(--t3);">팔로잉</div>
+      </div>
+    </div>
+    <!-- 액션 버튼 -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="pf-follow-btn" onclick="_toggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
+      <button onclick="_reportUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚩</button>
+      <button onclick="_blockUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚫</button>
+    </div>
+    <!-- 곡 목록 -->
+    <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;">🎵 곡 목록</div>
+    <div id="pf-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+</div>
+
+<!-- ── 알림 인박스 ── -->
+<div id="notif-sheet" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:80vh;overflow-y:auto;padding:20px 16px 36px;">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:17px;font-weight:800;color:var(--t1);">🔔 알림</div>
+      <button onclick="_markAllNotifRead()" style="background:none;border:none;color:var(--acc3);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">모두 읽음</button>
+    </div>
+    <div id="notif-list" style="display:flex;flex-direction:column;gap:6px;">
+      <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">알림이 없어요</div>
+    </div>
+  </div>
+</div>
+
 <!-- ── 이걸로 다시 작곡하기 시트 ── -->
 <div class="recompose-sheet" id="recompose-sheet">
   <div class="rc-sheet-backdrop" onclick="closeRecomposeSheet()"></div>
@@ -11749,6 +11805,191 @@ document.addEventListener('DOMContentLoaded', ()=>{ if(typeof _renderSettingsExt
 /* ══════════════════════════════
    실시간 알림 수신 (10초 폴링)
 ══════════════════════════════ */
+/* ══════════════════════════════
+   프로필 / 팔로우 / 신고 / 차단 / 알림
+══════════════════════════════ */
+let _pfTarget = null; /* 현재 프로필 대상 {name, provider} */
+
+function openProfileSheet(name, provider){
+  if(!name || !provider) return;
+  _pfTarget = {name, provider};
+  const sheet = $('profile-sheet');
+  sheet.style.display = 'block';
+  sheet.onclick = e => { if(e.target === sheet) closeProfileSheet(); };
+  $('pf-name').textContent = name;
+  $('pf-provider').textContent = provider;
+  $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
+
+  /* 내 프로필이면 팔로우 버튼 숨김 */
+  const isMe = currentUser && currentUser.name === name && currentUser.provider === provider;
+  $('pf-follow-btn').style.display = isMe ? 'none' : '';
+
+  /* API 조회 */
+  const viewerQ = currentUser ? `&viewerName=${encodeURIComponent(currentUser.name)}&viewerProvider=${encodeURIComponent(currentUser.provider)}` : '';
+  fetch(`/api/profile?name=${encodeURIComponent(name)}&provider=${encodeURIComponent(provider)}${viewerQ}`)
+    .then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const p = d.profile;
+      $('pf-avatar').innerHTML = p.avatar ? `<img src="${esc(p.avatar)}" style="width:100%;height:100%;object-fit:cover;">` : '👤';
+      $('pf-plan').textContent = (p.plan||'free').toUpperCase();
+      $('pf-tracks').textContent = p.trackCount || 0;
+      $('pf-likes').textContent = p.totalLikes || 0;
+      $('pf-followers').textContent = p.followerCount || 0;
+      $('pf-following').textContent = p.followingCount || 0;
+
+      /* 팔로우 버튼 상태 */
+      const btn = $('pf-follow-btn');
+      if(p.isFollowing){
+        btn.textContent = '팔로잉';
+        btn.style.background = 'var(--card)'; btn.style.color = 'var(--t2)';
+        btn.style.border = '1px solid var(--border)';
+      } else {
+        btn.textContent = '팔로우';
+        btn.style.background = 'linear-gradient(135deg,var(--acc),var(--acc2))';
+        btn.style.color = '#fff'; btn.style.border = 'none';
+      }
+      btn.dataset.following = p.isFollowing ? '1' : '0';
+
+      /* 곡 목록 */
+      if(!d.tracks?.length){
+        $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">공개된 곡이 없어요</div>';
+        return;
+      }
+      $('pf-track-list').innerHTML = d.tracks.map(t => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--card);border-radius:10px;cursor:pointer;" onclick="closeProfileSheet();commPlaySb('${esc(t.id)}')">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--bg);overflow:hidden;flex-shrink:0;">
+            ${t.image_url ? `<img src="${esc(t.image_url)}" style="width:100%;height:100%;object-fit:cover;">` : '🎵'}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.title||'무제')}</div>
+            <div style="font-size:10px;color:var(--t3);">${esc((t.tags||'').split(',')[0])} · ❤️${t.comm_likes||0}</div>
+          </div>
+          <div style="font-size:16px;color:var(--acc3);">▶</div>
+        </div>
+      `).join('');
+    }).catch(()=>{
+      $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로드 실패</div>';
+    });
+}
+
+function closeProfileSheet(){ $('profile-sheet').style.display = 'none'; _pfTarget = null; }
+
+async function _toggleFollow(){
+  if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
+  if(!_pfTarget) return;
+  const btn = $('pf-follow-btn');
+  const isFollowing = btn.dataset.following === '1';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/profile', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: isFollowing ? 'unfollow' : 'follow',
+        followerName: currentUser.name, followerProvider: currentUser.provider,
+        followingName: _pfTarget.name, followingProvider: _pfTarget.provider,
+      })
+    });
+    const d = await r.json();
+    if(d.ok){
+      if(isFollowing){
+        btn.textContent = '팔로우'; btn.dataset.following = '0';
+        btn.style.background = 'linear-gradient(135deg,var(--acc),var(--acc2))';
+        btn.style.color = '#fff'; btn.style.border = 'none';
+        toast('팔로우 취소','',1500);
+      } else {
+        btn.textContent = '팔로잉'; btn.dataset.following = '1';
+        btn.style.background = 'var(--card)'; btn.style.color = 'var(--t2)';
+        btn.style.border = '1px solid var(--border)';
+        toast('팔로우!','ok',1500);
+      }
+      /* 카운터 갱신 */
+      const fc = $('pf-followers');
+      if(fc) fc.textContent = Math.max(0, parseInt(fc.textContent||'0') + (isFollowing ? -1 : 1));
+    }
+  } catch(e){ toast('오류: '+e.message,'err'); }
+  btn.disabled = false;
+}
+
+function _reportUser(){
+  if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
+  if(!_pfTarget) return;
+  const reason = prompt('신고 사유를 입력하세요:');
+  if(!reason) return;
+  fetch('/api/profile', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action:'report', reporterName:currentUser.name, reporterProvider:currentUser.provider,
+      targetType:'user', targetId:_pfTarget.name+'_'+_pfTarget.provider, reason
+    })
+  }).then(r=>r.json()).then(d=>{
+    toast(d.ok ? '🚩 신고 접수 완료' : '신고 실패', d.ok?'ok':'err', 2000);
+  });
+}
+
+function _blockUser(){
+  if(!_pfTarget) return;
+  const blocked = JSON.parse(localStorage.getItem('kms_blocked')||'[]');
+  const key = _pfTarget.name+'_'+_pfTarget.provider;
+  if(blocked.includes(key)){
+    toast('이미 차단된 유저예요','',1500); return;
+  }
+  if(!confirm(`${_pfTarget.name}님을 차단할까요?\n이 유저의 곡과 댓글이 숨겨집니다.`)) return;
+  blocked.push(key);
+  localStorage.setItem('kms_blocked', JSON.stringify(blocked));
+  toast('🚫 차단 완료','ok',2000);
+  closeProfileSheet();
+  renderCommunity(true);
+}
+
+/* ── 알림 인박스 ── */
+function openNotifSheet(){
+  if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
+  $('notif-sheet').style.display = 'block';
+  $('notif-sheet').onclick = e => { if(e.target === $('notif-sheet')) $('notif-sheet').style.display = 'none'; };
+  _loadNotifications();
+}
+
+async function _loadNotifications(){
+  const list = $('notif-list');
+  if(!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
+  try {
+    const r = await fetch(`/api/profile?name=_notif_&provider=_notif_`); /* placeholder */
+    /* 실제로는 notifications API 필요 — 우선 Supabase 직접 조회 */
+  } catch {}
+  /* 로컬 알림 (live-notify에서 수집된 것) */
+  const notifs = JSON.parse(localStorage.getItem('kms_notif_inbox')||'[]');
+  if(!notifs.length){
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">알림이 없어요</div>';
+    return;
+  }
+  list.innerHTML = notifs.slice(0,30).map(n => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:${n.is_read?'transparent':'rgba(124,58,237,.06)'};border-radius:10px;">
+      <div style="font-size:20px;flex-shrink:0;">${{'like':'❤️','comment':'💬','follow':'👤','system':'🔔'}[n.type]||'📌'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--t1);">${esc(n.title||'')}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;">${esc(n.body||'')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function _markAllNotifRead(){
+  const notifs = JSON.parse(localStorage.getItem('kms_notif_inbox')||'[]');
+  notifs.forEach(n => n.is_read = true);
+  localStorage.setItem('kms_notif_inbox', JSON.stringify(notifs));
+  toast('모두 읽음 처리','ok',1500);
+  _loadNotifications();
+}
+
+/* 좋아요/팔로우 이벤트 → 로컬 알림 인박스에 추가 */
+function _addLocalNotif(type, title, body){
+  const notifs = JSON.parse(localStorage.getItem('kms_notif_inbox')||'[]');
+  notifs.unshift({ type, title, body, is_read: false, ts: Date.now() });
+  if(notifs.length > 100) notifs.length = 100;
+  localStorage.setItem('kms_notif_inbox', JSON.stringify(notifs));
+}
+
 let _liveNotifySince = Date.now();
 let _liveNotifyTimer = null;
 const _liveNotifySeen = new Set();
