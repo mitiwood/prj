@@ -1194,6 +1194,21 @@ body.mp-on .comm-share-box{margin-bottom:calc(56px + 62px);}
 .comm-share-url{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:12px;}
 .comm-share-url input{flex:1;background:none;border:none;color:#f1f0f5;font-size:12px;font-family:inherit;outline:none;}
 .comm-share-url button{flex-shrink:0;padding:6px 14px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+/* ── 신고 바텀시트 ── */
+.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
+.report-sheet{width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 24px;margin-bottom:56px;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;}
+body.mp-on .report-sheet{margin-bottom:calc(56px + 62px);}
+.report-title{font-size:16px;font-weight:800;color:#f1f0f5;text-align:center;margin-bottom:4px;}
+.report-sub{font-size:12px;color:#a09ab8;text-align:center;margin-bottom:16px;}
+.report-option{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:8px;transition:all .15s;font-size:14px;color:var(--t1);font-family:inherit;width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);}
+.report-option:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);}
+.report-option-icon{font-size:20px;flex-shrink:0;}
+.report-option-text{flex:1;font-weight:600;}
+[data-theme="light"] .report-sheet{background:#fff;border-top:1px solid rgba(0,0,0,.08);}
+[data-theme="light"] .report-title{color:#1c1c1e;}
+[data-theme="light"] .report-sub{color:#8e8e93;}
+[data-theme="light"] .report-option{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.06);color:#1c1c1e;}
+[data-theme="light"] .report-option:hover{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);}
 /* ── 댓글 바텀시트 (앱 공통 바텀시트 스타일 통일) ── */
 .comment-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
 .comment-sheet{width:100%;max-width:480px;max-height:70vh;background:#1e1e2a;border-radius:20px 20px 0 0;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;margin-bottom:56px;}
@@ -3272,6 +3287,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
     </div>
+<!-- AI DJ -->    <div style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_startDJ('chill')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.2);background:rgba(124,58,237,.04);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 Chill</button>      <button onclick="_startDJ('energetic')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔥 Energy</button>      <button onclick="_startDJ('emotional')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.04);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💙 Mood</button>      <button onclick="_startDJ('random')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎲 Mix</button>    </div>
     <div id="comm-hero-wrap"></div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
@@ -5603,6 +5619,9 @@ function _saveLoginUser(user){
     currentUser=user;
     localStorage.setItem('kms_user',JSON.stringify(user));
     updateLoginUI();
+    /* JWT 토큰 발급 */
+    fetch('/api/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:user.name,provider:user.provider,avatar:user.avatar||''})})
+      .then(r=>r.json()).then(d=>{if(d.ok&&d.token)localStorage.setItem('kms_jwt',d.token);}).catch(()=>{});
     const providerNames={google:'Google',kakao:'카카오',naver:'네이버'};
     const pName=providerNames[user.provider]||user.provider;
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
@@ -8886,6 +8905,177 @@ $('rm-submit-btn').addEventListener('click',async()=>{
   }
 });
 
+
+/* ── 보컬 제거 / 스템 분리 ── */
+let _vrSourceIdx = -1, _vrMode = 'separate_vocal';
+function _closeVR() { $('vocal-remove-modal').classList.remove('on'); }
+
+document.querySelectorAll('.vr-mode-btn').forEach(b => b.addEventListener('click', () => {
+  _vrMode = b.dataset.vrmode;
+  document.querySelectorAll('.vr-mode-btn').forEach(x => {
+    const on = x === b;
+    x.style.background = on ? 'rgba(239,68,68,.08)' : 'var(--bg2)';
+    x.style.borderColor = on ? '#ef4444' : 'var(--border)';
+    x.style.color = on ? '#ef4444' : 'var(--t2)';
+  });
+  $('vr-stem-desc').style.display = _vrMode === 'split_stem' ? 'block' : 'none';
+  $('vr-btn-txt').textContent = _vrMode === 'split_stem' ? '🎚 스템 분리 시작' : '🎤 보컬 제거 시작';
+}));
+
+$('hes-vocal-remove-btn').addEventListener('click', () => {
+  if (_hesIdx < 0) return;
+  const h = historyData[_hesIdx]; if (!h) return;
+  _vrSourceIdx = _hesIdx;
+  $('vr-thumb').innerHTML = h.image_url
+    ? '<img src="' + esc(h.image_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+    : '🎵';
+  $('vr-title').textContent = h.title || '무제';
+  $('vr-tags').textContent = (h.tags || '').split(',').slice(0, 2).join(', ') || '';
+  _vrMode = 'separate_vocal';
+  document.querySelectorAll('.vr-mode-btn').forEach(x => {
+    const v = x.dataset.vrmode === 'separate_vocal';
+    x.style.background = v ? 'rgba(239,68,68,.08)' : 'var(--bg2)';
+    x.style.borderColor = v ? '#ef4444' : 'var(--border)';
+    x.style.color = v ? '#ef4444' : 'var(--t2)';
+  });
+  $('vr-stem-desc').style.display = 'none';
+  $('vr-btn-txt').textContent = '🎤 보컬 제거 시작';
+  closeHistEditSheet();
+  $('vocal-remove-modal').classList.add('on');
+});
+
+$('vr-backdrop').addEventListener('click', _closeVR);
+
+$('vr-submit-btn').addEventListener('click', async () => {
+  if (_vrSourceIdx < 0) return;
+  const h = historyData[_vrSourceIdx]; if (!h) return;
+  if (currentUser?.provider === 'guest') {
+    toast('보컬 제거는 로그인 후 이용할 수 있어요', 'err', 3000);
+    _closeVR(); openLoginSheet(); return;
+  }
+  const apiKey = kieApiKey;
+  if (!apiKey) { toast('API 키 로딩 중...', 'err'); return; }
+  const tId = h.taskId || h.id, aId = h.id;
+  if (!tId || !aId) { toast('트랙 ID 없음', 'err'); return; }
+
+  $('vr-submit-btn').disabled = true;
+  $('vr-spinner').style.display = 'block';
+  $('vr-btn-txt').textContent = _vrMode === 'split_stem' ? '스템 분리 중...' : '보컬 제거 중...';
+
+  try {
+    const d = await kieRequest(apiKey, 'POST', '/api/v1/vocal-removal/generate', {
+      taskId: tId, audioId: aId, type: _vrMode, callBackUrl: CALLBACK
+    });
+    const vrTid = d?.data?.taskId || d?.taskId;
+    if (!vrTid) throw new Error('taskId 없음');
+
+    _closeVR();
+    switchTab('create-view');
+    $('loading-card').classList.add('on');
+    $('results').innerHTML = '';
+    const fl = $('ld-fill');
+    fl.style.animation = 'none'; void fl.offsetWidth; fl.style.animation = '';
+    $('ld-sub').textContent = _vrMode === 'split_stem'
+      ? '12트랙 스템 분리 중~ 잠깐이면 돼요 🎚'
+      : '보컬이랑 반주 분리하는 중이에요 🎤';
+    setTimeout(() => $('loading-card').scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+
+    /* 폴링 */
+    let res = null;
+    for (let i = 0; i < 50; i++) {
+      await sleep(i < 5 ? 2000 : i < 15 ? 3000 : 4000);
+      try {
+        const r = await kieRequest(apiKey, 'GET', '/api/v1/vocal-removal/record-info?taskId=' + vrTid);
+        const s = r?.data; if (!s) continue;
+        if (s.successFlag === 'SUCCESS') { res = s.response; break; }
+        if (s.successFlag === 'CREATE_TASK_FAILED' || s.successFlag === 'GENERATE_AUDIO_FAILED')
+          throw new Error('분리 실패');
+        $('ld-sub').textContent = i < 8 ? 'AI가 오디오 분석 중 🔍'
+          : i < 20 ? '보컬 패턴 찾는 중 🎶'
+          : i < 35 ? '트랙 분리 거의 끝나가요 🎚'
+          : '마무리 중~ 곧 나와요 ✨';
+      } catch (pe) { if (pe.message.includes('실패')) throw pe; }
+    }
+
+    $('loading-card').classList.remove('on');
+    if (!res) throw new Error('시간 초과');
+
+    /* 결과 렌더링 */
+    const vu = res.vocalUrl || '', iu = res.instrumentalUrl || '';
+    const ti = esc(h.title || 'track');
+    let htm = '<div style="padding:16px;">';
+    htm += '<div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:12px;">'
+      + (_vrMode === 'split_stem' ? '🎚 스템 분리 완료!' : '🎤 보컬 제거 완료!') + '</div>';
+
+    if (_vrMode === 'separate_vocal') {
+      if (vu) htm += '<div style="margin-bottom:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🎤 보컬</div>'
+        + '<audio controls src="' + esc(vu) + '" style="width:100%;border-radius:8px;margin-bottom:8px;"></audio>'
+        + '<button onclick="downloadFile(\'' + esc(vu) + '\',\'' + ti + '_Vocal.mp3\')" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다운로드</button></div>';
+      if (iu) htm += '<div style="padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🎵 반주 (MR)</div>'
+        + '<audio controls src="' + esc(iu) + '" style="width:100%;border-radius:8px;margin-bottom:8px;"></audio>'
+        + '<button onclick="downloadFile(\'' + esc(iu) + '\',\'' + ti + '_MR.mp3\')" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다운로드</button></div>';
+    } else {
+      /* 스템 분리 — 최대 14트랙 */
+      var stems = [
+        { k: 'vocalUrl', l: '🎤 보컬', n: 'Vocal' },
+        { k: 'backingVocalsUrl', l: '🎵 백킹보컬', n: 'BVocal' },
+        { k: 'drumsUrl', l: '🥁 드럼', n: 'Drums' },
+        { k: 'bassUrl', l: '🎸 베이스', n: 'Bass' },
+        { k: 'guitarUrl', l: '🎸 기타', n: 'Guitar' },
+        { k: 'pianoUrl', l: '🎹 피아노', n: 'Piano' },
+        { k: 'keyboardUrl', l: '🎹 키보드', n: 'Keys' },
+        { k: 'percussionUrl', l: '🪘 퍼커션', n: 'Perc' },
+        { k: 'stringsUrl', l: '🎻 스트링', n: 'Strings' },
+        { k: 'synthUrl', l: '🎛 신스', n: 'Synth' },
+        { k: 'brassUrl', l: '🎺 브라스', n: 'Brass' },
+        { k: 'woodwindsUrl', l: '🎷 우드윈드', n: 'Winds' },
+        { k: 'fxUrl', l: '✨ FX', n: 'FX' },
+        { k: 'instrumentalUrl', l: '🎵 MR', n: 'MR' },
+      ];
+      stems.forEach(s => {
+        const u = res[s.k]; if (!u) return;
+        htm += '<div style="margin-bottom:8px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+          + '<span style="font-size:12px;font-weight:700;color:var(--t1);">' + s.l + '</span>'
+          + '<button onclick="downloadFile(\'' + esc(u) + '\',\'' + ti + '_' + s.n + '.mp3\')" style="padding:5px 12px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">다운로드</button>'
+          + '</div><audio controls src="' + esc(u) + '" style="width:100%;height:32px;border-radius:6px;"></audio></div>';
+      });
+    }
+
+    htm += '</div>';
+    $('results').innerHTML = htm;
+    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    /* MR을 히스토리에 저장 */
+    if (iu) {
+      historyData.unshift({
+        id: Date.now().toString(), taskId: vrTid,
+        title: '[MR] ' + (h.title || '무제'),
+        audio_url: iu, video_url: '', image_url: h.image_url || '',
+        tags: 'instrumental, MR', lyrics: '', created: Date.now(),
+        type: 'audio', genMode: 'vocal-removal',
+        _vocalRemovedFrom: h.id || '',
+        _owner: currentUser
+          ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider }
+          : null,
+      });
+      historyData = historyData.slice(0, 30);
+      saveHistory(); updateHistBadge();
+    }
+    toast(_vrMode === 'split_stem' ? '스템 분리 완료!' : '보컬 제거 완료! MR이 저장됐어요', 'ok', 3000);
+  } catch (e) {
+    $('loading-card').classList.remove('on');
+    toast('보컬 제거 실패: ' + e.message, 'err', 4000);
+  } finally {
+    $('vr-submit-btn').disabled = false;
+    $('vr-spinner').style.display = 'none';
+    $('vr-btn-txt').textContent = _vrMode === 'split_stem' ? '🎚 스템 분리 시작' : '🎤 보컬 제거 시작';
+  }
+});
+
+
 /* 더 많은 정보 */
 $('hes-more-info-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
@@ -11248,6 +11438,74 @@ function commShareSheet(sbId){
   overlay.querySelector('#_sh_close').onclick=()=>overlay.remove();
 }
 
+/* ── 신고 바텀시트 ── */
+function openReportSheet(sbId){
+  /* 중복 신고 방지 (localStorage) */
+  const reportedKey = '_reported_tracks';
+  const reported = JSON.parse(localStorage.getItem(reportedKey) || '[]');
+  if(reported.includes(sbId)){
+    toast('이미 신고한 트랙입니다','warn',2000);
+    return;
+  }
+  if(!currentUser || currentUser.provider==='guest'){
+    toast('로그인 후 이용할 수 있습니다','warn',2000);
+    return;
+  }
+  const t=_sbTracks.find(x=>x._sbId===sbId);
+  const title=t?.title||'';
+  const reasons=[
+    {icon:'🔞',text:'부적절한 콘텐츠',value:'부적절한 콘텐츠'},
+    {icon:'©️',text:'저작권 침해',value:'저작권 침해'},
+    {icon:'📢',text:'스팸/광고',value:'스팸/광고'},
+    {icon:'❓',text:'기타',value:'기타'},
+  ];
+  const overlay=document.createElement('div');
+  overlay.className='report-overlay';
+  overlay.innerHTML=`
+    <div class="report-sheet">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 14px;"></div>
+      <div class="report-title">🚩 신고하기</div>
+      <div class="report-sub">${title?'"'+esc(title)+'" — ':''}신고 사유를 선택해주세요</div>
+      ${reasons.map(r=>`<button class="report-option" data-reason="${esc(r.value)}"><span class="report-option-icon">${r.icon}</span><span class="report-option-text">${r.text}</span></button>`).join('')}
+      <button style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a09ab8;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;" class="report-close-btn">취소</button>
+    </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector('.report-close-btn').onclick=()=>overlay.remove();
+  overlay.querySelectorAll('.report-option').forEach(btn=>{
+    btn.onclick=async()=>{
+      const reason=btn.dataset.reason;
+      btn.disabled=true;
+      btn.style.opacity='.5';
+      try{
+        const res=await fetch('/api/profile',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            action:'report',
+            reporterName:currentUser.name,
+            reporterProvider:currentUser.provider,
+            targetType:'track',
+            targetId:sbId,
+            reason:reason
+          })
+        });
+        const data=await res.json();
+        if(data.ok){
+          reported.push(sbId);
+          localStorage.setItem(reportedKey,JSON.stringify(reported));
+          toast('신고가 접수되었습니다','ok',2500);
+        } else {
+          toast(data.error||'신고 처리 중 오류가 발생했습니다','err',2500);
+        }
+      }catch(e){
+        toast('신고 처리 중 오류가 발생했습니다','err',2500);
+      }
+      overlay.remove();
+    };
+  });
+  document.body.appendChild(overlay);
+}
+
 /* Supabase sbId로 삭제 (로컬에서만 제거) */
 function commDeleteSb(sbId){
   const t=_sbTracks.find(x=>x._sbId===sbId);
@@ -12372,6 +12630,7 @@ function _downloadLicense(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KMS_Commercial_License_'+Date.now()+'.txt';a.click();
   toast('📜 상업 라이선스 다운로드 완료','ok',2000);
 }
+/* AI DJ 모드 — 무드 기반 자동 재생 */function _startDJ(mood){  var tracks=getCommTracks();  if(!tracks.length){toast('커뮤니티에 곡이 없어요','err',2000);return;}  var moodKeywords={chill:['chill','lofi','jazz','acoustic','calm','relax'],energetic:['dance','edm','rock','pop','energy','party','hiphop','trap'],emotional:['ballad','emotional','sad','love','romantic','piano']}[mood]||[];  var filtered;  if(mood==='random'){    filtered=[...tracks].sort(function(){return Math.random()-0.5;});  } else {    filtered=tracks.filter(function(t){var tags=(t.allTags||t.tags||'').toLowerCase();return moodKeywords.some(function(k){return tags.includes(k);});});    if(filtered.length<3) filtered=[...tracks].sort(function(){return Math.random()-0.5;});  }  var queue=filtered.slice(0,10);  /* 히스토리에 추가 + 첫 곡 재생 */  queue.forEach(function(t){    var hIdx=historyData.findIndex(function(h){return h.id===(t._sbId||t.id);});    if(hIdx<0){historyData.unshift({id:t._sbId||t.id,title:t.title,audio_url:t.audioUrl,image_url:t.img||'',tags:t.allTags||t.tags||'',lyrics:'',created:Date.now(),type:'audio',genMode:'dj',_owner:t._owner});    }  });  saveHistory(); updateHistBadge();  var labels={chill:'☕ Chill',energetic:'🔥 Energy',emotional:'💙 Mood',random:'🎲 Mix'};  toast('🎧 AI DJ: '+(labels[mood]||mood)+' 모드 ('+queue.length+'곡)','ok',3000);  var firstId=queue[0]?._sbId||queue[0]?.id;  if(firstId) commPlaySb(firstId);}
 function _checkAttendance(){
   if(!currentUser || currentUser.provider==="guest") return;
   const today=new Date().toISOString().split("T")[0];
