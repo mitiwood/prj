@@ -29,9 +29,7 @@ const CHAT_ID    = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const SB_URL     = process.env.SUPABASE_URL;
 const SB_KEY     = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
-const BASE       = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'https://ai-music-studio-bice.vercel.app';
+const BASE       = 'https://ai-music-studio-bice.vercel.app';
 
 /* ── 유틸 ── */
 async function tgSend(chatId, text, opts = {}) {
