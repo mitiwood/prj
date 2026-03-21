@@ -3984,6 +3984,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         리믹스 & 도구
         <span class="hes-arrow">›</span>
       </button>
+      <button class="hes-action-btn" id="hes-playlist-btn">
+        <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
+        플레이리스트에 추가
+      </button>
       <button class="hes-action-btn" id="hes-dislike-btn" style="color:var(--t3);">
         <span class="hes-btn-icon"><i data-lucide="thumbs-down"></i></span>
         <span id="hes-dislike-text">싫어하는 노래</span>
@@ -4055,10 +4059,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="hes-btn-icon"><i data-lucide="pencil"></i></span>
         세부 정보 편집
         <span class="hes-arrow">›</span>
-      </button>
-      <button class="hes-action-btn" id="hes-playlist-btn">
-        <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
-        플레이리스트에 추가
       </button>
     </div>
   </div>
@@ -9340,12 +9340,13 @@ function openHesToolsSheet(){
   $('hist-edit-sheet').classList.remove('on');
   $('hes-tools-sheet').classList.add('on');
 }
-function closeHesToolsSheet(){
+function closeHesToolsSheet(goBack){
   $('hes-tools-sheet').classList.remove('on');
+  if(goBack && _hesIdx>=0) $('hist-edit-sheet').classList.add('on');
 }
 $('hes-tools-btn').addEventListener('click',function(){ openHesToolsSheet(); });
-$('hes-tools-backdrop').addEventListener('click',function(){ closeHesToolsSheet(); });
-$('hes-tools-back').addEventListener('click',function(){ closeHesToolsSheet(); });
+$('hes-tools-backdrop').addEventListener('click',function(){ closeHesToolsSheet(false); });
+$('hes-tools-back').addEventListener('click',function(){ closeHesToolsSheet(true); });
 window.openHesToolsSheet=openHesToolsSheet;
 
 /* 더 많은 정보 */
