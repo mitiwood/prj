@@ -159,7 +159,7 @@ jobs:
           pr_num = os.environ.get('PR_NUM', '').strip()
           run_url = os.environ.get('RUN_URL', '')
 
-          pr_line = f'\U0001f500 PR #{pr_num} 생성됨\n\n\U0001f4ac 머지하려면 봇에서:\n<code>\uba38\uc9c0 {pr_num}</code>' if pr_num else '\u26a0\ufe0f PR 미생성 (변경사항 없음)'
+          pr_line = f'\U0001f500 PR #{pr_num} 생성됨\n\n\U0001f4ac 머지하려면 봇에서:\n<code>\uba38\uc9c0</code>' if pr_num else '\u26a0\ufe0f PR 미생성 (변경사항 없음)'
 
           msg = (
             f'<b>\u2705 Claude Code 작업 완료!</b>\n\n'
@@ -189,7 +189,7 @@ jobs:
           # Kakao
           try:
             raw_title = os.environ.get('ISSUE_TITLE', '')
-            merge_hint = f'\n\n머지하려면: 머지 {pr_num}' if pr_num else ''
+            merge_hint = f'\n\n머지하려면: 머지' if pr_num else ''
             kakao_msg = f'\u2705 작업 완료!\n\nIssue #{num}: {raw_title}\n\nClaude가 코드를 수정하고 PR #{pr_num}을 생성했습니다.{merge_hint}'
             kp = json.dumps({'text': kakao_msg}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))

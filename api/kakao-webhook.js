@@ -127,7 +127,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '📊 상태 · 트랙 · 유저 · 댓글 · 배포',
       '📝 공지 · 삭제 · 공개 · 비공개',
       '📣 알림 <메시지>',
-      '🛠 수정 <지시> · PR · 머지 <번호>',
+      '🛠 수정 <지시> · PR · 머지',
       '🔍 QA — 전체 코드 점검',
       '🔄 진행상황 — 작업 추적',
       '📋 기획 · 백로그 · 버그',
@@ -356,12 +356,25 @@ COMMANDS['pr'] = COMMANDS['PR'] = async () => {
   );
 };
 
-/* 머지 */
+/* 머지 — 번호 없으면 자동 탐색 */
 COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
-  if (!arg) return text('사용법: 머지 <PR번호>');
   if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
-  const prNum = parseInt(arg);
-  if (!prNum) return text('PR 번호를 숫자로 입력해주세요.');
+  let prNum = parseInt(arg);
+
+  if (!prNum) {
+    try {
+      const prs = await ghApi('GET', '/pulls?state=open&sort=created&direction=desc&per_page=10');
+      if (!prs.length) return text('📭 열린 PR이 없어요.', ['상태', 'PR']);
+      if (prs.length === 1) {
+        prNum = prs[0].number;
+      } else {
+        let msg = `🔀 열린 PR ${prs.length}개\n\n`;
+        prs.forEach(pr => { msg += `#${pr.number} ${pr.title}\n`; });
+        msg += `\n번호 지정: 머지 ${prs[0].number}`;
+        return text(msg, prs.slice(0,3).map(pr => `머지 ${pr.number}`));
+      }
+    } catch(e) { return text(`❌ PR 조회 실패: ${e.message}`); }
+  }
 
   const pr = await ghApi('GET', `/pulls/${prNum}`);
   if (pr.state !== 'open') return text(`PR #${prNum}은 이미 ${pr.merged ? '머지됨' : '닫힘'} 상태입니다.`);

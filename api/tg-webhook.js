@@ -137,7 +137,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 
 🛠 *개발*
 수정 <지시사항> — AI 코드 수정 + PR
-PR — PR 목록 / 머지 <번호> — 머지
+PR — PR 목록 / 머지 — 자동 머지
 QA — 전체 코드 점검 + 리포트
 진행상황 — 작업 추적
 
@@ -449,12 +449,27 @@ COMMANDS['pr'] = COMMANDS['PR'] = async (chatId, arg) => {
   }
 };
 
-/* 머지 <PR번호> — PR 머지 (→ 자동 배포) */
+/* 머지 — 번호 없으면 자동 탐색, 1개면 바로 머지 */
 COMMANDS['머지'] = COMMANDS['merge'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: 머지 <PR번호>\n\nPR 목록 확인: PR');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 미설정');
-  const prNum = parseInt(arg);
-  if (!prNum) return tgSend(chatId, '⚠️ PR 번호를 숫자로 입력해주세요.');
+  let prNum = parseInt(arg);
+
+  /* 번호 없으면 열린 PR 자동 탐색 */
+  if (!prNum) {
+    try {
+      const prs = await ghApi('GET', '/pulls?state=open&sort=created&direction=desc&per_page=10');
+      if (!prs.length) return tgSend(chatId, '📭 열린 PR이 없어요.', { parse_mode: '' });
+      if (prs.length === 1) {
+        prNum = prs[0].number;
+        await tgSend(chatId, `🔍 열린 PR 1개 발견 → #${prNum} 자동 머지합니다.`, { parse_mode: '' });
+      } else {
+        let msg = `🔀 열린 PR ${prs.length}개 — 번호를 지정해주세요\n\n`;
+        prs.forEach(pr => { msg += `#${pr.number} ${pr.title}\n`; });
+        msg += `\n예: 머지 ${prs[0].number}`;
+        return tgSend(chatId, msg, { parse_mode: '' });
+      }
+    } catch(e) { return tgSend(chatId, `❌ PR 조회 실패: ${e.message}`, { parse_mode: '' }); }
+  }
 
   try {
     /* PR 정보 확인 */
