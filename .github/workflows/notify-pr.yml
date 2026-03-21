@@ -8,7 +8,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Telegram notification
+      - name: Send notification (Telegram + Kakao)
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -16,24 +16,45 @@ jobs:
           PR_NUM: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          SITE_URL: https://ai-music-studio-bice.vercel.app
         run: |
           python3 << 'PYEOF'
           import urllib.request, json, os, html
-          token = os.environ['TG_TOKEN']
-          chat = os.environ['TG_CHAT']
+
+          token = os.environ.get('TG_TOKEN', '')
+          chat = os.environ.get('TG_CHAT', '')
           title = html.escape(os.environ.get('PR_TITLE', ''))
           num = os.environ.get('PR_NUM', '?')
           url = os.environ.get('PR_URL', '')
           author = os.environ.get('PR_AUTHOR', '')
-          msg = (
-            f'<b>🔀 새 PR 생성됨</b>\n\n'
-            f'📋 #{num}: {title}\n'
-            f'👤 {author}\n\n'
-            f'머지하려면 텔레그램에서:\n'
-            f'<code>머지 {num}</code>\n\n'
-            f'🔗 <a href="{url}">PR 보기</a>'
-          )
-          payload = json.dumps({'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
-          req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
-          urllib.request.urlopen(req)
+          site = os.environ.get('SITE_URL', '')
+
+          # Telegram (HTML)
+          if token and chat:
+            try:
+              msg = (
+                f'<b>\U0001f500 새 PR 생성됨</b>\n\n'
+                f'\U0001f4cb #{num}: {title}\n'
+                f'\U0001f464 {author}\n\n'
+                f'머지하려면:\n'
+                f'<code>머지 {num}</code>\n\n'
+                f'\U0001f517 <a href="{url}">PR 보기</a>'
+              )
+              payload = json.dumps({'chat_id': chat, 'text': msg, 'parse_mode': 'HTML'}, ensure_ascii=False).encode('utf-8')
+              req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=payload, headers={'Content-Type': 'application/json; charset=utf-8'})
+              urllib.request.urlopen(req)
+              print('Telegram OK')
+            except Exception as e:
+              print(f'Telegram error: {e}')
+
+          # Kakao
+          try:
+            raw_title = os.environ.get('PR_TITLE', '')
+            kakao_msg = f'🔀 새 PR #{num}\n\n{raw_title}\n작성자: {author}\n\n머지: "머지 {num}"\n\n{url}'
+            kp = json.dumps({'text': kakao_msg}, ensure_ascii=False).encode('utf-8')
+            kr = urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'})
+            urllib.request.urlopen(kr)
+            print('Kakao OK')
+          except Exception as e:
+            print(f'Kakao error: {e}')
           PYEOF
