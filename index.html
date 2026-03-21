@@ -850,78 +850,84 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   flex-shrink:0;transition:all .15s;letter-spacing:-1px;font-weight:900;
 }
 .hist-more:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--acc3);}
-/* 히스토리 편집 바텀시트 (Suno 스타일) */
-#hist-edit-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+/* 히스토리 편집 바텀시트 — 플레이어 디테일시트 동일 스타일 */
+#hist-edit-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10001;pointer-events:none;opacity:0;transition:opacity .25s;}
 body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
 #hist-edit-sheet.on{pointer-events:auto;opacity:1;}
-.hes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
+.hes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
 .hes-panel{
-  position:absolute;bottom:0;left:0;right:0;
-  background:var(--card);border-radius:20px 20px 0 0;
-  padding:0 0 env(safe-area-inset-bottom,0);
-  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-  max-width:480px;margin:0 auto;
-  display:flex;flex-direction:column;max-height:70vh;
+  position:absolute;bottom:0;left:50%;
+  transform:translate(-50%,100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  width:100%;max-width:480px;
+  background:var(--card2);
+  border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border2);
+  max-height:88vh;overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,20px);
 }
-#hist-edit-sheet.on .hes-panel{transform:translateY(0);}
-.hes-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:12px auto 0;}
-/* 트랙 정보 */
-.hes-track-info{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;}
-.hes-thumb{width:52px;height:52px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+#hist-edit-sheet.on .hes-panel{transform:translate(-50%,0);}
+.hes-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:12px auto 0;}
+/* 트랙 헤더 — mds-header 동일 */
+.hes-track-info{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;border-bottom:1px solid var(--border);}
+.hes-thumb{width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;}
 .hes-thumb img{width:100%;height:100%;object-fit:cover;}
 .hes-info-text{flex:1;min-width:0;}
-.hes-track-name{font-size:15px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hes-track-artist{font-size:12px;color:var(--t3);margin-top:2px;}
+.hes-track-name{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hes-track-artist{font-size:11px;color:var(--t3);}
+.hes-style-chip{display:inline-block;padding:2px 8px;border-radius:20px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);color:var(--acc3);font-size:10px;font-weight:700;margin-top:3px;}
 .hes-more-info-btn{flex-shrink:0;background:none;border:none;color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px;transition:background .15s;}
 .hes-more-info-btn:hover{background:rgba(124,58,237,.1);}
-/* 탭 행 */
-.hes-tab-row{display:flex;gap:0;padding:0 12px;border-bottom:1px solid var(--border);}
-.hes-tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:10px 4px 12px;background:none;border:none;border-bottom:2px solid transparent;
-  color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;
-}
-.hes-tab svg{opacity:.5;transition:opacity .2s;}
-.hes-tab:hover,.hes-tab.active{color:var(--t1);border-bottom-color:var(--acc);}
-.hes-tab:hover svg,.hes-tab.active svg{opacity:1;}
-.hes-tab.active{color:var(--acc);}
+/* 주요 액션 — 필 버튼 (mds-actions 동일) */
+.hes-primary-actions{display:flex;gap:8px;padding:12px 18px;flex-wrap:wrap;}
+.hes-primary-btn{display:flex;align-items:center;gap:5px;padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.hes-primary-btn:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:var(--acc3);}
+.hes-primary-btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:#fff;box-shadow:0 2px 12px rgba(124,58,237,.4);}
+.hes-primary-btn.liked{background:rgba(255,100,130,.12);border-color:rgba(255,100,130,.3);color:#ff6482;}
+.hes-primary-btn.disliked{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:var(--red);}
+/* 탭 행 — 숨김 (primary-actions로 대체) */
+.hes-tab-row{display:none;}
+.hes-tab{display:none;}
 /* 액션 리스트 */
-.hes-actions{padding:6px 12px 0;overflow-y:auto;flex:1;min-height:0;}
+.hes-actions{padding:0 6px 0;overflow-y:auto;flex:1;min-height:0;}
 .hes-action-btn{
-  display:flex;align-items:center;gap:14px;
-  width:100%;padding:13px 12px;border-radius:12px;
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:11px 12px;border-radius:10px;
   background:none;border:none;color:var(--t1);
-  font-size:14px;font-weight:600;cursor:pointer;
-  font-family:inherit;transition:background .15s;text-align:left;position:relative;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:all .15s;text-align:left;position:relative;
 }
-.hes-action-btn:hover{background:var(--card2);}
-.hes-action-btn:active{background:rgba(124,58,237,.08);}
-.hes-action-btn .hes-btn-icon{width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.hes-action-btn .hes-btn-icon svg{color:var(--t2);}
+.hes-action-btn:hover{background:rgba(124,58,237,.08);}
+.hes-action-btn:active{background:rgba(124,58,237,.12);}
+.hes-action-btn .hes-btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;background:var(--bg2);}
+.hes-action-btn .hes-btn-icon svg{color:var(--t2);width:16px;height:16px;}
 .hes-action-btn .hes-arrow{position:absolute;right:12px;font-size:18px;color:var(--t3);font-weight:300;}
 .hes-action-btn.liked{color:#ff6482;}
+.hes-action-btn.liked .hes-btn-icon{background:rgba(255,100,130,.1);}
 .hes-action-btn.liked .hes-btn-icon svg{stroke:#ff6482;fill:#ff6482;}
 .hes-action-btn.disliked{color:var(--red);}
+.hes-action-btn.disliked .hes-btn-icon{background:rgba(239,68,68,.08);}
 .hes-action-btn.disliked .hes-btn-icon svg{stroke:var(--red);fill:var(--red);}
-.hes-divider{height:1px;background:var(--border);margin:4px 8px;}
+.hes-divider{height:1px;background:var(--border);margin:4px 12px;}
 /* 하단 바 */
 .hes-bottom-bar{padding:8px 12px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:0;}
 .hes-page-indicator{font-size:11px;color:var(--t3);font-weight:600;margin-bottom:2px;}
 /* 편집 폼 */
-.hes-edit-form{padding:0 16px 16px;display:none;border-top:1px solid var(--border);margin-top:0;overflow-y:auto;}
+.hes-edit-form{padding:0 18px 16px;display:none;border-top:1px solid var(--border);margin-top:0;overflow-y:auto;}
 .hes-edit-form.on{display:block;}
-.hes-edit-label{font-size:11px;font-weight:700;color:var(--t3);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.3px;}
+.hes-edit-label{font-size:10px;font-weight:800;color:var(--t3);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.8px;}
 .hes-edit-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:13px;font-family:inherit;box-sizing:border-box;}
 .hes-edit-input:focus{outline:none;border-color:var(--acc);}
 .hes-edit-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:13px;font-family:inherit;box-sizing:border-box;resize:none;min-height:80px;}
 .hes-edit-textarea:focus{outline:none;border-color:var(--acc);}
 .hes-edit-btns{display:flex;gap:8px;margin-top:12px;}
-.hes-save-btn{flex:1;padding:13px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
-.hes-del-btn-inline{flex-shrink:0;padding:13px 20px;border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.hes-save-btn{flex:1;padding:13px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(124,58,237,.4);}
+.hes-del-btn-inline{flex-shrink:0;padding:13px 20px;border-radius:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
 .hes-del-btn-inline:hover{background:rgba(239,68,68,.18);}
 /* 라이트모드 보정 */
-body.light .hes-handle{background:rgba(0,0,0,.12);}
-body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
+[data-theme="light"] .hes-handle{background:rgba(0,0,0,.12);}
+[data-theme="light"] .hes-action-btn .hes-btn-icon{background:rgba(0,0,0,.04);}
+[data-theme="light"] .hes-primary-btn{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.1);}
 /* 리믹스 Cover 성별 버튼 */
 /* 스타일 추천 칩 */
 .rc-chip{padding:5px 10px;border-radius:20px;border:none;background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
@@ -3910,14 +3916,21 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="hes-backdrop" id="hes-backdrop"></div>
   <div class="hes-panel">
     <div class="hes-handle"></div>
-    <!-- 상단: 트랙 정보 카드 -->
+    <!-- 상단: 트랙 정보 (mds-header 동일) -->
     <div class="hes-track-info">
       <div class="hes-thumb" id="hes-thumb">🎵</div>
       <div class="hes-info-text">
         <div class="hes-track-name" id="hes-track-name">곡 제목</div>
-        <div class="hes-track-artist" id="hes-track-artist">Kenny LEE 에 의해</div>
+        <div class="hes-track-artist" id="hes-track-artist">👤 나의 트랙</div>
+        <span class="hes-style-chip" id="hes-style-chip"></span>
       </div>
-      <button class="hes-more-info-btn" id="hes-more-info-btn">더 많은 정보</button>
+    </div>
+    <!-- 주요 액션 필 버튼 (mds-actions 동일) -->
+    <div class="hes-primary-actions">
+      <button class="hes-primary-btn" id="hes-p-like">❤️ 좋아요</button>
+      <button class="hes-primary-btn" id="hes-p-share">↗ 공유</button>
+      <button class="hes-primary-btn primary" id="hes-p-play">▶ 전체 재생</button>
+      <button class="hes-primary-btn" id="hes-p-dl">⬇ 다운로드</button>
     </div>
     <!-- 상단 탭: 좋아요 / 플레이리스트 / Hooks -->
     <div class="hes-tab-row" id="hes-tab-row">
@@ -6557,15 +6570,15 @@ $('yt-analyze-btn').addEventListener('click', async () => {
   }
 });
 async function kieRequest(apiKey,method,path,body){
-  const res=await fetch(`${KIE_BASE}${path}`,{
-    method,
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
-    body:body&&method!=='GET'?JSON.stringify(body):undefined,
+  /* 서버 프록시 경유 — API 키 서버에서 관리, 클라이언트 노출 방지 */
+  const res=await fetch('/api/kie-proxy',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({path,method,body:body||undefined}),
   });
   const data=await res.json();
   if(!res.ok){
-    const errMsg=data?.msg||data?.error||data?.message||`API 오류 ${res.status}`;
-    /* 내부 에러 메시지 필터링 — 사용자에게 노출하지 않음 */
+    const errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
     if(errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')){
       throw new Error('작업을 처리할 수 없습니다. 다시 시도해주세요.');
     }
@@ -8606,17 +8619,32 @@ function openHistEditSheet(idx){
   if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'🎵';
   const nm=$('hes-track-name');if(nm)nm.textContent=h.title||'무제';
   const artist=$('hes-track-artist');
-  if(artist) artist.textContent=(currentUser?.name||'나')+' 에 의해';
+  if(artist) artist.textContent='👤 '+(currentUser?.name||'나의 트랙');
+  /* 스타일 칩 */
+  const chip=$('hes-style-chip');
+  if(chip){const tagLabel=h.tags?.split(',')[0]?.trim()||'';chip.textContent=tagLabel;chip.style.display=tagLabel?'inline-block':'none';}
   /* 좋아요/싫어요 상태 */
   _hesUpdateLikeDislikeUI();
+  /* 주요 액션 필 버튼 연결 */
+  const pLike=$('hes-p-like');
+  if(pLike){
+    const isLiked=h._liked||h._commLiked;
+    pLike.className='hes-primary-btn'+(isLiked?' liked':'');
+    pLike.textContent=isLiked?'❤️ 좋아요 취소':'🤍 좋아요';
+    pLike.onclick=()=>{hesTabLike();const h2=historyData[_hesIdx];const liked2=h2?._liked||h2?._commLiked;pLike.className='hes-primary-btn'+(liked2?' liked':'');pLike.textContent=liked2?'❤️ 좋아요 취소':'🤍 좋아요';};
+  }
+  const pShare=$('hes-p-share');
+  if(pShare) pShare.onclick=()=>{const sb=$('hes-share-btn');if(sb)sb.click();};
+  const pPlay=$('hes-p-play');
+  if(pPlay) pPlay.onclick=()=>{closeHistEditSheet();showMiniPlayer(idx);};
+  const pDl=$('hes-p-dl');
+  if(pDl) pDl.onclick=()=>{const db=$('hes-dl-btn');if(db)db.click();};
   /* 페이지 표시 */
   const totalCount=historyData.length;
   const pageInd=$('hes-page-ind');
   if(pageInd) pageInd.textContent=(idx+1)+'/'+totalCount;
   /* 편집 폼 숨기기 */
   const ef=$('hes-edit-form');if(ef)ef.classList.remove('on');
-  /* 탭 초기화 */
-  document.querySelectorAll('.hes-tab').forEach(t=>t.classList.remove('active'));
   $('hist-edit-sheet').classList.add('on');
   if(window.lucide) lucide.createIcons();
 }
@@ -9139,7 +9167,7 @@ $('vr-submit-btn').addEventListener('click', async () => {
         var mu = res[ms.k]; if(!mu) return;
         htm += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
         htm += '<span style="font-size:11px;color:var(--t2);width:50px;flex-shrink:0;">'+ms.l+'</span>';
-        htm += '<input type="range" min="0" max="100" value="80" style="flex:1;accent-color:var(--acc);" oninput="if(window._mixAudios){var a=window._mixAudios[''+ms.k+''];if(a)a.volume=this.value/100;}">';
+        htm += '<input type="range" min="0" max="100" value="80" style="flex:1;accent-color:var(--acc);" data-stem-key="'+ms.k+'">';
         htm += '</div>';
       });
       htm += '</div>';
@@ -9161,6 +9189,13 @@ $('vr-submit-btn').addEventListener('click', async () => {
         window._mixAudios[ms.k] = a;
       });
     }
+    /* 스템 볼륨 슬라이더 이벤트 */
+    document.querySelectorAll("[data-stem-key]").forEach(function(sl){
+      sl.addEventListener("input",function(){
+        var k=this.dataset.stemKey;
+        if(window._mixAudios&&window._mixAudios[k])window._mixAudios[k].volume=this.value/100;
+      });
+    });
     $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     /* MR + 보컬 트랙 히스토리 저장 */
@@ -9225,8 +9260,9 @@ function _vrStartRecord(mrUrl, title){
       el.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🎙 내 녹음 완료!</div>'
         +'<audio controls src="'+url+'" style="width:100%;border-radius:8px;margin-bottom:8px;"></audio>'
         +'<div style="display:flex;gap:6px;">'
-        +'<button onclick="downloadFile(''+url+'',''+esc(_vrRecTitle)+'_MyVocal.webm')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다운로드</button>'
+        +'<button id="_vr_rec_dl" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다운로드</button>'
         +'</div>';
+      var _vrDl=el.querySelector('#_vr_rec_dl');if(_vrDl){var _dUrl=url,_dNm=esc(_vrRecTitle)+'_MyVocal.webm';_vrDl.onclick=function(){downloadFile(_dUrl,_dNm);};}
       $('results').appendChild(el);
       el.scrollIntoView({behavior:'smooth',block:'center'});
       toast('녹음 완료! 다운로드해서 확인해보세요','ok',3000);
@@ -14200,7 +14236,7 @@ async function _submitComment(){
 }
 async function _deleteMyComment(id){
   _showSettingsConfirm('댓글 삭제','이 댓글을 삭제할까요?','삭제',async()=>{
-    try{await fetch('/api/comments?id='+id,{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();toast('삭제되었어요','ok',1500);}catch(e){toast('삭제 실패','err');}
+    try{var _cu=currentUser||{};await fetch('/api/comments?id='+encodeURIComponent(id)+'&authorName='+encodeURIComponent(_cu.name||'')+'&authorProvider='+encodeURIComponent(_cu.provider||''),{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();toast('삭제되었어요','ok',1500);}catch(e){toast('삭제 실패','err');}
   });
 }
 </script>
