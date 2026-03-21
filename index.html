@@ -2334,6 +2334,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 .plan-upgrade-btn.current-btn{
   background:rgba(255,255,255,.06);color:var(--t3);cursor:default;
 }
+.plan-upgrade-btn.downgrade-btn{
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red);
+}
+.plan-upgrade-btn.downgrade-btn:hover{background:rgba(239,68,68,.15);}
 .usage-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
 .usage-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
 .usage-stat-num{font-size:20px;font-weight:800;color:var(--t1);}
@@ -11646,19 +11650,56 @@ function renderPlanUI(){
   const uck=$('us-cost-krw'); if(uck) uck.textContent='₩'+_costKrw.toLocaleString('ko-KR');
   const ucu=$('us-cost-usd'); if(ucu) ucu.textContent='$'+_costUsd.toFixed(3);
 
-  /* 플랜 카드 current 표시 */
+  /* 플랜 카드 current / 업그레이드 / 다운그레이드 표시 */
+  const _planRank = {free:0, pro:1, creator:2};
+  const curRank = _planRank[plan.type] || 0;
   ['free','pro','creator'].forEach(p=>{
     const card=document.getElementById('plan-card-'+p);
     const btn=document.getElementById('btn-'+p);
     if(!card||!btn) return;
+    const rank = _planRank[p] || 0;
     if(p===plan.type){
       card.classList.add('current');
       btn.textContent='현재 플랜'; btn.disabled=true; btn.className='plan-upgrade-btn current-btn';
+      btn.onclick=null;
+    } else if(rank < curRank){
+      card.classList.remove('current');
+      btn.textContent='다운그레이드'; btn.disabled=false; btn.className='plan-upgrade-btn downgrade-btn';
+      btn.onclick=e=>{e.stopPropagation();_confirmDowngrade(p);};
     } else {
       card.classList.remove('current');
       btn.textContent='업그레이드'; btn.disabled=false; btn.className='plan-upgrade-btn';
+      btn.onclick=e=>{e.stopPropagation();upgradePlan(p);};
     }
   });
+}
+
+function _confirmDowngrade(targetPlan){
+  const labels={free:'Free (무료)',pro:'Pro',creator:'Creator'};
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.innerHTML=`<div style="background:var(--card2,#1e1e2a);border:1px solid rgba(239,68,68,.3);border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:32px;margin-bottom:12px;"><i data-lucide="alert-triangle" style="width:32px;height:32px;color:#f59e0b;"></i></div>
+    <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:8px;">플랜 다운그레이드</div>
+    <div style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:20px;">
+      <b>${labels[targetPlan]}</b> 플랜으로 변경하시겠어요?<br>
+      ${targetPlan==='free'?'유료 기능(MV, 보컬변환 등)이 제한됩니다.':'현재보다 생성 한도가 줄어듭니다.'}
+    </div>
+    <button onclick="this.closest('[style*=fixed]').remove();_doDowngrade('${targetPlan}');" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#ef4444,#f87171);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">다운그레이드 확인</button>
+    <button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:13px;cursor:pointer;font-family:inherit;">취소</button>
+  </div>`;
+  document.body.appendChild(ov);
+  if(window.lucide) lucide.createIcons();
+}
+
+function _doDowngrade(targetPlan){
+  const startDate=new Date().toISOString();
+  const endDate=targetPlan==='free'?null:new Date(Date.now()+30*24*60*60*1000).toISOString();
+  localStorage.setItem('kms_plan',JSON.stringify({type:targetPlan,startDate,endDate}));
+  toast(`플랜이 ${targetPlan==='free'?'Free':'Pro'}로 변경됐어요`,'ok',3000);
+  renderPlanUI();
+  try{_renderSettingsExtended();}catch(e){}
 }
 
 function selectPlan(type){ /* 카드 클릭 시 강조만 */ }
