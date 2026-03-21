@@ -4987,7 +4987,7 @@ async function _loadPaymentData(){
   try {
     const r = await fetch('/api/payments/confirm?key=' + encodeURIComponent(getAdminPw()||''));
     const d = await r.json();
-    const payments = d.payments || d.data || [];
+    const payments = Array.isArray(d.payments) ? d.payments : Array.isArray(d.data) ? d.data : [];
     const tbody = document.getElementById('pay-history-tbody');
 
     let totalAmount = 0, totalCount = payments.length;
