@@ -917,17 +917,11 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-g-male.active{background:rgba(96,165,250,.12);border-color:#60a5fa;color:#3b82f6;}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
-/* 리믹스 모달 */
-/* 리믹스 바텀시트 공통 — hes-panel 기본 bottom:56px 오버라이드 */
-#remix-cover-modal .hes-panel,
-#remix-style-modal .hes-panel,
-#remaster-modal .hes-panel{bottom:0;max-height:85vh;}
-#remix-cover-modal.on{pointer-events:auto;opacity:1;}
-#remix-cover-modal.on .hes-panel{transform:translateY(0);}
-#remix-style-modal.on{pointer-events:auto;opacity:1;}
-#remix-style-modal.on .hes-panel{transform:translateY(0);}
-#remaster-modal.on{pointer-events:auto;opacity:1;}
-#remaster-modal.on .hes-panel{transform:translateY(0);}
+/* 리믹스/커버/리마스터 바텀시트 */
+#remix-cover-modal,#remix-style-modal,#remaster-modal{position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;}
+#remix-cover-modal.on,#remix-style-modal.on,#remaster-modal.on{pointer-events:auto;opacity:1;}
+#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel{bottom:0;max-height:85vh;}
+#remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel{transform:translateY(0);}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -4029,7 +4023,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 </div>
 
 <!-- ── 리믹스: Cover 바텀시트 ── -->
-<div id="remix-cover-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+<div id="remix-cover-modal">
   <div class="hes-backdrop" id="rc-backdrop"></div>
   <div class="hes-panel" id="rc-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
@@ -4097,7 +4091,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 </div>
 
 <!-- ── 리믹스: 스타일 재사용 바텀시트 ── -->
-<div id="remix-style-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+<div id="remix-style-modal">
   <div class="hes-backdrop" id="rs-backdrop"></div>
   <div class="hes-panel" id="rs-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
