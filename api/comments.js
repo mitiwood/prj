@@ -34,7 +34,7 @@ async function _tgComment(author, text, trackTitle) {
     msg += `내용: ${(text || "").slice(0, 200)}\n`;
     if(trackTitle) msg += `곡: ${trackTitle}\n`;
     msg += `⏰ ${ts}`;
-    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" }), "utf-8");
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text: msg,  }), "utf-8");
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },

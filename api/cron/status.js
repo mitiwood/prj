@@ -36,7 +36,7 @@ async function tgSend(text) {
   const controller = new AbortController();
   const tm = setTimeout(() => controller.abort(), 8000);
   try {
-    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text,  }), "utf-8");
     const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
       signal: controller.signal,

@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       const result = await tgApi('sendMessage', {
         chat_id: targetChat,
         text: msg,
-        parse_mode: parse_mode || 'Markdown',
+        ...(parse_mode ? { parse_mode } : {}),
         disable_notification: !!silent,
       });
       return res.status(200).json({ ok: true, message_id: result.message_id });

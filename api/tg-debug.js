@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   if (req.query?.send === "1") {
     const text = "🔧 *텔레그램 디버그 테스트*\ntoken: " + (TG_TOKEN ? "OK" : "EMPTY") + "\nchat: " + TG_CHAT;
     try {
-      const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" }), "utf-8");
+      const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text,  }), "utf-8");
       const r = await fetch("https://api.telegram.org/bot" + TG_TOKEN + "/sendMessage", {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },

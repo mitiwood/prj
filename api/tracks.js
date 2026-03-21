@@ -37,26 +37,28 @@ async function _tgNotify(event, data) {
     const icon = { music_created: "🎵", mv_created: "🎬", track_deleted: "🗑" }[event] || "📌";
     const label = { music_created: "새 곡 생성 완료", mv_created: "뮤직비디오 완성", track_deleted: "트랙 삭제" }[event] || event;
     const modeLabel = { custom: "커스텀", simple: "심플", youtube: "YouTube", mv: "MV", vocal: "보컬변환" };
-    let text = `${icon} *${label}*\n`;
+    let text = `${icon} ${label}\n`;
     if (data.title) text += `곡명: ${data.title}\n`;
     if (data.mode) text += `모드: ${modeLabel[data.mode] || data.mode}\n`;
     if (data.user) text += `생성자: ${data.user}\n`;
     if (data.tags) text += `장르: ${data.tags}\n`;
     if (data.provider) text += `소셜: ${data.provider}\n`;
-    text += `⏰ ${ts}\n`;
-    if (data.audioUrl) text += `\n🎧 [음원 듣기](${data.audioUrl})`;
-    if (data.videoUrl) text += `\n🎬 [MV 보기](${data.videoUrl})`;
-    if (data.imageUrl) text += `\n🖼 [커버 이미지](${data.imageUrl})`;
-    const jsonPayload = JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" });
-    const body = Buffer.from(jsonPayload, "utf-8");
+    text += `⏰ ${ts}`;
+
+    /* plain text로 전송 (Markdown 파싱 에러 방지) */
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text }), "utf-8");
     const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8", "Content-Length": String(body.length) },
       body,
     });
     const d = await r.json();
+    if (!d.ok) console.warn("[tracks _tgNotify]", d.description);
     return { sent: true, ok: d.ok, message_id: d.result?.message_id, error: d.ok ? null : d.description };
-  } catch(e) { return { sent: false, error: e.message }; }
+  } catch(e) {
+    console.error("[tracks _tgNotify] error:", e.message);
+    return { sent: false, error: e.message };
+  }
 }
 
 async function sb(path, opts = {}) {

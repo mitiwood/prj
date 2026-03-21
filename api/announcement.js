@@ -17,7 +17,7 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 async function _tgNotify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
   try {
-    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' }), 'utf-8');
+    const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text,  }), 'utf-8');
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
