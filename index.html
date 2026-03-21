@@ -4686,7 +4686,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
     </div>
     <!-- 하단 버튼 -->
     <div style="display:flex;gap:10px;padding:20px 24px 0;">
-      <button onclick="window.open('https://ai-music-studio-bice.vercel.app/','_blank')" style="flex:1;padding:14px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.02em;">✦ 나도 만들기</button>
+      <button onclick="_sharedToMiniAndCreate()" style="flex:1;padding:14px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.02em;">✦ 나도 만들기</button>
       <button onclick="document.getElementById('shared-player-wrap').remove()" style="padding:14px 20px;background:rgba(255,255,255,.06);color:#a09ab8;border:1px solid rgba(255,255,255,.1);border-radius:14px;font-size:14px;cursor:pointer;">닫기</button>
     </div>
     <audio id="ssp-audio" src="${audioUrl}" preload="auto" style="display:none;"></audio>
@@ -4725,6 +4725,28 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
 
   wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove();});
   audio.play().catch(()=>{});
+}
+
+function _sharedToMiniAndCreate(){
+  const wrap=document.getElementById('shared-player-wrap');
+  const sspAudio=document.getElementById('ssp-audio');
+  if(wrap){
+    /* 공유 곡을 히스토리에 임시 추가 후 미니플레이어로 전환 */
+    const titleEl=wrap.querySelector('.title, [style*="font-weight:800"]');
+    const imgEl=wrap.querySelector('img');
+    const title=titleEl?.textContent||'공유된 노래';
+    const imgUrl=imgEl?.src||'';
+    const audioUrl=sspAudio?.src||'';
+    if(audioUrl){
+      const h={id:'shared_'+Date.now(),title,audio_url:audioUrl,image_url:imgUrl,tags:'공유',created:Date.now()};
+      historyData.unshift(h);saveHistory();
+      wrap.remove();
+      showMiniPlayer(0);
+    } else {
+      wrap.remove();
+    }
+  }
+  switchTab('create-view');
 }
 
 /* ── 인스트루멘탈 ── */
