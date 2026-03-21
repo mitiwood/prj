@@ -325,42 +325,6 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── PATCH /hide: is_public 토글 (관리자) ─── */
-  /* URL: /api/tracks/hide?id=xxx 또는 /api/tracks?id=xxx&action=hide */
-  const isHideAction =
-    req.url?.includes("/hide") || req.query?.action === "hide";
-  if (req.method === "PATCH" && isHideAction) {
-    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
-    const id = req.query?.id;
-    if (!id) return res.status(400).json({ error: "id required" });
-    try {
-      let b = req.body;
-      if (typeof b === "string") {
-        try {
-          b = JSON.parse(b);
-        } catch {
-          b = {};
-        }
-      }
-      const isPublic = b?.is_public ?? false;
-      try {
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          prefer: "return=minimal",
-          body: JSON.stringify({ is_public: isPublic }),
-        });
-        /* memory fallback */
-        const idx = _mem.findIndex((t) => t.id === id);
-        if (idx >= 0) _mem[idx].is_public = isPublic;
-        return res.status(200).json({ success: true, is_public: isPublic });
-      } catch (e) {
-        return res.status(500).json({ error: e.message });
-      }
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
-    }
-  }
-
   /* ─── DELETE: 관리자 삭제 ─── */
   if (req.method === "DELETE") {
     if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
@@ -371,9 +335,15 @@ export default async function handler(req, res) {
         method: "DELETE",
         prefer: "return=minimal",
       });
+      /* memory fallback cleanup */
+      const mi = _mem.findIndex((t) => t.id === id);
+      if (mi >= 0) _mem.splice(mi, 1);
       await _tgNotify("track_deleted", { title: `트랙 ID: ${id}`, user: "관리자" });
       return res.status(200).json({ success: true });
     } catch (e) {
+      /* Supabase 실패 시 메모리에서라도 삭제 */
+      const mi = _mem.findIndex((t) => t.id === id);
+      if (mi >= 0) { _mem.splice(mi, 1); return res.status(200).json({ success: true, source: "memory" }); }
       return res.status(500).json({ error: e.message });
     }
   }

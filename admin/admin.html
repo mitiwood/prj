@@ -1413,7 +1413,7 @@ document.getElementById('gate-pw').addEventListener('keydown',e=>{if(e.key==='En
 if(localStorage.getItem('kms_admin_auth')==='1'){
   document.getElementById('admin-gate').style.display='none';
   document.getElementById('admin-app').style.display='flex';
-  document.getElementById('last-login-time').textContent=new Date().toLocaleString('ko-KR');
+  const _llt=document.getElementById('last-login-time'); if(_llt) _llt.textContent=new Date().toLocaleString('ko-KR');
   /* 세션 비밀번호 복원 */
   if(!sessionStorage.getItem('kms_admin_session')){
     sessionStorage.setItem('kms_admin_session', localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW);
@@ -2040,7 +2040,7 @@ function deleteTrackByIdx(i){
   localStorage.setItem('kms_history',JSON.stringify(h));
   adminToast('✅ 삭제됨');renderTracksAdmin();loadData();
 }
-function deleteTrack(i){deleteTrackByIdx(i);loadData();}
+function deleteTrack(i){deleteTrackByIdx(i);}
 
 // ── 커뮤니티 관리 ──
 async function kieProxyRequest(apiKey, path, method='GET', body=null){
@@ -2654,15 +2654,29 @@ function sendPushToUser(name){
   sendPushToUserDirect(name);
 }
 
-function banUser(name){
+async function banUser(name){
   if(!confirm(name+' 사용자를 차단할까요?\n(커뮤니티 곡이 숨겨지고 로그인 목록에서 제거됩니다)'))return;
+  /* 서버: 해당 사용자의 커뮤니티 곡 숨기기 */
+  try{
+    const r=await adminFetch('/api/tracks?public=true&limit=500');
+    const d=await r.json().catch(()=>({}));
+    if(Array.isArray(d.tracks)){
+      const userTracks=d.tracks.filter(t=>t.owner_name===name);
+      for(const t of userTracks){
+        await adminFetch('/api/tracks?id='+encodeURIComponent(t.id)+'&action=hide',{
+          method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_public:false})
+        }).catch(()=>{});
+      }
+    }
+  }catch(e){ console.warn('[banUser server]',e.message); }
+  /* 로컬 데이터 정리 */
   let h=getHistory();
   h=h.map(t=>{if(t._owner?.name===name)t._owner=null;return t;});
   localStorage.setItem('kms_history',JSON.stringify(h));
-  /* 로그인 목록에서도 제거 */
   let lu=getLoginUsers().filter(u=>u.name!==name);
   localStorage.setItem('kms_login_users',JSON.stringify(lu));
-  adminToast('✅ '+name+' 차단됨');
+  addAudit('ban','사용자 차단',name);
+  adminToast('✅ '+name+' 차단됨 (커뮤니티 곡 숨김 처리)');
   renderUsersAdmin();loadData();
 }
 
@@ -2841,7 +2855,7 @@ async function sendAnnouncement() {
   const result = g('ann-result');
   if(!title) { adminToast('⚠️ 제목을 입력하세요'); return; }
   if(!body)  { adminToast('⚠️ 내용을 입력하세요'); return; }
-  btn.disabled = true; btn.textContent = '발송 중...';
+  if(btn){ btn.disabled = true; btn.textContent = '발송 중...'; }
   if(result) result.textContent = '';
   try {
     const r = await adminFetch('/api/announcement', {
@@ -2862,7 +2876,7 @@ async function sendAnnouncement() {
   } catch(e) {
     if(result) result.innerHTML = `<span style="color:var(--red);">❌ ${esc(e.message)}</span>`;
     adminToast('❌ 발송 실패: ' + e.message);
-  } finally { btn.disabled = false; btn.textContent = '📣 인앱 공지 발송'; }
+  } finally { if(btn){ btn.disabled = false; btn.textContent = '📣 인앱 공지 발송'; } }
 }
 
 async function deleteAnnouncement() {
@@ -3133,8 +3147,7 @@ async function checkVapid(){
 /* 로그인 사용자 목록 가져오기 (UA 포함) */
 function getLoginUsersForPush(target){
   const all = getLoginUsers();
-  if(target === 'all') return all;
-  if(target === 'logged') return all;
+  if(target === 'all' || target === 'logged') return all;
   if(target === 'select') return all.filter(u => _pushSelectedUsers.has(u.name||u.email||u.id));
   if(target === 'mobile') return all.filter(u => u.ua && /iPhone|iPad|Android|Mobile/i.test(u.ua));
   return all;
@@ -3211,7 +3224,7 @@ function sendPushToUserDirect(name){
   switchSec('push');
   _pushSelectedUsers.clear();
   _pushSelectedUsers.add(name);
-  document.querySelector('input[name="push-target"][value="select"]').checked = true;
+  const _ptEl=document.querySelector('input[name="push-target"][value="select"]'); if(_ptEl) _ptEl.checked=true;
   toggleUserSelect();
   const titleEl=document.getElementById('push-title');
   const bodyEl=document.getElementById('push-body');
@@ -4015,12 +4028,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // ══════════════════════════════════════════════
-//  신고 관리 구현
+//  신고 관리 구현 (getReports/saveReports는 위에서 정의)
 // ══════════════════════════════════════════════
-const REPORTS_KEY = 'kms_reports';
-
-function getReports(){ try{ return JSON.parse(localStorage.getItem(REPORTS_KEY)||'[]'); }catch{ return []; } }
-function saveReports(r){ localStorage.setItem(REPORTS_KEY, JSON.stringify(r)); }
 
 function loadReports(){
   const reports = getReports();
