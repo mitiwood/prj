@@ -2,8 +2,10 @@
  * /api/profile — 크리에이터 프로필 조회
  *
  * GET ?name=xxx&provider=yyy → 프로필 + 곡 목록 + 통계
- * GET ?name=xxx&provider=yyy&action=follow → 팔로우 상태 확인
+ * GET ?name=xxx&provider=yyy&action=following → 팔로잉 목록
+ * GET ?name=xxx&provider=yyy&action=followers → 팔로워 목록
  * POST { action:'follow', followerName, followerProvider, followingName, followingProvider } → 팔로우/언팔로우
+ * POST { action:'update-profile', name, provider, oldName } → 프로필 이름 수정
  * POST { action:'report', reporterName, reporterProvider, targetType, targetId, reason } → 신고
  * POST { action:'block', userName, userProvider, targetName, targetProvider } → 차단
  */
@@ -55,6 +57,62 @@ export default async function handler(req, res) {
     const name = req.query?.name;
     const provider = req.query?.provider;
     if (!name || !provider) return res.status(400).json({ error: 'name, provider 필요' });
+
+    const action = req.query?.action;
+
+    /* ── 팔로잉 목록 ── */
+    if (action === 'following') {
+      try {
+        const { data: follows } = await sb('GET',
+          `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&order=created_at.desc&limit=50`);
+        const list = Array.isArray(follows) ? follows : [];
+        const following = [];
+        for (const f of list) {
+          try {
+            const { count: trackCount } = await sb('GET',
+              `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&is_public=eq.true&select=id&limit=0`);
+            const { count: followerCount } = await sb('GET',
+              `/follows?following_name=ilike.${encodeURIComponent(f.following_name)}&following_provider=eq.${encodeURIComponent(f.following_provider)}&select=id&limit=0`);
+            const { data: avatarRows } = await sb('GET',
+              `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&select=owner_avatar&limit=1`);
+            const avatar = Array.isArray(avatarRows) && avatarRows[0] ? avatarRows[0].owner_avatar : '';
+            following.push({ name: f.following_name, provider: f.following_provider, avatar, trackCount: trackCount || 0, followerCount: followerCount || 0 });
+          } catch (e) {
+            following.push({ name: f.following_name, provider: f.following_provider, avatar: '', trackCount: 0, followerCount: 0 });
+          }
+        }
+        return res.status(200).json({ ok: true, following });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
+      }
+    }
+
+    /* ── 팔로워 목록 ── */
+    if (action === 'followers') {
+      try {
+        const { data: follows } = await sb('GET',
+          `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=follower_name,follower_provider&order=created_at.desc&limit=50`);
+        const list = Array.isArray(follows) ? follows : [];
+        const followers = [];
+        for (const f of list) {
+          try {
+            const { count: trackCount } = await sb('GET',
+              `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&is_public=eq.true&select=id&limit=0`);
+            const { count: followerCount } = await sb('GET',
+              `/follows?following_name=ilike.${encodeURIComponent(f.follower_name)}&following_provider=eq.${encodeURIComponent(f.follower_provider)}&select=id&limit=0`);
+            const { data: avatarRows } = await sb('GET',
+              `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&select=owner_avatar&limit=1`);
+            const avatar = Array.isArray(avatarRows) && avatarRows[0] ? avatarRows[0].owner_avatar : '';
+            followers.push({ name: f.follower_name, provider: f.follower_provider, avatar, trackCount: trackCount || 0, followerCount: followerCount || 0 });
+          } catch (e) {
+            followers.push({ name: f.follower_name, provider: f.follower_provider, avatar: '', trackCount: 0, followerCount: 0 });
+          }
+        }
+        return res.status(200).json({ ok: true, followers });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
+      }
+    }
 
     try {
       /* 유저 정보 */
@@ -181,6 +239,29 @@ export default async function handler(req, res) {
     if (action === 'block' || action === 'unblock') {
       /* 클라이언트 localStorage 기반 — 서버는 기록만 */
       return res.status(200).json({ ok: true, action, message: '클라이언트에서 처리' });
+    }
+
+    /* 프로필 수정 */
+    if (action === 'update-profile') {
+      const { name: newName, provider: prov, oldName } = body;
+      if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
+      const trimmed = newName.trim().slice(0, 30);
+      if (!trimmed) return res.status(400).json({ error: '이름이 비어있어요' });
+      try {
+        // Update users table
+        await sb('PATCH',
+          `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}`,
+          { name: trimmed });
+        // Update tracks owner_name
+        try {
+          await sb('PATCH',
+            `/tracks?owner_name=ilike.${encodeURIComponent(oldName)}&owner_provider=ilike.${encodeURIComponent(prov)}`,
+            { owner_name: trimmed });
+        } catch (e) { console.warn('[update-profile] tracks update:', e.message); }
+        return res.status(200).json({ ok: true, name: trimmed });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
+      }
     }
 
     return res.status(400).json({ error: 'unknown action' });
