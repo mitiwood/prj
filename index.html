@@ -6379,6 +6379,13 @@ document.querySelectorAll('#mv-mode-btns .mv-opt-btn').forEach(btn=>{
     mvSelectedMode=this.dataset.mode;
     var info=$('mv-img2vid-info');if(info)info.style.display=mvSelectedMode==='img2vid'?'block':'none';
     var mainBtn=$('mv-gen-btn');if(mainBtn)mainBtn.style.display=mvSelectedMode==='img2vid'?'none':'';
+    /* img2vid 진입 시 초기화 */
+    if(mvSelectedMode==='img2vid'){
+      var mp=$('mv-prompt');if(mp)mp.value='';
+      var prev=$('mv-img-preview');if(prev)prev.style.display='none';
+      var vb=$('mv-vid-from-img-btn');if(vb)vb.style.display='none';
+      _mvGeneratedImageUrl='';
+    }
   });
 });
 
