@@ -8171,116 +8171,65 @@ var _mvScenes=['네온 빛이 반짝이는 도심 야경, 빗물에 반사되는
 var _mvCameras2=['역동적인 카메라 워크','슬로우 모션','드론 시점 이동','부드러운 팬 촬영','줌인 클로즈업','핸드헬드 촬영','원샷 롱테이크','360도 회전'];
 var _mvQualities2=['4K 고화질','시네마틱 색보정','필름 그레인','드라마틱 조명','소프트 포커스','하이 콘트라스트'];
 async function _mvGenerateImage(){
-  console.log('[img2vid] _mvGenerateImage called, _globalGenerating=',_globalGenerating);
-  var apiKey=kieApiKey||'proxy';
-  if(_globalGenerating){console.log('[img2vid] blocked: generating');_showGeneratingPopup();return;}
-  var promptEl=$('mv-prompt');
-  var prompt=(promptEl?.value||'').trim();
-  /* 프롬프트 비어있으면 랜덤 시네마틱 프롬프트 자동 생성 */
-  if(!prompt){
-    var _ti=$('mv-link-track')?.value;
-    var _lt=_ti!==''&&_ti!=null?historyData[parseInt(_ti)]:null;
-    var _mvScenes=[
-      '네온 빛이 반짝이는 도심 야경, 빗물에 반사되는 거리, 감성적인 분위기',
-      '석양이 물드는 해변, 파도 소리, 따뜻한 골든아워 조명',
-      '우주 공간을 떠다니는 환상적인 장면, 별빛과 오로라, 몽환적 분위기',
-      '안개 낀 숲속, 부드러운 햇살이 나뭇잎 사이로 스며드는 장면',
-      '미래 도시의 홀로그램 거리, 사이버펑크 분위기, 보라색 네온',
-      '벚꽃이 흩날리는 봄날, 골목길을 걷는 장면, 따뜻한 색감',
-      '거울처럼 반사되는 호수 위의 달빛, 고요한 밤, 잔잔한 분위기',
-      '콘서트 무대 위 스포트라이트, 열정적인 공연, 관객의 환호',
-      '오래된 카페 창가, 비가 내리는 오후, 빈티지 필름 느낌',
-      '구름 위를 날아가는 장면, 드론 시점, 광활한 자연 풍경',
-      '댄서가 춤추는 어두운 스튜디오, 한 줄기 조명, 실루엣',
-      '눈 내리는 겨울 거리, 따뜻한 가로등 불빛, 로맨틱한 분위기',
-      '옥상 위에서 바라보는 도시 전경, 새벽 여명, 시네마틱 와이드샷',
-      '열대 정글 속 폭포, 생동감 넘치는 색감, 모험적 분위기',
-      '빈티지 레코드판이 돌아가는 클로즈업, 아날로그 감성, 따뜻한 톤',
-    ];
-    var _mvCameras=['역동적인 카메라 워크','슬로우 모션','드론 시점 이동','부드러운 팬 촬영','줌인 클로즈업','핸드헬드 촬영','원샷 롱테이크','360도 회전 촬영'];
-    var _mvQualities=['고화질 4K','시네마틱 색보정','필름 그레인 효과','드라마틱 조명','소프트 포커스','하이 콘트라스트'];
-    var scene=_mvScenes[Math.floor(Math.random()*_mvScenes.length)];
-    var cam=_mvCameras[Math.floor(Math.random()*_mvCameras.length)];
-    var qual=_mvQualities[Math.floor(Math.random()*_mvQualities.length)];
-    if(_lt) prompt='"'+(_lt.title||'무제')+'" — '+scene+', '+cam+', '+qual+', 스타일: '+(_lt.tags||'팝');
-    else prompt=scene+', '+cam+', '+qual;
-    if(promptEl) promptEl.value=prompt;
-    toast('✨ 랜덤 프롬프트 생성!','ok',2000);
-  }
-  console.log('[img2vid] prompt:', prompt.slice(0,60));
-  console.log('[img2vid] prompt:', prompt.slice(0,50));
-  var btn=$('mv-img-gen-btn'),spinner=$('mv-img-spinner'),txt=$('mv-img-txt');
-  btn.disabled=true;if(spinner)spinner.classList.add('on');txt.textContent='🖼 이미지 생성 중...';
-  _globalGenerating=true;_syncGenButtons();
-  var ratio=(function(){var m={'2:3':'9:16','3:2':'16:9','16:9':'16:9','9:16':'9:16','1:1':'1:1'};return m[mvSelectedRatio]||'16:9';})();
-  var ti=$('mv-link-track')?.value;var lt=ti!==''&&ti!=null?historyData[parseInt(ti)]:null;
-  var ip=prompt+(lt?', music style: '+(lt.tags||''):'')+', high quality, detailed, 4K, cinematic lighting';
-  console.log('[img2vid] image prompt:', ip.slice(0,80), 'ratio:', ratio);
-  try{
-    var id;
-    console.log('[img2vid] trying flux-kontext-pro/text-to-image...');
-    try{id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'flux-kontext-pro/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
-    catch(e){
-      console.warn('[img2vid] flux failed:', e.message, '→ trying kolors...');
-      try{id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kolors/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
-      catch(e2){console.error('[img2vid] kolors also failed:', e2.message); throw new Error('이미지 생성 모델 호출 실패: '+e.message+' / '+e2.message);}
-    }
-    console.log('[img2vid] createTask response:', JSON.stringify(id).slice(0,200));
-    var tid=id?.data?.taskId||id?.taskId;if(!tid)throw new Error('이미지 taskId 없음: '+JSON.stringify(id).slice(0,150));
-    txt.textContent='🖼 이미지 생성 중... (30~60초)';
-    for(var i=0;i<50;i++){await sleep(i<3?1500:2500);try{
-      var r=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+tid);var d=r?.data;if(!d)continue;
-      var s=(d.state||d.status||'').toLowerCase();
-      if(s==='success'||s==='completed'||s==='finish'){var u='';try{var rj=typeof d.resultJson==='string'?JSON.parse(d.resultJson):d.resultJson||{};u=rj.resultUrls?.[0]||rj.imageUrl||rj.url||'';}catch{}
-        if(!u){var o=d.output||d.response||d.result||{};u=o.imageUrl||o.image_url||o.url||o.images?.[0]?.url||'';}
-        if(!u)throw new Error('이미지 URL 없음');
-        _mvGeneratedImageUrl=u;$('mv-img-preview').style.display='block';$('mv-img-preview-img').src=u;$('mv-vid-from-img-btn').style.display='';
-        toast('🖼 이미지 생성 완료! 확인 후 영상으로 변환하세요','ok',3000);return;}
-      if(s==='fail'||s==='failed'||s==='error')throw new Error('이미지 생성 실패: '+(d.failMsg||s));
-    }catch(pe){if(pe.message.includes('실패'))throw pe;}}
-    throw new Error('이미지 생성 시간 초과');
-  }catch(e){toast('❌ '+e.message,'err',4000);}
-  finally{_globalGenerating=false;_syncGenButtons();btn.disabled=false;if(spinner)spinner.classList.remove('on');txt.textContent='🖼 Step 1: 씬 이미지 생성';}
-}
-function _mvRegenerateImage(){$('mv-img-preview').style.display='none';$('mv-vid-from-img-btn').style.display='none';_mvGeneratedImageUrl='';_mvGenerateImage();}
-async function _mvConvertImageToVideo(){
-  if(!_mvGeneratedImageUrl){toast('먼저 이미지를 생성해주세요','err');return;}
   var apiKey=kieApiKey||'proxy';
   if(_globalGenerating){_showGeneratingPopup();return;}
-  var prompt=($('mv-prompt')?.value||'').trim()||'cinematic motion, smooth camera movement';
-  var btn=$('mv-vid-from-img-btn'),spinner=$('mv-vid-spinner'),txt=$('mv-vid-txt');
-  btn.disabled=true;if(spinner)spinner.classList.add('on');txt.textContent='🎬 영상 변환 중...';
+  var promptEl=$('mv-prompt');
+  var prompt=(promptEl?.value||'').trim();
+  if(!prompt){
+    var _ti=$('mv-link-track')?.value;var _lt=_ti!==''&&_ti!=null?historyData[parseInt(_ti)]:null;
+    var sc=_mvScenes[Math.floor(Math.random()*_mvScenes.length)];
+    var ca=_mvCameras2[Math.floor(Math.random()*_mvCameras2.length)];
+    var qu=_mvQualities2[Math.floor(Math.random()*_mvQualities2.length)];
+    prompt=_lt?('"'+(_lt.title||'무제')+'" — '+sc+', '+ca+', '+qu+', 스타일: '+(_lt.tags||'팝')):(sc+', '+ca+', '+qu);
+    if(promptEl) promptEl.value=prompt;
+  }
+  var btn=$('mv-img-gen-btn'),spinner=$('mv-img-spinner'),txt=$('mv-img-txt');
+  btn.disabled=true;if(spinner)spinner.classList.add('on');txt.textContent='🤖 AI 프롬프트 강화 중...';
   _globalGenerating=true;_syncGenButtons();
   var ratio=(function(){var m={'2:3':'9:16','3:2':'16:9','16:9':'16:9','9:16':'9:16','1:1':'1:1'};return m[mvSelectedRatio]||'16:9';})();
   var dur=(function(){if(mvSelectedDuration==='custom')return String(parseInt($('mv-dur-custom')?.value||'5')<=7?5:10);return String([5,10].includes(parseInt(mvSelectedDuration))?parseInt(mvSelectedDuration):5);})();
   var ti=$('mv-link-track')?.value;var lt=ti!==''&&ti!=null?historyData[parseInt(ti)]:null;
-  var ra=$('mv-result-area');ra.style.display='block';
-  ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 이미지→영상 변환 중...</div><div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;"><div id="mv-i2v-pbar" style="height:100%;background:var(--acc);width:5%;transition:width .3s;border-radius:3px;"></div></div><div id="mv-i2v-txt" style="font-size:11px;color:var(--t3);margin-top:6px;">영상 생성 중... 2~5분 소요</div></div>';
   try{
-    var gd=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kling-2.6/image-to-video',input:{prompt:prompt,image_url:_mvGeneratedImageUrl,aspect_ratio:ratio,sound:false,duration:dur}});
-    var tid=gd?.data?.taskId||gd?.taskId;if(!tid)throw new Error('영상 taskId 없음');
-    for(var i=0;i<90;i++){await sleep(i<5?1500:i<20?2500:3500);
-      var pct=Math.min(92,5+Math.round((i/90)*87));var pb=$('mv-i2v-pbar');if(pb)pb.style.width=pct+'%';var pt=$('mv-i2v-txt');if(pt)pt.textContent='영상 변환 중... '+pct+'%';
+    /* Step 1: Gemini로 한국어→영문 고품질 프롬프트 변환 */
+    var enhanced=prompt;
+    try{
+      var aiR=await callClaudeStream('You are a professional music video director. Convert the Korean description into a detailed English text-to-video prompt (50-100 words). Focus on scene composition, lighting, camera movement, color palette. Output ONLY the English prompt.',prompt,function(){});
+      if(aiR&&aiR.length>20) enhanced=aiR;
+    }catch(ae){console.warn('[ai-mv] AI failed, using original');}
+    /* AI 변환 결과 표시 */
+    var pe=$('mv-ai-enhanced-preview'),pt2=$('mv-ai-enhanced-text');
+    if(pe&&pt2){pe.style.display='block';pt2.textContent=enhanced;}
+    if(promptEl) promptEl.value=prompt;
+    /* Step 2: Kling text-to-video */
+    txt.textContent='🎬 영상 생성 중...';
+    var ra=$('mv-result-area');ra.style.display='block';
+    ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 AI 강화 영상 생성 중...</div><div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;"><div id="mv-ai-pbar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#7c3aed);width:5%;transition:width .3s;border-radius:3px;"></div></div><div id="mv-ai-ptxt" style="font-size:11px;color:var(--t3);margin-top:6px;">영상 생성 중... 2~5분 소요</div></div>';
+    var gd=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kling-2.6/text-to-video',input:{prompt:enhanced,aspect_ratio:ratio,sound:false,duration:dur}});
+    var tid=gd?.data?.taskId||gd?.taskId;
+    if(!tid)throw new Error('영상 taskId 없음');
+    for(var i=0;i<90;i++){
+      await sleep(i<5?1500:i<20?2500:3500);
+      var pct=Math.min(92,5+Math.round((i/90)*87));var pb=$('mv-ai-pbar');if(pb)pb.style.width=pct+'%';var ptx=$('mv-ai-ptxt');if(ptx)ptx.textContent='영상 생성 중... '+pct+'%';
       try{var res=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+tid);var d=res?.data;if(!d)continue;
         var st=(d.state||d.status||'').toLowerCase();
-        if(st==='success'||st==='completed'||st==='finish'){var vu='';try{var rj=typeof d.resultJson==='string'?JSON.parse(d.resultJson):d.resultJson||{};vu=rj.resultUrls?.[0]||rj.videoUrl||rj.url||'';}catch{}
+        if(st==='success'||st==='completed'||st==='finish'){
+          var vu='';try{var rj=typeof d.resultJson==='string'?JSON.parse(d.resultJson):d.resultJson||{};vu=rj.resultUrls?.[0]||rj.videoUrl||rj.url||'';}catch{}
           if(!vu){var o=d.output||d.response||d.result||{};vu=o.videoUrl||o.video_url||o.url||o.videos?.[0]?.url||d.videoUrl||d.video_url||'';}
-          if(vu){var mt=lt?(lt.title||'무제')+' MV':'뮤직비디오';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:_mvGeneratedImageUrl,tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+          if(vu){var mt=lt?(lt.title||'무제')+' MV':'뮤직비디오';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
             ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 뮤직비디오 완성!</div><div class="mv-video-wrap"><video src="'+esc(vu)+'" controls playsinline style="width:100%;"></video></div><div style="display:flex;gap:8px;margin-top:8px;"><a href="'+esc(vu)+'" download="mv.mp4" style="flex:1;padding:10px;text-align:center;border-radius:10px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-decoration:none;">다운로드</a></div></div>';
             toast('🎬 뮤직비디오 완성!','ok',3000);}else{ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⚠️ URL 없음</div></div>';}return;}
         if(st==='fail'||st==='failed'||st==='error'){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ 실패: '+(d.failMsg||st)+'</div></div>';return;}
-      }catch(pe){console.warn('[MV i2v]',pe);}}
+      }catch(pe2){console.warn('[ai-mv]',pe2);}
+    }
     ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⏱ 시간 초과</div></div>';
-  }catch(e){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ '+esc(e.message)+'</div></div>';}
-  finally{_globalGenerating=false;_syncGenButtons();btn.disabled=false;if(spinner)spinner.classList.remove('on');txt.textContent='🎬 Step 2: 이 이미지로 영상 만들기';}
+  }catch(e){toast('❌ '+e.message,'err',4000);var ra2=$('mv-result-area');if(ra2)ra2.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ '+esc(e.message)+'</div></div>';}
+  finally{_globalGenerating=false;_syncGenButtons();btn.disabled=false;if(spinner)spinner.classList.remove('on');txt.textContent='✨ AI 강화 영상 생성';}
 }
-/* img2vid 버튼 바인딩 — DOM 로드 후 실행 보장 */
-(function _bindImg2Vid(){
-  var a=document.getElementById('mv-img-gen-btn'),b=document.getElementById('mv-img-regen-btn'),c=document.getElementById('mv-vid-from-img-btn');
-  if(a){a.addEventListener('click',function(){_mvGenerateImage();});}
-  if(b){b.addEventListener('click',function(){_mvRegenerateImage();});}
-  if(c){c.addEventListener('click',function(){_mvConvertImageToVideo();});}
-  if(!a){document.addEventListener('DOMContentLoaded',_bindImg2Vid);}
+/* 버튼 바인딩 */
+(function _bindAiMv(){
+  var a=document.getElementById('mv-img-gen-btn');
+  if(a)a.addEventListener('click',function(){_mvGenerateImage();});
+  else document.addEventListener('DOMContentLoaded',_bindAiMv);
 })();
 
 /* ── 뮤직비디오 (Kling 2.6 Text-to-Video via Market API) ── */
