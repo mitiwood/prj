@@ -2611,6 +2611,23 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
             </div>
           </div>
         </div>
+        <!-- 가사 입력 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon">📝</span> 가사
+            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
+          </div>
+          <textarea class="form-input" id="simple-lyrics" rows="4"
+            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+          <div class="lyrics-btn-row">
+            <span class="lyrics-hint">✦ 가사 없으면 AI가 자동 생성</span>
+            <button class="lyrics-gen-btn" id="simple-lyrics-btn">
+              <span class="lspin" id="simple-lyrics-spinner"></span>
+              ✍️ AI 자동 작사
+            </button>
+          </div>
+        </div>
+
         <button class="gen-btn" id="simple-gen-btn">
           <span class="gen-spinner" id="simple-gen-spinner"></span>
           <span id="simple-gen-txt">⚡ 음악 생성하기</span>
@@ -4265,6 +4282,42 @@ $('simple-inst-toggle').addEventListener('click',function(){
   simpleInstOn=!simpleInstOn;this.classList.toggle('on',simpleInstOn);
 });
 
+/* ── 심플 모드 AI 자동 작사 ── */
+$('simple-lyrics-btn').addEventListener('click',async()=>{
+  if(!currentUser){toast('로그인 후 AI 작사를 이용할 수 있어요','err',2500);openLoginSheet();return;}
+  if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
+  const btn=$('simple-lyrics-btn'),sp=$('simple-lyrics-spinner'),ta=$('simple-lyrics');
+  const desc=$('simple-prompt').value.trim()||'감성적인 한국 팝송';
+  const moodVal=$('simple-mood').value;
+  const prompt=desc+(moodVal?' '+moodVal:'');
+  btn.disabled=true;sp.style.display='inline-block';
+  try{
+    let text='';
+    try{
+      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt, callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'simple-lyrics'});
+      const ltid=ld?.data?.taskId||ld?.taskId;
+      if(ltid){
+        for(let i=0;i<40;i++){
+          await sleep(i<3?800:i<10?1500:2500);
+          let d=null;
+          try{ const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid); d=lr?.data; }
+          catch(e){ try{ const r2=await kieRequest(kieApiKey,'GET','/api/v1/jobs/recordInfo?taskId='+ltid); d=r2?.data; }catch(e2){} }
+          if(!d) continue;
+          const st=(d.status||d.callbackType||'').toUpperCase();
+          if(st==='SUCCESS'||st==='COMPLETE'){ text=_extractLyricsFromResponse(d); if(text) break; }
+          if(st==='FAILED'||st==='ERROR') break;
+        }
+      }
+    }catch(e){ console.warn('[simple-lyrics] kie.ai fail:', e.message); }
+    if(!text){
+      text = await callClaudeStream('당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.', `노래 가사를 작성해주세요: "${prompt}"`, ()=>{}) || '';
+    }
+    if(text){ ta.value=text; toast('✅ AI 작사 완료!','ok',2000); }
+    else toast('작사 실패 — 직접 입력해주세요','err',2500);
+  }catch(e){ toast('작사 실패: '+e.message,'err'); }
+  finally{ btn.disabled=false;sp.style.display='none'; }
+});
+
 /* ── YouTube 인스트루멘탈 토글 ── */
 let ytInstOn=false;
 $('yt-inst-toggle').addEventListener('click',function(){
@@ -4274,11 +4327,17 @@ $('yt-inst-toggle').addEventListener('click',function(){
 /* ── 심플 모드 생성 버튼 ── */
 $('simple-gen-btn').addEventListener('click',async()=>{
   const desc=$('simple-prompt').value.trim();
+  const simpleLyrics=($('simple-lyrics')?.value||'').trim();
   const moodVal=$('simple-mood').value;
   currentMode='simple';
   const simpleBpm=parseInt($('simple-bpm-slider')?.value||120);
   bpmAuto=false;selectedBpm=simpleBpm;
   instOn=simpleInstOn;
+  /* 가사가 있으면 바로 generate로 진행 */
+  if(simpleLyrics){
+    generate();
+    return;
+  }
   if(!desc&&!moodVal){
     /* 빈 입력 → AI 자동 가사+제목 생성 후 generate */
     if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
@@ -4499,6 +4558,8 @@ $('yt-gen-btn').onclick = null;
 $('yt-gen-btn').addEventListener('click', function(e){
   e.stopPropagation();
   if(this.disabled) return;
+  /* 플랜 한도 체크 — YouTube 모드 */
+  if(!checkPlanLimit('song')) return;
   const ytUrl = ($('yt-url')?.value||'').trim();
   if(!ytUrl){
     $('yt-url')?.focus();
@@ -5855,7 +5916,9 @@ async function generate(overrideParams){
 
   let lyricsText, moodVal, subGenre;
   if(isSimple){
-    lyricsText=overrideParams?.prompt||$('simple-prompt').value.trim();
+    const _simpleLyrics=($('simple-lyrics')?.value||'').trim();
+    const _simpleDesc=$('simple-prompt').value.trim();
+    lyricsText=overrideParams?.prompt||_simpleLyrics||_simpleDesc;
     moodVal=overrideParams?.mood||$('simple-mood').value;
     subGenre='';
   } else if(isYT){
@@ -9741,9 +9804,11 @@ function trackUsage(type, meta={}){
   const cost = COST_PER[type]||{usd:0,label:type};
   log.unshift({ type, cost_usd:cost.usd, cost_krw:Math.round(cost.usd*USD_KRW), label:cost.label, ts:Date.now(), ...meta });
   localStorage.setItem('kms_usage_log', JSON.stringify(log.slice(0,200)));
+  /* 서버 크레딧 차감 (song/mv만 — lyrics는 빈도 높아 서버 부하 방지) */
+  if(type==='song' || type==='mv') _serverCreditDeduct(type);
 }
 
-/* 플랜 제한 체크 — generate() 시작 전 호출 */
+/* 플랜 제한 체크 — generate() 시작 전 호출 (클라이언트 즉시 + 서버 비동기 검증) */
 function checkPlanLimit(type){
   const plan = getPlan();
   const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
@@ -9755,21 +9820,70 @@ function checkPlanLimit(type){
     showUpgradePrompt(type, used, limit, plan.type);
     return false;
   }
+  /* 서버 검증 (비동기 — 결과 불문 클라이언트 체크 우선) */
+  if(currentUser && currentUser.provider !== 'guest'){
+    _serverCreditCheck(type).catch(()=>{});
+  }
   return true;
+}
+
+/* 서버 크레딧 검증 — 서버 응답이 limit_exceeded면 강제 차단 */
+async function _serverCreditCheck(type){
+  if(!currentUser?.name) return;
+  try {
+    const r = await fetch('/api/check-credit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type })
+    });
+    const d = await r.json();
+    if(d.ok === false && d.reason === 'limit_exceeded'){
+      /* 서버가 한도 초과 판정 → 클라이언트 사용량 동기화 */
+      const usage = getUsage();
+      const key = type==='song'?'songs':type;
+      usage[key] = d.used || usage[key];
+      saveUsage(usage);
+      /* localStorage plan도 동기화 */
+      if(d.plan && d.plan !== getPlan().type){
+        localStorage.setItem('kms_plan', JSON.stringify({type: d.plan}));
+      }
+    }
+    if(d.ok === false && d.reason === 'plan_expired'){
+      localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
+      toast('플랜이 만료되어 무료 플랜으로 변경됐어요','',3000);
+      renderPlanUI();
+    }
+  } catch(e){ /* 서버 장애 시 클라이언트 체크만으로 동작 */ }
+}
+
+/* 생성 완료 후 서버에 사용량 차감 요청 */
+async function _serverCreditDeduct(type){
+  if(!currentUser?.name || currentUser.provider==='guest') return;
+  try {
+    await fetch('/api/check-credit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type, action:'deduct' })
+    });
+  } catch(e){ /* 실패해도 클라이언트에서 이미 차감됨 */ }
 }
 
 function showUpgradePrompt(type, used, limit, currentPlan){
   const typeLabel = {song:'음악 생성',mv:'뮤직비디오',lyrics:'가사 생성'}[type]||type;
-  toast(`💜 ${typeLabel} 한도 도달 (${used}/${limit}). Pro 플랜으로 업그레이드하세요!`,'',4000);
-  /* 설정 탭으로 이동 + 플랜 섹션 강조 */
-  setTimeout(()=>{
-    const btn=document.querySelector('#bottom-nav [data-view="settings-view"]');
-    if(btn) btn.click();
-    setTimeout(()=>{
-      const sec=document.getElementById('plan-section');
-      if(sec){ sec.scrollIntoView({behavior:'smooth',block:'start'}); sec.style.animation='none'; sec.offsetHeight; }
-    },300);
-  },400);
+  const nextPlan = currentPlan==='free' ? 'Pro' : 'Creator';
+  /* 업그레이드 유도 팝업 */
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.innerHTML=`<div style="background:#1e1e2a;border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">💜</div>
+    <div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${typeLabel} 한도 도달</div>
+    <div style="font-size:14px;color:#a09ab8;margin-bottom:6px;">${used} / ${limit} 사용 완료</div>
+    <div style="font-size:13px;color:#888;line-height:1.6;margin-bottom:22px;">${nextPlan} 플랜으로 업그레이드하면<br>더 많은 ${typeLabel}을 이용할 수 있어요!</div>
+    <button onclick="this.closest('[style*=fixed]').remove();document.querySelector('#bottom-nav [data-view=settings-view]')?.click();setTimeout(()=>{const s=document.getElementById('plan-section');if(s)s.scrollIntoView({behavior:'smooth',block:'start'});},300);" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🚀 ${nextPlan} 플랜 보기</button>
+    <button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#888;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button>
+  </div>`;
+  document.body.appendChild(ov);
 }
 
 /* 설정 탭 렌더링 시 플랜 정보 갱신 */
