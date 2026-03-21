@@ -6440,8 +6440,49 @@ $('gen-btn').addEventListener('click',generate);
 $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
 /* ══════════════════════════════
-   AI 작곡 어시스턴트 — gemini-2.5-flash 활용
+   AI 작곡 어시스턴트 — Claude Haiku 4.5 (kie.ai)
 ══════════════════════════════ */
+const KIE_HAIKU_URL = 'https://api.kie.ai/claude/v1/messages';
+
+async function _callHaikuRecommend(userInput){
+  const res = await fetch(KIE_HAIKU_URL, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+kieApiKey },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      messages: [{
+        role: 'user',
+        content: `당신은 AI 음악 생성 앱의 전문 작곡 어시스턴트입니다.
+사용자의 요청을 바탕으로 3개의 음악 생성 프롬프트를 추천해주세요.
+
+규칙:
+- 각 추천은 영어 프롬프트(곡 설명)와 한국어 설명을 포함
+- 영어 프롬프트는 장르, 분위기, 악기, BPM 등을 포함한 구체적인 음악 생성용 프롬프트
+- BPM은 숫자로 명시
+- JSON 배열로만 응답 (설명 텍스트 없이)
+
+응답 형식:
+[
+  {"prompt":"영어 프롬프트","desc":"한국어 설명","bpm":120,"mood":"분위기","genre":"장르"},
+  {"prompt":"영어 프롬프트","desc":"한국어 설명","bpm":95,"mood":"분위기","genre":"장르"},
+  {"prompt":"영어 프롬프트","desc":"한국어 설명","bpm":140,"mood":"분위기","genre":"장르"}
+]
+
+사용자 요청: "${userInput}"`
+      }],
+      stream: false
+    })
+  });
+  if(!res.ok) throw new Error('Haiku API 오류: '+res.status);
+  const data = await res.json();
+  /* Claude Messages API 응답에서 텍스트 추출 */
+  const text = data?.content?.[0]?.text || data?.choices?.[0]?.message?.content || JSON.stringify(data);
+  /* JSON 배열 파싱 */
+  const match = text.match(/\[[\s\S]*\]/);
+  if(!match) throw new Error('JSON 파싱 실패');
+  return JSON.parse(match[0]);
+}
+
 async function _aiAssistRecommend(){
   const input = $('ai-assist-input')?.value?.trim();
   if(!input){ toast('어떤 곡을 만들고 싶은지 입력해주세요','err',2000); return; }
@@ -6449,73 +6490,67 @@ async function _aiAssistRecommend(){
 
   const btn = $('ai-assist-btn');
   const result = $('ai-assist-result');
-  btn.disabled = true; btn.textContent = '분석 중...';
+  btn.disabled = true; btn.textContent = '✨ 생성 중...';
+  btn.style.opacity = '.6';
   result.style.display = 'block';
-  result.innerHTML = '<span style="color:var(--t3);">추천 데이터를 불러오는 중...</span>';
+  result.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+    <div style="width:18px;height:18px;border:2px solid var(--acc);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;"></div>
+    <span style="color:var(--t3);font-size:12px;">AI가 맞춤 추천을 만들고 있어요...</span>
+  </div>`;
 
   try {
-    /* 1단계: live-notify API에서 추천 데이터 2~3개 가져오기 */
-    const since = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    const notifyRes = await fetch('/api/live-notify?since=' + since + '&limit=3');
-    const notifyData = notifyRes.ok ? await notifyRes.json() : null;
-    const notifications = notifyData?.notifications || [];
-    const apiSource = notifyData?.source || '';
+    const items = await _callHaikuRecommend(input);
+    if(!items?.length) throw new Error('추천 결과 없음');
 
-    /* notifications에서 source 값 추출 (없으면 body/title 폴백) */
-    const sourceItems = notifications
-      .map(n => n.source || n.body || n.title || '')
-      .filter(s => s && s.length > 2);
+    const icons = ['🎵','🎶','🎸','🎹','🎷'];
+    const moodColors = {
+      '밝':'#fbbf24','신나':'#fbbf24','행복':'#fbbf24',
+      '슬프':'#60a5fa','감성':'#60a5fa','잔잔':'#60a5fa',
+      '어둡':'#ef4444','강렬':'#ef4444','파워':'#ef4444',
+      '칠':'#34d399','로파이':'#34d399','편안':'#34d399',
+      '로맨':'#f472b6','몽환':'#c084fc','신비':'#c084fc',
+      '레트로':'#fb923c','노스탤':'#fb923c',
+    };
 
-    if(sourceItems.length > 0){
-      let html = '<div style="font-weight:700;margin-bottom:8px;color:var(--acc);">📡 추천 프롬프트 (' + sourceItems.length + '개)</div>';
-      sourceItems.forEach((src, i) => {
-        const safeStr = src.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;" onclick="_applyAiRecommend('${safeStr}','')" onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:16px;flex-shrink:0;">${['🎵','🎶','🎸'][i]||'🎵'}</span>
-          <span style="flex:1;font-size:12px;color:var(--t1);line-height:1.4;">${esc(src.length>120?src.slice(0,120)+'...':src)}</span>
-          <span style="font-size:11px;color:var(--acc);font-weight:700;flex-shrink:0;">적용 →</span>
-        </div>`;
-      });
-      html += `<div style="font-size:10px;color:var(--t3);margin:6px 0 8px;">출처: ${esc(apiSource)}</div>`;
-      html += '<button onclick="$(\'ai-assist-result\').style.display=\'none\'" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>';
-      result.innerHTML = html;
-      btn.disabled = false; btn.textContent = '✨ 추천';
-      return;
-    }
+    let html = `<div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--t1);">🤖 AI 맞춤 추천 <span style="font-size:11px;color:var(--t3);font-weight:500;">${items.length}개</span></div>`;
 
-    /* 2단계: live-notify에 데이터 없으면 AI 추천 폴백 */
-    result.innerHTML = '<span style="color:var(--t3);">AI가 분석 중...</span>';
+    items.forEach((item, i) => {
+      const safePrompt = (item.prompt||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      const bpm = item.bpm || '';
+      const mood = item.mood || '';
+      const genre = item.genre || '';
+      const desc = item.desc || '';
+      /* 무드 색상 매칭 */
+      let moodColor = 'var(--acc)';
+      for(const [key,col] of Object.entries(moodColors)){ if(mood.includes(key)||desc.includes(key)){moodColor=col;break;} }
 
-    const sysPrompt = `당신은 AI 음악 생성 앱의 작곡 어시스턴트입니다. 사용자가 원하는 곡을 설명하면 한국어로 답변하세요:
-1. 추천 장르 & 서브장르
-2. 분위기/무드
-3. BPM 범위
-4. 추천 악기
-5. 참조 아티스트 (있으면)
-6. 곡 설명 (영어, 한 줄) — 이 줄은 반드시 "설명:" 으로 시작
-간결하게, 항목별로 작성하세요.`;
-
-    let reply = await callClaudeStream(sysPrompt, input, (partial)=>{
-      result.innerHTML = partial.replace(/\n/g,'<br>') + '<br><span style="color:var(--t3);">...</span>';
-    }) || '';
-
-    if(!reply) throw new Error('AI 응답 없음');
-
-    const lines = reply.split('\n').filter(l=>l.trim());
-    const descLine = lines.find(l=>/설명\s*[:：]/i.test(l)) || '';
-    const engDesc = descLine.replace(/.*[:：]\s*/, '').trim();
-    const bpmLine = lines.find(l=>/BPM|bpm|템포/i.test(l)) || '';
-    const bpmVal = (bpmLine.match(/(\d{2,3})/)||[])[1] || '';
-
-    result.innerHTML = reply.replace(/\n/g,'<br>') +
-      `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${engDesc ? `<button onclick="_applyAiRecommend('${engDesc.replace(/'/g,"\\\\'")}','${bpmVal}')" style="padding:8px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✅ 적용하기</button>` : ''}
-        <button onclick="$('ai-assist-result').style.display='none'" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
+      html += `<div class="ai-rec-card" onclick="_applyAiRecommend('${safePrompt}','${bpm}')" style="display:flex;gap:10px;padding:12px;margin-bottom:8px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;" onmouseover="this.style.borderColor='${moodColor}';this.style.background='rgba(124,58,237,.04)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg2)'">
+        <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${moodColor};border-radius:2px;"></div>
+        <div style="font-size:24px;flex-shrink:0;padding-left:4px;">${icons[i]||'🎵'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.3;">${esc(desc)}</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.4;margin-bottom:6px;word-break:break-word;">${esc(item.prompt||'')}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            ${genre?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(124,58,237,.1);color:var(--acc);font-weight:600;">${esc(genre)}</span>`:''}
+            ${mood?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:${moodColor}22;color:${moodColor};font-weight:600;">${esc(mood)}</span>`:''}
+            ${bpm?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.06);color:var(--t3);font-weight:600;">${bpm} BPM</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;flex-shrink:0;">
+          <span style="font-size:11px;color:var(--acc);font-weight:700;white-space:nowrap;">적용 →</span>
+        </div>
       </div>`;
+    });
+
+    html += `<div style="display:flex;gap:6px;margin-top:4px;">
+      <button onclick="_aiAssistRecommend()" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(124,58,237,.06);color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔄 다시 추천</button>
+      <button onclick="$('ai-assist-result').style.display='none'" style="padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
+    </div>`;
+    result.innerHTML = html;
   } catch(e){
-    result.innerHTML = '❌ ' + (e.message||'추천 실패. 다시 시도해주세요.');
+    result.innerHTML = '❌ ' + (e.message||'추천 실패') + '<br><button onclick="_aiAssistRecommend()" style="margin-top:8px;padding:8px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다시 시도</button>';
   }
-  btn.disabled = false; btn.textContent = '✨ 추천';
+  btn.disabled = false; btn.textContent = '✨ 추천'; btn.style.opacity = '';
 }
 /* 추천 결과를 심플 모드에 적용 */
 function _applyAiRecommend(desc, bpm){
