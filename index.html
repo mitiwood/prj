@@ -8438,10 +8438,12 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     const taskId=data?.data?.taskId||data?.taskId||data?.task_id;
     if(!taskId)throw new Error('Cover taskId 없음');
     _closeCover();
-    /* 로딩 표시 */
+    /* 음악만들기 화면으로 이동 + 로딩 표시 */
+    switchTab('create-view');
     toast('🎤 커버 생성을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
-    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
+    $('results').innerHTML='';
+    setTimeout(()=>$('loading-card').scrollIntoView({behavior:'smooth',block:'center'}),200);
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='커버 버전 만드는 중~<br>새 보컬 입히고 있어요 🎤';
     $('ld-task').textContent=`Cover: ${taskId}`;
@@ -8473,7 +8475,8 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
     lastTracks=[{...result,_inputLyrics:h.lyrics||''}];
     renderTracks(lastTracks,'Cover: '+h.title,'cover','custom');
-    toast('커버 버전이 완성됐어요!','ok',3000);
+    showCompletionPopup('custom','');
+    setTimeout(gotoHistoryTab,600);
     trackUsage('vocal',{mode:'cover'});
     _saveTrackToServer({id:coverTrack.id,taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:coverTrack.image_url,tags:coverTrack.tags,lyrics:coverTrack.lyrics,genMode:'cover',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
   }catch(e){
