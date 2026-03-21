@@ -134,6 +134,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 수정 <지시사항> — AI가 코드 수정 후 PR 생성
 PR — 최근 PR 목록 확인
 머지 <PR번호> — PR 머지 (배포)
+QA — 전체 코드 점검 + 리포트
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
@@ -465,6 +466,105 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (chatId, arg) => {
     }
   } catch (e) {
     await tgSend(chatId, `❌ 머지 오류: ${e.message}`);
+  }
+};
+
+/* QA — 전체 QA 점검 → Claude Code Action */
+const QA_BODY = `## QA 전체 점검 요청
+
+아래 항목을 코드 레벨에서 점검하고 결과를 리포트해주세요.
+
+### 점검 항목
+1. 미니플레이어 재생/일시정지
+2. 커뮤니티 리스트 클릭 재생
+3. 풀플레이어 확장/축소
+4. 다음곡 버튼
+5. 심플모드 가사+AI 작사
+6. 커스텀모드 생성
+7. 플랜카드 UI
+8. 오디오 에러 핸들링
+9. stopAllAudio
+10. 모바일 반응형
+
+### 규칙
+- index.html 코드를 읽고 각 항목의 로직/문법/런타임 이슈를 확인
+- 버그 발견 시 즉시 수정
+- 기존 기능을 절대 제거하지 않기
+- 결과를 아래 표 형식으로 작성
+
+### 결과 리포트 (반드시 이 형식으로)
+점검 완료 후 아래 Python 코드를 Bash 도구로 실행하여 텔레그램+카카오에 결과를 전송:
+
+\`\`\`
+python3 << 'PYEOF'
+import urllib.request, json
+
+# 점검 결과 표 작성 (아래는 예시, 실제 결과로 교체)
+msg = """QA 전체 점검 결과
+
+┌─────┬────────────────────────────┬─────────┐
+│  #  │         점검 항목          │  결과   │
+├─────┼────────────────────────────┼─────────┤
+│ 1   │ 미니플레이어 재생/일시정지 │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 2   │ 커뮤니티 리스트 클릭 재생  │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 3   │ 풀플레이어 확장/축소       │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 4   │ 다음곡 버튼               │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 5   │ 심플모드 가사+AI 작사     │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 6   │ 커스텀모드 생성           │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 7   │ 플랜카드 UI              │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 8   │ 오디오 에러 핸들링        │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 9   │ stopAllAudio             │ ✅ 정상 │
+├─────┼────────────────────────────┼─────────┤
+│ 10  │ 모바일 반응형            │ ✅ 정상 │
+└─────┴────────────────────────────┴─────────┘
+"""
+# 실제 점검 결과에 맞게 위 표의 결과 컬럼을 수정하세요
+# ✅ 정상 / 🔧 수정 / ❌ 실패
+
+# Telegram
+tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer kenny2024!'}))
+
+# Kakao
+kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
+urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
+print('QA report sent')
+PYEOF
+\`\`\`
+`;
+
+COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 미설정');
+
+  await tgSend(chatId, '🔍 QA 전체 점검을 시작합니다...\n\nClaude Code가 코드를 분석하고 결과를 리포트합니다.', { parse_mode: '' });
+
+  try {
+    const issue = await ghApi('POST', '/issues', {
+      title: `[QA] 전체 점검 · ${ts()}`,
+      body: QA_BODY + `\n---\n> ${arg ? arg + ' · ' : ''}${chatId === CHAT_ID ? '텔레그램' : '카카오'} 봇에서 요청됨 · ${ts()}`,
+      labels: ['claude-fix'],
+    });
+
+    await tgSend(chatId, [
+      '✅ QA 점검 요청 등록!',
+      '',
+      `📋 Issue #${issue.number}`,
+      '',
+      '🤖 Claude Code가 10개 항목을 점검합니다.',
+      '완료되면 텔레그램+카카오로 결과표가 옵니다.',
+      '',
+      `🔗 ${issue.html_url}`,
+    ].join('\n'), { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ QA 요청 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 

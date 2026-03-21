@@ -128,6 +128,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '📝 공지 · 삭제 · 공개 · 비공개',
       '📣 알림 <메시지>',
       '🛠 수정 <지시> · PR · 머지 <번호>',
+      '🔍 QA — 전체 코드 점검',
     ].join('\n'),
     [
       { label: '서버 상태', msg: '상태' },
@@ -371,6 +372,63 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
     );
   }
   return text(`머지 실패: ${result.message || '알 수 없는 오류'}`);
+};
+
+/* QA — 전체 점검 → Claude Code Action */
+COMMANDS['qa'] = COMMANDS['QA'] = async () => {
+  if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+
+  const qaBody = `## QA 전체 점검 요청
+
+아래 항목을 코드 레벨에서 점검하고 결과를 리포트해주세요.
+
+### 점검 항목
+1. 미니플레이어 재생/일시정지
+2. 커뮤니티 리스트 클릭 재생
+3. 풀플레이어 확장/축소
+4. 다음곡 버튼
+5. 심플모드 가사+AI 작사
+6. 커스텀모드 생성
+7. 플랜카드 UI
+8. 오디오 에러 핸들링
+9. stopAllAudio
+10. 모바일 반응형
+
+### 규칙
+- index.html 코드를 읽고 각 항목의 로직/문법/런타임 이슈를 확인
+- 버그 발견 시 즉시 수정, 기존 기능 절대 제거 금지
+- 결과를 유니코드 박스 표로 작성
+- 점검 완료 후 아래 Python 코드를 Bash로 실행하여 텔레그램+카카오 전송
+
+점검 완료 후 아래 Python으로 결과 전송:
+${'```'}
+python3 << 'PYEOF'
+import urllib.request, json
+msg = """QA 전체 점검 결과
+(실제 결과에 맞게 표 작성)
+"""
+tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer kenny2024!'}))
+kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
+urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
+PYEOF
+${'```'}
+
+---
+> 카카오톡 봇에서 요청됨 · ${ts()}`;
+
+  const issue = await ghApi('POST', '/issues', {
+    title: `[QA] 전체 점검 · ${ts()}`,
+    body: qaBody,
+    labels: ['claude-fix'],
+  });
+
+  return card(
+    '🔍 QA 점검 시작',
+    `📋 Issue #${issue.number}\n\n🤖 Claude Code가 10개 항목을 점검합니다.\n완료되면 텔레그램+카카오로 결과표가 옵니다.`,
+    [{ label: 'GitHub에서 보기', url: issue.html_url }],
+    ['PR', '상태']
+  );
 };
 
 /* ── 메인 핸들러 ── */
