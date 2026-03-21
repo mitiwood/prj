@@ -29,9 +29,8 @@ async function _kakaoNotify(text) {
 }
 
 const PLANS = {
-  basic:     { price: 4900,  credits: 30,  label: "Basic" },
-  pro:       { price: 9900,  credits: 100, label: "Pro" },
-  unlimited: { price: 19900, credits: 999999, label: "Unlimited" },
+  pro:       { price: 9900,  credits: 50,     label: "Pro" },
+  creator:   { price: 19900, credits: 999,    label: "Creator" },
 };
 
 async function sb(path, opts = {}) {
