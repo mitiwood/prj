@@ -133,13 +133,14 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '📋 기획 · 백로그 · 버그',
       '🎨 디자인 <지시>',
       '📊 사용량 · 일간 · 주간',
+      '📖 kie <질문> — API 문서 조회',
     ].join('\n'),
     [
       { label: '서버 상태', msg: '상태' },
       { label: '최근 트랙', msg: '트랙' },
       { label: '사이트 열기', url: BASE },
     ],
-    ['상태', '트랙', '유저', '댓글', 'PR']
+    ['상태', '트랙', 'kie', '사용량', 'PR']
   );
 };
 
@@ -618,6 +619,68 @@ COMMANDS['주간'] = COMMANDS['weekly'] = async () => {
   return card('📊 주간 리포트 (7일)', desc, [{ label: '사이트 열기', url: BASE }], ['일간', '사용량', '상태']);
 };
 
+/* ── 📖 kie.ai API 레퍼런스 조회 ── */
+const KIE_SECTIONS = {
+  '1': { title: '기본 정보', keywords: ['기본','인증','크레딧','가격','pricing','rate'] },
+  '2.1': { title: '음악 생성', keywords: ['음악','생성','generate','만들기','작곡'] },
+  '2.2': { title: '곡 연장', keywords: ['연장','extend','이어'] },
+  '2.3': { title: '보컬 변환', keywords: ['보컬','vocal','변환'] },
+  '2.4': { title: '타임스탬프 가사', keywords: ['카라오케','타임스탬프','싱크'] },
+  '3': { title: '가사 생성', keywords: ['가사','lyrics','작사'] },
+  '4': { title: '비디오 생성', keywords: ['비디오','video','mv','뮤직비디오'] },
+  '5': { title: 'Chat Completion', keywords: ['llm','채팅','chat','gemini'] },
+  '6': { title: '모델 목록', keywords: ['모델','model','목록'] },
+  '7': { title: '에러 코드', keywords: ['에러','오류','error'] },
+  '8': { title: '폴링 전략', keywords: ['폴링','polling'] },
+  '9': { title: '콜백', keywords: ['콜백','callback','webhook'] },
+  '10': { title: '사용 중 엔드포인트', keywords: ['전체','endpoint','api목록'] },
+};
+
+COMMANDS['kie'] = COMMANDS['api'] = async (arg) => {
+  if (!arg) {
+    const list = Object.entries(KIE_SECTIONS).map(([k,v]) => `${k}. ${v.title}`).join('\n');
+    return card('📖 kie.ai API 레퍼런스', list, [
+      { label: '음악 생성', msg: 'kie 음악' },
+      { label: '가사 생성', msg: 'kie 가사' },
+    ], ['kie 모델', 'kie 에러', 'kie 3', 'kie 비디오']);
+  }
+
+  const directKey = Object.keys(KIE_SECTIONS).find(k => k === arg || k === arg.replace('번',''));
+  const keywordKey = !directKey ? Object.entries(KIE_SECTIONS).find(([k,v]) =>
+    v.keywords.some(kw => arg.toLowerCase().includes(kw))
+  )?.[0] : null;
+  const matchKey = directKey || keywordKey;
+
+  if (!matchKey) {
+    return card('❓ 섹션 없음', `"${arg}"에 해당하는 섹션이 없어요.\n\n"kie"를 입력하면 목록을 볼 수 있어요.`, [], ['kie']);
+  }
+
+  const section = KIE_SECTIONS[matchKey];
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${GH_REPO}/main/KIE_API_REFERENCE.md`);
+    if (!r.ok) throw new Error('로드 실패');
+    const md = await r.text();
+
+    const sectionNum = matchKey.split('.')[0];
+    const pattern = matchKey.includes('.')
+      ? new RegExp(`### ${matchKey.replace('.','\\.')}[^\\n]*\\n([\\s\\S]*?)(?=###|## \\d|$)`)
+      : new RegExp(`## ${sectionNum}\\.\\s[^\\n]*\\n([\\s\\S]*?)(?=\\n## \\d|$)`);
+
+    const match = md.match(pattern);
+    let content = match ? match[0].replace(/[#*`|]/g,'').trim() : `${matchKey}. ${section.title} (내용 추출 실패)`;
+
+    /* 카카오 카드 제한: 설명 400자 */
+    if (content.length > 380) content = content.slice(0, 380) + '...';
+
+    return card(`📖 ${matchKey}. ${section.title}`, content, [
+      { label: '전체 목록', msg: 'kie' },
+      { label: 'MD 파일 보기', url: `https://github.com/${GH_REPO}/blob/main/KIE_API_REFERENCE.md` },
+    ], ['kie 모델', 'kie 에러', 'kie 가사']);
+  } catch (e) {
+    return card('❌ 로드 실패', e.message, [{ label: 'GitHub에서 보기', url: `https://github.com/${GH_REPO}/blob/main/KIE_API_REFERENCE.md` }]);
+  }
+};
+
 /* ── 메인 핸들러 ── */
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -645,6 +708,7 @@ export default async function handler(req, res) {
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
+      { re: /kie.*api|api.*문서|레퍼런스|음악.*api|가사.*api/i, cmd: 'kie' },
     ];
     if (!COMMANDS[cmd]) {
       const full = utterance.toLowerCase();

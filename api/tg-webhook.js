@@ -154,6 +154,11 @@ QA — 전체 코드 점검 + 리포트
 일간 — 오늘 활동 리포트
 주간 — 최근 7일 리포트
 
+📖 *API 레퍼런스*
+kie <질문> — kie.ai API 문서 조회
+kie 3 — 3번(가사생성) 섹션 조회
+kie 모델 — 사용 가능한 모델 목록
+
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
   await tgSend(chatId, help);
@@ -959,6 +964,91 @@ COMMANDS['주간'] = COMMANDS['weekly'] = async (chatId) => {
     await tgSend(chatId, msg, { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, `❌ 주간 리포트 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* ── 📖 kie.ai API 레퍼런스 조회 ── */
+const KIE_SECTIONS = {
+  '1': { title: '기본 정보', keywords: ['기본','인증','크레딧','가격','pricing','rate','limit'] },
+  '2.1': { title: '음악 생성', keywords: ['음악','생성','generate','만들기','작곡'] },
+  '2.2': { title: '곡 연장', keywords: ['연장','extend','이어'] },
+  '2.3': { title: '보컬 변환', keywords: ['보컬','vocal','변환','add-vocals'] },
+  '2.4': { title: '타임스탬프 가사', keywords: ['카라오케','타임스탬프','timestamp','싱크'] },
+  '3': { title: '가사 생성', keywords: ['가사','lyrics','작사'] },
+  '4': { title: '비디오 생성', keywords: ['비디오','video','mv','뮤직비디오','kling'] },
+  '5': { title: 'Chat Completion', keywords: ['llm','채팅','chat','gemini','gpt'] },
+  '6': { title: '모델 목록', keywords: ['모델','model','목록','리스트'] },
+  '7': { title: '에러 코드', keywords: ['에러','오류','error','코드'] },
+  '8': { title: '폴링 전략', keywords: ['폴링','polling','대기'] },
+  '9': { title: '콜백', keywords: ['콜백','callback','webhook'] },
+  '10': { title: '사용 중 엔드포인트', keywords: ['전체','사용','endpoint','api'] },
+};
+
+COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
+  if (!arg) {
+    const list = Object.entries(KIE_SECTIONS).map(([k,v]) => `${k}. ${v.title}`).join('\n');
+    await tgSend(chatId, `📖 kie.ai API 레퍼런스\n\n${list}\n\n사용법: kie <번호 또는 키워드>\n예: kie 3, kie 가사, kie 모델`, { parse_mode: '' });
+    return;
+  }
+
+  /* 번호로 직접 조회 */
+  const directKey = Object.keys(KIE_SECTIONS).find(k => k === arg || k === arg.replace('번',''));
+  /* 키워드 매칭 */
+  const keywordKey = !directKey ? Object.entries(KIE_SECTIONS).find(([k,v]) =>
+    v.keywords.some(kw => arg.toLowerCase().includes(kw))
+  )?.[0] : null;
+
+  const matchKey = directKey || keywordKey;
+  if (!matchKey) {
+    await tgSend(chatId, `❓ "${arg}"에 해당하는 섹션을 찾을 수 없어요.\n\nkie 를 입력하면 전체 목록을 볼 수 있어요.`, { parse_mode: '' });
+    return;
+  }
+
+  const section = KIE_SECTIONS[matchKey];
+
+  /* GitHub에서 KIE_API_REFERENCE.md 원본 읽기 */
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${GH_REPO}/main/KIE_API_REFERENCE.md`);
+    if (!r.ok) throw new Error('MD 파일 로드 실패');
+    const md = await r.text();
+
+    /* 섹션 추출: "## N. 제목" ~ 다음 "## " 사이 */
+    const sectionNum = matchKey.split('.')[0];
+    const subNum = matchKey.includes('.') ? matchKey : null;
+
+    let pattern, content;
+    if (subNum) {
+      /* 서브섹션: ### N.M 제목 */
+      pattern = new RegExp(`### ${matchKey.replace('.','\\.')}[^\\n]*\\n([\\s\\S]*?)(?=###|## \\d|$)`);
+    } else {
+      /* 메인 섹션: ## N. 제목 */
+      pattern = new RegExp(`## ${sectionNum}\\.\\s[^\\n]*\\n([\\s\\S]*?)(?=\\n## \\d|$)`);
+    }
+
+    const match = md.match(pattern);
+    content = match ? match[0].trim() : null;
+
+    if (!content) {
+      content = `📖 ${matchKey}. ${section.title}\n\n(섹션 내용을 추출할 수 없었어요. KIE_API_REFERENCE.md를 직접 확인해주세요.)`;
+    }
+
+    /* 4096자 제한 (텔레그램) */
+    if (content.length > 4000) content = content.slice(0, 4000) + '\n\n... (이하 생략, MD 파일 참조)';
+
+    await tgSend(chatId, content, { parse_mode: '' });
+
+    /* 카카오에도 전송 (300자 요약) */
+    try {
+      const summary = `📖 kie.ai: ${matchKey}. ${section.title}\n\n${content.replace(/[#*`|]/g,'').slice(0, 250)}`;
+      await fetch(`${BASE}/api/kakao-notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ text: summary }),
+      });
+    } catch {}
+
+  } catch (e) {
+    await tgSend(chatId, `❌ API 문서 로드 실패: ${e.message}\n\n직접 확인: KIE_API_REFERENCE.md`, { parse_mode: '' });
   }
 };
 
