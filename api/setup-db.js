@@ -99,6 +99,20 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    /* exec_sql 직접 실행 (관리자용) */
+    const rawSql = req.body?.sql;
+    if (rawSql) {
+      try {
+        const sb = getSb();
+        if (!sb) return res.status(500).json({ error: 'Supabase not configured' });
+        const { error } = await sb.rpc('exec_sql', { query: rawSql });
+        if (error) return res.status(200).json({ success: false, error: error.message });
+        return res.status(200).json({ success: true, executed: true });
+      } catch (e) {
+        return res.status(200).json({ success: false, error: e.message });
+      }
+    }
+
     if (!missing.length) return res.status(200).json({ success: true, message: 'All tables exist' });
 
     const sb = getSb();
