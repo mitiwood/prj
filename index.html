@@ -882,6 +882,12 @@ body.mp-on #hist-edit-sheet .hes-panel{bottom:62px;}
 /* 라이트모드 보정 */
 body.light .hes-handle{background:rgba(0,0,0,.12);}
 body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
+/* 리믹스 Cover 성별 버튼 */
+.rc-gender-btn{flex:1;padding:10px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.rc-gender-btn:hover{border-color:var(--acc);}
+.rc-gender-btn.active{background:rgba(124,58,237,.12);border-color:var(--acc);color:var(--acc);font-weight:700;}
+/* 리믹스 모달 */
+#remix-cover-modal,#remix-style-modal,#remaster-modal{z-index:900;}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -3934,6 +3940,109 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
   </div>
 </div>
 
+<!-- ── 리믹스: Cover 모달 ── -->
+<div class="modal-backdrop" id="remix-cover-modal">
+  <div class="modal" style="max-width:400px;width:100%;border-radius:16px;margin:20px;">
+    <button class="modal-close" id="remix-cover-close">✕</button>
+    <div class="modal-title">🔄 리믹스: Cover</div>
+    <div class="modal-sub">같은 곡을 다른 스타일/보컬로 다시 생성합니다.</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
+      <div id="rc-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div id="rc-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
+        <div id="rc-tags" style="font-size:11px;color:var(--t3);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">새로운 스타일 / 장르</div>
+      <input class="neg-input" id="rc-style" placeholder="예: Jazz, R&B, 어쿠스틱">
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">보컬 성별</div>
+      <div style="display:flex;gap:8px;">
+        <button class="rc-gender-btn active" data-g="" id="rc-g-auto">자동</button>
+        <button class="rc-gender-btn" data-g="m" id="rc-g-m">남성</button>
+        <button class="rc-gender-btn" data-g="f" id="rc-g-f">여성</button>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="opt-label" style="margin-bottom:6px;">모델</div>
+      <select class="opt-select" id="rc-model">
+        <option value="V4_5">V4.5 (권장)</option>
+        <option value="V4_5PLUS">V4.5+</option>
+        <option value="V5">V5 (최신)</option>
+      </select>
+    </div>
+    <button class="gen-btn" id="rc-submit-btn">
+      <span class="gen-spinner" id="rc-spinner"></span>
+      <span id="rc-btn-txt">🔄 커버 생성하기</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── 리믹스: 스타일 재사용 모달 ── -->
+<div class="modal-backdrop" id="remix-style-modal">
+  <div class="modal" style="max-width:400px;width:100%;border-radius:16px;margin:20px;">
+    <button class="modal-close" id="remix-style-close">✕</button>
+    <div class="modal-title">➕ 스타일 재사용</div>
+    <div class="modal-sub">이 곡의 스타일로 완전히 새로운 곡을 만듭니다.</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
+      <div id="rs-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div id="rs-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
+        <div id="rs-tags" style="font-size:11px;color:var(--t3);margin-top:2px;">원본 스타일</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">새 곡 제목 (선택)</div>
+      <input class="neg-input" id="rs-new-title" placeholder="새로운 제목을 입력하세요">
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">새 가사 또는 프롬프트</div>
+      <textarea class="prompt-input" id="rs-prompt" rows="4" placeholder="새로운 가사나 설명을 입력하세요..."></textarea>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="opt-label" style="margin-bottom:6px;">스타일 유지 (수정 가능)</div>
+      <input class="neg-input" id="rs-style" placeholder="예: K-Pop, 감성적인">
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="opt-label" style="margin-bottom:6px;">모델</div>
+      <select class="opt-select" id="rs-model">
+        <option value="V4_5">V4.5 (권장)</option>
+        <option value="V4_5PLUS">V4.5+</option>
+        <option value="V5">V5 (최신)</option>
+      </select>
+    </div>
+    <button class="gen-btn" id="rs-submit-btn">
+      <span class="gen-spinner" id="rs-spinner"></span>
+      <span id="rs-btn-txt">➕ 새 곡 생성하기</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── 리마스터 모달 ── -->
+<div class="modal-backdrop" id="remaster-modal">
+  <div class="modal" style="max-width:380px;width:100%;border-radius:16px;margin:20px;">
+    <button class="modal-close" id="remaster-close">✕</button>
+    <div class="modal-title">✦ 리마스터 v5 업그레이드</div>
+    <div class="modal-sub">같은 가사와 스타일을 V5 최신 모델로 다시 생성합니다.</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
+      <div id="rm-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div id="rm-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
+        <div id="rm-tags" style="font-size:11px;color:var(--t3);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="padding:10px 12px;background:rgba(124,58,237,.08);border-radius:10px;margin-bottom:16px;font-size:12px;color:var(--t2);">
+      V5 모델은 더 선명한 보컬, 풍부한 편곡, 향상된 음질을 제공합니다.
+    </div>
+    <button class="gen-btn" id="rm-submit-btn">
+      <span class="gen-spinner" id="rm-spinner"></span>
+      <span id="rm-btn-txt">✦ 리마스터 시작</span>
+    </button>
+  </div>
+</div>
+
 <!-- ── 노래방 플레이어 ── -->
 <div id="karaoke-player">
   <div class="kp-header">
@@ -4117,8 +4226,8 @@ function _sendErrorAlert(info){
   if(Date.now() - _errSendCooldown < 5000) return;
   _errSendCooldown = Date.now();
   const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
-  /* 텔레그램 */
-  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info,parse_mode:''}) }); } catch(e){}
+  /* 텔레그램 — parse_mode:'HTML' 필수 (빈 문자열은 Markdown 폴백→파싱에러) */
+  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }); } catch(e){}
   /* 카카오 */
   try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }); } catch(e){}
 }
@@ -6319,8 +6428,9 @@ $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generat
    AI 작곡 어시스턴트 — gemini-2.5-flash 활용
 ══════════════════════════════ */
 async function _aiAssistRecommend(){
-  const input = $('ai-assist-input')?.value.trim();
+  const input = $('ai-assist-input')?.value?.trim();
   if(!input){ toast('어떤 곡을 만들고 싶은지 입력해주세요','err',2000); return; }
+  if(!kieApiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err'); return; }
 
   const btn = $('ai-assist-btn');
   const result = $('ai-assist-result');
@@ -7864,10 +7974,9 @@ $('hes-remix-extend-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   closeHistEditSheet();
-  switchView('create-view');
-  const desc=$('gen-prompt');
-  if(desc){desc.value='[연장] '+esc(h.title||'');desc.dispatchEvent(new Event('input'));}
-  toast('연장 모드로 전환','ok',1500);
+  switchTab('create-view');
+  if(h.id) openExtendModal(h.id);
+  else toast('연장할 트랙 ID가 없어요','err',2000);
 });
 
 /* 리믹스: Cover */
@@ -7875,10 +7984,13 @@ $('hes-remix-cover-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   closeHistEditSheet();
-  switchView('create-view');
-  const desc=$('gen-prompt');
-  if(desc){desc.value='[Cover] '+esc(h.title||'');desc.dispatchEvent(new Event('input'));}
-  toast('커버 모드로 전환','ok',1500);
+  switchTab('create-view');
+  /* YouTube 모드로 전환 + 제목 채움 */
+  document.querySelector('.mtab[data-mode="youtube"]')?.click();
+  setTimeout(()=>{
+    const titleEl=$('yt-song-title'); if(titleEl) titleEl.value=h.title||'';
+    toast('커버 모드 — YouTube URL을 입력하세요','ok',2000);
+  },100);
 });
 
 /* 리믹스: 스타일 재사용 */
@@ -7886,10 +7998,12 @@ $('hes-remix-style-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   closeHistEditSheet();
-  switchView('create-view');
-  const tags=$('gen-tags');
-  if(tags){tags.value=h.tags||'';tags.dispatchEvent(new Event('input'));}
-  toast('스타일 재사용 적용','ok',1500);
+  switchTab('create-view');
+  document.querySelector('.mtab[data-mode="custom"]')?.click();
+  setTimeout(()=>{
+    const descEl=$('song-desc'); if(descEl) descEl.value=h.tags||'';
+    toast('스타일 재사용 적용','ok',1500);
+  },100);
 });
 
 /* 리마스터 */
