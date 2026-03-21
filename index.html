@@ -6531,6 +6531,40 @@ const _recPool = {
 function _pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function _rBpm(range){ return range[0]+Math.floor(Math.random()*(range[1]-range[0]+1)); }
 
+/* 곡 제목 풀 — 공간 키워드별 시적인 제목 */
+const _titlePool = {
+  '새벽':['새벽의 독백','밤이 지나면','잠 못 드는 밤','새벽 세 시의 너','아직 밤인 채로'],
+  '비':['빗속의 고백','비가 오면 생각나','우산 없는 하루','빗물 위의 발자국','비 내리는 오후'],
+  '안개':['안개 속 너에게','흐린 날의 기억','안개꽃','뿌연 새벽길','안개 편지'],
+  '지하철':['마지막 열차','텅 빈 플랫폼','지하철 창가','다음 역은 너','환승역에서'],
+  '바다':['파도가 전하는 말','해변의 끝에서','소금빛 기억','바다 건너 너에게','밀물처럼'],
+  '옥상':['옥상 위의 별','하늘 가까운 곳','지붕 위 달빛','바람이 부는 곳','옥상의 노래'],
+  '봄':['봄비 오는 날','꽃잎 사이로','봄바람 그리고 너','봄날의 약속','벚꽃이 지면'],
+  '눈':['첫눈이 오면','눈꽃 세레나데','하얀 밤','겨울 왈츠','눈 위의 발자국'],
+  '카페':['카페 창가에서','라떼 한 잔의 오후','커피향 연인','빈 잔의 여운','에스프레소 블루스'],
+  '공원':['공원 벤치에서','저녁 산책','가로등 아래서','느린 오후','낙엽 위의 시간'],
+  '달':['달이 예쁜 밤','달빛 소나타','월광 아래서','초승달 편지','달에게 보내는 말'],
+  '레코드':['오래된 노래','추억의 멜로디','먼지 낀 LP','그때 그 노래','레코드 바늘'],
+  '축제':['여름밤 불꽃','축제의 끝에서','한여름 밤의 꿈','불꽃놀이','카니발 라이트'],
+  '도시':['도시의 밤','서울의 새벽','네온사인 아래','콘크리트 정원','도시 위의 별'],
+  '기차':['떠나는 기차','창밖의 풍경','플랫폼 이별','레일 위의 노래','기찻길 옆 작은 마을'],
+  '다락':['다락방의 비밀','지붕 아래 세계','숨겨진 일기','다락방 오후','먼지 속의 편지'],
+  '드라이브':['야간 드라이브','끝없는 도로','밤의 고속도로','미드나잇 크루즈','헤드라이트'],
+  '가을':['가을 엽서','낙엽 블루스','단풍빛 기억','가을이 오면','갈색 수채화'],
+  '절벽':['파도 너머로','해안선','바람이 머무는 곳','끝자락에서','절벽 위의 노래'],
+  '네온':['네온 드림','야간비행','형광빛 고독','밤의 색','네온 속 그림자'],
+  '숲':['숲속의 편지','이끼 낀 오솔길','초록 명상','나무의 노래','숲의 자장가'],
+  '호수':['호수 위의 달','잔잔한 물결','수면 위의 빛','호숫가 이야기','반영'],
+  '파도':['파도의 노래','물보라','해안가에서','먼 바다의 속삭임','조용한 파도'],
+  '노을':['노을빛 고백','석양이 지면','황혼의 약속','붉은 하늘 아래','노을 편지'],
+};
+function _genTitle(spaceKo){
+  for(const [key,titles] of Object.entries(_titlePool)){
+    if(spaceKo.includes(key)) return _pick(titles);
+  }
+  return _pick(['그날의 우리','기억의 조각','말하지 못한 이야기','끝나지 않은 노래','다시, 여기서','너에게 닿기를','그때 그 자리','흘러간 시간','아직, 여전히','어딘가에서']);
+}
+
 function _generateConcepts(hint){
   const used = new Set();
   const items = [];
@@ -6545,11 +6579,11 @@ function _generateConcepts(hint){
     used.add(key);
     const bpm = _rBpm(t.bpm);
     const hintKo = hint ? `, ${hint}` : '';
+    const title = _genTitle(s.ko);
     items.push({
       concept: `${s.ko} ${e.ko} ${t.ko}`,
-      /* 곡 설명: 한글 */
+      title,
       promptKo: `${t.genre}, ${s.ko} ${e.ko} 느낌, ${t.koDesc}${hintKo}, ${bpm} BPM`,
-      /* 영어 프롬프트 (API 전송용) */
       promptEn: `${t.genre}, ${s.en}, ${e.en}, ${t.en}${hint?', '+hint:''}, ${bpm} BPM`,
       bpm, mood: e.mood, icon: s.icon, col: s.col,
     });
@@ -6572,6 +6606,13 @@ function _aiAssistRecommend(){
     promptEl.classList.add('flash');
     setTimeout(()=>promptEl.classList.remove('flash'),2000);
   }
+  /* 곡 제목도 자동 적용 */
+  const titleEl = $('simple-song-title');
+  if(titleEl && items[0]?.title){
+    titleEl.value = items[0].title;
+    titleEl.classList.add('flash');
+    setTimeout(()=>titleEl.classList.remove('flash'),2000);
+  }
   if(items[0]?.bpm && $('simple-bpm-slider')){
     $('simple-bpm-slider').value = items[0].bpm;
     if($('s-bpm-display')) $('s-bpm-display').textContent = items[0].bpm;
@@ -6584,11 +6625,13 @@ function _aiAssistRecommend(){
 
   items.forEach((item, i) => {
     const safePrompt = item.promptKo.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const safeTitle = item.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
     const isActive = i===0;
-    html += `<div data-rec-idx="${i}" onclick="_applyAiRecommend('${safePrompt}','${item.bpm}');document.querySelectorAll('[data-rec-idx]').forEach(c=>{c.style.borderColor='var(--border)';c.querySelector('.rec-check').style.display='none'});this.style.borderColor='${item.col}';this.querySelector('.rec-check').style.display='flex'" style="display:flex;gap:10px;padding:12px;margin-bottom:6px;background:var(--bg2);border:1.5px solid ${isActive?item.col:'var(--border)'};border-radius:12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;">
+    html += `<div data-rec-idx="${i}" onclick="_applyAiRecommend('${safePrompt}','${item.bpm}','${safeTitle}');document.querySelectorAll('[data-rec-idx]').forEach(c=>{c.style.borderColor='var(--border)';c.querySelector('.rec-check').style.display='none'});this.style.borderColor='${item.col}';this.querySelector('.rec-check').style.display='flex'" style="display:flex;gap:10px;padding:12px;margin-bottom:6px;background:var(--bg2);border:1.5px solid ${isActive?item.col:'var(--border)'};border-radius:12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${item.col};border-radius:2px;"></div>
       <div style="font-size:22px;flex-shrink:0;padding-left:4px;">${item.icon}</div>
       <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:var(--acc);font-weight:700;margin-bottom:2px;">♪ ${esc(item.title)}</div>
         <div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:3px;line-height:1.3;letter-spacing:-.3px;">${esc(item.concept)}</div>
         <div style="font-size:12px;color:var(--t2);line-height:1.4;margin-bottom:5px;">${esc(item.promptKo)}</div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -6610,8 +6653,12 @@ function _aiAssistRecommend(){
   toast('✨ 곡 컨셉이 적용됐어요!','ok',1500);
 }
 /* 추천 결과를 심플 모드에 적용 */
-function _applyAiRecommend(desc, bpm){
+function _applyAiRecommend(desc, bpm, title){
   if(desc) $('simple-prompt').value = desc;
+  if(title){
+    const te=$('simple-song-title');
+    if(te) te.value = title;
+  }
   if(bpm && $('simple-bpm-slider')){
     $('simple-bpm-slider').value = bpm;
     if($('s-bpm-display')) $('s-bpm-display').textContent = bpm;
