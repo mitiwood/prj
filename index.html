@@ -3548,7 +3548,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <span class="bnav-label">음악 만들기</span>
   </button>
   <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
-    <i data-lucide="library"></i>
+    <i data-lucide="layout-grid"></i>
     <span class="bnav-label">라이브러리</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
   </button>
@@ -4402,7 +4402,7 @@ window.addEventListener('unhandledrejection', e => {
 });
 const KIE_BASE = 'https://api.kie.ai';
 
-/* ── 탭 전환 (전역 함수 — onclick에서 직접 호출) ── */
+/* ── 탭 전환 ── */
 function switchTab(viewId){
   /* 열려있는 바텀시트/팝업/오버레이 전부 닫기 */
   document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
@@ -11333,6 +11333,34 @@ function initTheme() {
 updateHistBadge();
 updateLoginUI();
 initTheme();
+/* onclick 전역 함수 노출 — strict mode에서도 인라인 이벤트 동작 보장 */
+window.switchTab=switchTab;
+window.openLoginSheet=openLoginSheet;
+window.selectPlan=selectPlan;
+window.upgradePlan=upgradePlan;
+window.openNotifSheet=typeof openNotifSheet!=='undefined'?openNotifSheet:()=>{};
+window.applyPreset=applyPreset;
+window.aiTrendStyle=aiTrendStyle;
+window.aiMoodToStyle=aiMoodToStyle;
+window.aiImageToStyle=aiImageToStyle;
+window.streamLyricsGenerate=streamLyricsGenerate;
+window.lpToggleEdit=lpToggleEdit;
+window.analyzeRefArtist=analyzeRefArtist;
+window._insertTag=_insertTag;
+window._aiAssistRecommend=_aiAssistRecommend;
+window._switchHistTab=_switchHistTab;
+window._switchHistSort=_switchHistSort;
+window._switchHistView=_switchHistView;
+window._toggleHistMenu=_toggleHistMenu;
+window.commPlaySb=commPlaySb;
+window.commLikeSb=commLikeSb;
+window.commDislikeSb=commDislikeSb;
+window.commRateSb=commRateSb;
+window.openCommentSheet=openCommentSheet;
+window.toggleLyricsEdit=toggleLyricsEdit;
+window.saveLyricsEdit=saveLyricsEdit;
+window.cancelLyricsEdit=cancelLyricsEdit;
+window.changeTheme=changeTheme;
 /* Lucide 아이콘 초기화 */
 if(window.lucide) lucide.createIcons();
 else window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); });
