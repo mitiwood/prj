@@ -826,25 +826,36 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
     ].join('\n');
     await tgSend(chatId, msg, { parse_mode: '' });
 
-    /* 카카오톡에도 전송 — 유저 사용량 기준 */
+    /* 카카오톡에도 동일 내용 전송 (300자 제한 → 2파트) */
     try {
-      const lines = [
-        `📊 사용량 리포트 (${ts()})`,
+      const kakao1 = [
+        `📊 전체 사용량 대시보드`,
+        `⏰ ${ts()}`,
         ``,
-        `DB: 트랙 ${trackCount}곡 / 유저 ${userCount}명`,
-        `오늘: +${todayTracks}곡, +${todayUsers}명`,
+        `━━ Supabase DB ━━`,
+        `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}`,
+        `👥 유저: ${userCount} / 오늘 +${todayUsers}`,
+        `💬 댓글: ${commentCount} / 오늘 +${todayComments}`,
+        `💰 결제: ${payCount}건`,
         ``,
-        `[유저별 이번달]`,
+        `━━ 유저별 (이번 달) ━━`,
         ...(userStats.length ? userStats.slice(0,3) : ['없음']),
-        ``,
-        `서비스: Claude ${claudeStatus}`,
-        `kie.ai ${kieStatus} / Toss ${tossMode}`,
-      ];
-      await fetch(`${BASE}/api/kakao-notify`, {
+      ].join('\n');
+      const kakao2 = [
+        `━━ 외부 서비스 ━━`,
+        `🤖 Claude: ${claudeStatus}`,
+        `🎤 kie.ai: ${kieStatus}`,
+        `💳 Toss: ${tossMode}`,
+        `🚀 배포: ${deployInfo}`,
+        `🌐 사이트: ${siteMs}`,
+      ].join('\n');
+      const _kSend = (t) => fetch(`${BASE}/api/kakao-notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-        body: JSON.stringify({ text: lines.join('\n') }),
+        body: JSON.stringify({ text: t }),
       });
+      await _kSend(kakao1);
+      await _kSend(kakao2);
     } catch {}
   } catch (e) {
     await tgSend(chatId, `❌ 사용량 조회 실패: ${e.message}`, { parse_mode: '' });
