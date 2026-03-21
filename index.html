@@ -12434,9 +12434,47 @@ document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(_checkAttendance, 1500);
 });
 /* 탭 복귀 시 즉시 동기화 */
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _syncPlanFromServer(); });
-/* 3초마다 플랜 동기화 (실시간에 가깝게) */
-setInterval(_syncPlanFromServer, 3000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); } });
+
+/* ══════════════════════════════
+   Realtime 통합 폴링 (2초) — 플랜/좋아요/댓글/알림 통합
+══════════════════════════════ */
+let _realtimeSince = Date.now();
+async function _pollRealtime(){
+  try {
+    const userQ = currentUser?.name ? '&user=' + encodeURIComponent(currentUser.name) : '';
+    const r = await fetch('/api/realtime?since=' + _realtimeSince + userQ);
+    const d = await r.json();
+    if(!d.ok || !d.events?.length) return;
+    _realtimeSince = d.serverTime || Date.now();
+    d.events.forEach(e => {
+      switch(e.event){
+        case 'plan_changed':
+          _syncPlanFromServer();
+          break;
+        case 'new_like':
+          if(e.data?.trackTitle) _addLocalNotif('like', '❤️ 좋아요!', e.data.fromUser + '님이 "' + e.data.trackTitle + '"에 좋아요');
+          break;
+        case 'new_comment':
+          if(e.data?.trackTitle) _addLocalNotif('comment', '💬 새 댓글', e.data.author + ': ' + (e.data.content||'').slice(0,50));
+          break;
+        case 'new_follow':
+          _addLocalNotif('follow', '👤 새 팔로워', e.data.fromUser + '님이 팔로우');
+          break;
+        case 'announcement':
+          _showLiveNotification({ icon: '📢', title: e.data.title||'공지', body: e.data.body||'' });
+          break;
+        case 'system':
+          _showLiveNotification({ icon: e.data.icon||'🔔', title: e.data.title||'알림', body: e.data.body||'' });
+          break;
+      }
+    });
+  } catch(e){}
+}
+/* 2초 간격 통합 폴링 */
+setInterval(_pollRealtime, 2000);
+/* 플랜 동기화는 10초 간격으로 유지 (서버 부하 방지) */
+setInterval(_syncPlanFromServer, 10000);
 
 /* ══════════════════════════════
    실시간 알림 수신 (10초 폴링)
