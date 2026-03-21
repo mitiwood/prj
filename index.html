@@ -930,6 +930,20 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mf-refresh-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
 .mf-refresh-btn:hover{border-color:var(--acc);color:var(--acc);}
 .mf-refresh-btn.spinning svg{animation:spin .6s linear infinite;}
+/* 최근 업로드 */
+.mf-recent-section{margin-bottom:14px;}
+.mf-recent-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:8px;letter-spacing:-.3px;}
+.mf-recent-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mf-recent-scroll::-webkit-scrollbar{display:none;}
+.mf-recent-card{flex-shrink:0;width:120px;cursor:pointer;transition:transform .15s;}
+.mf-recent-card:active{transform:scale(.95);}
+.mf-recent-thumb{width:120px;height:120px;border-radius:10px;overflow:hidden;background:var(--bg2);margin-bottom:6px;}
+.mf-recent-thumb img{width:100%;height:100%;object-fit:cover;}
+.mf-recent-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg2);}
+.mf-recent-info{padding:0 2px;}
+.mf-recent-trk-title{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-recent-artist{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+[data-theme="light"] .mf-recent-thumb{background:#f0f0f0;}
 [data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
 [data-theme="light"] .mf-refresh-btn{background:#fff;border-color:rgba(0,0,0,.08);}
@@ -11235,9 +11249,37 @@ function _saveMyFeedCache(list){
 }
 
 function _mfPreloadSbTracks(){
-  /* _sbTracks가 없으면 커뮤니티 로드 트리거 */
   if(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0) return;
   if(typeof _loadSbTracks==='function') _loadSbTracks(false);
+}
+
+/* 최근 업로드 트랙 추출 */
+function _getRecentCreatorTracks(limit){
+  if(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0){
+    return _sbTracks.slice().sort(function(a,b){return new Date(b._created||0)-new Date(a._created||0);})
+      .filter(function(t){var o=t._owner||{};if(!o.name)return false;if(typeof currentUser!=='undefined'&&currentUser&&o.name===currentUser.name&&o.provider===currentUser.provider)return false;return !!t.audioUrl;})
+      .slice(0,limit)
+      .map(function(t){return{id:t._sbId,title:t.title,image_url:t.img,audio_url:t.audioUrl,video_url:t.videoUrl||'',tags:t.tags||'',owner_name:t._owner.name,owner_provider:t._owner.provider,created_at:t._created};});
+  }
+  if(_myFeedRawTracks&&_myFeedRawTracks.length>0){
+    return _myFeedRawTracks.slice().sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);})
+      .filter(function(t){if(!t.owner_name)return false;if(typeof currentUser!=='undefined'&&currentUser&&t.owner_name===currentUser.name&&t.owner_provider===currentUser.provider)return false;return !!t.audio_url;})
+      .slice(0,limit);
+  }
+  return [];
+}
+
+function _playRecentTrack(id,ownerName,ownerProv){
+  var tracks=_getRecentCreatorTracks(50);
+  var t=tracks.find(function(x){return x.id===id;});
+  if(!t||!t.audio_url){toast('재생할 수 없어요','err');return;}
+  var hIdx=historyData.findIndex(function(h){return h.id===t.id||h._sbId===t.id;});
+  if(hIdx<0){
+    historyData.unshift({id:t.id,_sbId:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url,video_url:t.video_url||'',tags:t.tags||'',type:t.video_url?'mv':'audio',created:t.created_at,_fromFeed:true,owner_name:ownerName,owner_provider:ownerProv});
+    hIdx=0;
+  }
+  showMiniPlayer(hIdx);
+  if(typeof _countTrackPlay==='function') _countTrackPlay(t.id);
 }
 
 function _groupCreatorsFromTracks(sbTracks){
