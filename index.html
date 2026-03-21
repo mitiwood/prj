@@ -686,14 +686,31 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
    HISTORY VIEW
 ══════════════════════════════ */
 .hist-view-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
 }
-.hist-tabs{display:flex;gap:6px;margin-bottom:14px;}
-.hist-tab{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
-.hist-tab.on{background:var(--acc);border-color:var(--acc);color:#fff;}
-.hist-tab:hover:not(.on){border-color:var(--acc3);color:var(--t1);}
-.hist-view-title{font-size:20px;font-weight:800;}
-.hist-view-count{font-size:12px;color:var(--t3);margin-top:2px;}
+/* 정렬+뷰 토글 */
+.hist-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.hist-sort-row{display:flex;gap:4px;}
+.hist-sort-btn{padding:5px 10px;border-radius:8px;border:none;background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.hist-sort-btn.on{color:var(--acc);background:rgba(124,58,237,.1);}
+.hist-view-toggle{display:flex;gap:2px;background:var(--bg2);border-radius:8px;padding:2px;}
+.hist-vt-btn{width:28px;height:28px;border:none;background:transparent;color:var(--t3);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.hist-vt-btn.on{background:var(--acc);color:#fff;}
+/* Suno 그리드 뷰 */
+.hist-view-grid.grid-mode{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:14px;overflow:hidden;margin-bottom:0;}
+.hist-view-grid.grid-mode .hist-thumb{width:100%;height:0;padding-bottom:100%;border-radius:0;font-size:32px;}
+.hist-view-grid.grid-mode .hist-thumb img,.hist-view-grid.grid-mode .hist-thumb video{position:absolute;inset:0;width:100%;height:100%;}
+.hist-view-grid.grid-mode .hist-info{padding:10px 12px;}
+.hist-view-grid.grid-mode .hist-title{font-size:13px;}
+.hist-view-grid.grid-mode .hist-sub{font-size:10px;}
+.hist-view-grid.grid-mode .hist-more{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:50%;}
+.hist-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:12px;padding:3px;}
+.hist-tab{padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s ease;}
+.hist-tab.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3);}
+.hist-tab:hover:not(.on){color:var(--t1);background:var(--s2);}
+.hist-view-title{font-size:24px;font-weight:800;letter-spacing:-0.5px;}
+.hist-view-count{font-size:12px;color:var(--t3);margin-top:4px;}
 .clear-all-btn{
   display:flex;align-items:center;gap:5px;
   background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
@@ -2434,6 +2451,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
       <button class="mtab" data-mode="mv"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/><path d="M2 7h20M2 17h20"/></svg> MV</button>
     </div>
 
+    <!-- ✨ 프리셋 캐러셀 (원클릭 작곡) -->
+    <div id="preset-carousel" style="padding:0 0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+      <div style="display:flex;gap:8px;padding:0 4px;min-width:max-content;">
+        <button class="preset-chip" onclick="applyPreset('kpop_girl')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🎀 K-Pop 걸그룹</button>
+        <button class="preset-chip" onclick="applyPreset('ballad')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🎹 감성 발라드</button>
+        <button class="preset-chip" onclick="applyPreset('hiphop')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🔥 힙합 트랩</button>
+        <button class="preset-chip" onclick="applyPreset('lofi')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">☕ 로파이 칠</button>
+        <button class="preset-chip" onclick="applyPreset('edm')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">⚡ EDM 클럽</button>
+        <button class="preset-chip" onclick="applyPreset('rnb')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">💜 R&B 소울</button>
+        <button class="preset-chip" onclick="applyPreset('rock')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🎸 인디 록</button>
+        <button class="preset-chip" onclick="applyPreset('jazz')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🎷 재즈 라운지</button>
+        <button class="preset-chip" onclick="applyPreset('cinematic')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🎬 시네마틱</button>
+        <button class="preset-chip" onclick="applyPreset('acoustic')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;">🪕 어쿠스틱</button>
+      </div>
+    </div>
+
     <div class="prompt-card">
       <div class="mode-panel-wrap">
 
@@ -2589,16 +2622,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
           <!-- 곡 시간 -->
           <div class="adv-section">
             <div class="adv-section-title">⏱ 곡 시간</div>
+            <div style="font-size:11px;color:var(--t3);margin-bottom:8px;line-height:1.5;">AI가 자동으로 곡 길이를 결정합니다. 더 긴 곡이 필요하면 생성 후 <b style="color:var(--acc3);">곡 연장</b>으로 이어붙일 수 있어요.</div>
             <div class="duration-btns">
-              <button class="dbtn" data-dur="60">1분</button>
-              <button class="dbtn on" data-dur="120">2분</button>
-              <button class="dbtn" data-dur="180">3분</button>
-              <button class="dbtn pro-req" data-dur="240">4분 👑</button>
-              <button class="dbtn pro-req" data-dur="300">5분 👑</button>
-              <button class="dbtn pro-req" data-dur="480">8분 👑</button>
+              <button class="dbtn on" data-dur="0">자동</button>
+              <button class="dbtn" data-dur="60">~1분</button>
+              <button class="dbtn" data-dur="120">~2분</button>
             </div>
-            <div class="pro-warning" id="pro-warning">
-              👑 <span>3분 이상 곡은 <strong>Pro 플랜</strong> 구독이 필요합니다.</span>
+            <div id="extend-hint" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:12px;color:var(--acc3);line-height:1.5;">
+              💡 생성 후 결과 카드에서 <b>연장</b> 버튼을 누르면 곡을 이어서 늘릴 수 있어요!
             </div>
           </div>
           <!-- 모델 + Negative Tags -->
@@ -3034,8 +3065,19 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     <!-- 음악/뮤비 탭 -->
     <div class="hist-tabs" id="hist-tabs">
       <button class="hist-tab on" data-htab="all" onclick="_switchHistTab('all')">전체</button>
-      <button class="hist-tab" data-htab="music" onclick="_switchHistTab('music')">🎵 음악</button>
-      <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">🎬 뮤비</button>
+      <button class="hist-tab" data-htab="music" onclick="_switchHistTab('music')">음악</button>
+      <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">뮤비</button>
+      <button class="hist-tab" data-htab="liked" onclick="_switchHistTab('liked')">좋아요</button>
+    </div>
+    <div class="hist-toolbar">
+      <div class="hist-sort-row">
+        <button class="hist-sort-btn on" data-hsort="newest" onclick="_switchHistSort('newest')">최신순</button>
+        <button class="hist-sort-btn" data-hsort="oldest" onclick="_switchHistSort('oldest')">오래된순</button>
+      </div>
+      <div class="hist-view-toggle">
+        <button class="hist-vt-btn" data-hvt="list" onclick="_switchHistView('list')" title="리스트"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+        <button class="hist-vt-btn on" data-hvt="grid" onclick="_switchHistView('grid')" title="그리드"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
+      </div>
     </div>
     <div id="history-view-grid"></div>
   </div>
@@ -4410,11 +4452,9 @@ document.querySelectorAll('.dbtn').forEach(btn=>{
     document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));
     this.classList.add('on');
     selectedDuration=dur;
-    const isPro=selectedDuration>180;
-    $('pro-warning').classList.toggle('on',isPro);
-    /* Pro 구간엔 적합한 모델 자동 선택 */
-    if(isPro&&$('model-sel').value==='V4_5')$('model-sel').value='V4_5PLUS';
-    else if(!isPro&&$('model-sel').value==='V4_5PLUS')$('model-sel').value='V4_5';
+    /* 연장 힌트 표시 (자동 선택 시) */
+    const hintEl=$('extend-hint');
+    if(hintEl) hintEl.style.display = dur===0 ? 'block' : 'none';
     updateFbTimeEstimate();
   });
 });
@@ -6076,6 +6116,125 @@ async function _autoLyricsAndGenerate(){
 $('gen-btn').addEventListener('click',generate);
 $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
+/* ══════════════════════════════
+   프리셋 시스템 — 원클릭 작곡 설정
+══════════════════════════════ */
+const PRESETS = {
+  kpop_girl:  { genre:'pop', sub:'K-Pop Dance',    mood:'energetic', bpm:128, instruments:['Synth','Bass'],       vocal:'female', desc:'K-Pop girl group, catchy hook, bright' },
+  ballad:     { genre:'pop', sub:'Ballad',          mood:'emotional', bpm:72,  instruments:['Piano','Strings'],    vocal:'female', desc:'Korean ballad, emotional vocal, piano-driven' },
+  hiphop:     { genre:'hiphop', sub:'Trap',          mood:'dark',     bpm:140, instruments:['808 Bass','Hi-Hat'],  vocal:'male',   desc:'trap beat, hard-hitting 808, dark atmosphere' },
+  lofi:       { genre:'lofi', sub:'Lo-Fi Hip Hop',   mood:'chill',    bpm:85,  instruments:['Piano','Guitar'],     vocal:'',       desc:'lo-fi chill, vinyl crackle, jazzy chords', inst:true },
+  edm:        { genre:'electronic', sub:'Future Bass',mood:'energetic',bpm:150, instruments:['Synth','Bass','Drums'],vocal:'',     desc:'EDM drop, festival energy, sidechaining', inst:true },
+  rnb:        { genre:'pop', sub:'R&B',              mood:'romantic',  bpm:90,  instruments:['Piano','Bass'],       vocal:'male',   desc:'smooth R&B, soulful vocal, groove' },
+  rock:       { genre:'rock', sub:'Indie Rock',      mood:'uplifting', bpm:120, instruments:['Guitar','Drums','Bass'],vocal:'male', desc:'indie rock, driving guitar, anthemic chorus' },
+  jazz:       { genre:'jazz', sub:'Jazz',            mood:'chill',     bpm:110, instruments:['Piano','Saxophone','Bass'],vocal:'',  desc:'jazz lounge, smooth saxophone, walking bass', inst:true },
+  cinematic:  { genre:'classical', sub:'Cinematic',  mood:'epic',      bpm:100, instruments:['Strings','Piano','Choir'],vocal:'',   desc:'cinematic orchestral, epic build, emotional', inst:true },
+  acoustic:   { genre:'acoustic', sub:'Acoustic Pop',mood:'warm',      bpm:100, instruments:['Guitar'],             vocal:'female', desc:'acoustic folk, warm vocal, fingerpicking guitar' },
+};
+
+function applyPreset(key){
+  const p = PRESETS[key];
+  if(!p) return;
+
+  /* 커스텀 모드로 전환 */
+  document.querySelector('.mtab[data-mode="custom"]')?.click();
+
+  /* 장르 버튼 클릭 */
+  setTimeout(()=>{
+    const genreBtn = document.querySelector(`.genre-btn[data-cat="${p.genre}"]`);
+    if(genreBtn) genreBtn.click();
+
+    /* 서브장르 설정 */
+    setTimeout(()=>{
+      const subSel = $('genre-sub');
+      if(subSel){ subSel.value = p.sub; subSel.dispatchEvent(new Event('change')); }
+    }, 100);
+
+    /* 무드 */
+    const moodSel = $('mood');
+    if(moodSel) moodSel.value = p.mood;
+
+    /* BPM */
+    const bpmSlider = $('bpm-slider');
+    if(bpmSlider){ bpmSlider.value = p.bpm; bpmSlider.dispatchEvent(new Event('input')); bpmAuto = false; }
+
+    /* 곡 설명 */
+    const descEl = $('song-desc');
+    if(descEl) descEl.value = p.desc;
+
+    /* 보컬 */
+    if(p.inst){
+      instOn = true;
+      document.querySelector('.inst-toggle')?.classList.add('on');
+    } else {
+      instOn = false;
+      document.querySelector('.inst-toggle')?.classList.remove('on');
+      if(p.vocal) vocalGender = p.vocal;
+    }
+
+    /* 악기 선택 */
+    selectedInstruments = p.instruments || [];
+    document.querySelectorAll('.adv-inst-btn').forEach(b=>{
+      b.classList.toggle('on', selectedInstruments.includes(b.textContent.trim()));
+    });
+
+    /* 프리셋 칩 활성화 표시 */
+    document.querySelectorAll('.preset-chip').forEach(c=>c.style.borderColor='');
+    event?.target?.closest?.('.preset-chip')&&(event.target.closest('.preset-chip').style.borderColor='var(--acc2)');
+
+    toast(`✨ "${p.desc.split(',')[0]}" 프리셋 적용! 가사를 입력하고 생성하세요`,'',2500);
+  }, 50);
+}
+
+/* ══════════════════════════════
+   프롬프트 엔지니어링 — buildOptimalPrompt()
+   kie.ai Suno API에 최적화된 스타일 문자열을 구조화하여 생성
+══════════════════════════════ */
+function buildOptimalPrompt({ genre, mood, songDesc, bpm, instruments, refArtist, lyricsLang, styleWeight, weirdness, isCustom }){
+  const parts = [];
+
+  /* 1. 핵심 장르 (가장 중요 — 맨 앞) */
+  if(genre) parts.push(genre);
+
+  /* 2. 무드/분위기 */
+  if(mood) parts.push(mood);
+
+  /* 3. 곡 설명 (자유 텍스트) */
+  if(songDesc) parts.push(songDesc);
+
+  /* 4. BPM — 숫자로 명확하게 */
+  if(bpm && bpm >= 60 && bpm <= 200) parts.push(`${bpm} BPM`);
+
+  /* 5. 악기 — 핵심 악기 3개까지 우선, 나머지는 "with" 접두 */
+  if(instruments?.length){
+    if(instruments.length <= 3) parts.push(instruments.join(', '));
+    else parts.push(instruments.slice(0,3).join(', ') + ', featuring ' + instruments.slice(3).join(' & '));
+  }
+
+  /* 6. 참조 아티스트 — "inspired by" 형태가 Suno에 효과적 */
+  if(refArtist){
+    const artistStyle = _refArtistStyleTags || `inspired by ${refArtist}`;
+    parts.push(artistStyle);
+  }
+
+  /* 7. 가사 언어 */
+  if(lyricsLang) parts.push(`${lyricsLang} lyrics`);
+
+  /* 8. 스타일 강도 (극단값만 명시 — 중간값은 기본 동작) */
+  if(isCustom && styleWeight !== undefined){
+    if(styleWeight >= 0.8) parts.push('genre-faithful, authentic production');
+    else if(styleWeight <= 0.3) parts.push('genre-blending, creative fusion');
+  }
+
+  /* 9. 창의성/실험성 */
+  if(isCustom && weirdness !== undefined){
+    if(weirdness >= 0.8) parts.push('experimental, avant-garde arrangement');
+    else if(weirdness <= 0.3) parts.push('conventional structure, polished');
+  }
+
+  return parts.filter(Boolean).join(', ');
+}
+
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 /* 전역 생성 중 → 모든 생성 버튼 disabled / 완료 → active */
@@ -6213,29 +6372,14 @@ async function generate(overrideParams){
   }
   if(!lyricsText&&!subGenre&&!isSimple&&!isYT&&!isCustom){toast('입력값을 확인해주세요','err');return;}
 
-  let styleStr=overrideParams?.styleStr||[subGenre,mood,songDesc||''].filter(Boolean).join(', ');
-
-  /* BPM을 스타일에 추가 */
-  if(!bpmAuto&&selectedBpm){styleStr=[styleStr,`${selectedBpm}bpm`].filter(Boolean).join(', ');}
-
-  /* 고급설정: 악기, 레퍼런스 아티스트, 언어 스타일에 추가 */
-  if(selectedInstruments?.length){styleStr=[styleStr,...selectedInstruments].filter(Boolean).join(', ');}
-  const refArtist=$('ref-artist')?.value.trim();
-  if(refArtist){
-    /* 분석된 스타일 태그 우선, 없으면 기본 in the style of */
-    const artistStyle = _refArtistStyleTags || `in the style of ${refArtist}`;
-    styleStr=[styleStr,artistStyle].filter(Boolean).join(', ');
-  }
-  const lyricsLang=$('lyrics-lang')?.value;
-  if(lyricsLang){styleStr=[styleStr,`${lyricsLang} lyrics`].filter(Boolean).join(', ');}
-
-  /* 스타일 강도 & 창의성을 프롬프트 스타일에도 반영 */
-  if(isCustom){
-    if(sw >= 0.8) styleStr=[styleStr,'strictly genre-faithful, authentic production'].filter(Boolean).join(', ');
-    else if(sw <= 0.3) styleStr=[styleStr,'genre-blending, creative fusion'].filter(Boolean).join(', ');
-    if(wc >= 0.8) styleStr=[styleStr,'experimental, unique arrangement, avant-garde elements'].filter(Boolean).join(', ');
-    else if(wc <= 0.3) styleStr=[styleStr,'conventional structure, polished production'].filter(Boolean).join(', ');
-  }
+  /* ── 최적화된 프롬프트 빌드 (buildOptimalPrompt) ── */
+  const refArtist=$('ref-artist')?.value.trim()||'';
+  const lyricsLang=$('lyrics-lang')?.value||'';
+  let styleStr = overrideParams?.styleStr || buildOptimalPrompt({
+    genre: subGenre, mood, songDesc, bpm: bpmAuto ? null : selectedBpm,
+    instruments: selectedInstruments, refArtist, lyricsLang,
+    styleWeight: sw, weirdness: wc, isCustom
+  });
 
   const prompt=lyricsText||styleStr;
   lastLyricsInput=lyricsText;
@@ -6697,9 +6841,17 @@ function renderTracks(tracks,prompt,tags,mode){
   batchWrap.dataset.batchId=batchId;
   batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:10px;margin-bottom:10px;';
   const batchHdr=document.createElement('div');
+  const _isAB = tracks.length >= 2;
   batchHdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
-  batchHdr.innerHTML=`<span style="font-size:10px;color:var(--acc3);font-weight:700;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey} · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span><button onclick="this.closest('.result-batch').remove()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;" title="이 배치 닫기">✕</button>`;
+  batchHdr.innerHTML=`<span style="font-size:10px;color:var(--acc3);font-weight:700;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey} · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}${_isAB?' · <span style="color:#f59e0b;">A/B 비교</span>':''}</span><button onclick="this.closest('.result-batch').remove()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;" title="이 배치 닫기">✕</button>`;
   batchWrap.appendChild(batchHdr);
+  /* A/B 비교 안내 (2곡 이상) */
+  if(_isAB){
+    const _abG=document.createElement('div');
+    _abG.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;font-size:11px;color:#f59e0b;';
+    _abG.innerHTML='🎧 AI가 2가지 버전을 만들었어요. 둘 다 들어보고 마음에 드는 곡을 선택하세요!';
+    batchWrap.appendChild(_abG);
+  }
   /* 맨 앞에 삽입 */
   if(container.firstChild) container.insertBefore(batchWrap, container.firstChild);
   else container.appendChild(batchWrap);
@@ -6731,10 +6883,12 @@ function renderTracks(tracks,prompt,tags,mode){
 
     const card=document.createElement('div');card.className='result-card';
     const trackTaskId=track._taskId||lastTaskId||'';
+    const _abBadge = _isAB ? `<div style="position:absolute;top:10px;left:12px;background:${i===0?'linear-gradient(135deg,#7c3aed,#a855f7)':'linear-gradient(135deg,#f59e0b,#f97316)'};color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:12px;z-index:2;letter-spacing:1px;">${i===0?'A':'B'}</div>` : '';
     card.innerHTML=`
       <div class="rc-cover" style="cursor:pointer;" title="🎤 노래방 모드로 열기" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">
         ${imageUrl?`<img class="rc-cover-img" src="${imageUrl}" alt="">`:`<div class="rc-cover-placeholder">🎵</div>`}
         <div class="rc-cover-overlay"></div>
+        ${_abBadge}
         <div style="position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.6);border:1px solid rgba(208,64,232,.4);color:var(--acc);font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:inherit;pointer-events:none;">🎤 노래방</div>
       </div>
       <div class="rc-body">
@@ -7123,9 +7277,23 @@ function updateHistBadge(){
 
 /* ── HISTORY VIEW ── */
 let _histTabFilter = 'all';
+let _histSortMode = 'newest';
+let _histViewMode = localStorage.getItem('kms_hist_view') || 'grid';
+
 function _switchHistTab(tab){
   _histTabFilter = tab;
   document.querySelectorAll('.hist-tab').forEach(t=>t.classList.toggle('on',t.dataset.htab===tab));
+  renderHistoryView();
+}
+function _switchHistSort(sort){
+  _histSortMode = sort;
+  document.querySelectorAll('.hist-sort-btn').forEach(b=>b.classList.toggle('on',b.dataset.hsort===sort));
+  renderHistoryView();
+}
+function _switchHistView(mode){
+  _histViewMode = mode;
+  localStorage.setItem('kms_hist_view', mode);
+  document.querySelectorAll('.hist-vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.hvt===mode));
   renderHistoryView();
 }
 function renderHistoryView(){
@@ -7134,21 +7302,27 @@ function renderHistoryView(){
   if(!grid)return;
 
   /* 탭 필터 적용 */
-  const filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
+  let filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
     if(_histTabFilter==='music') return !h.video_url;
     if(_histTabFilter==='mv') return !!h.video_url;
+    if(_histTabFilter==='liked') return h._liked || h._commLiked;
     return true;
   });
+  /* 정렬 */
+  if(_histSortMode==='oldest') filtered = filtered.reverse();
+  if(_histSortMode==='liked') filtered.sort((a,b)=>(b._commLikes||0)-(a._commLikes||0));
   const musicCount = historyData.filter(h=>!h.video_url).length;
   const mvCount = historyData.filter(h=>!!h.video_url).length;
-  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount})`;
+  const likedCount = historyData.filter(h=>h._liked||h._commLiked).length;
+  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount})`;
 
   if(!filtered.length){
     const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : '아직 생성된 음악이 없어요';
     grid.innerHTML=`<div class="hist-empty"><div class="he-icon">${_histTabFilter==='mv'?'🎬':'🎵'}</div><div class="he-txt">${emptyMsg}</div><div class="he-sub">음악 만들기 탭에서 첫 곡을 만들어보세요!</div></div>`;
     return;
   }
-  grid.innerHTML=`<div class="hist-view-grid">${filtered.map((h)=>{
+  const _gc = _histViewMode==='grid' ? 'hist-view-grid grid-mode' : 'hist-view-grid';
+  grid.innerHTML=`<div class="${_gc}">${filtered.map((h)=>{
     const idx=h._origIdx;
     const hasVideo=!!h.video_url;
     const thumbContent=hasVideo
@@ -9865,7 +10039,9 @@ function initTheme() {
 /* renderPresets removed */
 updateHistBadge();
 updateLoginUI();
-initTheme(); // 테마 초기화
+initTheme();
+/* 히스토리 뷰 모드 초기화 */
+document.querySelectorAll('.hist-vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.hvt===_histViewMode));
 /* 하단탭 data-view=create-view 버튼을 on으로 (HTML에서 on 클래스 직접 설정됨) */
 /* API 로드 완료 후 설정탭 상태 반영 */
 setTimeout(renderSettings, 2000);
