@@ -109,8 +109,14 @@ jobs:
             규칙:
             - index.html 파일을 직접 수정하세요
             - 기존 기능을 절대 제거하지 마세요
-            - 수정 완료 후 변경 내용을 한국어로 요약해주세요
-          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git diff:*),Bash(git status:*)"
+            - 수정 완료 후 반드시 아래 순서로 PR을 생성하세요:
+              1. git checkout -b fix/issue-${{ github.event.issue.number }}
+              2. git add -A
+              3. git commit -m "fix: ${{ github.event.issue.title }}"
+              4. git push origin fix/issue-${{ github.event.issue.number }}
+              5. gh pr create --title "fix: ${{ github.event.issue.title }}" --body "Closes #${{ github.event.issue.number }}" --base main
+            - 변경 내용을 한국어로 요약해주세요
+          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git diff:*),Bash(git status:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git push:*),Bash(gh pr create:*)"
           timeout_minutes: 30
 
       - name: Notify success (Telegram + Kakao)
