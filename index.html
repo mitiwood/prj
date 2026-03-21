@@ -811,6 +811,14 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .hist-tab{padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s ease;}
 .hist-tab.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3);}
 .hist-tab:hover:not(.on){color:var(--t1);background:var(--s2);}
+/* MY 피드 서브탭 & 섹션 */
+.myfeed-stab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.myfeed-stab.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,.25);}
+.myfeed-stab:hover:not(.on){color:var(--t1);border-color:var(--acc);}
+.myfeed-section{margin-bottom:8px;}
+.myfeed-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;}
+.myfeed-section-title{font-size:15px;font-weight:700;color:var(--t1);}
+.myfeed-section-count{font-size:12px;color:var(--t3);font-weight:500;}
 .hist-view-title{font-size:24px;font-weight:800;letter-spacing:-0.5px;}
 .hist-view-count{font-size:12px;color:var(--t3);margin-top:4px;}
 /* 히스토리 더보기 메뉴 */
@@ -983,11 +991,15 @@ body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
 /* 리믹스/커버/리마스터 바텀시트 */
-#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal{position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+.remix-back-header{display:flex;align-items:center;gap:8px;padding:14px 16px 0;}
+.remix-back-btn{background:none;border:none;color:var(--t1);font-size:20px;cursor:pointer;padding:4px 8px 4px 0;line-height:1;font-family:inherit;}
+.remix-back-btn:active{opacity:.5;}
+.remix-back-title{font-size:15px;font-weight:800;color:var(--t1);}
+#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+body.mp-on #remix-cover-modal,body.mp-on #remix-style-modal,body.mp-on #remaster-modal,body.mp-on #vocal-remove-modal{bottom:calc(56px + 62px);}
 #remix-cover-modal.on,#remix-style-modal.on,#remaster-modal.on,#vocal-remove-modal.on{pointer-events:auto;opacity:1;}
-#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{bottom:56px;max-height:70vh;}
-body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-panel,body.mp-on #remaster-modal .hes-panel,body.mp-on #vocal-remove-modal .hes-panel{bottom:calc(56px + 62px);max-height:60vh;}
-#remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel,#vocal-remove-modal.on .hes-panel{transform:translateY(0);}
+#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{bottom:0;max-height:70vh;}
+#remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel,#vocal-remove-modal.on .hes-panel{transform:translate(-50%,0);}
 
 /* 2차 바텀시트: 리믹스 & 도구 */
 #hes-tools-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10002;pointer-events:none;opacity:0;transition:opacity .25s;}
@@ -1042,6 +1054,19 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 }
 .comm-ftag.on{background:var(--acc);border-color:var(--acc);color:#fff;}
 .comm-ftag:hover:not(.on){border-color:var(--acc3);color:var(--acc3);}
+/* 정렬 버튼 */
+.comm-sort-btn{padding:5px 12px;border-radius:20px;border:none;background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.comm-sort-btn.on{color:var(--acc);background:rgba(124,58,237,.1);}
+.comm-sort-btn:hover:not(.on){color:var(--t1);}
+/* 트렌딩 태그 */
+.comm-trend-tag{padding:4px 10px;border-radius:16px;border:none;background:rgba(245,158,11,.08);color:#f59e0b;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.comm-trend-tag:hover{background:rgba(245,158,11,.15);}
+/* 좋아요 애니메이션 */
+@keyframes likePopComm{0%{transform:scale(1);}30%{transform:scale(1.4);}60%{transform:scale(.9);}100%{transform:scale(1);}}
+.comm-like-anim{animation:likePopComm .4s ease;}
+/* 재생수 배지 */
+.comm-plays-badge{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:2px;}
+
 
 /* 커뮤니티 히어로 */
 .comm-hero{
@@ -1128,6 +1153,19 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
   font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;
   margin-left:4px;vertical-align:middle;
 }
+/* 크리에이터 리스트 */
+.comm-creator-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all .2s;}
+.comm-creator-item:hover{background:rgba(124,58,237,.06);}
+.comm-creator-item:active{opacity:.8;}
+.comm-creator-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden;color:#fff;}
+.comm-creator-avatar img{width:100%;height:100%;object-fit:cover;}
+.comm-creator-info{flex:1;min-width:0;}
+.comm-creator-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.comm-creator-meta{font-size:11px;color:var(--t3);margin-top:2px;display:flex;gap:8px;}
+.comm-creator-follow-btn{padding:6px 16px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .2s;}
+.comm-creator-follow-btn.following{background:var(--card);color:var(--t2);border:1px solid var(--border);}
+[data-theme="light"] .comm-creator-item{background:#fff;border:1px solid rgba(0,0,0,.04);}
+[data-theme="light"] .comm-creator-item:hover{background:rgba(124,58,237,.04);}
 .comm-pinned-badge{
   display:inline-block;background:rgba(245,158,11,.12);
   border:1px solid rgba(245,158,11,.25);color:var(--ylw);
@@ -3369,6 +3407,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">뮤비</button>
       <button class="hist-tab" data-htab="liked" onclick="_switchHistTab('liked')">좋아요</button>
       <button class="hist-tab" data-htab="playlist" onclick="_switchHistTab('playlist')">플리</button>
+      <button class="hist-tab" data-htab="myfeed" onclick="_switchHistTab('myfeed')">MY</button>
     </div>
     <div class="hist-toolbar">
       <div class="hist-sort-row">
@@ -3395,6 +3434,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
@@ -3402,7 +3442,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
     </div>
-<!-- AI DJ -->    <div style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_startDJ('chill')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.2);background:rgba(124,58,237,.04);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 Chill</button>      <button onclick="_startDJ('energetic')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔥 Energy</button>      <button onclick="_startDJ('emotional')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.04);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💙 Mood</button>      <button onclick="_startDJ('random')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎲 Mix</button>    </div>
+    <!-- 정렬 옵션 -->
+    <div class="comm-sort-row" id="comm-sort-row" style="display:flex;gap:4px;margin-bottom:10px;">
+      <button class="comm-sort-btn on" data-csort="likes" onclick="_commSort('likes')">인기순</button>
+      <button class="comm-sort-btn" data-csort="newest" onclick="_commSort('newest')">최신순</button>
+      <button class="comm-sort-btn" data-csort="rating" onclick="_commSort('rating')">별점순</button>
+      <button class="comm-sort-btn" data-csort="plays" onclick="_commSort('plays')">재생순</button>
+    </div>
+    <!-- 트렌딩 태그 -->
+    <div id="comm-trending-tags" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
+<!-- AI DJ -->    <div id="comm-dj-row" style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_startDJ('chill')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.2);background:rgba(124,58,237,.04);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 Chill</button>      <button onclick="_startDJ('energetic')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔥 Energy</button>      <button onclick="_startDJ('emotional')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.04);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💙 Mood</button>      <button onclick="_startDJ('random')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎲 Mix</button>    </div>
     <div id="comm-hero-wrap"></div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
@@ -3647,11 +3696,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="profile-name" id="pv-name">사용자</div>
           <div class="profile-provider" id="pv-provider">provider</div>
           <div class="profile-stats">
-            <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span>
+            <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span> · <span id="pv-follower-cnt">0팔로워</span>
           </div>
         </div>
       </div>
-      <button class="profile-back-btn" onclick="switchTab('community-view')">← 돌아가기</button>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button id="pv-follow-btn" onclick="_pvToggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
+        <button class="profile-back-btn" onclick="switchTab('community-view')" style="flex-shrink:0;">← 돌아가기</button>
+      </div>
     </div>
     <div class="pv-section-title">🎵 곡 목록</div>
     <div id="pv-tracks-list"></div>
@@ -4160,11 +4212,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <div class="modal-backdrop" id="extend-modal">
   <div class="modal">
     <div class="hes-handle" style="margin-bottom:8px;"></div>
-    <button class="modal-close" id="extend-modal-close">✕</button>
-    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg>
-      곡 연장
+    <div class="remix-back-header" style="margin:-8px -4px 8px;">
+      <button class="remix-back-btn" id="extend-back-btn">←</button>
+      <div class="remix-back-title" style="display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg>
+        곡 연장
+      </div>
     </div>
+    <button class="modal-close" id="extend-modal-close" style="display:none;">✕</button>
     <div class="modal-sub">현재 트랙에서 이어지는 새로운 섹션을 만들어요</div>
 
     <!-- 원곡 정보 -->
@@ -4228,6 +4283,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="hes-backdrop" id="rc-backdrop"></div>
   <div class="hes-panel" id="rc-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
+    <div class="remix-back-header">
+      <button class="remix-back-btn" id="rc-back-btn">←</button>
+      <div class="remix-back-title">커버 생성</div>
+    </div>
     <!-- 트랙 정보 -->
     <div class="hes-track-info">
       <div class="hes-thumb" id="rc-thumb">🎵</div>
@@ -4296,6 +4355,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="hes-backdrop" id="rs-backdrop"></div>
   <div class="hes-panel" id="rs-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
+    <div class="remix-back-header">
+      <button class="remix-back-btn" id="rs-back-btn">←</button>
+      <div class="remix-back-title">스타일 재사용</div>
+    </div>
     <!-- 트랙 정보 -->
     <div class="hes-track-info">
       <div class="hes-thumb" id="rs-thumb">🎵</div>
@@ -4355,6 +4418,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="hes-backdrop" id="rm-backdrop"></div>
   <div class="hes-panel" id="rm-panel" style="max-height:70vh;">
     <div class="hes-handle"></div>
+    <div class="remix-back-header">
+      <button class="remix-back-btn" id="rm-back-btn">←</button>
+      <div class="remix-back-title">리마스터 V5</div>
+    </div>
     <!-- 트랙 정보 -->
     <div class="hes-track-info">
       <div class="hes-thumb" id="rm-thumb">🎵</div>
@@ -4395,6 +4462,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="hes-backdrop" id="vr-backdrop"></div>
   <div class="hes-panel" id="vr-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
+    <div class="remix-back-header">
+      <button class="remix-back-btn" id="vr-back-btn">←</button>
+      <div class="remix-back-title">보컬 제거</div>
+    </div>
     <div class="hes-track-info">
       <div class="hes-thumb" id="vr-thumb">🎵</div>
       <div class="hes-info-text">
@@ -7972,6 +8043,7 @@ function openExtendModal(audioId){
   $('extend-modal').classList.add('on');
 }
 if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
+$('extend-back-btn').addEventListener('click',()=>{$('extend-modal').classList.remove('on');$('hes-tools-sheet').classList.add('on');});
 $('extend-modal').addEventListener('click',e=>{if(e.target===$('extend-modal'))$('extend-modal').classList.remove('on');});
 $('extend-submit-btn').addEventListener('click',async()=>{
   if(_globalGenerating){_showGeneratingPopup();return;}
@@ -8568,6 +8640,11 @@ function renderHistoryView(){
     _renderPlaylistView(grid,count);
     return;
   }
+  /* MY 피드 탭 — 좋아요 + 팔로우 아티스트 */
+  if(_histTabFilter==='myfeed'){
+    _renderMyFeedView(grid,count);
+    return;
+  }
   /* 탭 필터 적용 */
   let filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
     if(_histTabFilter==='music') return !h.video_url;
@@ -8851,6 +8928,7 @@ document.querySelectorAll('.rc-gender-btn').forEach(btn=>{
 });
 function _closeCover(){$('remix-cover-modal').classList.remove('on');}
 $('rc-backdrop').addEventListener('click',_closeCover);
+$('rc-back-btn').addEventListener('click',()=>{_closeCover();$('hes-tools-sheet').classList.add('on');});
 /* Cover 생성 */
 $('rc-submit-btn').addEventListener('click',async()=>{
   if(_globalGenerating){_showGeneratingPopup();return;}
@@ -8937,6 +9015,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
 /* ── 리믹스: 스타일 재사용 바텀시트 ── */
 let _rsSourceIdx=-1;
 function _closeStyleReuse(){$('remix-style-modal').classList.remove('on');}
+$('rs-back-btn').addEventListener('click',()=>{_closeStyleReuse();$('hes-tools-sheet').classList.add('on');});
 $('hes-remix-style-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
@@ -9014,6 +9093,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
 /* ── 리마스터 v5 바텀시트 ── */
 let _rmSourceIdx=-1;
 function _closeRemaster(){$('remaster-modal').classList.remove('on');}
+$('rm-back-btn').addEventListener('click',()=>{_closeRemaster();$('hes-tools-sheet').classList.add('on');});
 $('hes-remaster-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
@@ -9097,6 +9177,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
 /* ── 보컬 제거 / 스템 분리 ── */
 let _vrSourceIdx = -1, _vrMode = 'separate_vocal';
 function _closeVR() { $('vocal-remove-modal').classList.remove('on'); }
+$('vr-back-btn').addEventListener('click',()=>{_closeVR();$('hes-tools-sheet').classList.add('on');});
 
 document.querySelectorAll('.vr-mode-btn').forEach(b => b.addEventListener('click', () => {
   _vrMode = b.dataset.vrmode;
@@ -10476,6 +10557,222 @@ function _plClearAll(){
   });
 }
 
+/* ── MY 피드: 좋아요 + 팔로우 아티스트 음악 ── */
+var _myFeedCache=null;
+var _myFeedLoading=false;
+var _myFeedSubTab='all'; /* all | liked | follow */
+
+function _renderMyFeedView(grid,countEl){
+  if(!currentUser||currentUser.provider==='guest'){
+    if(countEl) countEl.textContent='나만의 피드';
+    grid.innerHTML='<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="he-txt">로그인이 필요해요</div><div class="he-sub">좋아요한 곡과 팔로우 아티스트의 음악을 모아볼 수 있어요</div><button class="hist-empty-cta" onclick="openLoginSheet()">로그인</button></div>';
+    return;
+  }
+
+  /* 좋아요한 곡 (로컬) */
+  var likedSongs=historyData.filter(function(h){return h._liked||h._commLiked;});
+
+  /* 서브탭 UI + 콘텐츠 렌더 */
+  var subTabHtml='<div class="myfeed-subtabs" style="display:flex;gap:6px;margin-bottom:12px;">'
+    +'<button class="myfeed-stab'+ (_myFeedSubTab==='all'?' on':'')+'" onclick="_myFeedSwitchSub(\'all\')">전체</button>'
+    +'<button class="myfeed-stab'+ (_myFeedSubTab==='liked'?' on':'')+'" onclick="_myFeedSwitchSub(\'liked\')">❤️ 좋아요 '+likedSongs.length+'</button>'
+    +'<button class="myfeed-stab'+ (_myFeedSubTab==='follow'?' on':'')+'" onclick="_myFeedSwitchSub(\'follow\')">👥 팔로우</button>'
+    +'</div>';
+
+  var html=subTabHtml;
+
+  if(_myFeedSubTab==='all'||_myFeedSubTab==='liked'){
+    html+=_buildMyFeedLikedSection(likedSongs, _myFeedSubTab==='liked');
+  }
+  if(_myFeedSubTab==='all'||_myFeedSubTab==='follow'){
+    html+=_buildMyFeedFollowSection();
+  }
+
+  if(countEl) countEl.textContent='나만의 피드';
+  grid.innerHTML=html;
+
+  /* 팔로우 트랙 로드 (캐시 없으면) */
+  if(!_myFeedCache&&!_myFeedLoading&&(_myFeedSubTab==='all'||_myFeedSubTab==='follow')){
+    _loadMyFeedFollowTracks();
+  }
+
+  /* 이벤트 위임 */
+  grid.addEventListener('click',function _mfClick(e){
+    grid.removeEventListener('click',_mfClick);
+    var card=e.target.closest('[data-mf-action]');
+    if(!card) return;
+    var action=card.dataset.mfAction;
+    if(action==='play-liked'){
+      var idx=parseInt(card.dataset.mfIdx);
+      if(!isNaN(idx)) showMiniPlayer(idx);
+    } else if(action==='play-follow'){
+      var trkId=card.dataset.mfTrkId;
+      _playMyFeedTrack(trkId);
+    } else if(action==='artist'){
+      var aName=card.dataset.mfName, aProv=card.dataset.mfProvider;
+      if(typeof openCreatorProfile==='function') openCreatorProfile(aName,aProv);
+    }
+  });
+  /* 이벤트 재등록 (delegation) */
+  grid.onclick=function(e){
+    var card=e.target.closest('[data-mf-action]');
+    if(!card) return;
+    var action=card.dataset.mfAction;
+    if(action==='play-liked'){
+      var idx=parseInt(card.dataset.mfIdx);
+      if(!isNaN(idx)) showMiniPlayer(idx);
+    } else if(action==='play-follow'){
+      var trkId=card.dataset.mfTrkId;
+      _playMyFeedTrack(trkId);
+    } else if(action==='artist'){
+      var aName=card.dataset.mfName, aProv=card.dataset.mfProvider;
+      if(typeof openCreatorProfile==='function') openCreatorProfile(aName,aProv);
+    }
+  };
+}
+
+function _myFeedSwitchSub(sub){
+  _myFeedSubTab=sub;
+  renderHistoryView();
+}
+
+function _buildMyFeedLikedSection(likedSongs, isFullView){
+  if(!likedSongs.length){
+    return '<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px;">좋아요한 곡이 없어요<br><span style="font-size:11px;">커뮤니티에서 마음에 드는 곡을 ❤️ 눌러보세요</span></div>';
+  }
+  var displaySongs=isFullView?likedSongs:likedSongs.slice(0,6);
+  var html='<div class="myfeed-section">';
+  if(!isFullView) html+='<div class="myfeed-section-header"><span class="myfeed-section-title">❤️ 좋아요한 곡</span><span class="myfeed-section-count">'+likedSongs.length+'곡</span></div>';
+
+  /* 전체재생 버튼 */
+  if(likedSongs.length>0){
+    html+='<div style="display:flex;gap:8px;margin-bottom:10px;">'
+      +'<button onclick="_myFeedPlayAllLiked()" style="flex:1;padding:9px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">▶ 전체 재생</button>'
+      +'<button onclick="_myFeedShuffleLiked()" style="padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
+      +'</div>';
+  }
+
+  html+='<div class="hist-view-grid">';
+  displaySongs.forEach(function(h){
+    var idx=historyData.indexOf(h);
+    var thumb=h.image_url?'<img src="'+esc(h.image_url)+'" alt="">':'<div class="hist-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>';
+    var tag=(h.tags||'').split(',')[0]?.trim()||'';
+    var hasVideo=!!h.video_url;
+    html+='<div class="hist-card" data-mf-action="play-liked" data-mf-idx="'+idx+'" role="button" tabindex="0">'
+      +'<div class="hist-thumb">'+thumb
+      +(hasVideo?'<div class="hist-type-badge">🎬</div>':'')
+      +'<div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>'
+      +'</div>'
+      +'<div class="hist-info">'
+      +'<div class="hist-title">'+esc(h.title||'무제')+'<span class="hist-liked-badge">❤️</span></div>'
+      +'<div class="hist-sub">'+esc(tag)+'</div>'
+      +'</div></div>';
+  });
+  html+='</div>';
+
+  if(!isFullView&&likedSongs.length>6){
+    html+='<button onclick="_myFeedSwitchSub(\'liked\')" style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">전체 보기 ('+likedSongs.length+'곡) →</button>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function _buildMyFeedFollowSection(){
+  var html='<div class="myfeed-section" style="margin-top:16px;">';
+  if(_myFeedSubTab!=='follow') html+='<div class="myfeed-section-header"><span class="myfeed-section-title">👥 팔로우 아티스트 음악</span></div>';
+
+  if(_myFeedLoading){
+    html+='<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px;">로딩 중...</div>';
+  } else if(!_myFeedCache||!_myFeedCache.tracks||!_myFeedCache.tracks.length){
+    if(_myFeedCache){
+      html+='<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px;">팔로우한 아티스트의 곡이 없어요<br><span style="font-size:11px;">커뮤니티에서 마음에 드는 아티스트를 팔로우해보세요</span></div>';
+    } else {
+      html+='<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px;">로딩 중...</div>';
+    }
+  } else {
+    /* 아티스트 칩 */
+    if(_myFeedCache.artists&&_myFeedCache.artists.length){
+      html+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;-webkit-overflow-scrolling:touch;">';
+      _myFeedCache.artists.forEach(function(a){
+        html+='<button data-mf-action="artist" data-mf-name="'+esc(a.name)+'" data-mf-provider="'+esc(a.provider)+'" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">'+esc(a.name)+' <span style="color:var(--t3);">'+a.trackCount+'곡</span></button>';
+      });
+      html+='</div>';
+    }
+
+    var displayTracks=_myFeedSubTab==='follow'?_myFeedCache.tracks:_myFeedCache.tracks.slice(0,8);
+    html+='<div class="hist-view-grid">';
+    displayTracks.forEach(function(t){
+      var thumb=t.image_url?'<img src="'+esc(t.image_url)+'" alt="">':'<div class="hist-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>';
+      var tag=(t.tags||'').split(',')[0]||'';
+      var hasVideo=!!t.video_url;
+      html+='<div class="hist-card" data-mf-action="play-follow" data-mf-trk-id="'+esc(t.id)+'" role="button" tabindex="0">'
+        +'<div class="hist-thumb">'+thumb
+        +(hasVideo?'<div class="hist-type-badge">🎬</div>':'')
+        +'<div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>'
+        +'</div>'
+        +'<div class="hist-info">'
+        +'<div class="hist-title">'+esc(t.title||'무제')+'</div>'
+        +'<div class="hist-sub">'+esc(t.owner_name||'')+' · '+esc(tag)+'</div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+
+    if(_myFeedSubTab!=='follow'&&_myFeedCache.tracks.length>8){
+      html+='<button onclick="_myFeedSwitchSub(\'follow\')" style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">전체 보기 ('+_myFeedCache.tracks.length+'곡) →</button>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+async function _loadMyFeedFollowTracks(){
+  if(!currentUser||currentUser.provider==='guest')return;
+  _myFeedLoading=true;
+  try{
+    var r=await fetch('/api/my-feed?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+    var d=await r.json();
+    if(d.ok){
+      _myFeedCache={tracks:d.tracks||[],artists:d.artists||[]};
+    } else {
+      _myFeedCache={tracks:[],artists:[]};
+    }
+  }catch(e){
+    console.warn('[my-feed]',e);
+    _myFeedCache={tracks:[],artists:[]};
+  }
+  _myFeedLoading=false;
+  if(_histTabFilter==='myfeed') renderHistoryView();
+}
+
+function _playMyFeedTrack(trkId){
+  if(!_myFeedCache||!_myFeedCache.tracks)return;
+  var t=_myFeedCache.tracks.find(function(x){return x.id===trkId;});
+  if(!t||!t.audio_url){toast('오디오를 재생할 수 없어요','err');return;}
+  /* historyData에 이미 있는지 확인 */
+  var hIdx=historyData.findIndex(function(h){return h.id===trkId||h._sbId===trkId;});
+  if(hIdx<0){
+    historyData.unshift({id:t.id,_sbId:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url,video_url:t.video_url||'',tags:t.tags||'',type:t.video_url?'mv':'audio',created:t.created_at,_fromFeed:true,owner_name:t.owner_name,owner_provider:t.owner_provider});
+    hIdx=0;
+  }
+  showMiniPlayer(hIdx);
+}
+
+function _myFeedPlayAllLiked(){
+  var liked=historyData.filter(function(h){return h._liked||h._commLiked;});
+  if(!liked.length){toast('좋아요한 곡이 없어요','err');return;}
+  var idx=historyData.indexOf(liked[0]);
+  if(idx>=0) showMiniPlayer(idx);
+  toast('▶ 좋아요 전체 재생','ok',1500);
+}
+
+function _myFeedShuffleLiked(){
+  var liked=historyData.map(function(h,i){return h._liked||h._commLiked?i:-1;}).filter(function(i){return i>=0;});
+  if(liked.length<1){toast('좋아요한 곡이 없어요','err');return;}
+  var ri=liked[Math.floor(Math.random()*liked.length)];
+  showMiniPlayer(ri);
+  toast('🔀 셔플 재생','ok',1500);
+}
+
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
 let _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */
 function fpRenderLyrics(h){
@@ -10821,7 +11118,16 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
     this.classList.add('on');
     _commActiveGenre=this.dataset.cf||'all';
-    renderCommunity();
+    /* 크리에이터 모드일 때 정렬/DJ 숨김, 아닐 때 복원 */
+    var isCreatorMode=_commActiveGenre==='creators';
+    var sortRow=$('comm-sort-row');if(sortRow)sortRow.style.display=isCreatorMode?'none':'';
+    var djRow=$('comm-dj-row');if(djRow)djRow.style.display=isCreatorMode?'none':'';
+    var trendTags=$('comm-trending-tags');if(trendTags)trendTags.style.display=isCreatorMode?'none':'';
+    if(isCreatorMode){
+      _renderCreatorList();
+    } else {
+      renderCommunity();
+    }
   });
 });
 
@@ -11179,6 +11485,9 @@ function getCommTracks(){
 }
 
 async function renderCommunity(force=false){
+  /* 크리에이터 모드이면 별도 렌더 */
+  if(_commActiveGenre==='creators'){_renderCreatorList();return;}
+
   const heroWrap=$('comm-hero-wrap');
   const list=$('comm-list');
   if(!list)return;
@@ -11338,6 +11647,21 @@ function _renderCommContent(heroWrap, list){
     let html='';
     let allListTracks=[];
 
+/* 🏆 주간 인기 차트 (Top 5) — 다른 트랙 위에 배치 */
+    const weekAgo=Date.now()-7*86400000;
+    const weekTracks=otherTracks.filter(t=>(t._created||0)>weekAgo||true).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,5);
+    if(weekTracks.length>=3){
+      html+='<div style="margin-bottom:12px;padding:12px;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(124,58,237,.04));border:1px solid rgba(245,158,11,.15);border-radius:14px;">';
+      html+='<div style="font-size:13px;font-weight:800;color:#f59e0b;margin-bottom:8px;">🏆 인기 차트</div>';
+      weekTracks.forEach(function(t,i){
+        var medal=['🥇','🥈','🥉','4','5'][i]||String(i+1);
+        var sid=t._sbId||'';
+        html+='<div onclick="commPlaySb(\''+sid+'\')" style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:8px;" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'"><span style="font-size:16px;width:24px;text-align:center;">'+medal+'</span><span style="flex:1;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'무제').replace(/[<>&"]/g,'')+'</span><span style="font-size:10px;color:var(--t3);">❤️'+(t.likes||0)+'</span></div>';
+        allListTracks.push(t);
+      });
+      html+='</div>';
+    }
+
     /* 내 곡 섹션 (최신순 → 좋아요순) */
     if(myTracks.length){
       html+=`<div class="comm-my-section"><div class="comm-my-section-title">🎵 내가 만든 곡 (${myTracks.length})</div>`;
@@ -11348,7 +11672,6 @@ function _renderCommContent(heroWrap, list){
       html+=`</div>`;
     }
 
-/* 🏆 주간 인기 차트 (Top 5) */    const weekAgo=Date.now()-7*86400000;    const weekTracks=otherTracks.filter(t=>(t._created||0)>weekAgo||true).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,5);    if(weekTracks.length>=3){      html+='<div style="margin-bottom:12px;padding:12px;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(124,58,237,.04));border:1px solid rgba(245,158,11,.15);border-radius:14px;"><div style="font-size:13px;font-weight:800;color:#f59e0b;margin-bottom:8px;">🏆 인기 차트</div>';      weekTracks.forEach(function(t,i){        var medal=['🥇','🥈','🥉','4','5'][i]||String(i+1);        var sid=t._sbId||'';        html+='<div onclick="commPlaySb(\''+sid+'\')" style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:8px;" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'"><span style="font-size:16px;width:24px;text-align:center;">'+medal+'</span><span style="flex:1;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'무제').replace(/[<>&"]/g,'')+'</span><span style="font-size:10px;color:var(--t3);">❤️'+(t.likes||0)+'</span></div>';        allListTracks.push(t);      });      html+='</div>';    }
     /* 다른 트랙 섹션 (좋아요순) */
     const otherLabel=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'다른 트랙');
     $('comm-section-lbl').textContent=otherLabel+' ('+otherTracks.length+'곡)';
@@ -11368,6 +11691,126 @@ function _renderCommContent(heroWrap, list){
   }
 }
 
+
+/* ── 크리에이터 리스트 뷰 ── */
+function _renderCreatorList(){
+  const heroWrap=$('comm-hero-wrap');
+  const list=$('comm-list');
+  const sectionLbl=$('comm-section-lbl');
+  if(!list)return;
+  heroWrap.innerHTML='';
+
+  const all=_sbTracks||[];
+  if(!all.length){
+    sectionLbl.textContent='크리에이터';
+    list.innerHTML='<div style="text-align:center;padding:48px 20px;color:var(--t3);"><div style="font-size:40px;margin-bottom:12px;">👤</div><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 크리에이터가 없어요</div></div>';
+    return;
+  }
+
+  /* 트랙 기준으로 유저별 그룹핑 */
+  const creatorMap={};
+  all.forEach(t=>{
+    const owner=t._owner||{};
+    const key=(owner.name||'익명')+'__'+(owner.provider||'');
+    if(!creatorMap[key]){
+      creatorMap[key]={name:owner.name||'익명',provider:owner.provider||'',avatar:owner.avatar||'',tracks:0,likes:0};
+    }
+    creatorMap[key].tracks++;
+    creatorMap[key].likes+=(t.likes||0);
+  });
+
+  /* 정렬: 곡 수 많은 순 → 좋아요 순 */
+  const creators=Object.values(creatorMap).sort((a,b)=>(b.tracks-a.tracks)||(b.likes-a.likes));
+
+  /* 검색 필터 */
+  const q=_commSearchQuery;
+  const filtered=q?creators.filter(c=>c.name.toLowerCase().includes(q)):creators;
+
+  sectionLbl.textContent='크리에이터 ('+filtered.length+'명)';
+
+  if(!filtered.length){
+    list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">🔍</div><div class="comm-no-title">검색 결과가 없습니다</div></div>';
+    return;
+  }
+
+  /* 팔로우 상태 비동기 로드 후 렌더 */
+  const isLoggedIn=currentUser&&currentUser.provider!=='guest';
+  const isMeCheck=(c)=>isLoggedIn&&currentUser.name===c.name&&currentUser.provider===c.provider;
+
+  let html='';
+  filtered.forEach((c,i)=>{
+    const provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[c.provider]||'';
+    const isMe=isMeCheck(c);
+    html+=`<div class="comm-creator-item" onclick="openCreatorProfile('${esc(c.name)}','${esc(c.provider)}')" data-creator-idx="${i}">
+      <div class="comm-creator-avatar">${c.avatar?'<img src="'+esc(c.avatar)+'" alt="" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+      <div class="comm-creator-info">
+        <div class="comm-creator-name">${provIcon} ${esc(c.name)}${isMe?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
+        <div class="comm-creator-meta">
+          <span>🎵 ${c.tracks}곡</span>
+          <span>❤️ ${c.likes}좋아요</span>
+        </div>
+      </div>
+      ${!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>':''}
+    </div>`;
+  });
+  list.innerHTML=html;
+
+  /* 팔로우 상태 비동기 갱신 */
+  if(isLoggedIn){
+    filtered.forEach((c,i)=>{
+      if(isMeCheck(c))return;
+      const btn=list.querySelector('[data-creator-idx="'+i+'"] .comm-creator-follow-btn');
+      if(!btn)return;
+      fetch('/api/profile?name='+encodeURIComponent(c.name)+'&provider='+encodeURIComponent(c.provider)+'&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
+        .then(r=>r.json()).then(d=>{
+          if(d.ok&&d.profile&&d.profile.isFollowing){
+            btn.textContent='팔로잉';
+            btn.classList.add('following');
+            btn.dataset.following='1';
+          }
+          /* 팔로워 수 표시 */
+          if(d.ok&&d.profile&&d.profile.followerCount>0){
+            const meta=btn.closest('.comm-creator-item').querySelector('.comm-creator-meta');
+            if(meta){
+              const span=document.createElement('span');
+              span.textContent='👥 '+d.profile.followerCount+'팔로워';
+              meta.appendChild(span);
+            }
+          }
+        }).catch(()=>{});
+    });
+  }
+}
+
+async function _creatorFollowToggle(btn){
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  const name=btn.dataset.cname;
+  const prov=btn.dataset.cprov;
+  if(!name)return;
+  const isFollowing=btn.dataset.following==='1';
+  btn.disabled=true;
+  try{
+    const r=await fetch('/api/profile',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:isFollowing?'unfollow':'follow',
+        followerName:currentUser.name,followerProvider:currentUser.provider,
+        followingName:name,followingProvider:prov
+      })
+    });
+    const d=await r.json();
+    if(d.ok){
+      if(isFollowing){
+        btn.textContent='팔로우';btn.classList.remove('following');btn.dataset.following='0';
+        toast('팔로우 취소','',1500);
+      } else {
+        btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';
+        toast('팔로우!','ok',1500);
+      }
+    }
+  }catch(e){toast('오류: '+e.message,'err');}
+  btn.disabled=false;
+}
 
 /* 커뮤니티 리스트 재생시간 비동기 로드 */
 const _durCache={};
@@ -13274,7 +13717,11 @@ function openCreatorProfile(name, provider){
   $('pv-avatar').innerHTML = '👤';
   $('pv-tracks').textContent = '0곡';
   $('pv-likes').textContent = '0좋아요';
+  $('pv-follower-cnt').textContent = '0팔로워';
   $('pv-tracks-list').innerHTML = '<div class="pv-empty">로딩 중...</div>';
+  window._pvTarget = {name:name, provider:provider};
+  var _pvIsMe = currentUser && currentUser.name === name && currentUser.provider === provider;
+  $('pv-follow-btn').style.display = _pvIsMe ? 'none' : '';
 
   const viewerQ = currentUser ? `&viewerName=${encodeURIComponent(currentUser.name)}&viewerProvider=${encodeURIComponent(currentUser.provider)}` : '';
   fetch(`/api/profile?name=${encodeURIComponent(name)}&provider=${encodeURIComponent(provider||'')}${viewerQ}`)
@@ -13284,6 +13731,12 @@ function openCreatorProfile(name, provider){
       if(p.avatar) $('pv-avatar').innerHTML = `<img src="${esc(p.avatar)}" alt="">`;
       $('pv-tracks').textContent = (p.trackCount||0) + '곡';
       $('pv-likes').textContent = (p.totalLikes||0) + '좋아요';
+      $('pv-follower-cnt').textContent = (p.followerCount||0) + '팔로워';
+      var fbtn = $('pv-follow-btn');
+      if(fbtn && !_pvIsMe){
+        if(p.isFollowing){ fbtn.textContent='팔로잉'; fbtn.dataset.following='1'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
+        else { fbtn.textContent='팔로우'; fbtn.dataset.following='0'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
+      }
 
       const tracks = d.tracks || [];
       if(!tracks.length){
