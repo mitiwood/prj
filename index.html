@@ -8134,9 +8134,17 @@ async function _mvGenerateImage(){
   var apiKey=kieApiKey||'proxy';
   if(_globalGenerating){console.log('[img2vid] blocked: generating');_showGeneratingPopup();return;}
   var promptEl=$('mv-prompt');
-  console.log('[img2vid] mv-prompt element:', promptEl, 'value:', promptEl?.value);
   var prompt=(promptEl?.value||'').trim();
-  if(!prompt){toast('MV 프롬프트를 입력해주세요','err',3000);console.log('[img2vid] empty prompt');return;}
+  /* 프롬프트 비어있으면 연결 트랙 또는 기본값으로 자동 생성 */
+  if(!prompt){
+    var _ti=$('mv-link-track')?.value;
+    var _lt=_ti!==''&&_ti!=null?historyData[parseInt(_ti)]:null;
+    if(_lt) prompt='A cinematic music video for "'+(_lt.title||'')+'" with style: '+(_lt.tags||'pop')+', dynamic camera, atmospheric lighting';
+    else prompt='A cinematic music video scene, beautiful atmosphere, dynamic camera movements, neon lights, high quality, 4K';
+    if(promptEl) promptEl.value=prompt;
+    toast('✨ 프롬프트를 자동 생성했어요','ok',2000);
+  }
+  console.log('[img2vid] prompt:', prompt.slice(0,60));
   console.log('[img2vid] prompt:', prompt.slice(0,50));
   var btn=$('mv-img-gen-btn'),spinner=$('mv-img-spinner'),txt=$('mv-img-txt');
   btn.disabled=true;if(spinner)spinner.classList.add('on');txt.textContent='🖼 이미지 생성 중...';
