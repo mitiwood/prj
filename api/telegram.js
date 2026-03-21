@@ -77,9 +77,42 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown action' });
   }
 
-  /* POST — 메시지 발송 */
+  /* POST — 메시지 발송 / 수정 */
   if (req.method === 'POST') {
-    const { text, chatId, parse_mode, event, silent } = req.body || {};
+    const { text, chatId, parse_mode, event, silent, action: postAction, message_id } = req.body || {};
+
+    /* ── 메시지 수정 ── */
+    if (postAction === 'edit') {
+      if (!checkAuth(req)) return res.status(401).json({ error: 'Unauthorized' });
+      const targetChat = chatId || DEFAULT_CHAT_ID;
+      if (!targetChat) return res.status(400).json({ error: 'No chat_id configured' });
+      if (!message_id) return res.status(400).json({ error: 'message_id required' });
+      if (!text) return res.status(400).json({ error: 'text required' });
+      try {
+        const result = await tgApi('editMessageText', {
+          chat_id: targetChat,
+          message_id: Number(message_id),
+          text,
+          parse_mode: parse_mode && parse_mode !== '' ? parse_mode : undefined,
+        });
+        return res.status(200).json({ ok: true, message_id: result.message_id, edited: true });
+      } catch (e) {
+        /* parse_mode 오류 시 plain text 재시도 */
+        if (parse_mode && /parse/i.test(e.message)) {
+          try {
+            const r2 = await tgApi('editMessageText', {
+              chat_id: targetChat,
+              message_id: Number(message_id),
+              text,
+            });
+            return res.status(200).json({ ok: true, message_id: r2.message_id, edited: true, fallback: 'plain' });
+          } catch (e2) {
+            return res.status(500).json({ ok: false, error: e2.message });
+          }
+        }
+        return res.status(500).json({ ok: false, error: e.message });
+      }
+    }
 
     // 내부 이벤트 알림 (인증 필요)
     if (event) {
