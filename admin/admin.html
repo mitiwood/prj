@@ -1444,6 +1444,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 
 <script>
+// ── 서버 데이터 캐시 (호이스팅 문제 방지 — 최상단 선언) ──
+let _serverTracks = [];
+let _serverUsers = [];
+let _dataLoaded = false;
+let _trackIdSet = new Set();
+let _userKeySet = new Set();
+
 // ── 인증 ──
 const ADMIN_PW_KEY='kms_admin_pw';
 const DEFAULT_PW='kenny2024!';
@@ -1767,11 +1774,7 @@ async function loadVercelLog(depId, depUrl){
 
 // ── 데이터 로드 (localStorage에서) ──
 /* ── 서버 데이터 캐시 ── */
-let _serverTracks = [];
-let _serverUsers = [];
-let _dataLoaded = false;
-let _trackIdSet = new Set();   /* 캐시: 기존 트랙 ID */
-let _userKeySet = new Set();   /* 캐시: 기존 사용자 키 */
+/* _serverTracks, _serverUsers, _dataLoaded, _trackIdSet, _userKeySet → 최상단에 선언됨 */
 let _lastFetchAt = 0;          /* 마지막 fetch 시각 */
 
 function getHistory(){ return _serverTracks; }

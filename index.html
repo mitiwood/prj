@@ -11912,8 +11912,56 @@ function _renderSettingsExtended(){
   const hc=$('settings-hist-count'); if(hc) hc.textContent=h.length>0?`${h.length}곡 저장됨`:'저장된 곡 없음';
 }
 
+/* ══════════════════════════════
+   플랜 서버 동기화 — 디바이스 간 싱크 + 어뷰징 방지
+══════════════════════════════ */
+async function _syncPlanFromServer(){
+  if(!currentUser || currentUser.provider === 'guest') return;
+  try {
+    const r = await fetch('/api/check-credit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type: 'song' })
+    });
+    const d = await r.json();
+    if(!d.ok && d.reason === 'plan_expired'){
+      /* 플랜 만료 → 강제 free 전환 */
+      localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
+      toast('플랜이 만료되어 무료로 전환됐어요','',3000);
+      if(typeof renderPlanUI === 'function') renderPlanUI();
+      return;
+    }
+    if(d.plan){
+      const localPlan = getPlan();
+      /* 서버 플랜과 로컬 플랜 불일치 → 서버 우선 (어뷰징 방지) */
+      if(localPlan.type !== d.plan){
+        console.log('[PlanSync] 서버:', d.plan, '로컬:', localPlan.type, '→ 서버 기준 동기화');
+        const endDate = d.plan === 'free' ? null : new Date(Date.now() + 30*24*60*60*1000).toISOString();
+        localStorage.setItem('kms_plan', JSON.stringify({type: d.plan, startDate: new Date().toISOString(), endDate}));
+        if(typeof renderPlanUI === 'function') renderPlanUI();
+      }
+      /* 사용량도 서버 기준 동기화 */
+      if(d.used !== undefined){
+        const usage = getUsage();
+        const key = d.type === 'song' ? 'songs' : d.type;
+        if(typeof d.used === 'number' && d.used > (usage[key]||0)){
+          usage[key] = d.used;
+          saveUsage(usage);
+        }
+      }
+    }
+  } catch(e){ /* 서버 장애 시 로컬 유지 */ }
+}
+
 /* 앱 시작 시 */
-document.addEventListener('DOMContentLoaded', ()=>{ if(typeof _renderSettingsExtended==='function') _renderSettingsExtended(); checkAnnouncement(); });
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(typeof _renderSettingsExtended==='function') _renderSettingsExtended();
+  checkAnnouncement();
+  /* 서버 플랜 동기화 (1초 후 — API 키 로딩 대기) */
+  setTimeout(_syncPlanFromServer, 1000);
+});
+/* 탭 복귀 시에도 동기화 */
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _syncPlanFromServer(); });
 
 /* ══════════════════════════════
    실시간 알림 수신 (10초 폴링)
