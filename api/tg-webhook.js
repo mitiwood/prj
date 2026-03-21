@@ -35,7 +35,7 @@ const BASE       = 'https://ai-music-studio-bice.vercel.app';
 
 /* ── 유틸 ── */
 async function tgSend(chatId, text, opts = {}) {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) { console.warn('[TG] no BOT_TOKEN'); return { ok: false, reason: 'no_token' }; }
   const payload = {
     chat_id: chatId,
     text,
@@ -56,16 +56,22 @@ async function tgSend(chatId, text, opts = {}) {
       const errTxt = await r.text().catch(() => '');
       console.warn(`[TG webhook] send ${r.status}:`, errTxt.slice(0, 200));
       /* Markdown 파싱 실패 시 plain text로 재시도 */
-      if (pm && r.status === 400 && errTxt.includes("parse")) {
+      if (pm && r.status === 400 && errTxt.includes('parse')) {
         const retry = Buffer.from(JSON.stringify({ chat_id: chatId, text }), 'utf-8');
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const r2 = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(retry.length) },
           body: retry,
         });
+        return { ok: r2.ok, retried: true, status: r2.status };
       }
+      return { ok: false, status: r.status, err: errTxt.slice(0, 100) };
     }
-  } catch (e) { console.warn('[TG webhook] send err:', e.message); }
+    return { ok: true };
+  } catch (e) {
+    console.warn('[TG webhook] send err:', e.message);
+    return { ok: false, err: e.message };
+  }
 }
 
 async function tgApi(method, body = null) {
@@ -137,7 +143,7 @@ PR — 최근 PR 목록 확인
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
-  await tgSend(chatId, help);
+  return await tgSend(chatId, help);
 };
 
 /* /상태 */
@@ -530,18 +536,21 @@ export default async function handler(req, res) {
 
     /* 명령 실행 */
     const handler = COMMANDS[cmd];
+    let cmdResult = null;
     if (handler) {
       try {
-        await handler(chatId, arg);
+        cmdResult = await handler(chatId, arg);
       } catch (e) {
         console.error('[TG CMD error]', cmd, e.message);
         await tgSend(chatId, `❌ 명령 실행 오류: ${e.message}`);
+        cmdResult = { error: e.message };
       }
     } else {
-      await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
+      const sr = await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
+      cmdResult = { unknown: cmd, sendResult: sr };
     }
 
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, cmd, debug: cmdResult });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
