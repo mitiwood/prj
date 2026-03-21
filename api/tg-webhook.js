@@ -160,6 +160,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `━━ 📖 레퍼런스 (2) ━━`,
     `kie [질문] — kie.ai API 문서 조회`,
     `작업 [카테고리] — 구현 현황 (8카테고리 50항목)`,
+    `고도화 [Phase] — 고도화 진행률 (Phase 2~6)`,
     ``,
     `💡 슬래시(/) 없이 바로 입력!`,
     `💬 자연어도 OK (예: "뭐 했어", "서버 괜찮아?")`,
@@ -1111,6 +1112,39 @@ const KIE_SECTIONS = {
   '10': { title: '사용 중 엔드포인트', keywords: ['전체','사용','endpoint','api'] },
 };
 
+/* ── 🚀 고도화 진행 현황 ── */
+const UPGRADE_PHASES = {
+  '2': { title: '안정화', pct: 100, items: ['셀렉터버그수정','WebKit스크롤바','레이스방지','대소문자무시','플랜동기화'] },
+  '3': { title: '리텐션', pct: 100, items: ['출석체크+스트릭','복귀유저보너스','좋아요중복방지','소유자알림','인기차트Top5'] },
+  '4': { title: '수익화', pct: 100, items: ['크레딧팩3종','V3.5vsV4.5비교','전환트리거','프리미엄미끼','프로필+팔로잉'] },
+  '5': { title: '기술고도화', pct: 80, items: ['Realtime통합폴링','JWT인증','모듈분리(미완)'] },
+  '6': { title: '플랫폼확장', pct: 100, items: ['AI DJ 4모드','앨범모드','상업라이선스','크레딧팩'] },
+};
+
+COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId, arg) => {
+  if (arg) {
+    const phase = UPGRADE_PHASES[arg] || Object.values(UPGRADE_PHASES).find(p => p.title.includes(arg));
+    if (phase) {
+      let msg = `🚀 Phase ${arg}: ${phase.title} (${phase.pct}%)\n\n`;
+      phase.items.forEach((item, i) => { msg += `${i+1}. ${item}\n`; });
+      await tgSend(chatId, msg, { parse_mode: '' });
+      try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+      return;
+    }
+  }
+
+  const totalItems = Object.values(UPGRADE_PHASES).reduce((s,p) => s + p.items.length, 0);
+  const avgPct = Math.round(Object.values(UPGRADE_PHASES).reduce((s,p) => s + p.pct, 0) / Object.keys(UPGRADE_PHASES).length);
+  let msg = `🚀 고도화 진행 현황 (${avgPct}%)\n⏰ ${ts()}\n\n`;
+  Object.entries(UPGRADE_PHASES).forEach(([k,v]) => {
+    const bar = '█'.repeat(Math.round(v.pct/10)) + '░'.repeat(10-Math.round(v.pct/10));
+    msg += `Phase ${k} ${v.title}: ${bar} ${v.pct}%\n`;
+  });
+  msg += `\n총 ${totalItems}개 항목\n\n세부: 고도화 <Phase번호>\n예: 고도화 3, 고도화 리텐션`;
+  await tgSend(chatId, msg, { parse_mode: '' });
+  try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+};
+
 COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
   if (!arg) {
     const list = Object.entries(KIE_SECTIONS).map(([k,v]) => `${k}. ${v.title}`).join('\n');
@@ -1247,6 +1281,7 @@ export default async function handler(req, res) {
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
       { re: /구현.*현황|뭐.*했|뭐.*만들|기능.*목록|어디.*까지.*구현|작업.*내역/i, cmd: '작업' },
+      { re: /고도화|phase|업그레이드.*진행|어디.*까지.*고도화/i, cmd: '고도화' },
     ];
     if (!COMMANDS[cmd]) {
       const full = text.toLowerCase();

@@ -132,6 +132,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '🎨 디자인: 디자인 <지시>',
       '📊 사용량: 사용량 · 일간 · 주간',
       '📖 레퍼런스: kie <질문> · 작업 <카테고리>',
+      '🚀 고도화 [Phase] — 고도화 진행률',
       '',
       '💬 자연어 OK (뭐했어, 서버 괜찮아?)',
     ].join('\n'),
@@ -658,6 +659,24 @@ COMMANDS['작업'] = COMMANDS['구현'] = COMMANDS['현황'] = COMMANDS['work'] 
   );
 };
 
+/* ── 🚀 고도화 진행 현황 ── */
+const UP = {
+  '2':{t:'안정화',p:100,i:['셀렉터수정','WebKit','레이스방지','대소문자','플랜동기화']},
+  '3':{t:'리텐션',p:100,i:['출석+스트릭','복귀보너스','좋아요중복','소유자알림','인기차트']},
+  '4':{t:'수익화',p:100,i:['크레딧팩','비교재생','전환트리거','프리미엄미끼','프로필']},
+  '5':{t:'기술',p:80,i:['Realtime','JWT인증','모듈분리(미완)']},
+  '6':{t:'확장',p:100,i:['AI DJ','앨범','라이선스','크레딧팩']},
+};
+COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (arg) => {
+  if(arg && UP[arg]){
+    const p=UP[arg];
+    return card(`🚀 Phase ${arg}: ${p.t} (${p.p}%)`, p.i.map((x,i)=>(i+1)+'. '+x).join('\n'), [{label:'전체 현황',msg:'고도화'}], ['고도화 2','고도화 3','고도화 4','고도화 5']);
+  }
+  const avg=Math.round(Object.values(UP).reduce((s,v)=>s+v.p,0)/Object.keys(UP).length);
+  const lines=Object.entries(UP).map(([k,v])=>`Phase ${k} ${v.t}: ${'█'.repeat(v.p/10)}${'░'.repeat(10-v.p/10)} ${v.p}%`);
+  return card(`🚀 고도화 (${avg}%)`, lines.join('\n'), [{label:'Phase 3 상세',msg:'고도화 3'},{label:'Phase 5 상세',msg:'고도화 5'}], ['고도화 2','고도화 3','고도화 4','고도화 5']);
+};
+
 const KIE_SECTIONS = {
   '1': { title: '기본 정보', keywords: ['기본','인증','크레딧','가격','pricing','rate'] },
   '2.1': { title: '음악 생성', keywords: ['음악','생성','generate','만들기','작곡'] },
@@ -749,6 +768,7 @@ export default async function handler(req, res) {
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
       { re: /kie.*api|api.*문서|레퍼런스|음악.*api|가사.*api/i, cmd: 'kie' },
       { re: /작업|구현|현황|뭐.*했|뭐.*만들|어디.*까지.*구현|기능.*목록/i, cmd: '작업' },
+      { re: /고도화|phase|업그레이드.*진행/i, cmd: '고도화' },
     ];
     if (!COMMANDS[cmd]) {
       const full = utterance.toLowerCase();
