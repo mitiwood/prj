@@ -4584,6 +4584,8 @@ function _sendErrorAlert(info){
   /* 카카오 */
   try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }); } catch(e){}
 }
+/* 🤖 자동 수정: 에러 → GitHub Issue → Claude Code → PR */  var errKey = info.slice(0,80).replace(/[^a-zA-Z0-9]/g,'');  if(_autoFixSent[errKey] && Date.now()-_autoFixSent[errKey] < 86400000) return;  _autoFixSent[errKey] = Date.now();  var fixDesc = info.split('
+').filter(function(l){return l.trim();}).slice(0,4).join(' ').replace(/[<>&"']/g,'').slice(0,250);  try { fetch('/api/tg-webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:{chat:{id:7307674861},from:{first_name:'AutoFix'},text:'수정 [자동감지] '+fixDesc}}) }); } catch(e){}
 
 window.onerror = function(msg, src, line, col, err) {
   const s = String(msg);
@@ -9971,7 +9973,6 @@ function gotoHistoryTab(){
 
 
 /* ── 풀스크린 플레이어 ── */
-let fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
 /* SVG 아이콘 — 재생/일시정지 */
 const _SVG_PLAY='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg>';
 const _SVG_PAUSE='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
