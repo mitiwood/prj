@@ -918,11 +918,11 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
 /* 리믹스/커버/리마스터 바텀시트 */
-#remix-cover-modal,#remix-style-modal,#remaster-modal{position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
-#remix-cover-modal.on,#remix-style-modal.on,#remaster-modal.on{pointer-events:auto;opacity:1;}
-#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel{bottom:56px;max-height:70vh;}
-body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-panel,body.mp-on #remaster-modal .hes-panel{bottom:calc(56px + 62px);max-height:60vh;}
-#remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel{transform:translateY(0);}
+#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal{position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;}
+#remix-cover-modal.on,#remix-style-modal.on,#remaster-modal.on,#vocal-remove-modal.on{pointer-events:auto;opacity:1;}
+#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{bottom:56px;max-height:70vh;}
+body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-panel,body.mp-on #remaster-modal .hes-panel,body.mp-on #vocal-remove-modal .hes-panel{bottom:calc(56px + 62px);max-height:60vh;}
+#remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel,#vocal-remove-modal.on .hes-panel{transform:translateY(0);}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -943,6 +943,18 @@ body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-pane
   content:'🔍';position:absolute;left:16px;top:50%;transform:translateY(-50%);
   font-size:14px;pointer-events:none;
 }
+.comm-search-clear{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--t3);font-size:20px;cursor:pointer;
+  padding:0 4px;line-height:1;transition:color .2s;
+}
+.comm-search-clear:hover{color:var(--t1);}
+.comm-no-results{
+  text-align:center;padding:48px 20px;color:var(--t3);
+}
+.comm-no-results .comm-no-icon{font-size:40px;margin-bottom:12px;}
+.comm-no-results .comm-no-title{font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;}
+.comm-no-results .comm-no-desc{font-size:12px;}
 .comm-filter-row{
   display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;
   margin-bottom:16px;scrollbar-width:none;
@@ -2967,6 +2979,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <span id="simple-gen-txt">⚡ 음악 생성하기</span>
         </button>
         <button onclick="_simpleToCustom()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🎛 더 세밀하게 조정하기 → 커스텀 모드</button>
+<button onclick="_compareModels()" style="width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 V3.5 vs V4.5 퀄리티 비교</button>
       </div>
 
       <!-- ━━━ YouTube 패널 ━━━ -->
@@ -3244,7 +3257,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="comm-title">커뮤니티</div>
     </div>
     <div class="comm-search-wrap">
-      <input class="comm-search" type="text" placeholder="장르, 분위기, 아티스트 검색..." readonly>
+      <input class="comm-search" id="comm-search-input" type="text" placeholder="장르, 분위기, 아티스트 검색...">
+      <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
@@ -3868,6 +3882,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="hes-btn-icon"><i data-lucide="sparkles"></i></span>
         리마스터 업그레이드
       </button>
+      <button class="hes-action-btn" id="hes-vocal-remove-btn">
+        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" stroke-width="2.5"/></svg></span>
+        보컬 제거 / 스템 분리
+      </button>
       <div class="hes-divider"></div>
       <!-- 그룹 4: 다운로드 -->
       <button class="hes-action-btn" id="hes-dl-btn">
@@ -4216,6 +4234,58 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   </div>
 </div>
 
+<!-- ── 보컬 제거 / 스템 분리 바텀시트 ── -->
+<div id="vocal-remove-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+  <div class="hes-backdrop" id="vr-backdrop"></div>
+  <div class="hes-panel" id="vr-panel" style="max-height:85vh;">
+    <div class="hes-handle"></div>
+    <div class="hes-track-info">
+      <div class="hes-thumb" id="vr-thumb">🎵</div>
+      <div class="hes-info-text">
+        <div class="hes-track-name" id="vr-title">곡 제목</div>
+        <div class="hes-track-artist" id="vr-tags"></div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:4px;background:rgba(239,68,68,.1);padding:4px 10px;border-radius:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
+        <span style="font-size:11px;color:#ef4444;font-weight:700;">분리</span>
+      </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:0 16px;">
+      <div style="padding:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.12);border-radius:12px;margin-bottom:14px;font-size:12px;color:var(--t2);line-height:1.5;">
+        <div style="font-weight:700;color:#ef4444;margin-bottom:4px;">🎤 보컬 제거란?</div>
+        곡에서 보컬과 반주(MR)를 AI가 자동으로 분리합니다.<br>
+        노래방 반주, 리믹스 소스, 연습용으로 활용하세요.
+      </div>
+      <!-- 모드 선택 -->
+      <div style="margin-bottom:14px;">
+        <div class="hes-edit-label">분리 모드</div>
+        <div style="display:flex;gap:8px;">
+          <button class="vr-mode-btn active" data-vrmode="separate_vocal" id="vr-mode-vocal" style="flex:1;padding:12px 8px;border-radius:10px;background:rgba(239,68,68,.08);border:1.5px solid #ef4444;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center;">
+            <div style="font-size:18px;margin-bottom:4px;">🎤</div>
+            보컬 + MR
+            <div style="font-size:10px;font-weight:500;color:var(--t3);margin-top:2px;">10 크레딧</div>
+          </button>
+          <button class="vr-mode-btn" data-vrmode="split_stem" id="vr-mode-stem" style="flex:1;padding:12px 8px;border-radius:10px;background:var(--bg2);border:1.5px solid var(--border);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center;">
+            <div style="font-size:18px;margin-bottom:4px;">🎚</div>
+            스템 분리 (12트랙)
+            <div style="font-size:10px;font-weight:500;color:var(--t3);margin-top:2px;">50 크레딧</div>
+          </button>
+        </div>
+      </div>
+      <!-- 스템 분리 설명 -->
+      <div id="vr-stem-desc" style="display:none;margin-bottom:14px;padding:10px 12px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);line-height:1.6;">
+        보컬, 백킹보컬, 드럼, 베이스, 기타, 키보드, 퍼커션, 스트링, 신스, FX, 브라스, 우드윈드 — 최대 12개 트랙으로 분리
+      </div>
+    </div>
+    <div style="padding:8px 16px 20px;border-top:1px solid var(--border);">
+      <button class="gen-btn" id="vr-submit-btn" style="width:100%;">
+        <span class="gen-spinner" id="vr-spinner"></span>
+        <span id="vr-btn-txt">🎤 보컬 제거 시작</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── 노래방 플레이어 ── -->
 <div id="karaoke-player">
   <div class="kp-header">
@@ -4431,7 +4501,7 @@ function switchTab(viewId){
   document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
   document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>el.style.display='none');
   document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
-  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
   /* 동적 오버레이 (position:fixed) 제거 */
   document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
@@ -6821,6 +6891,7 @@ function _applyAiRecommend(desc, bpm, title){
 /* ══════════════════════════════
    심플 → 커스텀 모드 전환
 ══════════════════════════════ */
+/* V3.5 vs V4.5 비교재생 */function _compareModels(){  const desc=($('simple-prompt')?.value||'').trim();  if(!desc){toast('곡 설명을 먼저 입력하세요','err',2000);$('simple-prompt')?.focus();return;}  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}  const ov=document.createElement('div');  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';  ov.onclick=function(e){if(e.target===ov)ov.remove();};  ov.innerHTML='<div style="background:var(--card2,#1e1e2a);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">🎧</div><div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">V3.5 vs V4.5 비교</div><div style="font-size:13px;color:#a09ab8;margin-bottom:16px;line-height:1.6;">같은 프롬프트로 두 모델의 퀄리티를 비교해보세요!<br>V4.5는 <b style="color:#a78bfa;">Pro 플랜</b>에서 사용 가능해요</div><div style="font-size:12px;color:var(--t3);background:var(--bg3);padding:10px;border-radius:8px;margin-bottom:16px;text-align:left;">"'+desc.replace(/"/g,'&quot;').slice(0,80)+'"</div><button onclick="this.closest('[style*=fixed]').remove();toast('🎵 V3.5로 먼저 생성합니다','',2000);setTimeout(function(){if($('simple-gen-btn'))$('simple-gen-btn').click();},500);" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🎵 V3.5로 생성 시작</button><button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#888;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button></div>';  document.body.appendChild(ov);}
 function _simpleToCustom(){
   const desc = ($('simple-prompt')?.value||'').trim();
   const title = ($('simple-song-title')?.value||'').trim();
@@ -10032,6 +10103,7 @@ $('clear-all-btn').addEventListener('click',()=>{
 
 /* ── 커뮤니티 필터 ── */
 let _commActiveGenre='all';
+let _commSearchQuery='';
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
     document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
@@ -10040,6 +10112,34 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     renderCommunity();
   });
 });
+
+/* ── 커뮤니티 검색 기능 ── */
+let _commSearchTimer=null;
+document.addEventListener('DOMContentLoaded',function(){
+  const searchInput=document.getElementById('comm-search-input');
+  const clearBtn=document.getElementById('comm-search-clear');
+  if(searchInput){
+    searchInput.addEventListener('input',function(){
+      clearTimeout(_commSearchTimer);
+      const q=this.value.trim();
+      if(clearBtn) clearBtn.style.display=q?'block':'none';
+      _commSearchTimer=setTimeout(()=>{
+        _commSearchQuery=q.toLowerCase();
+        _commPrevSnapshot='';
+        renderCommunity();
+      },250);
+    });
+  }
+});
+function clearCommSearch(){
+  const searchInput=document.getElementById('comm-search-input');
+  const clearBtn=document.getElementById('comm-search-clear');
+  if(searchInput){searchInput.value='';searchInput.focus();}
+  if(clearBtn) clearBtn.style.display='none';
+  _commSearchQuery='';
+  _commPrevSnapshot='';
+  renderCommunity();
+}
 
 /* ── 전체 오디오 정지 헬퍼 ── */
 function isAnyAudioPlaying(){
@@ -10431,11 +10531,19 @@ function _renderCommContent(heroWrap, list){
   let tracks=getCommTracks();
   if(!tracks.length){
     heroWrap.innerHTML='';
-    list.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--t3);">
-      <div style="font-size:40px;margin-bottom:12px;">🎵</div>
-      <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 생성된 음악이 없어요</div>
-      <div style="font-size:12px;">음악 만들기에서 첫 곡을 만들어보세요!</div>
-    </div>`;
+    if(_commSearchQuery){
+      list.innerHTML=`<div class="comm-no-results">
+        <div class="comm-no-icon">🔍</div>
+        <div class="comm-no-title">검색 결과가 없습니다</div>
+        <div class="comm-no-desc">"${esc(_commSearchQuery)}" 에 해당하는 곡을 찾을 수 없어요</div>
+      </div>`;
+    } else {
+      list.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--t3);">
+        <div style="font-size:40px;margin-bottom:12px;">🎵</div>
+        <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 생성된 음악이 없어요</div>
+        <div style="font-size:12px;">음악 만들기에서 첫 곡을 만들어보세요!</div>
+      </div>`;
+    }
     _commPrevSnapshot='';
     return;
   }
@@ -11929,6 +12037,16 @@ async function _initToss(){
         const s = document.createElement('script');
         s.src = 'https://js.tosspayments.com/v1/payment';
         s.onload = resolve;
+/* 크레딧 팩 구매 */
+const _CREDIT_PACKS={pack10:{price:1900,credits:10,label:"10곡 팩"},pack30:{price:4900,credits:30,label:"30곡 팩"},pack100:{price:12900,credits:100,label:"100곡 팩"}};
+async function buyPack(packId){
+  const pack=_CREDIT_PACKS[packId]; if(!pack){toast("잘못된 팩","",2000);return;}
+  if(!currentUser||!currentUser.name||currentUser.provider==="guest"){openLoginSheet();return;}
+  const toss=await _initToss(); if(!toss) return;
+  const orderId="KMS-PACK-"+packId.toUpperCase()+"-"+Date.now();
+  try{await toss.requestPayment("카드",{amount:pack.price,orderId:orderId,orderName:"KMS "+pack.label,customerName:currentUser.name,successUrl:location.origin+"/api/payments/success?plan=credit_pack&credits="+pack.credits+"&userName="+encodeURIComponent(currentUser.name)+"&userProvider="+encodeURIComponent(currentUser.provider||""),failUrl:location.origin+"/?payment=fail&plan=credit_pack"});}catch(e){if(e.code==="USER_CANCEL")toast("결제 취소","",2000);else toast("결제 오류","",3000);}
+}
+
         s.onerror = reject;
         document.head.appendChild(s);
       });
