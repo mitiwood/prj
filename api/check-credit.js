@@ -102,7 +102,19 @@ export default async function handler(req, res) {
       used = 0;
     }
 
-    /* 3-a. action=deduct → 크레딧 차감 후 종료 */
+    /* 3-a. action=set_plan → 관리자 플랜 변경 */
+    if (action === 'set_plan') {
+      const newPlan = req.body?.plan || 'free';
+      const planCredits = { free: 5, pro: 50, creator: 999 };
+      const expires = newPlan === 'free' ? null : new Date(Date.now() + 30*24*60*60*1000).toISOString();
+      await sbFetch('PATCH',
+        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        { plan: newPlan, credits: planCredits[newPlan] || 5, plan_expires: expires }
+      );
+      return res.status(200).json({ ok: true, plan: newPlan });
+    }
+
+    /* 3-b. action=deduct → 크레딧 차감 후 종료 */
     if (action === 'deduct') {
       const newCredits = Math.max(0, (user?.credits || 0) - 1);
       await sbFetch('PATCH',

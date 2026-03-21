@@ -99,25 +99,38 @@ export default async function handler(req, res) {
       const { name, provider, email, avatar, id, ua, isMobile, lastLogin, loginCount } = body;
       if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
 
-      const entry = {
-        name, provider,
-        email:       email    || '',
-        avatar:      avatar   || '',
-        uid:         id       || '',
-        ua:          (ua||'').slice(0, 250),
-        is_mobile:   !!isMobile,
-        last_login:  typeof lastLogin === 'number' ? lastLogin : Date.now(),
-        login_count: typeof loginCount === 'number' ? loginCount : 1,
-      };
+      const now = typeof lastLogin === 'number' ? lastLogin : Date.now();
 
       try {
+        /* 기존 유저 조회 → login_count +1 누적 */
+        let existingCount = 0;
+        let isNew = true;
+        try {
+          const existing = await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count`);
+          if (existing?.length > 0) {
+            existingCount = existing[0].login_count || 0;
+            isNew = false;
+          }
+        } catch {}
+
+        const entry = {
+          name, provider,
+          email:       email    || '',
+          avatar:      avatar   || '',
+          uid:         id       || '',
+          ua:          (ua||'').slice(0, 250),
+          is_mobile:   !!isMobile,
+          last_login:  now,
+          login_count: existingCount + 1,
+        };
+
         /* upsert: name+provider 중복 시 업데이트 */
         await sbFetch('/users?on_conflict=name,provider', {
           method: 'POST',
           prefer: 'resolution=merge-duplicates',
           body: JSON.stringify(entry),
         });
-        const eventType = entry.login_count <= 1 ? 'new_user' : 'login';
+        const eventType = isNew ? 'new_user' : 'login';
         const eventData = { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count };
         await Promise.allSettled([
           _tgNotify(eventType, eventData),
