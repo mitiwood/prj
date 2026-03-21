@@ -9320,7 +9320,7 @@ function renderHistoryView(){
   const musicCount = historyData.filter(h=>!h.video_url).length;
   const mvCount = historyData.filter(h=>!!h.video_url).length;
   const likedCount = historyData.filter(h=>h._liked||h._commLiked).length;
-  var _plCount=0;try{_plCount=JSON.parse(localStorage.getItem('kms_playlist')||'[]').length;}catch(e){}
+  var _plCount=0;try{var _plsAll=JSON.parse(localStorage.getItem('kms_playlists')||'[]');_plsAll.forEach(function(p){_plCount+=p.tracks?p.tracks.length:0;});}catch(e){try{_plCount=JSON.parse(localStorage.getItem('kms_playlist')||'[]').length;}catch(e2){}}
   if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount} · 플리 ${_plCount})`;
 
   if(!filtered.length){
@@ -9332,7 +9332,8 @@ function renderHistoryView(){
     return;
   }
   const _gc = _histViewMode==='grid' ? 'hist-view-grid grid-mode' : _histViewMode==='full' ? 'hist-view-grid full-mode' : 'hist-view-grid';
-  grid.innerHTML=`<div class="${_gc}">${filtered.map((h)=>{
+  var _albumCardsHtml=(!_histTabFilter||_histTabFilter==='all')?_renderAlbumCards():'';
+  grid.innerHTML=`${_albumCardsHtml}<div class="${_gc}">${filtered.map((h)=>{
     const idx=h._origIdx;
     const hasVideo=!!h.video_url;
     const thumbContent=hasVideo
@@ -11153,8 +11154,9 @@ function fpAddToPlaylist(){
 function _fpDoAddPlaylist(){
   const h=historyData[fpCurrentIdx];
   if(!h)return;
-  /* 로컬 플레이리스트에 저장 */
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  /* 로컬 플레이리스트에 저장 (다중 플레이리스트) */
+  var pls=_getPlaylists();
+  var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   var id=h.id||h._sbId||h.taskId||'';
   if(pl.some(function(p){return p.id===id;})){
     toast('이미 플레이리스트에 있어요','',1500);
@@ -11163,7 +11165,8 @@ function _fpDoAddPlaylist(){
   }
   pl.unshift({id:id,title:h.title||'무제',audio_url:h.audio_url||'',image_url:h.image_url||'',tags:h.tags||'',added:Date.now()});
   if(pl.length>50)pl=pl.slice(0,50);
-  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  if(pls[_currentPlIdx])pls[_currentPlIdx].tracks=pl;
+  _savePlaylists(pls);
   var fpBtn=$('fp-playlist-btn');if(fpBtn)fpBtn.classList.add('added');
   toast('✅ 플레이리스트에 추가했어요','ok',1500);
   var sheet=document.getElementById('fp-pl-sheet');if(sheet)sheet.remove();
@@ -11171,13 +11174,26 @@ function _fpDoAddPlaylist(){
 
 /* ── 플레이리스트 보기/관리 UI ── */
 function _renderPlaylistView(grid,countEl){
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  /* 다중 플레이리스트 로드 + 마이그레이션 */
+  var playlists=_getPlaylists();
+  if(_currentPlIdx>=playlists.length) _currentPlIdx=0;
+  var pl=playlists[_currentPlIdx]?playlists[_currentPlIdx].tracks:[];
   if(countEl) countEl.textContent='플레이리스트 '+pl.length+'곡';
+  /* 플레이리스트 선택 헤더 */
+  var headerHtml='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+    +'<select onchange="_switchPlaylist(this.selectedIndex)" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:700;font-family:inherit;">';
+  playlists.forEach(function(pItem,pIdx){
+    headerHtml+='<option '+(pIdx===_currentPlIdx?'selected':'')+'>'+esc(pItem.name)+' ('+pItem.tracks.length+'곡)</option>';
+  });
+  headerHtml+='</select>'
+    +'<button onclick="_createPlaylist()" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">+ 새 플리</button>'
+    +'<button onclick="_renamePlaylist()" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;" title="이름변경">&#x270F;&#xFE0F;</button>'
+    +'</div>';
   if(!pl.length){
-    grid.innerHTML='<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M15 6H3"/><path d="M15 12H3"/><path d="M15 18H3"/><path d="M19 6v12"/><path d="M22 9l-3-3-3 3"/></svg></div><div class="he-txt">플레이리스트가 비어있어요</div><div class="he-sub">풀플레이어에서 ♡ 옆 버튼으로 추가하세요</div></div>';
+    grid.innerHTML=headerHtml+'<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M15 6H3"/><path d="M15 12H3"/><path d="M15 18H3"/><path d="M19 6v12"/><path d="M22 9l-3-3-3 3"/></svg></div><div class="he-txt">플레이리스트가 비어있어요</div><div class="he-sub">풀플레이어에서 ♡ 옆 버튼으로 추가하세요</div></div>';
     return;
   }
-  var html='<div class="pl-controls" style="display:flex;gap:8px;margin-bottom:12px;">'
+  var html=headerHtml+'<div class="pl-controls" style="display:flex;gap:8px;margin-bottom:12px;">'
     +'<button onclick="_plPlayAll()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">▶ 전체 재생</button>'
     +'<button onclick="_plShuffle()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
     +'<button onclick="_plClearAll()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🗑</button>'
@@ -11202,7 +11218,7 @@ function _renderPlaylistView(grid,countEl){
   grid.innerHTML=html;
 }
 function _plPlay(i){
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   if(!pl[i]||!pl[i].audio_url){toast('오디오 URL이 없어요','err');return;}
   /* 히스토리에서 찾거나 임시 추가 */
   var hIdx=historyData.findIndex(function(h){return h.id===pl[i].id;});
@@ -11213,29 +11229,31 @@ function _plPlay(i){
   showMiniPlayer(hIdx);
 }
 function _plPlayAll(){
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   if(!pl.length){toast('플레이리스트가 비어있어요','err');return;}
   _plPlay(0);
   toast('▶ 플레이리스트 재생 시작','ok',1500);
 }
 function _plShuffle(){
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   if(pl.length<2){toast('셔플할 곡이 부족해요','',1500);return;}
   for(var j=pl.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1));var tmp=pl[j];pl[j]=pl[k];pl[k]=tmp;}
-  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  pls[_currentPlIdx].tracks=pl;
+  _savePlaylists(pls);
   renderHistoryView();
   toast('🔀 셔플 완료','ok',1500);
 }
 function _plRemove(i){
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   pl.splice(i,1);
-  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  if(pls[_currentPlIdx]) pls[_currentPlIdx].tracks=pl;
+  _savePlaylists(pls);
   renderHistoryView();
   toast('플레이리스트에서 제거했어요','ok',1500);
 }
 function _plClearAll(){
   _showSettingsConfirm('플레이리스트 비우기','모든 곡을 플레이리스트에서 제거할까요?','비우기',function(){
-    localStorage.setItem('kms_playlist','[]');
+    var pls=_getPlaylists();if(pls[_currentPlIdx])pls[_currentPlIdx].tracks=[];_savePlaylists(pls);
     renderHistoryView();
     toast('플레이리스트를 비웠어요','ok',1500);
   });
@@ -11244,7 +11262,7 @@ function _plClearAll(){
 /* ── 플레이리스트 커뮤니티 공유 (Feature 8) ── */
 async function _plShareToCommunity(){
   if(!currentUser||currentUser.provider==='guest'){toast('로그인 후 이용할 수 있어요','err',2000);return;}
-  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
   if(pl.length<2){toast('공유하려면 2곡 이상 필요해요','err',2000);return;}
   try{
     for(var pi=0;pi<Math.min(pl.length,20);pi++){
@@ -11255,6 +11273,72 @@ async function _plShareToCommunity(){
   }catch(e){toast('공유 실패','err',2500);}
 }
 window._plShareToCommunity=typeof _plShareToCommunity!=="undefined"?_plShareToCommunity:window._plShareToCommunity||function(){};
+
+/* ── 다중 플레이리스트 관리 (Multiple Named Playlists) ── */
+var _currentPlIdx=0;
+
+function _getPlaylists(){
+  var pls=[];try{pls=JSON.parse(localStorage.getItem('kms_playlists')||'[]');}catch(e){}
+  if(!pls.length){
+    var old=[];try{old=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+    if(old.length){
+      pls=[{id:'pl_'+Date.now(),name:'내 플레이리스트',tracks:old,created:Date.now()}];
+    }else{
+      pls=[{id:'pl_'+Date.now(),name:'내 플레이리스트',tracks:[],created:Date.now()}];
+    }
+    localStorage.setItem('kms_playlists',JSON.stringify(pls));
+  }
+  return pls;
+}
+
+function _savePlaylists(pls){
+  localStorage.setItem('kms_playlists',JSON.stringify(pls));
+  if(pls[_currentPlIdx]) localStorage.setItem('kms_playlist',JSON.stringify(pls[_currentPlIdx].tracks));
+}
+
+function _createPlaylist(){
+  var name=prompt('새 플레이리스트 이름:');
+  if(!name) return;
+  var pls=_getPlaylists();
+  pls.push({id:'pl_'+Date.now(),name:name,tracks:[],created:Date.now()});
+  _savePlaylists(pls);
+  _currentPlIdx=pls.length-1;
+  renderHistoryView();
+  toast('플레이리스트 생성!','ok',1500);
+}
+
+function _renamePlaylist(){
+  var pls=_getPlaylists();
+  var name=prompt('이름 변경:',pls[_currentPlIdx]?pls[_currentPlIdx].name:'');
+  if(!name) return;
+  pls[_currentPlIdx].name=name;
+  _savePlaylists(pls);
+  renderHistoryView();
+}
+
+function _deletePlaylist(){
+  var pls=_getPlaylists();
+  if(pls.length<=1){toast('마지막 플레이리스트는 삭제할 수 없어요','err');return;}
+  if(!confirm(pls[_currentPlIdx].name+' 을(를) 삭제할까요?')) return;
+  pls.splice(_currentPlIdx,1);
+  _currentPlIdx=0;
+  _savePlaylists(pls);
+  renderHistoryView();
+  toast('삭제되었어요','ok',1500);
+}
+
+function _switchPlaylist(idx){
+  _currentPlIdx=idx;
+  var pls=_getPlaylists();
+  if(pls[idx]) localStorage.setItem('kms_playlist',JSON.stringify(pls[idx].tracks));
+  renderHistoryView();
+}
+window._getPlaylists=typeof _getPlaylists!=="undefined"?_getPlaylists:window._getPlaylists||function(){return[];};
+window._savePlaylists=typeof _savePlaylists!=="undefined"?_savePlaylists:window._savePlaylists||function(){};
+window._createPlaylist=typeof _createPlaylist!=="undefined"?_createPlaylist:window._createPlaylist||function(){};
+window._renamePlaylist=typeof _renamePlaylist!=="undefined"?_renamePlaylist:window._renamePlaylist||function(){};
+window._deletePlaylist=typeof _deletePlaylist!=="undefined"?_deletePlaylist:window._deletePlaylist||function(){};
+window._switchPlaylist=typeof _switchPlaylist!=="undefined"?_switchPlaylist:window._switchPlaylist||function(){};
 
 /* ── MY 피드: 커뮤니티 크리에이터 음악 (고도화) ── */
 var _mfPlayQueue=[]; /* 크리에이터 상세에서 재생 시 연속재생 큐 [{id,title,audio_url,...}] */
@@ -12092,12 +12176,13 @@ function _mfTrkAction(action,idx){
   if(action==='play'){
     _mfDetailPlay(idx);
   } else if(action==='playlist'){
-    var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+    var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
     var id=t.id||'';
     if(pl.some(function(p){return p.id===id;})){toast('이미 플레이리스트에 있어요','',1500);return;}
     pl.unshift({id:id,title:t.title||'무제',audio_url:t.audio_url||'',image_url:t.image_url||'',tags:t.tags||'',added:Date.now()});
     if(pl.length>50) pl=pl.slice(0,50);
-    localStorage.setItem('kms_playlist',JSON.stringify(pl));
+    if(pls[_currentPlIdx])pls[_currentPlIdx].tracks=pl;
+    _savePlaylists(pls);
     toast('플레이리스트에 추가했어요','ok',1500);
   } else if(action==='share'){
     var shareUrl=location.origin+'/?play='+encodeURIComponent(t.id);
@@ -14577,7 +14662,7 @@ function renderSettings(){
 /* ── 데이터 내보내기 ── */
 function _exportUserData(format){
   if(format==='json'){
-    var data={exportDate:new Date().toISOString(),user:currentUser||{},history:historyData||[],playlists:JSON.parse(localStorage.getItem('kms_playlist')||'[]'),albums:JSON.parse(localStorage.getItem('kms_albums')||'[]'),theme:document.documentElement.getAttribute('data-theme')||'dark',attendance:JSON.parse(localStorage.getItem('kms_attendance')||'{}')};
+    var data={exportDate:new Date().toISOString(),user:currentUser||{},history:historyData||[],playlists:JSON.parse(localStorage.getItem('kms_playlists')||'[]'),playlistsLegacy:JSON.parse(localStorage.getItem('kms_playlist')||'[]'),albums:JSON.parse(localStorage.getItem('kms_albums')||'[]'),theme:document.documentElement.getAttribute('data-theme')||'dark',attendance:JSON.parse(localStorage.getItem('kms_attendance')||'{}')};
     var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
@@ -15537,7 +15622,61 @@ function _createAlbum(){
   albums.unshift({name:albumName,tracks:tracks.map(function(t){return{id:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url};}),created:Date.now()});
   localStorage.setItem('kms_albums',JSON.stringify(albums.slice(0,10)));
   toast('💿 앨범 "'+albumName+'" 생성 완료! ('+tracks.length+'곡)','ok',3000);
+  renderHistoryView();
 }
+
+/* ── 앨범 카드 렌더링 + 재생/삭제 ── */
+function _renderAlbumCards(){
+  var albums=[];try{albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');}catch(e){}
+  if(!albums.length) return '';
+  var html='<div style="margin-bottom:16px;"><div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px;">&#x1F4BF; 내 앨범</div>';
+  html+='<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;">';
+  albums.forEach(function(album,i){
+    var tracks=album.tracks||[];
+    var cover=tracks[0]&&tracks[0].image_url?tracks[0].image_url:'';
+    html+='<div onclick="_playAlbum('+i+')" style="flex-shrink:0;width:140px;cursor:pointer;position:relative;">'
+      +'<div style="width:140px;height:140px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:8px;">'
+      +(cover?'<img src="'+esc(cover)+'" style="width:100%;height:100%;object-fit:cover;">':'&#x1F4BF;')
+      +'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(album.name||'무제 앨범')+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);">'+tracks.length+'곡</div>'
+      +'<button onclick="event.stopPropagation();_deleteAlbum('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>'
+      +'</div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+function _playAlbum(idx){
+  var albums=[];try{albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');}catch(e){}
+  var album=albums[idx];
+  if(!album||!album.tracks||!album.tracks.length){toast('앨범에 곡이 없어요','err');return;}
+  var first=album.tracks[0];
+  if(first.audio_url){
+    album.tracks.forEach(function(t){
+      if(!historyData.find(function(h){return h.id===t.id;})){
+        historyData.unshift(t);
+      }
+    });
+    saveHistory();
+    var hIdx=historyData.findIndex(function(h){return h.id===first.id;});
+    if(hIdx>=0) showMiniPlayer(hIdx);
+    toast('&#x1F4BF; '+album.name+' 재생 ('+album.tracks.length+'곡)','ok',2000);
+  }
+}
+
+function _deleteAlbum(idx){
+  var albums=[];try{albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');}catch(e){}
+  if(!confirm((albums[idx]&&albums[idx].name?albums[idx].name:'앨범')+' 삭제?')) return;
+  albums.splice(idx,1);
+  localStorage.setItem('kms_albums',JSON.stringify(albums));
+  renderHistoryView();
+  toast('앨범 삭제됨','ok',1500);
+}
+window._renderAlbumCards=typeof _renderAlbumCards!=="undefined"?_renderAlbumCards:window._renderAlbumCards||function(){return'';};
+window._playAlbum=typeof _playAlbum!=="undefined"?_playAlbum:window._playAlbum||function(){};
+window._deleteAlbum=typeof _deleteAlbum!=="undefined"?_deleteAlbum:window._deleteAlbum||function(){};
+
 /* 상업 라이선스 */
 function _downloadLicense(){
   if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
