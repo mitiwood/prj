@@ -7807,6 +7807,7 @@ function showMiniPlayer(idx){
     _setPlayIcon(pb, false, false);
     _setPlayIcon(fpb, false, true);
     mpStopViz(); fpStopViz();
+    _resetAllCommPlayBtns();
     /* 다음 곡 히스토리에서 audio_url 있는 것 */
     let next = fpCurrentIdx + 1;
     while(next < historyData.length && !historyData[next]?.audio_url) next++;
@@ -8100,18 +8101,21 @@ document.getElementById('mini-player').addEventListener('click', e=>{
 $('mp-play-btn').addEventListener('click', e=>{
   e.stopPropagation();
   if(!fpAudio) return;
+  const currentH = historyData[fpCurrentIdx];
+  const currentSbId = currentH?.id || currentH?._sbId || '';
   if(fpAudio.paused){
-    /* 다른 소스가 재생 중이면 먼저 정지 */
     stopAllAudio();
     fpAudio.play();
     _setPlayIcon($('mp-play-btn'), true, false);
     _setPlayIcon($('fp-play-btn'), true, true);
     mpStartViz(); fpStartViz();
+    if(currentSbId) _syncCommPlayBtn(currentSbId, true);
   } else {
     fpAudio.pause();
     _setPlayIcon($('mp-play-btn'), false, false);
     _setPlayIcon($('fp-play-btn'), false, true);
     mpStopViz(); fpStopViz();
+    if(currentSbId) _syncCommPlayBtn(currentSbId, false);
   }
 });
 
@@ -9785,6 +9789,28 @@ function commPlaySb(sbId){
   const t=_sbTracks.find(x=>x._sbId===sbId);
   if(!t){toast('트랙을 찾을 수 없어요','err');return;}
   if(!t.audioUrl){toast('오디오가 없어요','err');return;}
+
+  /* 현재 재생 중인 곡과 같은 곡이면 → 재생/일시정지 토글 */
+  const currentH = historyData[fpCurrentIdx];
+  if(currentH && currentH.id === sbId && fpAudio){
+    if(fpAudio.paused){
+      stopAllAudio();
+      fpAudio.play();
+      _setPlayIcon($('mp-play-btn'), true, false);
+      _setPlayIcon($('fp-play-btn'), true, true);
+      mpStartViz(); fpStartViz();
+      _syncCommPlayBtn(sbId, true);
+    } else {
+      fpAudio.pause();
+      _setPlayIcon($('mp-play-btn'), false, false);
+      _setPlayIcon($('fp-play-btn'), false, true);
+      mpStopViz(); fpStopViz();
+      _syncCommPlayBtn(sbId, false);
+    }
+    return;
+  }
+
+  /* 다른 곡 → 히스토리에 추가 후 재생 */
   let hIdx=historyData.findIndex(h=>h.id===sbId);
   if(hIdx<0){
     historyData.unshift({id:sbId,taskId:t.taskId||'',title:t.title,audio_url:t.audioUrl,video_url:t.videoUrl||'',image_url:t.img||'',tags:t.allTags,lyrics:t.lyrics||'',created:t._created,type:'audio',genMode:t._genMode,_owner:t._owner,_fromSb:true});
@@ -9795,8 +9821,23 @@ function commPlaySb(sbId){
   document.querySelectorAll('.comm-list-item.playing').forEach(el=>el.classList.remove('playing'));
   const activeEl=document.querySelector(`.comm-list-item[data-sbid="${sbId}"]`);
   if(activeEl) activeEl.classList.add('playing');
+  /* 모든 재생 버튼 초기화 후 현재만 활성화 */
+  _resetAllCommPlayBtns();
   stopAllAudio();
   showMiniPlayer(hIdx);
+  _syncCommPlayBtn(sbId, true);
+}
+
+/* 커뮤니티 리스트 재생 버튼 동기화 */
+function _syncCommPlayBtn(sbId, isPlaying){
+  const item = document.querySelector(`.comm-list-item[data-sbid="${sbId}"]`);
+  if(!item) return;
+  const btn = item.querySelector('.comm-play-sm');
+  if(btn) btn.textContent = isPlaying ? '⏸' : '▶';
+}
+
+function _resetAllCommPlayBtns(){
+  document.querySelectorAll('.comm-play-sm').forEach(b=>b.textContent='▶');
 }
 
 /* Supabase sbId로 좋아요 */
