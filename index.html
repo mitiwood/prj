@@ -4325,7 +4325,8 @@ function switchTab(viewId){
   document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
   document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>el.style.display='none');
-  document.querySelectorAll('#vocal-modal,#extend-modal').forEach(el=>el.style.display='none');
+  document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
+  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
   /* 동적 오버레이 (position:fixed) 제거 */
   document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
@@ -7455,6 +7456,7 @@ function openExtendModal(audioId){
       });
     }
   }
+  $('extend-modal').style.display='';
   $('extend-modal').classList.add('on');
 }
 if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
