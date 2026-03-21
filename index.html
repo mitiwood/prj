@@ -1332,7 +1332,7 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
   width:100%;max-width:480px;
   background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
   border-top:1px solid var(--border);
-  display:flex;z-index:9999;
+  display:flex;z-index:10005;
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .bnav-item{
@@ -1363,7 +1363,7 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
   position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(14px);
   background:var(--card2);border:1px solid var(--border);color:var(--t1);
   padding:9px 18px;border-radius:24px;font-size:12px;font-weight:600;
-  z-index:9999;opacity:0;transition:all .25s;pointer-events:none;
+  z-index:10004;opacity:0;transition:all .25s;pointer-events:none;
   white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -10672,6 +10672,7 @@ function _buildCommItem(t,i,isMine){
       </span>
       <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span></button>
       <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
+      ${!isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openReportSheet('${sid}')" title="신고" style="color:rgba(255,160,80,.5);">🚩</button>`:''}
       ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
     </div>
   </div>`;
@@ -13890,7 +13891,6 @@ window.kmsRequestPush = async function(){
   if(p==='granted'){ await registerPushSW(); _updatePushSettingsUI(); }
 };
 </script>
-<script src="js/vocal-removal.js"></script>
 
 </body>
 </html>
