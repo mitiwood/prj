@@ -12341,6 +12341,12 @@ function _showLiveNotification(n){
   if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
     try { new Notification(title, { body, icon: '/favicon.ico' }); } catch {}
   }
+
+  /* 플랜/계정 관련 알림이면 즉시 서버 동기화 */
+  const _planKeywords = ['플랜','plan','크레딧','credit','정지','suspend','변경','upgrade','downgrade'];
+  if(_planKeywords.some(k => (title+body).toLowerCase().includes(k))){
+    _syncPlanFromServer();
+  }
 }
 
 /* 폴링 시작 (10초 간격) */
