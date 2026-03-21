@@ -5073,8 +5073,8 @@ function _showCommLoadingIndicator(show){
     if(!el){
       el = document.createElement('div');
       el.id = 'comm-scroll-loading';
-      el.style.cssText = 'text-align:center;padding:20px;color:var(--t3);font-size:13px;';
-      el.innerHTML = '<div style="display:inline-block;width:20px;height:20px;border:2px solid var(--t3);border-top-color:var(--acc3);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle;"></div>로딩 중...';
+      el.style.cssText = 'padding:8px 0;';
+      el.innerHTML = Array(3).fill('<div class="comm-skeleton-item"><div class="comm-skeleton-img skeleton-pulse"></div><div class="comm-skeleton-text"><div class="skeleton-line skeleton-pulse" style="width:60%"></div><div class="skeleton-line skeleton-pulse" style="width:40%"></div></div></div>').join('');
       var list = $('comm-list');
       if(list) list.parentNode.insertBefore(el, list.nextSibling);
     }
@@ -11963,7 +11963,6 @@ function getCommTracks(){
 async function renderCommunity(force=false){
   /* 크리에이터 모드이면 별도 렌더 */
   if(_commActiveGenre==='creators'){
-    /* UI 토글 (다른 경로에서 호출될 때도 보장) */
     var sr=$('comm-sort-row');if(sr)sr.style.display='none';
     var dj=$('comm-dj-row');if(dj)dj.style.display='none';
     var tt=$('comm-trending-tags');if(tt)tt.style.display='none';
@@ -11971,7 +11970,17 @@ async function renderCommunity(force=false){
     _renderCreatorList();
     return;
   }
-  /* 크리에이터 모드 아닐 때 UI 복원 */
+  /* 팔로잉 모드 (Feature 3) */
+  if(_commActiveGenre==='following'){
+    var sr0=$('comm-sort-row');if(sr0)sr0.style.display='none';
+    var dj0=$('comm-dj-row');if(dj0)dj0.style.display='none';
+    var tt0=$('comm-trending-tags');if(tt0)tt0.style.display='none';
+    var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
+    var hw0=$('comm-hero-wrap');var ls0=$('comm-list');
+    if(ls0) await _renderFollowingFeed(hw0,ls0);
+    return;
+  }
+  /* 일반 모드 — UI 복원 */
   var sr2=$('comm-sort-row');if(sr2)sr2.style.display='';
   var dj2=$('comm-dj-row');if(dj2)dj2.style.display='';
   var tt2=$('comm-trending-tags');if(tt2)tt2.style.display='';
@@ -11989,7 +11998,13 @@ async function renderCommunity(force=false){
   }
 
   /* 항상 서버에서 최신 데이터 로드 */
+  var _prevSnap=(_sbTracks||[]).map(t=>({_sbId:t._sbId,likes:t.likes,plays:t.plays}));
   await _loadSbTracks(true);
+  /* 활동 피드: 변화 감지 (Feature 9) */
+  if(_prevSnap.length) _detectActivityChanges(_prevSnap,_sbTracks||[]);
+  _renderActivityFeed();
+  /* 트렌딩 태그 (Feature 5) */
+  _renderTrendingTags();
   _renderCommContent(heroWrap, list);
 
   /* 무한 스크롤 설정 */
@@ -12142,19 +12157,40 @@ function _renderCommContent(heroWrap, list){
     let html='';
     let allListTracks=[];
 
-/* 🏆 주간 인기 차트 (Top 5) — 다른 트랙 위에 배치 */
-    const weekAgo=Date.now()-7*86400000;
-    const weekTracks=otherTracks.filter(t=>(t._created||0)>weekAgo||true).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,5);
+/* 🏆 주간 인기 차트 (Top 10) — 순위 변동 표시 */
+    const weekTracks=otherTracks.sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,10);
     if(weekTracks.length>=3){
-      html+='<div style="margin-bottom:12px;padding:12px;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(124,58,237,.04));border:1px solid rgba(245,158,11,.15);border-radius:14px;">';
-      html+='<div style="font-size:13px;font-weight:800;color:#f59e0b;margin-bottom:8px;">🏆 인기 차트</div>';
+      html+='<div class="comm-chart"><div class="comm-chart-title"><span>🏆 이번 주 인기 차트</span><span style="font-size:10px;color:var(--t3);font-weight:400;">Top '+weekTracks.length+'</span></div>';
+      var chartIds=weekTracks.map(function(t){return t._sbId;});
       weekTracks.forEach(function(t,i){
-        var medal=['🥇','🥈','🥉','4','5'][i]||String(i+1);
+        var medal=['🥇','🥈','🥉'][i]||String(i+1);
         var sid=t._sbId||'';
-        html+='<div onclick="commPlaySb(\''+sid+'\')" style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:8px;" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'"><span style="font-size:16px;width:24px;text-align:center;">'+medal+'</span><span style="flex:1;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'무제').replace(/[<>&"]/g,'')+'</span><span style="font-size:10px;color:var(--t3);">❤️'+(t.likes||0)+'</span></div>';
+        var rc=_getChartRankChange(sid,i);
+        html+='<div class="comm-chart-item" onclick="commPlaySb(\''+sid+'\')">';
+        html+='<span class="comm-chart-rank">'+medal+'</span>';
+        html+='<div class="comm-chart-thumb">'+(t.img?'<img src="'+esc(t.img)+'" alt="">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px;">🎵</div>')+'</div>';
+        html+='<div class="comm-chart-info"><div class="comm-chart-name">'+esc(t.title||'무제')+'</div><div class="comm-chart-meta"><span>❤️ '+(t.likes||0)+'</span><span>▶ '+(t.plays||0)+'</span></div></div>';
+        html+='<span class="comm-chart-change '+rc.cls+'">'+rc.txt+'</span>';
+        html+='</div>';
         allListTracks.push(t);
       });
+      _saveChartSnapshot(chartIds);
       html+='</div>';
+    }
+
+    /* ✨ 맞춤 추천 (Feature 2) */
+    if(currentUser&&currentUser.provider!=='guest'){
+      var recs=_buildRecommendations();
+      if(recs.length>=2){
+        html+='<div class="comm-rec-section"><div class="comm-rec-title">✨ 당신을 위한 추천</div><div class="comm-rec-scroll">';
+        recs.forEach(function(t){
+          var sid=t._sbId||'';
+          html+='<div class="comm-rec-card" onclick="commPlaySb(\''+esc(sid)+'\')">';
+          html+='<div class="comm-rec-card-img">'+(t.img?'<img src="'+esc(t.img)+'" alt="">':'<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" width="40" height="40"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>')+'</div>';
+          html+='<div class="comm-rec-card-info"><div class="comm-rec-card-title">'+esc(t.title||'무제')+'</div><div class="comm-rec-card-tag">'+esc((t.tags||'').split(',')[0]||'')+'</div></div></div>';
+        });
+        html+='</div></div>';
+      }
     }
 
     /* 내 곡 섹션 (최신순 → 좋아요순) */
@@ -12190,7 +12226,11 @@ function _renderCommContent(heroWrap, list){
       const g=_ogMap[k];
       const pI={'google':'🔵','kakao':'💬','naver':'🟢'}[g.provider]||'';
       const tl=g.tracks.reduce((s,t)=>s+(t.likes||0),0);
-      html+=`<div class="comm-creator-item" data-creator-key="${gi}" onclick="openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">
+      /* 좋아요 1위 곡 ID */
+      g.tracks.sort((a,b)=>(b.likes||0)-(a.likes||0));
+      const topTrack=g.tracks[0];
+      const topSid=topTrack?esc(topTrack._sbId||''):'';
+      html+=`<div class="comm-creator-item" data-creator-key="${gi}" onclick="_playCreatorTop('${topSid}','${esc(g.name)}','${esc(g.provider)}')">
         <div class="comm-creator-avatar">${g.avatar?'<img src="'+esc(g.avatar)+'" alt="" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
         <div class="comm-creator-info">
           <div class="comm-creator-name">${pI} ${esc(g.name)}</div>
@@ -12339,6 +12379,12 @@ function _renderCreatorList(){
         }).catch(()=>{});
     });
   }
+}
+
+/* 크리에이터 카드 클릭 → 좋아요 1위 곡 재생 + 프로필 뷰 이동 */
+function _playCreatorTop(sbId,name,provider){
+  if(sbId) commPlaySb(sbId);
+  openCreatorProfile(name,provider);
 }
 
 async function _creatorFollowToggle(btn){
@@ -14300,6 +14346,17 @@ function openCreatorProfile(name, provider){
         if(p.isFollowing){ fbtn.textContent='팔로잉'; fbtn.dataset.following='1'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
         else { fbtn.textContent='팔로우'; fbtn.dataset.following='0'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
       }
+
+      /* 통계 그리드 (Feature 4) */
+      var statsEl=$('pv-stats-grid');
+      if(!statsEl){statsEl=document.createElement('div');statsEl.id='pv-stats-grid';statsEl.className='profile-stats-grid';
+        var followCntEl=$('pv-follower-cnt');if(followCntEl)followCntEl.parentNode.insertBefore(statsEl,followCntEl.parentNode.querySelector('.pv-follow-row')||null);
+        else{var pvh=$('pv-header');if(pvh)pvh.after(statsEl);}
+      }
+      statsEl.innerHTML=`
+        <div class="profile-stat-card"><div class="profile-stat-num">${p.trackCount||0}</div><div class="profile-stat-label">곡</div></div>
+        <div class="profile-stat-card"><div class="profile-stat-num">${p.totalLikes||0}</div><div class="profile-stat-label">좋아요</div></div>
+        <div class="profile-stat-card"><div class="profile-stat-num">${p.totalPlays||0}</div><div class="profile-stat-label">재생</div></div>`;
 
       const tracks = d.tracks || [];
       if(!tracks.length){
