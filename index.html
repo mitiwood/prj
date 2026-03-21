@@ -16,6 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Lucide Icons CDN -->
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" defer></script>
 <!-- Kakao JS SDK (공유 기능용) -->
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 <script>
@@ -269,9 +271,13 @@ html,body{
   margin-bottom:8px;letter-spacing:0.1px;
 }
 .form-label-icon{font-size:13px;display:inline-flex;align-items:center;vertical-align:middle;}
-.form-label-icon svg{width:14px;height:14px;}
-.mtab svg.mtab-ico{width:14px;height:14px;vertical-align:-2px;margin-right:2px;}
-.plan-card-icon svg{width:28px;height:28px;}
+.form-label-icon svg,.form-label-icon [data-lucide]{width:14px;height:14px;}
+.mtab svg.mtab-ico,.mtab [data-lucide]{width:14px;height:14px;vertical-align:-2px;margin-right:2px;}
+.plan-card-icon svg,.plan-card-icon [data-lucide]{width:28px;height:28px;}
+/* Lucide 공통 */
+[data-lucide]{display:inline-block;vertical-align:middle;}
+.bnav-item [data-lucide]{width:22px;height:22px;}
+.hes-btn-icon [data-lucide]{width:20px;height:20px;}
 .form-label-hint{font-size:10px;font-weight:400;color:var(--t3);margin-left:4px;}
 .form-input{
   width:100%;background:var(--bg2);border:1px solid transparent;
@@ -3510,20 +3516,20 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 
 <nav id="bottom-nav">
   <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-1a4 4 0 00-4-4H6a4 4 0 00-4 4v1"/><circle cx="9" cy="8" r="3.5"/><path d="M22 21v-1a3.5 3.5 0 00-2.5-3.37"/><circle cx="17.5" cy="8.5" r="2.5"/></svg>
+    <i data-lucide="users"></i>
     <span class="bnav-label">커뮤니티</span>
   </button>
   <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    <i data-lucide="music"></i>
     <span class="bnav-label">음악 만들기</span>
   </button>
   <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <i data-lucide="library"></i>
     <span class="bnav-label">라이브러리</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
   </button>
   <button class="bnav-item" data-view="settings-view" onclick="switchTab('settings-view')">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <i data-lucide="settings"></i>
     <span class="bnav-label">설정</span>
   </button>
 </nav>
@@ -3776,56 +3782,56 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     <div class="hes-actions" id="hes-actions-scroll">
       <!-- 그룹 1: 주요 액션 -->
       <button class="hes-action-btn" id="hes-playlist-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M18 2l4 4-10 10H8v-4L18 2z"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
         플레이리스트에 추가
       </button>
       <button class="hes-action-btn" id="hes-like-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="heart"></i></span>
         <span id="hes-like-text">노래 좋아요</span>
       </button>
       <button class="hes-action-btn" id="hes-share-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="share-2"></i></span>
         노래 공유
       </button>
       <div class="hes-divider"></div>
       <!-- 그룹 2: 편집 -->
       <button class="hes-action-btn" id="hes-edit-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="pencil"></i></span>
         세부 정보 편집
         <span class="hes-arrow">›</span>
       </button>
       <button class="hes-action-btn" id="hes-hook-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="scissors"></i></span>
         Hook 만들기
       </button>
       <div class="hes-divider"></div>
       <!-- 그룹 3: 리믹스 -->
       <button class="hes-action-btn" id="hes-remix-extend-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="skip-forward"></i></span>
         곡 연장
       </button>
       <button class="hes-action-btn" id="hes-remix-cover-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="mic"></i></span>
         커버 생성
       </button>
       <button class="hes-action-btn" id="hes-remix-style-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="repeat"></i></span>
         스타일 재사용
       </button>
       <button class="hes-action-btn" id="hes-remaster-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="sparkles"></i></span>
         리마스터 업그레이드
       </button>
       <div class="hes-divider"></div>
       <!-- 그룹 4: 다운로드 -->
       <button class="hes-action-btn" id="hes-dl-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="download"></i></span>
         노래 다운로드
       </button>
       <div class="hes-divider"></div>
-      <!-- 그룹 5: 싫어요 / 삭제 -->
+      <!-- 그룹 5: 싫어요 -->
       <button class="hes-action-btn" id="hes-dislike-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15V19a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10zM17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg></span>
+        <span class="hes-btn-icon"><i data-lucide="thumbs-down"></i></span>
         <span id="hes-dislike-text">싫어하는 노래</span>
       </button>
     </div>
@@ -8188,6 +8194,7 @@ function openHistEditSheet(idx){
   /* 탭 초기화 */
   document.querySelectorAll('.hes-tab').forEach(t=>t.classList.remove('active'));
   $('hist-edit-sheet').classList.add('on');
+  if(window.lucide) lucide.createIcons();
 }
 
 function closeHistEditSheet(){
@@ -11209,6 +11216,9 @@ function initTheme() {
 updateHistBadge();
 updateLoginUI();
 initTheme();
+/* Lucide 아이콘 초기화 */
+if(window.lucide) lucide.createIcons();
+else window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); });
 /* 히스토리 뷰 모드 초기화 */
 document.querySelectorAll('.hist-vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.hvt===_histViewMode));
 /* 하단탭 data-view=create-view 버튼을 on으로 (HTML에서 on 클래스 직접 설정됨) */
