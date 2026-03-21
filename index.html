@@ -1166,6 +1166,9 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-creator-follow-btn.following{background:var(--card);color:var(--t2);border:1px solid var(--border);}
 [data-theme="light"] .comm-creator-item{background:#fff;border:1px solid rgba(0,0,0,.04);}
 [data-theme="light"] .comm-creator-item:hover{background:rgba(124,58,237,.04);}
+/* 트랙 리스트 내 팔로우 버튼 */
+.comm-item-follow-btn{padding:2px 10px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .2s;line-height:1.4;}
+.comm-item-follow-btn.following{background:var(--card);color:var(--t3);border:1px solid var(--border);}
 .comm-pinned-badge{
   display:inline-block;background:rgba(245,158,11,.12);
   border:1px solid rgba(245,158,11,.25);color:var(--ylw);
@@ -11524,10 +11527,11 @@ function _buildCommItem(t,i,isMine){
       <div class="comm-list-info">
         <!-- 1열: 제목 + 재생시간 -->
         <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}" style="color:var(--t3);font-weight:400;font-size:11px;">${_durCache[t._sbId]||''}</span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
-        <!-- 2열: 사용자 -->
+        <!-- 2열: 사용자 + 팔로우 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
           <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>
+          ${!isMine?`<button class="comm-item-follow-btn" data-cname="${esc(ownerName)}" data-cprov="${esc(t._owner?.provider||'')}" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>`:''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
         <!-- 3열: 음악 스타일 -->
@@ -11688,7 +11692,33 @@ function _renderCommContent(heroWrap, list){
     _loadCommentCounts([hero._sbId, ...allListTracks.map(t=>t._sbId)].filter(Boolean));
     /* 재생시간 비동기 로드 (캐시 없는 것만) */
     _loadCommDurations(allListTracks.filter(t=>!_durCache[t._sbId]));
+    /* 트랙 리스트 팔로우 버튼 상태 비동기 갱신 */
+    _loadCommFollowStates(list);
   }
+}
+
+/* 커뮤니티 트랙 리스트 내 팔로우 버튼 상태 로드 */
+const _followStateCache={};
+function _loadCommFollowStates(container){
+  if(!currentUser||currentUser.provider==='guest')return;
+  const btns=container.querySelectorAll('.comm-item-follow-btn');
+  btns.forEach(btn=>{
+    const name=btn.dataset.cname;
+    const prov=btn.dataset.cprov;
+    if(!name)return;
+    const cacheKey=name+'__'+prov;
+    /* 캐시 히트 */
+    if(_followStateCache[cacheKey]!==undefined){
+      if(_followStateCache[cacheKey]){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
+      return;
+    }
+    fetch('/api/profile?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(prov)+'&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
+      .then(r=>r.json()).then(d=>{
+        const isF=d.ok&&d.profile&&d.profile.isFollowing;
+        _followStateCache[cacheKey]=!!isF;
+        if(isF){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
+      }).catch(()=>{});
+  });
 }
 
 
@@ -11800,13 +11830,17 @@ async function _creatorFollowToggle(btn){
     });
     const d=await r.json();
     if(d.ok){
-      if(isFollowing){
-        btn.textContent='팔로우';btn.classList.remove('following');btn.dataset.following='0';
-        toast('팔로우 취소','',1500);
-      } else {
-        btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';
-        toast('팔로우!','ok',1500);
-      }
+      const nowFollowing=!isFollowing;
+      _followStateCache[name+'__'+prov]=nowFollowing;
+      /* 같은 유저의 모든 팔로우 버튼 동기화 */
+      document.querySelectorAll('.comm-item-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"],.comm-creator-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"]').forEach(b=>{
+        if(nowFollowing){
+          b.textContent='팔로잉';b.classList.add('following');b.dataset.following='1';
+        } else {
+          b.textContent='팔로우';b.classList.remove('following');b.dataset.following='0';
+        }
+      });
+      toast(nowFollowing?'팔로우!':'팔로우 취소',nowFollowing?'ok':'',1500);
     }
   }catch(e){toast('오류: '+e.message,'err');}
   btn.disabled=false;
