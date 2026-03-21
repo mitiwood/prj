@@ -3363,6 +3363,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="hist-tab" data-htab="music" onclick="_switchHistTab('music')">음악</button>
       <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">뮤비</button>
       <button class="hist-tab" data-htab="liked" onclick="_switchHistTab('liked')">좋아요</button>
+      <button class="hist-tab" data-htab="playlist" onclick="_switchHistTab('playlist')">플리</button>
     </div>
     <div class="hist-toolbar">
       <div class="hist-sort-row">
@@ -3989,6 +3990,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
         플레이리스트에 추가
       </button>
+    </div>
+    <div style="padding:8px 18px 4px;">
+      <button onclick="closeHistEditSheet()" style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">확인</button>
     </div>
     <!-- 숨김: JS 참조용 -->
     <button id="hes-dislike-btn" style="display:none;"><span id="hes-dislike-text"></span></button>
@@ -8546,6 +8550,11 @@ function renderHistoryView(){
   const count=$('hist-view-count');
   if(!grid)return;
 
+  /* 플레이리스트 탭 — 별도 데이터 소스 */
+  if(_histTabFilter==='playlist'){
+    _renderPlaylistView(grid,count);
+    return;
+  }
   /* 탭 필터 적용 */
   let filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
     if(_histTabFilter==='music') return !h.video_url;
@@ -8559,11 +8568,12 @@ function renderHistoryView(){
   const musicCount = historyData.filter(h=>!h.video_url).length;
   const mvCount = historyData.filter(h=>!!h.video_url).length;
   const likedCount = historyData.filter(h=>h._liked||h._commLiked).length;
-  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount})`;
+  var _plCount=0;try{_plCount=JSON.parse(localStorage.getItem('kms_playlist')||'[]').length;}catch(e){}
+  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount} · 플리 ${_plCount})`;
 
   if(!filtered.length){
     const emptyIcon = _histTabFilter==='mv' ? '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>' : _histTabFilter==='liked' ? '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' : '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-    const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : _histTabFilter==='liked' ? '좋아요한 곡이 없어요' : '아직 생성된 음악이 없어요';
+    const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : _histTabFilter==='liked' ? '좋아요한 곡이 없어요' : _histTabFilter==='playlist' ? '플레이리스트가 비어있어요' : '아직 생성된 음악이 없어요';
     const ctaText = _histTabFilter==='liked' ? '커뮤니티 둘러보기' : '첫 곡 만들기';
     const ctaView = _histTabFilter==='liked' ? 'community-view' : 'create-view';
     grid.innerHTML=`<div class="hist-empty"><div class="he-icon">${emptyIcon}</div><div class="he-txt">${emptyMsg}</div><div class="he-sub">시작해볼까요?</div><button class="hist-empty-cta" onclick="switchTab('${ctaView}')">${ctaText}</button></div>`;
@@ -10372,6 +10382,77 @@ function _fpDoAddPlaylist(){
   var fpBtn=$('fp-playlist-btn');if(fpBtn)fpBtn.classList.add('added');
   toast('✅ 플레이리스트에 추가했어요','ok',1500);
   var sheet=document.getElementById('fp-pl-sheet');if(sheet)sheet.remove();
+}
+
+/* ── 플레이리스트 보기/관리 UI ── */
+function _renderPlaylistView(grid,countEl){
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  if(countEl) countEl.textContent='플레이리스트 '+pl.length+'곡';
+  if(!pl.length){
+    grid.innerHTML='<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M15 6H3"/><path d="M15 12H3"/><path d="M15 18H3"/><path d="M19 6v12"/><path d="M22 9l-3-3-3 3"/></svg></div><div class="he-txt">플레이리스트가 비어있어요</div><div class="he-sub">풀플레이어에서 ♡ 옆 버튼으로 추가하세요</div></div>';
+    return;
+  }
+  var html='<div class="pl-controls" style="display:flex;gap:8px;margin-bottom:12px;">'
+    +'<button onclick="_plPlayAll()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">▶ 전체 재생</button>'
+    +'<button onclick="_plShuffle()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
+    +'<button onclick="_plClearAll()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🗑</button>'
+    +'</div>';
+  html+='<div class="hist-view-grid">';
+  pl.forEach(function(item,i){
+    var thumb=item.image_url?'<img src="'+esc(item.image_url)+'" alt="" style="width:100%;height:100%;object-fit:cover;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg3);">🎵</div>';
+    var tag=(item.tags||'').split(',')[0]||'';
+    html+='<div class="hist-card" style="cursor:pointer;" onclick="_plPlay('+i+')">'
+      +'<div class="hist-thumb" style="position:relative;">'+thumb
+      +'<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.7);border-radius:6px;padding:2px 6px;font-size:10px;color:#fff;">'+(i+1)+'</div>'
+      +'</div>'
+      +'<div class="hist-info">'
+      +'<div class="hist-title">'+esc(item.title||'무제')+'</div>'
+      +'<div class="hist-tags">'+(tag?esc(tag):'')+'</div>'
+      +'</div>'
+      +'<button onclick="event.stopPropagation();_plRemove('+i+')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>'
+      +'</div>';
+  });
+  html+='</div>';
+  grid.innerHTML=html;
+}
+function _plPlay(i){
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  if(!pl[i]||!pl[i].audio_url){toast('오디오 URL이 없어요','err');return;}
+  /* 히스토리에서 찾거나 임시 추가 */
+  var hIdx=historyData.findIndex(function(h){return h.id===pl[i].id;});
+  if(hIdx<0){
+    historyData.unshift({id:pl[i].id,title:pl[i].title,audio_url:pl[i].audio_url,image_url:pl[i].image_url,tags:pl[i].tags,type:'audio',_fromPl:true});
+    hIdx=0;
+  }
+  showMiniPlayer(hIdx);
+}
+function _plPlayAll(){
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  if(!pl.length){toast('플레이리스트가 비어있어요','err');return;}
+  _plPlay(0);
+  toast('▶ 플레이리스트 재생 시작','ok',1500);
+}
+function _plShuffle(){
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  if(pl.length<2){toast('셔플할 곡이 부족해요','',1500);return;}
+  for(var j=pl.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1));var tmp=pl[j];pl[j]=pl[k];pl[k]=tmp;}
+  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  renderHistoryView();
+  toast('🔀 셔플 완료','ok',1500);
+}
+function _plRemove(i){
+  var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+  pl.splice(i,1);
+  localStorage.setItem('kms_playlist',JSON.stringify(pl));
+  renderHistoryView();
+  toast('플레이리스트에서 제거했어요','ok',1500);
+}
+function _plClearAll(){
+  _showSettingsConfirm('플레이리스트 비우기','모든 곡을 플레이리스트에서 제거할까요?','비우기',function(){
+    localStorage.setItem('kms_playlist','[]');
+    renderHistoryView();
+    toast('플레이리스트를 비웠어요','ok',1500);
+  });
 }
 
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
@@ -12238,6 +12319,11 @@ window.mdsToggleReuse=mdsToggleReuse;
 window._sharedToMiniAndCreate=typeof _sharedToMiniAndCreate!=='undefined'?_sharedToMiniAndCreate:function(){};
 window._showSettingsConfirm=_showSettingsConfirm;
 window._fpDoAddPlaylist=_fpDoAddPlaylist;
+window._plPlay=_plPlay;
+window._plPlayAll=_plPlayAll;
+window._plShuffle=_plShuffle;
+window._plRemove=_plRemove;
+window._plClearAll=_plClearAll;
 window._markAllNotifRead=typeof _markAllNotifRead!=='undefined'?_markAllNotifRead:function(){};
 window.buyPack=buyPack;
 window._vrMixerPlay=typeof _vrMixerPlay!=='undefined'?_vrMixerPlay:function(){};
