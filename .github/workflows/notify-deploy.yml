@@ -1,0 +1,87 @@
+name: Notify Deploy to Telegram
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Wait for Vercel deploy
+        run: sleep 30
+
+      - name: Check Vercel site is live
+        id: health
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai-music-studio-bice.vercel.app")
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          if [ "$STATUS" = "200" ]; then
+            echo "result=✅ 사이트 정상 (200 OK)" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=⚠️ 응답 코드: $STATUS" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get commit info
+        id: info
+        run: |
+          echo "msg=$(git log -1 --pretty=%s | sed 's/[<>&]//g')" >> "$GITHUB_OUTPUT"
+          echo "hash=$(git log -1 --pretty=%h)" >> "$GITHUB_OUTPUT"
+          echo "author=$(git log -1 --pretty=%an)" >> "$GITHUB_OUTPUT"
+          FILES=$(git diff --name-only HEAD~1 HEAD | head -10 | tr '\n' ', ' | sed 's/,$//')
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          COUNT=$(git diff --name-only HEAD~1 HEAD | wc -l | tr -d ' ')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram notification
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_MSG: ${{ steps.info.outputs.msg }}
+          COMMIT_HASH: ${{ steps.info.outputs.hash }}
+          COMMIT_AUTHOR: ${{ steps.info.outputs.author }}
+          CHANGED_FILES: ${{ steps.info.outputs.files }}
+          FILE_COUNT: ${{ steps.info.outputs.count }}
+          HEALTH: ${{ steps.health.outputs.result }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 -c "
+          import urllib.request, json, os
+          msg = os.environ.get('COMMIT_MSG','')
+          h = os.environ.get('COMMIT_HASH','')
+          author = os.environ.get('COMMIT_AUTHOR','')
+          files = os.environ.get('CHANGED_FILES','')
+          count = os.environ.get('FILE_COUNT','0')
+          health = os.environ.get('HEALTH','')
+          run_url = os.environ.get('RUN_URL','')
+
+          text = (
+            '<b>🚀 Vercel 배포 완료</b>\n\n'
+            f'<b>커밋:</b> <code>{h}</code> {msg}\n'
+            f'<b>작성자:</b> {author}\n'
+            f'<b>변경 파일:</b> {count}개\n'
+            f'<code>{files}</code>\n\n'
+            f'{health}\n'
+            f'🔗 <a href=\"https://ai-music-studio-bice.vercel.app\">사이트 확인</a>'
+            f' · <a href=\"{run_url}\">Actions 로그</a>'
+          )
+
+          payload = json.dumps({
+            'chat_id': os.environ['TG_CHAT'],
+            'text': text,
+            'parse_mode': 'HTML',
+            'disable_web_page_preview': True
+          }, ensure_ascii=False).encode('utf-8')
+
+          req = urllib.request.Request(
+            f'https://api.telegram.org/bot{os.environ[\"TG_TOKEN\"]}/sendMessage',
+            data=payload,
+            headers={'Content-Type': 'application/json; charset=utf-8'}
+          )
+          resp = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
+          print(f'Sent message_id: {resp[\"result\"][\"message_id\"]}')
+          "
