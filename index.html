@@ -901,6 +901,7 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-gender-btn.active{background:rgba(124,58,237,.12);border-color:var(--acc);color:var(--acc);font-weight:700;}
 /* 리믹스 모달 */
 #remix-cover-modal,#remix-style-modal,#remaster-modal{z-index:900;}
+body.mp-on #remix-cover-modal .modal,body.mp-on #remix-style-modal .modal{padding-bottom:calc(62px + env(safe-area-inset-bottom,0));}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -3800,8 +3801,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
         리믹스: 연장하다
       </button>
       <button class="hes-action-btn" id="hes-remix-cover-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
-        리믹스: Cover
+        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+        커버 생성
       </button>
       <button class="hes-action-btn" id="hes-remix-style-btn">
         <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
@@ -3953,11 +3954,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
   </div>
 </div>
 
-<!-- ── 리믹스: Cover 모달 ── -->
+<!-- ── 리믹스: Cover 바텀시트 ── -->
 <div class="modal-backdrop" id="remix-cover-modal">
-  <div class="modal" style="max-width:400px;width:100%;border-radius:16px;margin:20px;">
+  <div class="modal">
+    <div class="hes-handle" style="margin-bottom:8px;"></div>
     <button class="modal-close" id="remix-cover-close">✕</button>
-    <div class="modal-title">🔄 리믹스: Cover</div>
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 커버 생성</div>
     <div class="modal-sub">같은 곡을 다른 스타일/보컬로 다시 생성합니다.</div>
     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
       <div id="rc-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
@@ -3988,7 +3990,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     </div>
     <button class="gen-btn" id="rc-submit-btn">
       <span class="gen-spinner" id="rc-spinner"></span>
-      <span id="rc-btn-txt">🔄 커버 생성하기</span>
+      <span id="rc-btn-txt"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> 커버 생성하기</span>
     </button>
   </div>
 </div>
@@ -8109,7 +8111,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     $('loading-card').classList.remove('on');
     toast('커버 실패: '+e.message,'err',4000);
   }finally{
-    $('rc-submit-btn').disabled=false;$('rc-spinner').style.display='none';$('rc-btn-txt').textContent='🔄 커버 생성하기';
+    $('rc-submit-btn').disabled=false;$('rc-spinner').style.display='none';$('rc-btn-txt').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> 커버 생성하기';
   }
 });
 
