@@ -1457,7 +1457,46 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-activity-avatar img{width:100%;height:100%;object-fit:cover;}
 .comm-activity-time{font-size:9px;color:var(--t3);margin-left:auto;flex-shrink:0;}
 /* 채팅·리더보드·챌린지 CSS */
-.comm-chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 220px);max-height:600px;}.comm-chat-list{flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:4px;}.comm-chat-msg{display:flex;gap:8px;padding:6px 12px;align-items:flex-start;}.comm-chat-msg.mine{flex-direction:row-reverse;}.comm-chat-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;}.comm-chat-avatar img{width:100%;height:100%;object-fit:cover;}.comm-chat-bubble{max-width:70%;padding:8px 12px;border-radius:14px;font-size:13px;color:var(--t1);background:var(--card);border:1px solid var(--border);line-height:1.4;word-break:break-word;}.comm-chat-msg.mine .comm-chat-bubble{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.2);}.comm-chat-name{font-size:10px;font-weight:700;color:var(--acc3);margin-bottom:2px;}.comm-chat-time{font-size:9px;color:var(--t3);margin-top:2px;}.comm-chat-input-wrap{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg);}.comm-chat-input{flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;}.comm-chat-input:focus{outline:none;border-color:var(--acc);}.comm-chat-send{padding:10px 16px;border-radius:20px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}.comm-lb-tabs{display:flex;gap:4px;margin-bottom:14px;}.comm-lb-tab{flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .2s;}.comm-lb-tab.on{background:var(--acc);border-color:var(--acc);color:#fff;}.comm-lb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;cursor:pointer;transition:background .15s;}.comm-lb-item:hover{background:rgba(124,58,237,.03);}.comm-lb-item.top3{border-color:rgba(245,158,11,.3);background:linear-gradient(90deg,rgba(245,158,11,.04),transparent);}.comm-lb-rank{font-size:18px;width:28px;text-align:center;font-weight:800;flex-shrink:0;}.comm-lb-avatar{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}.comm-lb-avatar img{width:100%;height:100%;object-fit:cover;}.comm-lb-info{flex:1;min-width:0;}.comm-lb-name{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.comm-lb-meta{font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:8px;}.comm-lb-score{font-size:14px;font-weight:800;color:var(--acc3);flex-shrink:0;}.comm-challenge{margin-bottom:14px;padding:16px;background:linear-gradient(135deg,rgba(239,68,68,.06),rgba(245,158,11,.06));border:1px solid rgba(239,68,68,.15);border-radius:14px;}.comm-challenge-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}.comm-challenge-icon{font-size:28px;}.comm-challenge-title{font-size:15px;font-weight:800;color:var(--t1);flex:1;}.comm-challenge-timer{font-size:11px;color:#ef4444;font-weight:700;background:rgba(239,68,68,.1);padding:3px 10px;border-radius:8px;}.comm-challenge-desc{font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5;}.comm-challenge-footer{display:flex;align-items:center;justify-content:space-between;}.comm-challenge-theme{font-size:11px;color:var(--acc3);font-weight:600;}.comm-challenge-join{padding:8px 20px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* ── 채팅 인사이트 배너 ── */
+.chat-insight{display:flex;gap:6px;padding:10px 12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(59,130,246,.06));border:1px solid rgba(124,58,237,.12);border-radius:12px;margin:0 0 8px;}
+.chat-insight-item{flex:1;text-align:center;}
+.chat-insight-num{font-size:16px;font-weight:800;color:var(--acc3);}
+.chat-insight-label{font-size:9px;color:var(--t3);margin-top:1px;}
+.chat-online-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:3px;animation:chat-pulse 2s infinite;}
+@keyframes chat-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+/* ── 채팅 레이아웃 ── */
+.comm-chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 220px);max-height:600px;}
+.comm-chat-list{flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:4px;}
+.comm-chat-msg{display:flex;gap:8px;padding:6px 12px;align-items:flex-start;position:relative;}
+.comm-chat-msg.mine{flex-direction:row-reverse;}
+.comm-chat-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;cursor:pointer;}
+.comm-chat-avatar img{width:100%;height:100%;object-fit:cover;}
+.comm-chat-bubble{max-width:70%;padding:8px 12px;border-radius:14px;font-size:13px;color:var(--t1);background:var(--card);border:1px solid var(--border);line-height:1.4;word-break:break-word;cursor:pointer;transition:background .15s;}
+.comm-chat-bubble:active{background:rgba(124,58,237,.06);}
+.comm-chat-msg.mine .comm-chat-bubble{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.2);}
+.comm-chat-msg.mine .comm-chat-bubble:active{background:rgba(124,58,237,.2);}
+.comm-chat-name{font-size:10px;font-weight:700;color:var(--acc3);margin-bottom:2px;}
+.comm-chat-time{font-size:9px;color:var(--t3);margin-top:2px;}
+/* ── 답장 ── */
+.chat-reply-preview{font-size:11px;color:var(--t3);padding:4px 8px;margin-bottom:3px;border-left:2px solid var(--acc);background:rgba(124,58,237,.04);border-radius:0 6px 6px 0;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.chat-reply-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(124,58,237,.05);border-top:1px solid var(--border);font-size:12px;color:var(--t2);}
+.chat-reply-bar span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.chat-reply-bar button{background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:2px 6px;}
+/* ── 날짜 구분선 ── */
+.chat-date-sep{text-align:center;padding:10px 0 6px;font-size:10px;color:var(--t3);position:relative;}
+.chat-date-sep::before,.chat-date-sep::after{content:'';position:absolute;top:50%;width:calc(50% - 50px);height:1px;background:var(--border);}
+.chat-date-sep::before{left:12px;}
+.chat-date-sep::after{right:12px;}
+/* ── 채팅 액션 (답장 버튼) ── */
+.chat-actions{display:none;position:absolute;top:-4px;right:12px;gap:2px;}
+.comm-chat-msg:hover .chat-actions,.comm-chat-msg.mine:hover .chat-actions{display:flex;}
+.comm-chat-msg.mine .chat-actions{right:auto;left:12px;}
+.chat-action-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* ── 입력 영역 ── */
+.comm-chat-input-wrap{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg);}
+.comm-chat-input{flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;}
+.comm-chat-input:focus{outline:none;border-color:var(--acc);}
+.comm-chat-send{padding:10px 16px;border-radius:20px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}.comm-lb-tabs{display:flex;gap:4px;margin-bottom:14px;}.comm-lb-tab{flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .2s;}.comm-lb-tab.on{background:var(--acc);border-color:var(--acc);color:#fff;}.comm-lb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;cursor:pointer;transition:background .15s;}.comm-lb-item:hover{background:rgba(124,58,237,.03);}.comm-lb-item.top3{border-color:rgba(245,158,11,.3);background:linear-gradient(90deg,rgba(245,158,11,.04),transparent);}.comm-lb-rank{font-size:18px;width:28px;text-align:center;font-weight:800;flex-shrink:0;}.comm-lb-avatar{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}.comm-lb-avatar img{width:100%;height:100%;object-fit:cover;}.comm-lb-info{flex:1;min-width:0;}.comm-lb-name{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.comm-lb-meta{font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:8px;}.comm-lb-score{font-size:14px;font-weight:800;color:var(--acc3);flex-shrink:0;}.comm-challenge{margin-bottom:14px;padding:16px;background:linear-gradient(135deg,rgba(239,68,68,.06),rgba(245,158,11,.06));border:1px solid rgba(239,68,68,.15);border-radius:14px;}.comm-challenge-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}.comm-challenge-icon{font-size:28px;}.comm-challenge-title{font-size:15px;font-weight:800;color:var(--t1);flex:1;}.comm-challenge-timer{font-size:11px;color:#ef4444;font-weight:700;background:rgba(239,68,68,.1);padding:3px 10px;border-radius:8px;}.comm-challenge-desc{font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5;}.comm-challenge-footer{display:flex;align-items:center;justify-content:space-between;}.comm-challenge-theme{font-size:11px;color:var(--acc3);font-weight:600;}.comm-challenge-join{padding:8px 20px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 .comm-item-btns{display:flex;gap:6px;align-items:center;}
 .comm-like-btn{
   width:30px;height:30px;border-radius:50%;background:transparent;
@@ -3549,27 +3588,20 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <button class="mv-opt-btn" data-mode="spicy">🔥 스파이시</button>
               <button class="mv-opt-btn" data-mode="img2vid">🖼 이미지→영상</button>
             </div>
-            <!-- 이미지→비디오 UI -->
+            <!-- AI 강화 영상 모드 UI -->
             <div id="mv-img2vid-info" style="display:none;margin-top:8px;">
               <div style="padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:10px;">
-                <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">🖼 이미지→영상 모드</div>
-                Step 1: 이미지 생성 → 미리보기 확인 → Step 2: 영상 변환
+                <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">✨ AI 강화 영상 모드</div>
+                AI가 한국어 프롬프트를 분석하여 고품질 영상 프롬프트로 자동 변환 후 영상을 생성합니다.
               </div>
-              <button class="gen-btn" id="mv-img-gen-btn" style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin-bottom:10px;">
+              <!-- AI 프롬프트 미리보기 -->
+              <div id="mv-ai-enhanced-preview" style="display:none;margin-bottom:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+                <div style="font-size:10px;font-weight:700;color:var(--acc3);margin-bottom:4px;">🤖 AI 변환 프롬프트</div>
+                <div id="mv-ai-enhanced-text" style="font-size:11px;color:var(--t2);line-height:1.5;"></div>
+              </div>
+              <button class="gen-btn" id="mv-img-gen-btn" style="background:linear-gradient(135deg,#3b82f6,#6366f1);">
                 <span class="gen-spinner" id="mv-img-spinner"></span>
-                <span id="mv-img-txt">🖼 Step 1: 씬 이미지 생성</span>
-              </button>
-              <!-- 이미지 미리보기 -->
-              <div id="mv-img-preview" style="display:none;margin-bottom:10px;">
-                <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);position:relative;">
-                  <img id="mv-img-preview-img" src="" alt="" style="width:100%;display:block;">
-                  <button id="mv-img-regen-btn" style="position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:8px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px);">🔄 다시 생성</button>
-                </div>
-                <div style="font-size:11px;color:var(--t3);margin-top:6px;text-align:center;">마음에 드시면 아래 버튼으로 영상을 만들어보세요</div>
-              </div>
-              <button class="gen-btn" id="mv-vid-from-img-btn" style="display:none;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
-                <span class="gen-spinner" id="mv-vid-spinner"></span>
-                <span id="mv-vid-txt">🎬 Step 2: 이 이미지로 영상 만들기</span>
+                <span id="mv-img-txt">✨ AI 강화 영상 생성</span>
               </button>
             </div>
           </div>
@@ -8134,8 +8166,10 @@ function _showGeneratingPopup(){
   document.body.appendChild(overlay);
 }
 
-/* ── 이미지→영상 2단계 UI ── */
-let _mvGeneratedImageUrl='';
+/* ── AI 강화 영상 모드 ── */
+var _mvScenes=['네온 빛이 반짝이는 도심 야경, 빗물에 반사되는 거리','석양이 물드는 해변, 파도, 골든아워 조명','우주 공간, 별빛과 오로라, 몽환적 분위기','안개 낀 숲속, 햇살이 나뭇잎 사이로 스며듬','미래 도시, 홀로그램, 사이버펑크, 보라색 네온','벚꽃이 흩날리는 봄날 골목길, 따뜻한 색감','호수 위 달빛, 고요한 밤, 잔잔한 분위기','콘서트 무대 스포트라이트, 열정적 공연','오래된 카페 창가, 비 오는 오후, 빈티지 필름','구름 위를 나는 드론 시점, 광활한 자연','댄서 실루엣, 어두운 스튜디오, 한 줄기 조명','눈 내리는 겨울 거리, 가로등, 로맨틱','옥상 도시 전경, 새벽 여명, 시네마틱 와이드샷','열대 정글 폭포, 생동감 넘치는 색감','빈티지 레코드판 클로즈업, 아날로그 감성'];
+var _mvCameras2=['역동적인 카메라 워크','슬로우 모션','드론 시점 이동','부드러운 팬 촬영','줌인 클로즈업','핸드헬드 촬영','원샷 롱테이크','360도 회전'];
+var _mvQualities2=['4K 고화질','시네마틱 색보정','필름 그레인','드라마틱 조명','소프트 포커스','하이 콘트라스트'];
 async function _mvGenerateImage(){
   console.log('[img2vid] _mvGenerateImage called, _globalGenerating=',_globalGenerating);
   var apiKey=kieApiKey||'proxy';
@@ -12772,46 +12806,104 @@ function _renderActivityFeed(){
   </div>`;
 }
 
-/* ── 커뮤니티 채팅 ── */
-let _chatPollTimer=null,_chatLastTs=0;
+/* ── 커뮤니티 채팅 (고도화) ── */
+let _chatPollTimer=null,_chatLastTs=0,_chatReplyTo=null,_chatInsight=null;
+
 function _renderChatUI(){
   const list=$('comm-list');if(!list) return;
   if(!currentUser||currentUser.provider==='guest'){
     list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">💬</div><div class="comm-no-title">로그인이 필요해요</div><div class="comm-no-desc">채팅에 참여하려면 로그인하세요</div></div>';
     return;
   }
-  list.innerHTML=`<div class="comm-chat-wrap">
-    <div class="comm-chat-list" id="comm-chat-list"><div style="text-align:center;padding:30px;color:var(--t3);">메시지 불러오는 중...</div></div>
-    <div class="comm-chat-input-wrap">
-      <input class="comm-chat-input" id="comm-chat-input" type="text" placeholder="메시지를 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_sendChat()">
-      <button class="comm-chat-send" onclick="_sendChat()">전송</button>
+  list.innerHTML=`<div class="chat-insight" id="chat-insight">
+      <div class="chat-insight-item"><div class="chat-insight-num" id="ci-online"><span class="chat-online-dot"></span>0</div><div class="chat-insight-label">접속 중</div></div>
+      <div class="chat-insight-item"><div class="chat-insight-num" id="ci-today">0</div><div class="chat-insight-label">오늘 메시지</div></div>
+      <div class="chat-insight-item"><div class="chat-insight-num" id="ci-participants">0</div><div class="chat-insight-label">참여자</div></div>
+      <div class="chat-insight-item"><div class="chat-insight-num" id="ci-top">-</div><div class="chat-insight-label">MVP</div></div>
     </div>
-  </div>`;
-  _chatLastTs=0;_loadChatMessages();
+    <div class="comm-chat-wrap">
+      <div class="comm-chat-list" id="comm-chat-list"><div style="text-align:center;padding:30px;color:var(--t3);">메시지 불러오는 중...</div></div>
+      <div id="chat-reply-bar" class="chat-reply-bar" style="display:none;">
+        <span id="chat-reply-text"></span>
+        <button onclick="_chatCancelReply()">✕</button>
+      </div>
+      <div class="comm-chat-input-wrap">
+        <input class="comm-chat-input" id="comm-chat-input" type="text" placeholder="메시지를 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_sendChat()">
+        <button class="comm-chat-send" onclick="_sendChat()">전송</button>
+      </div>
+    </div>`;
+  _chatLastTs=0;_chatReplyTo=null;_loadChatMessages();
   if(_chatPollTimer)clearInterval(_chatPollTimer);
   _chatPollTimer=setInterval(_loadChatMessages,5000);
 }
+
+function _chatSetReply(name,content){
+  _chatReplyTo={name,content:content.slice(0,100)};
+  var bar=$('chat-reply-bar');if(bar){bar.style.display='flex';$('chat-reply-text').textContent='↩ '+name+': '+_chatReplyTo.content;}
+  $('comm-chat-input')?.focus();
+}
+function _chatCancelReply(){
+  _chatReplyTo=null;
+  var bar=$('chat-reply-bar');if(bar)bar.style.display='none';
+}
+
+function _updateChatInsight(insight){
+  if(!insight) return;
+  _chatInsight=insight;
+  var el=$('ci-online');if(el) el.innerHTML='<span class="chat-online-dot"></span>'+(insight.onlineCount||0);
+  el=$('ci-today');if(el) el.textContent=insight.todayMessages||0;
+  el=$('ci-participants');if(el) el.textContent=insight.todayParticipants||0;
+  el=$('ci-top');if(el) el.textContent=insight.topChatters?.[0]?.name||'-';
+}
+
+function _chatDateLabel(dateStr){
+  const d=new Date(dateStr);const now=new Date();
+  const isToday=d.toDateString()===now.toDateString();
+  const y=new Date(now);y.setDate(y.getDate()-1);
+  const isYesterday=d.toDateString()===y.toDateString();
+  if(isToday) return '오늘';
+  if(isYesterday) return '어제';
+  return (d.getMonth()+1)+'월 '+d.getDate()+'일';
+}
+
 async function _loadChatMessages(){
   try{
-    const url='/api/chat?room=general&limit=80'+(_chatLastTs?'&since='+_chatLastTs:'');
+    const userQ=currentUser?.name?'&user='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||''):'';
+    const url='/api/chat?room=general&limit=80'+(_chatLastTs?'&since='+_chatLastTs:'')+userQ;
     const r=await fetch(url);const d=await r.json();
+    if(d.insight) _updateChatInsight(d.insight);
     const msgs=d.messages||[];
     if(!msgs.length&&!_chatLastTs){$('comm-chat-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px;">아직 메시지가 없어요. 첫 메시지를 남겨보세요!</div>';return;}
     if(!msgs.length) return;
     const cl=$('comm-chat-list');if(!cl) return;
     if(!_chatLastTs) cl.innerHTML='';
     const isMe=m=>currentUser&&m.author_name===currentUser.name&&m.author_provider===currentUser.provider;
+    let lastDate='';
     const frag=msgs.map(m=>{
       const mine=isMe(m);
       const t=m.created_at?formatTimeAgo(new Date(m.created_at).getTime()):'';
       const provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[m.author_provider]||'';
-      return `<div class="comm-chat-msg${mine?' mine':''}">
-        <div class="comm-chat-avatar">${m.author_avatar?'<img src="'+esc(m.author_avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+      const mDate=m.created_at?new Date(m.created_at).toDateString():'';
+      let dateSep='';
+      if(mDate&&mDate!==lastDate){lastDate=mDate;dateSep='<div class="chat-date-sep">'+_chatDateLabel(m.created_at)+'</div>';}
+      /* 답장 미리보기 */
+      let replyHtml='';
+      try{
+        const rp=m.reply_to?JSON.parse(m.reply_to):null;
+        if(rp) replyHtml='<div class="chat-reply-preview">↩ '+esc(rp.name)+': '+esc(rp.content)+'</div>';
+      }catch{}
+      const safeName=esc(m.author_name||'익명').replace(/'/g,'&#39;');
+      const safeContent=esc(m.content||'').replace(/'/g,'&#39;');
+      const avatarClick=!mine?` onclick="openCreatorProfile('${safeName}','${esc(m.author_provider||'')}')"`:' ';
+      return dateSep+`<div class="comm-chat-msg${mine?' mine':''}">
+        <div class="comm-chat-avatar"${avatarClick}>${m.author_avatar?'<img src="'+esc(m.author_avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
         <div>
           ${!mine?'<div class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</div>':''}
-          <div class="comm-chat-bubble">${esc(m.content)}</div>
+          ${replyHtml}
+          <div class="comm-chat-bubble" onclick="_chatSetReply('${safeName}','${safeContent}')">${esc(m.content)}</div>
           <div class="comm-chat-time">${t}</div>
         </div>
+        <div class="chat-actions"><button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button></div>
       </div>`;
     }).join('');
     if(_chatLastTs) cl.innerHTML+=frag; else cl.innerHTML=frag;
@@ -12819,17 +12911,22 @@ async function _loadChatMessages(){
     cl.scrollTop=cl.scrollHeight;
   }catch(e){console.warn('[chat]',e.message);}
 }
+
 async function _sendChat(){
   const inp=$('comm-chat-input');const content=(inp?.value||'').trim();
   if(!content){toast('메시지를 입력해주세요','err');return;}
   if(!currentUser||currentUser.provider==='guest'){toast('로그인이 필요해요','err');return;}
   inp.value='';
   try{
-    await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:'general',content,author_name:currentUser.name,author_avatar:currentUser.avatar||'',author_provider:currentUser.provider})});
+    const body={room:'general',content,author_name:currentUser.name,author_avatar:currentUser.avatar||'',author_provider:currentUser.provider};
+    if(_chatReplyTo) body.reply_to=_chatReplyTo;
+    await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    _chatCancelReply();
     _chatLastTs=0;await _loadChatMessages();
   }catch(e){toast('전송 실패','err');}
 }
 window._sendChat=typeof _sendChat!=="undefined"?_sendChat:window._sendChat||function(){};
+window._chatSetReply=_chatSetReply;window._chatCancelReply=_chatCancelReply;
 
 /* ── 리더보드 ── */
 let _lbPeriod='all';
