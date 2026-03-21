@@ -3973,6 +3973,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <!-- 주요 액션 필 버튼 (mds-actions 동일) -->
     <div class="hes-primary-actions">
       <button class="hes-primary-btn" id="hes-p-like">❤️ 좋아요</button>
+      <button class="hes-primary-btn" id="hes-p-dislike">👎 싫어요</button>
       <button class="hes-primary-btn" id="hes-p-share">↗ 공유</button>
       <button class="hes-primary-btn primary" id="hes-p-play">▶ 전체 재생</button>
       <button class="hes-primary-btn" id="hes-p-dl">⬇ 다운로드</button>
@@ -3988,11 +3989,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
         플레이리스트에 추가
       </button>
-      <button class="hes-action-btn" id="hes-dislike-btn" style="color:var(--t3);">
-        <span class="hes-btn-icon"><i data-lucide="thumbs-down"></i></span>
-        <span id="hes-dislike-text">싫어하는 노래</span>
-      </button>
     </div>
+    <!-- 숨김: JS 참조용 -->
+    <button id="hes-dislike-btn" style="display:none;"><span id="hes-dislike-text"></span></button>
     <!-- 숨김: JS addEventListener 참조용 -->
     <button id="hes-like-btn" style="display:none;"></button>
     <button id="hes-share-btn" style="display:none;"></button>
@@ -8683,6 +8682,13 @@ function openHistEditSheet(idx){
   if(pPlay) pPlay.onclick=()=>{closeHistEditSheet();showMiniPlayer(idx);};
   const pDl=$('hes-p-dl');
   if(pDl) pDl.onclick=()=>{const db=$('hes-dl-btn');if(db)db.click();};
+  const pDislike=$('hes-p-dislike');
+  if(pDislike){
+    const isDis=h._disliked;
+    pDislike.className='hes-primary-btn'+(isDis?' disliked':'');
+    pDislike.textContent=isDis?'👎 싫어요 취소':'👎 싫어요';
+    pDislike.onclick=()=>{const db=$('hes-dislike-btn');if(db)db.click();const h2=historyData[_hesIdx];const dis2=h2?._disliked;pDislike.className='hes-primary-btn'+(dis2?' disliked':'');pDislike.textContent=dis2?'👎 싫어요 취소':'👎 싫어요';const pL=$('hes-p-like');if(pL&&h2){pL.className='hes-primary-btn'+((h2._liked||h2._commLiked)?' liked':'');pL.textContent=(h2._liked||h2._commLiked)?'❤️ 좋아요 취소':'🤍 좋아요';}};
+  }
   /* 페이지 표시 */
   const totalCount=historyData.length;
   const pageInd=$('hes-page-ind');
