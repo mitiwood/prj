@@ -9128,27 +9128,53 @@ $('vr-submit-btn').addEventListener('click', async () => {
       });
     }
 
+    /* 스템 믹서 — 볼륨 슬라이더로 실시간 믹싱 */
+    if(_vrMode === 'split_stem'){
+      htm += '<div style="margin-top:14px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">';
+      htm += '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px;">🎚 스템 믹서</div>';
+      htm += '<div style="font-size:11px;color:var(--t3);margin-bottom:10px;">각 트랙 볼륨을 조절하며 실시간 믹싱</div>';
+      htm += '<div id="vr-mixer-wrap">';
+      var _mixStems = [{k:'vocalUrl',l:'보컬'},{k:'drumsUrl',l:'드럼'},{k:'bassUrl',l:'베이스'},{k:'guitarUrl',l:'기타'},{k:'pianoUrl',l:'피아노'},{k:'stringsUrl',l:'스트링'},{k:'instrumentalUrl',l:'MR'}];
+      _mixStems.forEach(function(ms){
+        var mu = res[ms.k]; if(!mu) return;
+        htm += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+        htm += '<span style="font-size:11px;color:var(--t2);width:50px;flex-shrink:0;">'+ms.l+'</span>';
+        htm += '<input type="range" min="0" max="100" value="80" style="flex:1;accent-color:var(--acc);" oninput="if(window._mixAudios){var a=window._mixAudios[''+ms.k+''];if(a)a.volume=this.value/100;}">';
+        htm += '</div>';
+      });
+      htm += '</div>';
+      htm += '<div style="display:flex;gap:6px;margin-top:10px;">';
+      htm += '<button onclick="_vrMixerPlay()" style="flex:1;padding:9px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" id="vr-mixer-play-btn">▶ 믹스 재생</button>';
+      htm += '<button onclick="_vrMixerStop()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">⏹ 정지</button>';
+      htm += '</div></div>';
+    }
+
     htm += '</div>';
     $('results').innerHTML = htm;
+
+    /* 스템 믹서 오디오 초기화 */
+    if(_vrMode === 'split_stem'){
+      window._mixAudios = {};
+      [{k:'vocalUrl'},{k:'drumsUrl'},{k:'bassUrl'},{k:'guitarUrl'},{k:'pianoUrl'},{k:'stringsUrl'},{k:'instrumentalUrl'}].forEach(function(ms){
+        var mu = res[ms.k]; if(!mu) return;
+        var a = new Audio(mu); a.volume = 0.8; a.loop = true;
+        window._mixAudios[ms.k] = a;
+      });
+    }
     $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    /* MR을 히스토리에 저장 */
+    /* MR + 보컬 트랙 히스토리 저장 */
+    var _vrOwner = currentUser ? {name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider} : null;
     if (iu) {
-      historyData.unshift({
-        id: Date.now().toString(), taskId: vrTid,
-        title: '[MR] ' + (h.title || '무제'),
-        audio_url: iu, video_url: '', image_url: h.image_url || '',
-        tags: 'instrumental, MR', lyrics: '', created: Date.now(),
-        type: 'audio', genMode: 'vocal-removal',
-        _vocalRemovedFrom: h.id || '',
-        _owner: currentUser
-          ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider }
-          : null,
-      });
-      historyData = historyData.slice(0, 30);
-      saveHistory(); updateHistBadge();
+      historyData.unshift({id:Date.now().toString(),taskId:vrTid,title:'[MR] '+(h.title||'무제'),audio_url:iu,video_url:'',image_url:h.image_url||'',tags:'instrumental, MR',lyrics:'',created:Date.now(),type:'audio',genMode:'vocal-removal',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
     }
-    toast(_vrMode === 'split_stem' ? '스템 분리 완료!' : '보컬 제거 완료! MR이 저장됐어요', 'ok', 3000);
+    if (vu) {
+      historyData.unshift({id:(Date.now()+1).toString(),taskId:vrTid,title:'[보컬] '+(h.title||'무제'),audio_url:vu,video_url:'',image_url:h.image_url||'',tags:'vocal only',lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'vocal-extract',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
+    }
+    historyData = historyData.slice(0, 30);
+    saveHistory(); updateHistBadge(); renderHistoryView();
+    trackUsage(_vrMode==='split_stem'?'stem':'vr',{mode:_vrMode});
+    toast(_vrMode === 'split_stem' ? '스템 분리 완료!' : '보컬 제거 완료! 보컬+MR이 저장됐어요', 'ok', 3000);
   } catch (e) {
     $('loading-card').classList.remove('on');
     toast('보컬 제거 실패: ' + e.message, 'err', 4000);
@@ -9158,6 +9184,74 @@ $('vr-submit-btn').addEventListener('click', async () => {
     $('vr-btn-txt').textContent = _vrMode === 'split_stem' ? '🎚 스템 분리 시작' : '🎤 보컬 제거 시작';
   }
 });
+
+
+
+/* ── 스템 믹서 제어 ── */
+function _vrMixerPlay(){
+  if(!window._mixAudios) return;
+  var btn=$('vr-mixer-play-btn');
+  if(btn) btn.textContent='⏸ 재생 중';
+  Object.values(window._mixAudios).forEach(function(a){a.currentTime=0;a.play().catch(function(){});});
+}
+function _vrMixerStop(){
+  if(!window._mixAudios) return;
+  var btn=$('vr-mixer-play-btn');
+  if(btn) btn.textContent='▶ 믹스 재생';
+  Object.values(window._mixAudios).forEach(function(a){a.pause();a.currentTime=0;});
+}
+
+/* ── 내 목소리 녹음 (MR + 마이크) ── */
+var _vrRecorder=null,_vrRecChunks=[],_vrRecMrUrl='',_vrRecTitle='';
+function _vrStartRecord(mrUrl, title){
+  _vrRecMrUrl=mrUrl; _vrRecTitle=title;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('마이크를 지원하지 않는 브라우저예요','err');return;}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    /* MR 재생 */
+    var mrAudio=new Audio(mrUrl);mrAudio.volume=0.8;
+    window._vrRecMrAudio=mrAudio;
+    /* 녹음 시작 */
+    _vrRecChunks=[];
+    _vrRecorder=new MediaRecorder(stream);
+    _vrRecorder.ondataavailable=function(e){if(e.data.size>0)_vrRecChunks.push(e.data);};
+    _vrRecorder.onstop=function(){
+      stream.getTracks().forEach(function(t){t.stop();});
+      mrAudio.pause();
+      var blob=new Blob(_vrRecChunks,{type:'audio/webm'});
+      var url=URL.createObjectURL(blob);
+      /* 결과 표시 */
+      var el=document.createElement('div');
+      el.style.cssText='margin-top:14px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;';
+      el.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🎙 내 녹음 완료!</div>'
+        +'<audio controls src="'+url+'" style="width:100%;border-radius:8px;margin-bottom:8px;"></audio>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<button onclick="downloadFile(''+url+'',''+esc(_vrRecTitle)+'_MyVocal.webm')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다운로드</button>'
+        +'</div>';
+      $('results').appendChild(el);
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      toast('녹음 완료! 다운로드해서 확인해보세요','ok',3000);
+    };
+    mrAudio.play();
+    _vrRecorder.start();
+    toast('🎙 녹음 시작! MR과 함께 노래하세요','ok',3000);
+    /* 녹음 중 UI — 결과 영역에 정지 버튼 표시 */
+    var stopEl=document.createElement('div');
+    stopEl.id='vr-rec-stop-wrap';
+    stopEl.style.cssText='margin-top:14px;padding:14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;text-align:center;';
+    stopEl.innerHTML='<div style="font-size:28px;margin-bottom:8px;animation:pulse 1s infinite;">🔴</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px;">녹음 중...</div>'
+      +'<button onclick="_vrStopRecord()" style="padding:10px 24px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⏹ 녹음 정지</button>';
+    $('results').appendChild(stopEl);
+    stopEl.scrollIntoView({behavior:'smooth',block:'center'});
+  }).catch(function(e){
+    toast('마이크 접근이 거부됐어요: '+e.message,'err',3000);
+  });
+}
+function _vrStopRecord(){
+  if(_vrRecorder&&_vrRecorder.state==='recording') _vrRecorder.stop();
+  if(window._vrRecMrAudio) window._vrRecMrAudio.pause();
+  var el=$('vr-rec-stop-wrap');if(el)el.remove();
+}
 
 
 /* 더 많은 정보 */
@@ -12227,9 +12321,9 @@ function cancelLyricsEdit(idx){
 
 /* 플랜 정의 — 서버(/api/toss-config)에서 가져와 덮어씁니다 (Single Source of Truth) */
 let PLAN_LIMITS = {
-  free:    { songs:5,  mv:0,  lyrics:5,  label:'무료 플랜',    icon:'🆓', color:'var(--t3)' },
-  pro:     { songs:50, mv:3,  lyrics:50, label:'Pro 플랜',     icon:'💜', color:'var(--acc2)' },
-  creator: { songs:999,mv:20, lyrics:999,label:'Creator 플랜', icon:'👑', color:'#f59e0b' }
+  free:    { songs:5,  mv:0,  lyrics:5,  vr:1, label:'무료 플랜',    icon:'🆓', color:'var(--t3)' },
+  pro:     { songs:50, mv:3,  lyrics:50, vr:10, label:'Pro 플랜',     icon:'💜', color:'var(--acc2)' },
+  creator: { songs:999,mv:20, lyrics:999,vr:999,label:'Creator 플랜', icon:'👑', color:'#f59e0b' }
 };
 /* 서버에서 플랜 동기화 */
 async function _syncPlansFromServer(){
@@ -12267,6 +12361,8 @@ const COST_PER = {
   lyrics: { usd:0.005,label:'가사 생성' },
   extend: { usd:0.03, label:'곡 연장' },
   vocal:  { usd:0.05, label:'보컬 변환' },
+  vr:     { usd:0.05, label:'보컬 제거' },
+  stem:   { usd:0.25, label:'스템 분리' },
 };
 const USD_KRW = 1340;
 
@@ -12282,6 +12378,7 @@ function trackUsage(type, meta={}){
   if(type==='song')   usage.songs=(usage.songs||0)+1;
   if(type==='mv')     usage.mv=(usage.mv||0)+1;
   if(type==='lyrics') usage.lyrics=(usage.lyrics||0)+1;
+  if(type==='vr')     usage.vr=(usage.vr||0)+1;
   saveUsage(usage);
   /* 로그 */
   const log = getUsageLog();
@@ -12299,7 +12396,7 @@ function checkPlanLimit(type){
   const plan = getPlan();
   const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
   const usage = getUsage();
-  const key = type==='song'?'songs':type==='mv'?'mv':'lyrics';
+  const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
   const used = usage[key]||0;
   const limit = limits[key];
 
