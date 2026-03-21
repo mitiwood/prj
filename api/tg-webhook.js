@@ -94,23 +94,24 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
   const help = `🤖 *Kenny Music Studio 봇 명령어*
 
 📊 *모니터링*
-/상태 — 서버 상태 리포트
-/트랙 — 최근 트랙 10곡
-/유저 — 유저 통계
-/댓글 — 최근 댓글 10개
-/배포 — 사이트 접근 확인
+상태 — 서버 상태 리포트
+트랙 — 최근 트랙 10곡
+유저 — 유저 통계
+댓글 — 최근 댓글 10개
+배포 — 사이트 접근 확인
 
 📝 *관리*
-/공지 <내용> — 공지사항 등록
-/공지삭제 — 공지사항 삭제
-/삭제 <트랙ID> — 트랙 삭제
-/공개 <트랙ID> — 트랙 공개
-/비공개 <트랙ID> — 트랙 비공개
-/댓글삭제 <댓글ID> — 댓글 삭제
+공지 <내용> — 공지사항 등록
+공지삭제 — 공지사항 삭제
+삭제 <트랙ID> — 트랙 삭제
+공개 <트랙ID> — 트랙 공개
+비공개 <트랙ID> — 트랙 비공개
+댓글삭제 <댓글ID> — 댓글 삭제
 
 📣 *알림*
-/알림 <메시지> — 전체 푸시 발송
+알림 <메시지> — 전체 푸시 발송
 
+💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
   await tgSend(chatId, help);
 };
@@ -204,7 +205,7 @@ COMMANDS['댓글'] = COMMANDS['comments'] = async (chatId, arg) => {
 
 /* /공지 <내용> */
 COMMANDS['공지'] = COMMANDS['announce'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /공지 <내용>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:공지 <내용>');
   try {
     const r = await fetch(`${BASE}/api/announcement`, {
       method: 'POST',
@@ -235,7 +236,7 @@ COMMANDS['공지삭제'] = async (chatId) => {
 
 /* /삭제 <트랙ID> */
 COMMANDS['삭제'] = COMMANDS['delete'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /삭제 <트랙ID>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:삭제 <트랙ID>');
   try {
     const r = await fetch(`${BASE}/api/tracks?id=${encodeURIComponent(arg)}`, {
       method: 'DELETE',
@@ -250,7 +251,7 @@ COMMANDS['삭제'] = COMMANDS['delete'] = async (chatId, arg) => {
 
 /* /공개 <트랙ID> */
 COMMANDS['공개'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /공개 <트랙ID>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:공개 <트랙ID>');
   try {
     await sb('PATCH', `/tracks?id=eq.${arg}`, { is_public: true });
     return tgSend(chatId, `✅ 트랙 공개 전환: \`${arg}\``);
@@ -261,7 +262,7 @@ COMMANDS['공개'] = async (chatId, arg) => {
 
 /* /비공개 <트랙ID> */
 COMMANDS['비공개'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /비공개 <트랙ID>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:비공개 <트랙ID>');
   try {
     await sb('PATCH', `/tracks?id=eq.${arg}`, { is_public: false });
     return tgSend(chatId, `✅ 트랙 비공개 전환: \`${arg}\``);
@@ -272,7 +273,7 @@ COMMANDS['비공개'] = async (chatId, arg) => {
 
 /* /댓글삭제 <댓글ID> */
 COMMANDS['댓글삭제'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /댓글삭제 <댓글ID>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:댓글삭제 <댓글ID>');
   try {
     await sb('DELETE', `/comments?id=eq.${arg}`, null);
     return tgSend(chatId, `✅ 댓글 삭제 완료: \`${arg}\``);
@@ -299,7 +300,7 @@ COMMANDS['배포'] = COMMANDS['deploy'] = async (chatId) => {
 
 /* /알림 <메시지> */
 COMMANDS['알림'] = COMMANDS['push'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: /알림 <메시지>');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법:알림 <메시지>');
   try {
     const r = await fetch(`${BASE}/api/push-send`, {
       method: 'POST',
@@ -383,10 +384,9 @@ export default async function handler(req, res) {
         console.error('[TG CMD error]', cmd, e.message);
         await tgSend(chatId, `❌ 명령 실행 오류: ${e.message}`);
       }
-    } else if (text.startsWith('/')) {
-      await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n/도움 으로 명령어 목록을 확인하세요.`);
+    } else {
+      await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
     }
-    /* / 없는 일반 메시지는 무시 (다른 대화에 방해 안됨) */
 
     return res.status(200).json({ ok: true });
   }
