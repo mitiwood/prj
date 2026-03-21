@@ -58,6 +58,13 @@ const PLANS = {
   },
 };
 
+/* 크레딧 팩 (일회성 구매) */
+const CREDIT_PACKS = {
+  pack10: { price: 1900, credits: 10, label: "10곡 팩" },
+  pack30: { price: 4900, credits: 30, label: "30곡 팩" },
+  pack100: { price: 12900, credits: 100, label: "100곡 팩" },
+};
+
 export default function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "method not allowed" });
@@ -67,5 +74,6 @@ export default function handler(req, res) {
     ok: true,
     clientKey: TOSS_CLIENT_KEY,
     plans: PLANS,
+    creditPacks: CREDIT_PACKS,
   });
 }
