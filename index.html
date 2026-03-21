@@ -4019,7 +4019,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span> · <span id="pv-follower-cnt">0팔로워</span>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
-        <button id="pv-follow-btn" onclick="_toggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
+        <button id="pv-follow-btn" onclick="_pvToggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
         <button class="profile-back-btn" onclick="switchTab('community-view')" style="flex-shrink:0;">← 돌아가기</button>
       </div>
     </div>
@@ -15264,6 +15264,42 @@ function openCreatorProfile(name, provider){
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
 }
+async function _pvToggleFollow(){
+  if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
+  if(!window._pvTarget) return;
+  const btn = $('pv-follow-btn');
+  const isFollowing = btn.dataset.following === '1';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/profile', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: isFollowing ? 'unfollow' : 'follow',
+        followerName: currentUser.name, followerProvider: currentUser.provider,
+        followingName: window._pvTarget.name, followingProvider: window._pvTarget.provider,
+      })
+    });
+    const d = await r.json();
+    if(d.ok){
+      if(isFollowing){
+        btn.textContent='팔로우'; btn.dataset.following='0';
+        btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
+        toast('팔로우 취소','',1500);
+      } else {
+        btn.textContent='팔로잉'; btn.dataset.following='1';
+        btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
+        toast('팔로우!','ok',1500);
+      }
+      const fc = $('pv-follower-cnt');
+      if(fc){
+        const cur = parseInt(fc.textContent)||0;
+        fc.textContent = Math.max(0, cur + (isFollowing ? -1 : 1)) + '팔로워';
+      }
+    }
+  } catch(e){ toast('오류: '+e.message,'err'); }
+  btn.disabled = false;
+}
+window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
 
 function _pfTab(tab){
