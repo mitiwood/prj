@@ -4589,9 +4589,13 @@ function _sendErrorAlert(info){
   try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }); } catch(e){}
   /* 카카오 */
   try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }); } catch(e){}
+  /* 자동 수정: 에러 감지 → 텔레봇 알림 */
+  var errKey = info.slice(0,80).replace(/[^a-zA-Z0-9]/g,'');
+  if(_autoFixSent[errKey] && Date.now()-_autoFixSent[errKey] < 86400000) return;
+  _autoFixSent[errKey] = Date.now();
+  var fixDesc = info.split('\n').filter(function(l){return l.trim();}).slice(0,4).join(' ').replace(/[<>&"']/g,'').slice(0,250);
+  try { fetch('/api/tg-webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:{chat:{id:7307674861},from:{first_name:'AutoFix'},text:fixDesc}}) }); } catch(e){}
 }
-/* 🤖 자동 수정: 에러 → GitHub Issue → Claude Code → PR */  var errKey = info.slice(0,80).replace(/[^a-zA-Z0-9]/g,'');  if(_autoFixSent[errKey] && Date.now()-_autoFixSent[errKey] < 86400000) return;  _autoFixSent[errKey] = Date.now();  var fixDesc = info.split('
-').filter(function(l){return l.trim();}).slice(0,4).join(' ').replace(/[<>&"']/g,'').slice(0,250);  try { fetch('/api/tg-webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:{chat:{id:7307674861},from:{first_name:'AutoFix'},text:'수정 [자동감지] '+fixDesc}}) }); } catch(e){}
 
 window.onerror = function(msg, src, line, col, err) {
   const s = String(msg);
