@@ -3095,8 +3095,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
         <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
         <div class="ld-bar"></div>
       </div>
-      <div class="ld-title">Kenny's AI가 음악을 작곡하고 있어요</div>
-      <div class="ld-sub" id="ld-sub">Suno AI가 멜로디와 리듬을 구성 중...<br>보통 30~60초 소요됩니다</div>
+      <div class="ld-title">지금 곡 만드는 중이에요 ✦</div>
+      <div class="ld-sub" id="ld-sub">멜로디랑 리듬 잡는 중이에요 ~<br>한 30초~1분이면 나와요 ☕</div>
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
       <div class="ld-task" id="ld-task"></div>
     </div>
@@ -3721,7 +3721,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
       <div class="glp-bar"></div>
       <div class="glp-bar"></div>
     </div>
-    <div class="glp-title" id="glp-title">Kenny's AI가 음악을 작곡하고 있어요 🎵</div>
+    <div class="glp-title" id="glp-title">지금 곡 만드는 중~ 잠깐만요! 🎵</div>
     <div class="glp-desc" id="glp-desc">현재 다른 곡을 작곡 중이에요.<br>작곡이 끝나고 다시 시도해주세요.</div>
     <button class="glp-ok-btn" id="glp-ok-btn">확인</button>
   </div>
@@ -5050,12 +5050,12 @@ async function _ytDoGenerate(){
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
   if(fill){ fill.style.animation='none'; void fill.offsetWidth; fill.style.animation=''; }
-  $('ld-sub').innerHTML='YouTube 스타일로 음악 생성 중...<br>잠시만 기다려주세요 ☕';
-  const _tips=['kie.ai에 작곡 요청 중... ☕','AI가 멜로디를 구성하고 있어요 🎼','YouTube 스타일 분석 중... 🔍','보컬 설정 중... 🎤','편곡 & 믹싱 중... 🎚'];
+  $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
+  const _tips=['작곡 요청 넣었어요~ ☕','멜로디 잡는 중 🎼','스타일 분석하는 중~ 🔍','보컬 세팅 중 🎤','편곡이랑 믹싱 하는 중~ 🎚'];
   let _ti=0;
   const _tipTimer=setInterval(()=>{
     if(!$('loading-card')?.classList.contains('on')){ clearInterval(_tipTimer); return; }
-    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30~60초 소요됩니다</span>';
+    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30초~1분이면 나와요</span>';
     _ti++;
   }, 8000);
 
@@ -5078,7 +5078,7 @@ async function _ytDoGenerate(){
 
     lastTaskId = taskId;
     if($('ld-task')) $('ld-task').textContent='Task: '+taskId;
-    $('ld-sub').innerHTML='YouTube 스타일로 작곡 중...<br>보통 30~60초 소요됩니다 ☕';
+    $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
     const tracks = await pollResult(apiKey, taskId);
     if(!tracks?.length) throw new Error('트랙을 받지 못했어요');
@@ -7000,10 +7000,10 @@ async function generate(overrideParams){
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
   /* 로딩 팁 순환 */
-  const _tips=['kie.ai에 작곡 요청 중... ☕','AI가 멜로디를 구성하고 있어요 🎼','장르와 분위기를 분석 중... 🔍','보컬 스타일 설정 중... 🎤','편곡 & 믹싱 최적화 중... 🎚'];
+  const _tips=['작곡 요청 넣었어요~ ☕','멜로디 잡는 중 🎼','장르랑 무드 맞추는 중~ 🔍','보컬 세팅 중 🎤','편곡이랑 믹싱 마무리 중~ 🎚'];
   let _tipIdx=0;
-  const _tipTimer=setInterval(()=>{ if(!$('loading-card')?.classList.contains('on')){clearInterval(_tipTimer);return;} $('ld-sub').innerHTML=_tips[_tipIdx%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30~60초 소요됩니다</span>'; _tipIdx++; },8000);
-  $('ld-sub').innerHTML='kie.ai에 작곡 요청 중...<br>잠시만 기다려주세요 ☕';
+  const _tipTimer=setInterval(()=>{ if(!$('loading-card')?.classList.contains('on')){clearInterval(_tipTimer);return;} $('ld-sub').innerHTML=_tips[_tipIdx%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30초~1분이면 나와요</span>'; _tipIdx++; },8000);
+  $('ld-sub').innerHTML='작곡 요청 보냈어요~<br>잠깐만 기다려주세요 ☕';
 
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
@@ -7022,7 +7022,7 @@ async function generate(overrideParams){
     if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
     lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
     $('ld-task').textContent=`Task: ${taskId}`;
-    $('ld-sub').innerHTML='AI가 멜로디, 리듬, 편곡 중...<br>보통 30~60초 소요됩니다 ☕';
+    $('ld-sub').innerHTML='멜로디, 리듬, 편곡 다 넣는 중~<br>곧 들려드릴게요 🎧';
 
     const tracks=await pollResult(apiKey,taskId);
     if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
@@ -7394,7 +7394,7 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     $('extend-modal').classList.remove('on');
     $('loading-card').classList.add('on');
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
-    $('ld-sub').innerHTML='트랙을 연장하고 있어요...<br>잠시만 기다려주세요 ☕';
+    $('ld-sub').innerHTML='곡 더 늘리는 중이에요~<br>잠깐이면 돼요 ✨';
     $('ld-task').textContent=`Extend: ${taskId}`;
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
@@ -8225,7 +8225,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     $('loading-card').classList.add('on');
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
-    $('ld-sub').innerHTML='커버 버전을 생성하고 있어요...<br>새로운 보컬 스타일 적용 중 🎤';
+    $('ld-sub').innerHTML='커버 버전 만드는 중~<br>새 보컬 입히고 있어요 🎤';
     $('ld-task').textContent=`Cover: ${taskId}`;
     let result=null;
     for(let i=0;i<40;i++){
@@ -8237,7 +8237,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
         const trks=st.response?.sunoData||[];
         if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
         if(status==='FAILED'||status==='ERROR')throw new Error('커버 생성 실패');
-        $('ld-sub').innerHTML=`커버 생성 중... ${Math.min(95,Math.round((i/40)*100))}%<br>잠시만 기다려주세요 🎤`;
+        $('ld-sub').innerHTML=`커버 작업 ${Math.min(95,Math.round((i/40)*100))}% 완료~<br>거의 다 됐어요 🎤`;
       }catch(pe){if(pe.message.includes('실패'))throw pe;}
     }
     $('loading-card').classList.remove('on');
@@ -8306,7 +8306,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     $('remix-style-modal').classList.remove('on');
     $('loading-card').classList.add('on');
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
-    $('ld-sub').innerHTML='원본 스타일로 새 곡을 만들고 있어요...<br>잠시만 기다려주세요 🎵';
+    $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
     $('ld-task').textContent=`Style Reuse: ${taskId}`;
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
@@ -8368,7 +8368,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     $('remaster-modal').classList.remove('on');
     $('loading-card').classList.add('on');
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
-    $('ld-sub').innerHTML='V5 모델로 리마스터 중...<br>최고 음질로 다시 만들고 있어요 ✦';
+    $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
     $('ld-task').textContent=`Remaster: ${taskId}`;
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
