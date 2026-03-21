@@ -4587,24 +4587,146 @@ let _sbLoading   = false;
 let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
 const _SB_CACHE_TTL = 10000; /* 10초 캐시 */
 
-/* 커뮤니티 공개 트랙 로드 — 캐시 우선, 백그라운드 갱신 */
+/* ── 무한 스크롤 페이지네이션 상태 ── */
+const _SB_PAGE_SIZE = 20;
+let _sbOffset = 0;
+let _sbHasMore = true;
+let _sbLoadingMore = false;
+let _sbIntersectionObserver = null;
+const _playedTrackIds = new Set(); /* 세션당 재생 카운팅 중복 방지 */
+
+/* 커뮤니티 공개 트랙 로드 — 페이지네이션 지원 */
 async function _loadSbTracks(force=false){
   if(_sbLoading) return;
   if(!force && _sbLoaded && (Date.now() - _sbLoadedAt) < _SB_CACHE_TTL) return;
   _sbLoading = true;
+  _sbOffset = 0;
+  _sbHasMore = true;
   try{
-    const r = await fetch('/api/tracks?public=true&limit=500');
+    const r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
       _sbTracks = d.tracks.map(_rowToTrack);
+      _sbOffset = _sbTracks.length;
+      _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbLoaded = true;
       _sbLoadedAt = Date.now();
-      /* localStorage 캐시 저장 */
       try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
     }
   }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
   _sbLoading = false;
+}
+
+/* 폴링 갱신 — 현재 로드된 만큼만 새로고침 (무한 스크롤 상태 유지) */
+async function _pollRefreshSbTracks(){
+  if(_sbLoading) return;
+  _sbLoading = true;
+  var currentCount = Math.max(_sbOffset, _SB_PAGE_SIZE);
+  try{
+    var r = await fetch('/api/tracks?public=true&limit='+currentCount+'&offset=0');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var d = await r.json();
+    if(Array.isArray(d.tracks)){
+      _sbTracks = d.tracks.map(_rowToTrack);
+      _sbOffset = _sbTracks.length;
+      _sbLoadedAt = Date.now();
+      try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
+    }
+  }catch(e){ console.warn('[SB] 폴링 갱신 실패:', e.message); }
+  _sbLoading = false;
+}
+
+/* 커뮤니티 추가 페이지 로드 (무한 스크롤) */
+async function _loadSbTracksMore(){
+  if(_sbLoadingMore || !_sbHasMore) return;
+  _sbLoadingMore = true;
+  _showCommLoadingIndicator(true);
+  try{
+    var r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset='+_sbOffset);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var d = await r.json();
+    if(Array.isArray(d.tracks)){
+      var newTracks = d.tracks.map(_rowToTrack);
+      _sbTracks = _sbTracks.concat(newTracks);
+      _sbOffset += newTracks.length;
+      _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
+      _sbLoadedAt = Date.now();
+      try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
+      _commPrevSnapshot = '';
+      var heroWrap=$('comm-hero-wrap');
+      var list=$('comm-list');
+      if(heroWrap && list) _renderCommContent(heroWrap, list);
+    }
+  }catch(e){ console.warn('[SB] 추가 로드 실패:', e.message); }
+  _sbLoadingMore = false;
+  _showCommLoadingIndicator(false);
+  if(!_sbHasMore) _showCommEndMessage();
+}
+
+/* 로딩 인디케이터 표시/숨김 */
+function _showCommLoadingIndicator(show){
+  var el = document.getElementById('comm-scroll-loading');
+  if(show){
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'comm-scroll-loading';
+      el.style.cssText = 'text-align:center;padding:20px;color:var(--t3);font-size:13px;';
+      el.innerHTML = '<div style="display:inline-block;width:20px;height:20px;border:2px solid var(--t3);border-top-color:var(--acc3);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle;"></div>로딩 중...';
+      var list = $('comm-list');
+      if(list) list.parentNode.insertBefore(el, list.nextSibling);
+    }
+    el.style.display = '';
+  } else {
+    if(el) el.style.display = 'none';
+  }
+}
+
+/* "모든 곡을 불러왔어요" 메시지 */
+function _showCommEndMessage(){
+  var el = document.getElementById('comm-scroll-end');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'comm-scroll-end';
+    el.style.cssText = 'text-align:center;padding:16px;color:var(--t3);font-size:12px;font-weight:500;';
+    el.textContent = '모든 곡을 불러왔어요';
+    var list = $('comm-list');
+    if(list) list.parentNode.insertBefore(el, list.nextSibling);
+  }
+  el.style.display = '';
+}
+
+/* IntersectionObserver 기반 무한 스크롤 설정 */
+function _setupCommInfiniteScroll(){
+  if(_sbIntersectionObserver){ _sbIntersectionObserver.disconnect(); _sbIntersectionObserver=null; }
+  var sentinel = document.getElementById('comm-scroll-sentinel');
+  if(!sentinel){
+    sentinel = document.createElement('div');
+    sentinel.id = 'comm-scroll-sentinel';
+    sentinel.style.cssText = 'height:1px;width:100%;';
+    var list = $('comm-list');
+    if(list) list.parentNode.insertBefore(sentinel, list.nextSibling);
+  }
+  var endEl = document.getElementById('comm-scroll-end');
+  if(endEl) endEl.style.display = 'none';
+  var loadEl = document.getElementById('comm-scroll-loading');
+  if(loadEl) loadEl.style.display = 'none';
+
+  _sbIntersectionObserver = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting && _sbHasMore && !_sbLoadingMore){
+        _loadSbTracksMore();
+      }
+    });
+  }, { rootMargin: '200px' });
+  _sbIntersectionObserver.observe(sentinel);
+}
+
+/* 트랙 재생수 카운팅 (세션당 1회) — fire and forget */
+function _countTrackPlay(trackId){
+  if(!trackId || _playedTrackIds.has(trackId)) return;
+  _playedTrackIds.add(trackId);
+  fetch('/api/tracks?id=' + encodeURIComponent(trackId) + '&action=play', { method: 'PATCH' }).catch(function(){});
 }
 /* localStorage에서 캐시 즉시 복원 */
 try{
@@ -10510,6 +10632,9 @@ async function renderCommunity(force=false){
   /* 항상 서버에서 최신 데이터 로드 */
   await _loadSbTracks(true);
   _renderCommContent(heroWrap, list);
+
+  /* 무한 스크롤 설정 */
+  _setupCommInfiniteScroll();
 }
 
 /* 커뮤니티 리스트 아이템 HTML 생성 헬퍼 */
@@ -10532,7 +10657,7 @@ function _buildCommItem(t,i,isMine){
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
           <span onclick="event.stopPropagation();openProfileSheet('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--t2);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>
-          ${t.likes>0?`<span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;">❤️ ${t.likes}</span>`:''}
+          <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
         <!-- 3열: 음악 스타일 -->
         ${tagsShort?`<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:10px;color:var(--acc3);background:rgba(124,58,237,.08);padding:2px 8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${esc(tagsShort)}</span></div>`:''}
@@ -11524,9 +11649,9 @@ window.toggleLyricsEdit=toggleLyricsEdit;
 window.saveLyricsEdit=saveLyricsEdit;
 window.cancelLyricsEdit=cancelLyricsEdit;
 window.changeTheme=changeTheme;
-/* Lucide 아이콘 초기화 */
+/* Lucide 아이콘 초기화 — defer 스크립트 대기 */
 if(window.lucide) lucide.createIcons();
-else window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); });
+else { window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); }); document.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>{ if(window.lucide) lucide.createIcons(); },500); }); }
 /* 히스토리 뷰 모드 초기화 */
 document.querySelectorAll('.hist-vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.hvt===_histViewMode));
 /* 하단탭 data-view=create-view 버튼을 on으로 (HTML에서 on 클래스 직접 설정됨) */
@@ -13620,10 +13745,10 @@ window.addEventListener('load', ()=>{
   if(typeof Notification !== 'undefined' && Notification.permission === 'granted') registerPushSW();
   /* Supabase: 커뮤니티 트랙 백그라운드 로드 */
   setTimeout(()=>{
-    _loadSbTracks();
+    if(typeof _loadSbTracks==='function') _loadSbTracks();
     /* 로그인 사용자면 내 트랙도 로드 */
-    if(currentUser && currentUser.provider!=='guest'){
-      _loadMyTracks();
+    if(typeof currentUser!=='undefined' && currentUser && currentUser.provider!=='guest'){
+      if(typeof _loadMyTracks==='function') _loadMyTracks();
     }
   }, 1000);
 });
