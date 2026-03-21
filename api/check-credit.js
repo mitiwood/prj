@@ -49,10 +49,27 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const { userName, userProvider, type, action } = req.body || {};
+  const { userName, userProvider, type, action, newPlan } = req.body || {};
   if (!userName || !userProvider) {
     return res.status(400).json({ ok: false, reason: 'missing_user' });
   }
+
+  /* 다운그레이드 요청 처리 */
+  if (type === 'downgrade' && newPlan) {
+    try {
+      const limits = PLAN_LIMITS[newPlan] || PLAN_LIMITS.free;
+      const patchData = { plan: newPlan, credits: limits.songs };
+      if (newPlan === 'free') patchData.plan_expires = null;
+      await sbFetch('PATCH',
+        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        patchData
+      );
+      return res.status(200).json({ ok: true, plan: newPlan });
+    } catch (e) {
+      return res.status(200).json({ ok: false, error: e.message });
+    }
+  }
+
   if (!type || !['song', 'mv', 'lyrics'].includes(type)) {
     return res.status(400).json({ ok: false, reason: 'invalid_type' });
   }

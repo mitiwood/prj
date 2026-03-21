@@ -11727,10 +11727,20 @@ function _confirmDowngrade(targetPlan){
   if(window.lucide) lucide.createIcons();
 }
 
-function _doDowngrade(targetPlan){
+async function _doDowngrade(targetPlan){
   const startDate=new Date().toISOString();
   const endDate=targetPlan==='free'?null:new Date(Date.now()+30*24*60*60*1000).toISOString();
   localStorage.setItem('kms_plan',JSON.stringify({type:targetPlan,startDate,endDate}));
+  /* 서버 DB도 업데이트 */
+  if(currentUser?.name && currentUser?.provider){
+    try{
+      await fetch('/api/check-credit',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userName:currentUser.name,userProvider:currentUser.provider,type:'downgrade',newPlan:targetPlan})
+      });
+    }catch(e){console.warn('[downgrade]',e.message);}
+  }
   toast(`플랜이 ${targetPlan==='free'?'Free':'Pro'}로 변경됐어요`,'ok',3000);
   renderPlanUI();
   try{_renderSettingsExtended();}catch(e){}
