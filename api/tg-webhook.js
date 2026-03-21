@@ -346,35 +346,51 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 색상을 파란색으로\n수정 커뮤니티 탭 로딩 속도 개선');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
 
-  await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg}"`);
+  await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`);
 
   try {
-    const issue = await ghApi('POST', '/issues', {
-      title: `🔧 [텔레그램] ${arg.slice(0, 60)}`,
-      body: [
-        `## 수정 요청`,
-        ``,
-        arg,
-        ``,
-        `---`,
-        `> 텔레그램 봇에서 요청됨 · ${ts()}`,
-      ].join('\n'),
+    /* GitHub API로 Issue 생성 */
+    const ghUrl = `https://api.github.com/repos/${GH_REPO}/issues`;
+    const ghBody = JSON.stringify({
+      title: `[텔레그램] ${arg.slice(0, 60)}`,
+      body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
       labels: ['claude-fix'],
     });
+    const ghReq = await fetch(ghUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${GH_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'kenny-music-bot',
+      },
+      body: ghBody,
+    });
+    const ghTxt = await ghReq.text();
 
+    if (!ghReq.ok) {
+      /* 에러 상세 전송 (Markdown 이스케이프) */
+      const safeErr = ghTxt.slice(0, 200).replace(/[*_`\[\]]/g, '');
+      await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
+      return;
+    }
+
+    const issue = JSON.parse(ghTxt);
+    const safeArg = arg.replace(/[*_`\[]/g, '');
     await tgSend(chatId, [
-      `✅ *수정 요청 등록 완료!*`,
+      `✅ 수정 요청 등록 완료!`,
       ``,
       `📋 Issue #${issue.number}`,
-      `📝 ${arg}`,
+      `📝 ${safeArg}`,
       ``,
       `🤖 Claude Code가 자동으로 코드를 수정하고 PR을 생성합니다.`,
       `완료되면 알림이 올 거예요.`,
       ``,
       `🔗 ${issue.html_url}`,
-    ].join('\n'));
+    ].join('\n'), { parse_mode: '' });
   } catch (e) {
-    await tgSend(chatId, `❌ Issue 생성 실패: ${e.message}`);
+    const safeMsg = (e.message || 'unknown').replace(/[*_`\[\]]/g, '');
+    await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
   }
 };
 
