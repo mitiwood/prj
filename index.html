@@ -20,6 +20,7 @@
 <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" defer></script>
 <!-- Kakao JS SDK (공유 기능용) -->
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7c3aed"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
 /* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
 window.$=window.$||function(id){return document.getElementById(id);};
@@ -6691,6 +6692,11 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 /* ── 다운로드 (CORS-safe blob) ── */
 async function downloadFile(url,filename){
+  /* 플랜별 다운로드 형식 안내 */
+  const plan = getPlan().type;
+  const ext = (filename||'').split('.').pop()?.toLowerCase();
+  if(ext==='wav' && plan==='free'){ toast('WAV 다운로드는 Pro 플랜부터 지원해요','',3000); return; }
+  if(ext==='flac' && plan!=='creator'){ toast('FLAC 다운로드는 Creator 플랜에서 지원해요','',3000); return; }
   toast('⬇ 다운로드 준비 중...','',5000);
   try{
     const res=await fetch(url);
@@ -9984,9 +9990,10 @@ function _saveTrackToServer(track){
     owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
     owner_provider: track._owner?.provider || currentUser?.provider || 'guest',
   };
+  const _jwt = localStorage.getItem('kms_jwt')||'';
   fetch('/api/tracks',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
     body:JSON.stringify(payload),
   }).then(r=>r.json()).then(d=>{
     console.log('[SaveTrack] response:', JSON.stringify(d));
@@ -13078,6 +13085,7 @@ function _downloadLicense(){
   toast('📜 상업 라이선스 다운로드 완료','ok',2000);
 }
 /* AI DJ 모드 — 무드 기반 자동 재생 */function _startDJ(mood){  var tracks=getCommTracks();  if(!tracks.length){toast('커뮤니티에 곡이 없어요','err',2000);return;}  var moodKeywords={chill:['chill','lofi','jazz','acoustic','calm','relax'],energetic:['dance','edm','rock','pop','energy','party','hiphop','trap'],emotional:['ballad','emotional','sad','love','romantic','piano']}[mood]||[];  var filtered;  if(mood==='random'){    filtered=[...tracks].sort(function(){return Math.random()-0.5;});  } else {    filtered=tracks.filter(function(t){var tags=(t.allTags||t.tags||'').toLowerCase();return moodKeywords.some(function(k){return tags.includes(k);});});    if(filtered.length<3) filtered=[...tracks].sort(function(){return Math.random()-0.5;});  }  var queue=filtered.slice(0,10);  /* 히스토리에 추가 + 첫 곡 재생 */  queue.forEach(function(t){    var hIdx=historyData.findIndex(function(h){return h.id===(t._sbId||t.id);});    if(hIdx<0){historyData.unshift({id:t._sbId||t.id,title:t.title,audio_url:t.audioUrl,image_url:t.img||'',tags:t.allTags||t.tags||'',lyrics:'',created:Date.now(),type:'audio',genMode:'dj',_owner:t._owner});    }  });  saveHistory(); updateHistBadge();  var labels={chill:'☕ Chill',energetic:'🔥 Energy',emotional:'💙 Mood',random:'🎲 Mix'};  toast('🎧 AI DJ: '+(labels[mood]||mood)+' 모드 ('+queue.length+'곡)','ok',3000);  var firstId=queue[0]?._sbId||queue[0]?.id;  if(firstId) commPlaySb(firstId);}
+/* PWA 설치 배너 */let _deferredInstall = null;window.addEventListener('beforeinstallprompt', function(e) {  e.preventDefault();  _deferredInstall = e;  /* 3초 후 설치 배너 표시 */  setTimeout(function(){    if(!_deferredInstall) return;    var el = document.createElement('div');    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99998;max-width:360px;width:calc(100% - 32px);background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(124,58,237,.4);display:flex;align-items:center;gap:12px;';    el.innerHTML = '<div style="flex:1;"><div style="font-size:13px;font-weight:800;color:#fff;">📱 앱 설치하기</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">홈 화면에 추가하고 더 빠르게!</div></div><button id="_pwa_install" style="padding:8px 16px;border-radius:10px;border:none;background:#fff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">설치</button><button onclick="this.parentNode.remove()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;">✕</button>';    document.body.appendChild(el);    el.querySelector('#_pwa_install').onclick = function(){ _deferredInstall.prompt(); _deferredInstall.userChoice.then(function(r){ if(r.outcome==="accepted") toast("앱 설치 완료!","ok",2000); }); _deferredInstall=null; el.remove(); };    setTimeout(function(){if(el.parentNode)el.remove();},15000);  }, 3000);});
 function _checkAttendance(){
   if(!currentUser || currentUser.provider==="guest") return;
   const today=new Date().toISOString().split("T")[0];

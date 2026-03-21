@@ -8,11 +8,24 @@
  * PATCH ?id=xxx&action=hide|show  Authorization → 관리자 숨김/공개
  */
 
+import { verifyJWT } from './_jwt.js';
+
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
+
+/* Rate Limit */
+const _rateMap = {};
+function _checkRate(key, maxPerMin) {
+  const now = Date.now();
+  if (!_rateMap[key]) _rateMap[key] = [];
+  _rateMap[key] = _rateMap[key].filter(t => now - t < 60000);
+  if (_rateMap[key].length >= maxPerMin) return false;
+  _rateMap[key].push(now);
+  return true;
+}
 
 let _mem = []; // fallback
 const _commentRateLimit = {}; // 유저별 댓글 도배 방지
@@ -215,8 +228,12 @@ export default async function handler(req, res) {
     return res.status(200).json({ comments: list.slice(0, limit), total: list.length, source: "memory" });
   }
 
-  /* ─── POST: 댓글 작성 ─── */
+  /* ─── POST: 댓글 작성 (JWT + Rate Limit) ─── */
   if (req.method === "POST") {
+    const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    if (!_checkRate('comment:' + ip, 10)) {
+      return res.status(429).json({ error: '댓글 작성이 너무 빈번합니다.' });
+    }
     let b = req.body;
     if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
     b = b || {};

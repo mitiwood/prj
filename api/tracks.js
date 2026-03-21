@@ -9,11 +9,24 @@
  * DELETE ?id=xxx  Authorization       → 관리자 삭제
  */
 
+import { verifyJWT } from './_jwt.js';
+
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
 
 let _mem = []; // fallback
+
+/* Rate Limit: IP+액션별 인메모리 카운터 */
+const _rateMap = {};
+function _checkRate(key, maxPerMin) {
+  const now = Date.now();
+  if (!_rateMap[key]) _rateMap[key] = [];
+  _rateMap[key] = _rateMap[key].filter(t => now - t < 60000);
+  if (_rateMap[key].length >= maxPerMin) return false;
+  _rateMap[key].push(now);
+  return true;
+}
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
@@ -88,8 +101,14 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── POST: 저장 ─── */
+  /* ─── POST: 저장 (JWT 검증 + Rate Limit) ─── */
   if (req.method === "POST") {
+    const jwtUser = verifyJWT(req);
+    /* JWT 없어도 허용 (하위 호환) — 단, Rate Limit 적용 */
+    const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    if (!_checkRate('post:' + ip, 10)) {
+      return res.status(429).json({ error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.' });
+    }
     try {
       let b = req.body;
       if (typeof b === "string") {
@@ -160,8 +179,12 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ─── PATCH: 좋아요/싫어요/숨기기/재생수/별점/플레이리스트 ─── */
+  /* ─── PATCH: 좋아요/싫어요/숨기기/재생수/별점/플레이리스트 (Rate Limit) ─── */
   if (req.method === "PATCH") {
+    const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    if (!_checkRate('patch:' + ip, 30)) {
+      return res.status(429).json({ error: '요청이 너무 빈번합니다.' });
+    }
     const id = req.query?.id;
     const action = req.query?.action || "like";
 
