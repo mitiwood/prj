@@ -60,6 +60,7 @@ window.doRecompose=window.doRecompose||function(){};
 window.closeRecomposeSheet=window.closeRecomposeSheet||function(){};
 window.hesTabLike=window.hesTabLike||function(){};
 window.hesTabPlaylist=window.hesTabPlaylist||function(){};
+window.buyPack=window.buyPack||function(){};
 window.addEventListener('DOMContentLoaded',()=>{
   /* KAKAO_JS_KEY 환경변수가 있으면 자동 초기화 */
   fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
@@ -3991,8 +3992,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         플레이리스트에 추가
       </button>
     </div>
-    <div style="padding:8px 18px 4px;">
-      <button onclick="closeHistEditSheet()" style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">확인</button>
+    <div style="padding:12px 18px 16px;">
+      <button class="hes-confirm-btn" onclick="closeHistEditSheet()">확인</button>
     </div>
     <!-- 숨김: JS 참조용 -->
     <button id="hes-dislike-btn" style="display:none;"><span id="hes-dislike-text"></span></button>
@@ -4697,7 +4698,7 @@ function switchTab(viewId){
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
-window.switchTab=switchTab;
+window.switchTab=typeof switchTab!=="undefined"?switchTab:window.switchTab||function(){};
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
 const POLL_INTERVAL = 1500;  /* 1.5초 간격 */
 const MAX_POLLS = 160;        /* 최대 ~5분 대기 */
@@ -5009,7 +5010,7 @@ function openLoginSheet(){
   sh.style.pointerEvents='auto';sh.style.opacity='1';
   if(panel)panel.style.transform='translate(-50%,0)';
 }
-window.openLoginSheet=openLoginSheet;
+window.openLoginSheet=typeof openLoginSheet!=="undefined"?openLoginSheet:window.openLoginSheet||function(){};
 function closeLoginSheet(){
   const sh=document.getElementById('login-sheet');
   const panel=document.getElementById('login-sheet-panel');
@@ -8590,17 +8591,20 @@ function renderHistoryView(){
     const timeAgo=formatTimeAgo(h.created);
     const tagLabel=h.tags?.split(',')[0]?.trim()||'';
     const typeBadge=hasVideo?'<div class="hist-type-badge">🎬</div>':'';
+    const remixBadge=h._extendedFrom?'<div class="hist-type-badge" style="background:rgba(59,130,246,.8);">🔄</div>':h._coveredFrom?'<div class="hist-type-badge" style="background:rgba(245,158,11,.8);">🎤</div>':h._remasteredFrom?'<div class="hist-type-badge" style="background:rgba(16,185,129,.8);">✨</div>':h._styleFrom?'<div class="hist-type-badge" style="background:rgba(168,85,247,.8);">🎨</div>':h._vocalRemovedFrom?'<div class="hist-type-badge" style="background:rgba(239,68,68,.8);">🎙</div>':'';
+    const remixLabel=h._extendedFrom?'연장':h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
     const durId='hdur-'+idx;
     return`
     <div class="hist-card" data-hist-idx="${idx}" role="button" tabindex="0">
       <div class="hist-thumb">
         ${thumbContent}
         ${typeBadge}
+        ${remixBadge}
         <span class="hist-duration" id="${durId}"></span>
         <div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>
       </div>
       <div class="hist-info">
-        <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}</div>
+        <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}</div>
         <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
       </div>
       <button class="hist-more" data-more-idx="${idx}" title="더보기" aria-label="더보기">···</button>
@@ -9363,7 +9367,7 @@ function closeHesToolsSheet(goBack){
 $('hes-tools-btn').addEventListener('click',function(){ openHesToolsSheet(); });
 $('hes-tools-backdrop').addEventListener('click',function(){ closeHesToolsSheet(false); });
 $('hes-tools-back').addEventListener('click',function(){ closeHesToolsSheet(true); });
-window.openHesToolsSheet=openHesToolsSheet;
+window.openHesToolsSheet=typeof openHesToolsSheet!=="undefined"?openHesToolsSheet:window.openHesToolsSheet||function(){};
 
 /* 더 많은 정보 */
 if($('hes-more-info-btn'))$('hes-more-info-btn').addEventListener('click',()=>{
@@ -10116,8 +10120,12 @@ function _doOpenFullPlayer(idx){
   /* 정보 */
   $('fp-title').textContent=h.title||'무제';
   $('fp-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
-  /* MV 뱃지 */
-  var _fpHdr=$('fp-header-title'); if(_fpHdr) _fpHdr.textContent=hasVideo?'뮤직비디오 재생 중':'재생 중';
+  /* MV / 리믹스 뱃지 */
+  var _fpHdr=$('fp-header-title');
+  if(_fpHdr){
+    var _rmLabel=h._extendedFrom?'🔄 연장 곡':h._coveredFrom?'🎤 커버 곡':h._remasteredFrom?'✨ 리마스터':h._styleFrom?'🎨 스타일 재사용':h._vocalRemovedFrom?'🎙 보컬 분리':hasVideo?'뮤직비디오 재생 중':'재생 중';
+    _fpHdr.textContent=_rmLabel;
+  }
 
   /* 좋아요 상태 + 별점 복원 */
   fpUpdateLikeUI();
@@ -12232,100 +12240,101 @@ updateHistBadge();
 updateLoginUI();
 initTheme();
 /* onclick 전역 함수 노출 — strict mode에서도 인라인 이벤트 동작 보장 */
-window.switchTab=switchTab;
-window.openLoginSheet=openLoginSheet;
+window.switchTab=typeof switchTab!=="undefined"?switchTab:window.switchTab||function(){};
+window.openLoginSheet=typeof openLoginSheet!=="undefined"?openLoginSheet:window.openLoginSheet||function(){};
 window.openNotifSheet=typeof openNotifSheet!=='undefined'?openNotifSheet:function(){};
-window.applyPreset=applyPreset;
-window.aiMoodToStyle=aiMoodToStyle;
+window.applyPreset=typeof applyPreset!=="undefined"?applyPreset:window.applyPreset||function(){};
+window.aiMoodToStyle=typeof aiMoodToStyle!=="undefined"?aiMoodToStyle:window.aiMoodToStyle||function(){};
 window.aiImageToStyle=typeof aiImageToStyle!=='undefined'?aiImageToStyle:function(){};
-window.streamLyricsGenerate=streamLyricsGenerate;
-window.lpToggleEdit=lpToggleEdit;
-window.analyzeRefArtist=analyzeRefArtist;
-window._insertTag=_insertTag;
-window._aiAssistRecommend=_aiAssistRecommend;
-window._switchHistTab=_switchHistTab;
-window._switchHistSort=_switchHistSort;
-window._switchHistView=_switchHistView;
-window._toggleHistMenu=_toggleHistMenu;
-window.commPlaySb=commPlaySb;
-window.commLikeSb=commLikeSb;
-window.commDislikeSb=commDislikeSb;
-window.commRateSb=commRateSb;
-window.openCommentSheet=openCommentSheet;
-window.toggleLyricsEdit=toggleLyricsEdit;
-window.saveLyricsEdit=saveLyricsEdit;
-window.cancelLyricsEdit=cancelLyricsEdit;
-window.changeTheme=changeTheme;
-window.openFullPlayer=openFullPlayer;
-window.downloadFile=downloadFile;
-window.togglePlay=togglePlay;
-window.stopAllAudio=stopAllAudio;
-window.showMiniPlayer=showMiniPlayer;
-window.closeLoginSheet=closeLoginSheet;
-window.socialLogin=socialLogin;
-window.logout=logout;
-window.closeMvMerge=closeMvMerge;
-window.closeMvTrackPicker=closeMvTrackPicker;
-window.mvSelectTrack=mvSelectTrack;
-window.selectMvTrack=selectMvTrack;
-window.mvMergeTogglePlay=mvMergeTogglePlay;
-window.mvMergeSeek=mvMergeSeek;
-window.mvMergeSeekRel=mvMergeSeekRel;
-window.mvMergeToggleLoop=mvMergeToggleLoop;
-window.mvMergeDownload=mvMergeDownload;
-window.mvMergePickTrack=mvMergePickTrack;
-window.mvMergeChangeTrack=mvMergeChangeTrack;
-window.mvClearTrack=mvClearTrack;
-window.openMvMergePlayer=openMvMergePlayer;
-window._mvMergeSelectItem=_mvMergeSelectItem;
-window._mvMergeConfirmPick=_mvMergeConfirmPick;
-window.fpToggleLike=fpToggleLike;
-window.fpToggleDislike=fpToggleDislike;
-window.fpPlayPrev=fpPlayPrev;
-window.fpPlayNext=fpPlayNext;
-window.fpSeekRel=fpSeekRel;
-window.fpOpenShare=fpOpenShare;
-window.fpCloseShare=fpCloseShare;
-window.fpCopyLink=fpCopyLink;
-window.fpShareKakao=fpShareKakao;
-window.fpShareFacebook=fpShareFacebook;
-window.fpShareInstagram=fpShareInstagram;
-window.fpDownload=fpDownload;
-window.fpToggleLyricsMode=fpToggleLyricsMode;
-window.fpSeekToLine=fpSeekToLine;
-window.fpDeleteCurrent=fpDeleteCurrent;
-window.fpAddToPlaylist=fpAddToPlaylist;
-window.openFpEditSheet=openFpEditSheet;
-window.closeFpEditSheet=closeFpEditSheet;
-window.saveFpEdits=saveFpEdits;
-window.closeMpDetailSheet=closeMpDetailSheet;
-window.commOpenDetail=commOpenDetail;
-window.commHeroLike=commHeroLike;
-window.commHeroDislike=commHeroDislike;
-window.commDTab=commDTab;
-window.commSeekLine=commSeekLine;
-window.commSaveEdit=commSaveEdit;
-window.clearCommSearch=clearCommSearch;
-window.doRecompose=doRecompose;
-window.closeRecomposeSheet=closeRecomposeSheet;
-window.hesTabLike=hesTabLike;
-window.hesTabPlaylist=hesTabPlaylist;
-window.goAnnouncement=goAnnouncement;
-window.closeAnnouncement=closeAnnouncement;
-window.kpSeekToLine=kpSeekToLine;
-window.mdsCopyLyrics=mdsCopyLyrics;
-window.mdsCreateWithStyle=mdsCreateWithStyle;
-window.mdsToggleReuse=mdsToggleReuse;
+window.streamLyricsGenerate=typeof streamLyricsGenerate!=="undefined"?streamLyricsGenerate:window.streamLyricsGenerate||function(){};
+window.lpToggleEdit=typeof lpToggleEdit!=="undefined"?lpToggleEdit:window.lpToggleEdit||function(){};
+window.analyzeRefArtist=typeof analyzeRefArtist!=="undefined"?analyzeRefArtist:window.analyzeRefArtist||function(){};
+window._insertTag=typeof _insertTag!=="undefined"?_insertTag:window._insertTag||function(){};
+window._aiAssistRecommend=typeof _aiAssistRecommend!=="undefined"?_aiAssistRecommend:window._aiAssistRecommend||function(){};
+window._switchHistTab=typeof _switchHistTab!=="undefined"?_switchHistTab:window._switchHistTab||function(){};
+window._switchHistSort=typeof _switchHistSort!=="undefined"?_switchHistSort:window._switchHistSort||function(){};
+window._switchHistView=typeof _switchHistView!=="undefined"?_switchHistView:window._switchHistView||function(){};
+window._toggleHistMenu=typeof _toggleHistMenu!=="undefined"?_toggleHistMenu:window._toggleHistMenu||function(){};
+window.commPlaySb=typeof commPlaySb!=="undefined"?commPlaySb:window.commPlaySb||function(){};
+window.commLikeSb=typeof commLikeSb!=="undefined"?commLikeSb:window.commLikeSb||function(){};
+window.commDislikeSb=typeof commDislikeSb!=="undefined"?commDislikeSb:window.commDislikeSb||function(){};
+window.commRateSb=typeof commRateSb!=="undefined"?commRateSb:window.commRateSb||function(){};
+window.openCommentSheet=typeof openCommentSheet!=="undefined"?openCommentSheet:window.openCommentSheet||function(){};
+window.toggleLyricsEdit=typeof toggleLyricsEdit!=="undefined"?toggleLyricsEdit:window.toggleLyricsEdit||function(){};
+window.saveLyricsEdit=typeof saveLyricsEdit!=="undefined"?saveLyricsEdit:window.saveLyricsEdit||function(){};
+window.cancelLyricsEdit=typeof cancelLyricsEdit!=="undefined"?cancelLyricsEdit:window.cancelLyricsEdit||function(){};
+window.changeTheme=typeof changeTheme!=="undefined"?changeTheme:window.changeTheme||function(){};
+window.openFullPlayer=typeof openFullPlayer!=="undefined"?openFullPlayer:window.openFullPlayer||function(){};
+window.downloadFile=typeof downloadFile!=="undefined"?downloadFile:window.downloadFile||function(){};
+window.togglePlay=typeof togglePlay!=="undefined"?togglePlay:window.togglePlay||function(){};
+window.stopAllAudio=typeof stopAllAudio!=="undefined"?stopAllAudio:window.stopAllAudio||function(){};
+window.showMiniPlayer=typeof showMiniPlayer!=="undefined"?showMiniPlayer:window.showMiniPlayer||function(){};
+window.closeLoginSheet=typeof closeLoginSheet!=="undefined"?closeLoginSheet:window.closeLoginSheet||function(){};
+window.socialLogin=typeof socialLogin!=="undefined"?socialLogin:window.socialLogin||function(){};
+window.logout=typeof logout!=="undefined"?logout:window.logout||function(){};
+window.closeMvMerge=typeof closeMvMerge!=="undefined"?closeMvMerge:window.closeMvMerge||function(){};
+window.closeMvTrackPicker=typeof closeMvTrackPicker!=="undefined"?closeMvTrackPicker:window.closeMvTrackPicker||function(){};
+window.mvSelectTrack=typeof mvSelectTrack!=="undefined"?mvSelectTrack:window.mvSelectTrack||function(){};
+window.selectMvTrack=typeof selectMvTrack!=="undefined"?selectMvTrack:window.selectMvTrack||function(){};
+window.mvMergeTogglePlay=typeof mvMergeTogglePlay!=="undefined"?mvMergeTogglePlay:window.mvMergeTogglePlay||function(){};
+window.mvMergeSeek=typeof mvMergeSeek!=="undefined"?mvMergeSeek:window.mvMergeSeek||function(){};
+window.mvMergeSeekRel=typeof mvMergeSeekRel!=="undefined"?mvMergeSeekRel:window.mvMergeSeekRel||function(){};
+window.mvMergeToggleLoop=typeof mvMergeToggleLoop!=="undefined"?mvMergeToggleLoop:window.mvMergeToggleLoop||function(){};
+window.mvMergeDownload=typeof mvMergeDownload!=="undefined"?mvMergeDownload:window.mvMergeDownload||function(){};
+window.mvMergePickTrack=typeof mvMergePickTrack!=="undefined"?mvMergePickTrack:window.mvMergePickTrack||function(){};
+window.mvMergeChangeTrack=typeof mvMergeChangeTrack!=="undefined"?mvMergeChangeTrack:window.mvMergeChangeTrack||function(){};
+window.mvClearTrack=typeof mvClearTrack!=="undefined"?mvClearTrack:window.mvClearTrack||function(){};
+window.openMvMergePlayer=typeof openMvMergePlayer!=="undefined"?openMvMergePlayer:window.openMvMergePlayer||function(){};
+window._mvMergeSelectItem=typeof _mvMergeSelectItem!=="undefined"?_mvMergeSelectItem:window._mvMergeSelectItem||function(){};
+window._mvMergeConfirmPick=typeof _mvMergeConfirmPick!=="undefined"?_mvMergeConfirmPick:window._mvMergeConfirmPick||function(){};
+window.fpToggleLike=typeof fpToggleLike!=="undefined"?fpToggleLike:window.fpToggleLike||function(){};
+window.fpToggleDislike=typeof fpToggleDislike!=="undefined"?fpToggleDislike:window.fpToggleDislike||function(){};
+window.fpPlayPrev=typeof fpPlayPrev!=="undefined"?fpPlayPrev:window.fpPlayPrev||function(){};
+window.fpPlayNext=typeof fpPlayNext!=="undefined"?fpPlayNext:window.fpPlayNext||function(){};
+window.fpSeekRel=typeof fpSeekRel!=="undefined"?fpSeekRel:window.fpSeekRel||function(){};
+window.fpOpenShare=typeof fpOpenShare!=="undefined"?fpOpenShare:window.fpOpenShare||function(){};
+window.fpCloseShare=typeof fpCloseShare!=="undefined"?fpCloseShare:window.fpCloseShare||function(){};
+window.fpCopyLink=typeof fpCopyLink!=="undefined"?fpCopyLink:window.fpCopyLink||function(){};
+window.fpShareKakao=typeof fpShareKakao!=="undefined"?fpShareKakao:window.fpShareKakao||function(){};
+window.fpShareFacebook=typeof fpShareFacebook!=="undefined"?fpShareFacebook:window.fpShareFacebook||function(){};
+window.fpShareInstagram=typeof fpShareInstagram!=="undefined"?fpShareInstagram:window.fpShareInstagram||function(){};
+window.fpDownload=typeof fpDownload!=="undefined"?fpDownload:window.fpDownload||function(){};
+window.fpToggleLyricsMode=typeof fpToggleLyricsMode!=="undefined"?fpToggleLyricsMode:window.fpToggleLyricsMode||function(){};
+window.fpSeekToLine=typeof fpSeekToLine!=="undefined"?fpSeekToLine:window.fpSeekToLine||function(){};
+window.fpDeleteCurrent=typeof fpDeleteCurrent!=="undefined"?fpDeleteCurrent:window.fpDeleteCurrent||function(){};
+window.fpAddToPlaylist=typeof fpAddToPlaylist!=="undefined"?fpAddToPlaylist:window.fpAddToPlaylist||function(){};
+window.openFpEditSheet=typeof openFpEditSheet!=="undefined"?openFpEditSheet:window.openFpEditSheet||function(){};
+window.closeFpEditSheet=typeof closeFpEditSheet!=="undefined"?closeFpEditSheet:window.closeFpEditSheet||function(){};
+window.saveFpEdits=typeof saveFpEdits!=="undefined"?saveFpEdits:window.saveFpEdits||function(){};
+window.closeMpDetailSheet=typeof closeMpDetailSheet!=="undefined"?closeMpDetailSheet:window.closeMpDetailSheet||function(){};
+window.commOpenDetail=typeof commOpenDetail!=="undefined"?commOpenDetail:window.commOpenDetail||function(){};
+window.commHeroLike=typeof commHeroLike!=="undefined"?commHeroLike:window.commHeroLike||function(){};
+window.commHeroDislike=typeof commHeroDislike!=="undefined"?commHeroDislike:window.commHeroDislike||function(){};
+window.commDTab=typeof commDTab!=="undefined"?commDTab:window.commDTab||function(){};
+window.commSeekLine=typeof commSeekLine!=="undefined"?commSeekLine:window.commSeekLine||function(){};
+window.commSaveEdit=typeof commSaveEdit!=="undefined"?commSaveEdit:window.commSaveEdit||function(){};
+window.clearCommSearch=typeof clearCommSearch!=="undefined"?clearCommSearch:window.clearCommSearch||function(){};
+window.doRecompose=typeof doRecompose!=="undefined"?doRecompose:window.doRecompose||function(){};
+window.closeRecomposeSheet=typeof closeRecomposeSheet!=="undefined"?closeRecomposeSheet:window.closeRecomposeSheet||function(){};
+window.closeHistEditSheet=typeof closeHistEditSheet!=="undefined"?closeHistEditSheet:window.closeHistEditSheet||function(){};
+window.hesTabLike=typeof hesTabLike!=="undefined"?hesTabLike:window.hesTabLike||function(){};
+window.hesTabPlaylist=typeof hesTabPlaylist!=="undefined"?hesTabPlaylist:window.hesTabPlaylist||function(){};
+window.goAnnouncement=typeof goAnnouncement!=="undefined"?goAnnouncement:window.goAnnouncement||function(){};
+window.closeAnnouncement=typeof closeAnnouncement!=="undefined"?closeAnnouncement:window.closeAnnouncement||function(){};
+window.kpSeekToLine=typeof kpSeekToLine!=="undefined"?kpSeekToLine:window.kpSeekToLine||function(){};
+window.mdsCopyLyrics=typeof mdsCopyLyrics!=="undefined"?mdsCopyLyrics:window.mdsCopyLyrics||function(){};
+window.mdsCreateWithStyle=typeof mdsCreateWithStyle!=="undefined"?mdsCreateWithStyle:window.mdsCreateWithStyle||function(){};
+window.mdsToggleReuse=typeof mdsToggleReuse!=="undefined"?mdsToggleReuse:window.mdsToggleReuse||function(){};
 window._sharedToMiniAndCreate=typeof _sharedToMiniAndCreate!=='undefined'?_sharedToMiniAndCreate:function(){};
-window._showSettingsConfirm=_showSettingsConfirm;
-window._fpDoAddPlaylist=_fpDoAddPlaylist;
-window._plPlay=_plPlay;
-window._plPlayAll=_plPlayAll;
-window._plShuffle=_plShuffle;
-window._plRemove=_plRemove;
-window._plClearAll=_plClearAll;
+window._showSettingsConfirm=typeof _showSettingsConfirm!=="undefined"?_showSettingsConfirm:window._showSettingsConfirm||function(){};
+window._fpDoAddPlaylist=typeof _fpDoAddPlaylist!=="undefined"?_fpDoAddPlaylist:window._fpDoAddPlaylist||function(){};
+window._plPlay=typeof _plPlay!=="undefined"?_plPlay:window._plPlay||function(){};
+window._plPlayAll=typeof _plPlayAll!=="undefined"?_plPlayAll:window._plPlayAll||function(){};
+window._plShuffle=typeof _plShuffle!=="undefined"?_plShuffle:window._plShuffle||function(){};
+window._plRemove=typeof _plRemove!=="undefined"?_plRemove:window._plRemove||function(){};
+window._plClearAll=typeof _plClearAll!=="undefined"?_plClearAll:window._plClearAll||function(){};
 window._markAllNotifRead=typeof _markAllNotifRead!=='undefined'?_markAllNotifRead:function(){};
-window.buyPack=buyPack;
+window.buyPack=typeof buyPack!=='undefined'?buyPack:function(){};
 window._vrMixerPlay=typeof _vrMixerPlay!=='undefined'?_vrMixerPlay:function(){};
 window._vrMixerStop=typeof _vrMixerStop!=='undefined'?_vrMixerStop:function(){};
 window._vrStopRecord=typeof _vrStopRecord!=='undefined'?_vrStopRecord:function(){};
@@ -12843,7 +12852,7 @@ async function _doDowngrade(targetPlan){
 }
 
 function selectPlan(type){ /* 카드 클릭 시 강조만 */ }
-window.selectPlan=selectPlan;
+window.selectPlan=typeof selectPlan!=="undefined"?selectPlan:window.selectPlan||function(){};
 
 /* ── 토스페이먼츠 결제 연동 ── */
 let _tossPayments = null;
@@ -12908,7 +12917,7 @@ async function buyPack(packId){
 async function upgradePlan(type){
   const planDef = _TOSS_PLANS[type];
   if(!planDef){ toast('잘못된 플랜입니다','',2000); return; }
-window.upgradePlan=upgradePlan;
+window.upgradePlan=typeof upgradePlan!=="undefined"?upgradePlan:window.upgradePlan||function(){};
 
   /* 로그인 확인 — 게스트는 로그인 유도 팝업 */
   const user = (()=>{ try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch{return null;} })();
@@ -13292,7 +13301,7 @@ function openCreatorProfile(name, provider){
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
 }
-window.openCreatorProfile=openCreatorProfile;
+window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
 
 function _pfTab(tab){
   ['tracks','following'].forEach(t=>{
@@ -13562,10 +13571,10 @@ _liveNotifyTimer = setInterval(_pollLiveNotify, 10000);
 /* 탭 복귀 시 즉시 체크 */
 document.addEventListener('visibilitychange', () => { if(!document.hidden) _pollLiveNotify(); });
 /* onclick 전역 노출 — 이 스크립트 블록 */
-window._createAlbum=_createAlbum;
-window._downloadLicense=_downloadLicense;
-window._checkAttendance=_checkAttendance;
-window.renderPlanUI=renderPlanUI;
+window._createAlbum=typeof _createAlbum!=="undefined"?_createAlbum:window._createAlbum||function(){};
+window._downloadLicense=typeof _downloadLicense!=="undefined"?_downloadLicense:window._downloadLicense||function(){};
+window._checkAttendance=typeof _checkAttendance!=="undefined"?_checkAttendance:window._checkAttendance||function(){};
+window.renderPlanUI=typeof renderPlanUI!=="undefined"?renderPlanUI:window.renderPlanUI||function(){};
 </script>
 
 <!-- ── 인앱 공지 수신 ── -->
@@ -13900,7 +13909,7 @@ async function aiTrendStyle(){
   }
 }
 
-window.aiTrendStyle=aiTrendStyle;
+window.aiTrendStyle=typeof aiTrendStyle!=="undefined"?aiTrendStyle:window.aiTrendStyle||function(){};
 
 /* ── 3. ✨ AI 스타일 제안 (바텀시트 선택형) ── */
 async function aiMoodToStyle(){
@@ -14464,14 +14473,14 @@ async function _deleteMyComment(id){
   });
 }
 /* onclick 전역 노출 — 이 스크립트 블록의 함수 */
-window.aiTrendStyle=aiTrendStyle;
-window._compareModels=_compareModels;
-window._simpleToCustom=_simpleToCustom;
-window._submitComment=_submitComment;
-window._deleteMyComment=_deleteMyComment;
-window._setReply=_setReply;
-window._cancelReply=_cancelReply;
-window.closeCommentSheet=closeCommentSheet;
+window.aiTrendStyle=typeof aiTrendStyle!=="undefined"?aiTrendStyle:window.aiTrendStyle||function(){};
+window._compareModels=typeof _compareModels!=="undefined"?_compareModels:window._compareModels||function(){};
+window._simpleToCustom=typeof _simpleToCustom!=="undefined"?_simpleToCustom:window._simpleToCustom||function(){};
+window._submitComment=typeof _submitComment!=="undefined"?_submitComment:window._submitComment||function(){};
+window._deleteMyComment=typeof _deleteMyComment!=="undefined"?_deleteMyComment:window._deleteMyComment||function(){};
+window._setReply=typeof _setReply!=="undefined"?_setReply:window._setReply||function(){};
+window._cancelReply=typeof _cancelReply!=="undefined"?_cancelReply:window._cancelReply||function(){};
+window.closeCommentSheet=typeof closeCommentSheet!=="undefined"?closeCommentSheet:window.closeCommentSheet||function(){};
 window._cancelLyricsGen=typeof _cancelLyricsGen!=='undefined'?_cancelLyricsGen:function(){};
 window._applyAiRecommend=typeof _applyAiRecommend!=='undefined'?_applyAiRecommend:function(){};
 window._imgApplyTitle=typeof _imgApplyTitle!=='undefined'?_imgApplyTitle:function(){};
@@ -14656,7 +14665,7 @@ function _updatePushSettingsUI(){
   }
 }
 
-window.togglePushSubscription=togglePushSubscription;
+window.togglePushSubscription=typeof togglePushSubscription!=="undefined"?togglePushSubscription:window.togglePushSubscription||function(){};
 window.kmsRequestPush = async function(){
   if(Notification.permission==='granted'){ await registerPushSW(); _updatePushSettingsUI(); return; }
   if(Notification.permission==='denied') return;
