@@ -2994,8 +2994,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .profile-info{flex:1;min-width:0;}
 .profile-name{font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .profile-provider{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;}
-.profile-stats{font-size:13px;color:rgba(255,255,255,.7);margin-top:10px;display:flex;align-items:center;gap:12px;justify-content:center;}
-.profile-stats span{font-weight:700;color:#fff;}
+.profile-stats{margin-top:12px;display:flex;gap:8px;justify-content:center;}
+.profile-stats .ps-box{flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;cursor:default;}
+.profile-stats .ps-num{font-size:16px;font-weight:800;color:#fff;}
+.profile-stats .ps-label{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .profile-back-btn{
   position:absolute;top:14px;right:14px;
   padding:6px 14px;border-radius:var(--rx);
@@ -3552,10 +3554,28 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <button class="mv-opt-btn" data-mode="spicy">🔥 스파이시</button>
               <button class="mv-opt-btn" data-mode="img2vid">🖼 이미지→영상</button>
             </div>
-            <!-- 이미지→비디오 안내 -->
-            <div id="mv-img2vid-info" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--t2);line-height:1.5;">
-              <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">🖼 이미지→영상 모드</div>
-              AI가 곡 분위기에 맞는 이미지를 먼저 생성한 뒤, 그 이미지를 기반으로 영상을 만듭니다. 일관된 비주얼의 뮤직비디오를 얻을 수 있어요.
+            <!-- 이미지→비디오 UI -->
+            <div id="mv-img2vid-info" style="display:none;margin-top:8px;">
+              <div style="padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:10px;">
+                <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">🖼 이미지→영상 모드</div>
+                Step 1: 이미지 생성 → 미리보기 확인 → Step 2: 영상 변환
+              </div>
+              <button class="gen-btn" id="mv-img-gen-btn" onclick="_mvGenerateImage()" style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin-bottom:10px;">
+                <span class="gen-spinner" id="mv-img-spinner"></span>
+                <span id="mv-img-txt">🖼 Step 1: 씬 이미지 생성</span>
+              </button>
+              <!-- 이미지 미리보기 -->
+              <div id="mv-img-preview" style="display:none;margin-bottom:10px;">
+                <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);position:relative;">
+                  <img id="mv-img-preview-img" src="" alt="" style="width:100%;display:block;">
+                  <button onclick="_mvRegenerateImage()" style="position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:8px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px);">🔄 다시 생성</button>
+                </div>
+                <div style="font-size:11px;color:var(--t3);margin-top:6px;text-align:center;">마음에 드시면 아래 버튼으로 영상을 만들어보세요</div>
+              </div>
+              <button class="gen-btn" id="mv-vid-from-img-btn" onclick="_mvConvertImageToVideo()" style="display:none;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
+                <span class="gen-spinner" id="mv-vid-spinner"></span>
+                <span id="mv-vid-txt">🎬 Step 2: 이 이미지로 영상 만들기</span>
+              </button>
             </div>
           </div>
         </div>
@@ -4016,7 +4036,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
       </div>
       <div class="profile-stats">
-        <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span> · <span id="pv-follower-cnt">0팔로워</span>
+        <div class="ps-box"><div class="ps-num" id="pv-tracks">0</div><div class="ps-label">곡</div></div>
+        <div class="ps-box"><div class="ps-num" id="pv-likes">0</div><div class="ps-label">좋아요</div></div>
+        <div class="ps-box"><div class="ps-num" id="pv-follower-cnt">0</div><div class="ps-label">팔로워</div></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button id="pv-follow-btn" onclick="_pvToggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
@@ -6361,6 +6383,7 @@ document.querySelectorAll('#mv-mode-btns .mv-opt-btn').forEach(btn=>{
     this.classList.add('on');
     mvSelectedMode=this.dataset.mode;
     var info=$('mv-img2vid-info');if(info)info.style.display=mvSelectedMode==='img2vid'?'block':'none';
+    var mainBtn=$('mv-gen-btn');if(mainBtn)mainBtn.style.display=mvSelectedMode==='img2vid'?'none':'';
   });
 });
 
@@ -6586,60 +6609,16 @@ async function generateMV(){
       return String([5,10].includes(n)?n:5);
     })();
 
-    /* ── img2vid 모드: 이미지 먼저 생성 → 이미지 기반 비디오 ── */
-    let _img2vidUrl = '';
+    /* img2vid 모드는 별도 2단계 UI로 처리 — generateMV에서는 스킵 */
     if(mvSelectedMode==='img2vid'){
-      const ptxt=$('mv-prog-txt');if(ptxt)ptxt.textContent='🖼 씬 이미지 생성 중... (30~60초)';
-      const pbar=$('mv-pbar');if(pbar)pbar.style.width='10%';
-      /* 이미지 프롬프트: 사용자 프롬프트 + 곡 정보 조합 */
-      const imgPrompt = (prompt||'cinematic scene') + (linkedTrack ? ', music style: ' + (linkedTrack.tags||'') : '') + ', high quality, detailed, 4K, cinematic lighting';
-      let imgData;
-      try{
-        imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
-          model:'flux-kontext-pro/text-to-image',
-          input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
-        });
-      }catch(imgErr){
-        /* 모델명 폴백 시도 */
-        console.warn('[MV img] flux-kontext-pro failed, trying kling image:', imgErr.message);
-        imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
-          model:'kolors/text-to-image',
-          input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
-        });
-      }
-      console.log('[MV img] createTask response:', JSON.stringify(imgData).slice(0,200));
-      const imgTaskId = imgData?.data?.taskId||imgData?.taskId;
-      if(!imgTaskId) throw new Error('이미지 생성 taskId 없음 — ' + JSON.stringify(imgData).slice(0,120));
-      /* 이미지 폴링 (최대 40회, ~60초) */
-      for(let ip=0;ip<40;ip++){
-        await sleep(ip<3?1500:2500);
-        if(pbar)pbar.style.width=Math.min(35,10+ip)+'%';
-        try{
-          const ir=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+imgTaskId);
-          const id=ir?.data;if(!id) continue;
-          const is=(id.state||id.status||'').toLowerCase();
-          if(is==='success'||is==='completed'||is==='finish'){
-            try{const rj=typeof id.resultJson==='string'?JSON.parse(id.resultJson):id.resultJson||{};
-            _img2vidUrl=rj.resultUrls?.[0]||rj.imageUrl||rj.url||'';}catch{}
-            if(!_img2vidUrl){const out=id.output||id.response||id.result||{};_img2vidUrl=out.imageUrl||out.image_url||out.url||out.images?.[0]?.url||'';}
-            break;
-          }
-          if(is==='fail'||is==='failed'||is==='error') throw new Error('이미지 생성 실패: '+(id.failMsg||is));
-        }catch(pe){if(pe.message.includes('실패')) throw pe;}
-      }
-      if(!_img2vidUrl) throw new Error('이미지 생성 시간 초과');
-      if(ptxt)ptxt.textContent='🎬 이미지→영상 변환 중...';
-      if(pbar)pbar.style.width='40%';
+      toast('🖼 이미지→영상 모드에서는 위의 Step 1/2 버튼을 사용하세요','',2500);
+      return;
     }
 
-    /* Step 1: 비디오 생성 */
-    const _vidModel = _img2vidUrl ? 'kling-2.6/image-to-video' : 'kling-2.6/text-to-video';
-    const _vidInput = _img2vidUrl
-      ? { prompt: prompt||'cinematic motion, smooth camera movement', image_url: _img2vidUrl, aspect_ratio: _mvRatio, sound: false, duration: _mvDur }
-      : { prompt: prompt, aspect_ratio: _mvRatio, sound: false, duration: _mvDur };
+    /* Step 1: 비디오 생성 (text-to-video) */
     const genData=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
-      model: _vidModel,
-      input: _vidInput
+      model: 'kling-2.6/text-to-video',
+      input: { prompt: prompt, aspect_ratio: _mvRatio, sound: false, duration: _mvDur }
     });
 
     const mvTaskId=genData?.data?.taskId||genData?.taskId;
@@ -15216,9 +15195,9 @@ function openCreatorProfile(name, provider){
   $('pv-name').textContent = name;
   $('pv-provider').textContent = provIcon + ' ' + provLabel;
   $('pv-avatar').innerHTML = '👤';
-  $('pv-tracks').textContent = '0곡';
-  $('pv-likes').textContent = '0좋아요';
-  $('pv-follower-cnt').textContent = '0팔로워';
+  $('pv-tracks').textContent = '0';
+  $('pv-likes').textContent = '0';
+  $('pv-follower-cnt').textContent = '0';
   $('pv-tracks-list').innerHTML = '<div class="pv-empty">로딩 중...</div>';
   window._pvTarget = {name:name, provider:provider};
   var _pvIsMe = currentUser && currentUser.name === name && currentUser.provider === provider;
@@ -15230,9 +15209,9 @@ function openCreatorProfile(name, provider){
       if(!d.ok) throw new Error('profile load fail');
       const p = d.profile || {};
       if(p.avatar) $('pv-avatar').innerHTML = `<img src="${esc(p.avatar)}" alt="">`;
-      $('pv-tracks').textContent = (p.trackCount||0) + '곡';
-      $('pv-likes').textContent = (p.totalLikes||0) + '좋아요';
-      $('pv-follower-cnt').textContent = (p.followerCount||0) + '팔로워';
+      $('pv-tracks').textContent = p.trackCount||0;
+      $('pv-likes').textContent = p.totalLikes||0;
+      $('pv-follower-cnt').textContent = p.followerCount||0;
       var fbtn = $('pv-follow-btn');
       if(fbtn && !_pvIsMe){
         /* 팔로우 토글 직후 3초간은 서버 응답으로 덮어쓰지 않음 (race condition 방어) */
@@ -15274,8 +15253,8 @@ function openCreatorProfile(name, provider){
           <div class="pv-track-play">▶</div>
         </div>`;
       }).join('');
-      $('pv-likes').textContent = totalLikes + '좋아요';
-      $('pv-tracks').textContent = tracks.length + '곡';
+      $('pv-likes').textContent = totalLikes;
+      $('pv-tracks').textContent = tracks.length;
     }).catch(()=>{
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
@@ -15312,7 +15291,7 @@ async function _pvToggleFollow(){
       const fc = $('pv-follower-cnt');
       if(fc){
         const cur = parseInt(fc.textContent)||0;
-        fc.textContent = Math.max(0, cur + (isFollowing ? -1 : 1)) + '팔로워';
+        fc.textContent = Math.max(0, cur + (isFollowing ? -1 : 1));
       }
       /* 3초간 서버 재로드에 의한 덮어쓰기 방어 */
       window._pvFollowLock = Date.now();
