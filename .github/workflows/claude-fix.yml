@@ -1,0 +1,34 @@
+name: Claude Code Auto-Fix
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  claude-fix:
+    if: contains(github.event.issue.labels.*.name, 'claude-fix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            다음 수정 요청을 처리해주세요:
+
+            ${{ github.event.issue.body }}
+
+            규칙:
+            - index.html 파일을 직접 수정하세요
+            - 기존 기능을 절대 제거하지 마세요
+            - 수정 완료 후 변경 내용을 한국어로 요약해주세요
+          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git diff:*),Bash(git status:*)"
+          timeout_minutes: 30

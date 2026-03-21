@@ -1,0 +1,33 @@
+name: Notify PR to Telegram
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_NUM="${{ github.event.pull_request.number }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+
+          MSG="🔀 *새 PR 생성됨*
+
+          📋 #${PR_NUM}: ${PR_TITLE}
+          👤 ${PR_AUTHOR}
+
+          머지하려면 텔레그램에서:
+          \`머지 ${PR_NUM}\`
+
+          🔗 ${PR_URL}"
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$(printf '{"chat_id":"%s","text":"%s","parse_mode":"Markdown"}' "$TG_CHAT" "$MSG")"

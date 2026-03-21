@@ -29,6 +29,8 @@ const CHAT_ID    = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const SB_URL     = process.env.SUPABASE_URL;
 const SB_KEY     = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const GH_TOKEN   = process.env.GITHUB_TOKEN || '';
+const GH_REPO    = 'mitiwood/ai-music-studio';
 const BASE       = 'https://ai-music-studio-bice.vercel.app';
 
 /* ── 유틸 ── */
@@ -110,6 +112,11 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 
 📣 *알림*
 알림 <메시지> — 전체 푸시 발송
+
+🛠 *코드 수정*
+수정 <지시사항> — AI가 코드 수정 후 PR 생성
+PR — 최근 PR 목록 확인
+머지 <PR번호> — PR 머지 (배포)
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
@@ -313,6 +320,119 @@ COMMANDS['알림'] = COMMANDS['push'] = async (chatId, arg) => {
     return tgSend(chatId, `📣 *푸시 발송 완료*\n\n메시지: ${arg}\n전송: ${sent}/${total}`);
   } catch (e) {
     return tgSend(chatId, `❌ 오류: ${e.message}`);
+  }
+};
+
+/* ── GitHub API 헬퍼 ── */
+async function ghApi(method, path, body = null) {
+  if (!GH_TOKEN) throw new Error('GITHUB_TOKEN 미설정');
+  const opts = {
+    method,
+    headers: {
+      Authorization: `Bearer ${GH_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}${path}`, opts);
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${txt.slice(0, 150)}`);
+  return txt ? JSON.parse(txt) : {};
+}
+
+/* 수정 <지시사항> — GitHub Issue 생성 → Claude Code Action 트리거 */
+COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) => {
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 색상을 파란색으로\n수정 커뮤니티 탭 로딩 속도 개선');
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
+
+  await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg}"`);
+
+  try {
+    const issue = await ghApi('POST', '/issues', {
+      title: `🔧 [텔레그램] ${arg.slice(0, 60)}`,
+      body: [
+        `## 수정 요청`,
+        ``,
+        arg,
+        ``,
+        `---`,
+        `> 텔레그램 봇에서 요청됨 · ${ts()}`,
+      ].join('\n'),
+      labels: ['claude-fix'],
+    });
+
+    await tgSend(chatId, [
+      `✅ *수정 요청 등록 완료!*`,
+      ``,
+      `📋 Issue #${issue.number}`,
+      `📝 ${arg}`,
+      ``,
+      `🤖 Claude Code가 자동으로 코드를 수정하고 PR을 생성합니다.`,
+      `완료되면 알림이 올 거예요.`,
+      ``,
+      `🔗 ${issue.html_url}`,
+    ].join('\n'));
+  } catch (e) {
+    await tgSend(chatId, `❌ Issue 생성 실패: ${e.message}`);
+  }
+};
+
+/* PR — 최근 PR 목록 확인 */
+COMMANDS['pr'] = COMMANDS['PR'] = async (chatId, arg) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 미설정');
+  try {
+    const prs = await ghApi('GET', '/pulls?state=open&sort=created&direction=desc&per_page=10');
+    if (!prs.length) return tgSend(chatId, '📭 열린 PR이 없습니다.');
+
+    let msg = `🔀 *열린 PR* (${prs.length}개)\n\n`;
+    prs.forEach((pr, i) => {
+      const time = new Date(pr.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      msg += `${i + 1}. *#${pr.number}* ${pr.title.replace(/[*_`]/g, '')}\n`;
+      msg += `   ${pr.user?.login || '?'} · ${time}\n`;
+      msg += `   머지하려면: \`머지 ${pr.number}\`\n\n`;
+    });
+    await tgSend(chatId, msg);
+  } catch (e) {
+    await tgSend(chatId, `❌ PR 조회 실패: ${e.message}`);
+  }
+};
+
+/* 머지 <PR번호> — PR 머지 (→ 자동 배포) */
+COMMANDS['머지'] = COMMANDS['merge'] = async (chatId, arg) => {
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 머지 <PR번호>\n\nPR 목록 확인: PR');
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 미설정');
+  const prNum = parseInt(arg);
+  if (!prNum) return tgSend(chatId, '⚠️ PR 번호를 숫자로 입력해주세요.');
+
+  try {
+    /* PR 정보 확인 */
+    const pr = await ghApi('GET', `/pulls/${prNum}`);
+    if (pr.state !== 'open') return tgSend(chatId, `⚠️ PR #${prNum}은 이미 ${pr.merged ? '머지됨' : '닫힘'} 상태입니다.`);
+
+    await tgSend(chatId, `🔄 PR #${prNum} 머지 중...\n\n*${pr.title.replace(/[*_`]/g, '')}*`);
+
+    /* 머지 실행 */
+    const result = await ghApi('PUT', `/pulls/${prNum}/merge`, {
+      merge_method: 'squash',
+      commit_title: pr.title,
+    });
+
+    if (result.merged) {
+      await tgSend(chatId, [
+        `✅ *PR #${prNum} 머지 완료!*`,
+        ``,
+        `📝 ${pr.title.replace(/[*_`]/g, '')}`,
+        `🚀 Vercel 자동 배포가 시작됩니다.`,
+        ``,
+        `약 30초 후 사이트에 반영됩니다.`,
+        `🔗 ${BASE}`,
+      ].join('\n'));
+    } else {
+      await tgSend(chatId, `⚠️ 머지 실패: ${result.message || '알 수 없는 오류'}`);
+    }
+  } catch (e) {
+    await tgSend(chatId, `❌ 머지 오류: ${e.message}`);
   }
 };
 
