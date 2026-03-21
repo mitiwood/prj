@@ -4573,6 +4573,7 @@ const _errFile = (src) => {
 /* ── 치명적 에러 → 텔레그램 + 카카오 동시 알림 ── */
 const _ERR_IGNORE = /no supported sources|ResizeObserver|Script error|AbortError|The play\(\) request|NotAllowedError|Loading chunk|timeout|net::ERR/i;
 let _errSendCooldown = 0; /* 도배 방지: 5초 쿨다운 */
+const _autoFixSent = {}; /* 자동수정 도배 방지: 같은 에러 24시간 1회 */
 
 function _sendErrorAlert(info){
   if(Date.now() - _errSendCooldown < 5000) return;
@@ -9291,7 +9292,7 @@ function _vrStopRecord(){
 
 
 /* 더 많은 정보 */
-$('hes-more-info-btn').addEventListener('click',()=>{
+if($('hes-more-info-btn'))$('hes-more-info-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   const info=[];
