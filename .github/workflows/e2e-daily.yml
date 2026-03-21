@@ -1,0 +1,117 @@
+name: Daily E2E QA Test
+
+on:
+  schedule:
+    # 매일 KST 09:00 (UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install -D @playwright/test
+          npx playwright install chromium
+
+      - name: Run E2E tests
+        id: e2e
+        continue-on-error: true
+        run: |
+          npx playwright test --config=playwright.config.cjs --reporter=json > test-results.json 2>&1 || true
+          npx playwright test --config=playwright.config.cjs 2>&1 | tee test-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Parse results & notify
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EXIT_CODE: ${{ steps.e2e.outcome }}
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, json, os, re
+
+          site = os.environ.get('SITE_URL', '')
+          run_url = os.environ.get('RUN_URL', '')
+          outcome = os.environ.get('EXIT_CODE', '')
+
+          # 테스트 결과 파싱
+          output = open('test-output.txt', 'r', encoding='utf-8').read()
+
+          passed = len(re.findall(r'✓', output))
+          failed_lines = re.findall(r'✘.*?›\s*(.*)', output)
+          total = passed + len(failed_lines)
+          all_pass = len(failed_lines) == 0
+
+          # 결과 표 생성
+          tests = re.findall(r'[✓✘]\s+\d+.*?›\s*(.*?)\s*\(', output)
+          statuses = ['✅' if '✓' in line else '❌' for line in re.findall(r'[✓✘]', output)]
+
+          msg = f"{'✅' if all_pass else '🚨'} Daily E2E QA ({total}개)\n\n"
+
+          msg += "┌─────┬──────────────────────────┬────────┐\n"
+          msg += "│  #  │        점검 항목         │  결과  │\n"
+          msg += "├─────┼──────────────────────────┼────────┤\n"
+
+          for i, (name, status) in enumerate(zip(tests, statuses)):
+            name_padded = name[:24].ljust(24)
+            result = "✅ 정상" if status == '✅' else "❌ 실패"
+            sep = "└" if i == len(tests) - 1 else "├"
+            end = "┘" if i == len(tests) - 1 else "┤"
+            bot = "┴" if i == len(tests) - 1 else "┼"
+            msg += f"│ {str(i+1).ljust(3)} │ {name_padded} │ {result} │\n"
+            if i < len(tests) - 1:
+              msg += "├─────┼──────────────────────────┼────────┤\n"
+
+          msg += "└─────┴──────────────────────────┴────────┘\n"
+
+          if failed_lines:
+            msg += "\n실패 항목:\n"
+            for f in failed_lines:
+              msg += f"  ❌ {f.strip()}\n"
+            msg += f"\n🔗 로그: {run_url}"
+
+          if all_pass:
+            msg += f"\n{passed}/{total} 통과"
+
+          # 실패 시에만 알림 전송 (또는 항상 전송)
+          token = os.environ.get('TG_TOKEN', '')
+          chat = os.environ.get('TG_CHAT', '')
+
+          # Telegram
+          if token and chat:
+            try:
+              tg = json.dumps({'chat_id': chat, 'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=tg, headers={'Content-Type': 'application/json; charset=utf-8'})
+              urllib.request.urlopen(req)
+              print('Telegram OK')
+            except Exception as e:
+              print(f'Telegram error: {e}')
+
+          # Kakao (실패 시에만)
+          if not all_pass:
+            try:
+              kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
+              kr = urllib.request.Request(f'{site}/api/kakao-notify', data=kk, headers={'Content-Type': 'application/json; charset=utf-8'})
+              urllib.request.urlopen(kr)
+              print('Kakao OK')
+            except Exception as e:
+              print(f'Kakao error: {e}')
+
+          print(msg)
+          PYEOF
+
+      - name: Fail if tests failed
+        if: steps.e2e.outcome == 'failure'
+        run: exit 1
