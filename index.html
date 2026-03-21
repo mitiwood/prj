@@ -8160,22 +8160,8 @@ function fpOpenShare(){
   const prevImg = document.getElementById('share-preview-img');
   if(prevImg){ prevImg.src = imgUrl||''; prevImg.style.display = imgUrl?'block':'none'; }
   if(navigator.share){
-    /* Web Share API - 이미지 포함 */
-    const shareData = {title, text, url};
-    if(imgUrl && navigator.canShare){
-      try{
-        fetch(imgUrl).then(r=>r.blob()).then(blob=>{
-          const file = new File([blob],'cover.jpg',{type:'image/jpeg'});
-          if(navigator.canShare({files:[file]})){
-            navigator.share({title,text,url,files:[file]}).catch(()=>navigator.share({title,text,url}).catch(()=>{}));
-          } else {
-            navigator.share(shareData).catch(()=>{});
-          }
-        }).catch(()=>navigator.share(shareData).catch(()=>{}));
-      }catch(e){ navigator.share(shareData).catch(()=>{}); }
-    } else {
-      navigator.share(shareData).catch(()=>{});
-    }
+    /* Web Share API - OG 링크만 전송 (이미지는 OG태그로 미리보기) */
+    navigator.share({title, text, url}).catch(()=>{});
   } else {
     $('share-url-input').value=url;
     $('share-title').textContent='\"'+title+'\" 공유하기';
