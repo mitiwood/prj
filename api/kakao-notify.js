@@ -144,12 +144,8 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* GET — 테스트 */
+  /* GET — 테스트 / 상태 (인증 불필요) */
   if (req.method === 'GET') {
-    const auth = (req.headers.authorization || '').replace('Bearer ', '');
-    if (auth !== ADMIN_SECRET && req.query?.action !== 'test') {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
     if (req.query?.action === 'test') {
       try {
         const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
