@@ -16,11 +16,13 @@ export default function handler(req, res) {
     return res.status(200).json({ kakaoJsKey: process.env.KAKAO_JS_KEY || '' });
   }
 
-  const apiKey = process.env.KIE_API_KEY || '';
+  /* API 키는 서버 프록시(/api/kie-proxy)에서만 사용 — 클라이언트에 실제 키 노출하지 않음 */
+  const hasKey = !!process.env.KIE_API_KEY;
 
-  if (!apiKey) {
+  if (!hasKey) {
     return res.status(500).json({ error: 'KIE_API_KEY 환경변수가 설정되지 않았습니다.' });
   }
 
-  return res.status(200).json({ apiKey });
+  /* 클라이언트에는 키 존재 여부만 알려줌 (마스킹) */
+  return res.status(200).json({ apiKey: 'server-managed' });
 }

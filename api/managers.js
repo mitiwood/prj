@@ -8,6 +8,10 @@ const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 
+/* 인메모리 폴백 (Supabase 미연결 시) */
+let _memManagers = [];
+const _useMem = !SB_URL || !SB_KEY;
+
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error('no_supabase');
   const controller = new AbortController();
@@ -85,12 +89,13 @@ export default async function handler(req, res) {
   // GET — 매니저 목록
   if (req.method === 'GET') {
     if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
+    if (_useMem) return res.status(200).json({ managers: _memManagers, total: _memManagers.length, source: 'memory' });
     try {
       const data = await sb('/users?provider=like.mgr_*&order=created_at.desc&limit=100');
       const managers = (Array.isArray(data) ? data : []).map(userToMgr);
       return res.status(200).json({ managers, total: managers.length, source: 'supabase' });
     } catch (e) {
-      return res.status(200).json({ managers: [], total: 0, source: 'error', error: e.message });
+      return res.status(200).json({ managers: _memManagers, total: _memManagers.length, source: 'fallback', error: e.message });
     }
   }
 
@@ -102,6 +107,14 @@ export default async function handler(req, res) {
     const { name, mgr_id, pw_hash, email, role, memo, edit_id } = body;
     if (!name || !mgr_id) return res.status(400).json({ error: 'name, mgr_id required' });
 
+    if (_useMem) {
+      const idx = edit_id ? _memManagers.findIndex(m=>m.id===edit_id) : -1;
+      if (edit_id && idx>=0) { Object.assign(_memManagers[idx], {name,mgr_id,email,role,memo}); if(pw_hash) _memManagers[idx].pw_hash=pw_hash; return res.status(200).json({success:true,action:'updated',source:'memory'}); }
+      if (!edit_id && !pw_hash) return res.status(400).json({error:'pw_hash required'});
+      if (_memManagers.find(m=>m.mgr_id===mgr_id)) return res.status(400).json({error:'이미 존재하는 아이디입니다'});
+      _memManagers.unshift({id:'mem_'+Date.now(),name,mgr_id,pw_hash,email:email||'',role:role||'manager',memo:memo||'',active:true,lastAccess:0,createdAt:new Date().toISOString()});
+      return res.status(200).json({success:true,action:'created',source:'memory'});
+    }
     try {
       if (edit_id) {
         // 수정
@@ -147,6 +160,12 @@ export default async function handler(req, res) {
     if (body.action === 'login') {
       const { mgr_id, pw_hash } = body;
       if (!mgr_id || !pw_hash) return res.status(400).json({ error: 'mgr_id, pw_hash required' });
+      if (_useMem) {
+        const m = _memManagers.find(x=>x.mgr_id===mgr_id && x.active && x.pw_hash===pw_hash);
+        if (!m) return res.status(401).json({ error: 'Invalid credentials' });
+        m.lastAccess = Date.now();
+        return res.status(200).json({ success:true, manager:{name:m.name,id:m.mgr_id,role:m.role,email:m.email} });
+      }
       try {
         // uid로 매니저 조회 (active = is_mobile=false)
         const data = await sb(`/users?uid=eq.${encodeURIComponent(mgr_id)}&provider=like.mgr_*&is_mobile=eq.false&limit=1`);
@@ -173,6 +192,10 @@ export default async function handler(req, res) {
     if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
     const { id, active } = body;
     if (!id) return res.status(400).json({ error: 'id required' });
+    if (_useMem) {
+      const m = _memManagers.find(x=>x.id===id); if(m) m.active=!!active;
+      return res.status(200).json({ success:true, source:'memory' });
+    }
     try {
       await sb(`/users?id=eq.${id}`, {
         method: 'PATCH', prefer: 'return=minimal',
@@ -189,6 +212,10 @@ export default async function handler(req, res) {
     if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
     const { id } = req.query || {};
     if (!id) return res.status(400).json({ error: 'id required' });
+    if (_useMem) {
+      _memManagers = _memManagers.filter(m=>m.id!==id);
+      return res.status(200).json({ success:true, source:'memory' });
+    }
     try {
       await sb(`/users?id=eq.${id}&provider=like.mgr_*`, { method: 'DELETE' });
       return res.status(200).json({ success: true });
