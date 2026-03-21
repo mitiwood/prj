@@ -12089,31 +12089,14 @@ function initTheme() {
 updateHistBadge();
 updateLoginUI();
 initTheme();
-/* onclick 전역 함수 노출 — strict mode에서도 인라인 이벤트 동작 보장 */
-window.switchTab=switchTab;
-window.openLoginSheet=openLoginSheet;
-window.openNotifSheet=typeof openNotifSheet!=='undefined'?openNotifSheet:()=>{};
-window.applyPreset=applyPreset;
-window.aiMoodToStyle=aiMoodToStyle;
-window.aiImageToStyle=aiImageToStyle;
-window.streamLyricsGenerate=streamLyricsGenerate;
-window.lpToggleEdit=lpToggleEdit;
-window.analyzeRefArtist=analyzeRefArtist;
-window._insertTag=_insertTag;
-window._aiAssistRecommend=_aiAssistRecommend;
-window._switchHistTab=_switchHistTab;
-window._switchHistSort=_switchHistSort;
-window._switchHistView=_switchHistView;
-window._toggleHistMenu=_toggleHistMenu;
-window.commPlaySb=commPlaySb;
-window.commLikeSb=commLikeSb;
-window.commDislikeSb=commDislikeSb;
-window.commRateSb=commRateSb;
-window.openCommentSheet=openCommentSheet;
-window.toggleLyricsEdit=toggleLyricsEdit;
-window.saveLyricsEdit=saveLyricsEdit;
-window.cancelLyricsEdit=cancelLyricsEdit;
-window.changeTheme=changeTheme;
+/* onclick 전역 함수 노출 — 같은 스크립트 블록의 함수만 등록 */
+/* 다른 스크립트 블록 함수는 해당 블록에서 자체 등록 */
+['switchTab','openLoginSheet','applyPreset','streamLyricsGenerate',
+ 'lpToggleEdit','_insertTag','_aiAssistRecommend',
+ '_switchHistTab','_switchHistSort','_switchHistView','_toggleHistMenu',
+ 'commPlaySb','commLikeSb','commDislikeSb','commRateSb',
+ 'openCommentSheet','toggleLyricsEdit','saveLyricsEdit','cancelLyricsEdit','changeTheme'
+].forEach(function(fn){try{window[fn]=eval(fn);}catch(e){}});
 /* Lucide 아이콘 초기화 — defer 스크립트 대기 */
 if(window.lucide) lucide.createIcons();
 else { window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); }); document.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>{ if(window.lucide) lucide.createIcons(); },500); }); }
@@ -14242,6 +14225,10 @@ async function _deleteMyComment(id){
     try{var _cu=currentUser||{};await fetch('/api/comments?id='+encodeURIComponent(id)+'&authorName='+encodeURIComponent(_cu.name||'')+'&authorProvider='+encodeURIComponent(_cu.provider||''),{method:'DELETE'});_commentData=_commentData.filter(c=>c.id!==id);_renderComments();toast('삭제되었어요','ok',1500);}catch(e){toast('삭제 실패','err');}
   });
 }
+/* onclick 전역 노출 — 이 스크립트 블록의 함수 */
+['aiTrendStyle','aiMoodToStyle','aiImageToStyle','analyzeRefArtist',
+ '_compareModels','_simpleToCustom','openNotifSheet'
+].forEach(function(fn){try{window[fn]=eval(fn);}catch(e){}});
 </script>
 
 <!-- ── Push Notification (Service Worker) ── -->
