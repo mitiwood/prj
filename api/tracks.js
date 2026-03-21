@@ -314,29 +314,62 @@ export default async function handler(req, res) {
       }
     }
 
+    /* 좋아요/싫어요 — likes 테이블 기반 중복 방지 */
+    let b = req.body || {};
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const userName = b.userName || '';
+    const userProvider = b.userProvider || '';
+
     const col = action.includes("dislike") ? "comm_dislikes" : "comm_likes";
-    const delta = action.startsWith("un") ? -1 : 1;
+    const likeType = action.includes("dislike") ? "dislike" : "like";
+    const isUndo = action.startsWith("un");
+
     try {
+      /* likes 테이블에 유저별 투표 기록 (중복 방지) */
+      if (userName && userProvider) {
+        try {
+          if (isUndo) {
+            /* 투표 취소 */
+            await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}`, {
+              method: "DELETE", prefer: "return=minimal",
+            });
+          } else {
+            /* 중복 체크 */
+            const existing = await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}&select=id`);
+            if (existing?.length > 0) {
+              return res.status(200).json({ success: true, duplicate: true, message: "이미 투표했어요" });
+            }
+            /* 반대 투표 제거 (like↔dislike) */
+            const opposite = likeType === "like" ? "dislike" : "like";
+            try {
+              await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${opposite}`, {
+                method: "DELETE", prefer: "return=minimal",
+              });
+            } catch {}
+            /* 투표 기록 */
+            await sb(`/likes`, {
+              method: "POST", prefer: "return=minimal",
+              body: JSON.stringify({ user_name: userName, user_provider: userProvider, track_id: id, type: likeType }),
+            });
+          }
+        } catch (e) { console.warn("[likes table]", e.message); }
+      }
+
+      /* tracks 테이블 카운터 업데이트 (기존 호환) */
+      const delta = isUndo ? -1 : 1;
       try {
-        const rows = await sb(
-          `/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`,
-        );
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
         const cur = Math.max(0, (rows?.[0]?.[col] || 0) + delta);
         await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          prefer: "return=minimal",
+          method: "PATCH", prefer: "return=minimal",
           body: JSON.stringify({ [col]: cur }),
         });
-        return res
-          .status(200)
-          .json({ success: true, [col]: cur, source: "supabase" });
+        return res.status(200).json({ success: true, [col]: cur, source: "supabase" });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) {
           _mem[idx][col] = Math.max(0, (_mem[idx][col] || 0) + delta);
-          return res
-            .status(200)
-            .json({ success: true, [col]: _mem[idx][col], source: "memory" });
+          return res.status(200).json({ success: true, [col]: _mem[idx][col], source: "memory" });
         }
         return res.status(404).json({ error: "not found" });
       }

@@ -15,6 +15,7 @@ const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
+const _commentRateLimit = {}; // 유저별 댓글 도배 방지
 
 async function _kakaoNotify(event, data) {
   try {
@@ -221,6 +222,18 @@ export default async function handler(req, res) {
     b = b || {};
     const { track_id, parent_id, content, author_name, author_avatar, author_provider } = b;
     if (!track_id || !content) return res.status(400).json({ error: "track_id and content required" });
+
+    /* 로그인 필수 — 게스트/미인증 차단 */
+    if (!author_name || author_provider === 'guest') {
+      return res.status(401).json({ error: "댓글은 로그인 후 작성할 수 있어요" });
+    }
+
+    /* Rate Limit — 같은 유저 10초 내 중복 댓글 방지 */
+    const recentKey = `${author_name}:${author_provider}`;
+    if (_commentRateLimit[recentKey] && Date.now() - _commentRateLimit[recentKey] < 10000) {
+      return res.status(429).json({ error: "잠시 후 다시 시도해주세요 (10초)" });
+    }
+    _commentRateLimit[recentKey] = Date.now();
 
     const row = {
       track_id, parent_id: parent_id || null,

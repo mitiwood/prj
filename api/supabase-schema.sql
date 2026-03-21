@@ -195,3 +195,81 @@ CREATE POLICY live_notifications_service_write ON public.live_notifications
   FOR ALL USING (auth.role() = 'service_role');
 
 CREATE INDEX IF NOT EXISTS idx_live_notifications_created ON public.live_notifications(created_at DESC);
+
+-- ============================================================
+-- 11. likes (유저별 투표 추적 — 어뷰징 방지)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.likes (
+  id          BIGSERIAL PRIMARY KEY,
+  user_name   TEXT NOT NULL,
+  user_provider TEXT NOT NULL,
+  track_id    TEXT NOT NULL,
+  type        TEXT NOT NULL DEFAULT 'like',  -- like, dislike, rating
+  value       INTEGER DEFAULT 1,             -- rating: 1~5
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_name, user_provider, track_id, type)
+);
+
+ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY likes_public_read ON public.likes FOR SELECT USING (true);
+CREATE POLICY likes_service_write ON public.likes FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_likes_track ON public.likes(track_id);
+CREATE INDEX IF NOT EXISTS idx_likes_user ON public.likes(user_name, user_provider);
+
+-- ============================================================
+-- 12. follows (팔로우 관계)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.follows (
+  id              BIGSERIAL PRIMARY KEY,
+  follower_name   TEXT NOT NULL,
+  follower_provider TEXT NOT NULL,
+  following_name  TEXT NOT NULL,
+  following_provider TEXT NOT NULL,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_name, follower_provider, following_name, following_provider)
+);
+
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+CREATE POLICY follows_public_read ON public.follows FOR SELECT USING (true);
+CREATE POLICY follows_service_write ON public.follows FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON public.follows(follower_name, follower_provider);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON public.follows(following_name, following_provider);
+
+-- ============================================================
+-- 13. reports (신고)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.reports (
+  id          BIGSERIAL PRIMARY KEY,
+  reporter_name TEXT NOT NULL,
+  reporter_provider TEXT NOT NULL,
+  target_type TEXT NOT NULL,              -- track, comment, user
+  target_id   TEXT NOT NULL,
+  reason      TEXT NOT NULL DEFAULT '',
+  status      TEXT DEFAULT 'pending',     -- pending, resolved, dismissed
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY reports_service_all ON public.reports FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
+
+-- ============================================================
+-- 14. notifications (유저 알림 인박스)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id          BIGSERIAL PRIMARY KEY,
+  user_name   TEXT NOT NULL,
+  user_provider TEXT NOT NULL,
+  type        TEXT NOT NULL,              -- like, comment, follow, system
+  title       TEXT DEFAULT '',
+  body        TEXT DEFAULT '',
+  data        JSONB DEFAULT '{}',         -- {trackId, fromUser, ...}
+  is_read     BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY notifications_public_read ON public.notifications FOR SELECT USING (true);
+CREATE POLICY notifications_service_write ON public.notifications FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_name, user_provider, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at DESC);

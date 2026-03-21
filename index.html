@@ -10988,9 +10988,16 @@ function commSeekLine(el){
 /* ── 서버 좋아요/싫어요 반영 헬퍼 ── */
 function _sbReact(sbId, action){
   if(!sbId) return;
-  fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action='+action, {method:'PATCH'})
+  /* 유저 정보 전송 → 서버에서 중복 투표 방지 */
+  const body = currentUser ? { userName: currentUser.name, userProvider: currentUser.provider } : {};
+  fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action='+action, {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  })
     .then(r=>r.json())
     .then(d=>{
+      if(d.duplicate){ toast('이미 투표했어요','',1500); return; }
       const t=_sbTracks.find(t=>t._sbId===sbId);
       if(!t) return;
       if(d.comm_likes    !== undefined) t.likes    = d.comm_likes;
