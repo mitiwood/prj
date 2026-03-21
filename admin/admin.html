@@ -137,8 +137,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .health-warn{background:var(--ylw);}
 .health-label{font-size:11px;color:var(--t2);}
 /* 반응형 */
-@media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.user-detail-stats{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.user-detail-stats{grid-template-columns:repeat(2,1fr);}#dashboard-charts{grid-template-columns:1fr !important;}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -244,6 +245,26 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div class="chart-card">
             <h4>👥 최근 7일 로그인 트렌드</h4>
             <div class="bar-chart" id="weekly-login-chart"></div>
+          </div>
+        </div>
+
+        <!-- Chart.js 대시보드 차트 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;margin-bottom:20px;" id="dashboard-charts">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📈 일별 트랙 생성</div>
+            <canvas id="chart-daily-tracks" height="200"></canvas>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">🎵 장르 분포</div>
+            <canvas id="chart-genre" height="200"></canvas>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">👥 일별 가입자</div>
+            <canvas id="chart-daily-users" height="200"></canvas>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">❤️ 좋아요 Top 10</div>
+            <canvas id="chart-top-likes" height="200"></canvas>
           </div>
         </div>
 
@@ -437,9 +458,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div class="admin-table-wrap">
             <div class="admin-table-header">
               <h3>로그인 사용자 목록 <span id="login-user-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
-              <input class="table-search" id="user-search" placeholder="이름 검색..." oninput="filterUsers()">
+              <input class="table-search" id="user-search" placeholder="이름, 이메일 검색..." oninput="filterUsers()" style="min-width:200px;">
             </div>
-            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>로그인 횟수</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
+            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>플랜</th><th>로그인 횟수</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
             <tbody id="users-login-tbody"></tbody></table>
           </div>
         </div>
@@ -2038,6 +2059,107 @@ async function loadData(){
         <button class="btn btn-red" onclick="deleteTrack(${i})">🗑</button>
       </div></td>
     </tr>`).join('');
+
+  // Chart.js 차트 렌더링
+  renderDashboardCharts();
+}
+
+// ── Chart.js 대시보드 차트 ──
+var _chartInstances = {};
+
+async function renderDashboardCharts() {
+  if (typeof Chart === 'undefined') return;
+  try {
+    var tracks = _serverTracks || [];
+    var now = new Date();
+
+    // 1. Daily tracks chart (last 14 days)
+    var dailyCounts = {};
+    for (var i = 13; i >= 0; i--) {
+      var d = new Date(now - i * 86400000);
+      dailyCounts[d.toISOString().split('T')[0]] = 0;
+    }
+    tracks.forEach(function(t) {
+      if (t.created) {
+        var day = new Date(t.created).toISOString().split('T')[0];
+        if (dailyCounts[day] !== undefined) dailyCounts[day]++;
+      }
+    });
+    _renderChart('chart-daily-tracks', 'bar', {
+      labels: Object.keys(dailyCounts).map(function(d) { return d.slice(5); }),
+      datasets: [{ label: '트랙', data: Object.values(dailyCounts), backgroundColor: 'rgba(124,58,237,.6)', borderRadius: 4 }]
+    });
+
+    // 2. Genre distribution
+    var genreCounts = {};
+    tracks.forEach(function(t) {
+      var tags = (t.tags || '').toLowerCase();
+      var genres = ['k-pop','hip-hop','lofi','electronic','ballad','rock','jazz','r&b','ost'];
+      genres.forEach(function(g) { if (tags.includes(g)) genreCounts[g] = (genreCounts[g]||0)+1; });
+    });
+    var gLabels = Object.keys(genreCounts);
+    var gColors = ['#7c3aed','#ef4444','#22c55e','#3b82f6','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
+    if (gLabels.length > 0) {
+      _renderChart('chart-genre', 'doughnut', {
+        labels: gLabels,
+        datasets: [{ data: Object.values(genreCounts), backgroundColor: gColors.slice(0, gLabels.length) }]
+      }, { plugins: { legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } } } });
+    }
+
+    // 3. Daily users
+    var users = _serverUsers || [];
+    var userDaily = {};
+    for (var j = 13; j >= 0; j--) {
+      var d2 = new Date(now - j * 86400000);
+      userDaily[d2.toISOString().split('T')[0]] = 0;
+    }
+    users.forEach(function(u) {
+      if (u.last_login || u.lastLogin) {
+        var day = new Date(u.last_login || u.lastLogin).toISOString().split('T')[0];
+        if (userDaily[day] !== undefined) userDaily[day]++;
+      }
+    });
+    _renderChart('chart-daily-users', 'line', {
+      labels: Object.keys(userDaily).map(function(d) { return d.slice(5); }),
+      datasets: [{ label: '가입자', data: Object.values(userDaily), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.1)', fill: true, tension: 0.3 }]
+    });
+
+    // 4. Top likes
+    var topTracks = tracks.slice().sort(function(a,b) { return (b._commLikes||0) - (a._commLikes||0); }).slice(0, 10).filter(function(t) { return (t._commLikes||0) > 0; });
+    if (topTracks.length > 0) {
+      _renderChart('chart-top-likes', 'bar', {
+        labels: topTracks.map(function(t) { return (t.title||'무제').slice(0, 12); }),
+        datasets: [{ label: '좋아요', data: topTracks.map(function(t) { return t._commLikes||0; }), backgroundColor: 'rgba(239,68,68,.6)', borderRadius: 4 }]
+      }, { indexAxis: 'y' });
+    }
+  } catch(e) { console.warn('Charts error:', e); }
+}
+
+function _renderChart(canvasId, type, data, extraOpts) {
+  extraOpts = extraOpts || {};
+  var ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  if (_chartInstances[canvasId]) _chartInstances[canvasId].destroy();
+
+  var defaultOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: type !== 'bar', labels: { color: '#ccc' } } },
+    scales: type === 'doughnut' ? {} : {
+      x: { ticks: { color: '#888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+      y: { ticks: { color: '#888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.05)' } }
+    }
+  };
+
+  var mergedOpts = Object.assign({}, defaultOpts, extraOpts);
+  if (extraOpts.plugins) mergedOpts.plugins = Object.assign({}, defaultOpts.plugins, extraOpts.plugins);
+  if (extraOpts.scales) mergedOpts.scales = Object.assign({}, defaultOpts.scales, extraOpts.scales);
+
+  _chartInstances[canvasId] = new Chart(ctx, {
+    type: type,
+    data: data,
+    options: mergedOpts
+  });
 }
 
 // ── 트랙 관리 ──
@@ -2793,7 +2915,12 @@ async function renderUsersAdmin(showToast=false){
           +'</td>'
           +'<td style="font-weight:600;">'+esc(u.name)+'<div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
           +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
-          +'<td style="text-align:center;"><span style="font-size:14px;">'+dIcon+'</span><div style="font-size:9px;color:var(--t3);">'+dLabel+'</div></td>'
+          +'<td><select onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'
+            +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
+            +'<option value="basic"'+(u.plan==='basic'?' selected':'')+'>Basic</option>'
+            +'<option value="pro"'+(u.plan==='pro'?' selected':'')+'>Pro</option>'
+            +'<option value="premium"'+(u.plan==='premium'?' selected':'')+'>Premium</option>'
+          +'</select></td>'
           +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'회</td>'
           +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(isOnline?'<div style="font-size:9px;color:var(--grn);">🟢 온라인</div>':'')+'</td>'
           +'<td style="text-align:center;">'+(cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—')+'</td>'
@@ -2837,6 +2964,34 @@ function filterUsers(){
     const txt=r.textContent.toLowerCase();
     r.style.display=txt.includes(q)?'':'none';
   });
+  // 생성 기여자 탭도 필터링
+  const cRows=document.querySelectorAll('#users-creator-tbody tr');
+  cRows.forEach(r=>{
+    const txt=r.textContent.toLowerCase();
+    r.style.display=txt.includes(q)?'':'none';
+  });
+  // 결과 수 표시
+  const visible=document.querySelectorAll('#users-login-tbody tr:not([style*="display: none"])').length;
+  const cnt=document.getElementById('login-user-count');
+  if(cnt && q) cnt.textContent='(검색 결과: '+visible+'명)';
+}
+
+async function changeUserPlan(userName, provider, newPlan) {
+  try {
+    const r = await adminFetch('/api/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: userName, provider: provider, plan: newPlan })
+    });
+    if (r.ok) {
+      adminToast('✅ ' + userName + ' 플랜 → ' + newPlan);
+      if (typeof logAudit === 'function') logAudit('플랜 변경: ' + userName + ' → ' + newPlan);
+    } else {
+      adminToast('⚠️ 플랜 변경 실패 (서버 응답: ' + r.status + ')', 'err');
+    }
+  } catch(e) {
+    adminToast('⚠️ 플랜 변경 실패: ' + e.message, 'err');
+  }
 }
 
 function sendPushToUser(name){
