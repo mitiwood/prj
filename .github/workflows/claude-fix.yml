@@ -95,7 +95,7 @@ jobs:
           allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git:*),Bash(gh:*),Bash(GH_TOKEN:*)"
           timeout_minutes: 30
 
-      # Claude가 PR 생성 못했을 경우 폴백
+      # Claude가 PR 생성 못했을 경우 폴백 + PR 번호 탐색
       - name: Ensure PR exists
         if: success()
         id: ensure_pr
@@ -104,38 +104,32 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          # 이미 열린 PR 있는지 확인
-          EXISTING=$(gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | contains("issue-${{ github.event.issue.number }}")) | .number' 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            echo "pr_num=$EXISTING" >> "$GITHUB_OUTPUT"
-            echo "PR #$EXISTING already exists"
+          # 열린 PR 중 이 이슈 관련 PR 찾기
+          PR_NUM=$(gh pr list --state open --json number,title,headRefName \
+            --jq ".[] | select(.headRefName | test(\"issue-${ISSUE_NUM}\")) | .number" 2>/dev/null | head -1)
+
+          if [ -n "$PR_NUM" ]; then
+            echo "pr_num=$PR_NUM" >> "$GITHUB_OUTPUT"
+            echo "Found PR #$PR_NUM"
             exit 0
           fi
 
-          # Claude가 만든 브랜치 찾기
-          BRANCH=$(git branch -r --list "origin/fix/issue-${ISSUE_NUM}" "origin/claude/issue-${ISSUE_NUM}*" 2>/dev/null | head -1 | tr -d ' ')
-          if [ -z "$BRANCH" ]; then
-            echo "No branch found, checking for uncommitted changes..."
-            CHANGES=$(git diff --name-only HEAD 2>/dev/null | wc -l)
-            if [ "$CHANGES" -gt 0 ]; then
-              git checkout -b "fix/issue-${ISSUE_NUM}"
-              git add -A
-              git commit -m "fix: ${ISSUE_TITLE}"
-              git push origin "fix/issue-${ISSUE_NUM}"
-              BRANCH="origin/fix/issue-${ISSUE_NUM}"
-            else
-              echo "pr_num=" >> "$GITHUB_OUTPUT"
-              echo "No changes to create PR"
-              exit 0
-            fi
-          fi
+          # PR 없으면 브랜치 찾아서 직접 생성
+          git fetch origin --prune 2>/dev/null
+          BRANCH=$(git branch -r | grep -E "issue-${ISSUE_NUM}" | head -1 | tr -d ' ')
 
-          # PR 생성
-          LOCAL_BRANCH=$(echo "$BRANCH" | sed 's|^origin/||')
-          PR_URL=$(gh pr create --head "$LOCAL_BRANCH" --title "fix: ${ISSUE_TITLE}" --body "Closes #${ISSUE_NUM}" --base main 2>&1 || echo "")
-          PR_NUM=$(echo "$PR_URL" | grep -oP '/pull/\K\d+' || echo "")
-          echo "pr_num=$PR_NUM" >> "$GITHUB_OUTPUT"
-          echo "Created PR: $PR_NUM"
+          if [ -n "$BRANCH" ]; then
+            LOCAL=$(echo "$BRANCH" | sed 's|^origin/||')
+            PR_NUM=$(gh pr create --head "$LOCAL" \
+              --title "fix: ${ISSUE_TITLE}" \
+              --body "Closes #${ISSUE_NUM}" \
+              --base main 2>&1 | grep -oE '[0-9]+$' || echo "")
+            echo "pr_num=$PR_NUM" >> "$GITHUB_OUTPUT"
+            echo "Created PR #$PR_NUM"
+          else
+            echo "pr_num=" >> "$GITHUB_OUTPUT"
+            echo "No branch found"
+          fi
 
       - name: Notify success (Telegram + Kakao)
         if: success()
