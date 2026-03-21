@@ -3248,6 +3248,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
@@ -11511,9 +11512,17 @@ function cancelLyricsEdit(idx){
       <button onclick="_reportUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚩</button>
       <button onclick="_blockUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚫</button>
     </div>
-    <!-- 곡 목록 -->
-    <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;">🎵 곡 목록</div>
-    <div id="pf-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <!-- 프로필 탭 -->
+    <div style="display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+      <button class="btn btn-acc" onclick="_pfTab('tracks')" data-pftab="tracks">🎵 곡</button>
+      <button class="btn" onclick="_pfTab('following')" data-pftab="following">👥 팔로잉</button>
+    </div>
+    <div id="pf-panel-tracks">
+      <div id="pf-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div id="pf-panel-following" style="display:none;">
+      <div id="pf-following-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
   </div>
 </div>
 
@@ -11673,6 +11682,26 @@ function checkPlanLimit(type){
   const key = type==='song'?'songs':type==='mv'?'mv':'lyrics';
   const used = usage[key]||0;
   const limit = limits[key];
+
+  /* 프리미엄 미끼: 첫 곡 V4.5 무료 + MV 1회 무료 */
+  if(plan.type==='free' && limit < 999 && used >= limit){
+    const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
+    if(type==='song' && !freeTrials.v45_used){
+      freeTrials.v45_used = true;
+      localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+      toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
+      return true; /* 한도 초과지만 1회 허용 */
+    }
+    if(type==='mv' && !freeTrials.mv_used){
+      freeTrials.mv_used = true;
+      localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+      toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
+      return true;
+    }
+    showUpgradePrompt(type, used, limit, plan.type);
+    return false;
+  }
+
   if(limit < 999 && used >= limit){
     showUpgradePrompt(type, used, limit, plan.type);
     return false;
@@ -12160,6 +12189,22 @@ function openProfileSheet(name, provider){
 }
 
 function closeProfileSheet(){ $('profile-sheet').style.display = 'none'; _pfTarget = null; }
+
+function _pfTab(tab){
+  ['tracks','following'].forEach(t=>{
+    const p=$('pf-panel-'+t); if(p) p.style.display=t===tab?'':'none';
+  });
+  document.querySelectorAll('[data-pftab]').forEach(b=>b.className=b.dataset.pftab===tab?'btn btn-acc':'btn');
+  if(tab==='following' && _pfTarget) _loadFollowingList();
+}
+
+async function _loadFollowingList(){
+  const list=$('pf-following-list');
+  if(!list||!_pfTarget) return;
+  list.innerHTML='<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
+  /* 이 유저가 팔로우하는 사람 목록은 follows 테이블에서 조회 필요 — 우선 간단 안내 */
+  list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">팔로잉 기능이 곧 업데이트됩니다</div>';
+}
 
 async function _toggleFollow(){
   if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
