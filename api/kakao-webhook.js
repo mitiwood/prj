@@ -326,11 +326,21 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (arg) => {
     labels: ['claude-fix'],
   });
 
+  /* 텔레그램으로도 알림 (카카오 알림 불안정 대비) */
+  try {
+    const tgMsg = `📋 카카오봇 수정 요청\n\nIssue #${issue.number}: ${arg}\n\nClaude Code가 자동 수정 후 PR을 생성합니다.\n완료되면 알림이 옵니다.\n\n${issue.html_url}`;
+    await fetch(`${BASE}/api/telegram`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ text: tgMsg, parse_mode: '' }),
+    });
+  } catch(e) { console.warn('[kakao-fix-tg]', e.message); }
+
   return card(
     '✅ 수정 요청 등록',
-    `📋 Issue #${issue.number}\n📝 ${arg}\n\n🤖 Claude가 자동으로 코드를 수정합니다.\n완료되면 알림이 올 거예요.`,
+    `📋 Issue #${issue.number}\n📝 ${arg}\n\n🤖 Claude가 자동으로 코드를 수정합니다.\n완료되면 텔레그램으로 알림이 올 거예요.`,
     [{ label: 'GitHub에서 보기', url: issue.html_url }],
-    ['PR', '상태']
+    ['PR', '상태', '진행상황']
   );
 };
 
@@ -381,6 +391,14 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
 
   const result = await ghApi('PUT', `/pulls/${prNum}/merge`, { merge_method: 'squash', commit_title: pr.title });
   if (result.merged) {
+    /* 텔레그램 알림 */
+    try {
+      await fetch(`${BASE}/api/telegram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ text: `✅ PR #${prNum} 머지 완료\n\n${pr.title}\n\n🚀 Vercel 배포 시작`, parse_mode: '' }),
+      });
+    } catch(e) {}
     return card(
       `✅ PR #${prNum} 머지 완료`,
       `${pr.title}\n\n🚀 Vercel 배포가 시작됩니다.\n약 30초 후 반영됩니다.`,
