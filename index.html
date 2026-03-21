@@ -946,6 +946,12 @@ body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
 #remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{bottom:56px;max-height:70vh;}
 body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-panel,body.mp-on #remaster-modal .hes-panel,body.mp-on #vocal-remove-modal .hes-panel{bottom:calc(56px + 62px);max-height:60vh;}
 #remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel,#vocal-remove-modal.on .hes-panel{transform:translateY(0);}
+
+/* 2차 바텀시트: 리믹스 & 도구 */
+#hes-tools-sheet{position:fixed;inset:0;z-index:810;pointer-events:none;opacity:0;transition:opacity .22s;}
+#hes-tools-sheet.on{pointer-events:auto;opacity:1;}
+#hes-tools-sheet .hes-panel{bottom:0;}
+#hes-tools-sheet.on .hes-panel{transform:translateY(0);}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -3932,28 +3938,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="hes-primary-btn primary" id="hes-p-play">▶ 전체 재생</button>
       <button class="hes-primary-btn" id="hes-p-dl">⬇ 다운로드</button>
     </div>
-    <!-- 상단 탭: 좋아요 / 플레이리스트 / Hooks -->
-    <div class="hes-tab-row" id="hes-tab-row">
-      <button class="hes-tab" id="hes-tab-like" onclick="hesTabLike()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        좋아요
-      </button>
-      <button class="hes-tab" id="hes-tab-playlist" onclick="hesTabPlaylist()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        플레이리스트
-      </button>
-      <button class="hes-tab" id="hes-tab-hooks">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-        Hooks
-      </button>
-    </div>
-    <!-- 스크롤 가능 액션 영역 -->
+    <!-- 1차 시트: 핵심 액션 5개 -->
     <div class="hes-actions" id="hes-actions-scroll">
-      <!-- 그룹 1: 주요 액션 -->
-      <button class="hes-action-btn" id="hes-playlist-btn">
-        <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
-        플레이리스트에 추가
-      </button>
       <button class="hes-action-btn" id="hes-like-btn">
         <span class="hes-btn-icon"><i data-lucide="heart"></i></span>
         <span id="hes-like-text">노래 좋아요</span>
@@ -3962,19 +3948,48 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="hes-btn-icon"><i data-lucide="share-2"></i></span>
         노래 공유
       </button>
-      <div class="hes-divider"></div>
-      <!-- 그룹 2: 편집 -->
-      <button class="hes-action-btn" id="hes-edit-btn">
-        <span class="hes-btn-icon"><i data-lucide="pencil"></i></span>
-        세부 정보 편집
+      <button class="hes-action-btn" id="hes-tools-btn">
+        <span class="hes-btn-icon"><i data-lucide="wand-2"></i></span>
+        리믹스 & 도구
         <span class="hes-arrow">›</span>
       </button>
-      <button class="hes-action-btn" id="hes-hook-btn">
-        <span class="hes-btn-icon"><i data-lucide="scissors"></i></span>
-        Hook 만들기
+      <button class="hes-action-btn" id="hes-dl-btn">
+        <span class="hes-btn-icon"><i data-lucide="download"></i></span>
+        노래 다운로드
       </button>
-      <div class="hes-divider"></div>
-      <!-- 그룹 3: 리믹스 -->
+      <button class="hes-action-btn" id="hes-dislike-btn" style="color:var(--t3);">
+        <span class="hes-btn-icon"><i data-lucide="thumbs-down"></i></span>
+        <span id="hes-dislike-text">싫어하는 노래</span>
+      </button>
+    </div>
+    <!-- 편집 폼 (숨김) -->
+    <div class="hes-edit-form" id="hes-edit-form">
+      <div class="hes-edit-label">곡 제목</div>
+      <input class="hes-edit-input" id="hes-edit-title" placeholder="곡 제목">
+      <div class="hes-edit-label">태그 / 장르</div>
+      <input class="hes-edit-input" id="hes-edit-tags" placeholder="예: K-Pop, 감성적인">
+      <div class="hes-edit-label">가사</div>
+      <textarea class="hes-edit-textarea" id="hes-edit-lyrics" rows="4" placeholder="가사를 입력하세요..."></textarea>
+      <div class="hes-edit-btns">
+        <button class="hes-save-btn" id="hes-save-btn">저장</button>
+        <button class="hes-del-btn-inline" id="hes-del-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> 삭제</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 2차 바텀시트: 리믹스 & 도구 ── -->
+<div id="hes-tools-sheet">
+  <div class="hes-backdrop" id="hes-tools-backdrop"></div>
+  <div class="hes-panel" style="max-height:80vh;">
+    <div class="hes-handle"></div>
+    <div style="padding:14px 16px 8px;display:flex;align-items:center;gap:10px;">
+      <button id="hes-tools-back" style="background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:4px;">←</button>
+      <div style="font-size:15px;font-weight:800;color:var(--t1);">리믹스 & 도구</div>
+    </div>
+    <div class="hes-actions" style="padding:4px 12px 12px;">
+      <!-- 리믹스 -->
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px 4px;">리믹스</div>
       <button class="hes-action-btn" id="hes-remix-extend-btn">
         <span class="hes-btn-icon"><i data-lucide="skip-forward"></i></span>
         곡 연장
@@ -3989,41 +4004,31 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </button>
       <button class="hes-action-btn" id="hes-remaster-btn">
         <span class="hes-btn-icon"><i data-lucide="sparkles"></i></span>
-        리마스터 업그레이드
+        리마스터 v5 업그레이드
       </button>
+      <div class="hes-divider"></div>
+      <!-- 오디오 도구 -->
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px 4px;">오디오 도구</div>
       <button class="hes-action-btn" id="hes-vocal-remove-btn">
         <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" stroke-width="2.5"/></svg></span>
         보컬 제거 / 스템 분리
       </button>
-      <div class="hes-divider"></div>
-      <!-- 그룹 4: 다운로드 -->
-      <button class="hes-action-btn" id="hes-dl-btn">
-        <span class="hes-btn-icon"><i data-lucide="download"></i></span>
-        노래 다운로드
+      <button class="hes-action-btn" id="hes-hook-btn">
+        <span class="hes-btn-icon"><i data-lucide="scissors"></i></span>
+        Hook 만들기
       </button>
       <div class="hes-divider"></div>
-      <!-- 그룹 5: 싫어요 -->
-      <button class="hes-action-btn" id="hes-dislike-btn">
-        <span class="hes-btn-icon"><i data-lucide="thumbs-down"></i></span>
-        <span id="hes-dislike-text">싫어하는 노래</span>
+      <!-- 관리 -->
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px 4px;">관리</div>
+      <button class="hes-action-btn" id="hes-edit-btn">
+        <span class="hes-btn-icon"><i data-lucide="pencil"></i></span>
+        세부 정보 편집
+        <span class="hes-arrow">›</span>
       </button>
-    </div>
-    <!-- 하단 고정: 페이지 -->
-    <div class="hes-bottom-bar">
-      <span class="hes-page-indicator" id="hes-page-ind">1/2</span>
-    </div>
-    <!-- 편집 폼 (숨김) -->
-    <div class="hes-edit-form" id="hes-edit-form">
-      <div class="hes-edit-label">곡 제목</div>
-      <input class="hes-edit-input" id="hes-edit-title" placeholder="곡 제목">
-      <div class="hes-edit-label">태그 / 장르</div>
-      <input class="hes-edit-input" id="hes-edit-tags" placeholder="예: K-Pop, 감성적인">
-      <div class="hes-edit-label">가사</div>
-      <textarea class="hes-edit-textarea" id="hes-edit-lyrics" rows="4" placeholder="가사를 입력하세요..."></textarea>
-      <div class="hes-edit-btns">
-        <button class="hes-save-btn" id="hes-save-btn">저장</button>
-        <button class="hes-del-btn-inline" id="hes-del-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> 삭제</button>
-      </div>
+      <button class="hes-action-btn" id="hes-playlist-btn">
+        <span class="hes-btn-icon"><i data-lucide="list-plus"></i></span>
+        플레이리스트에 추가
+      </button>
     </div>
   </div>
 </div>
@@ -4614,7 +4619,7 @@ function switchTab(viewId){
   document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
   document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>el.style.display='none');
   document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
-  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal,#hes-tools-sheet').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
   /* 동적 오버레이 (position:fixed) 제거 */
   document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
@@ -8655,6 +8660,7 @@ function openHistEditSheet(idx){
 
 function closeHistEditSheet(){
   $('hist-edit-sheet').classList.remove('on');
+  $('hes-tools-sheet').classList.remove('on');
   _hesIdx=-1;
 }
 
@@ -9293,6 +9299,18 @@ function _vrStopRecord(){
   var el=$('vr-rec-stop-wrap');if(el)el.remove();
 }
 
+
+/* ── 2차 바텀시트: 리믹스 & 도구 ── */
+function openHesToolsSheet(){
+  $('hes-tools-sheet').classList.add('on');
+}
+function closeHesToolsSheet(){
+  $('hes-tools-sheet').classList.remove('on');
+}
+$('hes-tools-btn').addEventListener('click',function(){ openHesToolsSheet(); });
+$('hes-tools-backdrop').addEventListener('click',function(){ closeHesToolsSheet(); });
+$('hes-tools-back').addEventListener('click',function(){ closeHesToolsSheet(); });
+window.openHesToolsSheet=openHesToolsSheet;
 
 /* 더 많은 정보 */
 if($('hes-more-info-btn'))$('hes-more-info-btn').addEventListener('click',()=>{
@@ -12089,14 +12107,100 @@ function initTheme() {
 updateHistBadge();
 updateLoginUI();
 initTheme();
-/* onclick 전역 함수 노출 — 같은 스크립트 블록의 함수만 등록 */
-/* 다른 스크립트 블록 함수는 해당 블록에서 자체 등록 */
-['switchTab','openLoginSheet','applyPreset','streamLyricsGenerate',
- 'lpToggleEdit','_insertTag','_aiAssistRecommend',
- '_switchHistTab','_switchHistSort','_switchHistView','_toggleHistMenu',
- 'commPlaySb','commLikeSb','commDislikeSb','commRateSb',
- 'openCommentSheet','toggleLyricsEdit','saveLyricsEdit','cancelLyricsEdit','changeTheme'
-].forEach(function(fn){try{window[fn]=eval(fn);}catch(e){}});
+/* onclick 전역 함수 노출 — strict mode에서도 인라인 이벤트 동작 보장 */
+window.switchTab=switchTab;
+window.openLoginSheet=openLoginSheet;
+window.openNotifSheet=typeof openNotifSheet!=='undefined'?openNotifSheet:function(){};
+window.applyPreset=applyPreset;
+window.aiMoodToStyle=aiMoodToStyle;
+window.aiImageToStyle=typeof aiImageToStyle!=='undefined'?aiImageToStyle:function(){};
+window.streamLyricsGenerate=streamLyricsGenerate;
+window.lpToggleEdit=lpToggleEdit;
+window.analyzeRefArtist=analyzeRefArtist;
+window._insertTag=_insertTag;
+window._aiAssistRecommend=_aiAssistRecommend;
+window._switchHistTab=_switchHistTab;
+window._switchHistSort=_switchHistSort;
+window._switchHistView=_switchHistView;
+window._toggleHistMenu=_toggleHistMenu;
+window.commPlaySb=commPlaySb;
+window.commLikeSb=commLikeSb;
+window.commDislikeSb=commDislikeSb;
+window.commRateSb=commRateSb;
+window.openCommentSheet=openCommentSheet;
+window.toggleLyricsEdit=toggleLyricsEdit;
+window.saveLyricsEdit=saveLyricsEdit;
+window.cancelLyricsEdit=cancelLyricsEdit;
+window.changeTheme=changeTheme;
+window.openFullPlayer=openFullPlayer;
+window.downloadFile=downloadFile;
+window.togglePlay=togglePlay;
+window.stopAllAudio=stopAllAudio;
+window.showMiniPlayer=showMiniPlayer;
+window.closeLoginSheet=closeLoginSheet;
+window.socialLogin=socialLogin;
+window.logout=logout;
+window.closeMvMerge=closeMvMerge;
+window.closeMvTrackPicker=closeMvTrackPicker;
+window.mvSelectTrack=mvSelectTrack;
+window.selectMvTrack=selectMvTrack;
+window.mvMergeTogglePlay=mvMergeTogglePlay;
+window.mvMergeSeek=mvMergeSeek;
+window.mvMergeSeekRel=mvMergeSeekRel;
+window.mvMergeToggleLoop=mvMergeToggleLoop;
+window.mvMergeDownload=mvMergeDownload;
+window.mvMergePickTrack=mvMergePickTrack;
+window.mvMergeChangeTrack=mvMergeChangeTrack;
+window.mvClearTrack=mvClearTrack;
+window.openMvMergePlayer=openMvMergePlayer;
+window._mvMergeSelectItem=_mvMergeSelectItem;
+window._mvMergeConfirmPick=_mvMergeConfirmPick;
+window.fpToggleLike=fpToggleLike;
+window.fpToggleDislike=fpToggleDislike;
+window.fpPlayPrev=fpPlayPrev;
+window.fpPlayNext=fpPlayNext;
+window.fpSeekRel=fpSeekRel;
+window.fpOpenShare=fpOpenShare;
+window.fpCloseShare=fpCloseShare;
+window.fpCopyLink=fpCopyLink;
+window.fpShareKakao=fpShareKakao;
+window.fpShareFacebook=fpShareFacebook;
+window.fpShareInstagram=fpShareInstagram;
+window.fpDownload=fpDownload;
+window.fpToggleLyricsMode=fpToggleLyricsMode;
+window.fpSeekToLine=fpSeekToLine;
+window.fpDeleteCurrent=fpDeleteCurrent;
+window.fpAddToPlaylist=fpAddToPlaylist;
+window.openFpEditSheet=openFpEditSheet;
+window.closeFpEditSheet=closeFpEditSheet;
+window.saveFpEdits=saveFpEdits;
+window.closeMpDetailSheet=closeMpDetailSheet;
+window.commOpenDetail=commOpenDetail;
+window.commHeroLike=commHeroLike;
+window.commHeroDislike=commHeroDislike;
+window.commDTab=commDTab;
+window.commSeekLine=commSeekLine;
+window.commSaveEdit=commSaveEdit;
+window.clearCommSearch=clearCommSearch;
+window.doRecompose=doRecompose;
+window.closeRecomposeSheet=closeRecomposeSheet;
+window.hesTabLike=hesTabLike;
+window.hesTabPlaylist=hesTabPlaylist;
+window.goAnnouncement=goAnnouncement;
+window.closeAnnouncement=closeAnnouncement;
+window.kpSeekToLine=kpSeekToLine;
+window.mdsCopyLyrics=mdsCopyLyrics;
+window.mdsCreateWithStyle=mdsCreateWithStyle;
+window.mdsToggleReuse=mdsToggleReuse;
+window._sharedToMiniAndCreate=typeof _sharedToMiniAndCreate!=='undefined'?_sharedToMiniAndCreate:function(){};
+window._showSettingsConfirm=_showSettingsConfirm;
+window._fpDoAddPlaylist=_fpDoAddPlaylist;
+window._markAllNotifRead=typeof _markAllNotifRead!=='undefined'?_markAllNotifRead:function(){};
+window.buyPack=buyPack;
+window._vrMixerPlay=typeof _vrMixerPlay!=='undefined'?_vrMixerPlay:function(){};
+window._vrMixerStop=typeof _vrMixerStop!=='undefined'?_vrMixerStop:function(){};
+window._vrStopRecord=typeof _vrStopRecord!=='undefined'?_vrStopRecord:function(){};
+window._startDJ=typeof _startDJ!=='undefined'?_startDJ:function(){};
 /* Lucide 아이콘 초기화 — defer 스크립트 대기 */
 if(window.lucide) lucide.createIcons();
 else { window.addEventListener('load',()=>{ if(window.lucide) lucide.createIcons(); }); document.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>{ if(window.lucide) lucide.createIcons(); },500); }); }
@@ -13328,6 +13432,11 @@ function _showLiveNotification(n){
 _liveNotifyTimer = setInterval(_pollLiveNotify, 10000);
 /* 탭 복귀 시 즉시 체크 */
 document.addEventListener('visibilitychange', () => { if(!document.hidden) _pollLiveNotify(); });
+/* onclick 전역 노출 — 이 스크립트 블록 */
+window._createAlbum=_createAlbum;
+window._downloadLicense=_downloadLicense;
+window._checkAttendance=_checkAttendance;
+window.renderPlanUI=renderPlanUI;
 </script>
 
 <!-- ── 인앱 공지 수신 ── -->
@@ -14226,9 +14335,24 @@ async function _deleteMyComment(id){
   });
 }
 /* onclick 전역 노출 — 이 스크립트 블록의 함수 */
-['aiTrendStyle','aiMoodToStyle','aiImageToStyle','analyzeRefArtist',
- '_compareModels','_simpleToCustom','openNotifSheet'
-].forEach(function(fn){try{window[fn]=eval(fn);}catch(e){}});
+window.aiTrendStyle=aiTrendStyle;
+window._compareModels=_compareModels;
+window._simpleToCustom=_simpleToCustom;
+window._submitComment=_submitComment;
+window._deleteMyComment=_deleteMyComment;
+window._setReply=_setReply;
+window._cancelReply=_cancelReply;
+window.closeCommentSheet=closeCommentSheet;
+window._cancelLyricsGen=typeof _cancelLyricsGen!=='undefined'?_cancelLyricsGen:function(){};
+window._applyAiRecommend=typeof _applyAiRecommend!=='undefined'?_applyAiRecommend:function(){};
+window._imgApplyTitle=typeof _imgApplyTitle!=='undefined'?_imgApplyTitle:function(){};
+window._imgApplyLyricsTheme=typeof _imgApplyLyricsTheme!=='undefined'?_imgApplyLyricsTheme:function(){};
+window._blockUser=typeof _blockUser!=='undefined'?_blockUser:function(){};
+window._reportUser=typeof _reportUser!=='undefined'?_reportUser:function(){};
+window._pfTab=typeof _pfTab!=='undefined'?_pfTab:function(){};
+window._toggleFollow=typeof _toggleFollow!=='undefined'?_toggleFollow:function(){};
+window.closeProfileSheet=typeof closeProfileSheet!=='undefined'?closeProfileSheet:function(){};
+window.openCreatorProfile=typeof openCreatorProfile!=='undefined'?openCreatorProfile:function(){};
 </script>
 
 <!-- ── Push Notification (Service Worker) ── -->
