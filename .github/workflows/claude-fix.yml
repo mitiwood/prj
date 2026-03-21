@@ -106,9 +106,10 @@ jobs:
             ${{ github.event.issue.body }}
 
             규칙:
-            - index.html 파일을 직접 수정하세요
-            - .github 폴더 파일은 절대 수정하지 마세요 (워크플로우 권한 에러 발생)
-            - 기존 기능을 절대 제거하지 마세요
+            - index.html 파일만 수정하세요. 다른 파일(api/*.js, admin/, .github/)은 절대 수정/삭제하지 마세요
+            - 기존 기능, 함수, CSS를 절대 제거하지 마세요. 추가/수정만 하세요
+            - 요청받은 부분만 최소한으로 수정하세요. 관련 없는 코드를 건드리지 마세요
+            - git diff로 변경사항을 확인하고, 삭제된 줄이 50줄 이상이면 수정을 중단하세요
             - 수정 완료 후 반드시 아래 순서로 PR을 생성하세요:
               1. git checkout -b fix/issue-${{ github.event.issue.number }}
               2. git add -A
