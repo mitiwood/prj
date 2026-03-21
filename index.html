@@ -930,6 +930,54 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mf-refresh-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
 .mf-refresh-btn:hover{border-color:var(--acc);color:var(--acc);}
 .mf-refresh-btn.spinning svg{animation:spin .6s linear infinite;}
+/* ✨ 추천 인사이트 */
+.mf-insight{margin-bottom:16px;padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(236,72,153,.04),rgba(59,130,246,.04));border:1px solid rgba(124,58,237,.12);}
+.mf-insight-header{margin-bottom:14px;}
+.mf-insight-title{font-size:16px;font-weight:800;color:var(--t1);letter-spacing:-.3px;}
+.mf-insight-label{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;}
+/* DNA 태그 바 */
+.mf-insight-dna{margin-bottom:14px;}
+.mf-insight-tags{display:flex;flex-direction:column;gap:6px;}
+.mf-dna-tag{display:flex;align-items:center;gap:8px;}
+.mf-dna-name{font-size:12px;font-weight:600;color:var(--acc);width:70px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-dna-bar{flex:1;height:6px;border-radius:3px;background:rgba(124,58,237,.08);overflow:hidden;}
+.mf-dna-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .5s ease;}
+.mf-dna-pct{font-size:10px;color:var(--t3);width:30px;text-align:right;flex-shrink:0;}
+/* 활동 요약 */
+.mf-insight-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.mf-ins-stat{text-align:center;padding:8px 4px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.04);}
+.mf-ins-stat-icon{font-size:18px;margin-bottom:2px;}
+.mf-ins-stat-num{font-size:16px;font-weight:800;color:var(--t1);}
+.mf-ins-stat-label{font-size:9px;color:var(--t3);margin-top:1px;}
+/* 추천 트랙 가로 스크롤 */
+.mf-insight-rec{margin-bottom:14px;}
+.mf-rec-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mf-rec-scroll::-webkit-scrollbar{display:none;}
+.mf-rec-card{flex-shrink:0;width:110px;cursor:pointer;transition:transform .15s;}
+.mf-rec-card:active{transform:scale(.95);}
+.mf-rec-thumb{width:110px;height:110px;border-radius:10px;overflow:hidden;background:var(--bg2);position:relative;}
+.mf-rec-thumb img{width:100%;height:100%;object-fit:cover;}
+.mf-rec-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.2);color:#fff;font-size:20px;opacity:0;transition:opacity .2s;border-radius:10px;}
+.mf-rec-card:hover .mf-rec-play{opacity:1;}
+.mf-rec-info{padding:4px 2px 0;}
+.mf-rec-title{font-size:11px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-rec-artist{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* 취향 매칭 크리에이터 */
+.mf-insight-match{margin-bottom:4px;}
+.mf-match-row{display:flex;gap:8px;}
+.mf-match-card{flex:1;text-align:center;padding:10px 6px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.04);cursor:pointer;transition:all .2s;}
+.mf-match-card:hover{transform:translateY(-2px);border-color:var(--acc);}
+.mf-match-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;background:var(--bg2);}
+.mf-match-avatar img{width:100%;height:100%;object-fit:cover;}
+.mf-match-name{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-match-tags{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-top:4px;}
+.mf-match-chip{font-size:9px;color:var(--acc);background:rgba(124,58,237,.08);padding:2px 5px;border-radius:6px;white-space:nowrap;}
+/* 라이트모드 인사이트 */
+[data-theme="light"] .mf-insight{background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(236,72,153,.02),rgba(59,130,246,.02));border-color:rgba(124,58,237,.08);}
+[data-theme="light"] .mf-ins-stat{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.04);}
+[data-theme="light"] .mf-match-card{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.04);}
+[data-theme="light"] .mf-dna-bar{background:rgba(124,58,237,.06);}
+[data-theme="light"] .mf-match-chip{background:rgba(124,58,237,.06);}
 /* 최근 업로드 */
 .mf-recent-section{margin-bottom:14px;}
 .mf-recent-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:8px;letter-spacing:-.3px;}
@@ -10941,6 +10989,12 @@ function _renderMyFeedView(grid,countEl){
     html+='</div></div>';
   }
 
+  /* ── ✨ 당신을 위한 추천 인사이트 ── */
+  if(!_myFeedSearch){
+    var insight=_buildMyFeedInsight();
+    if(insight.html) html+=insight.html;
+  }
+
   /* ── 최근 업로드 (검색 없을 때) ── */
   if(!_myFeedSearch){
     var recentTracks=_getRecentCreatorTracks(8);
@@ -10997,6 +11051,7 @@ function _renderMyFeedView(grid,countEl){
     if(!card) return;
     if(card.dataset.mfAction==='open-creator') _openCreatorDetail(card.dataset.mfName,card.dataset.mfProvider);
     else if(card.dataset.mfAction==='play-recent') _playRecentTrack(card.dataset.mfRtId,card.dataset.mfRtName,card.dataset.mfRtProv);
+    else if(card.dataset.mfAction==='play-rec') _playRecTrack(card.dataset.mfRecId);
   };
   /* 키보드 접근성 */
   grid.addEventListener('keydown',function(e){
@@ -11280,6 +11335,142 @@ function _playRecentTrack(id,ownerName,ownerProv){
   }
   showMiniPlayer(hIdx);
   if(typeof _countTrackPlay==='function') _countTrackPlay(t.id);
+}
+
+/* ── ✨ 당신을 위한 추천 인사이트 ── */
+function _buildMyFeedInsight(){
+  var result={html:''};
+  var myHistory=(historyData||[]);
+  var myLiked=myHistory.filter(function(h){return h._liked||h._commLiked;});
+  var myPlayed=myHistory.slice(0,30);
+  var sbAll=(typeof _sbTracks!=='undefined'&&_sbTracks)?_sbTracks:[];
+
+  /* 태그 분석 */
+  var tagFreq={}, tagTotal=0;
+  myLiked.concat(myPlayed).forEach(function(t){
+    var tags=(t.allTags||t.tags||'').toLowerCase().split(',').map(function(s){return s.trim();}).filter(Boolean);
+    tags.forEach(function(tag){tagFreq[tag]=(tagFreq[tag]||0)+1;tagTotal++;});
+  });
+
+  var topTags=Object.keys(tagFreq).sort(function(a,b){return tagFreq[b]-tagFreq[a];}).slice(0,5);
+
+  /* 통계 카드 데이터 */
+  var totalCreated=myHistory.length;
+  var totalLiked=myLiked.length;
+  var hasVideo=myHistory.filter(function(h){return !!h.video_url;}).length;
+  var topGenre=topTags[0]||'';
+
+  /* 아무 데이터도 없으면 비표시 */
+  if(totalCreated<1&&sbAll.length<1) return result;
+
+  var html='<div class="mf-insight">';
+  html+='<div class="mf-insight-header"><span class="mf-insight-title">✨ 당신을 위한 추천</span></div>';
+
+  /* ── 1) 나의 음악 DNA ── */
+  if(topTags.length>0){
+    html+='<div class="mf-insight-dna">';
+    html+='<div class="mf-insight-label">나의 음악 DNA</div>';
+    html+='<div class="mf-insight-tags">';
+    topTags.forEach(function(tag,i){
+      var pct=tagTotal>0?Math.round(tagFreq[tag]/tagTotal*100):0;
+      html+='<div class="mf-dna-tag"><span class="mf-dna-name">#'+esc(tag)+'</span><div class="mf-dna-bar"><div class="mf-dna-fill" style="width:'+pct+'%"></div></div><span class="mf-dna-pct">'+pct+'%</span></div>';
+    });
+    html+='</div></div>';
+  }
+
+  /* ── 2) 활동 요약 카드 ── */
+  html+='<div class="mf-insight-stats">';
+  html+='<div class="mf-ins-stat"><div class="mf-ins-stat-icon">🎵</div><div class="mf-ins-stat-num">'+totalCreated+'</div><div class="mf-ins-stat-label">생성한 곡</div></div>';
+  html+='<div class="mf-ins-stat"><div class="mf-ins-stat-icon">❤️</div><div class="mf-ins-stat-num">'+totalLiked+'</div><div class="mf-ins-stat-label">좋아요</div></div>';
+  html+='<div class="mf-ins-stat"><div class="mf-ins-stat-icon">🎬</div><div class="mf-ins-stat-num">'+hasVideo+'</div><div class="mf-ins-stat-label">뮤직비디오</div></div>';
+  if(topGenre) html+='<div class="mf-ins-stat"><div class="mf-ins-stat-icon">🎧</div><div class="mf-ins-stat-num" style="font-size:13px;">#'+esc(topGenre)+'</div><div class="mf-ins-stat-label">최애 장르</div></div>';
+  html+='</div>';
+
+  /* ── 3) 추천 트랙 (태그 매칭) ── */
+  if(sbAll.length>0&&topTags.length>0){
+    var likedIds=new Set(myLiked.map(function(h){return h.id||h._sbId||'';}));
+    var playedIds=new Set(myPlayed.map(function(h){return h.id||h._sbId||'';}));
+    var scored=sbAll.filter(function(t){return !likedIds.has(t._sbId)&&!playedIds.has(t._sbId)&&t.audioUrl;})
+      .map(function(t){
+        var sc=0;
+        (t.allTags||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean).forEach(function(tag){sc+=(tagFreq[tag]||0);});
+        sc+=(t.likes||0)*0.5+(t.plays||0)*0.1;
+        return{t:t,score:sc};
+      })
+      .filter(function(x){return x.score>0;})
+      .sort(function(a,b){return b.score-a.score;})
+      .slice(0,6)
+      .map(function(x){return x.t;});
+
+    if(scored.length>0){
+      html+='<div class="mf-insight-rec">';
+      html+='<div class="mf-insight-label">이런 곡 어때요?</div>';
+      html+='<div class="mf-rec-scroll">';
+      scored.forEach(function(t){
+        var thumb=t.img?'<img src="'+esc(t.img)+'" alt="">':'<div class="mf-recent-ph">🎵</div>';
+        var owner=(t._owner||{}).name||'';
+        html+='<div class="mf-rec-card" data-mf-action="play-rec" data-mf-rec-id="'+esc(t._sbId)+'">'
+          +'<div class="mf-rec-thumb">'+thumb+'<div class="mf-rec-play">▶</div></div>'
+          +'<div class="mf-rec-info">'
+          +'<div class="mf-rec-title">'+esc(t.title||'무제')+'</div>'
+          +'<div class="mf-rec-artist">'+esc(owner)+(t.likes>0?' · ❤️'+t.likes:'')+'</div>'
+          +'</div></div>';
+      });
+      html+='</div></div>';
+    }
+  }
+
+  /* ── 4) 취향 매칭 크리에이터 ── */
+  if(sbAll.length>0&&topTags.length>0&&_myFeedCreators&&_myFeedCreators.length>0){
+    /* 크리에이터별 태그 매칭 스코어 */
+    var creatorTagMap={};
+    sbAll.forEach(function(t){
+      var o=t._owner||{};if(!o.name)return;
+      if(typeof currentUser!=='undefined'&&currentUser&&o.name===currentUser.name&&o.provider===currentUser.provider)return;
+      var key=o.name+'::'+o.provider;
+      if(!creatorTagMap[key]) creatorTagMap[key]={name:o.name,provider:o.provider,avatar:o.avatar||'',score:0,matchTags:[]};
+      (t.allTags||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean).forEach(function(tag){
+        if(tagFreq[tag]){
+          creatorTagMap[key].score+=tagFreq[tag];
+          if(creatorTagMap[key].matchTags.indexOf(tag)<0&&creatorTagMap[key].matchTags.length<3) creatorTagMap[key].matchTags.push(tag);
+        }
+      });
+    });
+    var matchedCreators=Object.values(creatorTagMap).filter(function(c){return c.score>0;}).sort(function(a,b){return b.score-a.score;}).slice(0,3);
+    if(matchedCreators.length>0){
+      html+='<div class="mf-insight-match">';
+      html+='<div class="mf-insight-label">취향 맞는 크리에이터</div>';
+      html+='<div class="mf-match-row">';
+      matchedCreators.forEach(function(c){
+        var aH=c.avatar?'<img src="'+esc(c.avatar)+'" alt="">':'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>';
+        var tagChips=c.matchTags.map(function(tag){return'<span class="mf-match-chip">#'+esc(tag)+'</span>';}).join('');
+        html+='<div class="mf-match-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
+          +'<div class="mf-match-avatar">'+aH+'</div>'
+          +'<div class="mf-match-name">'+esc(c.name)+'</div>'
+          +'<div class="mf-match-tags">'+tagChips+'</div>'
+          +'</div>';
+      });
+      html+='</div></div>';
+    }
+  }
+
+  html+='</div>';
+  result.html=html;
+  return result;
+}
+
+/* 추천 트랙 재생 */
+function _playRecTrack(sbId){
+  var sbAll=(typeof _sbTracks!=='undefined'&&_sbTracks)?_sbTracks:[];
+  var t=sbAll.find(function(x){return x._sbId===sbId;});
+  if(!t||!t.audioUrl){toast('재생할 수 없어요','err');return;}
+  var hIdx=historyData.findIndex(function(h){return h.id===sbId||h._sbId===sbId;});
+  if(hIdx<0){
+    historyData.unshift({id:sbId,_sbId:sbId,title:t.title,audio_url:t.audioUrl,image_url:t.img,video_url:t.videoUrl||'',tags:t.allTags||t.tags||'',type:t.videoUrl?'mv':'audio',created:t._created,_fromFeed:true,owner_name:(t._owner||{}).name,owner_provider:(t._owner||{}).provider});
+    hIdx=0;
+  }
+  showMiniPlayer(hIdx);
+  if(typeof _countTrackPlay==='function') _countTrackPlay(sbId);
 }
 
 function _groupCreatorsFromTracks(sbTracks){
