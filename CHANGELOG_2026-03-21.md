@@ -162,6 +162,119 @@
 
 ---
 
+## 🎵 음악 만들기 고도화 (Week 1~4 전체 구현)
+
+### Week 1 — 생성 품질 + 초보자 진입
+- `buildOptimalPrompt()`: 장르/무드/악기/BPM을 구조화된 프롬프트로 변환
+- 프리셋 10개 원클릭 캐러셀 (K-Pop/발라드/힙합/로파이/EDM/R&B/록/재즈/시네마틱/어쿠스틱)
+- duration 미지원 안내 + "자동" 버튼 + extend 연결 유도
+
+### Week 2 — 사용자 선택권 확대
+- A/B 비교 UI: 2곡 반환 시 A/B 라벨 + 비교 안내 배너
+- 가사 에디터 강화: [Verse]/[Chorus]/[Bridge]/[Outro] 섹션 태그 버튼 + 글자수/줄수/언어 감지
+- 심플→커스텀 전환 버튼: 파라미터 이관
+
+### Week 3 — 기능 깊이
+- 생성 실패 자동 재시도 (1회, 민감단어/크레딧 제외)
+- 연장 체인: 히스토리 저장 + 체인 관계 표시 + 사용량 추적
+- 리믹스 모드: recompose에 장르 변경 프리셋 6개 (K-Pop/EDM/Lo-Fi/Acoustic/Hip-Hop/Orchestral)
+
+### Week 4 — 차별화
+- 보컬 라이브러리 프리셋 6종 (걸그룹/R&B남/발라드여/록남/인디여/래퍼)
+- 참조 아티스트 자동완성 datalist (30명)
+- AI 작곡 어시스턴트: gemini-2.5-flash 대화형 추천 → 심플 모드 자동 적용
+
+---
+
+## 🎨 Suno 스타일 UI/UX 전면 개선
+
+- SVG 아이콘 Lucide/Phosphor 스타일 업그레이드
+- 라이브러리(보관함) Suno 스타일 최근생성 뷰 대폭 개선
+- 라이브러리 편집 바텀시트 전면 개편
+- 커뮤니티 리스트 3열 구조 재구성 (제목+시간 / 사용자 / 스타일)
+- 커뮤니티 재생버튼 ↔ 미니플레이어 동기화 (▶/⏸ 토글)
+- 미니플레이어 프로그레스바 상단→하단 이동
+- 풀플레이어 데이모드 라이트 스타일 적용
+- 탭 전환 시 열린 바텀시트/팝업/오버레이 전부 닫기
+- 로딩 안내 문구 MZ톤으로 전면 변경
+
+---
+
+## 🎤 리믹스 & 커버 기능
+
+- 리믹스 4종 완전 구현 (연장/커버/스타일재사용/리마스터)
+- 커버 모달 → 바텀시트 + 스타일 추천 칩
+- 커버 생성 시 음악만들기 탭 이동 + 로딩 포커스
+- add-vocals 필수 파라미터 누락 수정
+- negativeTags null 에러 수정
+
+---
+
+## 🤖 AI 추천 시스템
+
+- 심플모드 추천 버튼: 시간/공간+감정/상태+질감/색채 컨셉 기반
+- 로컬 랜덤 컨셉 풀 (API 의존 제거 → 즉시 생성)
+- 곡 제목 자동 생성 및 입력폼 적용
+- 곡 설명 한글 번역하여 적용
+
+---
+
+## 📖 문서 & 스킬
+
+- `SPEC.md`: 기능 명세서 작성 (566줄, 15개 섹션)
+- `KIE_API_REFERENCE.md`: docs.kie.ai 공식 문서 기반 전면 재작성
+- `/kie` 스킬: 자연어로 API 레퍼런스 조회 (CLI + 텔레봇 + 카카오봇)
+- 텔레봇/카카오봇 `kie` 명령어: GitHub API 인증으로 private 레포 접근
+
+---
+
+## 🔗 카카오 공유 수정
+
+- Kakao JS SDK v2.7.4 로드 + KAKAO_JS_KEY 자동 초기화
+- 카카오스토리 OpenAPI 종료 대응: story.kakao.com 참조 완전 제거
+- 3단계 폴백: SDK → 링크복사 + 안내
+- 풀플레이어 카카오 공유도 동일 패턴 적용
+
+---
+
+## 🚨 치명적 버그 수정
+
+### switchView 미정의 에러
+- `switchView` → `switchTab` 전체 교체 (3곳)
+- 리믹스 연장/커버/스타일 버튼의 미존재 요소 참조 수정
+
+### 텔레그램 알림 누락 (전체 API)
+- **근본 원인:** `parse_mode: "Markdown"`에서 URL의 `()`, `_` 등이 파싱 에러
+- 에러가 조용히 무시 → 알림이 안 오는 것으로 보임
+- **수정:** 9개 API 파일에서 Markdown 제거 → plain text 전송
+  - tracks.js, users.js, announcement.js, comments.js
+  - tg-report.js, tg-debug.js, telegram.js
+  - cron/healthcheck.js, cron/status.js, payments/success.js
+
+### 에러 모니터링 강화
+- window.onerror + unhandledrejection → 텔레그램+카카오 동시 알림
+- 5초 쿨다운 도배 방지
+- parse_mode: '' → 'HTML' + HTML 이스케이프
+
+---
+
+## 📁 변경된 주요 파일 (추가)
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `index.html` | 음악 고도화(프리셋/프롬프트/A-B/가사에디터/리믹스/보컬/AI어시스턴트) + Suno UI + 커뮤니티 3열 + 재생동기화 + 에러알림 |
+| `api/tracks.js` | Markdown 제거 + 에러 로깅 |
+| `api/users.js` | Markdown 제거 |
+| `api/telegram.js` | 기본 Markdown 폴백 제거 |
+| `api/config.js` | KAKAO_JS_KEY 반환 추가 |
+| `api/tg-webhook.js` | kie 명령어 + GitHub API 인증 |
+| `api/kakao-webhook.js` | kie 명령어 + GitHub API 인증 |
+| `KIE_API_REFERENCE.md` | 공식 문서 기반 전면 재작성 |
+| `SPEC.md` | 기능 명세서 (신규) |
+| `.claude/commands/kie.md` | /kie 스킬 (신규) |
+
+---
+
 ## 🔢 커밋 수
 
-**총 68개 커밋** (2026-03-21)
+**총 110+ 커밋** (2026-03-21)
