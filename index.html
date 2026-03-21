@@ -6593,12 +6593,23 @@ async function generateMV(){
       const pbar=$('mv-pbar');if(pbar)pbar.style.width='10%';
       /* 이미지 프롬프트: 사용자 프롬프트 + 곡 정보 조합 */
       const imgPrompt = (prompt||'cinematic scene') + (linkedTrack ? ', music style: ' + (linkedTrack.tags||'') : '') + ', high quality, detailed, 4K, cinematic lighting';
-      const imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
-        model:'flux-kontext/pro',
-        input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
-      });
+      let imgData;
+      try{
+        imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
+          model:'flux-kontext-pro/text-to-image',
+          input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
+        });
+      }catch(imgErr){
+        /* 모델명 폴백 시도 */
+        console.warn('[MV img] flux-kontext-pro failed, trying kling image:', imgErr.message);
+        imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
+          model:'kolors/text-to-image',
+          input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
+        });
+      }
+      console.log('[MV img] createTask response:', JSON.stringify(imgData).slice(0,200));
       const imgTaskId = imgData?.data?.taskId||imgData?.taskId;
-      if(!imgTaskId) throw new Error('이미지 생성 taskId 없음');
+      if(!imgTaskId) throw new Error('이미지 생성 taskId 없음 — ' + JSON.stringify(imgData).slice(0,120));
       /* 이미지 폴링 (최대 40회, ~60초) */
       for(let ip=0;ip<40;ip++){
         await sleep(ip<3?1500:2500);
