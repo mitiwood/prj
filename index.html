@@ -3884,6 +3884,27 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
           <button class="btn btn-acc" id="push-toggle-btn" onclick="togglePushSubscription()" style="transition:all .2s;min-width:64px;">허용</button>
         </div>
+        <div id="notif-prefs-section" style="border-top:1px solid var(--border);padding:12px 14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:10px;">알림 유형 설정</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="notif-pref-toggles">
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--t1);">❤️ 좋아요 알림</span>
+              <input type="checkbox" checked data-notif-pref="likes" onchange="_saveNotifPrefs()" style="width:18px;height:18px;accent-color:var(--acc);">
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--t1);">💬 댓글 알림</span>
+              <input type="checkbox" checked data-notif-pref="comments" onchange="_saveNotifPrefs()" style="width:18px;height:18px;accent-color:var(--acc);">
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--t1);">👤 팔로우 알림</span>
+              <input type="checkbox" checked data-notif-pref="follows" onchange="_saveNotifPrefs()" style="width:18px;height:18px;accent-color:var(--acc);">
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--t1);">📢 공지/이벤트 알림</span>
+              <input type="checkbox" checked data-notif-pref="system" onchange="_saveNotifPrefs()" style="width:18px;height:18px;accent-color:var(--acc);">
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4047,6 +4068,31 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             </div>
           </div>
           <div class="settings-item-right"></div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">📦 데이터 관리</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <div class="settings-item" onclick="_exportUserData('json')">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">📋</div>
+            <div>
+              <div class="settings-item-label">전체 데이터 내보내기</div>
+              <div class="settings-item-sub">히스토리, 플레이리스트, 좋아요, 설정 (JSON)</div>
+            </div>
+          </div>
+          <div class="settings-item-right">›</div>
+        </div>
+        <div class="settings-item" style="border-top:1px solid var(--border);" onclick="_exportUserData('csv')">
+          <div class="settings-item-left">
+            <div class="settings-item-icon">📊</div>
+            <div>
+              <div class="settings-item-label">트랙 목록 내보내기</div>
+              <div class="settings-item-sub">제목, 장르, 날짜 (CSV)</div>
+            </div>
+          </div>
+          <div class="settings-item-right">›</div>
         </div>
       </div>
     </div>
@@ -13022,7 +13068,7 @@ async function renderCommunity(force=false){
   if(_sbLoaded && _sbTracks.length){
     _renderCommContent(heroWrap, list);
   } else {
-    list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--t3);"><div style="font-size:28px;margin-bottom:10px;">🎵</div><div>커뮤니티 곡 불러오는 중...</div></div>';
+    list.innerHTML=Array(4).fill(_skeleton('creator')).join('');
     heroWrap.innerHTML='';
   }
 
@@ -13088,6 +13134,13 @@ function _buildCommItem(t,i,isMine){
 
 /* 이전 렌더 데이터 스냅샷 (변경 감지용) */
 let _commPrevSnapshot='';
+
+function _skeleton(type){
+  if(type==='track') return '<div style="display:flex;gap:10px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;"><div style="width:48px;height:48px;border-radius:8px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:60%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
+  if(type==='creator') return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;"><div style="width:38px;height:38px;border-radius:50%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:50%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:30%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
+  if(type==='grid') return '<div style="background:var(--card);border-radius:12px;overflow:hidden;"><div style="width:100%;padding-top:100%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="padding:10px;display:flex;flex-direction:column;gap:6px;"><div style="height:12px;width:70%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
+  return '';
+}
 
 function _renderCommContent(heroWrap, list){
   let tracks=getCommTracks();
@@ -14277,6 +14330,48 @@ function renderSettings(){
   
   /* 테마 UI 상태 업데이트 */
   updateThemeUI();
+  /* 알림 유형 프리퍼런스 로드 */
+  _loadNotifPrefs();
+}
+
+/* ── 데이터 내보내기 ── */
+function _exportUserData(format){
+  if(format==='json'){
+    var data={exportDate:new Date().toISOString(),user:currentUser||{},history:historyData||[],playlists:JSON.parse(localStorage.getItem('kms_playlist')||'[]'),albums:JSON.parse(localStorage.getItem('kms_albums')||'[]'),theme:document.documentElement.getAttribute('data-theme')||'dark',attendance:JSON.parse(localStorage.getItem('kms_attendance')||'{}')};
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='kenny-music-data-'+new Date().toISOString().split('T')[0]+'.json';
+    a.click();URL.revokeObjectURL(url);
+    toast('데이터를 다운로드했어요','ok',2000);
+  } else if(format==='csv'){
+    var rows=[['제목','장르/스타일','생성일','오디오 URL']];
+    (historyData||[]).forEach(function(h){
+      rows.push([(h.title||'무제').replace(/,/g,' '),(h.tags||'').replace(/,/g,' | '),new Date(h.created||Date.now()).toLocaleDateString('ko-KR'),h.audio_url||'']);
+    });
+    var csv=rows.map(function(r){return r.join(',');}).join('\n');
+    var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='kenny-music-tracks-'+new Date().toISOString().split('T')[0]+'.csv';
+    a.click();URL.revokeObjectURL(url);
+    toast('트랙 목록을 다운로드했어요','ok',2000);
+  }
+}
+
+/* ── 알림 유형 설정 ── */
+function _saveNotifPrefs(){
+  var prefs={};
+  document.querySelectorAll('[data-notif-pref]').forEach(function(cb){prefs[cb.dataset.notifPref]=cb.checked;});
+  localStorage.setItem('kms_notif_prefs',JSON.stringify(prefs));
+}
+function _loadNotifPrefs(){
+  var prefs=JSON.parse(localStorage.getItem('kms_notif_prefs')||'{"likes":true,"comments":true,"follows":true,"system":true}');
+  document.querySelectorAll('[data-notif-pref]').forEach(function(cb){if(prefs[cb.dataset.notifPref]!==undefined)cb.checked=prefs[cb.dataset.notifPref];});
+  return prefs;
+}
+function _getNotifPrefs(){
+  return JSON.parse(localStorage.getItem('kms_notif_prefs')||'{"likes":true,"comments":true,"follows":true,"system":true}');
 }
 
 /* ── 테마 관리 함수들 ── */
@@ -15292,7 +15387,7 @@ function openProfileSheet(name, provider){
   sheet.onclick = e => { if(e.target === sheet) closeProfileSheet(); };
   $('pf-name').textContent = name;
   $('pf-provider').textContent = provider;
-  $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
+  $('pf-track-list').innerHTML = Array(3).fill(_skeleton('track')).join('');
 
   /* 내 프로필이면 팔로우 버튼 숨김 */
   const isMe = currentUser && currentUser.name === name && currentUser.provider === provider;
@@ -15362,7 +15457,7 @@ function openCreatorProfile(name, provider){
   $('pv-likes').textContent = '0';
   $('pv-plays').textContent = '0';
   $('pv-follower-cnt').textContent = '0';
-  $('pv-tracks-list').innerHTML = '<div class="pv-empty">로딩 중...</div>';
+  $('pv-tracks-list').innerHTML = Array(3).fill(_skeleton('track')).join('');
   window._pvTarget = {name:name, provider:provider};
   var _pvIsMe = currentUser && currentUser.name === name && currentUser.provider === provider;
   $('pv-follow-btn').style.display = _pvIsMe ? 'none' : '';
