@@ -1506,8 +1506,7 @@ body.mp-on .modal{padding-bottom:calc(56px + 62px + env(safe-area-inset-bottom,0
 .prompt-input::placeholder{color:var(--t3);}
 
 /* Extend modal */
-#extend-modal .modal{max-width:380px;width:100%;border-radius:16px;margin:20px;}
-#extend-modal{align-items:center;}
+#extend-modal{align-items:flex-end;}
 
 /* ══════════════════════════════
    KARAOKE PLAYER
@@ -3802,8 +3801,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
       <div class="hes-divider"></div>
       <!-- 그룹 3: 리믹스 -->
       <button class="hes-action-btn" id="hes-remix-extend-btn">
-        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg></span>
-        리믹스: 연장하다
+        <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg></span>
+        곡 연장
       </button>
       <button class="hes-action-btn" id="hes-remix-cover-btn">
         <span class="hes-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
@@ -3931,30 +3930,67 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 
 <!-- ── EXTEND MODAL ── -->
 <div class="modal-backdrop" id="extend-modal">
-  <div class="modal" style="max-width:380px;width:100%;border-radius:16px;margin:20px;">
+  <div class="modal">
+    <div class="hes-handle" style="margin-bottom:8px;"></div>
     <button class="modal-close" id="extend-modal-close">✕</button>
-    <div class="modal-title">🎵 곡 연장</div>
-    <div class="modal-sub">현재 트랙에서 이어지는 새로운 섹션을 생성합니다.</div>
-    <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">추가 프롬프트 (선택)</div>
-      <textarea class="prompt-input" id="extend-prompt" rows="3" placeholder="이어질 내용이나 분위기를 입력하세요..."></textarea>
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg>
+      곡 연장
     </div>
-    <div style="margin-bottom:12px;">
-      <div class="opt-label" style="margin-bottom:6px;">이어지는 시작 시간 (초)</div>
-      <input class="neg-input" id="extend-at" type="number" placeholder="예: 60 (자동이면 비워두세요)">
+    <div class="modal-sub">현재 트랙에서 이어지는 새로운 섹션을 만들어요</div>
+
+    <!-- 원곡 정보 -->
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
+      <div id="ext-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div id="ext-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
+        <div id="ext-duration-label" style="font-size:11px;color:var(--t3);margin-top:2px;">길이: 측정 중...</div>
+      </div>
     </div>
+
+    <!-- 연장 시작 시점 (슬라이더) -->
+    <div style="margin-bottom:14px;">
+      <div class="opt-label" style="margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span>이어지는 시작 지점</span>
+        <span id="ext-at-display" style="color:var(--acc);font-weight:700;">끝부터</span>
+      </div>
+      <input type="range" class="bpm-slider" id="extend-at-slider" min="0" max="300" step="1" value="0"
+        oninput="_updateExtSlider(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px;">
+        <span>처음</span>
+        <span id="ext-max-label">끝</span>
+      </div>
+      <input type="hidden" id="extend-at">
+    </div>
+
+    <!-- 가사 편집 -->
+    <div style="margin-bottom:14px;">
+      <div class="opt-label" style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span>이어질 가사 (선택)</span>
+        <button onclick="$('extend-lyrics').value='';toast('가사 비움','',1000);" style="font-size:10px;color:var(--t3);background:none;border:none;cursor:pointer;font-family:inherit;">지우기</button>
+      </div>
+      <textarea class="form-input" id="extend-lyrics" rows="4" placeholder="이어질 가사를 입력하세요...&#10;&#10;[Verse 3]&#10;여기에 가사...&#10;&#10;비워두면 AI가 자동으로 이어서 작사해요"></textarea>
+    </div>
+
+    <!-- 추가 스타일 -->
+    <div style="margin-bottom:14px;">
+      <div class="opt-label" style="margin-bottom:6px;">추가 스타일/분위기 (선택)</div>
+      <input class="form-input" id="extend-prompt" placeholder="예: 후반부는 더 강렬하게, 드럼 추가" style="padding:10px 12px;">
+    </div>
+
+    <!-- 모델 -->
     <div style="margin-bottom:16px;">
       <div class="opt-label" style="margin-bottom:6px;">모델</div>
       <select class="opt-select" id="extend-model">
         <option value="V4_5">V4.5 (권장)</option>
         <option value="V4_5PLUS">V4.5+</option>
         <option value="V5">V5 (최신)</option>
-        <option value="V4">V4</option>
       </select>
     </div>
+
     <button class="gen-btn" id="extend-submit-btn">
       <span class="gen-spinner" id="extend-spinner"></span>
-      <span id="extend-btn-txt">🎵 연장하기</span>
+      <span id="extend-btn-txt"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg> 연장하기</span>
     </button>
   </div>
 </div>
@@ -7367,13 +7403,59 @@ $('vc-submit-btn').addEventListener('click',async()=>{
 });
 
 /* ── 음악 연장 ── */
+let _extDuration=0;
+function _updateExtSlider(val){
+  const v=parseInt(val);
+  if(v===0||!_extDuration){
+    $('ext-at-display').textContent='끝부터';
+    $('extend-at').value='';
+  } else {
+    const m=Math.floor(v/60),s=v%60;
+    $('ext-at-display').textContent=`${m}:${String(s).padStart(2,'0')}`;
+    $('extend-at').value=String(v);
+  }
+}
 function openExtendModal(audioId){
-  /* 게스트: 음악 연장 차단 */
   if(currentUser?.provider==='guest'){
     toast('음악 연장은 로그인 후 이용할 수 있어요','err',3000);
     openLoginSheet(); return;
   }
-  extendAudioId=audioId;$('extend-prompt').value='';$('extend-at').value='';$('extend-modal').classList.add('on');
+  extendAudioId=audioId;
+  $('extend-prompt').value='';$('extend-at').value='';$('extend-lyrics').value='';
+  _extDuration=0;
+
+  /* 원곡 정보 채우기 */
+  const h=historyData.find(x=>(x.id||x.taskId)===audioId);
+  if(h){
+    const thumb=$('ext-thumb');
+    if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+    $('ext-title').textContent=h.title||'무제';
+    /* 가사 미리 채우기 */
+    if(h.lyrics && !/^\[?(male|female|style)/i.test(h.lyrics)){
+      $('extend-lyrics').value=h.lyrics;
+    }
+    /* 오디오 길이 측정 */
+    $('ext-duration-label').textContent='길이: 측정 중...';
+    if(h.audio_url){
+      const _a=new Audio();_a.preload='metadata';_a.src=h.audio_url;
+      _a.addEventListener('loadedmetadata',()=>{
+        _extDuration=Math.round(_a.duration);
+        const m=Math.floor(_extDuration/60),s=_extDuration%60;
+        $('ext-duration-label').textContent=`길이: ${m}:${String(s).padStart(2,'0')}`;
+        $('extend-at-slider').max=String(_extDuration);
+        $('extend-at-slider').value=String(_extDuration);
+        $('ext-max-label').textContent=`${m}:${String(s).padStart(2,'0')}`;
+        $('ext-at-display').textContent='끝부터';
+        $('extend-at').value='';
+        _a.pause();_a.removeAttribute('src');
+      });
+      _a.addEventListener('error',()=>{
+        $('ext-duration-label').textContent='길이: 알 수 없음';
+        _a.pause();_a.removeAttribute('src');
+      });
+    }
+  }
+  $('extend-modal').classList.add('on');
 }
 if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
 $('extend-modal').addEventListener('click',e=>{if(e.target===$('extend-modal'))$('extend-modal').classList.remove('on');});
@@ -7382,17 +7464,23 @@ $('extend-submit-btn').addEventListener('click',async()=>{
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   if(!extendAudioId){toast('오디오 ID 없음','err');return;}
   const prompt=$('extend-prompt').value.trim();
+  const lyrics=$('extend-lyrics').value.trim();
   const continueAt=parseInt($('extend-at').value)||undefined;
   const model=$('extend-model').value;
   $('extend-submit-btn').disabled=true;$('extend-spinner').style.display='block';$('extend-btn-txt').textContent='연장 중...';
   try{
-    const body={audioId:extendAudioId,model,callBackUrl:CALLBACK,defaultParamFlag:!!prompt};
-    if(prompt)body.prompt=prompt;if(continueAt)body.continueAt=continueAt;
+    const body={audioId:extendAudioId,model,callBackUrl:CALLBACK,defaultParamFlag:!!(prompt||lyrics),negativeTags:''};
+    if(lyrics)body.prompt=lyrics+(prompt?' [style: '+prompt+']':'');
+    else if(prompt)body.prompt=prompt;
+    if(continueAt)body.continueAt=continueAt;
     const data=await kieRequest(apiKey,'POST','/api/v1/generate/extend',body);
     const taskId=data?.data?.taskId||data?.taskId;
     if(!taskId)throw new Error('연장 taskId 없음');
     $('extend-modal').classList.remove('on');
+    switchTab('create-view');
+    toast('🎵 곡 연장을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
+    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='곡 더 늘리는 중이에요~<br>잠깐이면 돼요 ✨';
     $('ld-task').textContent=`Extend: ${taskId}`;
