@@ -744,10 +744,17 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
     try { payCount = (await sb('GET', '/payments?select=id&limit=0')).count ?? '?'; } catch {}
 
     const today = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     let todayTracks = 0, todayUsers = 0, todayComments = 0;
+    let yesterdayTracks = 0, yesterdayUsers = 0, yesterdayComments = 0;
     try { todayTracks = (await sb('GET', `/tracks?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
     try { todayUsers = (await sb('GET', `/users?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
     try { todayComments = (await sb('GET', `/comments?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+    try { yesterdayTracks = (await sb('GET', `/tracks?created_at=gte.${yesterdayDate}&created_at=lt.${today}&select=id&limit=100`)).data.length; } catch {}
+    try { yesterdayUsers = (await sb('GET', `/users?created_at=gte.${yesterdayDate}&created_at=lt.${today}&select=id&limit=100`)).data.length; } catch {}
+    try { yesterdayComments = (await sb('GET', `/comments?created_at=gte.${yesterdayDate}&created_at=lt.${today}&select=id&limit=100`)).data.length; } catch {}
+    const _delta = (today, yesterday) => { const d = today - yesterday; return d > 0 ? ` ▲ +${d}` : d < 0 ? ` ▼ ${d}` : ' ─ 0'; };
+    const costEstimate = (todayTracks * 0.05).toFixed(2);
 
     /* ── 2. Claude API 상태 ── */
     let claudeStatus = 'KEY 미설정';
@@ -832,10 +839,11 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
       `⏰ ${ts()}`,
       ``,
       `━━ Supabase DB ━━`,
-      `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}`,
-      `👥 유저: ${userCount} / 오늘 +${todayUsers}`,
-      `💬 댓글: ${commentCount} / 오늘 +${todayComments}`,
+      `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}${_delta(todayTracks, yesterdayTracks)}`,
+      `👥 유저: ${userCount} / 오늘 +${todayUsers}${_delta(todayUsers, yesterdayUsers)}`,
+      `💬 댓글: ${commentCount} / 오늘 +${todayComments}${_delta(todayComments, yesterdayComments)}`,
       `💰 결제: ${payCount}건`,
+      `💵 오늘 비용 추정: $${costEstimate} (${todayTracks}트랙 × $0.05)`,
       ``,
       `━━ 유저별 사용량 (이번 달) ━━`,
       ...(userStats.length ? userStats : ['데이터 없음']),
@@ -856,10 +864,11 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
         `⏰ ${ts()}`,
         ``,
         `━━ Supabase DB ━━`,
-        `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}`,
-        `👥 유저: ${userCount} / 오늘 +${todayUsers}`,
-        `💬 댓글: ${commentCount} / 오늘 +${todayComments}`,
+        `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}${_delta(todayTracks, yesterdayTracks)}`,
+        `👥 유저: ${userCount} / 오늘 +${todayUsers}${_delta(todayUsers, yesterdayUsers)}`,
+        `💬 댓글: ${commentCount} / 오늘 +${todayComments}${_delta(todayComments, yesterdayComments)}`,
         `💰 결제: ${payCount}건`,
+        `💵 비용 추정: $${costEstimate}`,
         ``,
         `━━ 유저별 (이번 달) ━━`,
         ...(userStats.length ? userStats.slice(0,3) : ['없음']),
