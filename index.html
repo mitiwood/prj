@@ -8204,7 +8204,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
   $('rc-submit-btn').disabled=true;$('rc-spinner').style.display='block';$('rc-btn-txt').textContent='커버 생성 중...';
   try{
     const vocalPrompt=newStyle||h.tags||'emotional vocal singing';
-    const body={uploadUrl:h.audio_url,prompt:vocalPrompt,model,callBackUrl:CALLBACK,title:'Cover: '+(h.title||'무제')};
+    const body={uploadUrl:h.audio_url,prompt:vocalPrompt,model,callBackUrl:CALLBACK,title:'Cover: '+(h.title||'무제'),negativeTags:''};
     if(newStyle)body.style=newStyle;
     if(gender)body.vocalGender=gender;
     const data=await kieRequest(apiKey,'POST','/api/v1/generate/add-vocals',body);
