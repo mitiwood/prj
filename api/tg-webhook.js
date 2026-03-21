@@ -1008,7 +1008,8 @@ COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
 
   /* GitHub에서 KIE_API_REFERENCE.md 원본 읽기 */
   try {
-    const r = await fetch(`https://raw.githubusercontent.com/${GH_REPO}/main/KIE_API_REFERENCE.md`);
+    const _ghHeaders = GH_TOKEN ? { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.raw' } : {};
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/KIE_API_REFERENCE.md?ref=main`, { headers: _ghHeaders });
     if (!r.ok) throw new Error('MD 파일 로드 실패');
     const md = await r.text();
 
