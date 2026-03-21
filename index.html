@@ -535,7 +535,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .ld-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:12px;}
 .ld-progress{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin:8px 0;}
 .ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;width:0%;transition:width .5s;}
-.ld-task{font-size:10px;color:var(--t3);margin-top:4px;}
+.ld-task{display:none;}
 
 /* 결과 섹션 */
 .results-section{margin-top:12px;}
@@ -3124,8 +3124,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
         <div class="ld-bar"></div>
       </div>
-      <div class="ld-title">지금 곡 만드는 중이에요 ✦</div>
-      <div class="ld-sub" id="ld-sub">멜로디랑 리듬 잡는 중이에요 ~<br>한 30초~1분이면 나와요 ☕</div>
+      <div class="ld-title">AI가 곡 만드는 중 ✦</div>
+      <div class="ld-sub" id="ld-sub">잠깐만요~ 금방 들려드릴게요 🎧</div>
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
       <div class="ld-task" id="ld-task"></div>
     </div>
@@ -10499,6 +10499,7 @@ function _renderCommContent(heroWrap, list){
       html+=`</div>`;
     }
 
+/* 🏆 주간 인기 차트 (Top 5) */    const weekAgo=Date.now()-7*86400000;    const weekTracks=otherTracks.filter(t=>(t._created||0)>weekAgo||true).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,5);    if(weekTracks.length>=3){      html+='<div style="margin-bottom:12px;padding:12px;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(124,58,237,.04));border:1px solid rgba(245,158,11,.15);border-radius:14px;"><div style="font-size:13px;font-weight:800;color:#f59e0b;margin-bottom:8px;">🏆 인기 차트</div>';      weekTracks.forEach(function(t,i){        var medal=['🥇','🥈','🥉','4','5'][i]||String(i+1);        var sid=t._sbId||'';        html+='<div onclick="commPlaySb(''+sid+'')" style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:8px;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''"><span style="font-size:16px;width:24px;text-align:center;">'+medal+'</span><span style="flex:1;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'무제').replace(/[<>&"]/g,'')+'</span><span style="font-size:10px;color:var(--t3);">❤️'+(t.likes||0)+'</span></div>';        allListTracks.push(t);      });      html+='</div>';    }
     /* 다른 트랙 섹션 (좋아요순) */
     const otherLabel=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'다른 트랙');
     $('comm-section-lbl').textContent=otherLabel+' ('+otherTracks.length+'곡)';
