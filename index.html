@@ -8135,14 +8135,36 @@ async function _mvGenerateImage(){
   if(_globalGenerating){console.log('[img2vid] blocked: generating');_showGeneratingPopup();return;}
   var promptEl=$('mv-prompt');
   var prompt=(promptEl?.value||'').trim();
-  /* 프롬프트 비어있으면 연결 트랙 또는 기본값으로 자동 생성 */
+  /* 프롬프트 비어있으면 랜덤 시네마틱 프롬프트 자동 생성 */
   if(!prompt){
     var _ti=$('mv-link-track')?.value;
     var _lt=_ti!==''&&_ti!=null?historyData[parseInt(_ti)]:null;
-    if(_lt) prompt='"'+(_lt.title||'무제')+'" 곡의 분위기에 맞는 시네마틱 뮤직비디오 장면, 스타일: '+(_lt.tags||'팝')+', 역동적인 카메라 워크, 분위기 있는 조명, 고화질';
-    else prompt='시네마틱 뮤직비디오 장면, 아름다운 분위기, 역동적인 카메라 워크, 네온 조명, 감성적인 색감, 고화질 4K';
+    var _mvScenes=[
+      '네온 빛이 반짝이는 도심 야경, 빗물에 반사되는 거리, 감성적인 분위기',
+      '석양이 물드는 해변, 파도 소리, 따뜻한 골든아워 조명',
+      '우주 공간을 떠다니는 환상적인 장면, 별빛과 오로라, 몽환적 분위기',
+      '안개 낀 숲속, 부드러운 햇살이 나뭇잎 사이로 스며드는 장면',
+      '미래 도시의 홀로그램 거리, 사이버펑크 분위기, 보라색 네온',
+      '벚꽃이 흩날리는 봄날, 골목길을 걷는 장면, 따뜻한 색감',
+      '거울처럼 반사되는 호수 위의 달빛, 고요한 밤, 잔잔한 분위기',
+      '콘서트 무대 위 스포트라이트, 열정적인 공연, 관객의 환호',
+      '오래된 카페 창가, 비가 내리는 오후, 빈티지 필름 느낌',
+      '구름 위를 날아가는 장면, 드론 시점, 광활한 자연 풍경',
+      '댄서가 춤추는 어두운 스튜디오, 한 줄기 조명, 실루엣',
+      '눈 내리는 겨울 거리, 따뜻한 가로등 불빛, 로맨틱한 분위기',
+      '옥상 위에서 바라보는 도시 전경, 새벽 여명, 시네마틱 와이드샷',
+      '열대 정글 속 폭포, 생동감 넘치는 색감, 모험적 분위기',
+      '빈티지 레코드판이 돌아가는 클로즈업, 아날로그 감성, 따뜻한 톤',
+    ];
+    var _mvCameras=['역동적인 카메라 워크','슬로우 모션','드론 시점 이동','부드러운 팬 촬영','줌인 클로즈업','핸드헬드 촬영','원샷 롱테이크','360도 회전 촬영'];
+    var _mvQualities=['고화질 4K','시네마틱 색보정','필름 그레인 효과','드라마틱 조명','소프트 포커스','하이 콘트라스트'];
+    var scene=_mvScenes[Math.floor(Math.random()*_mvScenes.length)];
+    var cam=_mvCameras[Math.floor(Math.random()*_mvCameras.length)];
+    var qual=_mvQualities[Math.floor(Math.random()*_mvQualities.length)];
+    if(_lt) prompt='"'+(_lt.title||'무제')+'" — '+scene+', '+cam+', '+qual+', 스타일: '+(_lt.tags||'팝');
+    else prompt=scene+', '+cam+', '+qual;
     if(promptEl) promptEl.value=prompt;
-    toast('✨ 프롬프트를 자동 생성했어요','ok',2000);
+    toast('✨ 랜덤 프롬프트 생성!','ok',2000);
   }
   console.log('[img2vid] prompt:', prompt.slice(0,60));
   console.log('[img2vid] prompt:', prompt.slice(0,50));
