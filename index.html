@@ -11990,55 +11990,36 @@ function _renderSettingsExtended(){
 async function _syncPlanFromServer(){
   if(!currentUser || currentUser.provider === 'guest') return;
   try {
-    const r = await fetch('/api/check-credit', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type: 'song' })
-    });
-    const d = await r.json();
-    if(!d.ok && d.reason === 'plan_expired'){
-      localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
-      toast('플랜이 만료되어 무료로 전환됐어요','',3000);
-      if(typeof renderPlanUI === 'function') renderPlanUI();
-      return;
-    }
-    /* 서버에서 plan 정보가 오면 항상 서버 기준으로 동기화 */
-    if(d.plan){
+    /* 직접 users 테이블에서 플랜 조회 (check-credit 대신 — 더 정확) */
+    const r = await fetch(`/api/tracks?owner=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}&_plan=1`);
+    /* users API로 직접 조회 */
+    const ur = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+    const ud = await ur.json();
+    if(ud.ok && ud.profile){
+      const serverPlan = ud.profile.plan || 'free';
       const localPlan = getPlan();
-      if(localPlan.type !== d.plan){
-        console.log('[PlanSync] 서버:', d.plan, '로컬:', localPlan.type, '→ 서버 기준 동기화');
-        if(d.plan === 'free'){
-          localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
-        } else {
-          const endDate = new Date(Date.now() + 30*24*60*60*1000).toISOString();
-          localStorage.setItem('kms_plan', JSON.stringify({type: d.plan, startDate: new Date().toISOString(), endDate}));
-        }
+      if(localPlan.type !== serverPlan){
+        console.log('[PlanSync] 서버:', serverPlan, '로컬:', localPlan.type, '→ 동기화');
+        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
+        localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
         if(typeof renderPlanUI === 'function') renderPlanUI();
         if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
+        toast(`플랜이 ${serverPlan.toUpperCase()}으로 변경됐어요!`,'ok',3000);
       }
     }
-    /* 사용량도 서버 기준 동기화 */
-    if(d.used !== undefined){
-      const usage = getUsage();
-      const key = d.type === 'song' ? 'songs' : d.type;
-      if(typeof d.used === 'number'){
-        usage[key] = d.used;
-        saveUsage(usage);
-        if(typeof renderPlanUI === 'function') renderPlanUI();
-      }
-    }
-  } catch(e){ /* 서버 장애 시 로컬 유지 */ }
+  } catch(e){ console.warn('[PlanSync]', e.message); }
 }
 
 /* 앱 시작 시 */
 document.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _renderSettingsExtended==='function') _renderSettingsExtended();
   checkAnnouncement();
-  /* 서버 플랜 동기화 (1초 후 — API 키 로딩 대기) */
   setTimeout(_syncPlanFromServer, 1000);
 });
-/* 탭 복귀 시에도 동기화 */
+/* 탭 복귀 시 즉시 동기화 */
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _syncPlanFromServer(); });
+/* 3초마다 플랜 동기화 (실시간에 가깝게) */
+setInterval(_syncPlanFromServer, 3000);
 
 /* ══════════════════════════════
    실시간 알림 수신 (10초 폴링)
