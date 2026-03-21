@@ -828,14 +828,14 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 #hist-edit-sheet.on{pointer-events:auto;opacity:1;}
 .hes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);}
 .hes-panel{
-  position:absolute;bottom:0;left:0;right:0;
+  position:absolute;bottom:56px;left:0;right:0;
   background:var(--card);border-radius:20px 20px 0 0;
   padding:0 0 env(safe-area-inset-bottom,0);
   transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
   max-width:480px;margin:0 auto;
-  display:flex;flex-direction:column;max-height:85vh;
+  display:flex;flex-direction:column;max-height:75vh;
 }
-body.mp-on #hist-edit-sheet .hes-panel{bottom:62px;}
+body.mp-on .hes-panel{bottom:calc(56px + 62px);max-height:65vh;}
 #hist-edit-sheet.on .hes-panel{transform:translateY(0);}
 .hes-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:12px auto 0;}
 /* 트랙 정보 */
@@ -896,6 +896,10 @@ body.mp-on #hist-edit-sheet .hes-panel{bottom:62px;}
 body.light .hes-handle{background:rgba(0,0,0,.12);}
 body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 /* 리믹스 Cover 성별 버튼 */
+/* 스타일 추천 칩 */
+.rc-chip{padding:5px 10px;border-radius:20px;border:none;background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.rc-chip:hover{background:rgba(124,58,237,.15);color:var(--acc);}
+.rc-chip:active{background:var(--acc);color:#fff;}
 .rc-gender-btn{flex:1;padding:10px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
 .rc-gender-btn:hover{border-color:var(--acc);}
 .rc-gender-btn.active{background:rgba(124,58,237,.12);border-color:var(--acc);color:var(--acc);font-weight:700;}
@@ -1479,9 +1483,10 @@ body.mp-on #remix-cover-modal .modal,body.mp-on #remix-style-modal .modal{paddin
 .modal-backdrop.on{display:flex;}
 .modal{
   background:var(--bg2);border-radius:20px 20px 0 0;
-  width:100%;max-width:480px;padding:24px 20px 36px;
-  max-height:90vh;overflow-y:auto;position:relative;
+  width:100%;max-width:480px;padding:24px 20px calc(56px + env(safe-area-inset-bottom,0) + 16px);
+  max-height:85vh;overflow-y:auto;position:relative;
 }
+body.mp-on .modal{padding-bottom:calc(56px + 62px + env(safe-area-inset-bottom,0) + 16px);}
 .modal-close{
   position:absolute;top:16px;right:16px;
   width:32px;height:32px;border-radius:50%;
@@ -3970,7 +3975,19 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     </div>
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">새로운 스타일 / 장르</div>
-      <input class="neg-input" id="rc-style" placeholder="예: Jazz, R&B, 어쿠스틱">
+      <input class="form-input" id="rc-style" placeholder="예: Jazz, R&B, 어쿠스틱" style="margin-bottom:8px;padding:10px 12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;" id="rc-style-chips">
+        <button class="rc-chip" onclick="$('rc-style').value='K-Pop dance, upbeat'">K-Pop</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Jazz, smooth vocals'">Jazz</button>
+        <button class="rc-chip" onclick="$('rc-style').value='R&B soul, groovy'">R&B</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Acoustic, gentle guitar'">어쿠스틱</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Lo-Fi chill, relaxing beats'">Lo-Fi</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Rock, electric guitar, powerful'">Rock</button>
+        <button class="rc-chip" onclick="$('rc-style').value='EDM, electronic, energetic drops'">EDM</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Classical crossover, orchestral'">클래식</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Hip-Hop, trap, 808 bass'">힙합</button>
+        <button class="rc-chip" onclick="$('rc-style').value='Ballad, emotional piano, Korean'">발라드</button>
+      </div>
     </div>
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 성별</div>
