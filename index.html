@@ -21,6 +21,8 @@
 <!-- Kakao JS SDK (공유 기능용) -->
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 <script>
+/* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
+window.switchTab=window.switchTab||function(){};
 window.addEventListener('DOMContentLoaded',()=>{
   /* KAKAO_JS_KEY 환경변수가 있으면 자동 초기화 */
   fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
@@ -4620,7 +4622,7 @@ function _startCommPoll(){
     /* 커뮤니티 뷰가 열려있을 때만 갱신 */
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
-    await _loadSbTracks(true);
+    await _pollRefreshSbTracks();
     /* _renderCommContent 내부에서 스냅샷 비교 → 변경 시에만 DOM 갱신 */
     try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
   }, 10000);
@@ -6892,7 +6894,29 @@ function _applyAiRecommend(desc, bpm, title){
 /* ══════════════════════════════
    심플 → 커스텀 모드 전환
 ══════════════════════════════ */
-/* V3.5 vs V4.5 비교재생 */function _compareModels(){  const desc=($('simple-prompt')?.value||'').trim();  if(!desc){toast('곡 설명을 먼저 입력하세요','err',2000);$('simple-prompt')?.focus();return;}  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}  const ov=document.createElement('div');  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';  ov.onclick=function(e){if(e.target===ov)ov.remove();};  ov.innerHTML='<div style="background:var(--card2,#1e1e2a);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">🎧</div><div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">V3.5 vs V4.5 비교</div><div style="font-size:13px;color:#a09ab8;margin-bottom:16px;line-height:1.6;">같은 프롬프트로 두 모델의 퀄리티를 비교해보세요!<br>V4.5는 <b style="color:#a78bfa;">Pro 플랜</b>에서 사용 가능해요</div><div style="font-size:12px;color:var(--t3);background:var(--bg3);padding:10px;border-radius:8px;margin-bottom:16px;text-align:left;">"'+desc.replace(/"/g,'&quot;').slice(0,80)+'"</div><button onclick="this.closest('[style*=fixed]').remove();toast('🎵 V3.5로 먼저 생성합니다','',2000);setTimeout(function(){if($('simple-gen-btn'))$('simple-gen-btn').click();},500);" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🎵 V3.5로 생성 시작</button><button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#888;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button></div>';  document.body.appendChild(ov);}
+/* V3.5 vs V4.5 비교재생 */
+function _compareModels(){
+  var desc=($('simple-prompt')?.value||'').trim();
+  if(!desc){toast('곡 설명을 먼저 입력하세요','err',2000);return;}
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var sd=desc.replace(/[<>&]/g,'').slice(0,80);
+  var box=document.createElement('div');
+  box.style.cssText='background:#1e1e2a;border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;';
+  box.innerHTML='<div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">V3.5 vs V4.5</div><div style="font-size:13px;color:#a09ab8;margin-bottom:16px;">같은 프롬프트로 비교!</div><div style="font-size:12px;color:#888;background:#16152a;padding:10px;border-radius:8px;margin-bottom:16px;">'+sd+'</div>';
+  var sBtn=document.createElement('button');
+  sBtn.textContent='V3.5로 생성';
+  sBtn.style.cssText='width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;';
+  sBtn.onclick=function(){ov.remove();toast('V3.5 생성 시작','',2000);setTimeout(function(){var b=$('simple-gen-btn');if(b)b.click();},500);};
+  var cBtn=document.createElement('button');
+  cBtn.textContent='닫기';
+  cBtn.style.cssText='width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#888;font-size:13px;cursor:pointer;';
+  cBtn.onclick=function(){ov.remove();};
+  box.appendChild(sBtn);box.appendChild(cBtn);
+  ov.appendChild(box);document.body.appendChild(ov);
+}
 function _simpleToCustom(){
   const desc = ($('simple-prompt')?.value||'').trim();
   const title = ($('simple-song-title')?.value||'').trim();
@@ -8831,6 +8855,9 @@ function showMiniPlayer(idx){
   const h = historyData[idx];
   if(!h) return;
   fpCurrentIdx = idx;
+
+  /* 재생수 카운팅 — 커뮤니티 트랙인 경우 (세션당 1회) */
+  if(h.id && h._fromSb) _countTrackPlay(h.id);
 
   /* 커뮤니티 리스트 포커스 연동 */
   _syncCommListPlaying(h);
@@ -10951,6 +10978,8 @@ function commPlaySb(sbId){
   /* 모든 재생 버튼 초기화 후 현재만 활성화 */
   _resetAllCommPlayBtns();
   stopAllAudio();
+  /* 재생수 카운팅 (세션당 1회) */
+  _countTrackPlay(sbId);
   showMiniPlayer(hIdx);
   _syncCommPlayBtn(sbId, true);
 }
@@ -12235,7 +12264,7 @@ function _checkAttendance(){
    플랜 서버 동기화 — 디바이스 간 싱크 + 어뷰징 방지
 ══════════════════════════════ */
 async function _syncPlanFromServer(){
-  if(!currentUser || currentUser.provider === 'guest') return;
+  if(typeof currentUser === 'undefined' || !currentUser || currentUser.provider === 'guest') return;
   try {
     /* 직접 users 테이블에서 플랜 조회 (check-credit 대신 — 더 정확) */
     const r = await fetch(`/api/tracks?owner=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}&_plan=1`);
