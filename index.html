@@ -1099,7 +1099,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* 커버 — Apple Music 대형 라운드 */
 .fp-cover-wrap{text-align:center;margin-bottom:24px;}
 .fp-cover{
-  width:280px;height:280px;border-radius:20px;display:inline-block;
+  width:280px;height:280px;border-radius:20px;
   overflow:hidden;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
   display:inline-flex;align-items:center;justify-content:center;
   box-shadow:0 16px 60px rgba(0,0,0,.7),0 4px 20px rgba(0,0,0,.4);
@@ -7868,12 +7868,15 @@ function fpPlayPrev(){
 
 function fpStartViz(){
   clearInterval(fpVizTimer);
-  const bars=$('fp-viz').querySelectorAll('.fp-vbar');
+  const el=$('fp-viz'); if(!el)return;
+  const bars=el.querySelectorAll('.fp-vbar');
+  if(!bars.length)return;
   fpVizTimer=setInterval(()=>{bars.forEach(b=>{b.style.transform='scaleY('+(Math.max(0.125,Math.random())).toFixed(2)+')';});},90);
 }
 function fpStopViz(){
   clearInterval(fpVizTimer);
-  $('fp-viz').querySelectorAll('.fp-vbar').forEach(b=>{b.style.transform='scaleY(0.125)';});
+  const el=$('fp-viz'); if(!el)return;
+  el.querySelectorAll('.fp-vbar').forEach(b=>{b.style.transform='scaleY(0.125)';});
 }
 
 /* 좋아요/싫어요 */
@@ -8038,7 +8041,7 @@ function fpSeekToLine(el){
   if(!fpAudio?.duration||!fpTimestampLines.length)return;
   _fpAssignTimes();
   const li=parseInt(el.dataset.li);
-  if(li<_fpLrcTimes.length) fpAudio.currentTime=_fpLrcTimes[li];
+  if(!isNaN(li)&&li>=0&&li<_fpLrcTimes.length) fpAudio.currentTime=_fpLrcTimes[li];
   if(fpAudio.paused){fpAudio.play();_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}
   fpTimestampLines.forEach((l,i)=>{
     l.classList.toggle('active',i===li);
@@ -8253,7 +8256,7 @@ function fpShareInstagram(){
 }
 function fpShareFacebook(){
   const h=historyData[fpCurrentIdx]||{};
-  const url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`🎵 AI로 만든 노래: "${h.title||'나의 노래'}"`)}`
+  const url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`🎵 AI로 만든 노래: "${h.title||'나의 노래'}"`)}`;
   window.open(url,'_blank','width=600,height=400');
   fpCloseShare();toast('📘 페이스북 공유','ok',1500);
 }
@@ -9262,6 +9265,7 @@ function commSeekLine(el){
   const audio=pid==='hero'?commHeroAudio:commAudio;
   if(!audio?.duration)return;
   const n=el.parentElement.querySelectorAll('.comm-lyric-line').length;
+  if(!n)return;
   audio.currentTime=(audio.duration/n)*li;
   if(audio.paused){
     stopAllAudio();
