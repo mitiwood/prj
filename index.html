@@ -4031,6 +4031,14 @@ const KIE_BASE = 'https://api.kie.ai';
 
 /* ── 탭 전환 (전역 함수 — onclick에서 직접 호출) ── */
 function switchTab(viewId){
+  /* 열려있는 바텀시트/팝업/오버레이 전부 닫기 */
+  document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
+  document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>el.style.display='none');
+  document.querySelectorAll('#vocal-modal,#extend-modal').forEach(el=>el.style.display='none');
+  document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
+  /* 동적 오버레이 (position:fixed) 제거 */
+  document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
   /* 전체모드(fullplayer) 재생 중이면 미니플레이어로 전환 */
   const fp = $('fullplayer');
   if(fp && fp.classList.contains('on')){
