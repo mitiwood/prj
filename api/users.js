@@ -16,6 +16,15 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 /* in-memory fallback (Supabase 미연동 시) */
 let _memStore = [];
 
+async function _kakaoNotify(event, data) {
+  try {
+    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, data }),
+    });
+  } catch {}
+}
+
 async function _tgNotify(event, data) {
   if (!TG_TOKEN || !TG_CHAT) return;
   try {
@@ -108,11 +117,12 @@ export default async function handler(req, res) {
           prefer: 'resolution=merge-duplicates',
           body: JSON.stringify(entry),
         });
-        if (entry.login_count <= 1) {
-          await _tgNotify('new_user', { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count });
-        } else {
-          await _tgNotify('login', { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count });
-        }
+        const eventType = entry.login_count <= 1 ? 'new_user' : 'login';
+        const eventData = { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count };
+        await Promise.allSettled([
+          _tgNotify(eventType, eventData),
+          _kakaoNotify(eventType, eventData),
+        ]);
         return res.status(200).json({ success: true, source: 'supabase' });
       } catch (e) {
         console.warn('[users POST] Supabase 실패, memory fallback:', e.message);

@@ -16,6 +16,15 @@ const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
 let _mem = []; // fallback
 
+async function _kakaoNotify(event, data) {
+  try {
+    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, data }),
+    });
+  } catch {}
+}
+
 async function _tgComment(author, text, trackTitle) {
   if (!TG_TOKEN || !TG_CHAT) return;
   try {
@@ -200,14 +209,20 @@ export default async function handler(req, res) {
     if (_sbAvailable) {
       try {
         const created = await sb("/comments", { method: "POST", body: JSON.stringify(row) });
-        await _tgComment(row.author_name, row.content, row.track_id);
+        await Promise.allSettled([
+          _tgComment(row.author_name, row.content, row.track_id),
+          _kakaoNotify('comment', { author: row.author_name, text: row.content, track: row.track_id }),
+        ]);
         return res.status(200).json({ success: true, comment: created?.[0] || row, source: "supabase" });
       } catch (e) { console.warn("[comments POST sb]", e.message); }
     }
     row.id = crypto.randomUUID?.() || `mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     _mem.push(row);
     if (_mem.length > 1000) _mem = _mem.slice(-1000);
-    await _tgComment(row.author_name, row.content, row.track_id);
+    await Promise.allSettled([
+      _tgComment(row.author_name, row.content, row.track_id),
+      _kakaoNotify('comment', { author: row.author_name, text: row.content, track: row.track_id }),
+    ]);
     return res.status(200).json({ success: true, comment: row, source: "memory" });
   }
 

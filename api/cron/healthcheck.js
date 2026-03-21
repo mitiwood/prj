@@ -192,7 +192,14 @@ export default async function handler(req, res) {
   }
   report += `\n\n🔗 ${BASE}`;
 
-  /* 전송 */
-  const sent = await tgSend(report);
+  /* 전송 (텔레그램 + 카카오) */
+  const kakaoReport = report.replace(/\*/g, '');
+  const [sent] = await Promise.allSettled([
+    tgSend(report),
+    fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: kakaoReport }),
+    }).catch(() => {}),
+  ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : false));
   return res.status(200).json({ success: sent, okCount, total, checks, dbStats });
 }

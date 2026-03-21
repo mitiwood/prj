@@ -114,13 +114,26 @@ export default async function handler(req, res) {
       report += `\n\n💤 최근 30분간 새 활동 없음`;
     }
 
-    /* 전송 */
-    const sent = await tgSend(report);
-    return res.status(200).json({ success: sent, report, hasNews });
+    /* 전송 (텔레그램 + 카카오) */
+    const kakaoReport = report.replace(/\*/g, '');
+    await Promise.allSettled([
+      tgSend(report),
+      fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: kakaoReport }),
+      }).catch(() => {}),
+    ]);
+    return res.status(200).json({ success: true, report, hasNews });
 
   } catch (e) {
     const errReport = `⚠️ *서버 상태 이상*\n⏰ ${ts}\n\n❌ 오류: ${e.message}\n\n점검이 필요합니다.`;
-    await tgSend(errReport);
+    await Promise.allSettled([
+      tgSend(errReport),
+      fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: errReport.replace(/\*/g, '') }),
+      }).catch(() => {}),
+    ]);
     return res.status(200).json({ success: true, error: e.message });
   }
 }

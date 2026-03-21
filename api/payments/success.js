@@ -19,6 +19,15 @@ async function _tgNotify(text) {
   } catch(e) { console.warn("[TG]", e.message); }
 }
 
+async function _kakaoNotify(text) {
+  try {
+    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch {}
+}
+
 const PLANS = {
   basic:     { price: 4900,  credits: 30,  label: "Basic" },
   pro:       { price: 9900,  credits: 100, label: "Pro" },
@@ -122,7 +131,8 @@ export default async function handler(req, res) {
 
     /* 4) 텔레그램 알림 */
     const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-    await _tgNotify(`💰 *결제 완료*\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`);
+    const payMsg = `💰 결제 완료\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`;
+    await Promise.allSettled([_tgNotify(`💰 *결제 완료*\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`), _kakaoNotify(payMsg)]);
 
     /* 5) 프론트로 리다이렉트 */
     return res.redirect(`/?payment=success&plan=${plan}`);

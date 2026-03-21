@@ -26,6 +26,15 @@ async function _tgNotify(text) {
   } catch(e) { console.warn('[TG]', e.message); }
 }
 
+async function _kakaoNotify(text) {
+  try {
+    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch {}
+}
+
 let _memAnnouncement = null;
 let _tableChecked = false;
 
@@ -204,7 +213,8 @@ export default async function handler(req, res) {
         _memAnnouncement = { ...annData, id: 'mem-' + Date.now(), createdAt: now.toISOString(), expiresAt: annData.expires_at };
       }
       const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-      await _tgNotify(`📣 *인앱 공지 발송*\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`);
+      const notifyMsg = `📣 인앱 공지 발송\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`;
+      await Promise.allSettled([_tgNotify(`📣 *인앱 공지 발송*\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`), _kakaoNotify(notifyMsg)]);
       return res.status(200).json({ success: true, storage: sbOk ? 'supabase' : 'memory' });
     } catch (e) {
       // 최후 폴백: 메모리 저장
