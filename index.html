@@ -6878,8 +6878,16 @@ let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 let _retryAttempted = false; /* 자동 재시도 1회 제한 */
 /* 전역 생성 중 → 모든 생성 버튼 disabled / 완료 → active */
 function _syncGenButtons(){
-  const ids=['gen-btn','simple-gen-btn','yt-gen-btn','mv-gen-btn'];
-  ids.forEach(id=>{const b=$(id);if(b){b.disabled=_globalGenerating;if(_globalGenerating)b.style.opacity='.5';else b.style.opacity='';}});
+  const ids=['gen-btn','simple-gen-btn','yt-gen-btn','mv-gen-btn','rc-submit-btn','extend-submit-btn'];
+  ids.forEach(id=>{
+    const b=$(id);if(!b)return;
+    b.disabled=_globalGenerating;
+    if(_globalGenerating){
+      b.style.opacity='.5';b.style.cursor='not-allowed';
+    } else {
+      b.style.opacity='';b.style.cursor='';
+    }
+  });
 }
 async function generate(overrideParams){
   const _modeKey=currentMode||'custom';
@@ -7462,6 +7470,7 @@ function openExtendModal(audioId){
 if($('extend-modal-close'))$('extend-modal-close').addEventListener('click',()=>$('extend-modal').classList.remove('on'));
 $('extend-modal').addEventListener('click',e=>{if(e.target===$('extend-modal'))$('extend-modal').classList.remove('on');});
 $('extend-submit-btn').addEventListener('click',async()=>{
+  if(_globalGenerating){_showGeneratingPopup();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   if(!extendAudioId){toast('오디오 ID 없음','err');return;}
@@ -7469,6 +7478,7 @@ $('extend-submit-btn').addEventListener('click',async()=>{
   const lyrics=$('extend-lyrics').value.trim();
   const continueAt=parseInt($('extend-at').value)||undefined;
   const model=$('extend-model').value;
+  _globalGenerating=true;_syncGenButtons();
   $('extend-submit-btn').disabled=true;$('extend-spinner').style.display='block';$('extend-btn-txt').textContent='연장 중...';
   try{
     const body={audioId:extendAudioId,model,callBackUrl:CALLBACK,defaultParamFlag:!!(prompt||lyrics),negativeTags:''};
@@ -7507,7 +7517,8 @@ $('extend-submit-btn').addEventListener('click',async()=>{
   }catch(e){
     $('loading-card').classList.remove('on');toast('❌ '+e.message,'err',5000);
   }finally{
-    $('extend-submit-btn').disabled=false;$('extend-spinner').style.display='none';$('extend-btn-txt').textContent='🎵 연장 생성하기';
+    _globalGenerating=false;_syncGenButtons();
+    $('extend-submit-btn').disabled=false;$('extend-spinner').style.display='none';$('extend-btn-txt').textContent='🎵 연장하기';
   }
 });
 
@@ -8304,6 +8315,7 @@ if($('remix-cover-close'))$('remix-cover-close').addEventListener('click',()=>$(
 $('remix-cover-modal')?.addEventListener('click',e=>{if(e.target===$('remix-cover-modal'))$('remix-cover-modal').classList.remove('on');});
 /* Cover 생성 */
 $('rc-submit-btn').addEventListener('click',async()=>{
+  if(_globalGenerating){_showGeneratingPopup();return;}
   if(_rcSourceIdx<0)return;
   const h=historyData[_rcSourceIdx];if(!h)return;
   const apiKey=kieApiKey;
@@ -8313,6 +8325,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
   const model=$('rc-model').value;
   const genderBtn=document.querySelector('.rc-gender-btn.active');
   const gender=genderBtn?.dataset.g||'';
+  _globalGenerating=true;_syncGenButtons();
   $('rc-submit-btn').disabled=true;$('rc-spinner').style.display='block';$('rc-btn-txt').textContent='커버 생성 중...';
   try{
     const vocalPrompt=newStyle||h.tags||'emotional vocal singing';
@@ -8374,6 +8387,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     $('loading-card').classList.remove('on');
     toast('커버 실패: '+e.message,'err',4000);
   }finally{
+    _globalGenerating=false;_syncGenButtons();
     $('rc-submit-btn').disabled=false;$('rc-spinner').style.display='none';$('rc-btn-txt').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> 커버 생성하기';
   }
 });
