@@ -878,18 +878,20 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-reaction-btn.liked{color:#ff6482;border-color:rgba(255,100,130,.35);background:rgba(255,100,130,.08);}
 .comm-reaction-btn.disliked{color:var(--t3);}
 /* Community List Items — 2줄 구조 (상단: 정보, 하단: 액션) */
-.comm-list-item{display:flex;flex-direction:column;gap:8px;padding:12px;cursor:pointer;transition:all .15s;border-bottom:1px solid rgba(255,255,255,.06);background:var(--card);border-radius:12px;margin-bottom:6px;}
+.comm-list-item{display:flex;flex-direction:column;gap:8px;padding:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);background:var(--card);border-radius:12px;margin-bottom:6px;contain:content;}
 .comm-list-item:last-child{margin-bottom:0;}
 .comm-list-item:hover{background:rgba(255,255,255,.04);}
 .comm-list-item:active{opacity:.8;}
+.comm-my-section{margin-bottom:16px;}
+.comm-my-section-title{font-size:13px;font-weight:800;color:var(--acc3);padding:10px 4px 6px;display:flex;align-items:center;gap:6px;}
 /* 재생 중 아이템 포커스 */
-.comm-list-item.playing{background:rgba(124,58,237,.1);border:1.5px solid var(--acc3);box-shadow:0 0 0 3px rgba(124,58,237,.12),0 4px 20px rgba(124,58,237,.15);transform:scale(1.01);}
+.comm-list-item.playing{background:rgba(124,58,237,.1);border:1.5px solid var(--acc3);box-shadow:0 0 0 3px rgba(124,58,237,.12),0 4px 20px rgba(124,58,237,.15);}
 .comm-list-item.playing .comm-list-title{color:var(--acc3);}
 .comm-list-item.playing .comm-play-sm{color:#ef4444;}
 .comm-list-top{display:flex;align-items:center;gap:10px;}
 .comm-list-img{width:52px;height:52px;border-radius:10px;background:var(--card2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .comm-list-info{flex:1;min-width:0;}
-.comm-list-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;color:var(--t1);}
+.comm-list-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;color:var(--t1);line-height:1.3;min-height:18px;}
 .comm-list-meta{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden;}
 .comm-list-duration{font-size:11px;color:var(--t3);font-weight:500;margin-left:4px;}
 .comm-list-actions{display:flex;align-items:center;gap:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;}
@@ -3782,20 +3784,15 @@ try{
 
 /* ── 커뮤니티 주기적 자동 갱신 (10초마다, 깜빡임 없음) ── */
 let _commPollTimer = null;
-let _commPrevJson = ''; /* 이전 데이터 스냅샷 (변경 감지용) */
 function _startCommPoll(){
   if(_commPollTimer) return;
   _commPollTimer = setInterval(async()=>{
     /* 커뮤니티 뷰가 열려있을 때만 갱신 */
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
-    const prevIds = _sbTracks.map(t=>t._sbId).join(',');
     await _loadSbTracks(true);
-    const newIds = _sbTracks.map(t=>t._sbId).join(',');
-    /* 변경 있을 때만 리렌더 — 깜빡임 방지 */
-    if(newIds !== prevIds){
-      try{ renderCommunity(); }catch(e){}
-    }
+    /* _renderCommContent 내부에서 스냅샷 비교 → 변경 시에만 DOM 갱신 */
+    try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
   }, 10000);
 }
 /* 페이지 로드 시 폴링 시작 + 프리로드 */
@@ -8640,6 +8637,52 @@ async function renderCommunity(force=false){
   _renderCommContent(heroWrap, list);
 }
 
+/* 커뮤니티 리스트 아이템 HTML 생성 헬퍼 */
+function _buildCommItem(t,i,isMine){
+  const ownerName=t._owner?.name||'익명';
+  const ownerAvatar=t._owner?.avatar||'';
+  const sid=esc(t._sbId||'');
+  return `<div class="comm-list-item" data-sbid="${sid}" onclick="commPlaySb('${sid}')">
+    <div class="comm-list-top">
+      <div class="comm-list-img">
+        ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
+          :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`}
+      </div>
+      <div class="comm-list-info">
+        <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}">${_durCache[t._sbId]||''}</span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
+        <div class="comm-list-meta">
+          ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:13px;height:13px;border-radius:50%;margin-right:3px;vertical-align:middle;" onerror="this.style.display='none'">`:''}<span style="color:var(--t3);font-size:11px;">${esc(ownerName)}</span>
+          ${t.tags?`<span class="cs-genre" style="margin-left:4px;">${esc(t.tags)}</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="comm-list-actions">
+      <button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">
+        ▶
+      </button>
+      <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">
+        ${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span>
+      </button>
+      <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">
+        💔
+      </button>
+      <span class="star-rating star-rating-sm" data-rating-id="${sid}" onclick="event.stopPropagation()">
+        ${[1,2,3,4,5].map(n=>`<span class="star${n<=t.rating?' on':''}" data-star="${n}" onclick="commRateSb('${sid}',${n})">★</span>`).join('')}
+      </span>
+      <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">
+        💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span>
+      </button>
+      <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
+      ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>`:''}
+    </div>
+  </div>`;
+}
+
+/* 이전 렌더 데이터 스냅샷 (변경 감지용) */
+let _commPrevSnapshot='';
+
 function _renderCommContent(heroWrap, list){
   let tracks=getCommTracks();
   if(!tracks.length){
@@ -8649,6 +8692,7 @@ function _renderCommContent(heroWrap, list){
       <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 생성된 음악이 없어요</div>
       <div style="font-size:12px;">음악 만들기에서 첫 곡을 만들어보세요!</div>
     </div>`;
+    _commPrevSnapshot='';
     return;
   }
 
@@ -8660,107 +8704,99 @@ function _renderCommContent(heroWrap, list){
   const hero=heroIdx>=0?sorted[heroIdx]:sorted[0];
   const rest=sorted.filter(t=>t!==hero);
 
-  /* ── Featured Hero (첨부 디자인: featured-track 스타일) ── */
-  heroWrap.innerHTML=`
-  <div class="comm-featured" id="comm-hero">
-    <div class="comm-featured-cover">
-      ${hero.img
-        ?`<img src="${esc(hero.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`
-        :`<div class="comm-featured-bg">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          </div>`}
-      <div class="comm-featured-cover-grad"></div>
-      <!-- 중앙 재생 버튼 -->
-      <button class="comm-featured-play-btn" id="comm-hero-play-btn">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-      </button>
-      <!-- 상단 우측: 좋아요 뱃지 -->
-      <div class="comm-featured-badge-wrap" style="position:absolute;top:12px;right:12px;z-index:15;">
-        <div class="comm-featured-like-badge">❤️ 좋아요 ${hero.likes>0?hero.likes:0}</div>
-      </div>
-    </div>
-    <!-- 프로그레스바 (커버 아래) -->
-    <div class="comm-featured-prog-wrap">
-      <div class="comm-featured-prog" id="comm-hero-prog">
-        <div class="comm-featured-prog-fill" id="comm-hero-prog-fill"></div>
-      </div>
-      <span class="comm-featured-time" id="comm-hero-time">0:00</span>
-    </div>
-    <div class="comm-featured-info">
-      <div class="comm-featured-title">${esc(hero.title)}</div>
-      <div class="comm-featured-desc">${esc(hero.tags)}${hero.dur!=='—'?' · '+hero.dur:''}</div>
-      <div class="comm-featured-actions">
-        <button class="comm-reaction-btn${hero.liked?' liked':''}" id="comm-hero-like" onclick="commHeroLike()">
-          ${hero.liked?'❤️':'🤍'} 좋아요 <span id="comm-hero-like-cnt">${hero.likes}</span>
+  /* 내 곡 분리: 최신순 → 좋아요순 */
+  const _isMine=(t)=>currentUser && t._owner?.name===currentUser.name && t._owner?.provider===currentUser.provider;
+  const myTracks=rest.filter(t=>_isMine(t)).sort((a,b)=>(b._created||0)-(a._created||0)||(b.likes-a.likes));
+  const otherTracks=rest.filter(t=>!_isMine(t));
+
+  /* 변경 감지용 스냅샷: ID + likes + 곡 수 */
+  const snapshot=JSON.stringify({
+    hero:hero._sbId+':'+hero.likes,
+    my:myTracks.map(t=>t._sbId+':'+t.likes),
+    other:otherTracks.map(t=>t._sbId+':'+t.likes)
+  });
+  const isFirstRender=!list.querySelector('.comm-list-item');
+  const changed=snapshot!==_commPrevSnapshot;
+
+  /* hero는 변경 시에만 다시 렌더 */
+  if(changed || isFirstRender){
+    _commPrevSnapshot=snapshot;
+
+    /* ── Featured Hero ── */
+    heroWrap.innerHTML=`
+    <div class="comm-featured" id="comm-hero">
+      <div class="comm-featured-cover">
+        ${hero.img
+          ?`<img src="${esc(hero.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          :`<div class="comm-featured-bg">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>`}
+        <div class="comm-featured-cover-grad"></div>
+        <button class="comm-featured-play-btn" id="comm-hero-play-btn">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         </button>
-        <button class="comm-reaction-btn${hero.disliked?' disliked':''}" id="comm-hero-dislike" onclick="commHeroDislike()">
-          💔 싫어요
-        </button>
-        <button class="comm-reaction-btn" onclick="openCommentSheet('${esc(hero._sbId||'')}')">💬 댓글 <span class="comm-comment-cnt" data-cnt-id="${esc(hero._sbId||'')}"></span></button>
-        <button class="comm-reaction-btn" onclick="commOpenDetail(0,true)">🎵 가사・정보</button>
-      </div>
-    </div>
-  </div>
-  <div class="comm-detail" id="comm-detail-hero" style="border-radius:0 0 14px 14px;margin-bottom:20px;">
-    ${buildDetailPanel('hero',hero)}
-  </div>`;
-
-  setupHeroAudio(hero);
-
-  /* ── 섹션 라벨 ── */
-  $('comm-section-lbl').textContent=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'다른 트랙')+' ('+rest.length+'곡)';
-
-  if(!rest.length){list.innerHTML='';return;}
-
-  /* ── 리스트 (첨부 디자인: community-item 스타일) ── */
-  list.innerHTML=rest.map((t,i)=>{
-    const ownerName=t._owner?.name||'익명';
-    const ownerAvatar=t._owner?.avatar||'';
-    const sid=esc(t._sbId||'');
-    /* 본인 트랙인지 확인 */
-    const isMine=currentUser && t._owner?.name===currentUser.name && t._owner?.provider===currentUser.provider;
-    return `<div class="comm-list-item" data-sbid="${sid}" onclick="commPlaySb('${sid}')">
-      <div class="comm-list-top">
-        <div class="comm-list-img">
-          ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
-            :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`}
-        </div>
-        <div class="comm-list-info">
-          <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}"></span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
-          <div class="comm-list-meta">
-            ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:13px;height:13px;border-radius:50%;margin-right:3px;vertical-align:middle;" onerror="this.style.display='none'">`:''}<span style="color:var(--t3);font-size:11px;">${esc(ownerName)}</span>
-            ${t.tags?`<span class="cs-genre" style="margin-left:4px;">${esc(t.tags)}</span>`:''}
-          </div>
+        <div class="comm-featured-badge-wrap" style="position:absolute;top:12px;right:12px;z-index:15;">
+          <div class="comm-featured-like-badge">❤️ 좋아요 ${hero.likes>0?hero.likes:0}</div>
         </div>
       </div>
-      <div class="comm-list-actions">
-        <button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">
-          ▶
-        </button>
-        <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">
-          ${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span>
-        </button>
-        <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">
-          💔
-        </button>
-        <span class="star-rating star-rating-sm" data-rating-id="${sid}" onclick="event.stopPropagation()">
-          ${[1,2,3,4,5].map(n=>`<span class="star${n<=t.rating?' on':''}" data-star="${n}" onclick="commRateSb('${sid}',${n})">★</span>`).join('')}
-        </span>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">
-          💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span>
-        </button>
-        <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
-        ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>`:''}
+      <div class="comm-featured-prog-wrap">
+        <div class="comm-featured-prog" id="comm-hero-prog">
+          <div class="comm-featured-prog-fill" id="comm-hero-prog-fill"></div>
+        </div>
+        <span class="comm-featured-time" id="comm-hero-time">0:00</span>
       </div>
+      <div class="comm-featured-info">
+        <div class="comm-featured-title">${esc(hero.title)}</div>
+        <div class="comm-featured-desc">${esc(hero.tags)}${hero.dur!=='—'?' · '+hero.dur:''}</div>
+        <div class="comm-featured-actions">
+          <button class="comm-reaction-btn${hero.liked?' liked':''}" id="comm-hero-like" onclick="commHeroLike()">
+            ${hero.liked?'❤️':'🤍'} 좋아요 <span id="comm-hero-like-cnt">${hero.likes}</span>
+          </button>
+          <button class="comm-reaction-btn${hero.disliked?' disliked':''}" id="comm-hero-dislike" onclick="commHeroDislike()">
+            💔 싫어요
+          </button>
+          <button class="comm-reaction-btn" onclick="openCommentSheet('${esc(hero._sbId||'')}')">💬 댓글 <span class="comm-comment-cnt" data-cnt-id="${esc(hero._sbId||'')}"></span></button>
+          <button class="comm-reaction-btn" onclick="commOpenDetail(0,true)">🎵 가사・정보</button>
+        </div>
+      </div>
+    </div>
+    <div class="comm-detail" id="comm-detail-hero" style="border-radius:0 0 14px 14px;margin-bottom:20px;">
+      ${buildDetailPanel('hero',hero)}
     </div>`;
-  }).join('');
 
-  /* 댓글 카운트 비동기 로드 */
-  _loadCommentCounts([hero._sbId, ...rest.map(t=>t._sbId)].filter(Boolean));
-  /* 재생시간 비동기 로드 */
-  _loadCommDurations(rest);
+    setupHeroAudio(hero);
+
+    /* ── 리스트 빌드 ── */
+    let html='';
+    let allListTracks=[];
+
+    /* 내 곡 섹션 (최신순 → 좋아요순) */
+    if(myTracks.length){
+      html+=`<div class="comm-my-section"><div class="comm-my-section-title">🎵 내가 만든 곡 (${myTracks.length})</div>`;
+      myTracks.forEach((t,i)=>{
+        html+=_buildCommItem(t,i,true);
+        allListTracks.push(t);
+      });
+      html+=`</div>`;
+    }
+
+    /* 다른 트랙 섹션 (좋아요순) */
+    const otherLabel=(_commActiveGenre&&_commActiveGenre!=='all'?{'kpop':'K-Pop','hiphop':'Hip-Hop','lofi':'Lo-Fi','electronic':'Electronic','ost':'OST'}[_commActiveGenre]||'필터':'다른 트랙');
+    $('comm-section-lbl').textContent=otherLabel+' ('+otherTracks.length+'곡)';
+
+    otherTracks.forEach((t,i)=>{
+      html+=_buildCommItem(t,myTracks.length+i,false);
+      allListTracks.push(t);
+    });
+
+    if(!allListTracks.length){list.innerHTML='';return;}
+    list.innerHTML=html;
+
+    /* 댓글 카운트 비동기 로드 */
+    _loadCommentCounts([hero._sbId, ...allListTracks.map(t=>t._sbId)].filter(Boolean));
+    /* 재생시간 비동기 로드 (캐시 없는 것만) */
+    _loadCommDurations(allListTracks.filter(t=>!_durCache[t._sbId]));
+  }
 }
 
 
