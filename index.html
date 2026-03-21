@@ -16,6 +16,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Kakao JS SDK (공유 기능용) -->
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  /* KAKAO_JS_KEY 환경변수가 있으면 자동 초기화 */
+  fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
+    if(d.kakaoJsKey && window.Kakao && !Kakao.isInitialized()){
+      Kakao.init(d.kakaoJsKey);
+      console.log('[Kakao] SDK initialized');
+    }
+  }).catch(()=>{});
+});
+</script>
 <style>
 /* ══════════════════════════════
    KENNY'S MUSIC STUDIO — Dark Edition
@@ -9506,14 +9519,23 @@ function fpCloseShare(){$('share-sheet').classList.remove('on');}
 
 function fpShareKakao(){
   const h=historyData[fpCurrentIdx]||{};
-  const text=`🎵 AI로 만든 노래를 들어봐!\n"${h.title||'나의 노래'}"\nKenny's Music Studio에서 만들었어요`;
+  const title=h.title||'나의 노래';
+  const imgUrl=h.image_url||'';
+  const params=new URLSearchParams({t:title});
+  if(h.audio_url)params.set('play',h.audio_url);
+  if(imgUrl)params.set('img',imgUrl);
+  const shareUrl=window.location.origin+'/api/share?'+params.toString();
+
   if(window.Kakao?.isInitialized?.()){
-    window.Kakao.Share?.sendDefault?.({objectType:'text',text,link:{mobileWebUrl:window.location.href,webUrl:window.location.href}});
-  } else {
-    const url=`https://story.kakao.com/share?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
-    window.open(url,'_blank','width=500,height=400');
+    try{
+      Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
+      fpCloseShare();toast('💬 카카오톡 공유','ok',1500);
+      return;
+    }catch(e){ console.warn('[KakaoShare]',e.message); }
   }
-  fpCloseShare();toast('💬 카카오톡 공유','ok',1500);
+  /* 폴백: 카카오스토리 */
+  window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank','width=500,height=400');
+  fpCloseShare();toast('💬 카카오스토리 공유','ok',1500);
 }
 function fpShareInstagram(){
   /* 인스타는 직접 URL 공유 불가 — 링크 복사 후 안내 */
@@ -10457,14 +10479,28 @@ function commShareSheet(sbId){
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
   document.body.appendChild(overlay);
 
-  /* 카카오톡 */
+  /* 카카오톡 — SDK 초기화 확인 → 실패 시 카카오톡 공유 URL 스킴 사용 */
   overlay.querySelector('#_sh_kakao').onclick=()=>{
-    if(window.Kakao?.Share){
+    /* 1순위: Kakao JS SDK (초기화된 경우) */
+    if(window.Kakao?.Share && Kakao.isInitialized?.()){
       try{
-        Kakao.Share.sendDefault({objectType:'feed',content:{title,description:shareText.split('\\n')[0],imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
-      }catch(e){window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank');}
+        Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
+        overlay.remove();
+        return;
+      }catch(e){ console.warn('[KakaoShare] SDK 오류:', e.message); }
+    }
+    /* 2순위: 카카오톡 앱 URL 스킴 (모바일) */
+    const kakaoShareUrl = 'https://sharer.kakao.com/talk/friends/picker/link?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent('🎵 ' + title + ' - AI 음악');
+    /* 3순위: 웹 공유 (카카오스토리) */
+    if(/Android|iPhone|iPad/i.test(navigator.userAgent)){
+      window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(shareUrl);
+      setTimeout(()=>{
+        /* 앱 미설치 시 폴백 */
+        window.open('https://story.kakao.com/share?url=' + encodeURIComponent(shareUrl), '_blank');
+      }, 1500);
     } else {
-      window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank');
+      /* PC: 카카오스토리 공유 */
+      window.open('https://story.kakao.com/share?url=' + encodeURIComponent(shareUrl), '_blank');
     }
     overlay.remove();
   };
