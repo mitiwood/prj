@@ -8130,19 +8130,30 @@ function _showGeneratingPopup(){
 /* ── 이미지→영상 2단계 UI ── */
 let _mvGeneratedImageUrl='';
 async function _mvGenerateImage(){
+  console.log('[img2vid] _mvGenerateImage called');
   var apiKey=kieApiKey||'proxy';
-  if(_globalGenerating){_showGeneratingPopup();return;}
-  var prompt=($('mv-prompt')?.value||'').trim();if(!prompt){toast('프롬프트를 입력해주세요','err');return;}
+  if(_globalGenerating){console.log('[img2vid] blocked: _globalGenerating=true');_showGeneratingPopup();return;}
+  var prompt=($('mv-prompt')?.value||'').trim();
+  if(!prompt){toast('프롬프트를 입력해주세요','err');return;}
+  console.log('[img2vid] prompt:', prompt.slice(0,50));
   var btn=$('mv-img-gen-btn'),spinner=$('mv-img-spinner'),txt=$('mv-img-txt');
   btn.disabled=true;if(spinner)spinner.classList.add('on');txt.textContent='🖼 이미지 생성 중...';
   _globalGenerating=true;_syncGenButtons();
   var ratio=(function(){var m={'2:3':'9:16','3:2':'16:9','16:9':'16:9','9:16':'9:16','1:1':'1:1'};return m[mvSelectedRatio]||'16:9';})();
   var ti=$('mv-link-track')?.value;var lt=ti!==''&&ti!=null?historyData[parseInt(ti)]:null;
   var ip=prompt+(lt?', music style: '+(lt.tags||''):'')+', high quality, detailed, 4K, cinematic lighting';
+  console.log('[img2vid] image prompt:', ip.slice(0,80), 'ratio:', ratio);
   try{
-    var id;try{id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'flux-kontext-pro/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
-    catch(e){console.warn('[img]',e.message);id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kolors/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
-    var tid=id?.data?.taskId||id?.taskId;if(!tid)throw new Error('이미지 taskId 없음: '+JSON.stringify(id).slice(0,120));
+    var id;
+    console.log('[img2vid] trying flux-kontext-pro/text-to-image...');
+    try{id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'flux-kontext-pro/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
+    catch(e){
+      console.warn('[img2vid] flux failed:', e.message, '→ trying kolors...');
+      try{id=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kolors/text-to-image',input:{prompt:ip,aspect_ratio:ratio}});}
+      catch(e2){console.error('[img2vid] kolors also failed:', e2.message); throw new Error('이미지 생성 모델 호출 실패: '+e.message+' / '+e2.message);}
+    }
+    console.log('[img2vid] createTask response:', JSON.stringify(id).slice(0,200));
+    var tid=id?.data?.taskId||id?.taskId;if(!tid)throw new Error('이미지 taskId 없음: '+JSON.stringify(id).slice(0,150));
     txt.textContent='🖼 이미지 생성 중... (30~60초)';
     for(var i=0;i<50;i++){await sleep(i<3?1500:2500);try{
       var r=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+tid);var d=r?.data;if(!d)continue;
