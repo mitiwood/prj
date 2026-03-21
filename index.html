@@ -9566,9 +9566,11 @@ function fpShareKakao(){
       return;
     }catch(e){ console.warn('[KakaoShare]',e.message); }
   }
-  /* 폴백: 카카오스토리 */
-  window.open('https://story.kakao.com/share?url='+encodeURIComponent(shareUrl),'_blank','width=500,height=400');
-  fpCloseShare();toast('💬 카카오스토리 공유','ok',1500);
+  /* 폴백: 링크 복사 (카카오스토리 API 종료됨) */
+  navigator.clipboard.writeText(shareUrl).then(()=>{
+    toast('🔗 링크 복사 완료! 카카오톡에 붙여넣기하세요','ok',3000);
+  }).catch(()=>toast('공유 링크를 복사할 수 없어요','err',2000));
+  fpCloseShare();
 }
 function fpShareInstagram(){
   /* 인스타는 직접 URL 공유 불가 — 링크 복사 후 안내 */
@@ -10522,19 +10524,13 @@ function commShareSheet(sbId){
         return;
       }catch(e){ console.warn('[KakaoShare] SDK 오류:', e.message); }
     }
-    /* 2순위: 카카오톡 앱 URL 스킴 (모바일) */
-    const kakaoShareUrl = 'https://sharer.kakao.com/talk/friends/picker/link?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent('🎵 ' + title + ' - AI 음악');
-    /* 3순위: 웹 공유 (카카오스토리) */
-    if(/Android|iPhone|iPad/i.test(navigator.userAgent)){
-      window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(shareUrl);
-      setTimeout(()=>{
-        /* 앱 미설치 시 폴백 */
-        window.open('https://story.kakao.com/share?url=' + encodeURIComponent(shareUrl), '_blank');
-      }, 1500);
-    } else {
-      /* PC: 카카오스토리 공유 */
-      window.open('https://story.kakao.com/share?url=' + encodeURIComponent(shareUrl), '_blank');
-    }
+    /* SDK 미초기화 → 링크 복사 + 안내 (카카오스토리 API 종료됨) */
+    navigator.clipboard.writeText(shareUrl).then(()=>{
+      toast('🔗 링크 복사 완료! 카카오톡에 붙여넣기하세요','ok',3000);
+    }).catch(()=>{
+      const urlInput = document.getElementById('_sh_url');
+      if(urlInput){ urlInput.select(); document.execCommand('copy'); toast('🔗 링크 복사됨! 카카오톡에 붙여넣기하세요','ok',3000); }
+    });
     overlay.remove();
   };
   /* X (Twitter) */
