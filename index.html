@@ -7962,56 +7962,244 @@ $('hes-edit-btn').addEventListener('click',()=>{
   ef.classList.add('on');
 });
 
-/* Hook 만들기 */
+/* Hook 만들기 — 가장 좋은 구간 찾기 */
 $('hes-hook-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h||!h.audio_url)return;
   closeHistEditSheet();
-  toast('Hook 기능 준비 중','',2000);
+  showMiniPlayer(_hesIdx);
+  toast('Hook: 원하는 구간에서 재생하세요!','ok',3000);
 });
 
-/* 리믹스: 연장 */
+/* ── 리믹스: 연장 ── */
 $('hes-remix-extend-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
+  const audioId=h.id||h.taskId||'';
+  if(!audioId){toast('오디오 ID를 찾을 수 없어요','err');return;}
   closeHistEditSheet();
-  switchTab('create-view');
-  if(h.id) openExtendModal(h.id);
-  else toast('연장할 트랙 ID가 없어요','err',2000);
+  openExtendModal(audioId);
 });
 
-/* 리믹스: Cover */
+/* ── 리믹스: Cover 모달 ── */
+let _rcSourceIdx=-1;
 $('hes-remix-cover-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
+  _rcSourceIdx=_hesIdx;
+  const thumb=$('rc-thumb');
+  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  $('rc-title').textContent=h.title||'무제';
+  $('rc-tags').textContent=(h.tags||'').split(',')[0]?.trim()||'';
+  $('rc-style').value='';
+  document.querySelectorAll('.rc-gender-btn').forEach(b=>b.classList.remove('active'));
+  $('rc-g-auto').classList.add('active');
   closeHistEditSheet();
-  switchTab('create-view');
-  /* YouTube 모드로 전환 + 제목 채움 */
-  document.querySelector('.mtab[data-mode="youtube"]')?.click();
-  setTimeout(()=>{
-    const titleEl=$('yt-song-title'); if(titleEl) titleEl.value=h.title||'';
-    toast('커버 모드 — YouTube URL을 입력하세요','ok',2000);
-  },100);
+  $('remix-cover-modal').classList.add('on');
+});
+document.querySelectorAll('.rc-gender-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.rc-gender-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+if($('remix-cover-close'))$('remix-cover-close').addEventListener('click',()=>$('remix-cover-modal').classList.remove('on'));
+$('remix-cover-modal')?.addEventListener('click',e=>{if(e.target===$('remix-cover-modal'))$('remix-cover-modal').classList.remove('on');});
+/* Cover 생성 */
+$('rc-submit-btn').addEventListener('click',async()=>{
+  if(_rcSourceIdx<0)return;
+  const h=historyData[_rcSourceIdx];if(!h)return;
+  const apiKey=kieApiKey;
+  if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  if(!h.audio_url){toast('원본 오디오 URL 없음','err');return;}
+  const newStyle=$('rc-style').value.trim();
+  const model=$('rc-model').value;
+  const genderBtn=document.querySelector('.rc-gender-btn.active');
+  const gender=genderBtn?.dataset.g||'';
+  $('rc-submit-btn').disabled=true;$('rc-spinner').style.display='block';$('rc-btn-txt').textContent='커버 생성 중...';
+  try{
+    const vocalPrompt=newStyle||h.tags||'emotional vocal singing';
+    const body={uploadUrl:h.audio_url,prompt:vocalPrompt,model,callBackUrl:CALLBACK,title:'Cover: '+(h.title||'무제')};
+    if(newStyle)body.style=newStyle;
+    if(gender)body.vocalGender=gender;
+    const data=await kieRequest(apiKey,'POST','/api/v1/generate/add-vocals',body);
+    const taskId=data?.data?.taskId||data?.taskId||data?.task_id;
+    if(!taskId)throw new Error('Cover taskId 없음');
+    $('remix-cover-modal').classList.remove('on');
+    $('loading-card').classList.add('on');
+    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    $('ld-sub').innerHTML='커버 버전을 생성하고 있어요...<br>새로운 보컬 스타일 적용 중 🎤';
+    $('ld-task').textContent=`Cover: ${taskId}`;
+    let result=null;
+    for(let i=0;i<40;i++){
+      await sleep(i<5?1000:i<15?2000:3000);
+      try{
+        const res=await kieRequest(apiKey,'GET',`/api/v1/generate/record-info?taskId=${taskId}`);
+        const st=res?.data;if(!st)continue;
+        const status=(st.status||'').toUpperCase();
+        const trks=st.response?.sunoData||[];
+        if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
+        if(status==='FAILED'||status==='ERROR')throw new Error('커버 생성 실패');
+        $('ld-sub').innerHTML=`커버 생성 중... ${Math.min(95,Math.round((i/40)*100))}%<br>잠시만 기다려주세요 🎤`;
+      }catch(pe){if(pe.message.includes('실패'))throw pe;}
+    }
+    $('loading-card').classList.remove('on');
+    if(!result)throw new Error('시간 초과');
+    const newUrl=result.audioUrl||result.audio_url||'';
+    const newTitle=result.title||'Cover: '+(h.title||'무제');
+    const coverTrack={
+      id:result.id||Date.now().toString(),taskId,title:newTitle,
+      audio_url:newUrl,video_url:'',image_url:result.imageUrl||h.image_url||'',
+      tags:newStyle||h.tags||'cover',lyrics:h.lyrics||'',created:Date.now(),
+      type:'audio',genMode:'cover',_coveredFrom:h.id||'',
+      _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+    };
+    historyData.unshift(coverTrack);
+    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
+    lastTracks=[{...result,_inputLyrics:h.lyrics||''}];
+    renderTracks(lastTracks,'Cover: '+h.title,'cover','custom');
+    toast('커버 버전이 완성됐어요!','ok',3000);
+    trackUsage('vocal',{mode:'cover'});
+    _saveTrackToServer({id:coverTrack.id,taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:coverTrack.image_url,tags:coverTrack.tags,lyrics:coverTrack.lyrics,genMode:'cover',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+  }catch(e){
+    $('loading-card').classList.remove('on');
+    toast('커버 실패: '+e.message,'err',4000);
+  }finally{
+    $('rc-submit-btn').disabled=false;$('rc-spinner').style.display='none';$('rc-btn-txt').textContent='🔄 커버 생성하기';
+  }
 });
 
-/* 리믹스: 스타일 재사용 */
+/* ── 리믹스: 스타일 재사용 모달 ── */
+let _rsSourceIdx=-1;
 $('hes-remix-style-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
+  _rsSourceIdx=_hesIdx;
+  const thumb=$('rs-thumb');
+  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  $('rs-title').textContent=h.title||'무제';
+  $('rs-tags').textContent=h.tags||'';
+  $('rs-style').value=h.tags||'';
+  $('rs-new-title').value='';
+  $('rs-prompt').value='';
   closeHistEditSheet();
-  switchTab('create-view');
-  document.querySelector('.mtab[data-mode="custom"]')?.click();
-  setTimeout(()=>{
-    const descEl=$('song-desc'); if(descEl) descEl.value=h.tags||'';
-    toast('스타일 재사용 적용','ok',1500);
-  },100);
+  $('remix-style-modal').classList.add('on');
+});
+if($('remix-style-close'))$('remix-style-close').addEventListener('click',()=>$('remix-style-modal').classList.remove('on'));
+$('remix-style-modal')?.addEventListener('click',e=>{if(e.target===$('remix-style-modal'))$('remix-style-modal').classList.remove('on');});
+/* 스타일 재사용 생성 */
+$('rs-submit-btn').addEventListener('click',async()=>{
+  if(_rsSourceIdx<0)return;
+  const h=historyData[_rsSourceIdx];if(!h)return;
+  const apiKey=kieApiKey;
+  if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  const newPrompt=$('rs-prompt').value.trim();
+  if(!newPrompt){toast('새 가사 또는 프롬프트를 입력해주세요','err');return;}
+  const rStyleStr=$('rs-style').value.trim()||h.tags||'';
+  const model=$('rs-model').value;
+  const newTitle=$('rs-new-title').value.trim();
+  $('rs-submit-btn').disabled=true;$('rs-spinner').style.display='block';$('rs-btn-txt').textContent='생성 중...';
+  try{
+    const body={prompt:newPrompt,customMode:true,instrumental:false,model,callBackUrl:CALLBACK,styleWeight:0.5,weirdnessConstraint:0.5};
+    if(rStyleStr)body.style=rStyleStr;
+    if(newTitle)body.title=newTitle;
+    const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    const taskId=genData?.data?.taskId||genData?.taskId;
+    if(!taskId)throw new Error('taskId 없음');
+    $('remix-style-modal').classList.remove('on');
+    $('loading-card').classList.add('on');
+    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    $('ld-sub').innerHTML='원본 스타일로 새 곡을 만들고 있어요...<br>잠시만 기다려주세요 🎵';
+    $('ld-task').textContent=`Style Reuse: ${taskId}`;
+    const tracks=await pollResult(apiKey,taskId);
+    $('loading-card').classList.remove('on');
+    if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
+    lastTracks=tracks.map(t=>({...t,_inputLyrics:newPrompt}));
+    renderTracks(lastTracks,'스타일 재사용: '+h.title,rStyleStr,'custom');
+    tracks.forEach(t=>{
+      historyData.unshift({
+        id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',
+        audio_url:t.audioUrl||t.audio_url||'',video_url:'',
+        image_url:t.imageUrl||t.image_url||'',tags:t.tags||rStyleStr,
+        lyrics:newPrompt,created:Date.now(),type:'audio',genMode:'style-reuse',
+        _styleFrom:h.id||'',
+        _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+      });
+    });
+    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    toast('새 곡이 완성됐어요!','ok',3000);
+    trackUsage('song',{mode:'style-reuse'});
+    tracks.forEach(t=>{
+      _saveTrackToServer({id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||rStyleStr,lyrics:newPrompt,genMode:'style-reuse',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+    });
+  }catch(e){
+    $('loading-card').classList.remove('on');
+    toast('생성 실패: '+e.message,'err',4000);
+  }finally{
+    $('rs-submit-btn').disabled=false;$('rs-spinner').style.display='none';$('rs-btn-txt').textContent='➕ 새 곡 생성하기';
+  }
 });
 
-/* 리마스터 */
+/* ── 리마스터 v5 모달 ── */
 $('hes-remaster-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
+  const h=historyData[_hesIdx];if(!h)return;
+  const thumb=$('rm-thumb');
+  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  $('rm-title').textContent=h.title||'무제';
+  $('rm-tags').textContent=(h.tags||'').split(',').slice(0,2).join(', ')||'';
   closeHistEditSheet();
-  toast('리마스터 v5 기능 준비 중','',2000);
+  $('remaster-modal').classList.add('on');
+});
+if($('remaster-close'))$('remaster-close').addEventListener('click',()=>$('remaster-modal').classList.remove('on'));
+$('remaster-modal')?.addEventListener('click',e=>{if(e.target===$('remaster-modal'))$('remaster-modal').classList.remove('on');});
+/* 리마스터 실행 */
+$('rm-submit-btn').addEventListener('click',async()=>{
+  if(_hesIdx<0)return;
+  const h=historyData[_hesIdx];if(!h)return;
+  const apiKey=kieApiKey;
+  if(!apiKey){toast('API 키 로딩 중...','err');return;}
+  $('rm-submit-btn').disabled=true;$('rm-spinner').style.display='block';$('rm-btn-txt').textContent='리마스터 중...';
+  try{
+    const prompt=h.lyrics||h.tags||h.title||'instrumental';
+    const body={prompt,customMode:true,instrumental:!h.lyrics,model:'V5',callBackUrl:CALLBACK,styleWeight:0.7,weirdnessConstraint:0.3};
+    if(h.tags)body.style=h.tags;
+    if(h.title)body.title='[Remaster] '+(h.title||'');
+    const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    const taskId=genData?.data?.taskId||genData?.taskId;
+    if(!taskId)throw new Error('taskId 없음');
+    $('remaster-modal').classList.remove('on');
+    $('loading-card').classList.add('on');
+    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    $('ld-sub').innerHTML='V5 모델로 리마스터 중...<br>최고 음질로 다시 만들고 있어요 ✦';
+    $('ld-task').textContent=`Remaster: ${taskId}`;
+    const tracks=await pollResult(apiKey,taskId);
+    $('loading-card').classList.remove('on');
+    if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
+    lastTracks=tracks.map(t=>({...t,_inputLyrics:h.lyrics||''}));
+    renderTracks(lastTracks,'Remaster: '+h.title,h.tags||'','custom');
+    tracks.forEach(t=>{
+      historyData.unshift({
+        id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),
+        audio_url:t.audioUrl||t.audio_url||'',video_url:'',
+        image_url:t.imageUrl||t.image_url||'',tags:t.tags||h.tags||'remaster',
+        lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'remaster',
+        _remasteredFrom:h.id||'',
+        _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
+      });
+    });
+    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    toast('리마스터 완성! V5 품질로 업그레이드됐어요','ok',3000);
+    trackUsage('song',{mode:'remaster'});
+    tracks.forEach(t=>{
+      _saveTrackToServer({id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||h.tags||'remaster',lyrics:h.lyrics||'',genMode:'remaster',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+    });
+  }catch(e){
+    $('loading-card').classList.remove('on');
+    toast('리마스터 실패: '+e.message,'err',4000);
+  }finally{
+    $('rm-submit-btn').disabled=false;$('rm-spinner').style.display='none';$('rm-btn-txt').textContent='✦ 리마스터 시작';
+  }
 });
 
 /* 더 많은 정보 */
