@@ -822,7 +822,8 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 [data-theme="light"] .mf-preview-thumb{background:#f0f0f0;}
 /* 모바일 그리드 간격 */
 @media(max-width:360px){.hist-view-grid.grid-mode{gap:6px;}.hist-view-grid.grid-mode .hist-info{padding:8px 10px;}.hist-view-grid.grid-mode .hist-play-icon{width:36px;height:36px;font-size:14px;}}
-.hist-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:12px;padding:3px;}
+.hist-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:12px;padding:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.hist-tabs::-webkit-scrollbar{display:none;}
 .hist-tab{padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s ease;}
 .hist-tab.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3);}
 .hist-tab:hover:not(.on){color:var(--t1);background:var(--s2);}
@@ -911,9 +912,27 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mf-trk-card:hover .mf-trk-play-btn{background:rgba(124,58,237,.2);}
 .mf-trk-more-btn{width:28px;height:28px;border:none;background:transparent;color:var(--t3);font-size:14px;font-weight:700;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;letter-spacing:1px;}
 .mf-trk-more-btn:hover{background:var(--s2);}
-/* 스피너 */
+/* 스피너 + 스켈레톤 */
 .mf-spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.mf-skeleton-card{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--border);}
+.mf-skeleton-circle{width:44px;height:44px;border-radius:50%;background:var(--bg2);animation:mfPulse 1.2s ease-in-out infinite;}
+.mf-skeleton-line{height:12px;border-radius:6px;background:var(--bg2);animation:mfPulse 1.2s ease-in-out infinite;}
+.mf-skeleton-line.w60{width:60%;}
+.mf-skeleton-line.w40{width:40%;}
+.mf-skeleton-line.w80{width:80%;}
+@keyframes mfPulse{0%,100%{opacity:.4;}50%{opacity:.8;}}
+/* 상세 트랙 정렬 */
+.mf-trk-sort-row{display:flex;gap:6px;margin-bottom:8px;}
+.mf-trk-sort-btn{padding:5px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.mf-trk-sort-btn.on{background:var(--acc);color:#fff;border-color:transparent;}
+/* 새로고침 */
+.mf-refresh-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+.mf-refresh-btn:hover{border-color:var(--acc);color:var(--acc);}
+.mf-refresh-btn.spinning svg{animation:spin .6s linear infinite;}
+[data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
+[data-theme="light"] .mf-refresh-btn{background:#fff;border-color:rgba(0,0,0,.08);}
 .hist-view-title{font-size:24px;font-weight:800;letter-spacing:-0.5px;}
 .hist-view-count{font-size:12px;color:var(--t3);margin-top:4px;}
 /* 히스토리 더보기 메뉴 */
@@ -3625,6 +3644,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
+      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
+      <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
     </div>
     <!-- 정렬 옵션 -->
     <div class="comm-sort-row" id="comm-sort-row" style="display:flex;gap:4px;margin-bottom:10px;">
@@ -10770,6 +10791,8 @@ var _myFeedSort='popular'; /* popular | newest | tracks */
 var _myFeedSearch='';
 var _myFeedRawTracks=null;
 var _myFeedLoadError=false;
+var _myFeedDetailCache={}; /* key: name::provider → {data,ts} */
+var _myFeedTrkSort='default'; /* default | likes | plays | newest */
 
 function _renderMyFeedView(grid,countEl){
   /* 크리에이터 상세 뷰 */
@@ -10777,15 +10800,19 @@ function _renderMyFeedView(grid,countEl){
     _renderCreatorDetailView(grid,countEl);
     return;
   }
-  if(countEl) countEl.textContent='크리에이터';
+  var creatorCount=(_myFeedCreators||[]).length;
+  if(countEl) countEl.textContent='크리에이터'+(creatorCount?' '+creatorCount+'명':'');
   var html='';
 
-  /* ── 검색바 ── */
-  html+='<div class="mf-search-wrap">'
+  /* ── 검색 + 새로고침 ── */
+  html+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">';
+  html+='<div class="mf-search-wrap" style="flex:1;margin-bottom:0;">'
     +'<svg class="mf-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
     +'<input class="mf-search-input" id="mf-search-input" type="text" placeholder="크리에이터 검색..." value="'+esc(_myFeedSearch)+'" oninput="_myFeedOnSearch(this.value)">'
     +(_myFeedSearch?'<button class="mf-search-clear" onclick="_myFeedSearch=\'\';document.getElementById(\'mf-search-input\').value=\'\';renderHistoryView();">&times;</button>':'')
     +'</div>';
+  html+='<button class="mf-refresh-btn" id="mf-refresh-btn" onclick="_myFeedRefresh()" title="새로고침"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>';
+  html+='</div>';
 
   /* ── 정렬 탭 ── */
   html+='<div class="mf-sort-row">'
@@ -10794,9 +10821,13 @@ function _renderMyFeedView(grid,countEl){
     +'<button class="mf-sort-btn'+(_myFeedSort==='tracks'?' on':'')+'" onclick="_myFeedSetSort(\'tracks\')">곡 많은순</button>'
     +'</div>';
 
-  /* 로딩 */
+  /* 로딩 — 스켈레톤 */
   if(_myFeedLoading&&!_myFeedCreators){
-    html+='<div style="padding:40px 0;text-align:center;color:var(--t3);font-size:13px;"><div class="mf-spinner"></div>크리에이터 불러오는 중...</div>';
+    html+='<div class="mf-creator-list">';
+    for(var _sk=0;_sk<5;_sk++){
+      html+='<div class="mf-skeleton-card"><div class="mf-skeleton-circle"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="mf-skeleton-line w60"></div><div class="mf-skeleton-line w40"></div></div></div>';
+    }
+    html+='</div>';
     grid.innerHTML=html;
     return;
   }
@@ -10858,7 +10889,7 @@ function _renderMyFeedView(grid,countEl){
       previews+='<div class="mf-preview-thumb"><img src="'+esc(c.latestTrack.image_url)+'" alt=""></div>';
     }
     var totalPlays=c.totalPlays||0;
-    html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
+    html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
       +'<div class="mf-creator-rank">'+(idx+1)+'</div>'
       +'<div class="mf-creator-avatar">'+avatarHtml+'</div>'
       +'<div class="mf-creator-info">'
@@ -10878,6 +10909,25 @@ function _renderMyFeedView(grid,countEl){
     if(!card) return;
     if(card.dataset.mfAction==='open-creator') _openCreatorDetail(card.dataset.mfName,card.dataset.mfProvider);
   };
+  /* 키보드 접근성 */
+  grid.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){
+      var card=e.target.closest('[data-mf-action]');
+      if(card&&card.dataset.mfAction==='open-creator'){e.preventDefault();_openCreatorDetail(card.dataset.mfName,card.dataset.mfProvider);}
+    }
+  });
+  /* 검색 포커스 유지 */
+  if(_myFeedSearch){var si=document.getElementById('mf-search-input');if(si){si.focus();si.setSelectionRange(si.value.length,si.value.length);}}
+}
+
+/* 새로고침 */
+function _myFeedRefresh(){
+  var btn=document.getElementById('mf-refresh-btn');
+  if(btn) btn.classList.add('spinning');
+  _myFeedCreators=null;
+  _myFeedLoadError=false;
+  _myFeedDetailCache={};
+  _loadMyFeedCreators();
 }
 
 /* 검색 디바운스 */
@@ -12133,7 +12183,6 @@ function _buildCommItem(t,i,isMine){
   const ownerAvatar=t._owner?.avatar||'';
   const sid=esc(t._sbId||'');
   const provIcon = {'google':'🔵','kakao':'💬','naver':'🟢'}[t._owner?.provider]||'';
-  const tagsShort = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,2).join(' · ');
   const genre=_detectGenre(t.allTags);
   const chainMap={extend:'cb-extend',cover:'cb-cover',remaster:'cb-remaster','style-reuse':'cb-style','vocal-remove':'cb-vocal'};
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
@@ -12155,8 +12204,7 @@ function _buildCommItem(t,i,isMine){
           ${!isMine?`<button class="comm-item-follow-btn" data-cname="${esc(ownerName)}" data-cprov="${esc(t._owner?.provider||'')}" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>`:''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
-        <!-- 3열: 음악 스타일 -->
-        ${tagsShort||chainTxt?`<div style="display:flex;align-items:center;gap:4px;">${tagsShort?`<span style="font-size:10px;color:var(--acc3);background:rgba(124,58,237,.08);padding:2px 8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${esc(tagsShort)}</span>`:''}${chainTxt?`<span class="comm-chain-badge ${chainCls}">${chainTxt}</span>`:''}</div>`:''}
+        ${chainTxt?`<div style="display:flex;align-items:center;gap:4px;"><span class="comm-chain-badge ${chainCls}">${chainTxt}</span></div>`:''}
       </div>
     </div>
     <div class="comm-list-actions">
