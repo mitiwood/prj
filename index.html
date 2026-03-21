@@ -3550,6 +3550,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <button class="mv-opt-btn on" data-mode="normal">🎯 노멀</button>
               <button class="mv-opt-btn" data-mode="fun">😄 펀</button>
               <button class="mv-opt-btn" data-mode="spicy">🔥 스파이시</button>
+              <button class="mv-opt-btn" data-mode="img2vid">🖼 이미지→영상</button>
+            </div>
+            <!-- 이미지→비디오 안내 -->
+            <div id="mv-img2vid-info" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;font-size:11px;color:var(--t2);line-height:1.5;">
+              <div style="font-weight:700;color:#3b82f6;margin-bottom:4px;">🖼 이미지→영상 모드</div>
+              AI가 곡 분위기에 맞는 이미지를 먼저 생성한 뒤, 그 이미지를 기반으로 영상을 만듭니다. 일관된 비주얼의 뮤직비디오를 얻을 수 있어요.
             </div>
           </div>
         </div>
@@ -6353,6 +6359,7 @@ document.querySelectorAll('#mv-mode-btns .mv-opt-btn').forEach(btn=>{
     document.querySelectorAll('#mv-mode-btns .mv-opt-btn').forEach(b=>b.classList.remove('on'));
     this.classList.add('on');
     mvSelectedMode=this.dataset.mode;
+    var info=$('mv-img2vid-info');if(info)info.style.display=mvSelectedMode==='img2vid'?'block':'none';
   });
 });
 
@@ -6563,7 +6570,6 @@ async function generateMV(){
   const linkedTrack=trackSelIdx!==''&&trackSelIdx!=null&&trackSelIdx!==undefined?historyData[parseInt(trackSelIdx)]:null;
 
   try{
-    /* Step 1: Grok Imagine text-to-video */
     /* kie.ai Kling API 허용값: "16:9" | "9:16" | "1:1" */
     const _mvRatio = (()=>{
       const allowed = ['16:9','9:16','1:1'];
@@ -6579,14 +6585,50 @@ async function generateMV(){
       const n=parseInt(mvSelectedDuration)||5;
       return String([5,10].includes(n)?n:5);
     })();
-    const genData=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
-      model:'kling-2.6/text-to-video',
-      input:{
-        prompt:prompt,
-        aspect_ratio:_mvRatio,
-        sound:false,
-        duration:_mvDur
+
+    /* ── img2vid 모드: 이미지 먼저 생성 → 이미지 기반 비디오 ── */
+    let _img2vidUrl = '';
+    if(mvSelectedMode==='img2vid'){
+      const ptxt=$('mv-prog-txt');if(ptxt)ptxt.textContent='🖼 씬 이미지 생성 중... (30~60초)';
+      const pbar=$('mv-pbar');if(pbar)pbar.style.width='10%';
+      /* 이미지 프롬프트: 사용자 프롬프트 + 곡 정보 조합 */
+      const imgPrompt = (prompt||'cinematic scene') + (linkedTrack ? ', music style: ' + (linkedTrack.tags||'') : '') + ', high quality, detailed, 4K, cinematic lighting';
+      const imgData = await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
+        model:'flux-kontext/pro',
+        input:{ prompt: imgPrompt, aspect_ratio: _mvRatio }
+      });
+      const imgTaskId = imgData?.data?.taskId||imgData?.taskId;
+      if(!imgTaskId) throw new Error('이미지 생성 taskId 없음');
+      /* 이미지 폴링 (최대 40회, ~60초) */
+      for(let ip=0;ip<40;ip++){
+        await sleep(ip<3?1500:2500);
+        if(pbar)pbar.style.width=Math.min(35,10+ip)+'%';
+        try{
+          const ir=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+imgTaskId);
+          const id=ir?.data;if(!id) continue;
+          const is=(id.state||id.status||'').toLowerCase();
+          if(is==='success'||is==='completed'||is==='finish'){
+            try{const rj=typeof id.resultJson==='string'?JSON.parse(id.resultJson):id.resultJson||{};
+            _img2vidUrl=rj.resultUrls?.[0]||rj.imageUrl||rj.url||'';}catch{}
+            if(!_img2vidUrl){const out=id.output||id.response||id.result||{};_img2vidUrl=out.imageUrl||out.image_url||out.url||out.images?.[0]?.url||'';}
+            break;
+          }
+          if(is==='fail'||is==='failed'||is==='error') throw new Error('이미지 생성 실패: '+(id.failMsg||is));
+        }catch(pe){if(pe.message.includes('실패')) throw pe;}
       }
+      if(!_img2vidUrl) throw new Error('이미지 생성 시간 초과');
+      if(ptxt)ptxt.textContent='🎬 이미지→영상 변환 중...';
+      if(pbar)pbar.style.width='40%';
+    }
+
+    /* Step 1: 비디오 생성 */
+    const _vidModel = _img2vidUrl ? 'kling-2.6/image-to-video' : 'kling-2.6/text-to-video';
+    const _vidInput = _img2vidUrl
+      ? { prompt: prompt||'cinematic motion, smooth camera movement', image_url: _img2vidUrl, aspect_ratio: _mvRatio, sound: false, duration: _mvDur }
+      : { prompt: prompt, aspect_ratio: _mvRatio, sound: false, duration: _mvDur };
+    const genData=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
+      model: _vidModel,
+      input: _vidInput
     });
 
     const mvTaskId=genData?.data?.taskId||genData?.taskId;
