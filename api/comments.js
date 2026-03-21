@@ -159,6 +159,29 @@ export default async function handler(req, res) {
 
   /* ─── GET: 댓글 조회 ─── */
   if (req.method === "GET") {
+    /* 배치 카운트 API — 한 번에 여러 트랙의 댓글 수 조회 */
+    if (req.query?.action === 'counts' && req.query?.ids) {
+      const ids = req.query.ids.split(',').filter(Boolean).slice(0, 50);
+      if (!ids.length) return res.status(400).json({ error: 'ids required' });
+      const counts = {};
+      if (_sbAvailable) {
+        try {
+          /* Supabase에서 트랙별 댓글 수를 한 번에 조회 */
+          const filter = ids.map(id => `track_id.eq.${encodeURIComponent(id)}`).join(',');
+          const rows = await sb(`/comments?or=(${filter})&is_hidden=eq.false&select=track_id`);
+          ids.forEach(id => { counts[id] = 0; });
+          (rows || []).forEach(r => { counts[r.track_id] = (counts[r.track_id] || 0) + 1; });
+        } catch (e) {
+          console.warn('[comments counts sb]', e.message);
+          ids.forEach(id => { counts[id] = _mem.filter(c => c.track_id === id && !c.is_hidden).length; });
+        }
+      } else {
+        ids.forEach(id => { counts[id] = _mem.filter(c => c.track_id === id && !c.is_hidden).length; });
+      }
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30');
+      return res.status(200).json({ ok: true, counts });
+    }
+
     const trackId = req.query?.track_id;
     const all = req.query?.all === "true";
     const limit = parseInt(req.query?.limit) || 200;

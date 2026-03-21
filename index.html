@@ -8952,28 +8952,33 @@ function _loadCommDurations(tracks){
   });
 }
 
-/* 댓글 카운트 배지 업데이트 — 병렬 로드 + 캐시 */
+/* 댓글 카운트 배지 업데이트 — 배치 API + TTL 캐시 */
 const _commentCountCache={};
+let _commentCacheTTL=0; /* 마지막 서버 조회 시각 */
+const _COMMENT_CACHE_MS=60000; /* 60초 캐시 */
 async function _loadCommentCounts(trackIds){
+  if(!trackIds.length) return;
   /* 캐시에서 즉시 표시 */
   trackIds.forEach(tid=>{
     if(_commentCountCache[tid]!==undefined) _setCommentBadge(tid,_commentCountCache[tid]);
   });
-  /* 병렬 fetch (최대 5개씩 배치) */
+  /* TTL 내면 서버 요청 스킵 */
+  if(Date.now()-_commentCacheTTL<_COMMENT_CACHE_MS) return;
+  /* 미캐시 항목만 배치 조회 (한 번에 최대 50개) */
   const uncached=trackIds.filter(tid=>_commentCountCache[tid]===undefined);
-  const batches=[];
-  for(let i=0;i<uncached.length;i+=5) batches.push(uncached.slice(i,i+5));
-  for(const batch of batches){
-    await Promise.all(batch.map(async tid=>{
-      try{
-        const r=await fetch('/api/comments?track_id='+encodeURIComponent(tid));
-        const d=await r.json();
-        const cnt=(d.comments||[]).length;
+  const toFetch=uncached.length?uncached:trackIds.slice(0,20);
+  if(!toFetch.length) return;
+  try{
+    const r=await fetch('/api/comments?action=counts&ids='+toFetch.join(','));
+    const d=await r.json();
+    if(d.ok&&d.counts){
+      Object.entries(d.counts).forEach(([tid,cnt])=>{
         _commentCountCache[tid]=cnt;
         _setCommentBadge(tid,cnt);
-      }catch(e){}
-    }));
-  }
+      });
+    }
+    _commentCacheTTL=Date.now();
+  }catch(e){ console.warn('[commentCounts]',e.message); }
 }
 function _setCommentBadge(tid,cnt){
   const label=cnt>100?'N':cnt>0?String(cnt):'';
