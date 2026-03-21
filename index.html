@@ -3849,6 +3849,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="settings-user-sub" id="settings-user-sub">소셜 계정으로 간편 로그인</div>
         </div>
         <button class="settings-login-btn" id="settings-login-btn" onclick="openLoginSheet()">로그인</button>
+        <button id="settings-edit-btn" onclick="_editProfile()" style="display:none;padding:6px 14px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:6px;">편집</button>
       </div>
       <div class="settings-stats">
         <div class="settings-stat">
@@ -14333,16 +14334,19 @@ function renderSettings(){
   const subEl=$('settings-user-sub');
   const avatarEl=$('settings-avatar');
   const loginBtn=$('settings-login-btn');
+  var editBtn=$('settings-edit-btn');
   if(currentUser && currentUser.provider!=='guest'){
     if(nameEl)nameEl.textContent=currentUser.name||'사용자';
     if(subEl)subEl.textContent=currentUser.email||'로그인됨';
     if(avatarEl)avatarEl.textContent=currentUser.name?currentUser.name[0]:'👤';
     if(loginBtn){loginBtn.textContent='로그아웃';loginBtn.onclick=logout;}
+    if(editBtn)editBtn.style.display='';
   } else {
     if(nameEl)nameEl.textContent='게스트';
     if(subEl)subEl.textContent='로그인하고 내 작곡을 저장하세요';
     if(avatarEl)avatarEl.textContent='👤';
     if(loginBtn){loginBtn.textContent='로그인';loginBtn.onclick=openLoginSheet;}
+    if(editBtn)editBtn.style.display='none';
   }
   /* API 상태 반영 */
   const skDot=$('settings-key-dot');const skTxt=$('settings-key-txt');
@@ -14397,6 +14401,26 @@ function _loadNotifPrefs(){
 }
 function _getNotifPrefs(){
   return JSON.parse(localStorage.getItem('kms_notif_prefs')||'{"likes":true,"comments":true,"follows":true,"system":true}');
+}
+
+function _editProfile() {
+  if (!currentUser || currentUser.provider === 'guest') { openLoginSheet(); return; }
+  var newName = prompt('표시 이름을 입력하세요:', currentUser.name || '');
+  if (!newName || newName.trim() === '' || newName === currentUser.name) return;
+  newName = newName.trim().slice(0, 30);
+  var oldName = currentUser.name;
+  currentUser.name = newName;
+  localStorage.setItem('kms_user', JSON.stringify(currentUser));
+  if ($('settings-user-name')) $('settings-user-name').textContent = newName;
+  if ($('settings-avatar')) $('settings-avatar').textContent = newName[0] || '👤';
+  fetch('/api/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'update-profile', name: newName, provider: currentUser.provider, oldName: oldName })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) toast('프로필이 업데이트되었어요', 'ok', 2000);
+    else { currentUser.name = oldName; localStorage.setItem('kms_user', JSON.stringify(currentUser)); toast('업데이트 실패: ' + (d.error||''), 'err'); renderSettings(); }
+  }).catch(function(){ currentUser.name = oldName; localStorage.setItem('kms_user', JSON.stringify(currentUser)); toast('업데이트 실패', 'err'); renderSettings(); });
 }
 
 /* ── 테마 관리 함수들 ── */
@@ -14706,10 +14730,14 @@ function cancelLyricsEdit(idx){
     <!-- 프로필 탭 -->
     <div style="display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px;">
       <button class="btn btn-acc" onclick="_pfTab('tracks')" data-pftab="tracks">🎵 곡</button>
+      <button class="btn" onclick="_pfTab('followers')" data-pftab="followers">🫂 팔로워</button>
       <button class="btn" onclick="_pfTab('following')" data-pftab="following">👥 팔로잉</button>
     </div>
     <div id="pf-panel-tracks">
       <div id="pf-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div id="pf-panel-followers" style="display:none;">
+      <div id="pf-follower-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div id="pf-panel-following" style="display:none;">
       <div id="pf-following-list" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -15581,19 +15609,70 @@ window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
 
 function _pfTab(tab){
-  ['tracks','following'].forEach(t=>{
+  ['tracks','followers','following'].forEach(t=>{
     const p=$('pf-panel-'+t); if(p) p.style.display=t===tab?'':'none';
   });
   document.querySelectorAll('[data-pftab]').forEach(b=>b.className=b.dataset.pftab===tab?'btn btn-acc':'btn');
+  if(tab==='followers' && _pfTarget) _loadFollowerList();
   if(tab==='following' && _pfTarget) _loadFollowingList();
 }
 
 async function _loadFollowingList(){
   const list=$('pf-following-list');
   if(!list||!_pfTarget) return;
-  list.innerHTML='<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
-  /* 이 유저가 팔로우하는 사람 목록은 follows 테이블에서 조회 필요 — 우선 간단 안내 */
-  list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">팔로잉 기능이 곧 업데이트됩니다</div>';
+  list.innerHTML=Array(3).fill('<div style="display:flex;align-items:center;gap:12px;padding:10px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;"><div style="height:12px;width:50%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;margin-bottom:6px;"></div><div style="height:10px;width:30%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>').join('');
+  try {
+    const r = await fetch('/api/profile?action=following&name='+encodeURIComponent(_pfTarget.name)+'&provider='+encodeURIComponent(_pfTarget.provider));
+    const d = await r.json();
+    if(!d.ok || !d.following || !d.following.length){
+      list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">팔로잉하는 사람이 없어요</div>';
+      return;
+    }
+    var isLoggedIn = currentUser && currentUser.provider !== 'guest';
+    list.innerHTML = d.following.map(function(u){
+      var pI = {'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'';
+      var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+u.name.replace(/'/g,"\\'")+'\',\''+u.provider+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
+        +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
+        +'</div>'
+        +(!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+u.name+'" data-cprov="'+u.provider+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>':'')
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">목록을 불러오지 못했어요</div>';
+  }
+}
+
+async function _loadFollowerList(){
+  var list=$('pf-follower-list');
+  if(!list||!_pfTarget) return;
+  list.innerHTML=Array(3).fill('<div style="display:flex;align-items:center;gap:12px;padding:10px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;"><div style="height:12px;width:50%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;margin-bottom:6px;"></div><div style="height:10px;width:30%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>').join('');
+  try {
+    var r = await fetch('/api/profile?action=followers&name='+encodeURIComponent(_pfTarget.name)+'&provider='+encodeURIComponent(_pfTarget.provider));
+    var d = await r.json();
+    if(!d.ok || !d.followers || !d.followers.length){
+      list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">아직 팔로워가 없어요</div>';
+      return;
+    }
+    var isLoggedIn = currentUser && currentUser.provider !== 'guest';
+    list.innerHTML = d.followers.map(function(u){
+      var pI = {'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'';
+      var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+u.name.replace(/'/g,"\\'")+'\',\''+u.provider+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
+        +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
+        +'</div>'
+        +(!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+u.name+'" data-cprov="'+u.provider+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>':'')
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">목록을 불러오지 못했어요</div>';
+  }
 }
 
 async function _toggleFollow(){
@@ -16782,6 +16861,9 @@ window._blockUser=typeof _blockUser!=='undefined'?_blockUser:function(){};
 window._reportUser=typeof _reportUser!=='undefined'?_reportUser:function(){};
 window._pfTab=typeof _pfTab!=='undefined'?_pfTab:function(){};
 window._toggleFollow=typeof _toggleFollow!=='undefined'?_toggleFollow:function(){};
+window._loadFollowerList=typeof _loadFollowerList!=='undefined'?_loadFollowerList:function(){};
+window._loadFollowingList=typeof _loadFollowingList!=='undefined'?_loadFollowingList:function(){};
+window._editProfile=typeof _editProfile!=='undefined'?_editProfile:function(){};
 window.closeProfileSheet=typeof closeProfileSheet!=='undefined'?closeProfileSheet:function(){};
 window.openCreatorProfile=typeof openCreatorProfile!=='undefined'?openCreatorProfile:function(){};
 </script>
