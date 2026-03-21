@@ -231,8 +231,9 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: "not found" });
   }
 
-  /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자 또는 작성자 본인 ─── */
+  /* ─── DELETE: 댓글 삭제 (soft delete) — 관리자만 ─── */
   if (req.method === "DELETE") {
+    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const id = req.query?.id;
     if (!id) return res.status(400).json({ error: "id required" });
 

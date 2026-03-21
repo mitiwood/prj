@@ -6,9 +6,10 @@
 export default function handler(req, res) {
   const { t = 'AI Music', play = '', img = '' } = req.query;
 
-  const title    = decodeURIComponent(t).replace(/</g, '&lt;').slice(0, 120);
-  const audioUrl = decodeURIComponent(play);
-  const imgUrl   = decodeURIComponent(img);
+  const _esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const title    = _esc(decodeURIComponent(t).slice(0, 120));
+  const audioUrl = _esc(decodeURIComponent(play));
+  const imgUrl   = _esc(decodeURIComponent(img));
   const appBase  = 'https://ai-music-studio-bice.vercel.app';
 
   const ogImg    = imgUrl || `${appBase}/api/og-image?title=${encodeURIComponent(t)}`;
