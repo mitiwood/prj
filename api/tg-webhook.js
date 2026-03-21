@@ -36,18 +36,35 @@ const BASE       = 'https://ai-music-studio-bice.vercel.app';
 /* ── 유틸 ── */
 async function tgSend(chatId, text, opts = {}) {
   if (!BOT_TOKEN) return;
-  const body = Buffer.from(JSON.stringify({
+  const payload = {
     chat_id: chatId,
     text,
-    parse_mode: opts.parse_mode || 'Markdown',
     disable_notification: !!opts.silent,
-  }), 'utf-8');
+  };
+  /* parse_mode: '' 이면 필드 자체를 제외 (Telegram 기본=텍스트) */
+  const pm = 'parse_mode' in opts ? opts.parse_mode : 'Markdown';
+  if (pm) payload.parse_mode = pm;
+
+  const body = Buffer.from(JSON.stringify(payload), 'utf-8');
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) },
       body,
     });
+    if (!r.ok) {
+      const errTxt = await r.text().catch(() => '');
+      console.warn(`[TG webhook] send ${r.status}:`, errTxt.slice(0, 200));
+      /* Markdown 파싱 실패 시 plain text로 재시도 */
+      if (pm && r.status === 400 && errTxt.includes("parse")) {
+        const retry = Buffer.from(JSON.stringify({ chat_id: chatId, text }), 'utf-8');
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(retry.length) },
+          body: retry,
+        });
+      }
+    }
   } catch (e) { console.warn('[TG webhook] send err:', e.message); }
 }
 
