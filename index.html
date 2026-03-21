@@ -11801,21 +11801,31 @@ async function _handlePaymentResult(){
   /* 성공 */
   if(params.get('payment') === 'success'){
     const plan = params.get('plan');
-    const planDef = _TOSS_PLANS[plan] || PLAN_LIMITS[plan];
-    if(planDef){
-      const startDate = new Date().toISOString();
-      const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
-      localStorage.setItem('kms_plan', JSON.stringify({type:plan, startDate, endDate}));
-      /* 사용량 초기화 — 새 플랜 시작 */
-      const mk = getMonthKey();
-      localStorage.setItem('kms_usage_'+mk, JSON.stringify({songs:0,mv:0,lyrics:0,lastUpdated:Date.now()}));
-      toast(`✅ ${planDef.label} 플랜이 활성화됐습니다!`,'',4000);
-      renderPlanUI();
-    }
+    /* PLAN_LIMITS를 우선 사용 (항상 존재) → _TOSS_PLANS 폴백 */
+    const planLabels = {pro:'Pro',creator:'Creator',free:'Free'};
+    const label = planLabels[plan] || PLAN_LIMITS[plan]?.label || _TOSS_PLANS[plan]?.label || plan;
+
+    const startDate = new Date().toISOString();
+    const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
+    localStorage.setItem('kms_plan', JSON.stringify({type:plan, startDate, endDate}));
+    /* 사용량 초기화 — 새 플랜 시작 */
+    const mk = getMonthKey();
+    localStorage.setItem('kms_usage_'+mk, JSON.stringify({songs:0,mv:0,lyrics:0,lastUpdated:Date.now()}));
+
+    /* 즉시 UI 갱신 */
+    toast(`✅ ${label} 플랜이 활성화됐습니다!`,'ok',4000);
+    try { renderPlanUI(); } catch(e){}
+    /* 설정 탭으로 이동해서 플랜 변경 확인 */
+    setTimeout(()=>{
+      switchTab('settings-view');
+      try { renderPlanUI(); _renderSettingsExtended(); } catch(e){}
+    }, 500);
+
     history.replaceState(null, '', location.pathname);
   }
 }
-/* 앱 로드 시 결제 결과 확인 */
+/* 앱 로드 시 결제 결과 확인 — DOMContentLoaded + load 양쪽 */
+document.addEventListener('DOMContentLoaded', ()=>setTimeout(_handlePaymentResult, 300));
 window.addEventListener('load', _handlePaymentResult);
 
 /* renderSettings 확장 — 플랜 UI + 통계 갱신 (무한루프 방지: function 재정의 금지) */
