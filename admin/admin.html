@@ -4996,8 +4996,10 @@ async function _loadPaymentData(){
     document.getElementById('pay-total-count').textContent = totalCount;
     document.getElementById('pay-total-amount').textContent = '₩' + totalAmount.toLocaleString();
 
-    if(!payments.length){
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>';
+    if(d.error){
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">⚠️ ${_esc(d.error)}<br><span style="font-size:10px;">Supabase SQL Editor에서 payments 테이블을 생성하세요</span></td></tr>`;
+    } else if(!payments.length){
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다 (TEST 모드)</td></tr>';
     } else {
       tbody.innerHTML = payments.map((p, i) => {
         const statusBadge = {

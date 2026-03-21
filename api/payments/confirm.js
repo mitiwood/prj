@@ -48,11 +48,19 @@ export default async function handler(req, res) {
 
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
-    const r = await sb(
-      `/payments?select=*&order=created_at.desc&limit=${limit}&offset=${offset}`
-    );
-    const data = await r.json();
-    return res.status(200).json({ ok: true, payments: data });
+    try {
+      const r = await sb(
+        `/payments?select=*&order=created_at.desc&limit=${limit}&offset=${offset}`
+      );
+      const data = await r.json();
+      /* Supabase 에러 체크 (테이블 미존재 등) */
+      if (!r.ok || data?.code) {
+        return res.status(200).json({ ok: true, payments: [], error: data?.message || 'payments 테이블 없음' });
+      }
+      return res.status(200).json({ ok: true, payments: Array.isArray(data) ? data : [] });
+    } catch (e) {
+      return res.status(200).json({ ok: true, payments: [], error: e.message });
+    }
   }
 
   /* ── POST: 결제 승인 ── */
