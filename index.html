@@ -7620,7 +7620,7 @@ const TUNING_PRESETS=[
 function _initTuningPresets(){
   const wrap=$('tuning-presets');if(!wrap) return;
   wrap.innerHTML=TUNING_PRESETS.map(p=>
-    `<button class="comm-trend-tag" style="font-size:11px;" data-tp="${p.id}" onclick="_applyTuning('${p.id}')">${p.label}</button>`
+    `<button data-tp="${p.id}" onclick="_applyTuning('${p.id}')" style="padding:6px 14px;border-radius:10px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.08);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;">${p.label}</button>`
   ).join('');
 }
 function _applyTuning(id){
@@ -7629,7 +7629,7 @@ function _applyTuning(id){
   const wc=$('weird-constraint');if(wc){wc.value=p.wc;wc.dispatchEvent(new Event('input'));}
   if(p.neg){const neg=$('neg-tags');if(neg&&!neg.value) neg.value=p.neg;}
   if(p.inst){instOn=true;var it=document.getElementById('inst-toggle');if(it)it.classList.add('on');}
-  document.querySelectorAll('[data-tp]').forEach(b=>b.style.cssText=b.dataset.tp===id?'font-size:11px;border:1.5px solid var(--acc);background:rgba(124,58,237,.15);':'font-size:11px;');
+  var _tpBase='padding:6px 14px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;';document.querySelectorAll('[data-tp]').forEach(b=>{b.style.cssText=b.dataset.tp===id?_tpBase+'border:1.5px solid var(--acc);background:rgba(124,58,237,.2);color:var(--acc);':_tpBase+'border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.08);color:var(--acc3);';});
   toast('⚡ "'+p.label.replace(/[^\w가-힣 ]/g,'')+'" 튜닝 적용','ok',1500);
 }
 window._applyTuning=typeof _applyTuning!=="undefined"?_applyTuning:window._applyTuning||function(){};
@@ -9849,13 +9849,25 @@ function showMiniPlayer(idx){
     _setPlayIcon(fpb, false, true);
     mpStopViz(); fpStopViz();
     _resetAllCommPlayBtns();
-    /* 다음 곡 히스토리에서 audio_url 있는 것 */
-    let next = fpCurrentIdx + 1;
-    while(next < historyData.length && !historyData[next]?.audio_url) next++;
-    if(next < historyData.length){
-      setTimeout(()=> showMiniPlayer(next), 600);
+    /* 크리에이터 큐가 있으면 큐에서 다음 곡 */
+    if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
+      var nqi=_mfPlayQueueIdx+1;
+      if(nqi<_mfPlayQueue.length){
+        _mfPlayQueueIdx=nqi;
+        setTimeout(function(){_mfQueuePlay(nqi);},600);
+      } else {
+        _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+        toast('크리에이터 재생 완료','',2000);
+      }
     } else {
-      toast('마지막 곡이에요','',2000);
+      /* 일반 히스토리에서 다음 곡 */
+      let next = fpCurrentIdx + 1;
+      while(next < historyData.length && !historyData[next]?.audio_url) next++;
+      if(next < historyData.length){
+        setTimeout(()=> showMiniPlayer(next), 600);
+      } else {
+        toast('마지막 곡이에요','',2000);
+      }
     }
   });
 
@@ -10163,10 +10175,19 @@ $('mp-play-btn').addEventListener('click', e=>{
 /* 다음 곡 */
 $('mp-next-btn').addEventListener('click', e=>{
   e.stopPropagation();
+  /* 크리에이터 큐 우선 */
+  if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
+    var nqi=_mfPlayQueueIdx+1;
+    if(nqi<_mfPlayQueue.length){
+      _mfPlayQueueIdx=nqi;
+      _mfQueuePlay(nqi);
+      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+      return;
+    } else { _mfPlayQueue=[];_mfPlayQueueIdx=-1; }
+  }
   const next = fpCurrentIdx + 1;
   if(next < historyData.length){
     showMiniPlayer(next);
-    /* 풀플레이어 열려있으면 갱신 */
     if($('fullplayer').classList.contains('on')) expandToFullPlayer();
   } else {
     toast('마지막 곡이에요','',1500);
@@ -10814,6 +10835,8 @@ async function _plShareToCommunity(){
 window._plShareToCommunity=typeof _plShareToCommunity!=="undefined"?_plShareToCommunity:window._plShareToCommunity||function(){};
 
 /* ── MY 피드: 커뮤니티 크리에이터 음악 (고도화) ── */
+var _mfPlayQueue=[]; /* 크리에이터 상세에서 재생 시 연속재생 큐 [{id,title,audio_url,...}] */
+var _mfPlayQueueIdx=-1;
 var _myFeedCreators=null;
 var _myFeedLoading=false;
 var _myFeedDetail=null;
@@ -10904,6 +10927,26 @@ function _renderMyFeedView(grid,countEl){
     html+='</div></div>';
   }
 
+  /* ── 최근 업로드 (검색 없을 때) ── */
+  if(!_myFeedSearch){
+    var recentTracks=_getRecentCreatorTracks(8);
+    if(recentTracks.length>0){
+      html+='<div class="mf-recent-section">';
+      html+='<div class="mf-recent-title">🆕 최근 업로드</div>';
+      html+='<div class="mf-recent-scroll">';
+      recentTracks.forEach(function(rt){
+        var thumb=rt.image_url?'<img src="'+esc(rt.image_url)+'" alt="">':'<div class="mf-recent-ph">🎵</div>';
+        html+='<div class="mf-recent-card" data-mf-action="play-recent" data-mf-rt-id="'+esc(rt.id)+'" data-mf-rt-name="'+esc(rt.owner_name||'')+'" data-mf-rt-prov="'+esc(rt.owner_provider||'')+'">'
+          +'<div class="mf-recent-thumb">'+thumb+'</div>'
+          +'<div class="mf-recent-info">'
+          +'<div class="mf-recent-trk-title">'+esc(rt.title||'무제')+'</div>'
+          +'<div class="mf-recent-artist">'+esc(rt.owner_name||'')+'</div>'
+          +'</div></div>';
+      });
+      html+='</div></div>';
+    }
+  }
+
   /* ── 전체 리스트 ── */
   html+='<div class="mf-creator-list">';
   creators.forEach(function(c,idx){
@@ -10939,6 +10982,7 @@ function _renderMyFeedView(grid,countEl){
     var card=e.target.closest('[data-mf-action]');
     if(!card) return;
     if(card.dataset.mfAction==='open-creator') _openCreatorDetail(card.dataset.mfName,card.dataset.mfProvider);
+    else if(card.dataset.mfAction==='play-recent') _playRecentTrack(card.dataset.mfRtId,card.dataset.mfRtName,card.dataset.mfRtProv);
   };
   /* 키보드 접근성 */
   grid.addEventListener('keydown',function(e){
@@ -11071,6 +11115,8 @@ function _renderCreatorDetailView(grid,countEl){
     var tag1=(t.tags||'').split(',')[0]?.trim()||'';
     var hasVideo=!!t.video_url;
     var likes=t.comm_likes||0, plays=t.comm_plays||0;
+    var dateStr='';
+    if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
     html+='<div class="mf-trk-card" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
       +'<div class="mf-trk-num">'+(i+1)+'</div>'
       +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
@@ -11080,6 +11126,7 @@ function _renderCreatorDetailView(grid,countEl){
       +(likes>0?'<span>❤️ '+likes+'</span>':'')
       +(plays>0?'<span>▶ '+plays+'</span>':'')
       +(tag1?'<span>'+esc(tag1)+'</span>':'')
+      +(dateStr?'<span>'+dateStr+'</span>':'')
       +'</div></div>'
       +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>'
       +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
@@ -11277,14 +11324,32 @@ function _closeCreatorDetail(){
   renderHistoryView();
 }
 
-/* 크리에이터 상세 — 트랙 재생 */
+/* 크리에이터 상세 — 트랙 재생 (큐 설정) */
 function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
   if(!t||!t.audio_url){toast('오디오를 재생할 수 없어요','err');return;}
+  /* 연속재생 큐 설정 */
+  _mfPlayQueue=_myFeedDetail.tracks.filter(function(x){return !!x.audio_url;});
+  _mfPlayQueueIdx=_mfPlayQueue.indexOf(t);
+  if(_mfPlayQueueIdx<0) _mfPlayQueueIdx=0;
+  /* historyData에 추가/찾기 */
   var hIdx=historyData.findIndex(function(h){return h.id===t.id||h._sbId===t.id;});
   if(hIdx<0){
     historyData.unshift({id:t.id,_sbId:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url,video_url:t.video_url||'',tags:t.tags||'',type:t.video_url?'mv':'audio',created:t.created_at,_fromFeed:true,owner_name:_myFeedDetail.name,owner_provider:_myFeedDetail.provider});
+    hIdx=0;
+  }
+  showMiniPlayer(hIdx);
+  if(typeof _countTrackPlay==='function') _countTrackPlay(t.id);
+}
+
+/* 큐에서 재생 */
+function _mfQueuePlay(qi){
+  if(!_mfPlayQueue[qi])return;
+  var t=_mfPlayQueue[qi];
+  var hIdx=historyData.findIndex(function(h){return h.id===t.id||h._sbId===t.id;});
+  if(hIdx<0){
+    historyData.unshift({id:t.id,_sbId:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url,video_url:t.video_url||'',tags:t.tags||'',type:t.video_url?'mv':'audio',created:t.created_at,_fromFeed:true});
     hIdx=0;
   }
   showMiniPlayer(hIdx);
