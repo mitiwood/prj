@@ -11734,6 +11734,34 @@ async function upgradePlan(type){
     return;
   }
 
+  /* 결제수단 선택 바텀시트 */
+  const _ov = document.createElement('div');
+  _ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20000;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);';
+  _ov.onclick = e => { if(e.target===_ov) _ov.remove(); };
+  _ov.innerHTML = `<div style="width:100%;max-width:480px;background:var(--card2,#1e1e2a);border-radius:20px 20px 0 0;padding:24px 20px calc(56px + env(safe-area-inset-bottom) + 16px);">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:4px;">${planDef.label} 플랜 결제</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:20px;">₩${planDef.price.toLocaleString()}/월 · 결제수단을 선택하세요</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="this.closest('[style*=fixed]').remove();_doTossPayment('${type}','카드','${user.name}','${user.provider||''}')" style="width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;transition:all .2s;">
+        <i data-lucide="credit-card" style="width:20px;height:20px;"></i> 카드 결제
+      </button>
+      <button onclick="this.closest('[style*=fixed]').remove();_doTossPayment('${type}','토스페이','${user.name}','${user.provider||''}')" style="width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;transition:all .2s;">
+        <i data-lucide="smartphone" style="width:20px;height:20px;"></i> 토스페이
+      </button>
+      <button onclick="this.closest('[style*=fixed]').remove();_doTossPayment('${type}','계좌이체','${user.name}','${user.provider||''}')" style="width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;transition:all .2s;">
+        <i data-lucide="landmark" style="width:20px;height:20px;"></i> 계좌이체
+      </button>
+    </div>
+    <button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:12px;margin-top:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:13px;cursor:pointer;font-family:inherit;">취소</button>
+  </div>`;
+  document.body.appendChild(_ov);
+  if(window.lucide) lucide.createIcons();
+}
+
+async function _doTossPayment(type, method, userName, userProvider){
+  const planDef = _TOSS_PLANS[type];
+  if(!planDef) return;
   const toss = await _initToss();
   if(!toss) return;
 
@@ -11741,12 +11769,12 @@ async function upgradePlan(type){
   const orderName = `KMS ${planDef.label} 플랜 (월정액)`;
 
   try {
-    await toss.requestPayment('카드', {
+    await toss.requestPayment(method, {
       amount: planDef.price,
-      orderId: orderId,
-      orderName: orderName,
-      customerName: user.name,
-      successUrl: location.origin + '/api/payments/success?plan=' + type + '&userName=' + encodeURIComponent(user.name) + '&userProvider=' + encodeURIComponent(user.provider||''),
+      orderId,
+      orderName,
+      customerName: userName,
+      successUrl: location.origin + '/api/payments/success?plan=' + type + '&userName=' + encodeURIComponent(userName) + '&userProvider=' + encodeURIComponent(userProvider),
       failUrl: location.origin + '/?payment=fail&plan=' + type,
     });
   } catch(e){
