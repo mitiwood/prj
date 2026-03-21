@@ -170,7 +170,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="users" onclick="switchSec('users')"><span class="snav-icon">👥</span>사용자</div>
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')"><span class="snav-icon">🛡️</span>매니저</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
-      <div class="snav-item" data-sec="payments" onclick="switchSec('payments')"><span class="snav-icon">💳</span>결제 관리</div>
+      <div class="snav-item" data-sec="payments" onclick="switchSec('payments')"><span class="snav-icon">👤</span>회원 관리</div>
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
       <div class="snav-item" data-sec="live" onclick="switchSec('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
@@ -507,41 +507,79 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
       <!-- 💳 결제 관리 -->
       <div class="admin-section" id="sec-payments">
-        <div class="sec-hdr"><h2>💳 결제 관리</h2><p>결제 현황, 유저 플랜, 환불 관리</p></div>
+        <div class="sec-hdr"><h2>👤 회원 관리</h2><p>회원 현황, 플랜 변경, 결제 내역, 탈퇴/정지, 실시간 알림</p></div>
+
+        <!-- 탭 -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;" id="mem-tabs">
+          <button class="btn btn-acc" onclick="_memTab('members')" data-mtab="members">회원 현황</button>
+          <button class="btn" onclick="_memTab('payments')" data-mtab="payments">결제 내역</button>
+          <button class="btn" onclick="_memTab('withdraw')" data-mtab="withdraw">탈퇴/정지</button>
+        </div>
 
         <!-- 통계 카드 -->
         <div class="stat-grid" style="margin-bottom:20px;">
-          <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-val" id="pay-total-count">-</div><div class="stat-label">총 결제건수</div></div>
-          <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-val" id="pay-total-amount">-</div><div class="stat-label">총 매출</div></div>
-          <div class="stat-card"><div class="stat-icon">💜</div><div class="stat-val" id="pay-pro-count">-</div><div class="stat-label">Pro 유저</div></div>
-          <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-val" id="pay-creator-count">-</div><div class="stat-label">Creator 유저</div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="pay-total-users">-</div><div class="stat-label">전체 회원</div></div>
+          <div class="stat-card"><div class="stat-icon">💜</div><div class="stat-val" id="pay-pro-count">-</div><div class="stat-label">Pro</div></div>
+          <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-val" id="pay-creator-count">-</div><div class="stat-label">Creator</div></div>
+          <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-val" id="pay-total-amount">-</div><div class="stat-label">총 매출</div></div>
         </div>
 
-        <!-- 유저 플랜 현황 -->
-        <div class="admin-table-wrap" style="margin-bottom:20px;">
-          <div class="admin-table-header">
-            <h3>👥 유저 플랜 현황</h3>
-            <button class="btn" onclick="_loadPaymentData()" style="font-size:11px;">🔄 새로고침</button>
+        <!-- 회원 현황 탭 -->
+        <div id="mem-panel-members">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>👥 회원 목록</h3>
+              <div style="display:flex;gap:6px;">
+                <input class="table-search" id="mem-search" placeholder="이름 검색..." oninput="_filterMembers()">
+                <button class="btn" onclick="_loadPaymentData()" style="font-size:11px;">🔄</button>
+              </div>
+            </div>
+            <table><thead><tr>
+              <th>이름</th><th>소셜</th><th>플랜</th><th>크레딧</th><th>만료일</th><th>로그인</th><th>가입일</th><th>액션</th>
+            </tr></thead>
+            <tbody id="pay-user-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
+            </tbody></table>
           </div>
-          <table><thead><tr>
-            <th>이름</th><th>소셜</th><th>플랜</th><th>크레딧</th><th>만료일</th><th>로그인</th><th>액션</th>
-          </tr></thead>
-          <tbody id="pay-user-tbody">
-            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
-          </tbody></table>
         </div>
 
-        <!-- 결제 내역 -->
-        <div class="admin-table-wrap">
-          <div class="admin-table-header">
-            <h3>💳 결제 내역</h3>
+        <!-- 결제 내역 탭 -->
+        <div id="mem-panel-payments" style="display:none;">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>💳 결제 내역</h3>
+              <div style="display:flex;gap:6px;">
+                <span id="pay-total-count" style="font-size:11px;color:var(--t3);"></span>
+              </div>
+            </div>
+            <table><thead><tr>
+              <th>No</th><th>주문ID</th><th>유저</th><th>플랜</th><th>금액</th><th>상태</th><th>결제일</th><th>액션</th>
+            </tr></thead>
+            <tbody id="pay-history-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>
+            </tbody></table>
           </div>
-          <table><thead><tr>
-            <th>No</th><th>주문ID</th><th>유저</th><th>플랜</th><th>금액</th><th>상태</th><th>결제일</th><th>액션</th>
-          </tr></thead>
-          <tbody id="pay-history-tbody">
-            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>
-          </tbody></table>
+        </div>
+
+        <!-- 탈퇴/정지 탭 -->
+        <div id="mem-panel-withdraw" style="display:none;">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>🚫 탈퇴/정지 관리</h3>
+            </div>
+            <div style="padding:16px;font-size:13px;color:var(--t2);line-height:1.6;">
+              <p style="margin-bottom:12px;">회원 목록에서 각 유저의 <b>액션</b> 버튼을 사용하세요:</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="padding:10px;background:var(--bg3);border-radius:8px;">🔒 <b>정지</b> — 플랜을 free로 강제 변경 + 크레딧 0으로 초기화. 로그인은 가능하지만 생성 불가.</div>
+                <div style="padding:10px;background:var(--bg3);border-radius:8px;">🗑 <b>탈퇴</b> — 유저 데이터 삭제 (트랙/댓글은 유지, 유저 정보만 삭제). 되돌릴 수 없음.</div>
+                <div style="padding:10px;background:var(--bg3);border-radius:8px;">📢 <b>알림</b> — 특정 유저에게 실시간 알림 발송. 플랜 변경/정지 시 자동 알림.</div>
+              </div>
+            </div>
+            <div style="padding:0 16px 16px;">
+              <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">정지된 회원</div>
+              <div id="mem-suspended-list" style="color:var(--t3);font-size:12px;">없음</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1532,7 +1570,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'💳 결제 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin();
@@ -4931,123 +4969,157 @@ setInterval(() => {
 /* ══════════════════════════════
    💳 결제 관리
 ══════════════════════════════ */
-async function _loadPaymentData(){
-  /* 유저 플랜 현황 */
-  try {
-    const r = await fetch('/api/users', { headers: { Authorization: 'Bearer ' + (getAdminPw()||'') } });
-    const d = await r.json();
-    const users = d.users || d.data || [];
-    const tbody = document.getElementById('pay-user-tbody');
-
-    let proCount = 0, creatorCount = 0;
-    users.forEach(u => {
-      if(u.plan === 'pro') proCount++;
-      if(u.plan === 'creator') creatorCount++;
-    });
-
-    document.getElementById('pay-pro-count').textContent = proCount;
-    document.getElementById('pay-creator-count').textContent = creatorCount;
-
-    if(!users.length){
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">유저 데이터 없음</td></tr>';
-    } else {
-      tbody.innerHTML = users.sort((a,b) => {
-        const planOrder = {creator:0, pro:1, free:2};
-        return (planOrder[a.plan]||2) - (planOrder[b.plan]||2) || (b.login_count||0) - (a.login_count||0);
-      }).map(u => {
-        const planBadge = {
-          creator: '<span style="color:#f59e0b;font-weight:700;">👑 Creator</span>',
-          pro: '<span style="color:var(--acc2);font-weight:700;">💜 Pro</span>',
-          free: '<span style="color:var(--t3);">Free</span>',
-        }[u.plan] || '<span style="color:var(--t3);">Free</span>';
-        const expires = u.plan_expires ? new Date(u.plan_expires).toLocaleDateString('ko-KR') : '-';
-        const provIcon = {'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'👤';
-        return `<tr>
-          <td style="font-weight:600;">${_esc(u.name||'?')}</td>
-          <td>${provIcon} ${u.provider||'?'}</td>
-          <td>${planBadge}</td>
-          <td>${u.credits||0}</td>
-          <td style="font-size:11px;color:var(--t3);">${expires}</td>
-          <td>${u.login_count||0}회</td>
-          <td>
-            <select onchange="_changePlan('${_esc(u.name)}','${_esc(u.provider)}',this.value)" style="font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--t1);">
-              <option value="free" ${u.plan==='free'?'selected':''}>Free</option>
-              <option value="pro" ${u.plan==='pro'?'selected':''}>Pro</option>
-              <option value="creator" ${u.plan==='creator'?'selected':''}>Creator</option>
-            </select>
-          </td>
-        </tr>`;
-      }).join('');
-    }
-  } catch(e){
-    document.getElementById('pay-user-tbody').innerHTML = `<tr><td colspan="7" style="color:#ef4444;">${e.message}</td></tr>`;
-  }
-
-  /* 결제 내역 */
-  try {
-    const r = await fetch('/api/payments/confirm?key=' + encodeURIComponent(getAdminPw()||''));
-    const d = await r.json();
-    const payments = Array.isArray(d.payments) ? d.payments : Array.isArray(d.data) ? d.data : [];
-    const tbody = document.getElementById('pay-history-tbody');
-
-    let totalAmount = 0, totalCount = payments.length;
-    payments.forEach(p => { if(p.status === 'DONE') totalAmount += (p.amount||0); });
-
-    document.getElementById('pay-total-count').textContent = totalCount;
-    document.getElementById('pay-total-amount').textContent = '₩' + totalAmount.toLocaleString();
-
-    if(d.error){
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">⚠️ ${_esc(d.error)}<br><span style="font-size:10px;">Supabase SQL Editor에서 payments 테이블을 생성하세요</span></td></tr>`;
-    } else if(!payments.length){
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다 (TEST 모드)</td></tr>';
-    } else {
-      tbody.innerHTML = payments.map((p, i) => {
-        const statusBadge = {
-          'DONE': '<span style="color:var(--grn);font-weight:700;">✅ 완료</span>',
-          'CANCELED': '<span style="color:#ef4444;">❌ 취소</span>',
-          'EXPIRED': '<span style="color:var(--t3);">⏰ 만료</span>',
-        }[p.status] || p.status;
-        const dt = p.created_at ? new Date(p.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-';
-        return `<tr>
-          <td>${i+1}</td>
-          <td style="font-size:10px;color:var(--t3);">${_esc((p.order_id||'').slice(0,20))}</td>
-          <td style="font-weight:600;">${_esc(p.user_name||'?')}</td>
-          <td>${p.plan||'?'}</td>
-          <td>₩${(p.amount||0).toLocaleString()}</td>
-          <td>${statusBadge}</td>
-          <td style="font-size:11px;">${dt}</td>
-          <td>${p.status==='DONE'?`<button class="btn btn-red" onclick="_cancelPayment('${_esc(p.payment_key||'')}','${_esc(p.order_id||'')}')" style="font-size:10px;padding:2px 8px;">환불</button>`:''}</td>
-        </tr>`;
-      }).join('');
-    }
-  } catch(e){
-    document.getElementById('pay-history-tbody').innerHTML = `<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
-  }
+/* ── 회원관리 탭 전환 ── */
+let _memAllUsers = [];
+function _memTab(tab){
+  ['members','payments','withdraw'].forEach(t=>{
+    const panel = document.getElementById('mem-panel-'+t);
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('#mem-tabs .btn').forEach(b=>{
+    b.className = b.dataset.mtab===tab ? 'btn btn-acc' : 'btn';
+  });
 }
 
-function _esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function _loadPaymentData(){
+  /* 유저 목록 */
+  try {
+    const r = await fetch('/api/users', { headers: { Authorization: 'Bearer '+(getAdminPw()||'') } });
+    const d = await r.json();
+    _memAllUsers = d.users || d.data || [];
+    _renderMembers(_memAllUsers);
+  } catch(e){
+    document.getElementById('pay-user-tbody').innerHTML = `<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
+  }
+  /* 결제 내역 */
+  try {
+    const r = await fetch('/api/payments/confirm?key='+encodeURIComponent(getAdminPw()||''));
+    const d = await r.json();
+    const payments = Array.isArray(d.payments)?d.payments:[];
+    let totalAmount=0;
+    payments.forEach(p=>{if(p.status==='DONE')totalAmount+=(p.amount||0);});
+    const el=document.getElementById('pay-total-count');if(el)el.textContent=payments.length+'건';
+    const el2=document.getElementById('pay-total-amount');if(el2)el2.textContent='₩'+totalAmount.toLocaleString();
+    const tbody=document.getElementById('pay-history-tbody');
+    if(!payments.length){
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역 없음</td></tr>';
+    } else {
+      tbody.innerHTML=payments.map((p,i)=>{
+        const st={'DONE':'<span style="color:var(--grn);">✅완료</span>','CANCELED':'<span style="color:#ef4444;">❌취소</span>','EXPIRED':'<span style="color:var(--t3);">⏰만료</span>'}[p.status]||p.status;
+        const dt=p.created_at?new Date(p.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
+        return `<tr><td>${i+1}</td><td style="font-size:10px;">${_esc((p.order_id||'').slice(0,18))}</td><td>${_esc(p.user_name||'?')}</td><td>${p.plan||'?'}</td><td>₩${(p.amount||0).toLocaleString()}</td><td>${st}</td><td style="font-size:11px;">${dt}</td><td>${p.status==='DONE'?`<button class="btn btn-red" onclick="_cancelPayment('${_esc(p.payment_key||'')}')" style="font-size:10px;padding:2px 6px;">환불</button>`:''}</td></tr>`;
+      }).join('');
+    }
+  } catch(e){
+    document.getElementById('pay-history-tbody').innerHTML=`<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
+  }
+  /* 정지 회원 */
+  const suspended=_memAllUsers.filter(u=>(u.credits||0)===0&&u.plan==='free'&&u.login_count>1);
+  const sl=document.getElementById('mem-suspended-list');
+  if(sl) sl.innerHTML=suspended.length?suspended.map(u=>`<div style="padding:6px;background:var(--bg3);border-radius:6px;margin-bottom:4px;">${_esc(u.name)} (${u.provider}) — 크레딧 0</div>`).join(''):'없음';
+}
+
+function _renderMembers(users){
+  const tbody=document.getElementById('pay-user-tbody');
+  let proCount=0,creatorCount=0;
+  users.forEach(u=>{if(u.plan==='pro')proCount++;if(u.plan==='creator')creatorCount++;});
+  const el1=document.getElementById('pay-pro-count');if(el1)el1.textContent=proCount;
+  const el2=document.getElementById('pay-creator-count');if(el2)el2.textContent=creatorCount;
+  const el3=document.getElementById('pay-total-users');if(el3)el3.textContent=users.length;
+
+  if(!users.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">유저 없음</td></tr>';return;}
+  tbody.innerHTML=users.sort((a,b)=>{
+    const po={creator:0,pro:1,free:2};
+    return (po[a.plan]||2)-(po[b.plan]||2)||(b.login_count||0)-(a.login_count||0);
+  }).map(u=>{
+    const pb={creator:'<span style="color:#f59e0b;font-weight:700;">👑Creator</span>',pro:'<span style="color:var(--acc2);font-weight:700;">💜Pro</span>',free:'<span style="color:var(--t3);">Free</span>'}[u.plan]||'Free';
+    const exp=u.plan_expires?new Date(u.plan_expires).toLocaleDateString('ko-KR'):'-';
+    const pi={'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'👤';
+    const joinDt=u.created_at?new Date(u.created_at).toLocaleDateString('ko-KR'):'-';
+    return `<tr>
+      <td style="font-weight:600;">${_esc(u.name||'?')}</td>
+      <td>${pi} ${u.provider||'?'}</td>
+      <td>${pb}</td>
+      <td>${u.credits||0}</td>
+      <td style="font-size:11px;color:var(--t3);">${exp}</td>
+      <td>${u.login_count||0}회</td>
+      <td style="font-size:10px;color:var(--t3);">${joinDt}</td>
+      <td style="white-space:nowrap;">
+        <select onchange="_changePlan('${_esc(u.name)}','${_esc(u.provider)}',this.value)" style="font-size:10px;padding:2px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--t1);width:60px;">
+          <option value="free" ${u.plan==='free'?'selected':''}>Free</option>
+          <option value="pro" ${u.plan==='pro'?'selected':''}>Pro</option>
+          <option value="creator" ${u.plan==='creator'?'selected':''}>Creator</option>
+        </select>
+        <button class="btn" onclick="_suspendUser('${_esc(u.name)}','${_esc(u.provider)}')" style="font-size:9px;padding:2px 5px;" title="정지">🔒</button>
+        <button class="btn btn-red" onclick="_deleteUser('${_esc(u.name)}','${_esc(u.provider)}')" style="font-size:9px;padding:2px 5px;" title="탈퇴">🗑</button>
+        <button class="btn" onclick="_notifyUser('${_esc(u.name)}','${_esc(u.provider)}')" style="font-size:9px;padding:2px 5px;" title="알림">📢</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function _filterMembers(){
+  const q=(document.getElementById('mem-search')?.value||'').toLowerCase();
+  const filtered=q?_memAllUsers.filter(u=>(u.name||'').toLowerCase().includes(q)):_memAllUsers;
+  _renderMembers(filtered);
+}
+
+function _esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 async function _changePlan(name, provider, plan){
   if(!confirm(`${name}님의 플랜을 ${plan}으로 변경할까요?`)) return;
   try {
-    const r = await fetch('/api/check-credit', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userName:name, userProvider:provider, type:'song', action:'set_plan', plan })
-    });
-    toast('플랜 변경: ' + plan, 'ok', 2000);
+    await fetch('/api/check-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:name,userProvider:provider,type:'song',action:'set_plan',plan})});
+    /* 실시간 알림 → 사용자에게 플랜 변경 알림 */
+    await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'플랜 변경',body:`${name}님의 플랜이 ${plan.toUpperCase()}으로 변경됐어요!`,icon:'💜',target:'all'})});
+    toast('✅ '+name+' → '+plan+' 변경 완료','ok',2000);
     _loadPaymentData();
-  } catch(e){ toast('실패: '+e.message,'err'); }
+    if(typeof addAuditLog==='function') addAuditLog('plan_change',name,plan);
+  } catch(e){toast('실패: '+e.message,'err');}
 }
 
-async function _cancelPayment(paymentKey, orderId){
-  if(!paymentKey){ toast('결제키 없음','err'); return; }
-  const reason = prompt('환불 사유:');
-  if(!reason) return;
-  toast('환불 처리 중...','',2000);
-  /* 실제 Toss 환불은 별도 API 필요 — 여기서는 상태만 변경 */
+async function _suspendUser(name, provider){
+  if(!confirm(`${name}님을 정지할까요?\n플랜→Free, 크레딧→0으로 변경됩니다.`)) return;
   try {
-    toast('⚠️ Toss 환불 API 연동 필요 (현재 TEST 모드)','',3000);
-  } catch(e){ toast('환불 실패','err'); }
+    await fetch('/api/check-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:name,userProvider:provider,type:'downgrade',newPlan:'free'})});
+    /* 크레딧 0으로 */
+    await fetch('/api/setup-db',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({sql:`UPDATE public.users SET credits=0, plan='free' WHERE name='${name.replace(/'/g,"''")}' AND provider='${provider.replace(/'/g,"''")}'`})});
+    await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'계정 정지',body:`${name}님의 계정이 정지됐습니다.`,icon:'🔒'})});
+    toast('🔒 '+name+' 정지 완료','ok',2000);
+    _loadPaymentData();
+    if(typeof addAuditLog==='function') addAuditLog('suspend',name,'정지');
+  } catch(e){toast('실패: '+e.message,'err');}
+}
+
+async function _deleteUser(name, provider){
+  if(!confirm(`⚠️ ${name}님을 탈퇴 처리할까요?\n\n유저 정보가 삭제됩니다. (트랙/댓글은 유지)\n이 작업은 되돌릴 수 없습니다!`)) return;
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  try {
+    await fetch('/api/users?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(provider),{method:'DELETE',headers:{Authorization:'Bearer '+(getAdminPw()||'')}});
+    toast('🗑 '+name+' 탈퇴 완료','ok',2000);
+    _loadPaymentData();
+    if(typeof addAuditLog==='function') addAuditLog('delete_user',name,'탈퇴');
+  } catch(e){toast('실패: '+e.message,'err');}
+}
+
+async function _notifyUser(name, provider){
+  const msg=prompt(`${name}님에게 보낼 알림 메시지:`);
+  if(!msg) return;
+  try {
+    await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'관리자 알림',body:msg,icon:'📢',target:'all'})});
+    toast('📢 알림 발송 완료','ok',2000);
+  } catch(e){toast('실패: '+e.message,'err');}
+}
+
+async function _cancelPayment(paymentKey){
+  if(!paymentKey){toast('결제키 없음','err');return;}
+  const reason=prompt('환불 사유:');
+  if(!reason) return;
+  try {
+    await fetch('/api/setup-db',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({sql:`UPDATE public.payments SET status='CANCELED', cancel_reason='${reason.replace(/'/g,"''")}', canceled_at=NOW() WHERE payment_key='${paymentKey.replace(/'/g,"''")}'`})});
+    toast('✅ 환불 처리 완료','ok',2000);
+    _loadPaymentData();
+  } catch(e){toast('환불 실패: '+e.message,'err');}
 }
 
 /* 결제 탭 진입 시 자동 로드 */
@@ -5062,14 +5134,11 @@ async function _cancelPayment(paymentKey, orderId){
   }
 }
 
-/* titles 맵에 추가 */
-try {
-  const _titleEl = document.getElementById('sec-title');
-  if(_titleEl){
-    const _origTitles = { payments:'💳 결제 관리', live:'⚡ 실시간 알림' };
-    /* 기존 switchSec 내부 titles 보완 — 동적 패치 */
-  }
-} catch{}
+/* 회원관리 탭 10초 자동 갱신 */
+setInterval(()=>{
+  const sec=document.getElementById('sec-payments');
+  if(sec&&sec.classList.contains('on')) _loadPaymentData();
+}, 15000);
 
 
 </script>
