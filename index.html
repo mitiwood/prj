@@ -6449,9 +6449,42 @@ async function _aiAssistRecommend(){
   const result = $('ai-assist-result');
   btn.disabled = true; btn.textContent = '분석 중...';
   result.style.display = 'block';
-  result.innerHTML = '<span style="color:var(--t3);">AI가 분석 중...</span>';
+  result.innerHTML = '<span style="color:var(--t3);">추천 데이터를 불러오는 중...</span>';
 
-  const sysPrompt = `당신은 AI 음악 생성 앱의 작곡 어시스턴트입니다. 사용자가 원하는 곡을 설명하면 한국어로 답변하세요:
+  try {
+    /* 1단계: live-notify API에서 추천 데이터 2~3개 가져오기 */
+    const since = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const notifyRes = await fetch('/api/live-notify?since=' + since + '&limit=3');
+    const notifyData = notifyRes.ok ? await notifyRes.json() : null;
+    const notifications = notifyData?.notifications || [];
+    const apiSource = notifyData?.source || '';
+
+    /* notifications에서 source 값 추출 (없으면 body/title 폴백) */
+    const sourceItems = notifications
+      .map(n => n.source || n.body || n.title || '')
+      .filter(s => s && s.length > 2);
+
+    if(sourceItems.length > 0){
+      let html = '<div style="font-weight:700;margin-bottom:8px;color:var(--acc);">📡 추천 프롬프트 (' + sourceItems.length + '개)</div>';
+      sourceItems.forEach((src, i) => {
+        const safeStr = src.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;" onclick="_applyAiRecommend('${safeStr}','')" onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:16px;flex-shrink:0;">${['🎵','🎶','🎸'][i]||'🎵'}</span>
+          <span style="flex:1;font-size:12px;color:var(--t1);line-height:1.4;">${esc(src.length>120?src.slice(0,120)+'...':src)}</span>
+          <span style="font-size:11px;color:var(--acc);font-weight:700;flex-shrink:0;">적용 →</span>
+        </div>`;
+      });
+      html += `<div style="font-size:10px;color:var(--t3);margin:6px 0 8px;">출처: ${esc(apiSource)}</div>`;
+      html += '<button onclick="$(\'ai-assist-result\').style.display=\'none\'" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>';
+      result.innerHTML = html;
+      btn.disabled = false; btn.textContent = '✨ 추천';
+      return;
+    }
+
+    /* 2단계: live-notify에 데이터 없으면 AI 추천 폴백 */
+    result.innerHTML = '<span style="color:var(--t3);">AI가 분석 중...</span>';
+
+    const sysPrompt = `당신은 AI 음악 생성 앱의 작곡 어시스턴트입니다. 사용자가 원하는 곡을 설명하면 한국어로 답변하세요:
 1. 추천 장르 & 서브장르
 2. 분위기/무드
 3. BPM 범위
@@ -6460,14 +6493,12 @@ async function _aiAssistRecommend(){
 6. 곡 설명 (영어, 한 줄) — 이 줄은 반드시 "설명:" 으로 시작
 간결하게, 항목별로 작성하세요.`;
 
-  try {
     let reply = await callClaudeStream(sysPrompt, input, (partial)=>{
       result.innerHTML = partial.replace(/\n/g,'<br>') + '<br><span style="color:var(--t3);">...</span>';
     }) || '';
 
     if(!reply) throw new Error('AI 응답 없음');
 
-    /* 영어 설명 + BPM 추출 */
     const lines = reply.split('\n').filter(l=>l.trim());
     const descLine = lines.find(l=>/설명\s*[:：]/i.test(l)) || '';
     const engDesc = descLine.replace(/.*[:：]\s*/, '').trim();

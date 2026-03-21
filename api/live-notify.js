@@ -85,12 +85,13 @@ export default async function handler(req, res) {
     }
 
     /* 클라이언트 폴링: since 이후 알림 */
+    const limit = Math.min(parseInt(req.query?.limit) || 10, 50);
     try {
       const sinceISO = new Date(since).toISOString();
-      const data = await sbFetch('GET', `/live_notifications?created_at=gt.${sinceISO}&order=created_at.desc&limit=10`);
-      return res.status(200).json({ ok: true, notifications: data || [] });
+      const data = await sbFetch('GET', `/live_notifications?created_at=gt.${sinceISO}&order=created_at.desc&limit=${limit}`);
+      return res.status(200).json({ ok: true, notifications: data || [], source: 'supabase' });
     } catch {
-      const filtered = _mem.filter(n => n.ts > since);
+      const filtered = _mem.filter(n => n.ts > since).slice(0, limit);
       return res.status(200).json({ ok: true, notifications: filtered, source: 'memory' });
     }
   }
