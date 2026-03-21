@@ -918,7 +918,10 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
 /* 리믹스 모달 */
-#remix-cover-modal,#remix-style-modal,#remaster-modal{z-index:900;}
+#remix-cover-modal,#remix-style-modal{z-index:900;}
+#remaster-modal.on{pointer-events:auto;opacity:1;}
+#remaster-modal.on #rm-panel{transform:translateY(0);}
+body.mp-on #remaster-modal #rm-panel{bottom:0;z-index:910;}
 body.mp-on #remix-cover-modal .modal,body.mp-on #remix-style-modal .modal{padding-bottom:calc(62px + env(safe-area-inset-bottom,0));}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
@@ -4114,25 +4117,42 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 </div>
 
 <!-- ── 리마스터 모달 ── -->
-<div class="modal-backdrop" id="remaster-modal">
-  <div class="modal" style="max-width:380px;width:100%;border-radius:16px;margin:20px;">
-    <button class="modal-close" id="remaster-close">✕</button>
-    <div class="modal-title">✦ 리마스터 v5 업그레이드</div>
-    <div class="modal-sub">같은 가사와 스타일을 V5 최신 모델로 다시 생성합니다.</div>
-    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border-radius:12px;margin-bottom:14px;">
-      <div id="rm-thumb" style="width:44px;height:44px;border-radius:10px;overflow:hidden;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
-      <div style="flex:1;min-width:0;">
-        <div id="rm-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
-        <div id="rm-tags" style="font-size:11px;color:var(--t3);margin-top:2px;"></div>
+<div id="remaster-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+  <div class="hes-backdrop" id="rm-backdrop"></div>
+  <div class="hes-panel" id="rm-panel" style="max-height:70vh;">
+    <div class="hes-handle"></div>
+    <!-- 트랙 정보 -->
+    <div class="hes-track-info">
+      <div class="hes-thumb" id="rm-thumb">🎵</div>
+      <div class="hes-info-text">
+        <div class="hes-track-name" id="rm-title">곡 제목</div>
+        <div class="hes-track-artist" id="rm-tags"></div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:4px;background:rgba(124,58,237,.1);padding:4px 10px;border-radius:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span style="font-size:11px;color:var(--acc);font-weight:700;">V5</span>
       </div>
     </div>
-    <div style="padding:10px 12px;background:rgba(124,58,237,.08);border-radius:10px;margin-bottom:16px;font-size:12px;color:var(--t2);">
-      V5 모델은 더 선명한 보컬, 풍부한 편곡, 향상된 음질을 제공합니다.
+    <!-- 설명 -->
+    <div style="padding:0 16px 12px;">
+      <div style="padding:12px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.12);border-radius:12px;font-size:12px;color:var(--t2);line-height:1.5;">
+        <div style="font-weight:700;color:var(--acc);margin-bottom:4px;">✦ V5 리마스터란?</div>
+        같은 가사와 스타일을 최신 V5 모델로 다시 생성합니다.<br>
+        더 선명한 보컬, 풍부한 편곡, 향상된 음질을 경험하세요.
+      </div>
     </div>
-    <button class="gen-btn" id="rm-submit-btn">
-      <span class="gen-spinner" id="rm-spinner"></span>
-      <span id="rm-btn-txt">✦ 리마스터 시작</span>
-    </button>
+    <!-- 원본 정보 -->
+    <div style="padding:0 16px 12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px;">원본 곡 정보</div>
+      <div id="rm-info-detail" style="font-size:12px;color:var(--t2);line-height:1.6;background:var(--bg2);border-radius:10px;padding:10px 12px;"></div>
+    </div>
+    <!-- 버튼 -->
+    <div style="padding:0 16px 20px;">
+      <button class="gen-btn" id="rm-submit-btn" style="width:100%;">
+        <span class="gen-spinner" id="rm-spinner"></span>
+        <span id="rm-btn-txt">✦ 리마스터 시작</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -8489,23 +8509,36 @@ $('rs-submit-btn').addEventListener('click',async()=>{
   }
 });
 
-/* ── 리마스터 v5 모달 ── */
+/* ── 리마스터 v5 바텀시트 ── */
+function _closeRemaster(){$('remaster-modal').classList.remove('on');}
 $('hes-remaster-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   const thumb=$('rm-thumb');
-  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
   $('rm-title').textContent=h.title||'무제';
   $('rm-tags').textContent=(h.tags||'').split(',').slice(0,2).join(', ')||'';
+  /* 원본 정보 표시 */
+  const info=$('rm-info-detail');
+  if(info){
+    const lines=[];
+    lines.push('제목: '+(h.title||'무제'));
+    if(h.tags) lines.push('스타일: '+h.tags);
+    if(h.genMode) lines.push('생성 모드: '+h.genMode);
+    if(h.lyrics) lines.push('가사: '+(h.lyrics.length>50?h.lyrics.slice(0,50)+'...':'있음'));
+    else lines.push('가사: 인스트루멘탈');
+    if(h.created) lines.push('생성일: '+new Date(h.created).toLocaleDateString('ko'));
+    info.innerHTML=lines.map(l=>'<div>'+esc(l)+'</div>').join('');
+  }
   closeHistEditSheet();
   $('remaster-modal').classList.add('on');
 });
-if($('remaster-close'))$('remaster-close').addEventListener('click',()=>$('remaster-modal').classList.remove('on'));
-$('remaster-modal')?.addEventListener('click',e=>{if(e.target===$('remaster-modal'))$('remaster-modal').classList.remove('on');});
+$('rm-backdrop').addEventListener('click',_closeRemaster);
 /* 리마스터 실행 */
 $('rm-submit-btn').addEventListener('click',async()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
+  if(currentUser?.provider==='guest'){toast('리마스터는 로그인 후 이용할 수 있어요','err',3000);_closeRemaster();openLoginSheet();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
   $('rm-submit-btn').disabled=true;$('rm-spinner').style.display='block';$('rm-btn-txt').textContent='리마스터 중...';
@@ -8517,7 +8550,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음');
-    $('remaster-modal').classList.remove('on');
+    _closeRemaster();
     $('loading-card').classList.add('on');
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
@@ -8537,8 +8570,9 @@ $('rm-submit-btn').addEventListener('click',async()=>{
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
     toast('리마스터 완성! V5 품질로 업그레이드됐어요','ok',3000);
+    setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'remaster'});
     tracks.forEach(t=>{
       _saveTrackToServer({id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||h.tags||'remaster',lyrics:h.lyrics||'',genMode:'remaster',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
