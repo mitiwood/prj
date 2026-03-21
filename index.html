@@ -1362,7 +1362,7 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
    FULL PLAYER — Apple Music Style
 ══════════════════════════════ */
 #fullplayer{
-  position:fixed;inset:0;z-index:500;
+  position:fixed;inset:0;z-index:10000;
   background:var(--bg);transform:translateY(100%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   display:flex;flex-direction:column;overflow:hidden;
@@ -1535,7 +1535,7 @@ body.mp-on .modal{margin-bottom:calc(56px + 62px);max-height:60vh;}
    KARAOKE PLAYER
 ══════════════════════════════ */
 #karaoke-player{
-  position:fixed;inset:0;z-index:600;
+  position:fixed;inset:0;z-index:10000;
   background:var(--bg);transform:translateY(100%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   display:flex;flex-direction:column;
@@ -1592,7 +1592,7 @@ body.mp-on .modal{margin-bottom:calc(56px + 62px);max-height:60vh;}
    RECOMPOSE SHEET
 ══════════════════════════════ */
 .recompose-sheet{
-  position:fixed;inset:0;z-index:700;
+  position:fixed;inset:0;z-index:10001;
   display:none;align-items:flex-end;justify-content:center;
 }
 .recompose-sheet.on{display:flex;}
@@ -1836,7 +1836,7 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 
 /* ── 오디오 전환 팝업 ── */
 #audio-switch-popup{
-  position:fixed;inset:0;z-index:9000;
+  position:fixed;inset:0;z-index:10002;
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;opacity:0;transition:opacity .22s;
 }
@@ -2036,7 +2036,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 /* ── 트랙 상세 바텀시트 ── */
 #mp-detail-sheet{
-  position:fixed;inset:0;z-index:220;pointer-events:none;opacity:0;transition:opacity .25s;
+  position:fixed;inset:0;z-index:10002;pointer-events:none;opacity:0;transition:opacity .25s;
 }
 #mp-detail-sheet.on{pointer-events:auto;opacity:1;}
 #mp-detail-sheet .mds-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
@@ -2093,7 +2093,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 /* ── 생성 중 알림 팝업 ── */
 #gen-lock-popup{
-  position:fixed;inset:0;z-index:9100;
+  position:fixed;inset:0;z-index:10002;
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;opacity:0;transition:opacity .22s;
 }
@@ -2159,11 +2159,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .fp-side-btn.added{color:var(--acc3);}
 
 /* ── 편집 바텀시트 ── */
-#fp-edit-sheet{position:fixed;inset:0;z-index:700;pointer-events:none;opacity:0;transition:opacity .22s;}
+#fp-edit-sheet{position:fixed;inset:0;z-index:10002;pointer-events:none;opacity:0;transition:opacity .22s;}
 #fp-edit-sheet.on{pointer-events:auto;opacity:1;}
 .fes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);}
 .fes-panel{
-  position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);
+  position:absolute;bottom:56px;left:50%;transform:translate(-50%,100%);
   width:100%;max-width:480px;
   background:var(--card2);border-radius:20px 20px 0 0;
   border-top:1px solid var(--border2);
@@ -3725,7 +3725,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 
 <!-- ── MV 음악 트랙 피커 ── -->
-<div id="mv-track-picker" style="position:fixed;inset:0;z-index:700;pointer-events:none;opacity:0;transition:opacity .22s;">
+<div id="mv-track-picker" style="position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);" onclick="closeMvTrackPicker()"></div>
   <div id="mv-picker-panel" style="position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:0 0 env(safe-area-inset-bottom,20px);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:70vh;display:flex;flex-direction:column;">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
@@ -5176,11 +5176,11 @@ async function _ytDoGenerate(){
   const fill=$('ld-fill');
   if(fill){ fill.style.animation='none'; void fill.offsetWidth; fill.style.animation=''; }
   $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
-  const _tips=['작곡 요청 넣었어요~ ☕','멜로디 잡는 중 🎼','스타일 분석하는 중~ 🔍','보컬 세팅 중 🎤','편곡이랑 믹싱 하는 중~ 🎚'];
+  const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
   let _ti=0;
   const _tipTimer=setInterval(()=>{
     if(!$('loading-card')?.classList.contains('on')){ clearInterval(_tipTimer); return; }
-    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30초~1분이면 나와요</span>';
+    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">조금만 기다려주세요~</span>';
     _ti++;
   }, 8000);
 
@@ -5202,7 +5202,7 @@ async function _ytDoGenerate(){
     if(!taskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
 
     lastTaskId = taskId;
-    if($('ld-task')) $('ld-task').textContent='Task: '+taskId;
+    if($('ld-task')) $('ld-task').textContent='';
     $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
     const tracks = await pollResult(apiKey, taskId);
@@ -6273,9 +6273,7 @@ async function pollResult(apiKey,taskId){
       /* sunoData 외 다양한 응답 구조 대응 */
       const tracks=st.response?.sunoData||st.sunoData||st.tracks||st.response?.tracks||[];
       const sec = Math.round(elapsed/1000);
-      const dots = '.'.repeat((i%3)+1);
-      $('ld-sub').innerHTML=`상태: <b style="color:var(--acc)">${status||'대기 중'}</b> (${sec}초 경과${dots})<br>
-        ${sec<30?'AI가 작곡 중이에요 🎼':(sec<70?'편곡 & 보컬 녹음 중 🎤':(sec<120?'마스터링 중 🎧':'거의 다 됐어요! ✨'))}`;
+      $('ld-sub').textContent=sec<15?'AI한테 곡 맡겼어요~ 잠깐만요 🎧':sec<35?'멜로디 뽑는 중 🎹 감 잡았대요':sec<60?'보컬 녹음 들어갔어요 🎤 목 푸는 중':sec<90?'편곡이랑 믹싱 거의 끝나가요 🎚':'마지막 마무리 중 ✨ 진짜 곧 나와요!';
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
@@ -7137,9 +7135,9 @@ async function generate(overrideParams){
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
   /* 로딩 팁 순환 */
-  const _tips=['작곡 요청 넣었어요~ ☕','멜로디 잡는 중 🎼','장르랑 무드 맞추는 중~ 🔍','보컬 세팅 중 🎤','편곡이랑 믹싱 마무리 중~ 🎚'];
+  const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
   let _tipIdx=0;
-  const _tipTimer=setInterval(()=>{ if(!$('loading-card')?.classList.contains('on')){clearInterval(_tipTimer);return;} $('ld-sub').innerHTML=_tips[_tipIdx%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">보통 30초~1분이면 나와요</span>'; _tipIdx++; },8000);
+  const _tipTimer=setInterval(()=>{ if(!$('loading-card')?.classList.contains('on')){clearInterval(_tipTimer);return;} $('ld-sub').innerHTML=_tips[_tipIdx%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">조금만 기다려주세요~</span>'; _tipIdx++; },8000);
   $('ld-sub').innerHTML='작곡 요청 보냈어요~<br>잠깐만 기다려주세요 ☕';
 
   try{
@@ -7158,7 +7156,7 @@ async function generate(overrideParams){
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
     lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
-    $('ld-task').textContent=`Task: ${taskId}`;
+    $('ld-task').textContent='';
     $('ld-sub').innerHTML='멜로디, 리듬, 편곡 다 넣는 중~<br>곧 들려드릴게요 🎧';
 
     const tracks=await pollResult(apiKey,taskId);
@@ -7587,7 +7585,7 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='곡 더 늘리는 중이에요~<br>잠깐이면 돼요 ✨';
-    $('ld-task').textContent=`Extend: ${taskId}`;
+    $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(tracks?.length){
@@ -8446,7 +8444,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     setTimeout(()=>$('loading-card').scrollIntoView({behavior:'smooth',block:'center'}),200);
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='커버 버전 만드는 중~<br>새 보컬 입히고 있어요 🎤';
-    $('ld-task').textContent=`Cover: ${taskId}`;
+    $('ld-task').textContent='';
     let result=null;
     for(let i=0;i<40;i++){
       await sleep(i<5?1000:i<15?2000:3000);
@@ -8533,7 +8531,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
-    $('ld-task').textContent=`Style Reuse: ${taskId}`;
+    $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
@@ -8614,7 +8612,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
-    $('ld-task').textContent=`Remaster: ${taskId}`;
+    $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
@@ -11988,6 +11986,38 @@ function _renderSettingsExtended(){
 }
 
 /* ══════════════════════════════
+   출석 체크 + 스트릭 + 복귀 유저
+══════════════════════════════ */
+function _checkAttendance(){
+  if(!currentUser || currentUser.provider==="guest") return;
+  const today=new Date().toISOString().split("T")[0];
+  const att=JSON.parse(localStorage.getItem("kms_attendance")||"{}");
+  if(att.lastDate===today) return;
+  const lastTs=att.lastDate?new Date(att.lastDate).getTime():0;
+  const daysSince=lastTs?Math.floor((Date.now()-lastTs)/86400000):999;
+  const isReturn=daysSince>=3&&att.lastDate;
+  const yest=new Date(Date.now()-86400000).toISOString().split("T")[0];
+  let streak=(att.lastDate===yest)?(att.streak||0)+1:1;
+  let bonus=1,msg="오늘의 보너스 +1곡";
+  if(isReturn){bonus=2;msg="다시 오셨네요! 복귀 보너스 +2곡";}
+  else if(streak>=30){bonus=10;msg="👑 30일 연속! +10곡";}
+  else if(streak>=7){bonus=5;msg="🔥 7일 연속! +5곡";}
+  else if(streak>=3){bonus=2;msg="✨ 3일 연속! +2곡";}
+  const usage=getUsage();usage.songs=Math.max(0,(usage.songs||0)-bonus);saveUsage(usage);
+  att.lastDate=today;att.streak=streak;att.totalDays=(att.totalDays||0)+1;
+  localStorage.setItem("kms_attendance",JSON.stringify(att));
+  setTimeout(function(){
+    var b=streak>=7?"🔥":streak>=3?"✨":"📅";
+    var el=document.createElement("div");
+    el.style.cssText="position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:99999;max-width:340px;width:calc(100% - 32px);background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;padding:16px;box-shadow:0 8px 32px rgba(124,58,237,.4);";
+    el.innerHTML="<div style=\"text-align:center;color:#fff;\"><div style=\"font-size:28px;margin-bottom:6px;\">"+b+"</div><div style=\"font-size:15px;font-weight:800;\">"+msg+"</div><div style=\"font-size:11px;opacity:.8;margin-top:4px;\">"+streak+"일 연속 · 총 "+att.totalDays+"일</div></div>";
+    document.body.appendChild(el);
+    setTimeout(function(){if(el.parentNode){el.style.opacity="0";el.style.transition="opacity .5s";}},5000);
+    setTimeout(function(){if(el.parentNode)el.remove();},5500);
+  },2000);
+}
+
+/* ══════════════════════════════
    플랜 서버 동기화 — 디바이스 간 싱크 + 어뷰징 방지
 ══════════════════════════════ */
 async function _syncPlanFromServer(){
@@ -12018,6 +12048,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _renderSettingsExtended==='function') _renderSettingsExtended();
   checkAnnouncement();
   setTimeout(_syncPlanFromServer, 1000);
+  setTimeout(_checkAttendance, 1500);
 });
 /* 탭 복귀 시 즉시 동기화 */
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _syncPlanFromServer(); });
