@@ -948,6 +948,7 @@ body.mp-on #remix-cover-modal .hes-panel,body.mp-on #remix-style-modal .hes-pane
   margin-bottom:16px;scrollbar-width:none;
 }
 .comm-filter-row::-webkit-scrollbar{display:none;}
+#preset-carousel::-webkit-scrollbar{display:none;}
 .comm-ftag{
   padding:6px 14px;border-radius:var(--rx);
   border:1px solid var(--border);background:var(--card);
@@ -3564,7 +3565,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="fp-inner">
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="fp-header-title">재생 중</div>
+      <div class="fp-header-title" id="fp-header-title">재생 중</div>
       <div style="width:32px;"></div>
     </div>
     <div class="fp-scroll" id="fp-scroll">
@@ -3931,12 +3932,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 프리셋</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;">
-        <button onclick="$('vc-prompt').value='sweet female vocal, K-Pop idol style, bright tone';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎀 걸그룹</button>
-        <button onclick="$('vc-prompt').value='deep male vocal, R&B smooth, soulful';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 R&B 남성</button>
-        <button onclick="$('vc-prompt').value='powerful female ballad vocal, emotional, wide range';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 발라드 여성</button>
-        <button onclick="$('vc-prompt').value='raspy male vocal, rock energy, raw emotion';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎸 록 남성</button>
-        <button onclick="$('vc-prompt').value='soft breathy female vocal, indie, whisper-like';$('vc-gender')&&($('vc-gender').value='female')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌙 인디 여성</button>
-        <button onclick="$('vc-prompt').value='aggressive male rap vocal, trap flow, hard';$('vc-gender')&&($('vc-gender').value='male')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 래퍼</button>
+        <button onclick="$('vc-prompt').value='sweet female vocal, K-Pop idol style, bright tone';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎀 걸그룹</button>
+        <button onclick="$('vc-prompt').value='deep male vocal, R&B smooth, soulful';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 R&B 남성</button>
+        <button onclick="$('vc-prompt').value='powerful female ballad vocal, emotional, wide range';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 발라드 여성</button>
+        <button onclick="$('vc-prompt').value='raspy male vocal, rock energy, raw emotion';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎸 록 남성</button>
+        <button onclick="$('vc-prompt').value='soft breathy female vocal, indie, whisper-like';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌙 인디 여성</button>
+        <button onclick="$('vc-prompt').value='aggressive male rap vocal, trap flow, hard';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 래퍼</button>
       </div>
     </div>
     <div style="margin-bottom:12px;">
@@ -4447,6 +4448,8 @@ function switchTab(viewId){
   if(viewId==='community-view')try{renderCommunity(true);}catch(e){console.error(e);}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
+/* 즉시 전역 노출 — 인라인 onclick에서 사용 */
+window.switchTab=switchTab;
 const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
 const POLL_INTERVAL = 1500;  /* 1.5초 간격 */
 const MAX_POLLS = 160;        /* 최대 ~5분 대기 */
@@ -4636,6 +4639,7 @@ function openLoginSheet(){
   sh.style.pointerEvents='auto';sh.style.opacity='1';
   if(panel)panel.style.transform='translate(-50%,0)';
 }
+window.openLoginSheet=openLoginSheet;
 function closeLoginSheet(){
   const sh=document.getElementById('login-sheet');
   const panel=document.getElementById('login-sheet-panel');
@@ -6891,10 +6895,10 @@ function applyPreset(key){
     /* 보컬 */
     if(p.inst){
       instOn = true;
-      document.querySelector('.inst-toggle')?.classList.add('on');
+      document.getElementById('inst-toggle')?.classList.add('on');
     } else {
       instOn = false;
-      document.querySelector('.inst-toggle')?.classList.remove('on');
+      document.getElementById('inst-toggle')?.classList.remove('on');
       if(p.vocal) vocalGender = p.vocal;
     }
 
@@ -11627,7 +11631,8 @@ async function _syncPlansFromServer(){
     }
   } catch(e){ console.warn('[Plan] sync fail:', e.message); }
 }
-_syncPlansFromServer();
+/* 플랜 동기화는 DOMContentLoaded에서 실행 (레이스 방지) */
+setTimeout(_syncPlansFromServer, 500);
 /* kie.ai 예상 단가 (USD → KRW 1,300 환산) */
 const COST_PER = {
   song:   { usd:0.05, label:'음악 생성' },

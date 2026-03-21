@@ -43,6 +43,13 @@ kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
 urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
 ```
 
+**필수 점검 항목 (크리티컬):**
+- 인라인 onclick 함수가 window에 전역 노출됐는지 (strict mode 대응)
+- 인라인 style="pointer-events:none;opacity:0" 이 CSS .on을 덮는지
+- data-lucide 아이콘 이름이 Lucide에 존재하는지
+- 바텀시트/모달 z-index가 하단탭(9999)보다 높은지 (10001+)
+- 바텀시트 bottom이 하단탭(56px) 위인지
+
 **Rules:**
 - 결과 표는 반드시 유니코드 박스 드로잉 문자(┌├└│─┼┬┴┐┤┘)로 구성
 - 정상: ✅ 정상 / 수정됨: 🔧 수정 / 실패: ❌ 실패
