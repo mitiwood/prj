@@ -4261,9 +4261,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 </div>
 
 <nav id="bottom-nav">
-  <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')">
+  <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')" style="position:relative;">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
     <span class="bnav-label">커뮤니티</span>
+    <span class="bnav-badge" id="comm-notif-badge" style="display:none">0</span>
   </button>
   <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -5354,7 +5355,7 @@ function switchTab(viewId){
   if(viewId==='profile-view'){const cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
   window.scrollTo({top:0,behavior:'smooth'});
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view')try{renderCommunity(true);}catch(e){console.error(e);}
+  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_updateCommBadge();try{renderCommunity(true);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
@@ -5428,6 +5429,7 @@ async function _loadSbTracks(force=false){
       _sbLoaded = true;
       _sbLoadedAt = Date.now();
       try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
+      if(!_followingNames) _loadFollowingNames(); else _updateCommBadge();
     }
   }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
   _sbLoading = false;
@@ -5447,6 +5449,7 @@ async function _pollRefreshSbTracks(){
       _sbOffset = _sbTracks.length;
       _sbLoadedAt = Date.now();
       try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
+      _updateCommBadge();
     }
   }catch(e){ console.warn('[SB] 폴링 갱신 실패:', e.message); }
   _sbLoading = false;
@@ -13054,6 +13057,39 @@ function _buildRecommendations(){
 }
 
 /* ── 팔로잉 피드 (Feature 3) ── */
+let _followingNames=null;
+async function _loadFollowingNames(){
+  if(!currentUser||currentUser.provider==='guest'){_followingNames=new Set();return;}
+  try{
+    const r=await fetch('/api/profile?action=following&name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+    const d=await r.json();
+    _followingNames=new Set();
+    if(d.ok&&d.following){
+      d.following.forEach(u=>_followingNames.add(u.name+'__'+u.provider));
+    }
+    if(_commActiveGenre==='following') renderCommunity();
+    _updateCommBadge();
+  }catch(e){_followingNames=new Set();}
+}
+function _updateCommBadge(){
+  var badge=document.getElementById('comm-notif-badge');
+  if(!badge)return;
+  var lastVisit=parseInt(localStorage.getItem('kms_comm_last_visit')||'0');
+  var count=0;
+  if(_followingNames&&_followingNames.size>0){
+    (_sbTracks||[]).forEach(function(t){
+      var owner=t._owner||{};
+      var key=owner.name+'__'+(owner.provider||'');
+      if(_followingNames.has(key)&&(t._created||0)>lastVisit) count++;
+    });
+  }
+  if(count>0){
+    badge.textContent=count>99?'99+':count;
+    badge.style.display='flex';
+  }else{
+    badge.style.display='none';
+  }
+}
 let _followFeedCache=null,_followFeedAt=0;
 async function _renderFollowingFeed(heroWrap,list){
   heroWrap.innerHTML='';
@@ -13424,7 +13460,7 @@ function getCommTracks(){
   /* Supabase 서버 데이터 사용 — _sbLoaded 체크 제거 (항상 _sbTracks 반환) */
   let all = _sbTracks || [];
 
-  if(_commActiveGenre&&_commActiveGenre!=='all'){
+  if(_commActiveGenre&&_commActiveGenre!=='all'&&_commActiveGenre!=='following'&&_commActiveGenre!=='creators'&&_commActiveGenre!=='chat'&&_commActiveGenre!=='leaderboard'){
     const kws=_GENRE_KEYS[_commActiveGenre]||[_commActiveGenre];
     all=all.filter(t=>kws.some(k=>t.allTags.includes(k)||t.title.toLowerCase().includes(k)));
   }
@@ -13907,6 +13943,10 @@ async function _creatorFollowToggle(btn){
     if(d.ok){
       const nowFollowing=!isFollowing;
       _followStateCache[name+'__'+prov]=nowFollowing;
+      /* 팔로잉 피드 캐시 무효화 */
+      _followFeedCache=null;_followFeedAt=0;
+      _followingNames=null;
+      _updateCommBadge();
       /* 같은 유저의 모든 팔로우 버튼 동기화 */
       document.querySelectorAll('.comm-item-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"],.comm-creator-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"]').forEach(b=>{
         if(nowFollowing){
