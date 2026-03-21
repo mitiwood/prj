@@ -4867,13 +4867,15 @@ async function _deleteLiveNotify(id){
 }
 
 /* 실시간 알림 탭 진입 시 자동 로드 */
-const _origSwitchSec = typeof switchSec === 'function' ? switchSec : null;
-if(_origSwitchSec){
-  const _wrapSwitch = switchSec;
-  switchSec = function(sec){
-    _wrapSwitch(sec);
-    if(sec === 'live') _loadLiveHistory();
-  };
+{
+  const _origSwLive = typeof switchSec === 'function' ? switchSec : null;
+  if(_origSwLive){
+    const _wrapSwLive = switchSec;
+    switchSec = function(sec){
+      _wrapSwLive(sec);
+      if(sec === 'live') _loadLiveHistory();
+    };
+  }
 }
 
 /* 10초마다 이력 자동 갱신 (실시간 알림 탭 열려있을 때) */
