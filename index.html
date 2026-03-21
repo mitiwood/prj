@@ -4331,7 +4331,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 </div>
 
 <!-- ── 보컬 제거 / 스템 분리 바텀시트 ── -->
-<div id="vocal-remove-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
+<div id="vocal-remove-modal">
   <div class="hes-backdrop" id="vr-backdrop"></div>
   <div class="hes-panel" id="vr-panel" style="max-height:85vh;">
     <div class="hes-handle"></div>
@@ -9202,9 +9202,7 @@ $('hes-del-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const t=historyData[_hesIdx];
   _showSettingsConfirm('곡 삭제',`"${t?.title||'이 곡'}"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.`,'삭제',()=>{
-    historyData.splice(_hesIdx,1);
-    saveHistory();updateHistBadge();renderHistoryView();
-    closeHistEditSheet();
+    var _wp=fpCurrentIdx===_hesIdx;historyData.splice(_hesIdx,1);saveHistory();updateHistBadge();renderHistoryView();closeHistEditSheet();if(_wp&&historyData.length>0)showMiniPlayer(Math.min(_hesIdx,historyData.length-1));else if(_wp)hideMiniPlayer();
     toast('삭제되었어요','ok',1500);
   });
 });
@@ -10409,7 +10407,8 @@ function fpDeleteCurrent(){
   _showSettingsConfirm('곡 삭제',`"${t?.title||'이 곡'}"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.`,'삭제',()=>{
     historyData.splice(fpCurrentIdx,1);
     saveHistory();updateHistBadge();renderHistoryView();
-    closeFullPlayer();
+    if(historyData.length>0){var ni=Math.min(fpCurrentIdx,historyData.length-1);closeFullPlayer();showMiniPlayer(ni);}
+    else{closeFullPlayer();hideMiniPlayer();}
     toast('삭제되었어요','ok',1500);
   });
 }
