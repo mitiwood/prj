@@ -5168,7 +5168,9 @@ async function _ytDoGenerate(){
   if(ytBtn)  { ytBtn.disabled=true; ytBtn.style.opacity='0.5'; }
   if(ytSpin) ytSpin.style.display='block';
   if(ytTxt)  ytTxt.textContent='생성 중...';
+  switchTab('create-view');
   $('loading-card').classList.add('on');
+  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   $('results').innerHTML='';
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
@@ -7129,7 +7131,9 @@ async function generate(overrideParams){
   if(activeGenBtn){activeGenBtn.disabled=true;}
   if(activeSpinner){activeSpinner.style.display='block';}
   if(activeTxt){activeTxt.textContent='생성 중...';}
+  if(currentMode!=='custom') switchTab('create-view');
   $('loading-card').classList.add('on');$('results').innerHTML='';
+  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
   /* 로딩 팁 순환 */
@@ -8520,7 +8524,10 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음');
     _closeStyleReuse();
+    switchTab('create-view');
+    toast('🎵 스타일 재사용 곡 생성을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
+    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
     $('ld-task').textContent=`Style Reuse: ${taskId}`;
@@ -8598,7 +8605,10 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음');
     _closeRemaster();
+    switchTab('create-view');
+    toast('✦ 리마스터를 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
+    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
     const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
     $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
     $('ld-task').textContent=`Remaster: ${taskId}`;
