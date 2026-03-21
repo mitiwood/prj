@@ -12219,18 +12219,33 @@ function _renderSettingsExtended(){
 /* ══════════════════════════════
    출석 체크 + 스트릭 + 복귀 유저
 ══════════════════════════════ */
-/* 앨범 모드 */function _createAlbum(){  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}  const tracks=historyData.filter(h=>h.audio_url).slice(0,5);  if(tracks.length<2){toast('앨범을 만들려면 최소 2곡이 필요해요','err',2000);return;}  const names=tracks.map(function(t,i){return (i+1)+'. '+(t.title||'무제');}).join('
-');  const albumName=prompt('앨범 이름을 입력하세요:
-
-'+names,'My Album');  if(!albumName) return;  /* 앨범 데이터 저장 */  const albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');  albums.unshift({name:albumName,tracks:tracks.map(function(t){return{id:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url};}),created:Date.now()});  localStorage.setItem('kms_albums',JSON.stringify(albums.slice(0,10)));  toast('💿 앨범 "'+albumName+'" 생성 완료! ('+tracks.length+'곡)','ok',3000);}/* 상업 라이선스 */function _downloadLicense(){  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}  if(getPlan().type!=='creator'){    toast('📜 상업 라이선스는 Creator 플랜에서 사용할 수 있어요','',3000);    var btn=document.querySelector('#bottom-nav [data-view="settings-view"]');if(btn)btn.click();    setTimeout(function(){var sec=document.getElementById('plan-section');if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});},300);    return;  }  var text='COMMERCIAL LICENSE CERTIFICATE
-
-Licensee: '+currentUser.name+'
-Date: '+new Date().toISOString().split('T')[0]+'
-Plan: Creator
-
-This certifies that the licensee has the right to use AI-generated music created through Kenny's Music Studio for commercial purposes including but not limited to: YouTube videos, podcasts, advertisements, and streaming platforms.
-
-License ID: KMS-LIC-'+Date.now();  var blob=new Blob([text],{type:'text/plain'});  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KMS_Commercial_License_'+Date.now()+'.txt';a.click();  toast('📜 상업 라이선스 다운로드 완료','ok',2000);}
+/* 앨범 모드 */
+function _createAlbum(){
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  var tracks=historyData.filter(function(h){return h.audio_url;}).slice(0,5);
+  if(tracks.length<2){toast('앨범을 만들려면 최소 2곡이 필요해요','err',2000);return;}
+  var names=tracks.map(function(t,i){return (i+1)+'. '+(t.title||'무제');}).join('\n');
+  var albumName=prompt('앨범 이름을 입력하세요:\n\n'+names,'My Album');
+  if(!albumName) return;
+  var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');
+  albums.unshift({name:albumName,tracks:tracks.map(function(t){return{id:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url};}),created:Date.now()});
+  localStorage.setItem('kms_albums',JSON.stringify(albums.slice(0,10)));
+  toast('💿 앨범 "'+albumName+'" 생성 완료! ('+tracks.length+'곡)','ok',3000);
+}
+/* 상업 라이선스 */
+function _downloadLicense(){
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  if(getPlan().type!=='creator'){
+    toast('📜 상업 라이선스는 Creator 플랜에서 사용할 수 있어요','',3000);
+    var btn=document.querySelector('#bottom-nav [data-view="settings-view"]');if(btn)btn.click();
+    setTimeout(function(){var sec=document.getElementById('plan-section');if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});},300);
+    return;
+  }
+  var text='COMMERCIAL LICENSE CERTIFICATE\n\nLicensee: '+currentUser.name+'\nDate: '+new Date().toISOString().split('T')[0]+'\nPlan: Creator\n\nThis certifies that the licensee has the right to use AI-generated music created through Kenny\'s Music Studio for commercial purposes including but not limited to: YouTube videos, podcasts, advertisements, and streaming platforms.\n\nLicense ID: KMS-LIC-'+Date.now();
+  var blob=new Blob([text],{type:'text/plain'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KMS_Commercial_License_'+Date.now()+'.txt';a.click();
+  toast('📜 상업 라이선스 다운로드 완료','ok',2000);
+}
 function _checkAttendance(){
   if(!currentUser || currentUser.provider==="guest") return;
   const today=new Date().toISOString().split("T")[0];
@@ -13712,6 +13727,7 @@ window.kmsRequestPush = async function(){
   if(p==='granted'){ await registerPushSW(); _updatePushSettingsUI(); }
 };
 </script>
+<script src="js/vocal-removal.js"></script>
 
 </body>
 </html>
