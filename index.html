@@ -3209,6 +3209,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div class="adv-section-title">🚫 Negative Tags <span style="font-size:10px;color:var(--t3);font-weight:400;">(제외할 요소)</span></div>
             <input class="neg-input" id="neg-tags" type="text" placeholder="예: heavy metal, screaming, distorted guitar...">
           </div>
+          <!-- 튜닝 프리셋 -->
+          <div class="adv-section">
+            <div class="adv-section-title">⚡ 튜닝 프리셋</div>
+            <div id="tuning-presets" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
           <!-- 슬라이더 -->
           <div class="adv-section">
             <div class="adv-grid">
@@ -7602,6 +7607,34 @@ function applyPreset(key){
     toast(`✨ "${p.desc.split(',')[0]}" 프리셋 적용! 가사를 입력하고 생성하세요`,'',2500);
   }, 50);
 }
+
+/* ── 튜닝 프리셋 (파라미터 원클릭 세팅) ── */
+const TUNING_PRESETS=[
+  {id:'faithful',label:'🎯 충실 재현',sw:0.85,wc:0.2,neg:'experimental, avant-garde'},
+  {id:'balanced',label:'⚖️ 균형',sw:0.65,wc:0.45,neg:''},
+  {id:'creative',label:'✨ 창의적',sw:0.5,wc:0.7,neg:''},
+  {id:'experiment',label:'🔬 실험적',sw:0.3,wc:0.9,neg:''},
+  {id:'bgm',label:'🎬 BGM',sw:0.7,wc:0.3,neg:'vocal, singing, lyrics',inst:true},
+  {id:'cover',label:'🎤 커버풍',sw:0.9,wc:0.15,neg:''},
+];
+function _initTuningPresets(){
+  const wrap=$('tuning-presets');if(!wrap) return;
+  wrap.innerHTML=TUNING_PRESETS.map(p=>
+    `<button class="comm-trend-tag" style="font-size:11px;" data-tp="${p.id}" onclick="_applyTuning('${p.id}')">${p.label}</button>`
+  ).join('');
+}
+function _applyTuning(id){
+  const p=TUNING_PRESETS.find(x=>x.id===id);if(!p) return;
+  const sw=$('style-weight');if(sw){sw.value=p.sw;sw.dispatchEvent(new Event('input'));}
+  const wc=$('weird-constraint');if(wc){wc.value=p.wc;wc.dispatchEvent(new Event('input'));}
+  if(p.neg){const neg=$('neg-tags');if(neg&&!neg.value) neg.value=p.neg;}
+  if(p.inst){instOn=true;var it=document.getElementById('inst-toggle');if(it)it.classList.add('on');}
+  document.querySelectorAll('[data-tp]').forEach(b=>b.style.cssText=b.dataset.tp===id?'font-size:11px;border:1.5px solid var(--acc);background:rgba(124,58,237,.15);':'font-size:11px;');
+  toast('⚡ "'+p.label.replace(/[^\w가-힣 ]/g,'')+'" 튜닝 적용','ok',1500);
+}
+window._applyTuning=typeof _applyTuning!=="undefined"?_applyTuning:window._applyTuning||function(){};
+/* 커스텀 모드 전환 시 튜닝 프리셋 초기화 */
+setTimeout(_initTuningPresets,500);
 
 /* ══════════════════════════════
    프롬프트 엔지니어링 — buildOptimalPrompt()
