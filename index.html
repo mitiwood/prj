@@ -4821,6 +4821,9 @@ function updateLoginUI(){
       area.innerHTML=`<div style='font-size:12px;color:var(--t3);padding:8px 0;cursor:pointer;' onclick='openLoginSheet()'>로그인</div>`;
     }
   }
+  /* 플랜 UI 갱신 */
+  if(typeof renderPlanUI === 'function') renderPlanUI();
+  if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
 }
 
 /* ── 로그인 모달 닫기 (바텀시트로 교체 - 배경 클릭은 HTML onclick 처리) ── */
@@ -5384,6 +5387,8 @@ function _saveLoginUser(user){
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
     /* 로그인 사용자 목록에 추가 (관리자 통계용) */
     _saveLoginUser(user);
+    /* DB에서 플랜 정보 즉시 조회 → 로컬 동기화 */
+    setTimeout(()=>{ _syncPlanFromServer(); }, 300);
     /* Supabase에서 내 트랙 로드 */
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
     /* 푸시 구독 요청 */
@@ -11983,31 +11988,34 @@ async function _syncPlanFromServer(){
     });
     const d = await r.json();
     if(!d.ok && d.reason === 'plan_expired'){
-      /* 플랜 만료 → 강제 free 전환 */
       localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
       toast('플랜이 만료되어 무료로 전환됐어요','',3000);
       if(typeof renderPlanUI === 'function') renderPlanUI();
       return;
     }
-    if(d.plan && d.plan !== 'free'){
-      /* 서버에 유료 플랜이 있으면 → 서버 우선 */
+    /* 서버에서 plan 정보가 오면 항상 서버 기준으로 동기화 */
+    if(d.plan){
       const localPlan = getPlan();
       if(localPlan.type !== d.plan){
         console.log('[PlanSync] 서버:', d.plan, '로컬:', localPlan.type, '→ 서버 기준 동기화');
-        const endDate = new Date(Date.now() + 30*24*60*60*1000).toISOString();
-        localStorage.setItem('kms_plan', JSON.stringify({type: d.plan, startDate: new Date().toISOString(), endDate}));
-        if(typeof renderPlanUI === 'function') renderPlanUI();
-      }
-    } else if(!d.plan){
-      /* 서버에 plan 정보 없음 (컬럼 미존재) → 로컬 유지, 덮어쓰지 않음 */
-      /* 사용량도 서버 기준 동기화 */
-      if(d.used !== undefined){
-        const usage = getUsage();
-        const key = d.type === 'song' ? 'songs' : d.type;
-        if(typeof d.used === 'number' && d.used > (usage[key]||0)){
-          usage[key] = d.used;
-          saveUsage(usage);
+        if(d.plan === 'free'){
+          localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
+        } else {
+          const endDate = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+          localStorage.setItem('kms_plan', JSON.stringify({type: d.plan, startDate: new Date().toISOString(), endDate}));
         }
+        if(typeof renderPlanUI === 'function') renderPlanUI();
+        if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
+      }
+    }
+    /* 사용량도 서버 기준 동기화 */
+    if(d.used !== undefined){
+      const usage = getUsage();
+      const key = d.type === 'song' ? 'songs' : d.type;
+      if(typeof d.used === 'number'){
+        usage[key] = d.used;
+        saveUsage(usage);
+        if(typeof renderPlanUI === 'function') renderPlanUI();
       }
     }
   } catch(e){ /* 서버 장애 시 로컬 유지 */ }
