@@ -2994,7 +2994,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .profile-info{flex:1;min-width:0;}
 .profile-name{font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .profile-provider{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;}
-.profile-stats{font-size:13px;color:rgba(255,255,255,.7);margin-top:6px;display:flex;align-items:center;gap:4px;}
+.profile-stats{font-size:13px;color:rgba(255,255,255,.7);margin-top:10px;display:flex;align-items:center;gap:12px;justify-content:center;}
 .profile-stats span{font-weight:700;color:#fff;}
 .profile-back-btn{
   position:absolute;top:14px;right:14px;
@@ -4013,16 +4013,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="profile-info">
           <div class="profile-name" id="pv-name">사용자</div>
           <div class="profile-provider" id="pv-provider">provider</div>
-          <div class="profile-stats">
-            <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span> · <span id="pv-follower-cnt">0팔로워</span>
-          </div>
         </div>
+      </div>
+      <div class="profile-stats">
+        <span id="pv-tracks">0곡</span> · <span id="pv-likes">0좋아요</span> · <span id="pv-follower-cnt">0팔로워</span>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button id="pv-follow-btn" onclick="_pvToggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
         <button class="profile-back-btn" onclick="switchTab('community-view')" style="flex-shrink:0;">← 돌아가기</button>
       </div>
     </div>
+    <div id="pv-stats-grid" class="profile-stats-grid"></div>
     <div class="pv-section-title">🎵 곡 목록</div>
     <div id="pv-tracks-list"></div>
   </div>
@@ -15229,11 +15230,7 @@ function openCreatorProfile(name, provider){
 
       /* 통계 그리드 (Feature 4) */
       var statsEl=$('pv-stats-grid');
-      if(!statsEl){statsEl=document.createElement('div');statsEl.id='pv-stats-grid';statsEl.className='profile-stats-grid';
-        var followCntEl=$('pv-follower-cnt');if(followCntEl)followCntEl.parentNode.insertBefore(statsEl,followCntEl.parentNode.querySelector('.pv-follow-row')||null);
-        else{var pvh=$('pv-header');if(pvh)pvh.after(statsEl);}
-      }
-      statsEl.innerHTML=`
+      if(statsEl) statsEl.innerHTML=`
         <div class="profile-stat-card"><div class="profile-stat-num">${p.trackCount||0}</div><div class="profile-stat-label">곡</div></div>
         <div class="profile-stat-card"><div class="profile-stat-num">${p.totalLikes||0}</div><div class="profile-stat-label">좋아요</div></div>
         <div class="profile-stat-card"><div class="profile-stat-num">${p.totalPlays||0}</div><div class="profile-stat-label">재생</div></div>`;
