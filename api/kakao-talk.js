@@ -55,7 +55,17 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 
-  const { action, code } = req.query || {};
+  const { action, code, error, error_description } = req.query || {};
+
+  /* 0) 카카오 에러 콜백 처리 */
+  if (error) {
+    return res.status(400).json({
+      error: '카카오 인증 실패',
+      kakao_error: error,
+      description: error_description || '알 수 없는 오류',
+      help: '카카오 개발자 → 카카오 로그인 → Redirect URI에 정확히 등록되어 있는지 확인하세요.',
+    });
+  }
 
   /* 1) 카카오 인증 시작 */
   if (action === 'auth') {
