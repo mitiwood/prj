@@ -187,29 +187,63 @@ export default async function handler(req, res) {
       1;
     }
 
+    /* 좋아요/싫어요 — likes 테이블 기반 중복 방지 */
+    let b = req.body || {};
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const userName = b.userName || "";
+    const userProvider = b.userProvider || "";
     const col = action.includes("dislike") ? "comm_dislikes" : "comm_likes";
-    const delta = action.startsWith("un") ? -1 : 1;
+    const likeType = action.includes("dislike") ? "dislike" : "like";
+    const isUndo = action.startsWith("un");
+
     try {
+      /* likes 테이블: 유저별 투표 추적 */
+      if (userName && userProvider) {
+        try {
+          if (isUndo) {
+            await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}`, { method: "DELETE", prefer: "return=minimal" });
+          } else {
+            /* 중복 체크 */
+            const existing = await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}&select=id`);
+            if (existing?.length > 0) {
+              return res.status(200).json({ success: true, duplicate: true, message: "이미 투표했어요" });
+            }
+            /* 반대 투표 제거 */
+            const opposite = likeType === "like" ? "dislike" : "like";
+            try { await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${opposite}`, { method: "DELETE", prefer: "return=minimal" }); } catch {}
+            /* 투표 기록 */
+            await sb("/likes", { method: "POST", prefer: "return=minimal", body: JSON.stringify({ user_name: userName, user_provider: userProvider, track_id: id, type: likeType }) });
+
+            /* 곡 소유자에게 알림 (좋아요일 때만) */
+            if (likeType === "like") {
+              try {
+                const trackRows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=owner_name,owner_provider,title`);
+                const track = trackRows?.[0];
+                if (track && track.owner_name && !(track.owner_name === userName && track.owner_provider === userProvider)) {
+                  await sb("/notifications", { method: "POST", prefer: "return=minimal", body: JSON.stringify({
+                    user_name: track.owner_name, user_provider: track.owner_provider,
+                    type: "like", title: `❤️ "${track.title || '곡'}"에 좋아요!`,
+                    body: `${userName}님이 좋아요를 눌렀어요`, data: JSON.stringify({ trackId: id, fromUser: userName })
+                  })});
+                }
+              } catch {}
+            }
+          }
+        } catch (e) { console.warn("[likes]", e.message); }
+      }
+
+      /* tracks 카운터 업데이트 (기존 호환) */
+      const delta = isUndo ? -1 : 1;
       try {
-        const rows = await sb(
-          `/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`,
-        );
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
         const cur = Math.max(0, (rows?.[0]?.[col] || 0) + delta);
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          prefer: "return=minimal",
-          body: JSON.stringify({ [col]: cur }),
-        });
-        return res
-          .status(200)
-          .json({ success: true, [col]: cur, source: "supabase" });
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ [col]: cur }) });
+        return res.status(200).json({ success: true, [col]: cur, source: "supabase" });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) {
           _mem[idx][col] = Math.max(0, (_mem[idx][col] || 0) + delta);
-          return res
-            .status(200)
-            .json({ success: true, [col]: _mem[idx][col], source: "memory" });
+          return res.status(200).json({ success: true, [col]: _mem[idx][col], source: "memory" });
         }
         return res.status(404).json({ error: "not found" });
       }
