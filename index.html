@@ -2840,6 +2840,23 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .ai-sheet-overlay{position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;}
 .ai-sheet-box{background:#1a1a28;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 36px;max-height:80vh;overflow-y:auto;animation:sheet-up .25s ease;}
 @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* 카드 등장 애니메이션 */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.comm-creator-item, .comm-list-item, .comm-creator-group { animation: fadeInUp .3s ease both; }
+.comm-creator-item:nth-child(1) { animation-delay: 0s; }
+.comm-creator-item:nth-child(2) { animation-delay: .05s; }
+.comm-creator-item:nth-child(3) { animation-delay: .1s; }
+.comm-creator-item:nth-child(4) { animation-delay: .15s; }
+.comm-creator-item:nth-child(5) { animation-delay: .2s; }
+/* 좋아요 하트 버스트 */
+@keyframes heartBurst { 0% { transform:scale(1); } 30% { transform:scale(1.4); } 60% { transform:scale(0.9); } 100% { transform:scale(1); } }
+.comm-reaction-sm.liked, .comm-reaction-btn.liked { animation: heartBurst .4s ease; }
+/* 바텀시트 스프링 */
+@keyframes sheetSlideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+/* 리플 효과 */
+.ripple-effect { position:relative; overflow:hidden; }
+.ripple-effect::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at var(--ripple-x,50%) var(--ripple-y,50%), rgba(255,255,255,.2) 0%, transparent 60%); opacity:0; transition:opacity .3s; }
+.ripple-effect:active::after { opacity:1; }
 .ai-sheet-handle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px;}
 .ai-sheet-title{font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
 .ai-sheet-sub{font-size:12px;color:#a09ab8;margin-bottom:16px;}
@@ -4542,6 +4559,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 <span style="color:var(--t3);font-weight:400;">(선택)</span></div>
       <input class="neg-input" id="vc-style" type="text" placeholder="예: soulful R&B, powerful pop, soft ballad">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <button class="preset-chip" onclick="$('vc-style').value='breathy, soft, airy female vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌬️ Breathy</button>
+        <button class="preset-chip" onclick="$('vc-style').value='powerful, belting, wide range vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💪 Powerful</button>
+        <button class="preset-chip" onclick="$('vc-style').value='falsetto, light, ethereal high vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎵 Falsetto</button>
+        <button class="preset-chip" onclick="$('vc-style').value='raspy, gritty, raw emotional vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 Raspy</button>
+        <button class="preset-chip" onclick="$('vc-style').value='clear, crisp, clean precise vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 Clear</button>
+        <button class="preset-chip" onclick="$('vc-style').value='soulful, warm, R&B groove vocal'" style="padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 Soulful</button>
+      </div>
     </div>
     <!-- 보컬 라이브러리 프리셋 -->
     <div style="margin-bottom:12px;">
@@ -16896,6 +16921,80 @@ window.kmsRequestPush = async function(){
   const p=await Notification.requestPermission();
   if(p==='granted'){ await registerPushSW(); _updatePushSettingsUI(); }
 };
+</script>
+
+<!-- 온보딩 -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);overflow:hidden;">
+  <div style="max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:20px;">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;" id="onboard-content"></div>
+    <div style="display:flex;gap:8px;padding:20px 0;">
+      <div style="flex:1;display:flex;align-items:center;gap:6px;" id="onboard-dots"></div>
+      <button id="onboard-skip" onclick="_skipOnboarding()" style="padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">건너뛰기</button>
+      <button id="onboard-next" onclick="_nextOnboarding()" style="padding:8px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">다음</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 온보딩 플로우 ── */
+const _onboardSlides = [
+  { emoji: '\u{1F3B5}', title: 'Kenny\'s Music Studio', desc: 'AI로 나만의 음악을 만들어보세요!\n텍스트 한 줄이면 곡이 완성됩니다.' },
+  { emoji: '\u2728', title: '4가지 모드', desc: '커스텀 \xB7 심플 \xB7 YouTube \xB7 MV\n다양한 방식으로 음악을 만들 수 있어요.' },
+  { emoji: '\u{1F465}', title: '커뮤니티', desc: '다른 크리에이터의 음악을 감상하고\n팔로우하고 소통해보세요.' },
+  { emoji: '\u{1F4C2}', title: '내 라이브러리', desc: '만든 곡을 저장하고 관리하세요.\n플레이리스트도 만들 수 있어요!' },
+];
+let _onboardIdx = 0;
+
+function _showOnboarding() {
+  if (localStorage.getItem('kms_onboarded')) return;
+  var overlay = document.getElementById('onboarding-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'block';
+  _onboardIdx = 0;
+  _renderOnboardSlide();
+}
+
+function _renderOnboardSlide() {
+  var slide = _onboardSlides[_onboardIdx];
+  var content = document.getElementById('onboard-content');
+  var dots = document.getElementById('onboard-dots');
+  var nextBtn = document.getElementById('onboard-next');
+  if (!content) return;
+
+  content.innerHTML = '<div style="text-align:center;padding:20px;">' +
+    '<div style="font-size:80px;margin-bottom:24px;">' + slide.emoji + '</div>' +
+    '<div style="font-size:24px;font-weight:800;color:var(--t1);margin-bottom:12px;">' + slide.title + '</div>' +
+    '<div style="font-size:14px;color:var(--t2);line-height:1.6;white-space:pre-line;">' + slide.desc + '</div>' +
+  '</div>';
+
+  dots.innerHTML = _onboardSlides.map(function(_, i) {
+    return '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _onboardIdx ? 'var(--acc)' : 'var(--border)') + ';transition:all .3s;"></div>';
+  }).join('');
+
+  nextBtn.textContent = _onboardIdx === _onboardSlides.length - 1 ? '시작하기' : '다음';
+}
+
+function _nextOnboarding() {
+  _onboardIdx++;
+  if (_onboardIdx >= _onboardSlides.length) {
+    _skipOnboarding();
+    return;
+  }
+  _renderOnboardSlide();
+}
+
+function _skipOnboarding() {
+  localStorage.setItem('kms_onboarded', '1');
+  var overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity .3s';
+    setTimeout(function() { overlay.style.display = 'none'; }, 300);
+  }
+}
+
+/* 초기화 후 온보딩 표시 */
+setTimeout(_showOnboarding, 1500);
 </script>
 
 </body>
