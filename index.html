@@ -6493,7 +6493,6 @@ function mvClearTrack(){
 
 /* AI 프롬프트 생성 — 빠른작사와 동일한 방식 (Gemini 2.5 Flash 스트리밍) */
 $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
-  if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
   const spinner=$('mv-prompt-spinner');const btn=$('mv-ai-prompt-btn');
   const ta=$('mv-prompt');
   if(spinner)spinner.style.display='inline-block';if(btn)btn.disabled=true;
@@ -15661,60 +15660,43 @@ function goAnnouncement() {
 
 <!-- ── Claude Sonnet 4.5 AI Assist Features ── -->
 <script>
-const KIE_LLM_URL = 'https://api.kie.ai/gemini-2.5-flash/v1/chat/completions';
-const KIE_CLAUDE_URL = KIE_LLM_URL; /* 하위호환 */
+const KIE_LLM_PATH = '/gemini-2.5-flash/v1/chat/completions';
 
-/* kie.ai Gemini 2.5 Flash 스트리밍 호출 (빠르고 저렴) */
+/* kie.ai Gemini 2.5 Flash — 서버 프록시 경유 (API 키 보호) */
 async function callClaudeStream(systemPrompt, userPrompt, onChunk){
-  if(!kieApiKey){ toast('API 키 로딩 중...','err'); return null; }
-  const res = await fetch(KIE_CLAUDE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
-    body: JSON.stringify({
-      messages: [
-        { role:'system', content: systemPrompt },
-        { role:'user',   content: userPrompt }
-      ],
-      stream: true
-    })
-  });
-  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||e?.msg||'AI API 오류'); }
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let full = '';
-  while(true){
-    const {done, value} = await reader.read();
-    if(done) break;
-    const lines = decoder.decode(value).split('\n');
-    for(const line of lines){
-      if(!line.startsWith('data:')) continue;
-      const raw = line.slice(5).trim();
-      if(raw === '[DONE]') break;
-      try{
-        const j = JSON.parse(raw);
-        const delta = j?.choices?.[0]?.delta?.content || '';
-        if(delta){ full += delta; onChunk(full); }
-      }catch{}
-    }
-  }
-  return full;
+  const msgs = [];
+  if(systemPrompt) msgs.push({ role:'system', content: systemPrompt });
+  msgs.push({ role:'user', content: userPrompt });
+  try{
+    const res = await fetch('/api/kie-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ path: KIE_LLM_PATH, method: 'POST', body: { messages: msgs, stream: false } })
+    });
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||e?.msg||'AI API 오류 '+res.status); }
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    if(content && onChunk) onChunk(content);
+    return content;
+  }catch(e){ throw e; }
 }
 
-/* kie.ai Gemini - 검색 포함 비스트리밍 */
+/* kie.ai Gemini - 검색 포함 비스트리밍 (서버 프록시 경유) */
 async function callClaudeWithSearch(userPrompt){
-  if(!kieApiKey) return null;
-  const res = await fetch(KIE_LLM_URL, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
-    body: JSON.stringify({
-      messages: [{ role:'user', content: userPrompt }],
-      tools: [{ type:'function', function:{ name:'googleSearch' } }],
-      stream: false
-    })
-  });
-  if(!res.ok) return null;
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || '';
+  try{
+    const res = await fetch('/api/kie-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ path: KIE_LLM_PATH, method: 'POST', body: {
+        messages: [{ role:'user', content: userPrompt }],
+        tools: [{ type:'function', function:{ name:'googleSearch' } }],
+        stream: false
+      }})
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content || '';
+  }catch{ return null; }
 }
 
 /* ── 가사 생성 중 팝업 헬퍼 ── */
