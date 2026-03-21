@@ -686,7 +686,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
    HISTORY VIEW
 ══════════════════════════════ */
 .hist-view-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;position:relative;
 }
 /* 정렬+뷰 토글 */
 .hist-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
@@ -699,7 +699,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* Suno 그리드 뷰 */
 .hist-view-grid{transition:all .3s ease;}
 .hist-view-grid.grid-mode{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-.hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 12px rgba(0,0,0,.15);}
+.hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 12px rgba(0,0,0,.15);position:relative;}
 .hist-view-grid.grid-mode .hist-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.25);}
 .hist-view-grid.grid-mode .hist-thumb{width:100%;height:0;padding-bottom:100%;border-radius:0;font-size:32px;position:relative;background:linear-gradient(135deg,#1a0537,#2d1a5a,#0f2a4a);}
 .hist-view-grid.grid-mode .hist-thumb img,.hist-view-grid.grid-mode .hist-thumb video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
@@ -709,8 +709,9 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* 그리드 재생 오버레이 — 크고 원형 */
 .hist-view-grid.grid-mode .hist-play-overlay{background:rgba(0,0,0,.4);}
 .hist-view-grid.grid-mode .hist-play-icon{width:44px;height:44px;background:rgba(124,58,237,.85);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;backdrop-filter:blur(4px);}
-/* 곡 길이 배지 */
-.hist-duration{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;backdrop-filter:blur(4px);}
+/* 곡 길이 배지 — 리스트/그리드 공용 */
+.hist-duration{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;backdrop-filter:blur(4px);line-height:1.4;}
+.hist-view-grid.grid-mode .hist-duration{bottom:8px;right:8px;font-size:11px;padding:2px 7px;border-radius:5px;}
 .hist-view-grid.grid-mode .hist-info{padding:10px 12px 12px;}
 .hist-view-grid.grid-mode .hist-title{font-size:13px;font-weight:700;}
 .hist-view-grid.grid-mode .hist-sub{font-size:10px;margin-top:3px;}
@@ -3458,8 +3459,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
     <span class="bnav-label">음악 만들기</span>
   </button>
   <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
-    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    <span class="bnav-label">최근생성</span>
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+    <span class="bnav-label">라이브러리</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
   </button>
   <button class="bnav-item" data-view="settings-view" onclick="switchTab('settings-view')">
