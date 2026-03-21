@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       client_id: KAKAO_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       response_type: 'code',
-      scope: 'talk_message',
+      scope: 'profile_nickname,talk_message',
     });
     return res.redirect(`https://kauth.kakao.com/oauth/authorize?${params}`);
   }
