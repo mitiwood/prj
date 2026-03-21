@@ -130,12 +130,24 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 📣 *알림*
 알림 <메시지> — 전체 푸시 발송
 
-🛠 *코드 수정*
-수정 <지시사항> — AI가 코드 수정 후 PR 생성
-PR — 최근 PR 목록 확인
-머지 <PR번호> — PR 머지 (배포)
+🛠 *개발*
+수정 <지시사항> — AI 코드 수정 + PR
+PR — PR 목록 / 머지 <번호> — 머지
 QA — 전체 코드 점검 + 리포트
-진행상황 — 현재 진행 중인 작업 추적
+진행상황 — 작업 추적
+
+📋 *기획*
+기획 <기능설명> — 기능 요구사항 Issue 등록
+백로그 — 미완료 Issue 목록
+버그 <설명> — 버그 리포트 등록
+
+🎨 *디자인*
+디자인 <지시> — UI/CSS 수정 요청
+
+📊 *사용량*
+사용량 — 전체 통계 대시보드
+일간 — 오늘 활동 리포트
+주간 — 최근 7일 리포트
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
@@ -615,6 +627,205 @@ COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
     ].join('\n'), { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, `❌ QA 요청 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* ── 📋 기획 명령어 ── */
+
+/* 기획 <기능설명> — 기능 요구사항 Issue 등록 */
+COMMANDS['기획'] = COMMANDS['plan'] = async (chatId, arg) => {
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 기획 <기능 설명>\n\n예시:\n기획 다크모드 지원\n기획 플레이리스트 공유 기능', { parse_mode: '' });
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const issue = await ghApi('POST', '/issues', {
+      title: `[기획] ${arg.slice(0, 60)}`,
+      body: `## 기능 요구사항\n\n${arg}\n\n### 체크리스트\n- [ ] 요구사항 정의\n- [ ] 디자인 검토\n- [ ] 개발\n- [ ] QA\n- [ ] 배포\n\n---\n> 텔레그램 봇 · ${ts()}`,
+      labels: ['enhancement'],
+    });
+    await tgSend(chatId, `✅ 기획 등록 완료!\n\n📋 Issue #${issue.number}\n📝 ${arg}\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 기획 등록 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 백로그 — 미완료 Issue 목록 */
+COMMANDS['백로그'] = COMMANDS['backlog'] = async (chatId) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const issues = await ghApi('GET', '/issues?state=open&sort=created&direction=desc&per_page=15');
+    const filtered = issues.filter(i => !i.pull_request);
+    if (!filtered.length) return tgSend(chatId, '📭 열린 Issue가 없습니다.', { parse_mode: '' });
+
+    let msg = `📋 백로그 (${filtered.length}개)\n\n`;
+    filtered.forEach((issue, i) => {
+      const labels = issue.labels?.map(l => l.name).join(', ') || '';
+      const time = new Date(issue.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' });
+      msg += `${i + 1}. #${issue.number} ${issue.title}\n`;
+      if (labels) msg += `   🏷 ${labels}\n`;
+      msg += `   ${time}\n\n`;
+    });
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 백로그 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 버그 <설명> — 버그 리포트 */
+COMMANDS['버그'] = COMMANDS['bug'] = async (chatId, arg) => {
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 버그 <설명>\n\n예시:\n버그 모바일에서 재생 버튼 안 눌림\n버그 로그인 후 화면 깜빡임', { parse_mode: '' });
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const issue = await ghApi('POST', '/issues', {
+      title: `[버그] ${arg.slice(0, 60)}`,
+      body: `## 버그 리포트\n\n**현상:** ${arg}\n\n**재현 환경:**\n- [ ] PC\n- [ ] 모바일\n\n**심각도:** 🔴 높음 / 🟡 중간 / 🟢 낮음\n\n---\n> 텔레그램 봇 · ${ts()}`,
+      labels: ['bug'],
+    });
+    await tgSend(chatId, `🐛 버그 리포트 등록!\n\n📋 Issue #${issue.number}\n📝 ${arg}\n\nAI 자동 수정: "수정 ${arg}"\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 버그 등록 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* ── 🎨 디자인 명령어 ── */
+
+COMMANDS['디자인'] = COMMANDS['design'] = async (chatId, arg) => {
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 디자인 <지시사항>\n\n예시:\n디자인 버튼 둥글게 + 그림자 추가\n디자인 다크모드 색상 변경', { parse_mode: '' });
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const issue = await ghApi('POST', '/issues', {
+      title: `[디자인] ${arg.slice(0, 60)}`,
+      body: `## 디자인 수정 요청\n\n${arg}\n\n### 규칙\n- CSS/UI만 수정할 것\n- 기능 로직 변경 금지\n- 모바일 반응형 유지\n\n---\n> 텔레그램 봇 · ${ts()}`,
+      labels: ['claude-fix', 'design'],
+    });
+    await tgSend(chatId, `🎨 디자인 요청 등록!\n\n📋 Issue #${issue.number}\n📝 ${arg}\n\n🤖 Claude가 CSS/UI를 수정합니다.\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 디자인 요청 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* ── 📊 사용량 명령어 ── */
+
+COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) => {
+  try {
+    const { count: trackCount } = await sb('GET', '/tracks?select=id&limit=0');
+    const { count: publicCount } = await sb('GET', '/tracks?is_public=eq.true&select=id&limit=0');
+    let userCount = '?', commentCount = '?', payCount = '?';
+    try { userCount = (await sb('GET', '/users?select=id&limit=0')).count ?? '?'; } catch {}
+    try { commentCount = (await sb('GET', '/comments?select=id&limit=0')).count ?? '?'; } catch {}
+    try { payCount = (await sb('GET', '/payments?select=id&limit=0')).count ?? '?'; } catch {}
+
+    const today = new Date().toISOString().split('T')[0];
+    let todayTracks = 0, todayUsers = 0, todayComments = 0;
+    try { todayTracks = (await sb('GET', `/tracks?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+    try { todayUsers = (await sb('GET', `/users?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+    try { todayComments = (await sb('GET', `/comments?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+
+    const msg = [
+      `📊 사용량 대시보드`,
+      `⏰ ${ts()}`,
+      ``,
+      `┌──────────┬────────┬────────┐`,
+      `│  항목    │ 전체   │ 오늘   │`,
+      `├──────────┼────────┼────────┤`,
+      `│ 🎵 트랙  │ ${String(trackCount ?? '?').padStart(5)} │ ${String(todayTracks).padStart(5)} │`,
+      `├──────────┼────────┼────────┤`,
+      `│ 👥 사용자│ ${String(userCount).padStart(5)} │ ${String(todayUsers).padStart(5)} │`,
+      `├──────────┼────────┼────────┤`,
+      `│ 💬 댓글  │ ${String(commentCount).padStart(5)} │ ${String(todayComments).padStart(5)} │`,
+      `├──────────┼────────┼────────┤`,
+      `│ 💰 결제  │ ${String(payCount).padStart(5)} │   -   │`,
+      `├──────────┼────────┼────────┤`,
+      `│ 🌐 공개  │ ${String(publicCount ?? '?').padStart(5)} │       │`,
+      `└──────────┴────────┴────────┘`,
+    ].join('\n');
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 사용량 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 일간 — 오늘 활동 리포트 */
+COMMANDS['일간'] = COMMANDS['daily'] = async (chatId) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: tracks } = await sb('GET', `/tracks?created_at=gte.${today}&select=id,title,owner_name,gen_mode,created_at&order=created_at.desc&limit=50`);
+    const { data: users } = await sb('GET', `/users?created_at=gte.${today}&select=id,name,provider&order=created_at.desc&limit=50`);
+    const { data: comments } = await sb('GET', `/comments?created_at=gte.${today}&select=id,author_name,content&order=created_at.desc&limit=50`);
+
+    let msg = `📅 일간 리포트 (${today})\n⏰ ${ts()}\n\n`;
+    msg += `🎵 신규 트랙: ${tracks.length}곡\n`;
+    tracks.slice(0, 5).forEach(t => {
+      msg += `  · ${t.title || '무제'} (${t.owner_name || '익명'}, ${t.gen_mode || '?'})\n`;
+    });
+    if (tracks.length > 5) msg += `  ... 외 ${tracks.length - 5}곡\n`;
+
+    msg += `\n👥 신규/재방문: ${users.length}명\n`;
+    users.slice(0, 5).forEach(u => {
+      msg += `  · ${u.name || '?'} (${u.provider || '?'})\n`;
+    });
+
+    msg += `\n💬 댓글: ${comments.length}개\n`;
+    comments.slice(0, 3).forEach(c => {
+      msg += `  · ${c.author_name || '익명'}: ${(c.content || '').slice(0, 40)}\n`;
+    });
+
+    if (!tracks.length && !users.length && !comments.length) msg += '\n💤 오늘은 활동이 없습니다.';
+
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 일간 리포트 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 주간 — 최근 7일 리포트 */
+COMMANDS['주간'] = COMMANDS['weekly'] = async (chatId) => {
+  try {
+    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: tracks } = await sb('GET', `/tracks?created_at=gte.${since}&select=id,gen_mode,created_at&limit=500`);
+    const { data: users } = await sb('GET', `/users?created_at=gte.${since}&select=id,provider&limit=500`);
+    const { data: comments } = await sb('GET', `/comments?created_at=gte.${since}&select=id&limit=500`);
+
+    /* 일별 트랙 수 집계 */
+    const dailyMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      dailyMap[d.toISOString().split('T')[0]] = 0;
+    }
+    tracks.forEach(t => {
+      const d = t.created_at?.split('T')[0];
+      if (d && d in dailyMap) dailyMap[d]++;
+    });
+
+    /* 모드별 집계 */
+    const modes = {};
+    tracks.forEach(t => { modes[t.gen_mode || '?'] = (modes[t.gen_mode || '?'] || 0) + 1; });
+
+    /* 프로바이더별 유저 */
+    const providers = {};
+    users.forEach(u => { providers[u.provider || '?'] = (providers[u.provider || '?'] || 0) + 1; });
+
+    let msg = `📊 주간 리포트 (최근 7일)\n⏰ ${ts()}\n\n`;
+    msg += `🎵 트랙: ${tracks.length}곡 / 👥 사용자: ${users.length}명 / 💬 댓글: ${comments.length}개\n\n`;
+
+    msg += `일별 트랙 생성:\n`;
+    Object.entries(dailyMap).forEach(([d, c]) => {
+      const bar = '█'.repeat(Math.min(c, 20)) || '·';
+      msg += `  ${d.slice(5)} ${bar} ${c}\n`;
+    });
+
+    msg += `\n모드별:\n`;
+    Object.entries(modes).sort((a, b) => b[1] - a[1]).forEach(([m, c]) => {
+      msg += `  ${m}: ${c}곡\n`;
+    });
+
+    msg += `\n소셜별 사용자:\n`;
+    Object.entries(providers).sort((a, b) => b[1] - a[1]).forEach(([p, c]) => {
+      msg += `  ${p}: ${c}명\n`;
+    });
+
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 주간 리포트 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 

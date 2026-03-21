@@ -130,6 +130,9 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '🛠 수정 <지시> · PR · 머지 <번호>',
       '🔍 QA — 전체 코드 점검',
       '🔄 진행상황 — 작업 추적',
+      '📋 기획 · 백로그 · 버그',
+      '🎨 디자인 <지시>',
+      '📊 사용량 · 일간 · 주간',
     ].join('\n'),
     [
       { label: '서버 상태', msg: '상태' },
@@ -472,6 +475,116 @@ ${'```'}
     [{ label: 'GitHub에서 보기', url: issue.html_url }],
     ['PR', '상태']
   );
+};
+
+/* ── 📋 기획 명령어 ── */
+
+COMMANDS['기획'] = COMMANDS['plan'] = async (arg) => {
+  if (!arg) return card('📋 기획', '사용법: 기획 <기능 설명>\n\n예시:\n기획 다크모드 지원\n기획 플레이리스트 공유 기능', [], ['백로그', '상태']);
+  if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+  const issue = await ghApi('POST', '/issues', {
+    title: `[기획] ${arg.slice(0, 60)}`,
+    body: `## 기능 요구사항\n\n${arg}\n\n### 체크리스트\n- [ ] 요구사항 정의\n- [ ] 디자인 검토\n- [ ] 개발\n- [ ] QA\n- [ ] 배포\n\n---\n> 카카오 봇 · ${ts()}`,
+    labels: ['enhancement'],
+  });
+  return card('✅ 기획 등록 완료', `📋 Issue #${issue.number}\n📝 ${arg}`, [{ label: 'GitHub에서 보기', url: issue.html_url }], ['백로그', '상태']);
+};
+
+COMMANDS['백로그'] = COMMANDS['backlog'] = async () => {
+  if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+  const issues = await ghApi('GET', '/issues?state=open&sort=created&direction=desc&per_page=5');
+  const filtered = issues.filter(i => !i.pull_request);
+  if (!filtered.length) return text('열린 Issue가 없습니다.', ['상태']);
+  const items = filtered.slice(0, 5).map(i => ({
+    title: `#${i.number} ${i.title}`.slice(0, 50),
+    desc: (i.labels?.map(l => l.name).join(', ') || '라벨 없음').slice(0, 50),
+  }));
+  return listCard(`📋 백로그 (${filtered.length}개)`, items, [{ label: 'GitHub에서 보기', url: `https://github.com/${GH_REPO}/issues` }], ['기획', 'PR']);
+};
+
+COMMANDS['버그'] = COMMANDS['bug'] = async (arg) => {
+  if (!arg) return card('🐛 버그 리포트', '사용법: 버그 <설명>\n\n예시:\n버그 모바일 재생 안됨\n버그 로그인 후 깜빡임', [], ['백로그']);
+  if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+  const issue = await ghApi('POST', '/issues', {
+    title: `[버그] ${arg.slice(0, 60)}`,
+    body: `## 버그 리포트\n\n**현상:** ${arg}\n\n---\n> 카카오 봇 · ${ts()}`,
+    labels: ['bug'],
+  });
+  return card('🐛 버그 등록 완료', `Issue #${issue.number}\n${arg}\n\nAI 수정: "수정 ${arg}"`, [{ label: 'GitHub에서 보기', url: issue.html_url }], ['백로그', '수정']);
+};
+
+/* ── 🎨 디자인 ── */
+
+COMMANDS['디자인'] = COMMANDS['design'] = async (arg) => {
+  if (!arg) return card('🎨 디자인', '사용법: 디자인 <지시사항>\n\n예시:\n디자인 버튼 둥글게\n디자인 다크모드 색상', [], ['상태']);
+  if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
+  const issue = await ghApi('POST', '/issues', {
+    title: `[디자인] ${arg.slice(0, 60)}`,
+    body: `## 디자인 수정\n\n${arg}\n\n규칙: CSS/UI만 수정, 로직 변경 금지, 반응형 유지\n\n---\n> 카카오 봇 · ${ts()}`,
+    labels: ['claude-fix', 'design'],
+  });
+  return card('🎨 디자인 요청 등록', `Issue #${issue.number}\n${arg}\n\nClaude가 CSS/UI를 수정합니다.`, [{ label: 'GitHub에서 보기', url: issue.html_url }], ['PR', '상태']);
+};
+
+/* ── 📊 사용량 ── */
+
+COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async () => {
+  const { count: trackCount } = await sb('GET', '/tracks?select=id&limit=0');
+  const { count: publicCount } = await sb('GET', '/tracks?is_public=eq.true&select=id&limit=0');
+  let userCount = '?', commentCount = '?';
+  try { userCount = (await sb('GET', '/users?select=id&limit=0')).count ?? '?'; } catch {}
+  try { commentCount = (await sb('GET', '/comments?select=id&limit=0')).count ?? '?'; } catch {}
+
+  const today = new Date().toISOString().split('T')[0];
+  let todayTracks = 0, todayUsers = 0;
+  try { todayTracks = (await sb('GET', `/tracks?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+  try { todayUsers = (await sb('GET', `/users?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
+
+  return card(
+    '📊 사용량 대시보드',
+    [
+      `🎵 트랙  ${trackCount ?? '?'}곡 (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}`,
+      `👥 사용자  ${userCount}명 / 오늘 +${todayUsers}`,
+      `💬 댓글  ${commentCount}개`,
+      `⏰ ${ts()}`,
+    ].join('\n'),
+    [{ label: '사이트 열기', url: BASE }],
+    ['일간', '주간', '상태']
+  );
+};
+
+COMMANDS['일간'] = COMMANDS['daily'] = async () => {
+  const today = new Date().toISOString().split('T')[0];
+  const { data: tracks } = await sb('GET', `/tracks?created_at=gte.${today}&select=id,title,owner_name,gen_mode&order=created_at.desc&limit=50`);
+  const { data: users } = await sb('GET', `/users?created_at=gte.${today}&select=id,name,provider&order=created_at.desc&limit=50`);
+  const { data: comments } = await sb('GET', `/comments?created_at=gte.${today}&select=id,author_name,content&order=created_at.desc&limit=50`);
+
+  let desc = `🎵 트랙 +${tracks.length} / 👥 사용자 +${users.length} / 💬 댓글 +${comments.length}\n\n`;
+  if (tracks.length) {
+    desc += '최근 트랙:\n';
+    tracks.slice(0, 3).forEach(t => { desc += `· ${t.title || '무제'} (${t.owner_name || '익명'})\n`; });
+  }
+  if (!tracks.length && !users.length && !comments.length) desc += '💤 오늘은 활동이 없습니다.';
+
+  return card(`📅 일간 리포트 (${today})`, desc, [], ['주간', '사용량', '상태']);
+};
+
+COMMANDS['주간'] = COMMANDS['weekly'] = async () => {
+  const since = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: tracks } = await sb('GET', `/tracks?created_at=gte.${since}&select=id,gen_mode,created_at&limit=500`);
+  const { data: users } = await sb('GET', `/users?created_at=gte.${since}&select=id,provider&limit=500`);
+  const { data: comments } = await sb('GET', `/comments?created_at=gte.${since}&select=id&limit=500`);
+
+  const modes = {};
+  tracks.forEach(t => { modes[t.gen_mode || '?'] = (modes[t.gen_mode || '?'] || 0) + 1; });
+  const providers = {};
+  users.forEach(u => { providers[u.provider || '?'] = (providers[u.provider || '?'] || 0) + 1; });
+
+  let desc = `🎵 트랙 ${tracks.length}곡 / 👥 사용자 ${users.length}명 / 💬 댓글 ${comments.length}개\n\n`;
+  desc += '모드별: ' + Object.entries(modes).map(([m, c]) => `${m}(${c})`).join(', ') + '\n';
+  desc += '소셜별: ' + Object.entries(providers).map(([p, c]) => `${p}(${c})`).join(', ');
+
+  return card('📊 주간 리포트 (7일)', desc, [{ label: '사이트 열기', url: BASE }], ['일간', '사용량', '상태']);
 };
 
 /* ── 메인 핸들러 ── */
