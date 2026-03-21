@@ -907,8 +907,10 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mf-trk-info{flex:1;min-width:0;}
 .mf-trk-title{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mf-trk-meta{display:flex;gap:8px;font-size:11px;color:var(--t3);margin-top:2px;}
-.mf-trk-play-btn{width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
+.mf-trk-play-btn{width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;cursor:pointer;}
 .mf-trk-card:hover .mf-trk-play-btn{background:rgba(124,58,237,.2);}
+.mf-trk-more-btn{width:28px;height:28px;border:none;background:transparent;color:var(--t3);font-size:14px;font-weight:700;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;letter-spacing:1px;}
+.mf-trk-more-btn:hover{background:var(--s2);}
 /* 스피너 */
 .mf-spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -10766,6 +10768,7 @@ var _myFeedDetailLoading=false;
 var _myFeedSort='popular'; /* popular | newest | tracks */
 var _myFeedSearch='';
 var _myFeedRawTracks=null;
+var _myFeedLoadError=false;
 
 function _renderMyFeedView(grid,countEl){
   /* 크리에이터 상세 뷰 */
@@ -10793,6 +10796,11 @@ function _renderMyFeedView(grid,countEl){
   /* 로딩 */
   if(_myFeedLoading&&!_myFeedCreators){
     html+='<div style="padding:40px 0;text-align:center;color:var(--t3);font-size:13px;"><div class="mf-spinner"></div>크리에이터 불러오는 중...</div>';
+    grid.innerHTML=html;
+    return;
+  }
+  if(_myFeedLoadError&&!_myFeedCreators){
+    html+='<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="he-txt">불러오기 실패</div><div class="he-sub">네트워크 오류가 발생했어요</div><button class="hist-empty-cta" onclick="_myFeedLoadError=false;_loadMyFeedCreators();renderHistoryView();">다시 시도</button></div>';
     grid.innerHTML=html;
     return;
   }
@@ -11039,7 +11047,8 @@ function _loadMyFeedCreators(){
     if(_histTabFilter==='myfeed') renderHistoryView();
   }).catch(function(e){
     console.warn('[my-feed creators]',e);
-    _myFeedCreators=[];
+    _myFeedCreators=null;
+    _myFeedLoadError=true;
     _myFeedLoading=false;
     if(_histTabFilter==='myfeed') renderHistoryView();
   });
@@ -11141,6 +11150,75 @@ function _mfDetailShuffle(){
   _mfDetailPlay(ri);
   toast('🔀 셔플 재생','ok',1500);
 }
+
+/* 트랙 더보기 메뉴 (플리 추가/공유) */
+function _mfOpenTrackMenu(idx){
+  if(!_myFeedDetail||!_myFeedDetail.tracks)return;
+  var t=_myFeedDetail.tracks[idx];
+  if(!t)return;
+  var sheet=document.getElementById('mf-trk-sheet');
+  if(sheet) sheet.remove();
+  sheet=document.createElement('div');
+  sheet.id='mf-trk-sheet';
+  sheet.style.cssText='position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
+  var imgHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:24px;">🎵</span>';
+  sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'mf-trk-sheet\').remove()"></div>'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheetUp .25s ease-out;">'
+    +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(128,128,128,.3);margin:0 auto 16px;"></div>'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
+    +'<div style="width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
+    +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(t.title||'무제')+'</div>'
+    +'<div style="font-size:11px;color:var(--t3);margin-top:2px;">'+esc(_myFeedDetail.name)+'</div></div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:2px;">'
+    +'<button onclick="_mfTrkAction(\'play\','+idx+')" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:none;background:transparent;color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;"><span style="font-size:18px;">▶</span> 재생</button>'
+    +'<button onclick="_mfTrkAction(\'playlist\','+idx+')" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:none;background:transparent;color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;"><span style="font-size:18px;">📋</span> 플레이리스트에 추가</button>'
+    +'<button onclick="_mfTrkAction(\'share\','+idx+')" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:none;background:transparent;color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;"><span style="font-size:18px;">📤</span> 공유</button>'
+    +'<button onclick="_mfTrkAction(\'profile\','+idx+')" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:none;background:transparent;color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;"><span style="font-size:18px;">👤</span> 크리에이터 프로필</button>'
+    +'</div></div>';
+  document.body.appendChild(sheet);
+}
+
+function _mfTrkAction(action,idx){
+  var sheet=document.getElementById('mf-trk-sheet');
+  if(sheet) sheet.remove();
+  if(!_myFeedDetail||!_myFeedDetail.tracks) return;
+  var t=_myFeedDetail.tracks[idx];
+  if(!t) return;
+  if(action==='play'){
+    _mfDetailPlay(idx);
+  } else if(action==='playlist'){
+    var pl=[];try{pl=JSON.parse(localStorage.getItem('kms_playlist')||'[]');}catch(e){}
+    var id=t.id||'';
+    if(pl.some(function(p){return p.id===id;})){toast('이미 플레이리스트에 있어요','',1500);return;}
+    pl.unshift({id:id,title:t.title||'무제',audio_url:t.audio_url||'',image_url:t.image_url||'',tags:t.tags||'',added:Date.now()});
+    if(pl.length>50) pl=pl.slice(0,50);
+    localStorage.setItem('kms_playlist',JSON.stringify(pl));
+    toast('플레이리스트에 추가했어요','ok',1500);
+  } else if(action==='share'){
+    var shareUrl=location.origin+'/?play='+encodeURIComponent(t.id);
+    if(navigator.share){navigator.share({title:t.title||'AI Music',url:shareUrl}).catch(function(){});}
+    else{navigator.clipboard.writeText(shareUrl).then(function(){toast('링크를 복사했어요','ok',1500);}).catch(function(){toast('공유 실패','err');});}
+  } else if(action==='profile'){
+    openCreatorProfile(_myFeedDetail.name,_myFeedDetail.provider);
+  }
+}
+
+/* 브라우저 뒤로가기 지원 */
+(function(){
+  var origOpen=typeof _openCreatorDetail==='function'?_openCreatorDetail:null;
+  if(origOpen){
+    window._openCreatorDetail=function(name,provider){
+      origOpen(name,provider);
+      try{history.pushState({mfDetail:true},'');}catch(e){}
+    };
+  }
+})();
+window.addEventListener('popstate',function(){
+  if(_myFeedDetail&&_histTabFilter==='myfeed'){
+    _myFeedDetail=null;
+    renderHistoryView();
+  }
+});
 
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
 let _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
       /* 곡 목록 */
       const { data: tracks, count: trackCount } = await sb('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,tags,comm_likes,comm_plays,created_at&limit=50`);
+        `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,created_at&limit=50`);
 
       /* 통계 */
       const totalLikes = (tracks || []).reduce((s, t) => s + (t.comm_likes || 0), 0);
