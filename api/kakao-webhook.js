@@ -134,6 +134,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '🎨 디자인 <지시>',
       '📊 사용량 · 일간 · 주간',
       '📖 kie <질문> — API 문서 조회',
+      '📋 작업 — 구현 현황 / 작업 <카테고리>',
     ].join('\n'),
     [
       { label: '서버 상태', msg: '상태' },
@@ -620,6 +621,44 @@ COMMANDS['주간'] = COMMANDS['weekly'] = async () => {
 };
 
 /* ── 📖 kie.ai API 레퍼런스 조회 ── */
+/* ── 📋 작업이력 / 구현현황 조회 ── */
+const WORK_CATEGORIES = {
+  '음악': { icon: '🎵', title: '음악 고도화', count: 12, top: ['프리셋10개', 'A/B비교', '가사에디터', '리믹스6프리셋', '보컬라이브러리6종', 'AI어시스턴트'] },
+  'UI': { icon: '🎨', title: 'Suno UI/UX', count: 9, top: ['SVG아이콘', '3열리스트', '재생동기화', '데이모드', 'MZ로딩'] },
+  '리믹스': { icon: '🎤', title: '리믹스&커버', count: 5, top: ['리믹스4종', '커버바텀시트', 'add-vocals수정'] },
+  'AI': { icon: '🤖', title: 'AI 추천', count: 4, top: ['컨셉추천', '제목자동생성', '한글번역'] },
+  '문서': { icon: '📖', title: '문서&스킬', count: 4, top: ['SPEC.md', 'KIE레퍼런스', '/kie스킬'] },
+  '공유': { icon: '🔗', title: '카카오공유', count: 4, top: ['SDK로드', '스토리제거', '폴백체인'] },
+  '버그': { icon: '🚨', title: '버그수정', count: 7, top: ['Markdown제거9파일', '알림누락해결', '플랜통합', '서버검증API'] },
+  '봇': { icon: '🤖', title: '봇시스템', count: 5, top: ['사용량통합', 'kie명령', '작업명령', '실시간알림'] },
+};
+
+COMMANDS['작업'] = COMMANDS['구현'] = COMMANDS['현황'] = COMMANDS['work'] = async (arg) => {
+  const argLower = (arg||'').toLowerCase();
+  const matchKey = arg ? Object.keys(WORK_CATEGORIES).find(k =>
+    argLower.includes(k) || argLower.includes(WORK_CATEGORIES[k].title.slice(0,3))
+  ) : null;
+
+  if (matchKey) {
+    const cat = WORK_CATEGORIES[matchKey];
+    return card(
+      `${cat.icon} ${cat.title} (${cat.count}개)`,
+      cat.top.map((t, i) => `${i+1}. ${t}`).join('\n'),
+      [{ label: '전체 현황', msg: '작업' }],
+      ['작업 음악', '작업 버그', '작업 UI']
+    );
+  }
+
+  const total = Object.values(WORK_CATEGORIES).reduce((s, c) => s + c.count, 0);
+  const lines = Object.entries(WORK_CATEGORIES).map(([k, c]) => `${c.icon} ${c.title}: ${c.count}개`);
+  return card(
+    `📋 구현 현황 (${total}개)`,
+    lines.join('\n'),
+    [{ label: '음악 상세', msg: '작업 음악' }, { label: '버그 상세', msg: '작업 버그' }],
+    ['작업 음악', '작업 UI', '작업 버그', '작업 봇']
+  );
+};
+
 const KIE_SECTIONS = {
   '1': { title: '기본 정보', keywords: ['기본','인증','크레딧','가격','pricing','rate'] },
   '2.1': { title: '음악 생성', keywords: ['음악','생성','generate','만들기','작곡'] },
@@ -710,6 +749,7 @@ export default async function handler(req, res) {
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
       { re: /kie.*api|api.*문서|레퍼런스|음악.*api|가사.*api/i, cmd: 'kie' },
+      { re: /작업|구현|현황|뭐.*했|뭐.*만들|어디.*까지.*구현|기능.*목록/i, cmd: '작업' },
     ];
     if (!COMMANDS[cmd]) {
       const full = utterance.toLowerCase();

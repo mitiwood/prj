@@ -154,10 +154,10 @@ QA — 전체 코드 점검 + 리포트
 일간 — 오늘 활동 리포트
 주간 — 최근 7일 리포트
 
-📖 *API 레퍼런스*
+📖 *레퍼런스*
 kie <질문> — kie.ai API 문서 조회
-kie 3 — 3번(가사생성) 섹션 조회
-kie 모델 — 사용 가능한 모델 목록
+작업 — 구현 현황 요약
+작업 <카테고리> — 세부 내역 조회
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
@@ -967,6 +967,121 @@ COMMANDS['주간'] = COMMANDS['weekly'] = async (chatId) => {
   }
 };
 
+/* ── 📋 작업이력 / 구현현황 조회 ── */
+const WORK_CATEGORIES = {
+  '음악': { icon: '🎵', title: '음악 만들기 고도화', items: [
+    'buildOptimalPrompt() 구조화 프롬프트',
+    '프리셋 10개 원클릭 캐러셀',
+    'duration 자동+extend 연결',
+    'A/B 비교 UI (2곡 라벨+안내)',
+    '가사 에디터 (섹션태그/글자수/언어감지)',
+    '심플→커스텀 전환 버튼',
+    '생성 실패 자동 재시도 (1회)',
+    '연장 체인 (히스토리+체인관계)',
+    '리믹스 모드 (장르변경 6프리셋)',
+    '보컬 라이브러리 프리셋 6종',
+    '아티스트 자동완성 30명',
+    'AI 작곡 어시스턴트 (gemini 대화형)',
+  ]},
+  'UI': { icon: '🎨', title: 'Suno 스타일 UI/UX', items: [
+    'SVG 아이콘 Lucide/Phosphor 업그레이드',
+    '라이브러리 Suno 스타일 전면 개편',
+    '커뮤니티 3열 구조 (제목+시간/사용자/스타일)',
+    '커뮤니티 재생↔미니플레이어 동기화',
+    '미니플레이어 프로그레스바 하단',
+    '풀플레이어 데이모드 라이트',
+    '탭전환시 바텀시트/팝업 닫기',
+    '로딩 안내 MZ톤',
+    '바텀시트 미니플레이어 대응',
+  ]},
+  '리믹스': { icon: '🎤', title: '리믹스 & 커버', items: [
+    '리믹스 4종 (연장/커버/스타일재사용/리마스터)',
+    '커버 바텀시트 + 스타일 추천칩',
+    'add-vocals 파라미터 수정',
+    'negativeTags null 에러 수정',
+    '커버생성시 탭이동+로딩 포커스',
+  ]},
+  'AI': { icon: '🤖', title: 'AI 추천 시스템', items: [
+    '시간/공간+감정/상태+질감/색채 컨셉',
+    '로컬 랜덤 컨셉풀 (API무의존)',
+    '곡 제목 자동 생성',
+    '곡 설명 한글 번역 적용',
+  ]},
+  '문서': { icon: '📖', title: '문서 & 스킬', items: [
+    'SPEC.md 기능명세서 (566줄)',
+    'KIE_API_REFERENCE.md 공식문서 기반',
+    '/kie 스킬 (CLI+텔레봇+카카오봇)',
+    'CHANGELOG 작업이력',
+  ]},
+  '공유': { icon: '🔗', title: '카카오 공유', items: [
+    'Kakao JS SDK 로드+초기화',
+    '카카오스토리 API 종료 대응',
+    'SDK→링크복사 폴백 체인',
+    '풀플레이어 공유 동일 패턴',
+  ]},
+  '버그': { icon: '🚨', title: '치명적 버그 수정', items: [
+    'switchView 미정의→switchTab 교체',
+    '전체 API parse_mode Markdown 제거 (9파일)',
+    '텔레그램 알림 누락 근본 해결',
+    '에러 모니터링 TG+카카오 동시알림+쿨다운',
+    '플랜 3단계 통합 (Single Source of Truth)',
+    'checkPlanLimit→generate 연결',
+    '서버 크레딧 검증 API',
+  ]},
+  '봇': { icon: '🤖', title: '봇 시스템', items: [
+    '사용량 명령 전체서비스 통합',
+    'kie 명령 API레퍼런스 조회',
+    '작업 명령 구현현황 조회',
+    '실시간 알림 시스템',
+    'GitHub private 레포 인증',
+  ]},
+};
+
+COMMANDS['작업'] = COMMANDS['구현'] = COMMANDS['현황'] = COMMANDS['work'] = async (chatId, arg) => {
+  const argLower = (arg||'').toLowerCase();
+
+  /* 카테고리 매칭 */
+  const matchKey = arg ? Object.keys(WORK_CATEGORIES).find(k =>
+    argLower.includes(k) || argLower.includes(WORK_CATEGORIES[k].title.slice(0,4))
+  ) : null;
+
+  if (matchKey) {
+    /* 세부 내역 */
+    const cat = WORK_CATEGORIES[matchKey];
+    let msg = `${cat.icon} ${cat.title} (${cat.items.length}개)\n\n`;
+    cat.items.forEach((item, i) => { msg += `${i+1}. ${item}\n`; });
+    await tgSend(chatId, msg, { parse_mode: '' });
+
+    /* 카카오에도 전송 */
+    try {
+      await fetch(`${BASE}/api/kakao-notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ text: msg.slice(0, 300) }),
+      });
+    } catch {}
+    return;
+  }
+
+  /* 전체 요약 */
+  const total = Object.values(WORK_CATEGORIES).reduce((s, c) => s + c.items.length, 0);
+  let msg = `📋 구현 현황 (총 ${total}개 항목)\n⏰ ${ts()}\n\n`;
+  Object.entries(WORK_CATEGORIES).forEach(([key, cat]) => {
+    msg += `${cat.icon} ${cat.title}: ${cat.items.length}개\n`;
+  });
+  msg += `\n세부 보기: 작업 <카테고리>\n예: 작업 음악, 작업 버그, 작업 UI`;
+  await tgSend(chatId, msg, { parse_mode: '' });
+
+  /* 카카오에도 전송 */
+  try {
+    await fetch(`${BASE}/api/kakao-notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ text: msg.slice(0, 300) }),
+    });
+  } catch {}
+};
+
 /* ── 📖 kie.ai API 레퍼런스 조회 ── */
 const KIE_SECTIONS = {
   '1': { title: '기본 정보', keywords: ['기본','인증','크레딧','가격','pricing','rate','limit'] },
@@ -1119,6 +1234,7 @@ export default async function handler(req, res) {
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
+      { re: /구현.*현황|뭐.*했|뭐.*만들|기능.*목록|어디.*까지.*구현|작업.*내역/i, cmd: '작업' },
     ];
     if (!COMMANDS[cmd]) {
       const full = text.toLowerCase();
