@@ -6440,124 +6440,156 @@ $('gen-btn').addEventListener('click',generate);
 $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
 /* ══════════════════════════════
-   AI 작곡 어시스턴트 — Claude Haiku 4.5 (kie.ai)
+   AI 작곡 어시스턴트 — 로컬 랜덤 컨셉 생성
    형식: [시간/공간] + [감정/상태] + [질감/색채]
 ══════════════════════════════ */
-const KIE_HAIKU_URL = 'https://api.kie.ai/claude/v1/messages';
+const _recPool = {
+  /* [시간/공간] */
+  space: [
+    {ko:'새벽 두 시의',       en:'2am late night',       icon:'🌙', col:'#818cf8'},
+    {ko:'비 내리는 창가의',   en:'rainy window',         icon:'🌧', col:'#60a5fa'},
+    {ko:'안개 낀 숲속의',     en:'misty forest',         icon:'🌿', col:'#34d399'},
+    {ko:'텅 빈 지하철의',     en:'empty subway',         icon:'🚇', col:'#94a3b8'},
+    {ko:'노을 지는 바닷가의', en:'sunset beach',         icon:'🌅', col:'#fb923c'},
+    {ko:'한밤의 옥상 위',     en:'midnight rooftop',     icon:'🌃', col:'#818cf8'},
+    {ko:'봄비 내리는 골목의', en:'spring rain alley',    icon:'🌸', col:'#f472b6'},
+    {ko:'눈 내리는 거리의',   en:'snowy street',         icon:'❄️', col:'#e2e8f0'},
+    {ko:'새벽녘 카페의',      en:'dawn cafe',            icon:'☕', col:'#d97706'},
+    {ko:'저녁 무렵 공원의',   en:'evening park',         icon:'🌳', col:'#34d399'},
+    {ko:'달빛 아래 호수의',   en:'moonlit lake',         icon:'🌕', col:'#c084fc'},
+    {ko:'오래된 레코드샵의',  en:'old record shop',      icon:'📀', col:'#fb923c'},
+    {ko:'여름밤 축제의',      en:'summer night festival', icon:'🎪', col:'#fbbf24'},
+    {ko:'비 온 뒤 도시의',    en:'post-rain city',       icon:'🏙', col:'#60a5fa'},
+    {ko:'황혼의 기찻길',      en:'twilight railway',     icon:'🚂', col:'#fb923c'},
+    {ko:'빗소리 가득한 다락방의', en:'rainy attic',      icon:'🏠', col:'#94a3b8'},
+    {ko:'깊은 밤 드라이브의', en:'late night drive',     icon:'🚗', col:'#818cf8'},
+    {ko:'가을 낙엽 속의',     en:'autumn leaves',        icon:'🍂', col:'#d97706'},
+    {ko:'파도 치는 절벽의',   en:'coastal cliff waves',  icon:'🌊', col:'#22d3ee'},
+    {ko:'네온 불빛 거리의',   en:'neon-lit street',      icon:'💜', col:'#f472b6'},
+  ],
+  /* [감정/상태] */
+  emotion: [
+    {ko:'공허한',     en:'empty, hollow',        mood:'공허한'},
+    {ko:'평온한',     en:'peaceful, serene',     mood:'평온한'},
+    {ko:'몽환적인',   en:'dreamy, ethereal',     mood:'몽환적인'},
+    {ko:'그리운',     en:'nostalgic, longing',    mood:'그리운'},
+    {ko:'설레는',     en:'fluttering, excited',   mood:'설레는'},
+    {ko:'쓸쓸한',     en:'lonely, melancholic',   mood:'쓸쓸한'},
+    {ko:'나른한',     en:'languid, drowsy',       mood:'나른한'},
+    {ko:'벅찬',       en:'overwhelming, moved',   mood:'벅찬'},
+    {ko:'자유로운',   en:'free, liberated',       mood:'자유로운'},
+    {ko:'따뜻한',     en:'warm, tender',          mood:'따뜻한'},
+    {ko:'처연한',     en:'wistful, bittersweet',  mood:'처연한'},
+    {ko:'고독한',     en:'solitary, introspective',mood:'고독한'},
+    {ko:'황홀한',     en:'ecstatic, enchanting',  mood:'황홀한'},
+    {ko:'잔잔한',     en:'calm, gentle',          mood:'잔잔한'},
+    {ko:'격렬한',     en:'intense, passionate',   mood:'격렬한'},
+    {ko:'청량한',     en:'refreshing, crisp',     mood:'청량한'},
+    {ko:'기묘한',     en:'strange, uncanny',      mood:'기묘한'},
+    {ko:'다정한',     en:'affectionate, sweet',   mood:'다정한'},
+  ],
+  /* [질감/색채] */
+  texture: [
+    {ko:'네온사인',           en:'neon synth pads, electric bass',           genre:'Synthwave',  bpm:[80,100]},
+    {ko:'파스텔톤 조각들',    en:'soft piano, gentle strings, music box',    genre:'Ambient Pop', bpm:[70,90]},
+    {ko:'에코 사운드',        en:'reverb guitar, echo delay, ambient pads',  genre:'Shoegaze',   bpm:[85,110]},
+    {ko:'빈티지 필름 그레인', en:'lo-fi vinyl crackle, tape hiss, warm keys',genre:'Lo-fi',      bpm:[75,90]},
+    {ko:'수채화 번짐',        en:'watercolor piano, soft harp, flute',       genre:'New Age',    bpm:[65,85]},
+    {ko:'크리스탈 잔향',      en:'crystal bells, glass harmonica, shimmer',  genre:'Dream Pop',  bpm:[90,110]},
+    {ko:'벨벳 그림자',        en:'velvet saxophone, smooth bass, brush drums',genre:'Jazz',      bpm:[80,105]},
+    {ko:'거친 콘크리트',      en:'distorted guitar, heavy drums, raw bass',  genre:'Rock',       bpm:[120,150]},
+    {ko:'무지개빛 프리즘',    en:'bright synths, arpeggios, dance beat',     genre:'Electro Pop',bpm:[118,130]},
+    {ko:'오래된 오르골',      en:'music box, celesta, gentle strings pizz',  genre:'Classical Crossover',bpm:[60,80]},
+    {ko:'모래시계 입자',      en:'granular synthesis, ambient textures',     genre:'Ambient',    bpm:[70,90]},
+    {ko:'한지 위 먹물',       en:'gayageum, daegeum, traditional percussion',genre:'Korean Traditional Fusion',bpm:[75,100]},
+    {ko:'실크 위 달빛',       en:'smooth R&B keys, soft vocal chops, 808',   genre:'R&B',        bpm:[85,100]},
+    {ko:'낡은 카세트테이프',  en:'cassette warmth, retro synth, analog drum',genre:'Retrowave',  bpm:[95,115]},
+    {ko:'유리 파편',          en:'glitch beats, broken piano, digital noise',genre:'Glitch',     bpm:[100,130]},
+    {ko:'별빛 파우더',        en:'celestial pads, twinkling bells, choir',   genre:'Cinematic',  bpm:[75,95]},
+    {ko:'따뜻한 아날로그',    en:'acoustic guitar, upright bass, brushes',   genre:'Acoustic',   bpm:[90,120]},
+    {ko:'깊은 숲의 울림',     en:'deep cello, nature ambience, tribal drums',genre:'World',      bpm:[80,110]},
+  ],
+};
 
-async function _aiAssistRecommend(){
-  const input = $('ai-assist-input')?.value?.trim();
-  if(!input){ toast('어떤 곡을 만들고 싶은지 입력해주세요','err',2000); return; }
-  if(!kieApiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err'); return; }
+function _pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function _rBpm(range){ return range[0]+Math.floor(Math.random()*(range[1]-range[0]+1)); }
 
+function _generateConcepts(hint){
+  const used = new Set();
+  const items = [];
+  for(let i=0;i<3;i++){
+    let s,e,t,key;
+    /* 중복 방지: 같은 조합 안 나오게 */
+    do {
+      s = _pick(_recPool.space);
+      e = _pick(_recPool.emotion);
+      t = _pick(_recPool.texture);
+      key = s.ko+e.ko+t.ko;
+    } while(used.has(key) && used.size < 50);
+    used.add(key);
+    const bpm = _rBpm(t.bpm);
+    /* 사용자 hint가 있으면 프롬프트에 반영 */
+    const hintEn = hint ? `, ${hint}` : '';
+    items.push({
+      concept: `${s.ko} ${e.ko} ${t.ko}`,
+      prompt: `${t.genre}, ${s.en}, ${e.en}, ${t.en}${hintEn}, ${bpm} BPM`,
+      bpm, mood: e.mood, icon: s.icon, col: s.col,
+    });
+  }
+  return items;
+}
+
+function _aiAssistRecommend(){
+  const input = $('ai-assist-input')?.value?.trim() || '';
   const btn = $('ai-assist-btn');
   const result = $('ai-assist-result');
   const promptEl = $('simple-prompt');
-  btn.disabled = true; btn.textContent = '✨ 생성 중...'; btn.style.opacity = '.6';
-  result.style.display = 'block';
-  result.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
-    <div style="width:18px;height:18px;border:2px solid var(--acc);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;"></div>
-    <span style="color:var(--t3);font-size:12px;">AI가 곡 컨셉을 만들고 있어요...</span>
-  </div>`;
 
-  try {
-    const res = await fetch(KIE_HAIKU_URL, {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+kieApiKey },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        messages: [{
-          role: 'user',
-          content: `당신은 감각적인 음악 컨셉 디렉터입니다.
+  /* 즉시 3개 컨셉 생성 (API 호출 없음) */
+  const items = _generateConcepts(input);
 
-사용자의 요청을 바탕으로, 아래 형식에 맞는 3개의 음악 컨셉을 만들어주세요.
-
-■ 형식: [시간/공간] + [감정/상태] + [질감/색채]
-
-■ 참고 예시:
-- 새벽 두 시의 + 공허한 + 네온사인
-- 비 온 뒤의 + 평온한 + 파스텔톤 조각들
-- 안개 낀 숲속의 + 몽환적인 + 에코 사운드
-
-■ 규칙:
-1. 컨셉은 시적이고 감각적으로 — 단순 장르 나열 금지
-2. 각 컨셉에 어울리는 영어 음악 프롬프트(장르, 악기, 분위기, BPM 포함)도 함께 생성
-3. 매번 완전히 다른 분위기로, 같은 패턴 반복 금지
-4. JSON 배열로만 응답 (다른 텍스트 없이)
-
-■ 응답 형식:
-[
-  {"concept":"한국어 컨셉 문장","prompt":"영어 음악 프롬프트","bpm":85,"mood":"무드 키워드"},
-  {"concept":"한국어 컨셉 문장","prompt":"영어 음악 프롬프트","bpm":120,"mood":"무드 키워드"},
-  {"concept":"한국어 컨셉 문장","prompt":"영어 음악 프롬프트","bpm":100,"mood":"무드 키워드"}
-]
-
-사용자 요청: "${input}"`
-        }],
-        stream: false
-      })
-    });
-    if(!res.ok) throw new Error('API 오류: '+res.status);
-    const data = await res.json();
-    const text = data?.content?.[0]?.text || data?.choices?.[0]?.message?.content || '';
-    const match = text.match(/\[[\s\S]*\]/);
-    if(!match) throw new Error('응답 파싱 실패');
-    const items = JSON.parse(match[0]);
-    if(!items?.length) throw new Error('추천 결과 없음');
-
-    /* 첫 번째 결과를 즉시 입력폼에 적용 (빠른작사와 동일) */
-    if(promptEl && items[0]?.prompt){
-      promptEl.value = items[0].prompt;
-      promptEl.classList.add('flash');
-      setTimeout(()=>promptEl.classList.remove('flash'),2000);
-    }
-    if(items[0]?.bpm && $('simple-bpm-slider')){
-      $('simple-bpm-slider').value = items[0].bpm;
-      if($('s-bpm-display')) $('s-bpm-display').textContent = items[0].bpm;
-      if($('s-bpm-badge')) $('s-bpm-badge').textContent = items[0].bpm + ' BPM';
-    }
-
-    /* 3개 컨셉 카드 표시 */
-    const moodColors = {'밝':'#fbbf24','신나':'#fbbf24','공허':'#60a5fa','슬프':'#60a5fa','감성':'#60a5fa','잔잔':'#60a5fa','평온':'#34d399','어둡':'#ef4444','강렬':'#ef4444','칠':'#34d399','로파이':'#34d399','편안':'#34d399','로맨':'#f472b6','몽환':'#c084fc','신비':'#c084fc','레트로':'#fb923c','새벽':'#818cf8','밤':'#818cf8','안개':'#94a3b8','비':'#60a5fa','네온':'#f472b6','숲':'#34d399','바다':'#22d3ee','노을':'#fb923c'};
-    const icons = ['🌙','🌧','🌿'];
-
-    let html = `<div style="font-size:10px;color:var(--t3);margin-bottom:6px;">✨ 첫 번째 컨셉이 입력창에 적용됐어요. 다른 컨셉을 선택할 수도 있어요.</div>`;
-
-    items.forEach((item, i) => {
-      const concept = item.concept||'';
-      const prompt = item.prompt||'';
-      const bpm = item.bpm||'';
-      const mood = item.mood||'';
-      const safePrompt = prompt.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-      let col = 'var(--acc)';
-      for(const [k,c] of Object.entries(moodColors)){ if(concept.includes(k)||mood.includes(k)){col=c;break;} }
-      const isActive = i===0;
-
-      html += `<div data-rec-idx="${i}" onclick="_applyAiRecommend('${safePrompt}','${bpm}');document.querySelectorAll('[data-rec-idx]').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='${col}'" style="display:flex;gap:10px;padding:12px;margin-bottom:6px;background:var(--bg2);border:1.5px solid ${isActive?col:'var(--border)'};border-radius:12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${col};border-radius:2px;"></div>
-        <div style="font-size:22px;flex-shrink:0;padding-left:4px;">${icons[i]||'🎵'}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:3px;line-height:1.3;letter-spacing:-.3px;">${esc(concept)}</div>
-          <div style="font-size:11px;color:var(--t2);line-height:1.4;margin-bottom:5px;">${esc(prompt.length>80?prompt.slice(0,80)+'...':prompt)}</div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${mood?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:${col}22;color:${col};font-weight:600;">${esc(mood)}</span>`:''}
-            ${bpm?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.06);color:var(--t3);font-weight:600;">${bpm} BPM</span>`:''}
-          </div>
-        </div>
-      </div>`;
-    });
-
-    html += `<div style="display:flex;gap:6px;margin-top:4px;">
-      <button onclick="_aiAssistRecommend()" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(124,58,237,.06);color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔄 다시 추천</button>
-      <button onclick="$('ai-assist-result').style.display='none'" style="padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
-    </div>`;
-    result.innerHTML = html;
-    toast('✨ 곡 컨셉이 적용됐어요!','ok',1500);
-  } catch(e){
-    result.innerHTML = `<div style="color:var(--red);font-size:12px;">❌ ${esc(e.message||'추천 실패')}</div>
-      <button onclick="_aiAssistRecommend()" style="margin-top:8px;padding:8px 16px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">다시 시도</button>`;
+  /* 첫 번째 결과를 즉시 입력폼에 적용 (빠른작사 방식) */
+  if(promptEl && items[0]?.prompt){
+    promptEl.value = items[0].prompt;
+    promptEl.classList.add('flash');
+    setTimeout(()=>promptEl.classList.remove('flash'),2000);
   }
-  btn.disabled = false; btn.textContent = '✨ 추천'; btn.style.opacity = '';
+  if(items[0]?.bpm && $('simple-bpm-slider')){
+    $('simple-bpm-slider').value = items[0].bpm;
+    if($('s-bpm-display')) $('s-bpm-display').textContent = items[0].bpm;
+    if($('s-bpm-badge')) $('s-bpm-badge').textContent = items[0].bpm + ' BPM';
+  }
+
+  /* 3개 컨셉 카드 표시 */
+  result.style.display = 'block';
+  let html = `<div style="font-size:10px;color:var(--t3);margin-bottom:6px;">✨ 첫 번째 컨셉이 입력창에 적용됐어요. 다른 컨셉을 선택할 수도 있어요.</div>`;
+
+  items.forEach((item, i) => {
+    const safePrompt = item.prompt.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const isActive = i===0;
+    html += `<div data-rec-idx="${i}" onclick="_applyAiRecommend('${safePrompt}','${item.bpm}');document.querySelectorAll('[data-rec-idx]').forEach(c=>{c.style.borderColor='var(--border)';c.querySelector('.rec-check').style.display='none'});this.style.borderColor='${item.col}';this.querySelector('.rec-check').style.display='flex'" style="display:flex;gap:10px;padding:12px;margin-bottom:6px;background:var(--bg2);border:1.5px solid ${isActive?item.col:'var(--border)'};border-radius:12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${item.col};border-radius:2px;"></div>
+      <div style="font-size:22px;flex-shrink:0;padding-left:4px;">${item.icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:3px;line-height:1.3;letter-spacing:-.3px;">${esc(item.concept)}</div>
+        <div style="font-size:11px;color:var(--t2);line-height:1.4;margin-bottom:5px;">${esc(item.prompt.length>90?item.prompt.slice(0,90)+'...':item.prompt)}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <span style="font-size:10px;padding:2px 8px;border-radius:6px;background:${item.col}22;color:${item.col};font-weight:600;">${esc(item.mood)}</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.06);color:var(--t3);font-weight:600;">${item.bpm} BPM</span>
+        </div>
+      </div>
+      <div class="rec-check" style="display:${isActive?'flex':'none'};align-items:center;flex-shrink:0;">
+        <span style="width:20px;height:20px;border-radius:50%;background:${item.col};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;">✓</span>
+      </div>
+    </div>`;
+  });
+
+  html += `<div style="display:flex;gap:6px;margin-top:4px;">
+    <button onclick="_aiAssistRecommend()" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(124,58,237,.06);color:var(--acc);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔄 다시 추천</button>
+    <button onclick="$('ai-assist-result').style.display='none'" style="padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">닫기</button>
+  </div>`;
+  result.innerHTML = html;
+  toast('✨ 곡 컨셉이 적용됐어요!','ok',1500);
 }
 /* 추천 결과를 심플 모드에 적용 */
 function _applyAiRecommend(desc, bpm){
