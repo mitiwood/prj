@@ -1,4 +1,7 @@
-// /api/toss-config.js — 토스 공개키 + 플랜 정의 (프론트엔드용)
+// /api/toss-config.js — 토스 공개키 + 플랜 정의 (Single Source of Truth)
+//
+// 플랜 정의는 이 파일에서만 관리합니다.
+// 프론트엔드는 /api/toss-config GET으로 fetch하여 사용합니다.
 
 /* 환경변수 없으면 토스 공식 테스트 키 사용 (실결제 안 됨) */
 const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
@@ -6,47 +9,47 @@ const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || "test_ck_D5GePWvyJnrK0W0k
 const PLANS = {
   free: {
     price: 0,
-    credits: 2,
-    period: "일",
-    label: "Free",
-    desc: "하루 2곡 생성",
-    features: ["AI 작곡 2곡/일", "기본 장르", "MP3 다운로드"],
-  },
-  basic: {
-    price: 4900,
-    credits: 30,
     period: "월",
-    label: "Basic",
-    desc: "월 30곡 생성",
-    features: ["AI 작곡 30곡/월", "전체 장르", "MP3/WAV 다운로드", "커뮤니티 공유"],
+    label: "Free",
+    icon: "🆓",
+    color: "var(--t3)",
+    desc: "월 5곡 무료 생성",
+    limits: { songs: 5, mv: 0, lyrics: 5 },
+    features: ["AI 작곡 5곡/월", "V3.5 모델", "1분 제한", "MP3 다운로드"],
   },
   pro: {
     price: 9900,
-    credits: 100,
     period: "월",
     label: "Pro",
-    desc: "월 100곡 + MV + 보컬변환",
+    icon: "💜",
+    color: "var(--acc2)",
+    desc: "월 50곡 + MV + 보컬변환",
+    limits: { songs: 50, mv: 3, lyrics: 50 },
     features: [
-      "AI 작곡 100곡/월",
-      "전체 장르",
-      "MP3/WAV/FLAC 다운로드",
-      "뮤직비디오 생성",
+      "AI 작곡 50곡/월",
+      "V3.5 ~ V4.5 모델",
+      "3분까지 생성",
+      "MP3/WAV 다운로드",
+      "뮤직비디오 3개/월",
       "보컬 변환",
       "커뮤니티 공유",
       "우선 생성 큐",
     ],
   },
-  unlimited: {
+  creator: {
     price: 19900,
-    credits: 999999,
     period: "월",
-    label: "Unlimited",
-    desc: "무제한 생성",
+    label: "Creator",
+    icon: "👑",
+    color: "#f59e0b",
+    desc: "무제한 생성 + 상업 라이선스",
+    limits: { songs: 999, mv: 20, lyrics: 999 },
     features: [
       "무제한 AI 작곡",
-      "전체 장르",
+      "전체 모델 (V4.5+ 포함)",
+      "8분까지 생성",
       "MP3/WAV/FLAC 다운로드",
-      "뮤직비디오 생성",
+      "뮤직비디오 20개/월",
       "보컬 변환",
       "커뮤니티 공유",
       "최우선 생성 큐",
