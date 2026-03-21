@@ -135,6 +135,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 PR — 최근 PR 목록 확인
 머지 <PR번호> — PR 머지 (배포)
 QA — 전체 코드 점검 + 리포트
+진행상황 — 현재 진행 중인 작업 추적
 
 💡 슬래시(/) 없이 바로 입력하세요!
 ⏰ ${ts()}`;
@@ -540,6 +541,55 @@ print('QA report sent')
 PYEOF
 \`\`\`
 `;
+
+/* 진행상황 — GitHub Actions 실행 중인 워크플로우 조회 */
+COMMANDS['진행상황'] = COMMANDS['진행'] = COMMANDS['progress'] = async (chatId) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const runs = await ghApi('GET', '/actions/runs?status=in_progress&per_page=5');
+    const items = runs.workflow_runs || [];
+    if (!items.length) {
+      return tgSend(chatId, '✅ 현재 진행 중인 작업이 없어요.\n\n모든 워크플로우가 완료된 상태입니다.', { parse_mode: '' });
+    }
+    let msg = `🔄 현재 진행 중인 작업 ${items.length}개\n\n`;
+    for (const run of items) {
+      const name = run.name || '?';
+      const started = new Date(run.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
+      const elapsed = Math.round((Date.now() - new Date(run.created_at).getTime()) / 60000);
+      const issueMatch = (run.head_commit?.message || '').match(/#(\d+)/);
+      const issueNum = issueMatch ? issueMatch[1] : '';
+      /* 스텝 상세 조회 */
+      let stepInfo = '';
+      try {
+        const jobs = await ghApi('GET', `/actions/runs/${run.id}/jobs`);
+        const job = jobs.jobs?.[0];
+        if (job?.steps) {
+          const running = job.steps.find(s => s.status === 'in_progress');
+          const done = job.steps.filter(s => s.conclusion === 'success').length;
+          const total = job.steps.length;
+          if (running) stepInfo = `\n   ▶ ${running.name}`;
+          stepInfo += `\n   진행률: ${done}/${total} 스텝 완료`;
+        }
+      } catch(e) {}
+      msg += `📋 ${name}${issueNum ? ' (Issue #' + issueNum + ')' : ''}\n`;
+      msg += `   시작: ${started} (${elapsed}분 경과)${stepInfo}\n\n`;
+    }
+    /* 최근 완료 1개도 보여주기 */
+    try {
+      const recent = await ghApi('GET', '/actions/runs?status=completed&per_page=1');
+      const last = recent.workflow_runs?.[0];
+      if (last) {
+        const icon = last.conclusion === 'success' ? '✅' : '❌';
+        const ago = Math.round((Date.now() - new Date(last.updated_at).getTime()) / 60000);
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `최근 완료: ${icon} ${last.name} (${ago}분 전)`;
+      }
+    } catch(e) {}
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 진행상황 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
 
 COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 미설정');

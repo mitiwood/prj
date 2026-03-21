@@ -129,6 +129,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '📣 알림 <메시지>',
       '🛠 수정 <지시> · PR · 머지 <번호>',
       '🔍 QA — 전체 코드 점검',
+      '🔄 진행상황 — 작업 추적',
     ].join('\n'),
     [
       { label: '서버 상태', msg: '상태' },
@@ -372,6 +373,48 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
     );
   }
   return text(`머지 실패: ${result.message || '알 수 없는 오류'}`);
+};
+
+/* 진행상황 — GitHub Actions 실행 중인 워크플로우 조회 */
+COMMANDS['진행상황'] = COMMANDS['진행'] = COMMANDS['progress'] = async () => {
+  if (!GH_TOKEN) return text('⚠️ GITHUB_TOKEN 미설정');
+  try {
+    const runs = await ghApi('GET', '/actions/runs?status=in_progress&per_page=5');
+    const items = runs.workflow_runs || [];
+    if (!items.length) {
+      return text('✅ 현재 진행 중인 작업이 없어요.\n\n모든 워크플로우가 완료된 상태입니다.', ['상태', 'PR']);
+    }
+    let msg = `🔄 진행 중인 작업 ${items.length}개\n\n`;
+    for (const run of items) {
+      const name = run.name || '?';
+      const elapsed = Math.round((Date.now() - new Date(run.created_at).getTime()) / 60000);
+      let stepInfo = '';
+      try {
+        const jobs = await ghApi('GET', `/actions/runs/${run.id}/jobs`);
+        const job = jobs.jobs?.[0];
+        if (job?.steps) {
+          const running = job.steps.find(s => s.status === 'in_progress');
+          const done = job.steps.filter(s => s.conclusion === 'success').length;
+          const total = job.steps.length;
+          if (running) stepInfo = `\n  ▶ ${running.name}`;
+          stepInfo += `\n  ${done}/${total} 스텝 완료`;
+        }
+      } catch(e) {}
+      msg += `📋 ${name} (${elapsed}분 경과)${stepInfo}\n\n`;
+    }
+    try {
+      const recent = await ghApi('GET', '/actions/runs?status=completed&per_page=1');
+      const last = recent.workflow_runs?.[0];
+      if (last) {
+        const icon = last.conclusion === 'success' ? '✅' : '❌';
+        const ago = Math.round((Date.now() - new Date(last.updated_at).getTime()) / 60000);
+        msg += `최근 완료: ${icon} ${last.name} (${ago}분 전)`;
+      }
+    } catch(e) {}
+    return text(msg, ['PR', '상태']);
+  } catch (e) {
+    return text(`❌ 조회 실패: ${e.message}`);
+  }
 };
 
 /* QA — 전체 점검 → Claude Code Action */
