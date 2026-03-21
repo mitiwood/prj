@@ -918,16 +918,16 @@ body.light .hes-tab:hover,body.light .hes-tab.active{color:var(--acc);}
 .rc-g-female:hover{border-color:#f472b6;color:#f472b6;}
 .rc-g-female.active{background:rgba(244,114,182,.12);border-color:#f472b6;color:#ec4899;}
 /* 리믹스 모달 */
+/* 리믹스 바텀시트 공통 — hes-panel 기본 bottom:56px 오버라이드 */
+#remix-cover-modal .hes-panel,
+#remix-style-modal .hes-panel,
+#remaster-modal .hes-panel{bottom:0;max-height:85vh;}
 #remix-cover-modal.on{pointer-events:auto;opacity:1;}
-#remix-cover-modal.on #rc-panel{transform:translateY(0);}
-body.mp-on #remix-cover-modal #rc-panel{bottom:0;z-index:910;}
+#remix-cover-modal.on .hes-panel{transform:translateY(0);}
 #remix-style-modal.on{pointer-events:auto;opacity:1;}
-#remix-style-modal.on #rs-panel{transform:translateY(0);}
-body.mp-on #remix-style-modal #rs-panel{bottom:0;z-index:910;}
-#remaster-modal{position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;}
+#remix-style-modal.on .hes-panel{transform:translateY(0);}
 #remaster-modal.on{pointer-events:auto;opacity:1;}
-#remaster-modal.on #rm-panel{transform:translateY(0);}
-body.mp-on #remaster-modal #rm-panel{bottom:0;z-index:910;}
+#remaster-modal.on .hes-panel{transform:translateY(0);}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
 /* ══════════════════════════════
@@ -4156,7 +4156,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(62px + env(safe-area-inset-bott
 </div>
 
 <!-- ── 리마스터 모달 ── -->
-<div id="remaster-modal">
+<div id="remaster-modal" style="position:fixed;inset:0;z-index:900;pointer-events:none;opacity:0;transition:opacity .22s;">
   <div class="hes-backdrop" id="rm-backdrop"></div>
   <div class="hes-panel" id="rm-panel" style="max-height:70vh;">
     <div class="hes-handle"></div>
@@ -4410,7 +4410,7 @@ function switchTab(viewId){
   document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
   document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>el.style.display='none');
   document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
-  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
   /* 동적 오버레이 (position:fixed) 제거 */
   document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
@@ -8551,10 +8551,12 @@ $('rs-submit-btn').addEventListener('click',async()=>{
 });
 
 /* ── 리마스터 v5 바텀시트 ── */
+let _rmSourceIdx=-1;
 function _closeRemaster(){$('remaster-modal').classList.remove('on');}
 $('hes-remaster-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
+  _rmSourceIdx=_hesIdx;
   const thumb=$('rm-thumb');
   if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
   $('rm-title').textContent=h.title||'무제';
@@ -8577,8 +8579,8 @@ $('hes-remaster-btn').addEventListener('click',()=>{
 $('rm-backdrop').addEventListener('click',_closeRemaster);
 /* 리마스터 실행 */
 $('rm-submit-btn').addEventListener('click',async()=>{
-  if(_hesIdx<0)return;
-  const h=historyData[_hesIdx];if(!h)return;
+  if(_rmSourceIdx<0)return;
+  const h=historyData[_rmSourceIdx];if(!h)return;
   if(currentUser?.provider==='guest'){toast('리마스터는 로그인 후 이용할 수 있어요','err',3000);_closeRemaster();openLoginSheet();return;}
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중...','err');return;}
