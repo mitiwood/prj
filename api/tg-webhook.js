@@ -32,6 +32,11 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
 const GH_TOKEN   = process.env.GITHUB_TOKEN || '';
 const GH_REPO    = 'mitiwood/ai-music-studio';
 const BASE       = 'https://ai-music-studio-bice.vercel.app';
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+const KIE_KEY    = process.env.KIE_API_KEY || '';
+const TOSS_KEY   = process.env.TOSS_CLIENT_KEY || '';
+const VERCEL_TOKEN = process.env.VERCEL_TOKEN || '';
+const VERCEL_PROJECT = process.env.VERCEL_PROJECT || '';
 
 /* ── 유틸 ── */
 async function tgSend(chatId, text, opts = {}) {
@@ -145,7 +150,7 @@ QA — 전체 코드 점검 + 리포트
 디자인 <지시> — UI/CSS 수정 요청
 
 📊 *사용량*
-사용량 — 전체 통계 대시보드
+사용량 — 전체 서비스 사용량 (DB+API+배포)
 일간 — 오늘 활동 리포트
 주간 — 최근 7일 리포트
 
@@ -707,6 +712,7 @@ COMMANDS['디자인'] = COMMANDS['design'] = async (chatId, arg) => {
 
 COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) => {
   try {
+    /* ── 1. Supabase DB 통계 ── */
     const { count: trackCount } = await sb('GET', '/tracks?select=id&limit=0');
     const { count: publicCount } = await sb('GET', '/tracks?is_public=eq.true&select=id&limit=0');
     let userCount = '?', commentCount = '?', payCount = '?';
@@ -720,25 +726,92 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
     try { todayUsers = (await sb('GET', `/users?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
     try { todayComments = (await sb('GET', `/comments?created_at=gte.${today}&select=id&limit=100`)).data.length; } catch {}
 
+    /* ── 2. Claude API 상태 ── */
+    let claudeStatus = 'KEY 미설정';
+    if (ANTHROPIC_KEY) {
+      try {
+        const cr = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+        });
+        if (cr.ok) claudeStatus = '정상 (Haiku)';
+        else if (cr.status === 429) claudeStatus = '한도 초과 (429)';
+        else if (cr.status === 401) claudeStatus = '키 무효 (401)';
+        else claudeStatus = `오류 (${cr.status})`;
+      } catch (e) { claudeStatus = `접속불가`; }
+    }
+
+    /* ── 3. kie.ai 상태 ── */
+    let kieStatus = 'KEY 미설정';
+    if (KIE_KEY) {
+      try {
+        const kr = await fetch('https://api.kie.ai/api/suno/v1/music', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${KIE_KEY.trim()}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'test', mv: false }),
+        });
+        if (kr.ok || kr.status === 200) kieStatus = '정상';
+        else if (kr.status === 402 || kr.status === 403) kieStatus = '크레딧 부족/권한';
+        else kieStatus = `응답 ${kr.status}`;
+      } catch (e) { kieStatus = '접속불가'; }
+    }
+
+    /* ── 4. Toss 상태 ── */
+    const tossMode = TOSS_KEY ? (TOSS_KEY.startsWith('test_') ? 'TEST' : 'LIVE') : '미설정';
+
+    /* ── 5. Vercel 배포 ── */
+    let deployInfo = '조회불가';
+    if (VERCEL_TOKEN) {
+      try {
+        const vr = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT}&limit=1&state=READY`, {
+          headers: { Authorization: `Bearer ${VERCEL_TOKEN}` },
+        });
+        const vd = await vr.json();
+        if (vd.deployments?.length) {
+          const d = vd.deployments[0];
+          const dt = new Date(d.created).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+          deployInfo = `${dt} (${d.readyState})`;
+        }
+      } catch {}
+    }
+
+    /* ── 6. 사이트 응답 ── */
+    let siteMs = '?';
+    try {
+      const t0 = Date.now();
+      const sr = await fetch(BASE, { method: 'HEAD' });
+      siteMs = `${Date.now() - t0}ms (${sr.status})`;
+    } catch (e) { siteMs = '접속불가'; }
+
     const msg = [
-      `📊 사용량 대시보드`,
+      `📊 전체 사용량 대시보드`,
       `⏰ ${ts()}`,
       ``,
-      `┌──────────┬────────┬────────┐`,
-      `│  항목    │ 전체   │ 오늘   │`,
-      `├──────────┼────────┼────────┤`,
-      `│ 🎵 트랙  │ ${String(trackCount ?? '?').padStart(5)} │ ${String(todayTracks).padStart(5)} │`,
-      `├──────────┼────────┼────────┤`,
-      `│ 👥 사용자│ ${String(userCount).padStart(5)} │ ${String(todayUsers).padStart(5)} │`,
-      `├──────────┼────────┼────────┤`,
-      `│ 💬 댓글  │ ${String(commentCount).padStart(5)} │ ${String(todayComments).padStart(5)} │`,
-      `├──────────┼────────┼────────┤`,
-      `│ 💰 결제  │ ${String(payCount).padStart(5)} │   -   │`,
-      `├──────────┼────────┼────────┤`,
-      `│ 🌐 공개  │ ${String(publicCount ?? '?').padStart(5)} │       │`,
-      `└──────────┴────────┴────────┘`,
+      `━━ Supabase DB ━━`,
+      `🎵 트랙: ${trackCount ?? '?'} (공개 ${publicCount ?? '?'}) / 오늘 +${todayTracks}`,
+      `👥 유저: ${userCount} / 오늘 +${todayUsers}`,
+      `💬 댓글: ${commentCount} / 오늘 +${todayComments}`,
+      `💰 결제: ${payCount}건`,
+      ``,
+      `━━ 외부 서비스 ━━`,
+      `🤖 Claude API: ${claudeStatus}`,
+      `🎤 kie.ai: ${kieStatus}`,
+      `💳 Toss: ${tossMode}`,
+      `🚀 최신 배포: ${deployInfo}`,
+      `🌐 사이트: ${siteMs}`,
     ].join('\n');
     await tgSend(chatId, msg, { parse_mode: '' });
+
+    /* 카카오톡에도 전송 */
+    try {
+      const kakaoMsg = `📊 사용량 (${ts()})\n트랙:${trackCount} 유저:${userCount} 댓글:${commentCount}\nClaude:${claudeStatus} kie:${kieStatus}\nToss:${tossMode} 사이트:${siteMs}`;
+      await fetch(`${BASE}/api/kakao-notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ text: kakaoMsg }),
+      });
+    } catch {}
   } catch (e) {
     await tgSend(chatId, `❌ 사용량 조회 실패: ${e.message}`, { parse_mode: '' });
   }
