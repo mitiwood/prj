@@ -174,6 +174,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
       <div class="snav-item" data-sec="live" onclick="switchSec('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
+      <div class="snav-item" data-sec="challenges" onclick="switchSec('challenges')"><span class="snav-icon">🔥</span>챌린지</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
       <div class="snav-item" data-sec="audit" onclick="switchSec('audit')"><span class="snav-icon">📝</span>감사 로그</div>
@@ -766,6 +767,32 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <tbody id="live-history-tbody">
             <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
           </tbody></table>
+        </div>
+      </div>
+
+      <!-- 챌린지 관리 -->
+      <div class="admin-section" id="sec-challenges">
+        <div class="sec-hdr"><h2>🔥 챌린지 관리</h2><p>커뮤니티 챌린지/이벤트 생성 및 관리</p></div>
+        <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(239,68,68,.35);">
+          <div class="admin-table-header" style="background:rgba(239,68,68,.08);"><h3>새 챌린지 생성</h3></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <input class="form-input" id="ch-title" placeholder="챌린지 제목 (예: Lo-Fi 감성 챌린지)">
+            <textarea class="form-input" id="ch-desc" rows="2" placeholder="챌린지 설명" style="resize:vertical;"></textarea>
+            <div style="display:flex;gap:8px;">
+              <input class="form-input" id="ch-icon" placeholder="아이콘" value="🔥" style="width:60px;text-align:center;">
+              <input class="form-input" id="ch-theme" placeholder="테마 태그 (예: lofi-chill)" style="flex:1;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input class="form-input" id="ch-reward" placeholder="보상 (예: 크레딧 5개)" style="flex:1;">
+              <input class="form-input" id="ch-end" type="datetime-local" style="flex:1;">
+            </div>
+            <button class="btn btn-acc" onclick="_createChallenge()" style="padding:12px;">챌린지 생성</button>
+          </div>
+        </div>
+        <div id="ch-empty" style="text-align:center;padding:32px;color:var(--t3);"><div style="font-size:28px;margin-bottom:8px;">🔥</div>활성 챌린지가 없습니다</div>
+        <div class="admin-table-wrap" id="ch-table" style="display:none;">
+          <table><thead><tr><th>아이콘</th><th>제목</th><th>테마</th><th>종료일</th><th>상태</th><th>관리</th></tr></thead>
+          <tbody id="ch-tbody"></tbody></table>
         </div>
       </div>
 
@@ -3930,6 +3957,73 @@ loadData = async function(){
   const lastSync = document.getElementById('dash-last-sync');
   if(lastSync) lastSync.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 };
+
+/* ── 챌린지 관리 ── */
+async function _loadChallengesAdmin(){
+  try{
+    const r=await fetch('/api/challenges');const d=await r.json();
+    const chs=d.challenges||[];
+    const tbody=document.getElementById('ch-tbody');
+    const empty=document.getElementById('ch-empty');
+    const table=document.getElementById('ch-table');
+    if(!chs.length){if(empty)empty.style.display='block';if(table)table.style.display='none';return;}
+    if(empty)empty.style.display='none';if(table)table.style.display='block';
+    tbody.innerHTML=chs.map(c=>{
+      const endStr=c.end_at?new Date(c.end_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'무기한';
+      const statusBadge=c.active?'<span class="badge badge-grn">활성</span>':'<span class="badge badge-red">비활성</span>';
+      return `<tr>
+        <td style="font-size:20px;text-align:center;">${esc(c.icon||'🔥')}</td>
+        <td style="font-weight:600;">${esc(c.title)}</td>
+        <td><span class="badge badge-acc">#${esc(c.theme||'')}</span></td>
+        <td style="font-size:11px;color:var(--t3);">${endStr}</td>
+        <td>${statusBadge}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="_toggleChallenge(${c.id},${!c.active})">${c.active?'비활성':'활성화'}</button>
+          <button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_deleteChallenge(${c.id})">삭제</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }catch(e){adminToast('챌린지 로드 실패','err');}
+}
+async function _createChallenge(){
+  const title=document.getElementById('ch-title')?.value.trim();
+  if(!title){adminToast('제목을 입력하세요','err');return;}
+  const body={
+    title,
+    description:document.getElementById('ch-desc')?.value.trim()||'',
+    icon:document.getElementById('ch-icon')?.value.trim()||'🔥',
+    theme:document.getElementById('ch-theme')?.value.trim()||'',
+    reward:document.getElementById('ch-reward')?.value.trim()||'',
+    end_at:document.getElementById('ch-end')?.value?new Date(document.getElementById('ch-end').value).toISOString():null
+  };
+  try{
+    const r=await fetch('/api/challenges',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.ok){adminToast('챌린지 생성 완료!');document.getElementById('ch-title').value='';document.getElementById('ch-desc').value='';document.getElementById('ch-theme').value='';document.getElementById('ch-reward').value='';_loadChallengesAdmin();}
+    else adminToast('실패: '+(d.error||''),'err');
+  }catch(e){adminToast('오류: '+e.message,'err');}
+}
+async function _toggleChallenge(id,active){
+  try{
+    await fetch('/api/challenges',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},body:JSON.stringify({id,active})});
+    adminToast(active?'활성화됨':'비활성화됨');_loadChallengesAdmin();
+  }catch(e){adminToast('오류','err');}
+}
+async function _deleteChallenge(id){
+  if(!confirm('이 챌린지를 삭제하시겠습니까?')) return;
+  try{
+    await fetch('/api/challenges?id='+id,{method:'DELETE',headers:{'Authorization':'Bearer '+ADMIN_SECRET}});
+    adminToast('삭제됨');_loadChallengesAdmin();
+  }catch(e){adminToast('오류','err');}
+}
+// 챌린지 섹션 진입 시 로드
+document.addEventListener('DOMContentLoaded',()=>{
+  const cSec=document.getElementById('sec-challenges');
+  if(cSec){
+    const obs=new MutationObserver(()=>{if(cSec.classList.contains('on'))_loadChallengesAdmin();});
+    obs.observe(cSec,{attributes:true,attributeFilter:['class']});
+  }
+});
 
 /* ── 대시보드 10초 자동 갱신 ── */
 let _dashAutoTimer = null;
