@@ -1959,6 +1959,7 @@ textarea.form-input{line-height:1.5;}
           <button class="btn btn-acc" onclick="_opsTab('scheduled')" data-opstab="scheduled">📅 예약 공지</button>
           <button class="btn" onclick="_opsTab('automation')" data-opstab="automation">⚡ 자동화 규칙</button>
           <button class="btn" onclick="_opsTab('abtest')" data-opstab="abtest">🧪 A/B 테스트</button>
+          <button class="btn" onclick="_opsTab('musicgen')" data-opstab="musicgen">🎵 음악 생성</button>
         </div>
 
         <!-- 예약 공지 -->
@@ -2069,6 +2070,68 @@ textarea.form-input{line-height:1.5;}
             <table>
               <thead><tr><th>상태</th><th>이름</th><th>타입</th><th>A 그룹</th><th>B 그룹</th><th>비율</th><th>시작일</th><th>결과</th><th>관리</th></tr></thead>
               <tbody id="ops-ab-tbody"><tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">진행 중인 테스트 없음</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 🎵 음악 생성 -->
+        <div id="ops-panel-musicgen" style="display:none;">
+          <div class="settings-group" style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">🎵 AI 음악 생성 (커뮤니티 즉시 공개)</div>
+            <div class="settings-row" style="flex-wrap:wrap;gap:8px;">
+              <div style="flex:1;min-width:200px;">
+                <label>곡 제목</label>
+                <input class="form-input" id="mg-title" placeholder="제목 (선택)" style="margin-top:4px;">
+              </div>
+              <div style="flex:1;min-width:200px;">
+                <label>스타일/장르</label>
+                <input class="form-input" id="mg-style" placeholder="예: k-pop, ballad, lo-fi" style="margin-top:4px;">
+              </div>
+            </div>
+            <div class="settings-row" style="flex-wrap:wrap;gap:8px;margin-top:8px;">
+              <div style="flex:1;min-width:120px;">
+                <label>보컬</label>
+                <select class="form-input" id="mg-vocal" style="margin-top:4px;">
+                  <option value="">자동</option>
+                  <option value="m">남성</option>
+                  <option value="f">여성</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:120px;">
+                <label>모델</label>
+                <select class="form-input" id="mg-model" style="margin-top:4px;">
+                  <option value="V4_5">V4.5 (추천)</option>
+                  <option value="V5">V5 (최신)</option>
+                  <option value="V4">V4</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:120px;">
+                <label>&nbsp;</label>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;">
+                  <input type="checkbox" id="mg-inst"> 인스트루멘탈
+                </label>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <label>가사 / 프롬프트</label>
+              <textarea class="form-input" id="mg-prompt" placeholder="가사 또는 분위기 설명을 입력하세요&#10;예: 봄날의 따뜻한 고백 노래, 벚꽃이 흩날리는 카페에서" rows="4" style="margin-top:4px;"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+              <button class="btn btn-acc" id="mg-submit" onclick="_adminGenMusic()" style="padding:10px 24px;font-size:14px;">🎵 생성 시작</button>
+              <span id="mg-status" style="font-size:12px;color:var(--t3);"></span>
+            </div>
+          </div>
+          <div id="mg-result" style="display:none;">
+            <div class="admin-table-wrap">
+              <div class="admin-table-header"><h3>생성 결과</h3></div>
+              <div id="mg-result-body" style="padding:16px;"></div>
+            </div>
+          </div>
+          <div class="admin-table-wrap" style="margin-top:16px;">
+            <div class="admin-table-header"><h3>최근 봇 생성곡</h3></div>
+            <table>
+              <thead><tr><th>제목</th><th>스타일</th><th>생성일</th><th>재생</th></tr></thead>
+              <tbody id="mg-history-tbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -7369,19 +7432,138 @@ var _autoRules=JSON.parse(localStorage.getItem('kms_auto_rules')||'[]');
 var _abTests=JSON.parse(localStorage.getItem('kms_ab_tests')||'[]');
 
 function _opsTab(tab){
-  ['scheduled','automation','abtest'].forEach(function(t){
+  ['scheduled','automation','abtest','musicgen'].forEach(function(t){
     var panel=document.getElementById('ops-panel-'+t);
     if(panel) panel.style.display=t===tab?'':'none';
   });
   document.querySelectorAll('[data-opstab]').forEach(function(b){
     b.className=b.dataset.opstab===tab?'btn btn-acc':'btn';
   });
+  if(tab==='musicgen') _loadMgHistory();
 }
 
 function _loadOpsData(){
   _renderScheduledNotices();
   _renderAutoRules();
   _renderAbTests();
+}
+
+/* — 음악 생성 (관리자) — */
+async function _adminGenMusic(){
+  var btn=document.getElementById('mg-submit');
+  var status=document.getElementById('mg-status');
+  var prompt=document.getElementById('mg-prompt').value.trim();
+  var title=document.getElementById('mg-title').value.trim();
+  var style=document.getElementById('mg-style').value.trim();
+  var vocal=document.getElementById('mg-vocal').value;
+  var model=document.getElementById('mg-model').value;
+  var inst=document.getElementById('mg-inst').checked;
+
+  if(!prompt && !title){status.textContent='가사 또는 제목을 입력하세요';return;}
+  btn.disabled=true;
+  status.textContent='⏳ 생성 요청 중...';
+
+  try{
+    var payload={
+      prompt:prompt||title||'Untitled',
+      customMode:!!(style||vocal),
+      instrumental:inst,
+      model:model,
+      callBackUrl:window.location.origin+'/api/callback',
+    };
+    if(title)payload.title=title;
+    if(style)payload.style=style;
+    if(vocal)payload.vocalGender=vocal;
+
+    var r=await fetch('/api/kie-proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({path:'/api/v1/generate',method:'POST',body:payload,userName:'admin',userProvider:'admin'})
+    });
+    var d=await r.json();
+    if(!d.data?.taskId) throw new Error(d.msg||d.error||'API 오류');
+    var taskId=d.data.taskId;
+    status.textContent='⏳ 생성 중... (taskId: '+taskId.slice(0,8)+')';
+
+    /* 폴링 */
+    var tracks=null;
+    for(var i=0;i<60;i++){
+      await new Promise(function(resolve){setTimeout(resolve,i<5?3000:5000);});
+      status.textContent='⏳ 폴링 중... ('+(i+1)+'/60)';
+      var pr=await fetch('/api/kie-proxy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({path:'/api/v1/generate/record-info?taskId='+taskId,method:'GET'})
+      });
+      var pd=await pr.json();
+      var st=pd.data?.status||pd.data?.state||'';
+      if(st==='SUCCESS'||st==='FIRST_SUCCESS'){
+        tracks=pd.data?.response?.sunoData||pd.data?.sunoData||pd.data?.tracks||[];
+        if(tracks.length>0)break;
+      }
+      if(st==='FAILED'||st==='GENERATE_AUDIO_FAILED')throw new Error('생성 실패: '+st);
+      if(st==='SENSITIVE_WORD_ERROR')throw new Error('부적절한 단어 차단');
+    }
+    if(!tracks||!tracks.length)throw new Error('시간 초과');
+
+    /* Supabase 저장 */
+    var saved=[];
+    for(var j=0;j<tracks.length;j++){
+      var t=tracks[j];
+      var td={
+        id:t.id||t.audioId||('admin-'+Date.now()+'-'+Math.random().toString(36).slice(2,6)),
+        taskId:taskId,
+        title:t.title||title||'관리자 생성곡',
+        audio_url:t.audioUrl||t.audio_url||t.song_path||'',
+        image_url:t.imageUrl||t.image_url||'',
+        tags:style||t.tags||'admin-generated',
+        lyrics:prompt||'',
+        genMode:'admin',
+        owner_name:'Kenny Studio',
+        owner_avatar:'🎵',
+        owner_provider:'admin',
+      };
+      var sr=await fetch('/api/tracks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(td)});
+      var sd=await sr.json();
+      if(sd.ok||sd.source)saved.push(td);
+    }
+
+    /* 결과 표시 */
+    var rb=document.getElementById('mg-result-body');
+    var html='';
+    saved.forEach(function(s,i){
+      html+='<div style="padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">';
+      html+='<div style="font-weight:700;">🎶 '+(i+1)+'. '+_esc(s.title)+'</div>';
+      if(s.audio_url)html+='<audio controls src="'+_esc(s.audio_url)+'" style="width:100%;margin-top:8px;"></audio>';
+      html+='<div style="font-size:11px;color:var(--t3);margin-top:4px;">ID: '+_esc(s.id)+'</div>';
+      html+='</div>';
+    });
+    html+='<div style="color:var(--grn);font-weight:700;margin-top:8px;">✅ '+saved.length+'곡 생성 완료 — 커뮤니티 즉시 공개됨</div>';
+    rb.innerHTML=html;
+    document.getElementById('mg-result').style.display='';
+    status.textContent='✅ 완료!';
+    _loadMgHistory();
+  }catch(e){
+    status.textContent='❌ '+e.message;
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+async function _loadMgHistory(){
+  var tbody=document.getElementById('mg-history-tbody');
+  if(!tbody)return;
+  try{
+    var r=await fetch('/api/tracks?mode=bot,admin&limit=20',{headers:_authHeaders()});
+    var d=await r.json();
+    var tracks=d.data||d.tracks||d||[];
+    if(!tracks.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--t3);">봇 생성곡 없음</td></tr>';return;}
+    tbody.innerHTML=tracks.map(function(t){
+      return '<tr><td>'+_esc(t.title||'무제')+'</td><td>'+_esc(t.tags||'-')+'</td><td>'+new Date(t.created_at).toLocaleString('ko-KR')+'</td><td>'+(t.audio_url?'<audio controls src="'+_esc(t.audio_url)+'" style="height:28px;"></audio>':'-')+'</td></tr>';
+    }).join('');
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--t3);">로드 실패: '+_esc(e.message)+'</td></tr>';
+  }
 }
 
 /* — 예약 공지 — */

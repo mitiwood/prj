@@ -169,6 +169,10 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `일간 — 오늘 활동 리포트`,
     `주간 — 최근 7일 리포트`,
     ``,
+    `━━ 🎵 음악 생성 (1) ━━`,
+    `생성 <가사> — AI 음악 생성 + 커뮤니티 즉시 공개`,
+    `  옵션: -t 제목 -s 스타일 -v m|f -i(인스트) -m 모델`,
+    ``,
     `━━ 📖 레퍼런스 (2) ━━`,
     `kie [질문] — kie.ai API 문서 조회`,
     `작업 [카테고리] — 구현 현황 (8카테고리 50항목)`,
@@ -1652,6 +1656,179 @@ COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
 
   } catch (e) {
     await tgSend(chatId, `❌ API 문서 로드 실패: ${e.message}\n\n직접 확인: KIE_API_REFERENCE.md`, { parse_mode: '' });
+  }
+};
+
+/* ── /생성 — 텔레그램에서 직접 음악 생성 ── */
+COMMANDS['생성'] = COMMANDS['generate'] = COMMANDS['만들어'] = async (chatId, arg) => {
+  if (!arg) {
+    await tgSend(chatId, [
+      '🎵 음악 생성 명령어',
+      '',
+      '━━ 사용법 ━━',
+      '생성 <가사 또는 설명>',
+      '생성 -t 제목 -s 스타일 -v m 가사내용',
+      '',
+      '━━ 옵션 ━━',
+      '-t <제목>  곡 제목 (기본: AI 자동)',
+      '-s <스타일>  장르/분위기 (예: k-pop, ballad)',
+      '-v <m|f>  보컬 성별 (m=남, f=여)',
+      '-i  인스트루멘탈 (보컬 없음)',
+      '-m <모델>  V4_5(기본), V5',
+      '',
+      '━━ 예시 ━━',
+      '생성 봄날의 따뜻한 고백 노래',
+      '생성 -t 봄바람 -s k-pop, ballad -v f 벚꽃이 흩날리는 봄날에',
+      '생성 -i -s lo-fi, chill 비오는 날 카페',
+    ].join('\n'), { parse_mode: '' });
+    return;
+  }
+
+  /* 옵션 파싱 */
+  let title = '', style = '', vocalGender = '', instrumental = false, model = 'V4_5', prompt = arg;
+  const tMatch = arg.match(/-t\s+([^-]+)/);
+  if (tMatch) { title = tMatch[1].trim(); prompt = prompt.replace(tMatch[0], ''); }
+  const sMatch = arg.match(/-s\s+([^-]+)/);
+  if (sMatch) { style = sMatch[1].trim(); prompt = prompt.replace(sMatch[0], ''); }
+  const vMatch = arg.match(/-v\s+(m|f)/i);
+  if (vMatch) { vocalGender = vMatch[1].toLowerCase(); prompt = prompt.replace(vMatch[0], ''); }
+  if (/-i\b/.test(prompt)) { instrumental = true; prompt = prompt.replace(/-i\b/, ''); }
+  const mMatch = arg.match(/-m\s+(\S+)/i);
+  if (mMatch) { model = mMatch[1].toUpperCase(); prompt = prompt.replace(mMatch[0], ''); }
+  prompt = prompt.trim();
+
+  if (!prompt && !title) {
+    await tgSend(chatId, '❌ 가사 또는 설명을 입력해주세요.\n\n예: 생성 봄날의 따뜻한 고백 노래', { parse_mode: '' });
+    return;
+  }
+
+  if (!KIE_KEY) {
+    await tgSend(chatId, '❌ KIE_API_KEY가 설정되지 않았습니다.', { parse_mode: '' });
+    return;
+  }
+
+  /* 진행 알림 */
+  await tgSend(chatId, [
+    '🎵 음악 생성 시작!',
+    '',
+    '📝 프롬프트: ' + (prompt || '(없음)').slice(0, 100),
+    title ? '🏷 제목: ' + title : '',
+    style ? '🎸 스타일: ' + style : '',
+    vocalGender ? '🎤 보컬: ' + (vocalGender === 'm' ? '남성' : '여성') : '',
+    instrumental ? '🎹 인스트루멘탈' : '',
+    '🤖 모델: ' + model,
+    '',
+    '⏳ 생성 중... (1~3분 소요)',
+  ].filter(Boolean).join('\n'), { parse_mode: '' });
+
+  try {
+    /* 1. kie.ai 음악 생성 요청 */
+    const genPayload = {
+      prompt: prompt || title || 'Untitled',
+      customMode: !!(style || vocalGender),
+      instrumental,
+      model,
+      callBackUrl: `${BASE}/api/callback`,
+    };
+    if (title) genPayload.title = title;
+    if (style) genPayload.style = style;
+    if (vocalGender) genPayload.vocalGender = vocalGender;
+
+    const genBuf = Buffer.from(JSON.stringify(genPayload), 'utf-8');
+    const genRes = await fetch('https://api.kie.ai/api/v1/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${KIE_KEY}`,
+      },
+      body: genBuf,
+    });
+    const genData = await genRes.json();
+    if (genData.code !== 200 || !genData.data?.taskId) {
+      throw new Error(genData.msg || 'API 응답 오류: ' + JSON.stringify(genData).slice(0, 200));
+    }
+    const taskId = genData.data.taskId;
+
+    /* 2. 폴링 (최대 5분) */
+    let tracks = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, i < 5 ? 3000 : 5000));
+      const pollRes = await fetch(`https://api.kie.ai/api/v1/generate/record-info?taskId=${taskId}`, {
+        headers: { Authorization: `Bearer ${KIE_KEY}` },
+      });
+      const poll = await pollRes.json();
+      const status = poll.data?.status || poll.data?.state || '';
+
+      if (status === 'SUCCESS' || status === 'FIRST_SUCCESS') {
+        tracks = poll.data?.response?.sunoData || poll.data?.sunoData || poll.data?.tracks || [];
+        if (tracks.length > 0) break;
+      }
+      if (status === 'FAILED' || status === 'GENERATE_AUDIO_FAILED') {
+        throw new Error('생성 실패: ' + status);
+      }
+      if (status === 'SENSITIVE_WORD_ERROR') {
+        throw new Error('부적절한 단어가 포함되어 생성이 차단되었습니다.');
+      }
+    }
+
+    if (!tracks || tracks.length === 0) {
+      throw new Error('시간 초과 — 5분 내 생성 완료되지 않음');
+    }
+
+    /* 3. Supabase에 트랙 저장 (커뮤니티 즉시 노출) */
+    const saved = [];
+    for (const t of tracks) {
+      const trackData = {
+        id: t.id || t.audioId || `bot-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        task_id: taskId,
+        title: t.title || title || '봇 생성곡',
+        audio_url: t.audioUrl || t.audio_url || t.song_path || '',
+        image_url: t.imageUrl || t.image_url || '',
+        tags: style || t.tags || 'bot-generated',
+        lyrics: prompt || '',
+        gen_mode: 'bot',
+        is_public: true,
+        owner_name: 'Kenny Bot',
+        owner_avatar: '🤖',
+        owner_provider: 'bot',
+        comm_likes: 0,
+        comm_dislikes: 0,
+        comm_plays: 0,
+      };
+      try {
+        await sb('POST', '/tracks', trackData);
+        saved.push(trackData);
+      } catch (e) {
+        console.warn('[bot-gen] save error:', e.message);
+      }
+    }
+
+    /* 4. 결과 알림 */
+    const resultLines = [
+      '✅ 음악 생성 완료!',
+      '',
+    ];
+    saved.forEach((t, i) => {
+      resultLines.push(`🎶 ${i + 1}. ${t.title}`);
+      if (t.audio_url) resultLines.push(`🔗 ${t.audio_url}`);
+    });
+    resultLines.push('');
+    resultLines.push('🌐 커뮤니티에 즉시 공개됨');
+    resultLines.push(`🔗 ${BASE}`);
+
+    await tgSend(chatId, resultLines.join('\n'), { parse_mode: '' });
+
+    /* 카카오에도 전송 */
+    try {
+      await fetch(`${BASE}/api/kakao-notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: resultLines.slice(0, 5).join('\n').slice(0, 300) }),
+      });
+    } catch(e) {}
+
+  } catch (e) {
+    await tgSend(chatId, '❌ 음악 생성 실패\n\n' + e.message, { parse_mode: '' });
   }
 };
 
