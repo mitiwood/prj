@@ -7172,7 +7172,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
       if(text){
         $('simple-prompt').value=text;
         const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
-        const autoTitle=firstLine.slice(0,20)||'AI 생성곡';
+        const autoTitle=firstLine.slice(0,20)||_autoGenerateTitle(null,text,'','simple');
         $('song-title').value=autoTitle;
         toast('✅ AI 가사+제목 생성 완료!','ok',2000);
       }
@@ -7299,7 +7299,7 @@ async function _ytDoGenerate(){
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
       historyData.unshift({
         id:t.id, taskId,
-        title: t.title||songTitle||'YouTube Cover',
+        title: _autoGenerateTitle(t.title||songTitle,ytLyrics,t.tags||ytStyle,'youtube'),
         audio_url: t.audioUrl||t.audio_url||'',
         video_url: '',
         image_url: t.imageUrl||t.image_url||'',
@@ -7322,7 +7322,7 @@ async function _ytDoGenerate(){
     tracks.forEach(t=>{
       _saveTrackToServer({
         id:t.id, taskId,
-        title:t.title||songTitle||'YouTube Cover',
+        title:_autoGenerateTitle(t.title||songTitle,ytLyrics,t.tags||ytStyle,'youtube'),
         audio_url:t.audioUrl||t.audio_url||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:t.tags||ytStyle,
@@ -7981,7 +7981,7 @@ async function generateMV(){
 
           if(videoUrl){
             /* 히스토리에 저장 */
-            const mvTitle=linkedTrack?`${linkedTrack.title||'무제'} MV`:'뮤직비디오';
+            const mvTitle=linkedTrack?`${_autoGenerateTitle(linkedTrack.title,linkedTrack.lyrics||'',linkedTrack.tags||'','mv')} MV`:'Music Video';
             historyData.unshift({
               id:'mv_'+Date.now(),taskId:mvTaskId,
               title:mvTitle,audio_url:linkedTrack?.audio_url||'',
@@ -8836,6 +8836,17 @@ function _genTitle(spaceKo){
   return _pick(['그날의 우리','기억의 조각','말하지 못한 이야기','끝나지 않은 노래','다시, 여기서','너에게 닿기를','그때 그 자리','흘러간 시간','아직, 여전히','어딘가에서']);
 }
 
+/* ═══ 자동 제목 생성 — 제목 비어있으면 분위기/가사/태그에서 추출 ═══ */
+function _autoGenerateTitle(apiTitle,lyrics,tags,mode){
+  if(apiTitle&&apiTitle.trim())return apiTitle.trim();
+  if(lyrics&&typeof lyrics==='string'){var ls=lyrics.split('\n');for(var i=0;i<ls.length;i++){var l=ls[i].trim();if(!l||/^\[/.test(l)||/^[#\-=*]/.test(l)||l.length<2)continue;return l.slice(0,25);}}
+  if(tags&&typeof tags==='string'){var c=tags.toLowerCase();for(var k in _titlePool){if(c.includes(k))return _pick(_titlePool[k]);}
+  var _gm={'pop':['팝의 순간','빛나는 오늘'],'rock':['울리는 기타','록의 밤'],'jazz':['재즈 블루','심야 재즈'],'ballad':['너에게 보내는 말','마지막 편지'],'r&b':['밤의 리듬','소울 트레인'],'hip hop':['비트 위의 이야기','자유로운 밤'],'hiphop':['비트 위의 이야기','자유로운 밤'],'edm':['새벽의 비트','전자 꿈'],'electronic':['네온 드림','디지털 새벽'],'classical':['클래식 소나타','고요한 선율'],'folk':['숲길의 노래','바람의 이야기'],'country':['시골길 드라이브','따뜻한 오후'],'k-pop':['빛나는 순간','무대 위의 별'],'kpop':['빛나는 순간','무대 위의 별'],'indie':['작은 방의 기타','인디 블루'],'lo-fi':['느린 오후','로파이 저녁'],'lofi':['느린 오후','로파이 저녁'],'acoustic':['어쿠스틱 편지','기타 한 줄'],'dance':['춤추는 밤','리듬의 물결'],'reggae':['섬의 노래','레게 선셋'],'blues':['블루스 앨리','깊은 밤의 블루스'],'soul':['소울 그루브','영혼의 리듬'],'funk':['펑키 나잇','그루브 타임'],'metal':['철의 심장','메탈 스톰'],'punk':['펑크 스피릿','거리의 외침'],'latin':['라틴 나잇','살사 문라이트'],'ambient':['고요한 파동','명상의 시간'],'chill':['차분한 순간','여유로운 오후'],'dreamy':['꿈결 속에서','몽환의 밤'],'sad':['눈물의 기억','그리운 날'],'happy':['행복한 하루','웃음꽃'],'romantic':['달빛 로맨스','사랑의 멜로디'],'dark':['어둠 속 빛','깊은 심연'],'bright':['빛나는 아침','햇살 가득한 날'],'epic':['대서사시','장엄한 여정'],'cinematic':['영화 같은 순간','시네마틱 드림']};
+  for(var g in _gm){if(c.includes(g))return _pick(_gm[g]);}var ft=tags.split(',')[0]?.trim();if(ft&&ft.length>=2&&ft.length<=15)return ft;}
+  if(mode==='youtube')return 'YouTube Cover';if(mode==='mv')return 'Music Video';
+  return _pick(['그날의 우리','기억의 조각','말하지 못한 이야기','끝나지 않은 노래','다시, 여기서','너에게 닿기를','그때 그 자리','흘러간 시간','아직, 여전히','어딘가에서']);
+}
+
 function _generateConcepts(hint){
   const used = new Set();
   const items = [];
@@ -9401,7 +9412,7 @@ async function generate(overrideParams){
       /* 우선순위: 사용자 입력가사 > API 응답 실제가사 > 심플모드프롬프트 */
       const savedLyrics = lastLyricsInput || (isRealLyric ? apiLyric : '') || (isSimple?$('simple-prompt')?.value:'') || $('prompt').value.trim() || '';
       const _newTrack = {
-        id:t.id,taskId,title:t.title||'무제',
+        id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,t.tags||styleStr,currentMode),
         audio_url:t.audioUrl||t.audio_url||'',
         video_url:'',
         image_url:t.imageUrl||t.image_url||'',
@@ -9429,7 +9440,7 @@ async function generate(overrideParams){
       const _lyrics = lastLyricsInput || t.lyric || t.lyrics || t.lrc || '';
       _saveTrackToServer({
         id:t.id, taskId,
-        title:t.title||'무제',
+        title:_autoGenerateTitle(t.title,_lyrics,t.tags||styleStr,currentMode),
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:t.tags||styleStr,
@@ -9553,7 +9564,7 @@ async function _mvGenerateImage(){
         if(st==='success'||st==='completed'||st==='finish'){
           var vu='';try{var rj=typeof d.resultJson==='string'?JSON.parse(d.resultJson):d.resultJson||{};vu=rj.resultUrls?.[0]||rj.videoUrl||rj.url||'';}catch{}
           if(!vu){var o=d.output||d.response||d.result||{};vu=o.videoUrl||o.video_url||o.url||o.videos?.[0]?.url||d.videoUrl||d.video_url||'';}
-          if(vu){var mt=lt?(lt.title||'무제')+' MV':'뮤직비디오';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+          if(vu){var mt=lt?_autoGenerateTitle(lt.title,lt.lyrics||'',lt.tags||'','mv')+' MV':'Music Video';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
             ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 뮤직비디오 완성!</div><div class="mv-video-wrap"><video src="'+esc(vu)+'" controls playsinline style="width:100%;"></video></div><div style="display:flex;gap:8px;margin-top:8px;"><a href="'+esc(vu)+'" download="mv.mp4" style="flex:1;padding:10px;text-align:center;border-radius:10px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-decoration:none;">다운로드</a></div></div>';
             toast('🎬 뮤직비디오 완성!','ok',3000);}else{ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⚠️ URL 없음</div></div>';}return;}
         if(st==='fail'||st==='failed'||st==='error'){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ 실패: '+(d.failMsg||st)+'</div></div>';return;}
@@ -9667,7 +9678,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
             const linkedAudio=historyData[0]||{};
             const mvEntry={
               id:'mv-'+Date.now(),taskId:'mv',
-              title:(linkedAudio.title||'무제')+' MV',
+              title:_autoGenerateTitle(linkedAudio.title,linkedAudio.lyrics||'',linkedAudio.tags||'','mv')+' MV',
               audio_url:linkedAudio.audio_url||'',
               video_url:videoUrl,
               image_url:linkedAudio.image_url||'',
@@ -10868,7 +10879,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     const body={
       uploadUrl:h.audio_url,
       prompt:vocalPrompt,
-      title:'Cover: '+(h.title||'무제'),
+      title:'Cover: '+_autoGenerateTitle(h.title,h.lyrics||'',h.tags||'','custom'),
       style:styleVal,
       negativeTags:'low quality, noise',
       callBackUrl:CALLBACK,
@@ -10904,7 +10915,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     $('loading-card').classList.remove('on');
     if(!result)throw new Error('시간 초과');
     const newUrl=result.audioUrl||result.audio_url||'';
-    const newTitle=result.title||'Cover: '+(h.title||'무제');
+    const newTitle=result.title||'Cover: '+_autoGenerateTitle(h.title,h.lyrics||'',h.tags||'','custom');
     const coverTrack={
       id:result.id||Date.now().toString(),taskId,title:newTitle,
       audio_url:newUrl,video_url:'',image_url:result.imageUrl||h.image_url||'',
@@ -11276,10 +11287,10 @@ $('vr-submit-btn').addEventListener('click', async () => {
     /* MR + 보컬 트랙 히스토리 저장 */
     var _vrOwner = currentUser ? {name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider} : null;
     if (iu) {
-      historyData.unshift({id:Date.now().toString(),taskId:vrTid,title:'[MR] '+(h.title||'무제'),audio_url:iu,video_url:'',image_url:h.image_url||'',tags:'instrumental, MR',lyrics:'',created:Date.now(),type:'audio',genMode:'vocal-removal',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
+      historyData.unshift({id:Date.now().toString(),taskId:vrTid,title:'[MR] '+_autoGenerateTitle(h.title,h.lyrics||'',h.tags||'','custom'),audio_url:iu,video_url:'',image_url:h.image_url||'',tags:'instrumental, MR',lyrics:'',created:Date.now(),type:'audio',genMode:'vocal-removal',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
     }
     if (vu) {
-      historyData.unshift({id:(Date.now()+1).toString(),taskId:vrTid,title:'[보컬] '+(h.title||'무제'),audio_url:vu,video_url:'',image_url:h.image_url||'',tags:'vocal only',lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'vocal-extract',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
+      historyData.unshift({id:(Date.now()+1).toString(),taskId:vrTid,title:'[보컬] '+_autoGenerateTitle(h.title,h.lyrics||'',h.tags||'','custom'),audio_url:vu,video_url:'',image_url:h.image_url||'',tags:'vocal only',lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'vocal-extract',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
     }
     historyData = historyData.slice(0, 30);
     saveHistory(); updateHistBadge(); renderHistoryView();
@@ -12010,7 +12021,7 @@ function _saveTrackToServer(track){
   const payload = {
     id:             track.id,
     taskId:         track.taskId         || '',
-    title:          track.title          || '무제',
+    title:          track.title || _autoGenerateTitle(null,track.lyrics||'',track.tags||'',track.genMode||'custom'),
     audio_url:      track.audio_url,
     video_url:      track.video_url      || '',
     image_url:      track.image_url      || '',

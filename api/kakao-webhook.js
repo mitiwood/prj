@@ -7,9 +7,12 @@
 const SB_URL     = process.env.SUPABASE_URL;
 const SB_KEY     = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+const KIE_API_KEY = process.env.KIE_API_KEY || '';
 const GH_TOKEN   = process.env.GITHUB_TOKEN || '';
 const GH_REPO    = 'mitiwood/ai-music-studio';
 const BASE       = 'https://ai-music-studio-bice.vercel.app';
+const KIE_BASE   = 'https://api.kie.ai';
+const CALLBACK   = `${BASE}/api/callback`;
 
 /* ── 유틸 ── */
 function ts() {
@@ -122,27 +125,25 @@ const COMMANDS = {};
 /* 도움 */
 COMMANDS['도움'] = COMMANDS['help'] = async () => {
   return card(
-    '🤖 Kenny Bot (30개 명령)',
+    '🤖 Kenny Bot',
     [
+      '🎵 생성: 커스텀 · 심플 · 유튜브 · MV',
       '📊 모니터링: 상태 · 트랙 · 유저 · 댓글 · 배포',
-      '📝 관리: 공지 · 공지삭제 · 삭제 · 공개 · 비공개 · 댓글삭제',
+      '📝 관리: 공지 · 삭제 · 공개 · 비공개 · 댓글삭제',
       '📣 알림: 알림 <메시지>',
       '🛠 개발: 수정 · PR · 머지 · QA · 진행상황',
       '📋 기획: 기획 · 백로그 · 버그',
-      '🎨 디자인: 디자인 <지시>',
       '📊 사용량: 사용량 · 일간 · 주간',
       '📈 인사이트: 인기곡 · 순위 · 플랫폼 · 장르',
-      '📖 레퍼런스: kie <질문> · 작업 <카테고리>',
-      '🚀 고도화 [Phase] — 고도화 진행률',
       '',
       '💬 자연어 OK (뭐했어, 서버 괜찮아?)',
     ].join('\n'),
     [
+      { label: '커스텀 생성', msg: '커스텀' },
       { label: '서버 상태', msg: '상태' },
-      { label: '구현 현황', msg: '작업' },
       { label: '사이트 열기', url: BASE },
     ],
-    ['상태', '사용량', 'PR', '작업', 'kie']
+    ['커스텀', '심플', '상태', '트랙']
   );
 };
 
@@ -927,6 +928,233 @@ COMMANDS['장르'] = async () => {
 COMMANDS['모드'] = COMMANDS['장르'];
 COMMANDS['genre'] = COMMANDS['장르'];
 
+/* ══════════════════════════════════
+   🎵 음악 생성 명령 (커스텀/심플/유튜브/MV)
+══════════════════════════════════ */
+
+async function kieApi(method, path, body = null) {
+  if (!KIE_API_KEY) throw new Error('KIE_API_KEY 미설정');
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KIE_API_KEY}` },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${KIE_BASE}${path}`, opts);
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.msg || d?.error || `kie.ai ${r.status}`);
+  return d;
+}
+
+async function pollKie(taskId, maxPolls = 60) {
+  for (let i = 0; i < maxPolls; i++) {
+    await new Promise(r => setTimeout(r, i < 3 ? 1000 : i < 10 ? 2000 : 3000));
+    const data = await kieApi('GET', `/api/v1/generate/record-info?taskId=${taskId}`);
+    const st = data?.data;
+    if (!st) continue;
+    const status = (st.status || '').toUpperCase();
+    const tracks = st.response?.sunoData || st.sunoData || st.tracks || st.response?.tracks || [];
+    if (status === 'SUCCESS' && tracks.length) return tracks;
+    if (['FAILED', 'ERROR', 'TIMEOUT'].includes(status)) {
+      throw new Error(st.response?.errorMessage || st.errorMessage || '생성 실패');
+    }
+  }
+  throw new Error('타임아웃 — 다시 시도해주세요');
+}
+
+async function notifyResult(msg) {
+  try {
+    const payload = JSON.stringify({ text: msg, parse_mode: '' });
+    const bytes = Buffer.from(payload, 'utf-8');
+    await fetch(`${BASE}/api/telegram`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(bytes.length) },
+      body: bytes,
+    });
+  } catch {}
+  try {
+    await fetch(`${BASE}/api/kakao-notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: msg.slice(0, 300) }),
+    });
+  } catch {}
+}
+
+async function saveTrack(track, taskId, mode, tags) {
+  try {
+    await sb('POST', '/tracks', {
+      id: track.id || `bot-${Date.now()}`,
+      task_id: taskId,
+      title: track.title || '무제',
+      audio_url: track.audioUrl || track.audio_url || '',
+      image_url: track.imageUrl || track.image_url || '',
+      tags: tags || '',
+      lyrics: track.lyric || track.lyrics || '',
+      gen_mode: mode,
+      owner_name: 'Bot',
+      owner_avatar: '',
+      owner_provider: 'bot',
+      is_public: true,
+    });
+  } catch (e) { console.warn('[bot-save]', e.message); }
+}
+
+/* 비동기 생성 실행 (카카오 응답 후 백그라운드) */
+function runGenerate(mode, prompt, style, options = {}) {
+  const body = {
+    prompt,
+    customMode: mode === 'custom' || mode === 'youtube',
+    instrumental: options.instrumental || false,
+    model: 'V3_5',
+    callBackUrl: CALLBACK,
+  };
+  if (style) body.style = style;
+  if (options.title) body.title = options.title;
+  if (options.negativeTags) body.negativeTags = options.negativeTags;
+
+  /* fire-and-forget: 카카오 응답은 즉시 반환, 결과는 텔레그램+카카오로 알림 */
+  (async () => {
+    try {
+      const genData = await kieApi('POST', '/api/v1/generate', body);
+      const taskId = genData?.data?.taskId || genData?.taskId;
+      if (!taskId) throw new Error('taskId 없음');
+
+      const tracks = await pollKie(taskId);
+      const t = tracks[0];
+      const title = t?.title || options.title || '봇 생성곡';
+      await saveTrack(t, taskId, mode, style || prompt);
+
+      const modeNames = { custom: '커스텀', simple: '심플', youtube: '유튜브', mv: 'MV' };
+      await notifyResult(
+        `🎵 봇 음악 생성 완료!\n\n` +
+        `🎧 ${title}\n` +
+        `🎸 모드: ${modeNames[mode] || mode}\n` +
+        `🏷 ${(style || prompt || '').slice(0, 80)}\n\n` +
+        `🔗 ${BASE}`
+      );
+    } catch (e) {
+      await notifyResult(`❌ 봇 생성 실패 (${mode})\n\n${e.message}\n\n프롬프트: ${prompt.slice(0, 100)}`);
+    }
+  })();
+}
+
+/* 커스텀 생성 */
+COMMANDS['생성'] = COMMANDS['커스텀'] = COMMANDS['custom'] = async (arg) => {
+  if (!arg) return card(
+    '🎵 커스텀 생성',
+    '사용법: 커스텀 <가사 또는 설명>\n\n예시:\n커스텀 새벽 감성 발라드\n커스텀 [Verse 1] 너를 만난 그날부터...\n\n옵션:\n· 스타일: | 뒤에 장르 추가\n  커스텀 가사내용 | K-Pop, 댄스',
+    [{ label: '사이트에서 만들기', url: BASE }],
+    ['심플', 'MV', '도움']
+  );
+  if (!KIE_API_KEY) return text('KIE_API_KEY 미설정');
+
+  const [promptPart, stylePart] = arg.split('|').map(s => s.trim());
+  runGenerate('custom', promptPart, stylePart || '');
+  return card(
+    '🎵 커스텀 생성 시작!',
+    `📝 ${promptPart.slice(0, 80)}\n${stylePart ? '🎸 ' + stylePart : ''}\n\n⏳ 1~2분 후 결과가 텔레그램+카카오로 전송됩니다.`,
+    [{ label: '사이트 열기', url: BASE }],
+    ['상태', '트랙']
+  );
+};
+
+/* 심플 생성 */
+COMMANDS['심플'] = COMMANDS['simple'] = async (arg) => {
+  if (!arg) return card(
+    '✨ 심플 생성',
+    '사용법: 심플 <곡 설명>\n\n예시:\n심플 비 오는 날 듣기 좋은 재즈\n심플 신나는 EDM 파티 음악\n심플 잔잔한 어쿠스틱 기타',
+    [{ label: '사이트에서 만들기', url: BASE }],
+    ['커스텀', 'MV', '도움']
+  );
+  if (!KIE_API_KEY) return text('KIE_API_KEY 미설정');
+
+  runGenerate('simple', arg, arg);
+  return card(
+    '✨ 심플 생성 시작!',
+    `📝 ${arg.slice(0, 100)}\n\n⏳ 1~2분 후 결과가 텔레그램+카카오로 전송됩니다.`,
+    [{ label: '사이트 열기', url: BASE }],
+    ['상태', '트랙']
+  );
+};
+
+/* 유튜브 모드 (URL 없이 스타일로 생성) */
+COMMANDS['유튜브'] = COMMANDS['youtube'] = COMMANDS['yt'] = async (arg) => {
+  if (!arg) return card(
+    '🎬 유튜브 스타일 생성',
+    '사용법: 유튜브 <스타일 설명>\n\n예시:\n유튜브 lo-fi hip hop chill beats\n유튜브 cinematic epic orchestral\n유튜브 K-Pop 걸그룹 댄스',
+    [{ label: '사이트에서 만들기', url: BASE }],
+    ['커스텀', '심플', '도움']
+  );
+  if (!KIE_API_KEY) return text('KIE_API_KEY 미설정');
+
+  runGenerate('youtube', arg, arg);
+  return card(
+    '🎬 유튜브 스타일 생성 시작!',
+    `🎸 ${arg.slice(0, 100)}\n\n⏳ 1~2분 후 결과가 텔레그램+카카오로 전송됩니다.`,
+    [{ label: '사이트 열기', url: BASE }],
+    ['상태', '트랙']
+  );
+};
+
+/* MV 생성 (기존 트랙 ID 필요) */
+COMMANDS['mv'] = COMMANDS['MV'] = COMMANDS['뮤비'] = async (arg) => {
+  if (!arg) return card(
+    '🎬 MV 생성',
+    '사용법: MV <트랙ID>\n\n최근 트랙 목록에서 ID를 확인하세요.\n\n예시:\nMV 1742612345678',
+    [{ label: '사이트에서 만들기', url: BASE }],
+    ['트랙', '커스텀', '도움']
+  );
+  if (!KIE_API_KEY) return text('KIE_API_KEY 미설정');
+
+  /* 트랙 조회 */
+  let track;
+  try {
+    const { data } = await sb('GET', `/tracks?id=eq.${arg}&select=id,title,audio_url,image_url,tags,lyrics&limit=1`);
+    track = data?.[0];
+  } catch {}
+  if (!track) return text(`트랙 ID "${arg}"를 찾을 수 없습니다.\n\n"트랙" 명령으로 최근 곡 목록을 확인하세요.`, ['트랙']);
+
+  /* MV 비동기 생성 */
+  (async () => {
+    try {
+      const mvBody = {
+        audioUrl: track.audio_url,
+        title: track.title || '무제',
+        lyrics: track.lyrics || '',
+        imageUrl: track.image_url || '',
+        callBackUrl: CALLBACK,
+      };
+      const genData = await kieApi('POST', '/api/v1/generate/mv', mvBody);
+      const taskId = genData?.data?.taskId || genData?.taskId;
+      if (!taskId) throw new Error('MV taskId 없음');
+
+      /* MV 폴링 (더 오래 걸림) */
+      const result = await pollKie(taskId, 90);
+      const videoUrl = result[0]?.videoUrl || result[0]?.video_url || '';
+
+      if (videoUrl) {
+        await sb('PATCH', `/tracks?id=eq.${arg}`, { video_url: videoUrl });
+        await notifyResult(
+          `🎬 MV 생성 완료!\n\n` +
+          `🎧 ${track.title}\n` +
+          `🔗 ${BASE}`
+        );
+      } else {
+        throw new Error('비디오 URL 없음');
+      }
+    } catch (e) {
+      await notifyResult(`❌ MV 생성 실패\n\n${track.title}\n${e.message}`);
+    }
+  })();
+
+  return card(
+    '🎬 MV 생성 시작!',
+    `🎧 ${track.title}\n\n⏳ 3~5분 후 결과가 텔레그램+카카오로 전송됩니다.`,
+    [{ label: '사이트 열기', url: BASE }],
+    ['상태', '트랙']
+  );
+};
+
 /* ── 메인 핸들러 ── */
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -949,6 +1177,8 @@ export default async function handler(req, res) {
 
     /* 자연어 → 명령 매핑 */
     const NL_MAP = [
+      { re: /노래.*(만들|생성|하나)|음악.*(만들|생성|하나)|곡.*(만들|생성|하나)/i, cmd: '심플' },
+      { re: /뮤비.*(만들|생성)|MV.*(만들|생성)/i, cmd: 'MV' },
       { re: /진행.*(어때|어디|상황|상태|됐|됨|완료|얼마)|어디.*까지|다\s*됐|끝났|작업.*추적/i, cmd: '진행상황' },
       { re: /PR.*(있|목록|확인|열린|리스트)|풀리퀘/i, cmd: 'PR' },
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
