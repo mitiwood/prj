@@ -250,7 +250,6 @@ function _ensureKakaoSDK(){
 [data-theme="light"] .fp-side-btn.added{color:#7c3aed;}
 [data-theme="light"] .fp-lyrics-box{color:#8e8e93;}
 [data-theme="light"] .fp-lyric-line.active{color:#1c1c1e;}
-[data-theme="light"] .fp-viz-bar{background:rgba(124,58,237,.3);}
 [data-theme="light"] .fp-cover{box-shadow:0 16px 60px rgba(0,0,0,.15),0 4px 20px rgba(0,0,0,.08);}
 /* 데이모드 — 풀플레이어 슬립타이머/EQ/가사/추가컨트롤 */
 [data-theme="light"] .fp-sleep-panel{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);}
@@ -2472,10 +2471,6 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 }
 .fp-ctrl-btn svg{width:28px;height:28px;fill:currentColor;}
 .fp-ctrl-btn:active{transform:scale(.85);opacity:.6;}
-/* 비주얼라이저 */
-.fp-viz{display:flex;align-items:center;gap:2px;height:24px;justify-content:center;margin-bottom:10px;contain:layout style;}
-.fp-vbar{width:3px;background:rgba(255,255,255,.15);border-radius:2px;height:24px;transform-origin:center bottom;transform:scaleY(0.125);will-change:transform;transition:transform 120ms ease-out;contain:strict;}
-.fp-vbar.active{transform:scaleY(1);background:rgba(255,255,255,.6);}
 /* 가사 */
 .fp-lyrics-section{margin-top:8px;}
 .fp-lyrics-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);}
@@ -7338,6 +7333,7 @@ async function _ytDoGenerate(){
         owner_provider:currentUser?.provider||'guest',
       });
     });
+    _notifyMusicCreated(tracks, 'youtube', ytStyle);
 
   }catch(e){
     clearInterval(_tipTimer);
@@ -7995,6 +7991,7 @@ async function generateMV(){
             historyData=historyData.slice(0,30);
             saveHistory();updateHistBadge();
             _saveTrackToServer({id:historyData[0].id,taskId:mvTaskId,title:mvTitle,audio_url:linkedTrack?.audio_url||'',video_url:videoUrl,image_url:linkedTrack?.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+            _notifyBot('\uD83C\uDFAC MV \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+mvTitle);
 
             /* 결과 렌더 */
             resultArea.innerHTML=`
@@ -12588,22 +12585,11 @@ function _stopBpmDetection(){
 
 function fpStartViz(){
   clearInterval(fpVizTimer);
-  /* BPM 분석기가 있으면 실제 오디오 데이터로 바 구동 — setInterval 불필요 */
-  if(_bpmAnalyser&&fpAudio&&!fpAudio.paused){
-    _startBpmDetection();
-    return;
-  }
-  const el=$('fp-viz'); if(!el)return;
-  const bars=el.querySelectorAll('.fp-vbar');
-  if(!bars.length)return;
-  fpVizTimer=setInterval(()=>{bars.forEach(b=>{b.style.transform='scaleY('+(Math.max(0.125,Math.random())).toFixed(2)+')';});},150);
   _startBpmDetection();
 }
 function fpStopViz(){
   clearInterval(fpVizTimer);
   _stopBpmDetection();
-  const el=$('fp-viz'); if(!el)return;
-  el.querySelectorAll('.fp-vbar').forEach(b=>{b.style.transform='scaleY(0.125)';});
 }
 
 /* 좋아요/싫어요 */
@@ -12873,7 +12859,7 @@ var _myFeedTrkSort='default'; /* default | likes | plays | newest */
 var _mfRenderChunkSize=20; /* 한번에 렌더링할 크리에이터 개수 */
 var _mfRenderedCount=0; /* 현재 렌더링된 크리에이터 개수 */
 var _mfAllCreators=[];
-var _mfBlockedHosts=['pexels.com','unsplash.com','placeholder.com','placekitten.com','picsum.photos','lorempixel.com','dummyimage.com','via.placeholder.com'];
+var _mfBlockedHosts=['unsplash.com','placeholder.com','placekitten.com','picsum.photos','lorempixel.com','dummyimage.com','via.placeholder.com'];
 function _isBlockedImgHost(u){if(!u)return true;try{var h=new URL(u).hostname;for(var i=0;i<_mfBlockedHosts.length;i++)if(h.indexOf(_mfBlockedHosts[i])>=0)return true;}catch(e){}return false;}
 var _mfIsBlocked=_isBlockedImgHost;
 /* 공통 안전 아바타 HTML — 차단 호스트이면 이니셜 폴백 */
@@ -16196,6 +16182,7 @@ async function commRateSb(sbId, rating){
     });
   }catch(e){console.warn('[rate]',e.message);}
   toast(['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][rating]+' 별점 등록!','ok',1500);
+  _notifyBot('\u2B50 \uBCC4\uC810 '+rating+'\uC810\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+(t&&t.title||sbId));
 }
 function _updateStarUI(sbId, rating){
   document.querySelectorAll(`.star-rating[data-rating-id="${sbId}"] .star`).forEach(el=>{
