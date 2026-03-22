@@ -278,7 +278,7 @@ COMMANDS['공지'] = COMMANDS['announce'] = async (chatId, arg) => {
     const r = await fetch(`${BASE}/api/announcement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-      body: JSON.stringify({ text: arg, type: 'info' }),
+      body: JSON.stringify({ title: '공지사항', body: arg, type: 'info' }),
     });
     const d = await r.json();
     if (d.ok || d.success) return tgSend(chatId, `✅ 공지 등록 완료!\n\n📢 ${arg}`);

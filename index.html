@@ -5512,17 +5512,17 @@ function _sendErrorAlert(info){
   _errSendCooldown = Date.now();
   const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
   /* 에러 로그 API로 전송 (관리자 대시보드 실시간 모니터) */
-  try { fetch('/api/error-logs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:'client-js',method:'JS',status:0,error_message:info.slice(0,500),user_agent:navigator.userAgent}) }); } catch(e){}
+  try { fetch('/api/error-logs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:'client-js',method:'JS',status:0,error_message:info.slice(0,500),user_agent:navigator.userAgent}) }).catch(()=>{}); } catch(e){}
   /* 텔레그램 — parse_mode:'HTML' 필수 (빈 문자열은 Markdown 폴백→파싱에러) */
-  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }); } catch(e){}
+  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }).catch(()=>{}); } catch(e){}
   /* 카카오 */
-  try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }); } catch(e){}
+  try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }).catch(()=>{}); } catch(e){}
   /* 자동 수정: 에러 감지 → 텔레봇 알림 */
   var errKey = info.slice(0,80).replace(/[^a-zA-Z0-9]/g,'');
   if(_autoFixSent[errKey] && Date.now()-_autoFixSent[errKey] < 86400000) return;
   _autoFixSent[errKey] = Date.now();
   var fixDesc = info.split('\n').filter(function(l){return l.trim();}).slice(0,4).join(' ').replace(/[<>&"']/g,'').slice(0,250);
-  try { fetch('/api/tg-webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:{chat:{id:7307674861},from:{first_name:'AutoFix'},text:fixDesc}}) }); } catch(e){}
+  try { fetch('/api/tg-webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:{chat:{id:7307674861},from:{first_name:'AutoFix'},text:fixDesc}}) }).catch(()=>{}); } catch(e){}
 }
 
 window.onerror = function(msg, src, line, col, err) {
@@ -16683,9 +16683,7 @@ function _checkAttendance(){
 async function _syncPlanFromServer(){
   if(typeof currentUser === 'undefined' || !currentUser || currentUser.provider === 'guest') return;
   try {
-    /* 직접 users 테이블에서 플랜 조회 (check-credit 대신 — 더 정확) */
-    const r = await fetch(`/api/tracks?owner=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}&_plan=1`);
-    /* users API로 직접 조회 */
+    /* users API로 직접 조회 (check-credit 대신 — 더 정확) */
     const ur = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
     const ud = await ur.json();
     if(ud.ok && ud.profile){
