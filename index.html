@@ -1219,8 +1219,6 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .search-history-chips{display:flex;gap:6px;flex-wrap:wrap;}
 .search-history-chip{padding:4px 10px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;}
 .search-history-chip:hover{border-color:var(--acc);color:var(--acc);}
-.adv-filter-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
-.adv-filter-select{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
 /* 출석체크 개선 */
 .attendance-card{padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(245,158,11,.08));border:1px solid rgba(124,58,237,.15);margin-bottom:12px;}
 .att-streak{display:flex;align-items:center;gap:8px;}
@@ -1790,10 +1788,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 }
 .comm-ftag.on{background:var(--acc);border-color:var(--acc);color:#fff;}
 .comm-ftag:hover:not(.on){border-color:var(--acc3);color:var(--acc3);}
-/* 정렬 버튼 */
-.comm-sort-btn{padding:5px 12px;border-radius:20px;border:none;background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
-.comm-sort-btn.on{color:var(--acc);background:rgba(124,58,237,.1);}
-.comm-sort-btn:hover:not(.on){color:var(--t1);}
 /* 좋아요 애니메이션 */
 @keyframes likePopComm{0%{transform:scale(1);}30%{transform:scale(1.4);}60%{transform:scale(.9);}100%{transform:scale(1);}}
 .comm-like-anim{animation:likePopComm .4s ease;}
@@ -4560,18 +4554,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
       <div id="search-suggest" class="search-suggest" style="display:none;"></div>
     </div>
-    <!-- 고급 필터 -->
-    <div class="adv-filter-row" id="adv-filter-row">
-      <select class="adv-filter-select" id="adv-sort-filter" onchange="_advFilterChange()">
-        <option value="">정렬</option><option value="likes">좋아요순</option><option value="newest">최신순</option><option value="plays">재생순</option><option value="rating">별점순</option>
-      </select>
-      <select class="adv-filter-select" id="adv-time-filter" onchange="_advFilterChange()">
-        <option value="">기간</option><option value="today">오늘</option><option value="week">이번 주</option><option value="month">이번 달</option><option value="all">전체</option>
-      </select>
-      <select class="adv-filter-select" id="adv-vocal-filter" onchange="_advFilterChange()">
-        <option value="">보컬</option><option value="vocal">보컬 있음</option><option value="inst">인스트루멘탈</option>
-      </select>
-    </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
       <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
@@ -4583,13 +4565,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
       <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
-    </div>
-    <!-- 정렬 옵션 -->
-    <div class="comm-sort-row" id="comm-sort-row" style="display:flex;gap:4px;margin-bottom:10px;">
-      <button class="comm-sort-btn on" data-csort="likes" onclick="_commSort('likes')">인기순</button>
-      <button class="comm-sort-btn" data-csort="newest" onclick="_commSort('newest')">최신순</button>
-      <button class="comm-sort-btn" data-csort="rating" onclick="_commSort('rating')">별점순</button>
-      <button class="comm-sort-btn" data-csort="plays" onclick="_commSort('plays')">재생순</button>
     </div>
 <!-- AI DJ -->    <div id="comm-dj-row" style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_startDJ('chill')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.2);background:rgba(124,58,237,.04);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 Chill</button>      <button onclick="_startDJ('energetic')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔥 Energy</button>      <button onclick="_startDJ('emotional')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.04);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💙 Mood</button>      <button onclick="_startDJ('random')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎲 Mix</button>    </div>
     <!-- 챌린지 배너 -->
@@ -14431,7 +14406,6 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     _commActiveGenre=this.dataset.cf||'all';
     /* 크리에이터 모드일 때 정렬/DJ 숨김, 아닐 때 복원 */
     var isCreatorMode=_commActiveGenre==='creators';
-    var sortRow=$('comm-sort-row');if(sortRow)sortRow.style.display=isCreatorMode?'none':'';
     var djRow=$('comm-dj-row');if(djRow)djRow.style.display=isCreatorMode?'none':'';
     _commCreatorShowCount=10;
     if(isCreatorMode){
@@ -14923,15 +14897,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('karaoke-player')
 let commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
 let commHeroAudio=null,commHeroVizTimer=null;
 
-/* ── 정렬 (선행 수정) ── */
+/* ── 정렬 (기본값: 인기순) ── */
 let _commSortMode='likes';
-function _commSort(mode){
-  _commSortMode=mode;
-  document.querySelectorAll('.comm-sort-btn').forEach(b=>b.classList.toggle('on',b.dataset.csort===mode));
-  _commPrevSnapshot='';
-  renderCommunity();
-}
-window._commSort=typeof _commSort!=="undefined"?_commSort:window._commSort||function(){};
 
 /* ── 장르 판별 (Feature 10) ── */
 function _detectGenre(allTags){
@@ -15408,7 +15375,6 @@ async function renderCommunity(force=false){
 async function _renderCommunityInner(force){
   /* 크리에이터 모드이면 별도 렌더 */
   if(_commActiveGenre==='creators'){
-    var sr=$('comm-sort-row');if(sr)sr.style.display='none';
     var dj=$('comm-dj-row');if(dj)dj.style.display='none';
     var cw=$('comm-chart-wrap');if(cw)cw.style.display='none';
     var mw=$('comm-mood-wrap');if(mw)mw.style.display='none';
@@ -15420,7 +15386,6 @@ async function _renderCommunityInner(force){
   }
   /* 팔로잉 모드 (Feature 3) */
   if(_commActiveGenre==='following'){
-    var sr0=$('comm-sort-row');if(sr0)sr0.style.display='none';
     var dj0=$('comm-dj-row');if(dj0)dj0.style.display='none';
     var cw0=$('comm-chart-wrap');if(cw0)cw0.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
@@ -15431,7 +15396,6 @@ async function _renderCommunityInner(force){
   }
   /* 채팅 모드 */
   if(_commActiveGenre==='chat'){
-    var sr1=$('comm-sort-row');if(sr1)sr1.style.display='none';
     var dj1=$('comm-dj-row');if(dj1)dj1.style.display='none';
     var cw1=$('comm-chart-wrap');if(cw1)cw1.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
@@ -15443,7 +15407,6 @@ async function _renderCommunityInner(force){
   }
   /* 리더보드 모드 */
   if(_commActiveGenre==='leaderboard'){
-    var sr3=$('comm-sort-row');if(sr3)sr3.style.display='none';
     var dj3=$('comm-dj-row');if(dj3)dj3.style.display='none';
     var cw3=$('comm-chart-wrap');if(cw3)cw3.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
@@ -15455,7 +15418,6 @@ async function _renderCommunityInner(force){
     return;
   }
   /* 일반 모드 — UI 복원 */
-  var sr2=$('comm-sort-row');if(sr2)sr2.style.display='';
   var dj2=$('comm-dj-row');if(dj2)dj2.style.display='';
 
   const heroWrap=$('comm-hero-wrap');
@@ -21109,7 +21071,6 @@ setTimeout(_joinCollabSession,1500);
 /* ═══ 검색 히스토리 + 고급 필터 ═══ */
 function _getSearchHistory(){try{return JSON.parse(localStorage.getItem('kms_search_hist')||'[]');}catch(e){return[];}}
 function _addSearchHistory(q){if(!q||q.length<2)return;var h=_getSearchHistory();h=h.filter(function(x){return x!==q;});h.unshift(q);if(h.length>10)h.length=10;localStorage.setItem('kms_search_hist',JSON.stringify(h));}
-function _advFilterChange(){var sort=$('adv-sort-filter')?.value;if(sort){var sb=document.querySelector('[data-csort="'+sort+'"]');if(sb)sb.click();}window._advTimeFilter=$('adv-time-filter')?.value||'';window._advVocalFilter=$('adv-vocal-filter')?.value||'';try{if(typeof renderCommunity==='function')renderCommunity(true);}catch(e){}}
 
 /* ═══ 출석체크 UI + 리워드 ═══ */
 function _doAttendance(){if(!currentUser||currentUser.provider==='guest'){if(typeof openLoginSheet==='function')openLoginSheet();return;}fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:currentUser.name,userProvider:currentUser.provider})}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(d.already)toast('이미 출석했어요!','',1500);else toast(d.message||('🔥 출석 완료!'),'ok',3000);_renderAttendanceUI();}}).catch(function(){toast('출석 실패','err');});}
