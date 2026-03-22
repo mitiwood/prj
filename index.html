@@ -14084,13 +14084,51 @@ function saveFpEdits(){
 
 function fpDeleteCurrent(){
   if(fpCurrentIdx<0)return;
-  const t=historyData[fpCurrentIdx];
-  // 즉시 삭제 - 확인 팝업 없이 바로 삭제
+  const h=historyData[fpCurrentIdx];
+  if(!h){toast('곡 정보 없음','err');return;}
+  _fpCloseDelSheet();
+  fpShowDeleteConfirm();
+}
+
+/* 삭제 확인 바텀시트 - 플레이리스트 추가 바텀시트와 동일한 UI/UX */
+function fpShowDeleteConfirm(){
+  if(fpCurrentIdx<0)return;
+  const h=historyData[fpCurrentIdx];
+  if(!h){toast('곡 정보 없음','err');return;}
+  
+  const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
+  var overlay=document.createElement('div');
+  overlay.id='fp-del-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:100010;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick=function(e){if(e.target===overlay)_fpCloseDelSheet();};
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
+    +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
+    +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
+    +'<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:15px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(h.title||'무제')+'</div>'
+    +'<div style="font-size:12px;color:var(--t3);margin-top:2px;">'+esc((h.tags||'').split(',')[0]?.trim()||'')+'</div></div></div>'
+    +'<div style="font-size:13px;color:var(--t2);margin-bottom:16px;">이 곡을 정말 삭제할까요?</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button onclick="_fpCloseDelSheet()" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
+    +'<button onclick="_fpDoDelete()" style="flex:1;padding:14px;border-radius:12px;background:rgba(239,68,68,.8);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">삭제</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function _fpCloseDelSheet(){
+  var c=document.getElementById('fp-del-overlay');
+  if(c)c.remove();
+}
+
+function _fpDoDelete(){
+  if(fpCurrentIdx<0)return;
+  // 실제 삭제 수행
   historyData.splice(fpCurrentIdx,1);
   saveHistory();updateHistBadge();renderHistoryView();
   if(historyData.length>0){var ni=Math.min(fpCurrentIdx,historyData.length-1);closeFullPlayer();showMiniPlayer(ni);}
   else{closeFullPlayer();hideMiniPlayer();}
   toast('삭제되었어요','ok',1500);
+  _fpCloseDelSheet();
 }
 
 /* 노래방 모드 전환 */
@@ -17282,6 +17320,9 @@ window.fpDownload=typeof fpDownload!=="undefined"?fpDownload:window.fpDownload||
 window.fpToggleLyricsMode=typeof fpToggleLyricsMode!=="undefined"?fpToggleLyricsMode:window.fpToggleLyricsMode||function(){};
 window.fpSeekToLine=typeof fpSeekToLine!=="undefined"?fpSeekToLine:window.fpSeekToLine||function(){};
 window.fpDeleteCurrent=typeof fpDeleteCurrent!=="undefined"?fpDeleteCurrent:window.fpDeleteCurrent||function(){};
+window.fpShowDeleteConfirm=typeof fpShowDeleteConfirm!=="undefined"?fpShowDeleteConfirm:window.fpShowDeleteConfirm||function(){};
+window._fpCloseDelSheet=typeof _fpCloseDelSheet!=="undefined"?_fpCloseDelSheet:window._fpCloseDelSheet||function(){};
+window._fpDoDelete=typeof _fpDoDelete!=="undefined"?_fpDoDelete:window._fpDoDelete||function(){};
 window.fpAddToPlaylist=typeof fpAddToPlaylist!=="undefined"?fpAddToPlaylist:window.fpAddToPlaylist||function(){};
 window.openFpEditSheet=typeof openFpEditSheet!=="undefined"?openFpEditSheet:window.openFpEditSheet||function(){};
 window.closeFpEditSheet=typeof closeFpEditSheet!=="undefined"?closeFpEditSheet:window.closeFpEditSheet||function(){};
