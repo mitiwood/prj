@@ -5451,6 +5451,8 @@ function _sendErrorAlert(info){
   if(Date.now() - _errSendCooldown < 5000) return;
   _errSendCooldown = Date.now();
   const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
+  /* 에러 로그 API로 전송 (관리자 대시보드 실시간 모니터) */
+  try { fetch('/api/error-logs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:'client-js',method:'JS',status:0,error_message:info.slice(0,500),user_agent:navigator.userAgent}) }); } catch(e){}
   /* 텔레그램 — parse_mode:'HTML' 필수 (빈 문자열은 Markdown 폴백→파싱에러) */
   try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }); } catch(e){}
   /* 카카오 */

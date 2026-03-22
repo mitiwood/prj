@@ -271,22 +271,32 @@ textarea.form-input{line-height:1.5;}
         </div>
 
         <!-- Chart.js 대시보드 차트 -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;margin-bottom:20px;" id="dashboard-charts">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📈 일별 트랙 생성</div>
-            <canvas id="chart-daily-tracks" height="200"></canvas>
+        <div id="dashboard-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;margin-bottom:20px;">
+          <!-- 일별 트랙 생성 — 풀 와이드 -->
+          <div style="grid-column:1/-1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="font-size:14px;font-weight:800;">📈 일별 트랙 생성 <span style="font-size:11px;font-weight:400;color:var(--t3);">최근 14일</span></div>
+              <div id="chart-daily-summary" style="font-size:11px;color:var(--t3);"></div>
+            </div>
+            <div style="height:220px;"><canvas id="chart-daily-tracks"></canvas></div>
           </div>
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">🎵 장르 분포</div>
-            <canvas id="chart-genre" height="200"></canvas>
+          <!-- 장르 분포 + 좋아요 Top -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:16px;">🎵 장르 분포</div>
+            <div style="height:260px;position:relative;"><canvas id="chart-genre"></canvas></div>
+            <div id="genre-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;"></div>
           </div>
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">👥 일별 가입자</div>
-            <canvas id="chart-daily-users" height="200"></canvas>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:16px;">❤️ 좋아요 Top 10</div>
+            <div style="height:260px;"><canvas id="chart-top-likes"></canvas></div>
           </div>
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">❤️ 좋아요 Top 10</div>
-            <canvas id="chart-top-likes" height="200"></canvas>
+          <!-- 일별 가입자 — 풀 와이드 -->
+          <div style="grid-column:1/-1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="font-size:14px;font-weight:800;">👥 일별 활성 사용자 <span style="font-size:11px;font-weight:400;color:var(--t3);">최근 14일</span></div>
+              <div id="chart-user-summary" style="font-size:11px;color:var(--t3);"></div>
+            </div>
+            <div style="height:180px;"><canvas id="chart-daily-users"></canvas></div>
           </div>
         </div>
 
@@ -1279,23 +1289,75 @@ textarea.form-input{line-height:1.5;}
 
       <div class="admin-section" id="sec-errors">
         <div class="sec-hdr">
-          <h2>🚨 에러 모니터링</h2>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-acc" onclick="loadErrorStats()">📊 통계</button>
-            <button class="btn btn-acc" onclick="loadErrorLogs()">🔄 새로고침</button>
-            <button class="btn btn-red" onclick="cleanErrorLogs()">🗑 30일 이전 삭제</button>
+          <h2>🚨 실시간 에러 모니터</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span id="err-live-dot" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:err-pulse 2s infinite;"></span>
+            <span id="err-live-label" style="font-size:11px;color:#22c55e;font-weight:700;">LIVE</span>
+            <button class="btn btn-acc" onclick="_errToggleLive()" id="err-live-btn" style="font-size:11px;">⏸ 일시정지</button>
+            <button class="btn" onclick="_errRefreshNow()" style="font-size:11px;">🔄 새로고침</button>
+            <button class="btn btn-red" onclick="cleanErrorLogs()" style="font-size:11px;">🗑 정리</button>
           </div>
         </div>
-        <div class="stats-grid" style="margin-bottom:16px;">
+        <style>
+          @keyframes err-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+          @keyframes err-flash{0%{background:rgba(239,68,68,.15)}100%{background:transparent}}
+          .err-new-row{animation:err-flash 1.5s ease-out;}
+          .err-timeline{display:flex;align-items:flex-end;gap:2px;height:60px;padding:8px 0;}
+          .err-timeline-bar{flex:1;min-width:0;border-radius:2px 2px 0 0;transition:height .3s;position:relative;cursor:pointer;}
+          .err-timeline-bar:hover{opacity:.7;}
+          .err-timeline-bar .err-tip{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:3px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:10;}
+          .err-timeline-bar:hover .err-tip{display:block;}
+          .err-filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+          .err-filter-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;cursor:pointer;font-weight:600;}
+          .err-filter-btn.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+          .err-group-card{background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
+          .err-group-card:hover{background:var(--bg2);}
+          .err-group-card.sev-crit{border-left-color:#ef4444;}
+          .err-group-card.sev-warn{border-left-color:#f59e0b;}
+          .err-group-card.sev-info{border-left-color:#3b82f6;}
+          .err-detail-rows{display:none;margin:6px 0 0 12px;padding-left:10px;border-left:2px solid var(--border);}
+          .err-detail-rows.show{display:block;}
+          .err-detail-item{font-size:11px;padding:4px 0;color:var(--t3);border-bottom:1px solid rgba(255,255,255,.03);}
+        </style>
+
+        <!-- 통계 카드 -->
+        <div class="stats-grid" style="margin-bottom:12px;">
           <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-val" id="err-total24">0</div><div class="stat-label">24시간 에러</div></div>
-          <div class="stat-card"><div class="stat-icon">🔴</div><div class="stat-val" id="err-5xx">0</div><div class="stat-label">5xx 에러</div></div>
-          <div class="stat-card"><div class="stat-icon">🟡</div><div class="stat-val" id="err-4xx">0</div><div class="stat-label">4xx 에러</div></div>
-          <div class="stat-card"><div class="stat-icon">📡</div><div class="stat-val" id="err-endpoints">0</div><div class="stat-label">영향 엔드포인트</div></div>
+          <div class="stat-card"><div class="stat-icon">🔴</div><div class="stat-val" id="err-5xx">0</div><div class="stat-label">5xx 서버</div></div>
+          <div class="stat-card"><div class="stat-icon">🟡</div><div class="stat-val" id="err-4xx">0</div><div class="stat-label">4xx 클라이언트</div></div>
+          <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-val" id="err-rate">0</div><div class="stat-label">에러/분</div></div>
         </div>
-        <div id="err-by-endpoint" style="margin-bottom:16px;"></div>
-        <div style="max-height:400px;overflow-y:auto;">
-          <table class="admin-tbl"><thead><tr><th>시간</th><th>엔드포인트</th><th>상태</th><th>에러</th></tr></thead><tbody id="err-tbody"></tbody></table>
+
+        <!-- 24시간 타임라인 -->
+        <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;font-weight:700;color:var(--t1);">24시간 타임라인</span>
+            <span id="err-timeline-peak" style="font-size:10px;color:var(--t3);"></span>
+          </div>
+          <div class="err-timeline" id="err-timeline"></div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);"><span>24h전</span><span>12h전</span><span>지금</span></div>
         </div>
+
+        <!-- 필터 -->
+        <div class="err-filter-row">
+          <button class="err-filter-btn on" data-ef="all" onclick="_errSetFilter('all')">전체</button>
+          <button class="err-filter-btn" data-ef="5xx" onclick="_errSetFilter('5xx')">🔴 5xx</button>
+          <button class="err-filter-btn" data-ef="4xx" onclick="_errSetFilter('4xx')">🟡 4xx</button>
+          <button class="err-filter-btn" data-ef="js" onclick="_errSetFilter('js')">💛 JS</button>
+          <input type="text" id="err-search" placeholder="엔드포인트·메시지 검색..." style="flex:1;min-width:100px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:11px;" oninput="_errApplyFilter()">
+          <span id="err-last-update" style="font-size:10px;color:var(--t3);"></span>
+        </div>
+
+        <!-- 에러 그룹 목록 (실시간) -->
+        <div id="err-grouped-list" style="max-height:500px;overflow-y:auto;"></div>
+
+        <!-- 전체 로그 테이블 -->
+        <details style="margin-top:12px;">
+          <summary style="font-size:12px;font-weight:700;color:var(--t1);cursor:pointer;padding:8px 0;">📋 전체 로그 (최근 200건)</summary>
+          <div style="max-height:400px;overflow-y:auto;margin-top:8px;">
+            <table class="admin-tbl"><thead><tr><th>시간</th><th>엔드포인트</th><th>상태</th><th>메서드</th><th>에러</th></tr></thead><tbody id="err-tbody"></tbody></table>
+          </div>
+        </details>
       </div>
       <div class="admin-section" id="sec-settings">
         <div class="sec-hdr"><h2>앱 설정</h2></div>
@@ -4390,6 +4452,47 @@ async function _deleteChallenge(id){
     adminToast('삭제됨');_loadChallengesAdmin();
   }catch(e){adminToast('오류','err');}
 }
+/* ── 챌린지 상세 모달 ── */
+function _openChallengeDetail(id){
+  const chs=window._challengeCache||[];
+  const c=chs.find(x=>x.id===id);
+  if(!c){adminToast('챌린지를 찾을 수 없습니다','err');return;}
+  const endStr=c.end_at?new Date(c.end_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'무기한';
+  const createdStr=c.created_at?new Date(c.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}):'알 수 없음';
+  const isActive=!!c.active;
+  const isExpired=c.end_at&&new Date(c.end_at)<new Date();
+  const statusLabel=isExpired?'<span class="badge badge-ylw">만료</span>':isActive?'<span class="badge badge-grn">활성</span>':'<span class="badge badge-red">비활성</span>';
+
+  const modal=document.createElement('div');
+  modal.className='ch-detail-modal';
+  modal.innerHTML='<div class="ch-detail-card">'
+    +'<div class="ch-detail-header">'
+    +'<div class="ch-detail-icon">'+esc(c.icon||'🔥')+'</div>'
+    +'<div><div class="ch-detail-title">'+esc(c.title)+'</div>'
+    +'<div style="font-size:11px;color:var(--t3);margin-top:2px;">#'+esc(c.theme||'기본')+'</div></div>'
+    +'<div class="ch-detail-status">'+statusLabel+'</div></div>'
+    +'<div class="ch-detail-stats">'
+    +'<div class="ch-detail-stat"><div class="val">'+(c.submission_count||0)+'</div><div class="lbl">참여 곡</div></div>'
+    +'<div class="ch-detail-stat"><div class="val">'+(c.participant_count||0)+'</div><div class="lbl">참여자</div></div>'
+    +'<div class="ch-detail-stat"><div class="val">'+(c.total_likes||0)+'</div><div class="lbl">총 좋아요</div></div></div>'
+    +'<div class="ch-detail-field"><div class="ch-detail-field-label">설명</div>'
+    +'<div class="ch-detail-field-value">'+esc(c.description||'설명 없음')+'</div></div>'
+    +'<div class="ch-detail-field"><div class="ch-detail-field-label">보상</div>'
+    +'<div class="ch-detail-field-value">'+esc(c.reward||'없음')+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+    +'<div class="ch-detail-field"><div class="ch-detail-field-label">생성일</div><div class="ch-detail-field-value">'+createdStr+'</div></div>'
+    +'<div class="ch-detail-field"><div class="ch-detail-field-label">종료일</div><div class="ch-detail-field-value">'+endStr+'</div></div></div>'
+    +'<div class="ch-detail-field"><div class="ch-detail-field-label">챌린지 ID</div>'
+    +'<div class="ch-detail-field-value" style="font-family:monospace;font-size:11px;color:var(--t3);">'+c.id+'</div></div>'
+    +'<div class="ch-detail-actions">'
+    +'<button class="btn btn-acc" onclick="_toggleChallenge('+c.id+','+(!isActive)+');this.closest(\'.ch-detail-modal\').remove();">'+(isActive?'비활성화':'활성화')+'</button>'
+    +'<button class="btn btn-red" onclick="if(confirm(\'정말 삭제?\')){_deleteChallenge('+c.id+');this.closest(\'.ch-detail-modal\').remove();}">삭제</button>'
+    +'<button class="btn" onclick="this.closest(\'.ch-detail-modal\').remove();">닫기</button>'
+    +'</div></div>';
+  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
 // 챌린지 섹션 진입 시 로드
 document.addEventListener('DOMContentLoaded',()=>{
   const cSec=document.getElementById('sec-challenges');
@@ -5966,48 +6069,179 @@ async function _showUserDetail(name, provider){
 }
 
 
-/* ── 에러 모니터링 ── */
-async function loadErrorStats(){
-  try {
-    const r = await fetch('/api/error-logs?stats=true',{headers:{Authorization:'Bearer '+getAdminPw()}});
-    const d = await r.json();
-    if(!d.ok) return;
-    document.getElementById('err-total24').textContent = d.total24h||0;
-    const s5 = Object.entries(d.byStatus||{}).filter(([k])=>k.startsWith('5')).reduce((a,[,v])=>a+v,0);
-    const s4 = Object.entries(d.byStatus||{}).filter(([k])=>k.startsWith('4')).reduce((a,[,v])=>a+v,0);
-    document.getElementById('err-5xx').textContent = s5;
-    document.getElementById('err-4xx').textContent = s4;
-    document.getElementById('err-endpoints').textContent = Object.keys(d.byEndpoint||{}).length;
-    var epHtml = '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">엔드포인트별 에러</div>';
-    Object.entries(d.byEndpoint||{}).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([ep,cnt])=>{
-      epHtml += '<div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:12px;color:var(--t2);border-bottom:1px solid var(--border);"><span>'+ep+'</span><span style="color:var(--red);font-weight:700;">'+cnt+'</span></div>';
+/* ── 실시간 에러 모니터링 (고도화) ── */
+var _errLive=true, _errTimer=null, _errLogs=[], _errPrevCount=0, _errFilter='all';
+
+function _errStartLive(){
+  _errLive=true;
+  var dot=document.getElementById('err-live-dot'),lbl=document.getElementById('err-live-label'),btn=document.getElementById('err-live-btn');
+  if(dot){dot.style.background='#22c55e';dot.style.animation='err-pulse 2s infinite';}
+  if(lbl){lbl.textContent='LIVE';lbl.style.color='#22c55e';}
+  if(btn)btn.textContent='⏸ 일시정지';
+  clearInterval(_errTimer);
+  _errRefreshNow();
+  _errTimer=setInterval(_errRefreshNow,10000);
+}
+function _errStopLive(){
+  _errLive=false;clearInterval(_errTimer);
+  var dot=document.getElementById('err-live-dot'),lbl=document.getElementById('err-live-label'),btn=document.getElementById('err-live-btn');
+  if(dot){dot.style.background='#6b7280';dot.style.animation='none';}
+  if(lbl){lbl.textContent='PAUSED';lbl.style.color='#6b7280';}
+  if(btn)btn.textContent='▶ 재개';
+}
+function _errToggleLive(){_errLive?_errStopLive():_errStartLive();}
+
+async function _errRefreshNow(){
+  var pw=getAdminPw();var hdrs={Authorization:'Bearer '+pw};
+  try{
+    var [statsR,logsR]=await Promise.all([
+      fetch('/api/error-logs?stats=true',{headers:hdrs}),
+      fetch('/api/error-logs?limit=200',{headers:hdrs})
+    ]);
+    var statsD=await statsR.json(), logsD=await logsR.json();
+    if(statsD.ok) _errRenderStats(statsD);
+    if(logsD.ok){
+      var newCount=(logsD.logs||[]).length;
+      var hasNew=newCount>_errPrevCount&&_errPrevCount>0;
+      _errLogs=logsD.logs||[];
+      _errPrevCount=newCount;
+      _errRenderTimeline(statsD);
+      _errRenderGrouped(hasNew);
+      _errRenderTable();
+    }
+    var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    var el=document.getElementById('err-last-update');
+    if(el) el.textContent='갱신: '+now;
+  }catch(e){console.warn('[err-monitor]',e);}
+}
+
+function _errRenderStats(d){
+  document.getElementById('err-total24').textContent=d.total24h||0;
+  var s5=0,s4=0;
+  Object.entries(d.byStatus||{}).forEach(function(kv){
+    if(kv[0].startsWith('5'))s5+=kv[1];
+    if(kv[0].startsWith('4'))s4+=kv[1];
+  });
+  document.getElementById('err-5xx').textContent=s5;
+  document.getElementById('err-4xx').textContent=s4;
+  var hourLogs=_errLogs.filter(function(l){return new Date(l.created_at).getTime()>Date.now()-3600000;});
+  document.getElementById('err-rate').textContent=(hourLogs.length/60).toFixed(1);
+  var s5el=document.getElementById('err-5xx');
+  if(s5el) s5el.style.color=s5>10?'#ef4444':s5>0?'#f59e0b':'';
+}
+
+function _errRenderTimeline(statsD){
+  var byHour=statsD.byHour||{};var now=Date.now();var bars=[];var max=1;
+  for(var i=23;i>=0;i--){
+    var h=new Date(now-i*3600000).toISOString().slice(0,13);
+    var cnt=byHour[h]||0;
+    if(cnt>max)max=cnt;
+    bars.push({hour:h,cnt:cnt});
+  }
+  var peakH='',peakV=0;
+  bars.forEach(function(b){if(b.cnt>peakV){peakV=b.cnt;peakH=b.hour.slice(11,13)+'시';}});
+  var pk=document.getElementById('err-timeline-peak');
+  if(pk) pk.textContent=peakV>0?('피크: '+peakH+' ('+peakV+'건)'):'에러 없음';
+  var html='';
+  bars.forEach(function(b){
+    var pct=Math.max(2,(b.cnt/max)*100);
+    var bg=b.cnt===0?'rgba(255,255,255,.05)':b.cnt>max*0.7?'rgba(239,68,68,.6)':b.cnt>max*0.3?'rgba(245,158,11,.4)':'rgba(59,130,246,.3)';
+    html+='<div class="err-timeline-bar" style="height:'+pct+'%;background:'+bg+'"><div class="err-tip">'+b.hour.slice(11,13)+'시 — '+b.cnt+'건</div></div>';
+  });
+  document.getElementById('err-timeline').innerHTML=html;
+}
+
+function _errRenderGrouped(highlightNew){
+  var filtered=_errFilterLogs(_errLogs);
+  var groups={};
+  filtered.forEach(function(l){
+    var key=(l.endpoint||'unknown')+'__'+(l.status||500);
+    if(!groups[key])groups[key]={endpoint:l.endpoint,status:l.status,count:0,lastAt:l.created_at,logs:[],msg:l.error_message};
+    groups[key].count++;
+    if(groups[key].logs.length<5)groups[key].logs.push(l);
+    if(l.created_at>groups[key].lastAt)groups[key].lastAt=l.created_at;
+  });
+  var sorted=Object.values(groups).sort(function(a,b){return new Date(b.lastAt)-new Date(a.lastAt);});
+  var html='';
+  if(!sorted.length) html='<div style="text-align:center;padding:30px;color:var(--t3);font-size:13px;">에러 없음</div>';
+  sorted.forEach(function(g,gi){
+    var sev=(g.status||500)>=500?'crit':(g.status||0)>=400?'warn':'info';
+    var sevIcon=sev==='crit'?'🔴':sev==='warn'?'🟡':'🔵';
+    var ago=_errTimeAgo(g.lastAt);
+    var isNew=highlightNew&&gi===0;
+    html+='<div class="err-group-card sev-'+sev+(isNew?' err-new-row':'')+'" onclick="this.querySelector(\'.err-detail-rows\').classList.toggle(\'show\')">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;">';
+    html+='<div style="display:flex;align-items:center;gap:8px;">';
+    html+='<span>'+sevIcon+'</span>';
+    html+='<div><div style="font-size:12px;font-weight:700;color:var(--t1);">'+_esc(g.endpoint||'unknown')+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);margin-top:2px;">'+_esc((g.msg||'').slice(0,80))+'</div></div></div>';
+    html+='<div style="text-align:right;">';
+    html+='<div style="font-size:14px;font-weight:800;color:'+(sev==='crit'?'#ef4444':'#f59e0b')+';">'+g.count+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);">'+ago+'</div></div></div>';
+    html+='<div class="err-detail-rows">';
+    g.logs.forEach(function(l){
+      var t=new Date(l.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      html+='<div class="err-detail-item"><span style="color:var(--t1);">'+t+'</span> &middot; '+(l.method||'GET')+' &middot; <span style="color:'+(sev==='crit'?'#ef4444':'#f59e0b')+'">'+l.status+'</span> &middot; '+_esc((l.error_message||'').slice(0,120))+'</div>';
     });
-    document.getElementById('err-by-endpoint').innerHTML = epHtml;
-  } catch(e){ console.warn('[admin] error stats:', e); }
+    if(g.count>5)html+='<div style="font-size:10px;color:var(--t3);padding:4px 0;">... 외 '+(g.count-5)+'건</div>';
+    html+='</div></div>';
+  });
+  document.getElementById('err-grouped-list').innerHTML=html;
+  if(highlightNew){try{var a=new AudioContext();var o=a.createOscillator();o.type='sine';o.frequency.value=880;o.connect(a.destination);o.start();o.stop(a.currentTime+0.1);}catch(e){}}
 }
-async function loadErrorLogs(){
-  try {
-    const r = await fetch('/api/error-logs?limit=100',{headers:{Authorization:'Bearer '+getAdminPw()}});
-    const d = await r.json();
-    if(!d.ok) return;
-    var tbody = document.getElementById('err-tbody');
-    if(!tbody) return;
-    tbody.innerHTML = (d.logs||[]).map(function(l){
-      var t = new Date(l.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
-      var sc = (l.status||500)>=500?'color:#ef4444':'color:#f59e0b';
-      return '<tr><td style="font-size:11px;white-space:nowrap;">'+t+'</td><td style="font-size:11px;">'+l.endpoint+'</td><td style="font-size:12px;font-weight:700;'+sc+'">'+l.status+'</td><td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+((l.error_message||'').replace(/</g,'&lt;'))+'</td></tr>';
-    }).join('');
-  } catch(e){ console.warn('[admin] error logs:', e); }
+
+function _errRenderTable(){
+  var tbody=document.getElementById('err-tbody');if(!tbody)return;
+  tbody.innerHTML=_errLogs.slice(0,200).map(function(l){
+    var t=new Date(l.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+    var sc=(l.status||500)>=500?'color:#ef4444':'color:#f59e0b';
+    return '<tr><td style="font-size:11px;white-space:nowrap;">'+t+'</td><td style="font-size:11px;">'+_esc(l.endpoint)+'</td><td style="font-size:12px;font-weight:700;'+sc+'">'+l.status+'</td><td style="font-size:11px;">'+_esc(l.method||'GET')+'</td><td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_esc(l.error_message||'')+'</td></tr>';
+  }).join('');
 }
+
+function _errSetFilter(f){
+  _errFilter=f;
+  document.querySelectorAll('.err-filter-btn').forEach(function(b){b.classList.toggle('on',b.dataset.ef===f);});
+  _errApplyFilter();
+}
+function _errApplyFilter(){_errRenderGrouped(false);}
+function _errFilterLogs(logs){
+  var q=(document.getElementById('err-search')||{}).value||'';q=q.toLowerCase();
+  return logs.filter(function(l){
+    if(_errFilter==='5xx'&&(l.status||0)<500)return false;
+    if(_errFilter==='4xx'&&((l.status||0)<400||(l.status||0)>=500))return false;
+    if(_errFilter==='js'&&l.endpoint!=='client-js')return false;
+    if(q&&(l.endpoint||'').toLowerCase().indexOf(q)<0&&(l.error_message||'').toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function _errTimeAgo(ts){
+  var d=Date.now()-new Date(ts).getTime();
+  if(d<60000)return Math.floor(d/1000)+'초 전';
+  if(d<3600000)return Math.floor(d/60000)+'분 전';
+  if(d<86400000)return Math.floor(d/3600000)+'시간 전';
+  return Math.floor(d/86400000)+'일 전';
+}
+
 async function cleanErrorLogs(){
-  if(!confirm('30일 이전 에러 로그를 삭제할까요?')) return;
-  try {
+  if(!confirm('30일 이전 에러 로그를 삭제할까요?'))return;
+  try{
     await fetch('/api/error-logs',{method:'DELETE',headers:{Authorization:'Bearer '+getAdminPw()}});
-    toast('정리 완료');
-    loadErrorLogs();
-    loadErrorStats();
-  } catch(e){ toast('삭제 실패: '+e.message,'err'); }
+    toast('정리 완료');_errRefreshNow();
+  }catch(e){toast('삭제 실패: '+e.message,'err');}
 }
+var loadErrorStats=_errRefreshNow;
+var loadErrorLogs=_errRefreshNow;
+
+/* 에러 섹션 진입 시 자동 LIVE 시작 */
+(function(){
+  var _orig=window.switchSec;
+  window.switchSec=function(sec){
+    if(_orig)_orig.call(this,sec);
+    if(sec==='errors')_errStartLive();
+    else if(_errLive)_errStopLive();
+  };
+})();
 </script>
 </body>
 </html>
