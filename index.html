@@ -16721,7 +16721,31 @@ function commDeleteSb(sbId){
     const tIdx=_sbTracks.findIndex(x=>x._sbId===sbId);
     if(tIdx>=0)_sbTracks.splice(tIdx,1);
     const hIdx=historyData.findIndex(h=>h.id===sbId);
-    if(hIdx>=0){historyData.splice(hIdx,1);saveHistory();}
+    if(hIdx>=0){
+      /* 현재 재생 중인 트랙인지 확인 */
+      const wasPlaying = fpCurrentIdx === hIdx;
+      historyData.splice(hIdx,1);
+      saveHistory();
+      
+      /* fpCurrentIdx 조정 - 삭제된 트랙보다 뒤에 있던 인덱스들은 1씩 감소 */
+      if(fpCurrentIdx > hIdx) {
+        fpCurrentIdx--;
+      } else if(wasPlaying) {
+        /* 현재 재생 중인 트랙이 삭제된 경우 */
+        if(historyData.length > 0) {
+          /* 새로운 유효한 인덱스로 조정 */
+          fpCurrentIdx = Math.min(hIdx, historyData.length - 1);
+          /* 미니플레이어가 활성화되어 있으면 새로운 트랙으로 업데이트 */
+          if(document.body.classList.contains('mp-on')) {
+            showMiniPlayer(fpCurrentIdx);
+          }
+        } else {
+          /* 히스토리가 비어있으면 미니플레이어 숨김 */
+          fpCurrentIdx = -1;
+          hideMiniPlayer();
+        }
+      }
+    }
     toast('🗑 숨겼습니다','',1200);
     renderCommunity();
   };
