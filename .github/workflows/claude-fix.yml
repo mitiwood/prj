@@ -100,6 +100,7 @@ jobs:
         id: claude
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
           direct_prompt: |
             다음 수정 요청을 처리해주세요:
 
@@ -110,28 +111,73 @@ jobs:
             - 기존 기능, 함수, CSS를 절대 제거하지 마세요. 추가/수정만 하세요
             - 요청받은 부분만 최소한으로 수정하세요. 관련 없는 코드를 건드리지 마세요
             - git diff로 변경사항을 확인하고, 삭제된 줄이 50줄 이상이면 수정을 중단하세요
-            - 수정 완료 후 반드시 아래 순서로 PR을 생성하세요:
+            - 수정이 완료되면 변경 내용을 한국어로 요약해주세요
+            - PR 생성은 하지 마세요. 커밋과 푸시만 하세요:
               1. git checkout -b fix/issue-${{ github.event.issue.number }}
               2. git add -A
               3. git commit -m "fix: ${{ github.event.issue.title }}"
               4. git push origin fix/issue-${{ github.event.issue.number }}
-              5. GH_TOKEN=$GITHUB_TOKEN gh pr create --title "fix: ${{ github.event.issue.title }}" --body "Closes #${{ github.event.issue.number }}" --base main
-            - PR 생성이 실패하면 에러 메시지를 출력하세요
-            - 변경 내용을 한국어로 요약해주세요
-          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git:*),Bash(gh:*),Bash(GH_TOKEN:*)"
+          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git:*)"
           timeout_minutes: 30
 
-      - name: Find PR number
+      - name: Create PR and auto-merge
         if: success()
-        id: find_pr
+        id: create_merge
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUM: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          PR_NUM=$(gh pr list --state open --json number,headRefName \
-            --jq ".[] | select(.headRefName | test(\"issue-${ISSUE_NUM}\")) | .number" 2>/dev/null | head -1)
-          echo "pr_num=${PR_NUM:-없음}" >> "$GITHUB_OUTPUT"
-          echo "Found PR: ${PR_NUM:-none}"
+          BRANCH="fix/issue-${ISSUE_NUM}"
+
+          # Check if branch was pushed
+          if ! git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            echo "status=no_branch" >> "$GITHUB_OUTPUT"
+            echo "Branch $BRANCH not found on remote"
+            exit 0
+          fi
+
+          # Create PR
+          PR_URL=$(gh pr create \
+            --head "$BRANCH" \
+            --base main \
+            --title "fix: ${ISSUE_TITLE}" \
+            --body "Closes #${ISSUE_NUM}" 2>&1) || true
+
+          # If PR already exists, find it
+          if echo "$PR_URL" | grep -q "already exists"; then
+            PR_URL=$(gh pr list --state open --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null)
+          fi
+
+          PR_NUM=$(echo "$PR_URL" | grep -oP '\d+$' || echo "")
+
+          if [ -z "$PR_NUM" ]; then
+            echo "status=no_pr" >> "$GITHUB_OUTPUT"
+            echo "Failed to create PR"
+            exit 0
+          fi
+
+          echo "pr_num=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          echo "Created PR #${PR_NUM}"
+
+          # Auto-merge (squash)
+          MERGE_RESULT=$(gh pr merge "$PR_NUM" --squash --delete-branch 2>&1) || true
+
+          if echo "$MERGE_RESULT" | grep -qi "merge\|merged"; then
+            echo "status=merged" >> "$GITHUB_OUTPUT"
+            echo "PR #${PR_NUM} merged successfully"
+          else
+            # Try rebase merge as fallback (for conflict cases)
+            MERGE_RESULT2=$(gh pr merge "$PR_NUM" --merge --delete-branch 2>&1) || true
+            if echo "$MERGE_RESULT2" | grep -qi "merge\|merged"; then
+              echo "status=merged" >> "$GITHUB_OUTPUT"
+              echo "PR #${PR_NUM} merged (rebase fallback)"
+            else
+              echo "status=merge_failed" >> "$GITHUB_OUTPUT"
+              echo "merge_error=${MERGE_RESULT}" >> "$GITHUB_OUTPUT"
+              echo "Merge failed: ${MERGE_RESULT}"
+            fi
+          fi
 
       - name: Notify success
         if: success()
@@ -140,7 +186,8 @@ jobs:
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUM: ${{ github.event.issue.number }}
-          PR_NUM: ${{ steps.find_pr.outputs.pr_num }}
+          PR_NUM: ${{ steps.create_merge.outputs.pr_num }}
+          MERGE_STATUS: ${{ steps.create_merge.outputs.status }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SITE_URL: https://ai-music-studio-bice.vercel.app
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
@@ -154,10 +201,17 @@ jobs:
           title = os.environ.get('ISSUE_TITLE', '')
           num = os.environ.get('ISSUE_NUM', '?')
           pr_num = os.environ.get('PR_NUM', '').strip()
+          status = os.environ.get('MERGE_STATUS', '').strip()
           run_url = os.environ.get('RUN_URL', '')
 
-          has_pr = pr_num and pr_num != '없음'
-          pr_line = f'\U0001f500 PR #{pr_num} 생성됨\n\n머지하려면: 머지' if has_pr else '\u26a0 PR 미생성 (변경사항 없음)'
+          if status == 'merged':
+            pr_line = f'\u2705 PR #{pr_num} 생성 + 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)'
+          elif status == 'merge_failed':
+            pr_line = f'\U0001f500 PR #{pr_num} 생성됨 (자동 머지 실패)\n\n수동 머지 필요: 머지 {pr_num}'
+          elif status == 'no_branch':
+            pr_line = '\u26a0 변경사항 없음 (브랜치 미생성)'
+          else:
+            pr_line = '\u26a0 PR 미생성'
 
           msg = f'\u2705 Claude Code 작업 완료!\n\nIssue #{num}: {title}\n\n{pr_line}\n\n{run_url}'
 
