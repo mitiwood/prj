@@ -177,9 +177,10 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `MV <트랙ID> — 뮤직비디오 생성`,
     `생성 <가사> — 고급 (옵션: -t -s -v -i -m)`,
     ``,
-    `━━ 📖 레퍼런스 (2) ━━`,
+    `━━ 📖 레퍼런스 (3) ━━`,
     `kie [질문] — kie.ai API 문서 조회`,
     `작업 [카테고리] — 구현 현황 (8카테고리 50항목)`,
+    `mc [파일명] — 프로젝트 MD 파일 조회 (CLAUDE.md 등)`,
     `고도화 — 진행률 조회 / 고도화 진행 <지시> — AI 구현`,
     ``,
     `━━ 🧪 데이터 (3) ━━`,
@@ -195,7 +196,6 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
 
 /* /헬스체크 — API/DB 전체 점검 */
 COMMANDS['헬스'] = COMMANDS['health'] = COMMANDS['점검'] = async (chatId) => {
-  await tgSend(chatId, '🔍 시스템 점검 중...', { parse_mode: '' });
   const checks = [];
 
   /* Supabase DB */
@@ -2087,6 +2087,55 @@ COMMANDS['mv'] = COMMANDS['MV'] = COMMANDS['뮤비'] = async (chatId, arg) => {
 
   } catch (e) {
     await tgSend(chatId, '❌ MV 생성 실패\n\n' + e.message, { parse_mode: '' });
+  }
+};
+
+/* ── /mc — 프로젝트 MD 파일 조회 ── */
+COMMANDS['mc'] = COMMANDS['md'] = COMMANDS['문서'] = async (chatId, arg) => {
+  const KNOWN_FILES = {
+    'claude': 'CLAUDE.md',
+    'readme': 'README.md',
+    'api': 'KIE_API_REFERENCE.md',
+    'kie': 'KIE_API_REFERENCE.md',
+    'changelog': 'docs/changelog-20260322.md',
+    'roadmap': 'docs/ROADMAP.md',
+    'plan': 'docs/WORK_PLAN.md',
+    'policy': 'docs/POLICY.md',
+    'bot': 'docs/TELEGRAM_BOT.md',
+    'telegram': 'docs/TELEGRAM_BOT.md',
+    'cicd': 'docs/CI_CD_PIPELINE.md',
+    'flutter': 'docs/FLUTTER_APP.md',
+    'architecture': 'docs/API_ARCHITECTURE.md',
+    'sequence': 'docs/SEQUENCE_DIAGRAM.md',
+    'tab': 'docs/tab-structure.md',
+    'zindex': 'docs/z-index-layers.md',
+    'community': 'docs/community-layout.md',
+    'storyboard': 'docs/STORYBOARD.md',
+  };
+
+  if (!arg) {
+    const list = Object.entries(KNOWN_FILES).map(([k, v]) => `${k} → ${v}`).join('\n');
+    await tgSend(chatId, `📄 프로젝트 문서 조회\n\n사용법: mc <파일명>\n\n━━ 사용 가능한 파일 ━━\n${list}\n\n예: mc claude\n예: mc bot\n예: mc docs/ROADMAP.md`, { parse_mode: '' });
+    return;
+  }
+
+  /* 파일 경로 결정 */
+  const key = arg.toLowerCase().replace(/\.md$/i, '').replace(/\//g, '');
+  let filePath = KNOWN_FILES[key] || arg;
+  if (!filePath.endsWith('.md')) filePath += '.md';
+
+  try {
+    const _ghHeaders = GH_TOKEN ? { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.raw' } : {};
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${encodeURIComponent(filePath)}?ref=main`, { headers: _ghHeaders });
+    if (!r.ok) throw new Error(`파일 없음: ${filePath} (${r.status})`);
+    let content = await r.text();
+
+    /* 텔레그램 4096자 제한 */
+    if (content.length > 4000) content = content.slice(0, 4000) + '\n\n... (이하 생략)';
+
+    await tgSend(chatId, `📄 ${filePath}\n${'━'.repeat(30)}\n\n${content}`, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 파일 조회 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 
