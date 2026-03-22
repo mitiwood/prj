@@ -4164,6 +4164,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <button class="hist-vt-btn" data-hvt="full" onclick="_switchHistView('full')" title="전체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="8" rx="1"/><rect x="3" y="14" width="18" height="8" rx="1"/></svg></button>
       </div>
     </div>
+    <div class="credit-warn-banner" id="credit-warn-banner">
+      <span class="cwb-icon">⚠️</span>
+      <span class="cwb-text" id="cwb-text">크레딧이 부족해요!</span>
+      <button class="cwb-action" onclick="switchTab('settings-view');setTimeout(()=>{var el=document.getElementById('plan-section');if(el)el.scrollIntoView({behavior:'smooth'});},300)">플랜 보기</button>
+    </div>
     <div id="history-view-grid"></div>
   </div>
 
@@ -4201,6 +4206,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div id="comm-challenge-wrap"></div>
     <!-- 활동 피드 -->
     <div id="comm-activity-feed"></div>
+    <!-- 팔로우 제안 -->
+    <div id="comm-suggest-wrap"></div>
     <!-- 추천 / 히어로 -->
     <div id="comm-hero-wrap"></div>
     <!-- 주간 TOP 10 차트 -->
@@ -4348,6 +4355,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="usage-stat-num" id="us-cost-usd" style="color:var(--t2);font-size:15px;">$0.00</div>
           <div class="usage-stat-label">API 사용 비용 (USD)</div>
         </div>
+      </div>
+
+      <!-- 크레딧 사용 내역 -->
+      <div style="margin-bottom:12px;">
+        <div class="settings-section-title" style="font-size:12px;margin-bottom:6px;">최근 사용 내역</div>
+        <div class="credit-history" id="credit-history-list"></div>
       </div>
 
       <!-- 플랜 카드 (3단계: Free / Pro / Creator) -->
@@ -4618,9 +4631,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <span class="bnav-label">커뮤니티</span>
     <span class="bnav-badge" id="comm-notif-badge" style="display:none">0</span>
   </button>
-  <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')">
+  <button class="bnav-item on bnav-center" data-view="create-view" onclick="switchTab('create-view')" style="position:relative;">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
     <span class="bnav-label">음악 만들기</span>
+    <span class="credit-badge" id="nav-credit-badge" style="display:none"></span>
   </button>
   <button class="bnav-item" data-view="history-view" onclick="switchTab('history-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -5024,6 +5038,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="sc-icon" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">🔗</div>
         <span class="sc-label">링크복사</span>
       </button>
+    </div>
+    <div class="sc-comm-share" id="sc-comm-toggle" onclick="toggleCommShare()">
+      <div class="sc-comm-check" id="sc-comm-check">✓</div>
+      <div class="sc-comm-txt">커뮤니티에도 공유<span>다른 크리에이터들이 내 음악을 들을 수 있어요</span></div>
     </div>
     <div class="sc-btns">
       <button class="sc-btn-cancel" onclick="closeShareConfirm()">취소</button>
@@ -9931,6 +9949,11 @@ function renderHistoryView(){
       <div class="hist-info">
         <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}</div>
         <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
+        <div class="hist-full-stats">
+          ${h._commPlays?'<span class="hist-full-stat">▶ '+h._commPlays+'</span>':''}
+          ${h._commLikes?'<span class="hist-full-stat">❤️ '+h._commLikes+'</span>':''}
+          ${h._shared?'<span class="hist-full-stat">↗ '+h._shared+'</span>':''}
+        </div>
       </div>
       <div class="hist-full-actions">
         <button class="hist-full-act" data-fullplay-idx="${idx}"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg> 재생</button>
@@ -10000,6 +10023,8 @@ function renderHistoryView(){
     });
     a.addEventListener('error',()=>{a.pause();a.removeAttribute('src');});
   });
+  /* 고도화 — now-playing, 스와이프 힌트, 크레딧 */
+  _updateNowPlaying();_addSwipeHint();_updateCreditBadge();_updateCreditWarn();
 }
 
 
@@ -13441,16 +13466,30 @@ document.querySelectorAll('[data-sc-target]').forEach(btn=>{
 /* 배경 클릭으로 닫기 */
 $('share-confirm-modal').addEventListener('click',function(e){if(e.target===this)closeShareConfirm();});
 /* 확인 버튼 → 실제 공유 실행 */
+var _scCommShare=false;
+function toggleCommShare(){
+  _scCommShare=!_scCommShare;
+  var el=$('sc-comm-toggle');
+  if(el) el.classList.toggle('checked',_scCommShare);
+}
 $('sc-confirm-btn').addEventListener('click',function(){
   if(_scIdx<0)return;
   const prevIdx=fpCurrentIdx;
   fpCurrentIdx=_scIdx;
+  /* 커뮤니티 공유 처리 */
+  if(_scCommShare){
+    const h=historyData[_scIdx];
+    if(h&&h.audio_url&&currentUser&&currentUser.provider!=='guest'){
+      _shareToComm(h);
+    }
+  }
+  /* 공유 카운트 기록 */
+  _logShare(_scIdx);
   closeShareConfirm();
   if(_scTarget==='kakao'){fpShareKakao();}
   else if(_scTarget==='instagram'){fpShareInstagram();}
   else if(_scTarget==='facebook'){fpShareFacebook();}
   else{
-    /* 링크 복사 */
     const h=historyData[_scIdx]||{};
     const title=h.title||'나의 노래';
     const params=new URLSearchParams({t:title});
@@ -13461,6 +13500,127 @@ $('sc-confirm-btn').addEventListener('click',function(){
   }
   fpCurrentIdx=prevIdx;
 });
+/* 공유 카운트 기록 */
+function _logShare(idx){
+  const h=historyData[idx];if(!h)return;
+  h._shared=(h._shared||0)+1;
+  saveHistory();
+  /* 크레딧 사용 내역에도 기록 */
+  _addCreditHistory('share',h.title||'무제');
+}
+/* 커뮤니티에 공유 */
+async function _shareToComm(h){
+  if(!h||!h.audio_url)return;
+  try{
+    await fetch('/api/tracks',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        id:h.id||h.taskId||('t_'+Date.now()),
+        title:h.title||'무제',
+        audio_url:h.audio_url,
+        video_url:h.video_url||'',
+        image_url:h.image_url||'',
+        tags:h.tags||'',
+        lyrics:h.lyrics||'',
+        owner_name:currentUser.name,
+        owner_provider:currentUser.provider,
+        owner_avatar:currentUser.avatar||'',
+        is_public:true
+      })
+    });
+    toast('커뮤니티에 공유되었어요!','ok',2000);
+  }catch(e){toast('커뮤니티 공유 실패','err');}
+}
+/* ── 크레딧 사용 내역 ── */
+function _getCreditHistory(){try{return JSON.parse(localStorage.getItem('kms_credit_history')||'[]');}catch{return[];}}
+function _saveCreditHistory(list){try{localStorage.setItem('kms_credit_history',JSON.stringify(list.slice(0,50)));}catch{}}
+function _addCreditHistory(type,title){
+  var list=_getCreditHistory();
+  var icons={song:'🎵',mv:'🎬',lyrics:'📝',share:'↗',vr:'🎙'};
+  list.unshift({type,title,icon:icons[type]||'📊',time:Date.now()});
+  _saveCreditHistory(list);
+}
+/* ── 크레딧 뱃지 업데이트 ── */
+function _updateCreditBadge(){
+  var badge=$('nav-credit-badge');if(!badge)return;
+  var plan=typeof getPlan==='function'?getPlan():{type:'free'};
+  var limits=typeof PLAN_LIMITS!=='undefined'?PLAN_LIMITS[plan.type]||PLAN_LIMITS.free:{songs:5};
+  var usage=typeof getUsage==='function'?getUsage():{songs:0};
+  var remain=limits.songs>=999?99:Math.max(0,limits.songs-(usage.songs||0));
+  if(remain<=0){badge.textContent='0';badge.className='credit-badge empty';badge.style.display='flex';}
+  else if(remain<=2){badge.textContent=remain;badge.className='credit-badge low';badge.style.display='flex';}
+  else if(remain<limits.songs){badge.textContent=remain;badge.className='credit-badge';badge.style.display='flex';}
+  else{badge.style.display='none';}
+}
+/* ── 크레딧 경고 배너 ── */
+function _updateCreditWarn(){
+  var banner=$('credit-warn-banner');if(!banner)return;
+  var plan=typeof getPlan==='function'?getPlan():{type:'free'};
+  var limits=typeof PLAN_LIMITS!=='undefined'?PLAN_LIMITS[plan.type]||PLAN_LIMITS.free:{songs:5};
+  var usage=typeof getUsage==='function'?getUsage():{songs:0};
+  var remain=limits.songs>=999?99:Math.max(0,limits.songs-(usage.songs||0));
+  var txt=$('cwb-text');
+  if(remain<=0){banner.classList.add('show');if(txt)txt.textContent='이번 달 크레딧을 모두 사용했어요!';}
+  else if(remain<=2){banner.classList.add('show');if(txt)txt.textContent='크레딧이 '+remain+'곡 남았어요';}
+  else{banner.classList.remove('show');}
+}
+/* ── 전체모드 now-playing 표시 ── */
+function _updateNowPlaying(){
+  document.querySelectorAll('.hist-view-grid.full-mode .hist-card').forEach(function(card){
+    var idx=parseInt(card.dataset.histIdx);
+    card.classList.toggle('now-playing',idx===fpCurrentIdx&&typeof _isPlaying!=='undefined'&&_isPlaying);
+  });
+}
+/* ── 전체모드 스와이프 힌트 삽입 ── */
+function _addSwipeHint(){
+  if(document.querySelector('.hist-swipe-hint'))return;
+  var grid=$('history-view-grid');if(!grid)return;
+  var fm=grid.querySelector('.hist-view-grid.full-mode');
+  if(!fm)return;
+  var hint=document.createElement('div');
+  hint.className='hist-swipe-hint';
+  hint.textContent='← 좌우 스와이프로 재생 →';
+  fm.parentNode.insertBefore(hint,fm.nextSibling);
+}
+/* ── 팔로우 제안 렌더링 ── */
+function _renderFollowSuggestions(){
+  var wrap=$('comm-suggest-wrap');
+  if(!wrap)return;
+  if(!currentUser||currentUser.provider==='guest'){wrap.innerHTML='';return;}
+  var tracks=typeof _sbTracks!=='undefined'?_sbTracks:[];
+  if(!tracks.length){wrap.innerHTML='';return;}
+  var creators={};
+  tracks.forEach(function(t){
+    var o=t._owner||{};var k=(o.name||'')+'__'+(o.provider||'');
+    if(!k||k==='__')return;
+    if(o.name===currentUser.name&&o.provider===currentUser.provider)return;
+    var fc=typeof _followStateCache!=='undefined'?_followStateCache:{};
+    if(fc[k])return;
+    if(!creators[k])creators[k]={name:o.name,provider:o.provider,avatar:o.avatar,tracks:0,likes:0};
+    creators[k].tracks++;creators[k].likes+=(t.likes||0);
+  });
+  var list=Object.values(creators).sort(function(a,b){return(b.likes-a.likes)||(b.tracks-a.tracks);}).slice(0,8);
+  if(!list.length){wrap.innerHTML='';return;}
+  wrap.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">추천 크리에이터</div><div class="comm-suggest-follow">'+list.map(function(c){
+    var av=c.avatar?'<img src="'+c.avatar+'" alt="">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>';
+    return '<div class="comm-suggest-card"><div class="comm-suggest-avatar">'+av+'</div><div class="comm-suggest-name">'+c.name+'</div><div class="comm-suggest-meta">'+c.tracks+'곡 · ❤️'+c.likes+'</div><button class="comm-suggest-btn" onclick="event.stopPropagation();_suggestFollow(this,\''+c.name.replace(/'/g,"\\'")+'\',\''+c.provider+'\')">팔로우</button></div>';
+  }).join('')+'</div>';
+}
+async function _suggestFollow(btn,name,prov){
+  if(!currentUser||currentUser.provider==='guest'){if(typeof openLoginSheet==='function')openLoginSheet();return;}
+  btn.disabled=true;btn.textContent='...';
+  try{
+    var r=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'follow',followerName:currentUser.name,followerProvider:currentUser.provider,followingName:name,followingProvider:prov})});
+    var d=await r.json();
+    if(d.ok){
+      if(typeof _followStateCache!=='undefined')_followStateCache[name+'__'+prov]=true;
+      btn.textContent='팔로잉';btn.style.background='var(--acc)';btn.style.color='#fff';btn.style.borderColor='var(--acc)';
+      toast('팔로우!','ok',1500);
+    }
+  }catch(e){toast('오류','err');}
+  btn.disabled=false;
+}
 
 async function fpShareKakao(){
   const h=historyData[fpCurrentIdx]||{};
@@ -14560,6 +14720,8 @@ async function _renderCommunityInner(force){
 
   /* 무한 스크롤 설정 */
   _setupCommInfiniteScroll();
+  /* 팔로우 제안 */
+  try{_renderFollowSuggestions();}catch(e){}
 }
 
 /* 커뮤니티 리스트 아이템 HTML 생성 헬퍼 */
@@ -14604,6 +14766,7 @@ function _buildCommItem(t,i,isMine){
       ${!isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openReportSheet('${sid}')" title="신고" style="color:rgba(255,160,80,.5);">🚩</button>`:''}
       ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
     </div>
+    <div class="comm-comment-preview" data-preview-id="${sid}" onclick="event.stopPropagation();openCommentSheet('${sid}')" style="display:none;"></div>
   </div>`;
 }
 
@@ -15211,6 +15374,14 @@ async function _loadCommentCounts(trackIds){
 function _setCommentBadge(tid,cnt){
   const label=cnt>100?'N':cnt>0?String(cnt):'';
   document.querySelectorAll(`.comm-comment-cnt[data-cnt-id="${tid}"]`).forEach(el=>{el.textContent=label;el.dataset.n=String(cnt);});
+  /* 인라인 댓글 프리뷰 표시 */
+  if(cnt>0){
+    document.querySelectorAll(`.comm-comment-preview[data-preview-id="${tid}"]`).forEach(el=>{
+      if(el.dataset.loaded)return;
+      el.style.display='flex';
+      el.innerHTML='<span class="ccp-text">💬 댓글 '+cnt+'개 — 눌러서 보기</span>';
+    });
+  }
 }
 
 /* ── 별점 시스템 ── */
@@ -16631,8 +16802,12 @@ function trackUsage(type, meta={}){
   const cost = COST_PER[type]||{usd:0,label:type};
   log.unshift({ type, cost_usd:cost.usd, cost_krw:Math.round(cost.usd*USD_KRW), label:cost.label, ts:Date.now(), ...meta });
   localStorage.setItem('kms_usage_log', JSON.stringify(log.slice(0,200)));
+  /* 크레딧 사용 내역 기록 */
+  try{_addCreditHistory(type,meta.title||meta.mode||type);}catch(e){}
   /* 서버 크레딧 차감 (song/mv만 — lyrics는 빈도 높아 서버 부하 방지) */
   if(type==='song' || type==='mv') _serverCreditDeduct(type);
+  /* 크레딧 뱃지 즉시 업데이트 */
+  try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
 }
 
 /* 플랜 제한 체크 — generate() 시작 전 호출 (클라이언트 즉시 + 서버 비동기 검증) */
@@ -16669,6 +16844,13 @@ function checkPlanLimit(type){
     showUpgradePrompt(type, used, limit, plan.type);
     return false;
   }
+  /* 잔여 크레딧 경고 */
+  const remain = limit >= 999 ? 99 : limit - used;
+  if(remain <= 2 && remain > 0){
+    toast('⚠️ 크레딧 '+remain+'곡 남았어요','warn',3000);
+  }
+  /* 크레딧 뱃지 업데이트 */
+  try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
   /* 서버 검증 (비동기 — 결과 불문 클라이언트 체크 우선) */
   if(currentUser && currentUser.provider !== 'guest'){
     _serverCreditCheck(type).catch(()=>{});
@@ -16771,6 +16953,20 @@ function renderPlanUI(){
   const _costKrw = Math.round(_costUsd * 1340);
   const uck=$('us-cost-krw'); if(uck) uck.textContent='₩'+_costKrw.toLocaleString('ko-KR');
   const ucu=$('us-cost-usd'); if(ucu) ucu.textContent='$'+_costUsd.toFixed(3);
+
+  /* 크레딧 사용 내역 렌더링 */
+  var chList=$('credit-history-list');
+  if(chList){
+    var hist=_getCreditHistory();
+    if(!hist.length){chList.innerHTML='<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px;">아직 사용 내역이 없어요</div>';}
+    else{chList.innerHTML=hist.slice(0,20).map(function(h){
+      var typeLabel={song:'음악 생성',mv:'뮤비 생성',lyrics:'가사 생성',share:'공유',vr:'보컬분리'}[h.type]||h.type;
+      var bgColor={song:'rgba(124,58,237,.12)',mv:'rgba(59,130,246,.12)',lyrics:'rgba(245,158,11,.12)',share:'rgba(16,185,129,.12)',vr:'rgba(239,68,68,.12)'}[h.type]||'var(--bg2)';
+      return '<div class="credit-history-item"><div class="credit-history-icon" style="background:'+bgColor+';">'+(h.icon||'📊')+'</div><div class="credit-history-info"><div class="credit-history-title">'+(h.title||'무제')+'</div><div class="credit-history-time">'+typeLabel+' · '+formatTimeAgo(h.time)+'</div></div><div class="credit-history-cost">-1</div></div>';
+    }).join('');}
+  }
+  /* 크레딧 뱃지 + 경고 업데이트 */
+  try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
 
   /* 플랜 카드 current / 업그레이드 / 다운그레이드 표시 */
   const _planRank = {free:0, pro:1, creator:2};
