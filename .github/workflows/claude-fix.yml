@@ -125,12 +125,12 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           # claude-code-action creates branch as claude/issue-{num}-{date}
-          # Find the branch dynamically
-          BRANCH=$(git ls-remote --heads origin "claude/issue-${ISSUE_NUM}-*" | awk '{print $2}' | sed 's|refs/heads/||' | tail -1)
+          # Find the branch dynamically using grep (glob patterns unreliable)
+          BRANCH=$(git ls-remote --heads origin | grep "refs/heads/claude/issue-${ISSUE_NUM}-" | awk '{print $2}' | sed 's|refs/heads/||' | sort | tail -1)
 
           # Fallback: also check fix/issue-{num}
           if [ -z "$BRANCH" ]; then
-            BRANCH=$(git ls-remote --heads origin "fix/issue-${ISSUE_NUM}" | awk '{print $2}' | sed 's|refs/heads/||' | head -1)
+            BRANCH=$(git ls-remote --heads origin | grep "refs/heads/fix/issue-${ISSUE_NUM}$" | awk '{print $2}' | sed 's|refs/heads/||' | head -1)
           fi
 
           if [ -z "$BRANCH" ]; then
