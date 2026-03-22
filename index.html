@@ -3066,8 +3066,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   /* 프롬프트 카드 */
   .prompt-card{padding:14px 10px;}
-  .genre-btn-grid{gap:6px;}
-  .genre-btn{padding:7px 10px;font-size:11px;}
+  .genre-btn-grid{grid-template-columns:repeat(4,1fr);gap:6px;}
+  .genre-btn{padding:8px 4px 6px;font-size:10px;}
+  .genre-ico{font-size:18px!important;}
+  .mood-grid{grid-template-columns:repeat(3,1fr);gap:5px;}
+  .mood-chip{padding:6px 3px;font-size:9px;}
+  .mood-ico{font-size:15px!important;}
   .sub-genre-row{gap:4px;}
   .sub-genre-btn{font-size:10px;padding:4px 8px;}
   .form-input{font-size:13px;padding:10px;}
@@ -3171,8 +3175,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 /* 아주 작은 화면 (360px 이하) */
 @media(max-width:360px){
-  .genre-btn-grid{grid-template-columns:repeat(3,1fr);}
-  .genre-btn{font-size:10px;padding:6px 6px;}
+  .genre-btn-grid{grid-template-columns:repeat(4,1fr);gap:4px;}
+  .genre-btn{font-size:9px;padding:6px 2px;}
+  .genre-ico{font-size:16px!important;}
+  .mood-grid{grid-template-columns:repeat(3,1fr);gap:4px;}
+  .mood-chip{font-size:8px;padding:5px 2px;}
   .adv-instrument-grid{grid-template-columns:repeat(3,1fr);}
   .comm-featured-cover{height:150px;}
   .fp-cover{width:200px;height:200px;border-radius:14px;}
@@ -3618,6 +3625,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- 프롬프트 미리보기 -->
         <div id="prompt-preview-panel"></div>
+
+        <!-- 생성 전 요약 카드 -->
+        <div id="gen-summary-card" style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.15);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--acc3);margin-bottom:8px;">생성 요약</div>
+          <div id="gen-summary-tags" style="display:flex;flex-wrap:wrap;gap:5px;font-size:11px;"></div>
+        </div>
 
         <!-- MV 토글 -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -6794,6 +6807,20 @@ function _sharedToMiniAndCreate(){
 }
 
 /* ── 인스트루멘탈 ── */
+/* 분위기 그리드 → select 동기화 */
+function _setMood(btn){
+  var val=btn.dataset.mood;
+  document.querySelectorAll('.mood-chip').forEach(function(b){b.classList.remove('on');});
+  var sel=$('mood');
+  if(sel.value===val){sel.value='';}
+  else{btn.classList.add('on');sel.value=val;}
+  if(typeof _updatePromptPreview==='function') _updatePromptPreview();
+}
+function _syncMoodGrid(){
+  var val=($('mood')||{}).value||'';
+  document.querySelectorAll('.mood-chip').forEach(function(b){b.classList.toggle('on',b.dataset.mood===val);});
+}
+
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
   instOn=!instOn;this.classList.toggle('on',instOn);
   if($('vocal-group')){$('vocal-group').style.opacity=instOn?'.3':'1';

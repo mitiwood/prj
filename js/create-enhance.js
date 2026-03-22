@@ -187,8 +187,9 @@ function _applyPresetV2(key){
     if(p.wc!=null){const w=document.getElementById('weird-constraint');if(w){w.value=p.wc;w.dispatchEvent(new Event('input'));}}
     if(p.neg){const n=document.getElementById('neg-tags');if(n)n.value=p.neg;}
 
-    /* 프롬프트 미리보기 업데이트 */
+    /* 프롬프트 미리보기 + 분위기 그리드 동기화 */
     _updatePromptPreview();
+    if(typeof _syncMoodGrid==='function') _syncMoodGrid();
     /* 프리셋 칩 하이라이트 */
     document.querySelectorAll('.preset-chip').forEach(c=>c.classList.remove('active'));
     const activeChip=document.querySelector('.preset-chip[onclick*="'+key+'"]');
@@ -259,6 +260,25 @@ function _updatePromptPreview(){
   /* 프로그레스 바 */
   html+='<div class="pp-bar"><div class="pp-bar-fill" style="width:'+score+'%;background:'+scoreColor+';"></div></div>';
   wrap.innerHTML=html;
+
+  /* 생성 요약 카드 업데이트 */
+  var sumEl=document.getElementById('gen-summary-tags');
+  if(sumEl){
+    var vocal=(typeof vocalGender!=='undefined'&&vocalGender)?({m:'🧑 남성보컬',f:'👩 여성보컬'}[vocalGender]||''):'';
+    var instOn_=(typeof instOn!=='undefined'&&instOn);
+    var model_=document.getElementById('model-sel');
+    var modelTxt=model_?model_.options[model_.selectedIndex]?.textContent||'':'';
+    var sumTags=[];
+    if(genre) sumTags.push('<span style="background:rgba(124,58,237,.2);color:#c4b5fd;padding:2px 8px;border-radius:6px;">'+_esc(genre)+'</span>');
+    if(mood) sumTags.push('<span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:2px 8px;border-radius:6px;">'+_esc(mood.split(',')[0].trim())+'</span>');
+    if(bpm&&typeof bpmAuto!=='undefined'&&!bpmAuto) sumTags.push('<span style="background:rgba(59,130,246,.15);color:#93c5fd;padding:2px 8px;border-radius:6px;">'+bpm+' BPM</span>');
+    if(instOn_) sumTags.push('<span style="background:rgba(34,197,94,.15);color:#86efac;padding:2px 8px;border-radius:6px;">🎹 인스트루멘탈</span>');
+    else if(vocal) sumTags.push('<span style="background:rgba(244,114,182,.15);color:#f9a8d4;padding:2px 8px;border-radius:6px;">'+vocal+'</span>');
+    if(insts) sumTags.push('<span style="background:rgba(255,255,255,.06);color:var(--t2);padding:2px 8px;border-radius:6px;">🎸 '+_esc(insts)+'</span>');
+    if(modelTxt) sumTags.push('<span style="background:rgba(255,255,255,.06);color:var(--t3);padding:2px 8px;border-radius:6px;">'+_esc(modelTxt)+'</span>');
+    sumEl.innerHTML=sumTags.length?sumTags.join(''):'<span style="color:var(--t3);">장르나 분위기를 선택하면 여기에 요약이 표시됩니다</span>';
+    document.getElementById('gen-summary-card').style.display=sumTags.length?'':'none';
+  }
 }
 
 function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
