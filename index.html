@@ -1939,8 +1939,8 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-ctrl-btn svg{width:28px;height:28px;fill:currentColor;}
 .fp-ctrl-btn:active{transform:scale(.85);opacity:.6;}
 /* 비주얼라이저 */
-.fp-viz{display:flex;align-items:center;gap:2px;height:24px;justify-content:center;margin-bottom:10px;}
-.fp-vbar{width:3px;background:rgba(255,255,255,.15);border-radius:2px;height:24px;transform-origin:center bottom;transform:scaleY(0.125);will-change:transform;}
+.fp-viz{display:flex;align-items:center;gap:2px;height:24px;justify-content:center;margin-bottom:10px;contain:layout style;}
+.fp-vbar{width:3px;background:rgba(255,255,255,.15);border-radius:2px;height:24px;transform-origin:center bottom;transform:scaleY(0.125);will-change:transform;transition:transform 120ms ease-out;contain:strict;}
 .fp-vbar.active{transform:scaleY(1);background:rgba(255,255,255,.6);}
 /* 가사 */
 .fp-lyrics-section{margin-top:8px;}
@@ -2386,14 +2386,13 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-lyrics-main::-webkit-scrollbar{width:3px;}
 .fp-lyrics-main::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
 .fp-lm-line{
-  font-size:15px;font-weight:600;color:rgba(255,255,255,.3);
-  line-height:2;transition:color .3s, text-shadow .3s, transform .3s;cursor:pointer;
-  padding:0 8px;border-radius:6px;transform-origin:left center;
+  font-size:14px;font-weight:600;color:rgba(255,255,255,.3);
+  line-height:2;transition:color .3s, text-shadow .3s, font-size .3s, font-weight .3s;cursor:pointer;
+  padding:0 8px;border-radius:6px;
 }
 .fp-lm-line.active{
-  font-size:15px;font-weight:800;color:#fff;
+  font-size:17px;font-weight:800;color:#fff;
   text-shadow:0 0 24px rgba(168,85,247,.7);
-  transform:scale(1.2);
 }
 .fp-lm-line.done{color:rgba(255,255,255,.15);}
 .fp-lm-sec{
@@ -2970,8 +2969,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .fp-side-actions{gap:4px;}
   .fp-side-btn{width:34px;height:34px;font-size:14px;}
   .fp-lyrics-main{max-height:160px;padding:0 2px;}
-  .fp-lm-line{font-size:13px;}
-  .fp-lm-line.active{font-size:16px;}
+  .fp-lm-line{font-size:12px;}
+  .fp-lm-line.active{font-size:15px;}
 
   /* 히스토리 */
   .hist-tabs{gap:4px;}
@@ -11182,7 +11181,7 @@ function fpStartViz(){
   const el=$('fp-viz'); if(!el)return;
   const bars=el.querySelectorAll('.fp-vbar');
   if(!bars.length)return;
-  fpVizTimer=setInterval(()=>{bars.forEach(b=>{b.style.transform='scaleY('+(Math.max(0.125,Math.random())).toFixed(2)+')';});},90);
+  fpVizTimer=setInterval(()=>{bars.forEach(b=>{b.style.transform='scaleY('+(Math.max(0.125,Math.random())).toFixed(2)+')';});},150);
 }
 function fpStopViz(){
   clearInterval(fpVizTimer);
@@ -12415,6 +12414,7 @@ function fpRenderLyrics(h){
 
   fpTimestampLines=[];
   _fpLrcTimes=[];
+  _fpPrevActiveIdx=-1;
 
   if(!plain.trim()){
     if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵</div>';
@@ -12422,7 +12422,7 @@ function fpRenderLyrics(h){
   }
 
   /* LRC 타임스탬프 파싱: [mm:ss.xx] 또는 [mm:ss] */
-  const lrcRe=/^\[(\d{1,2}):(\d{2})(?:[.:]\d+)?\]\s*(.*)$/;
+  const lrcRe=/^\[(\d{1,2}):(\d{2})(?:[.:](\d+))?\]\s*(.*)$/;
   const lines = plain.split('\n');
   let html = '';
   let lyricLineIdx = 0;
@@ -12435,8 +12435,9 @@ function fpRenderLyrics(h){
     const lrcMatch = trimmed.match(lrcRe);
     if(lrcMatch){
       const mins=parseInt(lrcMatch[1]), secs=parseInt(lrcMatch[2]);
-      const timeSec=mins*60+secs;
-      const text=lrcMatch[3].trim();
+      const frac=lrcMatch[3]?parseFloat('0.'+lrcMatch[3]):0;
+      const timeSec=mins*60+secs+frac;
+      const text=lrcMatch[4].trim();
       if(!text)return;
       hasLrc=true;
       parsedLines.push({time:timeSec, text, isSection:false});
@@ -12500,6 +12501,7 @@ function fpToggleLyricsMode(){
   toast(fpSyncMode?'🎤 싱크 모드 ON':'📝 일반 모드','',1500);
 }
 
+let _fpPrevActiveIdx=-1;
 function fpSyncLyrics(currentTime){
   if(!fpTimestampLines.length||!fpAudio?.duration)return;
   _fpAssignTimes();
@@ -12509,6 +12511,10 @@ function fpSyncLyrics(currentTime){
   for(let i=n-1;i>=0;i--){
     if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
   }
+
+  /* 같은 라인이면 불필요한 DOM 업데이트/스크롤 스킵 */
+  if(activeIdx===_fpPrevActiveIdx) return;
+  _fpPrevActiveIdx=activeIdx;
 
   fpTimestampLines.forEach((el,i)=>{
     el.classList.toggle('active',i===activeIdx);
@@ -12523,7 +12529,7 @@ function fpSyncLyrics(currentTime){
       const boxTop=box.getBoundingClientRect().top;
       const elTop=el.getBoundingClientRect().top;
       const offset=elTop-boxTop-(box.clientHeight/2)+(el.clientHeight/2);
-      box.scrollBy({top:offset,behavior:'smooth'});
+      if(Math.abs(offset)>5) box.scrollBy({top:offset,behavior:'smooth'});
     }
   }
 }
@@ -13889,28 +13895,35 @@ function _renderCommContent(heroWrap, list){
   }
 }
 
-/* 커뮤니티 트랙 리스트 내 팔로우 버튼 상태 로드 */
+/* 커뮤니티 트랙 리스트 내 팔로우 버튼 상태 로드 (배치 API) */
 const _followStateCache={};
+var _followBatchLoaded=false;
 function _loadCommFollowStates(container){
   if(!currentUser||currentUser.provider==='guest')return;
-  const btns=container.querySelectorAll('.comm-item-follow-btn');
-  btns.forEach(btn=>{
-    const name=btn.dataset.cname;
-    const prov=btn.dataset.cprov;
-    if(!name)return;
-    const cacheKey=name+'__'+prov;
-    /* 캐시 히트 */
-    if(_followStateCache[cacheKey]!==undefined){
+  var btns=container.querySelectorAll('.comm-item-follow-btn');
+  if(!btns.length)return;
+
+  /* 이미 배치 로드 완료면 캐시만 적용 */
+  if(_followBatchLoaded){
+    btns.forEach(function(btn){
+      var cacheKey=btn.dataset.cname+'__'+btn.dataset.cprov;
       if(_followStateCache[cacheKey]){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
-      return;
-    }
-    fetch('/api/profile?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(prov)+'&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
-      .then(r=>r.json()).then(d=>{
-        const isF=d.ok&&d.profile&&d.profile.isFollowing;
-        _followStateCache[cacheKey]=!!isF;
-        if(isF){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
-      }).catch(()=>{});
-  });
+    });
+    return;
+  }
+
+  /* 배치 API 1회 호출로 전체 팔로우 상태 로드 */
+  fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok&&d.followingSet){
+        Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
+        _followBatchLoaded=true;
+      }
+      btns.forEach(function(btn){
+        var cacheKey=btn.dataset.cname+'__'+btn.dataset.cprov;
+        if(_followStateCache[cacheKey]){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
+      });
+    }).catch(function(){});
 }
 
 
@@ -13995,25 +14008,30 @@ function _renderCreatorList(){
   _loadCommFollowStates(list);
   _loadCommDurations(all.filter(t=>!_durCache[t._sbId]));
 
-  /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 */
+  /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 (배치 캐시 활용) */
   if(isLoggedIn){
-    filteredKeys.forEach((key,gi)=>{
-      const g=groupMap[key];
-      if(_isMine(g))return;
-      const btn=list.querySelector('[data-creator-key="'+gi+'"] .comm-creator-follow-btn');
-      if(!btn)return;
-      const cacheKey=g.name+'__'+g.provider;
-      if(_followStateCache[cacheKey]!==undefined){
+    const _applyCreatorFollowStates=()=>{
+      filteredKeys.forEach((key,gi)=>{
+        const g=groupMap[key];
+        if(_isMine(g))return;
+        const btn=list.querySelector('[data-creator-key="'+gi+'"] .comm-creator-follow-btn');
+        if(!btn)return;
+        const cacheKey=g.name+'__'+g.provider;
         if(_followStateCache[cacheKey]){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
-        return;
-      }
-      fetch('/api/profile?name='+encodeURIComponent(g.name)+'&provider='+encodeURIComponent(g.provider)+'&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
+      });
+    };
+    if(_followBatchLoaded){
+      _applyCreatorFollowStates();
+    }else{
+      fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
         .then(r=>r.json()).then(d=>{
-          const isF=d.ok&&d.profile&&d.profile.isFollowing;
-          _followStateCache[cacheKey]=!!isF;
-          if(isF){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
+          if(d.ok&&d.followingSet){
+            Object.keys(d.followingSet).forEach(k=>{_followStateCache[k]=true;});
+            _followBatchLoaded=true;
+          }
+          _applyCreatorFollowStates();
         }).catch(()=>{});
-    });
+    }
   }
 }
 
