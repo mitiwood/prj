@@ -12,7 +12,7 @@ import { verifyJWT } from './_jwt.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
+const ADMIN_PWD = process.env.ADMIN_SECRET;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 

@@ -7,7 +7,7 @@
  * 이벤트 타입: plan_changed, new_like, new_comment, new_follow, announcement, system
  */
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 /* 인메모리 이벤트 큐 (최근 50개) — Vercel serverless는 stateless이므로 폴링 대안 */
 let _events = [];

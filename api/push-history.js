@@ -7,7 +7,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 let _memHistory = [];
 

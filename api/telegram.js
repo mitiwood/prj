@@ -10,7 +10,7 @@
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const DEFAULT_CHAT_ID = (process.env.TELEGRAM_CHAT_ID || '').trim();
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 function checkAuth(req) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');

@@ -1,7 +1,7 @@
 // 텔레그램 환경변수 디버깅 + 직접 발송 테스트
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "kenny2024!";
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 export default async function handler(req, res) {
   const auth = (req.headers.authorization || "").replace("Bearer ", "");

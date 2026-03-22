@@ -6,7 +6,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 /* 인메모리 폴백 (Supabase 미연결 시) */
 let _memManagers = [];

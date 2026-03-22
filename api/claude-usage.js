@@ -5,7 +5,7 @@
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const ANTHROPIC_ADMIN_KEY = process.env.ANTHROPIC_ADMIN_KEY || '';
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

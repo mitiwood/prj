@@ -12,7 +12,7 @@ const ANTHROPIC = process.env.ANTHROPIC_API_KEY || "";
 const VAPID_PUB = process.env.VAPID_PUBLIC_KEY || "";
 const TOSS_CK   = process.env.TOSS_CLIENT_KEY || "";
 const TOSS_SK   = process.env.TOSS_SECRET_KEY || "";
-const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET || "kenny2024!";
+const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET;
 const BASE = "https://ai-music-studio-bice.vercel.app";
 
 /* ── 유틸 ── */

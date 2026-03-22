@@ -7,7 +7,7 @@
  * JWT는 간단한 HMAC-SHA256 기반 (외부 라이브러리 없이)
  */
 
-const SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET || 'kenny2024!';
+const SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET;
 
 function base64url(str) {
   return Buffer.from(str).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');

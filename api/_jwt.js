@@ -4,7 +4,7 @@
  */
 import crypto from 'crypto';
 
-const SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET || 'kenny2024!';
+const SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET;
 
 function hmac(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');

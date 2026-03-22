@@ -134,6 +134,9 @@ export default async function handler(req, res) {
 
   /* 서버사이드 크레딧 검증 (크레딧 소모 경로만) */
   const creditType = getCreditType(path, method);
+  if (creditType && (!userName || !userProvider)) {
+    return res.status(400).json({ error: 'userName, userProvider required for this API' });
+  }
   if (creditType && userName && userProvider) {
     const creditCheck = await checkServerCredit(userName, userProvider, creditType);
     if (!creditCheck.ok) {

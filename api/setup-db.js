@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 function getSb() {
   if (!SB_URL || !SB_KEY) return null;

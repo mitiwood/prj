@@ -3,7 +3,7 @@
  * GET ?type=deployments   → 최근 배포 목록
  * GET ?type=events&id=xxx → 특정 배포 이벤트 로그
  */
-const ADMIN_PWD = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_PWD = process.env.ADMIN_SECRET;
 const VERCEL_TOKEN = process.env.VERCEL_TOKEN || '';
 const VERCEL_PROJECT = 'prj_r8v4CSbHQQuS1WchTOq1LC0CsJ3F';
 

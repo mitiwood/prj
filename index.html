@@ -5416,7 +5416,7 @@ async function _processKakaoCommand(command, params = {}) {
   if(Date.now() - _kakaoCommandCooldown < 3000) return '⏰ 잠시만 기다려주세요 (3초 쿨다운)';
   _kakaoCommandCooldown = Date.now();
   
-  const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
+  const hdrs = {'Content-Type':'application/json'};
   let response = '';
   
   switch(command.toLowerCase()) {
@@ -5478,7 +5478,7 @@ async function _getSystemStatus() {
 }
 
 async function _enhanceSystem(params) {
-  console.log('[카카오봇] 고도화 시스템 실행:', params);
+  /* debug removed */
   
   const enhancements = [
     '🔧 AI 모델 최적화 완료',
@@ -5510,13 +5510,8 @@ const _autoFixSent = {}; /* 자동수정 도배 방지: 같은 에러 24시간 1
 function _sendErrorAlert(info){
   if(Date.now() - _errSendCooldown < 5000) return;
   _errSendCooldown = Date.now();
-  const hdrs = {'Content-Type':'application/json','Authorization':'Bearer kenny2024!'};
-  /* 에러 로그 API로 전송 (관리자 대시보드 실시간 모니터) */
-  try { fetch('/api/error-logs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:'client-js',method:'JS',status:0,error_message:info.slice(0,500),user_agent:navigator.userAgent}) }).catch(()=>{}); } catch(e){}
-  /* 텔레그램 — parse_mode:'HTML' 필수 (빈 문자열은 Markdown 폴백→파싱에러) */
-  try { fetch('/api/telegram', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),parse_mode:'HTML'}) }).catch(()=>{}); } catch(e){}
-  /* 카카오 */
-  try { fetch('/api/kakao-notify', { method:'POST', headers:hdrs, body:JSON.stringify({text:info.slice(0,300)}) }).catch(()=>{}); } catch(e){}
+  /* 에러 로그 API로 전송 — 서버에서 텔레그램+카카오 알림 처리 (클라이언트에 시크릿 노출 안 함) */
+  try { fetch('/api/error-logs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:'client-js',method:'JS',status:0,error_message:info.slice(0,500),user_agent:navigator.userAgent,notify:true}) }).catch(()=>{}); } catch(e){}
   /* 자동 수정: 에러 감지 → 텔레봇 알림 */
   var errKey = info.slice(0,80).replace(/[^a-zA-Z0-9]/g,'');
   if(_autoFixSent[errKey] && Date.now()-_autoFixSent[errKey] < 86400000) return;
@@ -6448,7 +6443,7 @@ async function _ytDoGenerate(){
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
   const songTitle = ($('yt-song-title')?.value||'').trim() || ($('song-title')?.value||'').trim() ||
                     rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
-  console.log('[YT] lyrics:', ytLyrics.slice(0,30)||'(없음)', '| style:', ytStyle.slice(0,60), '| title:', songTitle);
+  /* debug removed */
 
   /* UI 로딩 시작 */
   _ytGenerating = true;
@@ -6486,7 +6481,7 @@ async function _ytDoGenerate(){
     };
     if(songTitle) body.title = songTitle;
 
-    console.log('[YT Generate] prompt:', prompt.slice(0,80), '| style:', (ytStyle||'').slice(0,60));
+    /* debug removed */
 
     const genData = await kieRequest(apiKey,'POST','/api/v1/generate',body);
     const taskId  = genData?.data?.taskId || genData?.taskId;
@@ -6597,14 +6592,14 @@ async function fetchApiKey(){
     const data=await res.json();
     if(!data.apiKey&&!data.kieApiKey) throw new Error('키 없음');
     kieApiKey=data.apiKey||data.kieApiKey||'';
-    console.log('[API] 키 로드 성공');
+    /* debug removed */
   }catch(e){
     /* 조용히 실패 — DOM 참조 없음 */
     console.warn('[API] config 로드 실패:', e.message);
     const localKey=localStorage.getItem('kms_dev_key')||'';
     if(localKey){
       kieApiKey=localKey;
-      console.log('[API] Dev 키 fallback 사용 중');
+      /* debug removed */
     }
   }
 }
@@ -7616,8 +7611,8 @@ async function pollResult(apiKey,taskId){
       /* sunoData null → status SUCCESS인데 tracks 없는 경우 최대 5회 더 대기 */
       if(status==='SUCCESS'){
         if(tracks.length){
-          console.log('[pollResult] SUCCESS tracks[0] keys:', Object.keys(tracks[0]).join(','));
-          console.log('[pollResult] audioUrl:', tracks[0].audioUrl?.slice(0,60), 'audio_url:', tracks[0].audio_url?.slice(0,60), 'song_path:', tracks[0].song_path?.slice(0,60));
+          /* debug removed */
+          /* debug removed */
           return tracks;
         }
         if(i < MAX_POLLS-2){ continue; }
@@ -8621,7 +8616,7 @@ async function generate(overrideParams){
     if(makeMV){
       const mvTrack=tracks[0];
       const mvAudioId=mvTrack?.id||mvTrack?.audioId||'';
-      console.log('[MV] starting. taskId='+taskId+' audioId='+mvAudioId+' makeMV='+makeMV);
+      /* debug removed */
       requestMusicVideo(apiKey,taskId,mvAudioId,0);
     }
   }catch(e){
@@ -8792,20 +8787,20 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
         duration:'5',
       }
     });
-    console.log('[MV Kling] createTask response:', JSON.stringify(genData));
+    /* debug removed */
 
     const mvTaskId=genData?.data?.taskId||genData?.taskId;
     if(!mvTaskId){
       throw new Error('뮤직비디오 taskId 없음 — '+JSON.stringify(genData).slice(0,120));
     }
-    console.log('[MV Kling] taskId:', mvTaskId);
+    /* debug removed */
 
     /* Step 2: 폴링 — /market/common/get-task-detail */
     for(let i=0;i<80;i++){
       await sleep(i<5?1000:i<20?2000:3000);
       try{
         const res=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${mvTaskId}`);
-        console.log(`[MV Kling] poll ${i}:`, JSON.stringify(res).slice(0,400));
+        /* MV poll debug removed */
         /* recordInfo 응답: res.data.state / res.data.resultJson */
         const d=res?.data;if(!d)continue;
         const status=(d.state||d.status||'').toLowerCase();
@@ -8822,7 +8817,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
             const out=d.output||d.response||d.result||{};
             videoUrl=out.videoUrl||out.video_url||out.url||out.videos?.[0]?.url||out.works?.[0]?.video?.resource||d.videoUrl||d.video_url||'';
           }
-          console.log('[MV Kling] videoUrl:', videoUrl);
+          /* debug removed */
 
           if(videoUrl){
             mvPanel.innerHTML=`
@@ -11128,7 +11123,7 @@ function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(history
 
 /* 서버(/api/tracks)에 트랙 저장 — Supabase 저장 */
 function _saveTrackToServer(track){
-  console.log('[SaveTrack] called:', track?.id?.slice(0,20), 'audio:', !!track?.audio_url, 'title:', track?.title?.slice(0,30));
+  /* debug removed */
   if(!track?.id || !track?.audio_url){ console.warn('[SaveTrack] SKIPPED — missing id or audio_url'); return; }
   const payload = {
     id:             track.id,
@@ -11150,7 +11145,7 @@ function _saveTrackToServer(track){
     headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
     body:JSON.stringify(payload),
   }).then(r=>r.json()).then(d=>{
-    console.log('[SaveTrack] response:', JSON.stringify(d));
+    /* debug removed */
     if(d.source==='supabase'){
       _sbLoaded=false;
       if(document.getElementById('community-view')?.classList.contains('on')){
@@ -11350,7 +11345,7 @@ function _doOpenFullPlayer(idx){
   audio.crossOrigin='anonymous';
   fpAudio=audio;
 
-  console.log('[FP] 새 오디오 생성 genId='+genId, 'idx='+idx, 'url='+_audioUrl.slice(-40));
+  /* debug removed */
 
   audio.addEventListener('timeupdate',()=>{
     if(genId!==_fpAudioGenId)return;
@@ -11393,7 +11388,7 @@ function _doOpenFullPlayer(idx){
     if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
     audio.play().then(()=>{
       if(genId!==_fpAudioGenId)return;
-      console.log('[FP] 재생 시작 genId='+genId, 'title='+h.title);
+      /* debug removed */
       _syncAllPlayBtns(true);
     }).catch((e)=>{
       if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
@@ -13297,7 +13292,7 @@ function guardPlay(action){
   }
   return true;
 }
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 /* ── 노래방 풀스크린 플레이어 ── */
 
@@ -15734,8 +15729,7 @@ function changeTheme(theme) {
   
   toast(`${themeNames[theme]} 테마가 적용되었어요`, 'ok', 2000);
   
-  // 데이모드 테스트용 로그
-  console.log(`테마 변경 완료: ${theme} (${themeNames[theme]})`);
+  /* 테마 변경 완료 */
 }
 
 function updateThemeUI() {
@@ -15759,8 +15753,7 @@ function getCurrentTheme() {
 function initTheme() {
   const savedTheme = getCurrentTheme();
   
-  // 데이모드 테스트용 초기화 로그
-  console.log(`테마 초기화: ${savedTheme}`);
+  /* 테마 초기화 */
   
   if (savedTheme && savedTheme !== 'dark') {
     document.body.setAttribute('data-theme', savedTheme);
@@ -15775,7 +15768,7 @@ function initTheme() {
     if (currentTheme !== savedTheme) {
       console.warn('테마 불일치 감지:', { saved: savedTheme, current: currentTheme });
     } else {
-      console.log('테마 정상 적용 확인:', currentTheme);
+      /* 테마 정상 적용됨 */
     }
   }, 200);
 }
@@ -16159,7 +16152,7 @@ async function _syncPlansFromServer(){
           };
         }
       });
-      console.log('[Plan] synced from server:', Object.keys(d.plans).join(','));
+      /* debug removed */
     }
   } catch(e){ console.warn('[Plan] sync fail:', e.message); }
 }
@@ -16276,9 +16269,10 @@ async function _serverCreditCheck(type){
 async function _serverCreditDeduct(type){
   if(!currentUser?.name || currentUser.provider==='guest') return;
   try {
+    var jwt=localStorage.getItem('kms_jwt')||'';
     await fetch('/api/check-credit', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+jwt},
       body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type, action:'deduct' })
     });
   } catch(e){ /* 실패해도 클라이언트에서 이미 차감됨 */ }
@@ -16717,7 +16711,7 @@ async function _syncPlanFromServer(){
       const serverPlan = ud.profile.plan || 'free';
       const localPlan = getPlan();
       if(localPlan.type !== serverPlan){
-        console.log('[PlanSync] 서버:', serverPlan, '로컬:', localPlan.type, '→ 동기화');
+        /* debug removed */
         const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
         localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
         if(typeof renderPlanUI === 'function') renderPlanUI();
@@ -16986,13 +16980,14 @@ async function _loadFollowingList(){
     list.innerHTML = d.following.map(function(u){
       var pI = {'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'';
       var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
-      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+u.name.replace(/'/g,"\\'")+'\',\''+u.provider+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+      var en=esc(u.name),ep=esc(u.provider),ea=esc(u.avatar||'');
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+en+'\',\''+ep+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
         +'<div style="flex:1;min-width:0;">'
-        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+en+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
         +'</div>'
-        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+u.name+'" data-cprov="'+u.provider+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
+        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+en+'" data-cprov="'+ep+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
         +'</div>';
     }).join('');
   } catch(e) {
@@ -17015,13 +17010,14 @@ async function _loadFollowerList(){
     list.innerHTML = d.followers.map(function(u){
       var pI = {'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'';
       var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
-      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+u.name.replace(/'/g,"\\'")+'\',\''+u.provider+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+      var en=esc(u.name),ep=esc(u.provider),ea=esc(u.avatar||'');
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+en+'\',\''+ep+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
         +'<div style="flex:1;min-width:0;">'
-        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+en+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
         +'</div>'
-        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+u.name+'" data-cprov="'+u.provider+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
+        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+en+'" data-cprov="'+ep+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
         +'</div>';
     }).join('');
   } catch(e) {

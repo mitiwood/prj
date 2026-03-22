@@ -8,7 +8,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 /* 메모리 폴백 */
 let _memLogs = [];
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   /* POST — 에러 기록 (인증 불필요 — 프론트에서 호출) */
   if (req.method === 'POST') {
-    const { endpoint, method, status, error_message, user_agent } = req.body || {};
+    const { endpoint, method, status, error_message, user_agent, notify } = req.body || {};
     const log = {
       endpoint: endpoint || 'unknown',
       method: method || 'GET',
@@ -60,6 +60,19 @@ export default async function handler(req, res) {
       _memLogs.unshift({ ...log, id: 'mem-' + Date.now() });
       if (_memLogs.length > MAX_MEM) _memLogs = _memLogs.slice(0, MAX_MEM);
     }
+
+    /* notify:true — 서버에서 텔레그램+카카오 알림 (클라이언트에 시크릿 노출 없이) */
+    if (notify && ADMIN_SECRET) {
+      const BASE = 'https://ai-music-studio-bice.vercel.app';
+      const alertText = log.error_message.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+      try {
+        await Promise.allSettled([
+          fetch(`${BASE}/api/telegram`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:alertText}) }),
+          fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:log.error_message.slice(0,300)}) }),
+        ]);
+      } catch {}
+    }
+
     return res.status(200).json({ ok: true });
   }
 

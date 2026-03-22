@@ -4,7 +4,7 @@
  * 환경변수 없어도 동작: 이메일 내용을 JSON으로 반환 (프론트에서 mailto: 처리)
  */
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const RESEND_KEY = process.env.RESEND_KEY || '';
 const APP_URL = 'https://ai-music-studio-bice.vercel.app';
 

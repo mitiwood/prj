@@ -12,8 +12,9 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kenny2024!';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const BASE = 'https://ai-music-studio-bice.vercel.app';
+const _profileRateMap = {}; /* Rate limit for profile updates */
 
 async function sb(method, path, body = null) {
   if (!SB_URL || !SB_KEY) throw new Error('Supabase 미설정');
@@ -266,8 +267,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, action, message: '클라이언트에서 처리' });
     }
 
-    /* 프로필 수정 */
+    /* 프로필 수정 — Rate Limit (IP당 3회/분) */
     if (action === 'update-profile') {
+      const ip = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown').split(',')[0].trim();
+      const now = Date.now();
+      if (!_profileRateMap[ip]) _profileRateMap[ip] = [];
+      _profileRateMap[ip] = _profileRateMap[ip].filter(t => now - t < 60000);
+      if (_profileRateMap[ip].length >= 3) return res.status(429).json({ error: '너무 많은 요청입니다' });
+      _profileRateMap[ip].push(now);
       const { name: newName, provider: prov, oldName, bio } = body;
       if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
       const trimmed = newName.trim().slice(0, 30);

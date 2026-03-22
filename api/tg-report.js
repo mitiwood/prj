@@ -6,7 +6,7 @@
 
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
-const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
+const ADMIN_PWD = process.env.ADMIN_SECRET;
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

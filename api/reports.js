@@ -8,7 +8,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ADMIN_PWD = process.env.ADMIN_SECRET || "kenny2024!";
+const ADMIN_PWD = process.env.ADMIN_SECRET;
 
 async function sb(method, path, body = null) {
   const headers = {

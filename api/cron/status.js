@@ -7,7 +7,7 @@ const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID || "";
-const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET || "kenny2024!";
+const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET;
 
 async function sb(path) {
   if (!SB_URL || !SB_KEY) throw new Error("no_supabase");

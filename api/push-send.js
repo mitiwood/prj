@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   // 관리자 인증
   const auth = req.headers.authorization;
-  const adminSecret = process.env.ADMIN_SECRET || 'kenny2024!';
+  const adminSecret = process.env.ADMIN_SECRET;
   if (!auth || auth !== `Bearer ${adminSecret}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

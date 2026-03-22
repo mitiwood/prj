@@ -11,9 +11,11 @@
  */
 
 import { PLANS } from './toss-config.js';
+import { verifyJWT } from './_jwt.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 /* toss-config.js에서 가져온 플랜 한도 매핑 */
 function getPlanLimits(planType) {
@@ -40,7 +42,7 @@ async function sbFetch(method, path, body = null) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -50,8 +52,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, reason: 'missing_user' });
   }
 
-  /* 다운그레이드 요청 처리 */
+  /* 다운그레이드 요청 처리 — 본인 또는 관리자만 */
   if (type === 'downgrade' && newPlan) {
+    const jwtUser = verifyJWT(req);
+    const authHdr = (req.headers.authorization || '').replace('Bearer ', '');
+    const isAdmin = ADMIN_SECRET && authHdr === ADMIN_SECRET;
+    const isSelf = jwtUser && jwtUser.name === userName && jwtUser.provider === userProvider;
+    if (!isAdmin && !isSelf) return res.status(403).json({ ok: false, reason: 'forbidden' });
     try {
       const limits = getPlanLimits(newPlan);
       const patchData = { plan: newPlan, credits_song: limits.songs, credits_mv: limits.mv, credits_lyrics: limits.lyrics };
@@ -115,8 +122,10 @@ export default async function handler(req, res) {
       used = 0;
     }
 
-    /* 3-a. action=set_plan → 관리자 플랜 변경 */
+    /* 3-a. action=set_plan → 관리자 전용 플랜 변경 */
     if (action === 'set_plan') {
+      const adminAuth = (req.headers.authorization || '').replace('Bearer ', '');
+      if (!ADMIN_SECRET || adminAuth !== ADMIN_SECRET) return res.status(403).json({ ok: false, reason: 'admin_only' });
       const setPlan = req.body?.plan || 'free';
       const setLimits = getPlanLimits(setPlan);
       const expires = setPlan === 'free' ? null : new Date(Date.now() + 30*24*60*60*1000).toISOString();
@@ -127,8 +136,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, plan: setPlan });
     }
 
-    /* 3-b. action=deduct → 크레딧 차감 후 종료 */
+    /* 3-b. action=deduct → 크레딧 차감 (본인 JWT 또는 관리자만) */
     if (action === 'deduct') {
+      const deductAuth = (req.headers.authorization || '').replace('Bearer ', '');
+      const isAdminDeduct = ADMIN_SECRET && deductAuth === ADMIN_SECRET;
+      const jwtUser = verifyJWT(req);
+      const isSelf = jwtUser && jwtUser.name === userName && jwtUser.provider === userProvider;
+      if (!isAdminDeduct && !isSelf) return res.status(403).json({ ok: false, reason: 'forbidden' });
       const creditCol = type === 'song' ? 'credits_song' : type === 'mv' ? 'credits_mv' : type === 'vr' ? 'credits_song' : 'credits_lyrics';
       const currentCredits = user?.[creditCol] || 0;
       const newCredits = Math.max(0, currentCredits - 1);
