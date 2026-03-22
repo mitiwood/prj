@@ -1120,6 +1120,38 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
+/* ═══ 미니플레이어/프로필/챌린지/다운로드/테마 고도화 ═══ */
+.mp-queue-btn{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:4px;display:flex;align-items:center;}
+#queue-sheet{position:fixed;inset:0;z-index:100003;display:none;background:rgba(0,0,0,.6);}
+#queue-sheet.on{display:block;}
+.queue-panel{position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:60vh;display:flex;flex-direction:column;padding:16px;}
+.queue-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;transition:background .15s;}
+.queue-item:hover,.queue-item.active{background:rgba(124,58,237,.1);}
+.queue-item-num{width:20px;text-align:center;font-size:11px;font-weight:700;color:var(--t3);}
+.queue-item-title{flex:1;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.queue-item-dur{font-size:10px;color:var(--t3);}
+.profile-badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+.profile-badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:3px;}
+.profile-badge.badge-creator{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:#f59e0b;}
+.profile-badge.badge-streak{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444;}
+.profile-badge.badge-popular{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);color:#a855f7;}
+.profile-badge.badge-og{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981;}
+.profile-timeline{margin-top:12px;}
+.pt-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.pt-dot{width:8px;height:8px;border-radius:50%;background:var(--acc);margin-top:4px;flex-shrink:0;}
+.pt-content{flex:1;font-size:12px;color:var(--t2);line-height:1.5;}
+.pt-time{font-size:9px;color:var(--t3);}
+.challenge-card-v2{padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(239,68,68,.08));border:1px solid rgba(245,158,11,.2);margin-bottom:12px;position:relative;overflow:hidden;}
+.challenge-card-v2::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,.15),transparent);border-radius:50%;}
+.challenge-progress{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;}
+.challenge-progress-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:2px;transition:width .5s;}
+.dl-format-row{display:flex;gap:6px;margin:8px 0;}
+.dl-format-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.dl-format-btn.on{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.3);color:var(--acc);}
+.theme-custom-panel{margin-top:12px;padding:12px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);}
+.theme-color-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.theme-color-label{font-size:11px;color:var(--t2);width:60px;}
+.theme-color-input{width:32px;height:32px;border:none;border-radius:8px;cursor:pointer;padding:0;background:none;}
 /* ═══ 6대 영역 (MV/앨범/AI/다국어/협업) ═══ */
 .mv-fx-row{display:flex;gap:6px;margin:8px 0;overflow-x:auto;padding:2px 0;}.mv-fx-row::-webkit-scrollbar{display:none;}
 .mv-fx-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
@@ -4587,6 +4619,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="theme-label">데이</span>
           </div>
         </div>
+        <!-- 커스텀 테마 -->
+        <div class="theme-custom-panel">
+          <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;">커스텀 색상</div>
+          <div class="theme-color-row"><span class="theme-color-label">메인 색상</span><input type="color" class="theme-color-input" id="tc-accent" value="#7c3aed" onchange="_setCustomColor('--acc',this.value)"></div>
+          <div class="theme-color-row"><span class="theme-color-label">배경</span><input type="color" class="theme-color-input" id="tc-bg" value="#0f0f1a" onchange="_setCustomColor('--bg',this.value)"></div>
+          <div class="theme-color-row"><span class="theme-color-label">카드</span><input type="color" class="theme-color-input" id="tc-card" value="#1a1a2e" onchange="_setCustomColor('--card',this.value)"></div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button onclick="_resetCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;">초기화</button>
+            <button onclick="_saveCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4935,10 +4978,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div class="mp-controls">
       <button class="mp-play-btn" id="mp-play-btn" title="재생/일시정지"><svg id="mp-play-icon" viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg></button>
       <button class="mp-next-btn" id="mp-next-btn" title="다음 곡"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+      <button class="mp-queue-btn" id="mp-queue-btn" onclick="event.stopPropagation();openQueueSheet()" title="재생 목록"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
       <button class="mp-close-btn" id="mp-close-btn" title="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="12" height="12"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
   </div>
   <div class="mp-prog-bar"><div class="mp-prog-fill" id="mp-prog-fill"></div></div>
+</div>
+
+<!-- ── 재생 큐 시트 ── -->
+<div id="queue-sheet" onclick="if(event.target===this)closeQueueSheet()">
+  <div class="queue-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);">재생 목록</div>
+      <button onclick="closeQueueSheet()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;">✕</button>
+    </div>
+    <div id="queue-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+  </div>
 </div>
 
 <!-- ── 트랙 상세 바텀시트 ── -->
@@ -19916,6 +19971,90 @@ switchTab=function(viewId){
   document.querySelectorAll('.view:not(.on) video').forEach(function(v){v.pause();v.removeAttribute('src');});
 };
 window.switchTab=switchTab;
+
+/* ═══ 미니플레이어 가사 미리보기 ═══ */
+function _updateMpLyricPreview(){
+  var el=$('mp-lyric-preview');if(!el)return;
+  if(fpCurrentIdx<0||!historyData[fpCurrentIdx]){el.style.display='none';return;}
+  var h=historyData[fpCurrentIdx];
+  if(!h.lyrics){el.style.display='none';return;}
+  /* 현재 싱크 라인 가져오기 */
+  if(typeof fpTimestampLines!=='undefined'&&fpTimestampLines.length&&fpAudio){
+    var ct=fpAudio.currentTime;
+    for(var i=fpTimestampLines.length-1;i>=0;i--){
+      if(fpTimestampLines[i].time<=ct){el.textContent=fpTimestampLines[i].text;el.style.display='block';return;}
+    }
+  }
+  /* 타임스탬프 없으면 첫 줄 */
+  var firstLine=(h.lyrics||'').split('\n').find(function(l){return l.trim()&&!l.startsWith('[');});
+  if(firstLine){el.textContent=firstLine.trim();el.style.display='block';}
+  else el.style.display='none';
+}
+setInterval(_updateMpLyricPreview,1000);
+
+/* ═══ 재생 큐 ═══ */
+function openQueueSheet(){
+  var qs=$('queue-sheet');if(!qs)return;qs.classList.add('on');_renderQueue();
+}
+function closeQueueSheet(){var qs=$('queue-sheet');if(qs)qs.classList.remove('on');}
+function _renderQueue(){
+  var list=$('queue-list');if(!list)return;
+  if(!historyData||!historyData.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">재생 목록이 비어있어요</div>';return;}
+  var tracks=historyData.filter(function(h){return !!h.audio_url;});
+  list.innerHTML=tracks.map(function(h,i){
+    var origIdx=historyData.indexOf(h);
+    var isActive=origIdx===fpCurrentIdx;
+    var dur=typeof _durCache!=='undefined'&&_durCache[h.id||h.taskId]?_durCache[h.id||h.taskId]:'';
+    return '<div class="queue-item'+(isActive?' active':'')+'" onclick="closeQueueSheet();showMiniPlayer('+origIdx+')"><span class="queue-item-num">'+(i+1)+'</span><span class="queue-item-title">'+(isActive?'▶ ':'')+esc(h.title||'무제')+'</span><span class="queue-item-dur">'+dur+'</span></div>';
+  }).join('');
+}
+
+/* ═══ 프로필 뱃지 시스템 ═══ */
+function _getProfileBadges(profile){
+  var badges=[];
+  if(!profile)return badges;
+  var tc=profile.trackCount||0,tl=profile.totalLikes||0,fc=profile.followerCount||0;
+  if(tc>=1)badges.push({cls:'badge-creator',text:'🎵 크리에이터'});
+  if(tc>=10)badges.push({cls:'badge-og',text:'💎 OG 크리에이터'});
+  if(tl>=10)badges.push({cls:'badge-popular',text:'💜 인기'});
+  if(tl>=50)badges.push({cls:'badge-popular',text:'🔥 핫 크리에이터'});
+  if(fc>=5)badges.push({cls:'badge-streak',text:'⭐ 영향력'});
+  return badges;
+}
+function _renderProfileBadges(profile,container){
+  if(!container)return;
+  var badges=_getProfileBadges(profile);
+  if(!badges.length){container.innerHTML='';return;}
+  container.innerHTML=badges.map(function(b){return '<span class="profile-badge '+b.cls+'">'+b.text+'</span>';}).join('');
+}
+
+/* ═══ 다운로드 포맷 선택 ═══ */
+var _dlFormat='mp3';
+function _setDlFormat(fmt){
+  _dlFormat=fmt;
+  document.querySelectorAll('.dl-format-btn').forEach(function(b){b.classList.toggle('on',b.dataset.fmt===fmt);});
+}
+
+/* ═══ 커스텀 테마 ═══ */
+function _setCustomColor(varName,val){document.documentElement.style.setProperty(varName,val);}
+function _saveCustomTheme(){
+  var theme={};
+  var acc=$('tc-accent');if(acc)theme['--acc']=acc.value;
+  var bg=$('tc-bg');if(bg)theme['--bg']=bg.value;
+  var card=$('tc-card');if(card)theme['--card']=card.value;
+  localStorage.setItem('kms_custom_theme',JSON.stringify(theme));
+  toast('🎨 커스텀 테마 저장!','ok',1500);
+}
+function _resetCustomTheme(){
+  localStorage.removeItem('kms_custom_theme');
+  ['--acc','--bg','--card'].forEach(function(v){document.documentElement.style.removeProperty(v);});
+  toast('테마 초기화됨','ok',1500);
+}
+function _loadCustomTheme(){
+  try{var t=JSON.parse(localStorage.getItem('kms_custom_theme')||'{}');
+  Object.entries(t).forEach(function(e){document.documentElement.style.setProperty(e[0],e[1]);});}catch(e){}
+}
+_loadCustomTheme();
 
 /* ═══ MV 영상 효과 ═══ */
 var _mvFxValue='';
