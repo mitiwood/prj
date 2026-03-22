@@ -558,16 +558,19 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <!-- 탭 -->
         <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;" id="mem-tabs">
           <button class="btn btn-acc" onclick="_memTab('members')" data-mtab="members">회원 현황</button>
+          <button class="btn" onclick="_memTab('insights')" data-mtab="insights">인사이트</button>
           <button class="btn" onclick="_memTab('payments')" data-mtab="payments">결제 내역</button>
           <button class="btn" onclick="_memTab('withdraw')" data-mtab="withdraw">탈퇴/정지</button>
         </div>
 
         <!-- 통계 카드 -->
-        <div class="stat-grid" style="margin-bottom:20px;">
+        <div class="stats-grid" style="margin-bottom:20px;">
           <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="pay-total-users">-</div><div class="stat-label">전체 회원</div></div>
           <div class="stat-card"><div class="stat-icon">💜</div><div class="stat-val" id="pay-pro-count">-</div><div class="stat-label">Pro</div></div>
           <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-val" id="pay-creator-count">-</div><div class="stat-label">Creator</div></div>
           <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-val" id="pay-total-amount">-</div><div class="stat-label">총 매출</div></div>
+          <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val" id="pay-active-rate">-</div><div class="stat-label">활성률 (7일)</div></div>
+          <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-val" id="pay-new-this-week">-</div><div class="stat-label">이번주 신규</div></div>
         </div>
 
         <!-- 회원 현황 탭 -->
@@ -586,6 +589,82 @@ tr:hover td{background:rgba(255,255,255,.02);}
             <tbody id="pay-user-tbody">
               <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
             </tbody></table>
+          </div>
+        </div>
+
+        <!-- 인사이트 탭 -->
+        <div id="mem-panel-insights" style="display:none;">
+          <!-- 핵심 KPI -->
+          <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card" style="border-left:3px solid var(--grn);">
+              <div class="stat-icon">📈</div>
+              <div class="stat-val" id="ins-growth-rate">-</div>
+              <div class="stat-label">주간 성장률</div>
+              <div class="stat-change" id="ins-growth-trend"></div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid var(--acc);">
+              <div class="stat-icon">🔄</div>
+              <div class="stat-val" id="ins-retention">-</div>
+              <div class="stat-label">리텐션 (7일)</div>
+              <div class="stat-change" id="ins-retention-trend"></div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid #3b82f6;">
+              <div class="stat-icon">⚡</div>
+              <div class="stat-val" id="ins-avg-logins">-</div>
+              <div class="stat-label">평균 로그인 횟수</div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid #f59e0b;">
+              <div class="stat-icon">💎</div>
+              <div class="stat-val" id="ins-conversion">-</div>
+              <div class="stat-label">유료 전환율</div>
+            </div>
+          </div>
+
+          <!-- 플랜 분포 + 가입 소셜 분포 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div class="admin-table-wrap">
+              <div class="admin-table-header"><h3>플랜 분포</h3></div>
+              <div style="padding:20px;" id="ins-plan-chart"></div>
+            </div>
+            <div class="admin-table-wrap">
+              <div class="admin-table-header"><h3>소셜 로그인 분포</h3></div>
+              <div style="padding:20px;" id="ins-provider-chart"></div>
+            </div>
+          </div>
+
+          <!-- 가입 추이 (최근 14일) -->
+          <div class="admin-table-wrap" style="margin-bottom:20px;">
+            <div class="admin-table-header"><h3>가입 추이 (최근 14일)</h3></div>
+            <div style="padding:20px;overflow-x:auto;" id="ins-signup-trend"></div>
+          </div>
+
+          <!-- 활동 히트맵 (요일 x 시간대) -->
+          <div class="admin-table-wrap" style="margin-bottom:20px;">
+            <div class="admin-table-header"><h3>로그인 활동 히트맵</h3></div>
+            <div style="padding:20px;overflow-x:auto;" id="ins-heatmap"></div>
+          </div>
+
+          <!-- 사용자 세그먼트 -->
+          <div class="admin-table-wrap" style="margin-bottom:20px;">
+            <div class="admin-table-header"><h3>사용자 세그먼트 분석</h3></div>
+            <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;" id="ins-segments"></div>
+          </div>
+
+          <!-- 이탈 위험 유저 -->
+          <div class="admin-table-wrap" style="margin-bottom:20px;">
+            <div class="admin-table-header">
+              <h3>이탈 위험 회원</h3>
+              <span style="font-size:11px;color:var(--t3);">14일 이상 미접속</span>
+            </div>
+            <table><thead><tr><th>이름</th><th>소셜</th><th>플랜</th><th>마지막 로그인</th><th>미접속 일수</th><th>액션</th></tr></thead>
+            <tbody id="ins-churn-tbody"></tbody></table>
+          </div>
+
+          <!-- Top 회원 (로그인 횟수) -->
+          <div class="admin-table-wrap">
+            <div class="admin-table-header"><h3>Top 10 활성 회원</h3></div>
+            <table><thead><tr><th>#</th><th>이름</th><th>소셜</th><th>플랜</th><th>로그인 횟수</th><th>가입일</th></tr></thead>
+            <tbody id="ins-top-tbody"></tbody></table>
           </div>
         </div>
 
@@ -2917,9 +2996,8 @@ async function renderUsersAdmin(showToast=false){
           +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
           +'<td><select onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'
             +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
-            +'<option value="basic"'+(u.plan==='basic'?' selected':'')+'>Basic</option>'
             +'<option value="pro"'+(u.plan==='pro'?' selected':'')+'>Pro</option>'
-            +'<option value="premium"'+(u.plan==='premium'?' selected':'')+'>Premium</option>'
+            +'<option value="creator"'+(u.plan==='creator'?' selected':'')+'>Creator</option>'
           +'</select></td>'
           +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'회</td>'
           +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(isOnline?'<div style="font-size:9px;color:var(--grn);">🟢 온라인</div>':'')+'</td>'
@@ -5268,13 +5346,14 @@ setInterval(() => {
 /* ── 회원관리 탭 전환 ── */
 let _memAllUsers = [];
 function _memTab(tab){
-  ['members','payments','withdraw'].forEach(t=>{
+  ['members','insights','payments','withdraw'].forEach(t=>{
     const panel = document.getElementById('mem-panel-'+t);
     if(panel) panel.style.display = t===tab ? '' : 'none';
   });
   document.querySelectorAll('#mem-tabs .btn').forEach(b=>{
     b.className = b.dataset.mtab===tab ? 'btn btn-acc' : 'btn';
   });
+  if(tab==='insights') _renderInsights(_memAllUsers);
 }
 
 async function _loadPaymentData(){
@@ -5333,7 +5412,7 @@ function _renderMembers(users){
     const pi={'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'👤';
     const joinDt=u.created_at?new Date(u.created_at).toLocaleDateString('ko-KR'):'-';
     return `<tr>
-      <td style="font-weight:600;">${_esc(u.name||'?')}</td>
+      <td style="font-weight:600;cursor:pointer;color:var(--acc);" onclick="_showUserDetail('${_esc(u.name)}','${_esc(u.provider)}')" title="상세 보기">${_esc(u.name||'?')}</td>
       <td>${pi} ${u.provider||'?'}</td>
       <td>${pb}</td>
       <td>${u.credits||0}</td>
@@ -5377,9 +5456,8 @@ async function _changePlan(name, provider, plan){
 async function _suspendUser(name, provider){
   if(!confirm(`${name}님을 정지할까요?\n플랜→Free, 크레딧→0으로 변경됩니다.`)) return;
   try {
-    await fetch('/api/check-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:name,userProvider:provider,type:'downgrade',newPlan:'free'})});
-    /* 크레딧 0으로 */
-    await fetch('/api/setup-db',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({sql:`UPDATE public.users SET credits=0, plan='free' WHERE name='${name.replace(/'/g,"''")}' AND provider='${provider.replace(/'/g,"''")}'`})});
+    /* PATCH API로 안전하게 플랜/크레딧 변경 */
+    await fetch('/api/users',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({name,provider,plan:'free',credits:0})});
     await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'계정 정지',body:`${name}님의 계정이 정지됐습니다.`,icon:'🔒'})});
     toast('🔒 '+name+' 정지 완료','ok',2000);
     _loadPaymentData();
@@ -5436,6 +5514,315 @@ setInterval(()=>{
   if(sec&&sec.classList.contains('on')) _loadPaymentData();
 }, 15000);
 
+/* ══════════════════════════════
+   📊 회원 인사이트 분석
+══════════════════════════════ */
+function _renderInsights(users){
+  if(!users||!users.length) return;
+  const now=Date.now();
+  const DAY=86400000;
+  const WEEK=7*DAY;
+
+  /* ── 핵심 KPI 계산 ── */
+  const thisWeekUsers=users.filter(u=>u.created_at&&(now-new Date(u.created_at).getTime())<WEEK);
+  const lastWeekUsers=users.filter(u=>u.created_at&&(now-new Date(u.created_at).getTime())>=WEEK&&(now-new Date(u.created_at).getTime())<2*WEEK);
+  const growthRate=lastWeekUsers.length>0?((thisWeekUsers.length-lastWeekUsers.length)/lastWeekUsers.length*100).toFixed(1):(thisWeekUsers.length>0?'+100':'0');
+  const el1=document.getElementById('ins-growth-rate');if(el1)el1.textContent=(growthRate>0?'+':'')+growthRate+'%';
+  const el1t=document.getElementById('ins-growth-trend');
+  if(el1t){el1t.textContent=thisWeekUsers.length+'명 (전주 '+lastWeekUsers.length+'명)';el1t.className='stat-change '+(growthRate>=0?'up':'dn');}
+
+  /* 리텐션: 7일 내 재방문 비율 */
+  const recentActive=users.filter(u=>u.last_login&&(now-u.last_login)<WEEK);
+  const retention=users.length>0?(recentActive.length/users.length*100).toFixed(1):'0';
+  const el2=document.getElementById('ins-retention');if(el2)el2.textContent=retention+'%';
+  const el2t=document.getElementById('ins-retention-trend');
+  if(el2t){el2t.textContent=recentActive.length+'/'+users.length+'명 활성';el2t.className='stat-change '+(retention>=50?'up':'dn');}
+
+  /* 평균 로그인 */
+  const totalLogins=users.reduce((s,u)=>s+(u.login_count||1),0);
+  const avgLogins=(totalLogins/users.length).toFixed(1);
+  const el3=document.getElementById('ins-avg-logins');if(el3)el3.textContent=avgLogins+'회';
+
+  /* 유료 전환율 */
+  const paidUsers=users.filter(u=>u.plan==='pro'||u.plan==='creator');
+  const conversion=users.length>0?(paidUsers.length/users.length*100).toFixed(1):'0';
+  const el4=document.getElementById('ins-conversion');if(el4)el4.textContent=conversion+'%';
+
+  /* 활성률, 이번주 신규 (상단 stat카드) */
+  const el5=document.getElementById('pay-active-rate');if(el5)el5.textContent=retention+'%';
+  const el6=document.getElementById('pay-new-this-week');if(el6)el6.textContent=thisWeekUsers.length+'명';
+
+  /* ── 플랜 분포 (CSS 바 차트) ── */
+  const planCounts={free:0,pro:0,creator:0};
+  users.forEach(u=>{const p=u.plan||'free';if(planCounts[p]!==undefined)planCounts[p]++;else planCounts.free++;});
+  const planColors={free:'var(--t3)',pro:'var(--acc2)',creator:'#f59e0b'};
+  const planLabels={free:'Free',pro:'Pro',creator:'Creator'};
+  const planEl=document.getElementById('ins-plan-chart');
+  if(planEl){
+    let html='';
+    for(const p of ['free','pro','creator']){
+      const pct=users.length>0?(planCounts[p]/users.length*100).toFixed(1):'0';
+      html+=`<div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="font-weight:700;color:${planColors[p]};">${planLabels[p]}</span>
+          <span style="color:var(--t3);">${planCounts[p]}명 (${pct}%)</span>
+        </div>
+        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${planColors[p]};border-radius:4px;transition:width .5s;"></div>
+        </div>
+      </div>`;
+    }
+    planEl.innerHTML=html;
+  }
+
+  /* ── 소셜 로그인 분포 ── */
+  const provCounts={};
+  users.forEach(u=>{const p=u.provider||'unknown';provCounts[p]=(provCounts[p]||0)+1;});
+  const provIcons={google:'🔵',kakao:'💬',naver:'🟢'};
+  const provColors2={google:'#4285f4',kakao:'#fee500',naver:'#03c75a'};
+  const provEl=document.getElementById('ins-provider-chart');
+  if(provEl){
+    const sorted=Object.entries(provCounts).sort((a,b)=>b[1]-a[1]);
+    let html='';
+    for(const [p,cnt] of sorted){
+      const pct=(cnt/users.length*100).toFixed(1);
+      html+=`<div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="font-weight:700;">${provIcons[p]||'👤'} ${p}</span>
+          <span style="color:var(--t3);">${cnt}명 (${pct}%)</span>
+        </div>
+        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${provColors2[p]||'var(--acc)'};border-radius:4px;transition:width .5s;"></div>
+        </div>
+      </div>`;
+    }
+    provEl.innerHTML=html;
+  }
+
+  /* ── 가입 추이 (최근 14일 바 차트) ── */
+  const signupEl=document.getElementById('ins-signup-trend');
+  if(signupEl){
+    const days=[];
+    for(let i=13;i>=0;i--){
+      const d=new Date(now-i*DAY);
+      d.setHours(0,0,0,0);
+      const next=new Date(d.getTime()+DAY);
+      const cnt=users.filter(u=>u.created_at&&new Date(u.created_at)>=d&&new Date(u.created_at)<next).length;
+      days.push({label:(d.getMonth()+1)+'/'+d.getDate(),count:cnt,isToday:i===0});
+    }
+    const maxCnt=Math.max(...days.map(d=>d.count),1);
+    let html='<div style="display:flex;align-items:flex-end;gap:4px;height:120px;">';
+    for(const d of days){
+      const h=Math.max(4,d.count/maxCnt*100);
+      html+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <span style="font-size:10px;color:var(--t2);font-weight:700;">${d.count||''}</span>
+        <div style="width:100%;height:${h}px;background:${d.isToday?'var(--acc)':'rgba(168,85,247,.3)'};border-radius:4px 4px 0 0;min-width:16px;transition:height .3s;"></div>
+        <span style="font-size:9px;color:var(--t3);white-space:nowrap;${d.isToday?'color:var(--acc);font-weight:700;':''}">${d.label}</span>
+      </div>`;
+    }
+    html+='</div>';
+    signupEl.innerHTML=html;
+  }
+
+  /* ── 로그인 히트맵 (요일 x 시간대) ── */
+  const heatEl=document.getElementById('ins-heatmap');
+  if(heatEl){
+    const grid=Array.from({length:7},()=>Array(24).fill(0));
+    users.forEach(u=>{
+      if(!u.last_login) return;
+      const d=new Date(u.last_login);
+      grid[d.getDay()][d.getHours()]++;
+    });
+    const maxH=Math.max(...grid.flat(),1);
+    const dayNames=['일','월','화','수','목','금','토'];
+    let html='<div style="display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px;font-size:9px;">';
+    html+='<div></div>';
+    for(let h=0;h<24;h++) html+=`<div style="text-align:center;color:var(--t3);">${h}</div>`;
+    for(let d=0;d<7;d++){
+      html+=`<div style="color:var(--t3);display:flex;align-items:center;justify-content:center;font-weight:700;">${dayNames[d]}</div>`;
+      for(let h=0;h<24;h++){
+        const v=grid[d][h];
+        const opacity=v>0?Math.max(0.15,v/maxH):0.03;
+        html+=`<div style="aspect-ratio:1;background:rgba(168,85,247,${opacity});border-radius:3px;min-width:12px;" title="${dayNames[d]} ${h}시: ${v}명"></div>`;
+      }
+    }
+    html+='</div>';
+    heatEl.innerHTML=html;
+  }
+
+  /* ── 사용자 세그먼트 ── */
+  const segEl=document.getElementById('ins-segments');
+  if(segEl){
+    const power=users.filter(u=>(u.login_count||0)>=10);
+    const casual=users.filter(u=>(u.login_count||0)>=3&&(u.login_count||0)<10);
+    const onetime=users.filter(u=>(u.login_count||0)<=2);
+    const dormant=users.filter(u=>u.last_login&&(now-u.last_login)>30*DAY);
+    const mobile=users.filter(u=>u.is_mobile);
+    const pc=users.filter(u=>!u.is_mobile);
+    const segments=[
+      {icon:'🔥',label:'파워 유저',desc:'10회+ 로그인',count:power.length,color:'#ef4444'},
+      {icon:'👋',label:'일반 유저',desc:'3~9회 로그인',count:casual.length,color:'#3b82f6'},
+      {icon:'👀',label:'일회성 방문',desc:'1~2회 로그인',count:onetime.length,color:'var(--t3)'},
+      {icon:'💤',label:'휴면 회원',desc:'30일+ 미접속',count:dormant.length,color:'#f59e0b'},
+      {icon:'📱',label:'모바일',desc:'모바일 접속',count:mobile.length,color:'#22c55e'},
+      {icon:'💻',label:'PC',desc:'PC 접속',count:pc.length,color:'#8b5cf6'},
+    ];
+    segEl.innerHTML=segments.map(s=>`
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;border-left:3px solid ${s.color};">
+        <div style="font-size:20px;margin-bottom:6px;">${s.icon}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--t1);">${s.count}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t1);margin-top:2px;">${s.label}</div>
+        <div style="font-size:10px;color:var(--t3);">${s.desc}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:4px;">${users.length>0?(s.count/users.length*100).toFixed(1):'0'}%</div>
+      </div>
+    `).join('');
+  }
+
+  /* ── 이탈 위험 유저 ── */
+  const churnEl=document.getElementById('ins-churn-tbody');
+  if(churnEl){
+    const churnUsers=users.filter(u=>u.last_login&&(now-u.last_login)>14*DAY)
+      .sort((a,b)=>(a.last_login||0)-(b.last_login||0)).slice(0,20);
+    if(!churnUsers.length){
+      churnEl.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--grn);">이탈 위험 회원이 없습니다</td></tr>';
+    } else {
+      churnEl.innerHTML=churnUsers.map(u=>{
+        const days=Math.floor((now-(u.last_login||0))/DAY);
+        const urgency=days>30?'color:#ef4444;font-weight:700;':days>21?'color:#f59e0b;':'color:var(--t2);';
+        const pi={'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'👤';
+        const pb={creator:'<span style="color:#f59e0b;">👑Creator</span>',pro:'<span style="color:var(--acc2);">💜Pro</span>',free:'Free'}[u.plan||'free']||'Free';
+        const lastDt=u.last_login?new Date(u.last_login).toLocaleDateString('ko-KR'):'-';
+        return `<tr>
+          <td style="font-weight:600;">${_esc(u.name||'?')}</td>
+          <td>${pi} ${u.provider||'?'}</td>
+          <td>${pb}</td>
+          <td style="font-size:11px;">${lastDt}</td>
+          <td style="${urgency}">${days}일</td>
+          <td><button class="btn" onclick="_notifyUser('${_esc(u.name)}','${_esc(u.provider)}')" style="font-size:10px;padding:3px 8px;">📢 리마인드</button></td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  /* ── Top 10 활성 회원 ── */
+  const topEl=document.getElementById('ins-top-tbody');
+  if(topEl){
+    const top10=[...users].sort((a,b)=>(b.login_count||0)-(a.login_count||0)).slice(0,10);
+    topEl.innerHTML=top10.map((u,i)=>{
+      const pi={'google':'🔵','kakao':'💬','naver':'🟢'}[u.provider]||'👤';
+      const pb={creator:'<span style="color:#f59e0b;">👑Creator</span>',pro:'<span style="color:var(--acc2);">💜Pro</span>',free:'Free'}[u.plan||'free']||'Free';
+      const medal=['🥇','🥈','🥉'][i]||`<span style="color:var(--t3);">${i+1}</span>`;
+      const joinDt=u.created_at?new Date(u.created_at).toLocaleDateString('ko-KR'):'-';
+      return `<tr>
+        <td style="font-size:16px;text-align:center;">${medal}</td>
+        <td style="font-weight:600;cursor:pointer;" onclick="_showUserDetail('${_esc(u.name)}','${_esc(u.provider)}')">${_esc(u.name||'?')}</td>
+        <td>${pi} ${u.provider||'?'}</td>
+        <td>${pb}</td>
+        <td style="font-weight:700;color:var(--acc);">${u.login_count||1}회</td>
+        <td style="font-size:11px;color:var(--t3);">${joinDt}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+/* ══════════════════════════════
+   👤 회원 상세 모달
+══════════════════════════════ */
+async function _showUserDetail(name, provider){
+  const user=_memAllUsers.find(u=>u.name===name&&u.provider===provider);
+  if(!user){toast('유저 정보 없음','err');return;}
+  const now=Date.now();
+  const DAY=86400000;
+  const pi={'google':'🔵 Google','kakao':'💬 카카오','naver':'🟢 네이버'}[user.provider]||user.provider;
+  const pb={creator:'👑 Creator',pro:'💜 Pro',free:'🆓 Free'}[user.plan||'free']||'Free';
+  const joinDt=user.created_at?new Date(user.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}):'-';
+  const lastDt=user.last_login?new Date(user.last_login).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  const daysSinceLogin=user.last_login?Math.floor((now-user.last_login)/DAY):'-';
+  const daysSinceJoin=user.created_at?Math.floor((now-new Date(user.created_at).getTime())/DAY):'-';
+  const loginsPerDay=daysSinceJoin>0?((user.login_count||1)/daysSinceJoin).toFixed(2):'N/A';
+
+  /* 프로필 API 호출로 트랙 수 가져오기 */
+  let trackCount=0,totalLikes=0,totalPlays=0,followerCount=0,followingCount=0;
+  try{
+    const r=await fetch('/api/profile?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(provider));
+    const d=await r.json();
+    if(d.ok&&d.profile){
+      trackCount=d.profile.trackCount||0;
+      totalLikes=d.profile.totalLikes||0;
+      totalPlays=d.profile.totalPlays||0;
+      followerCount=d.profile.followerCount||0;
+      followingCount=d.profile.followingCount||0;
+    }
+  }catch(e){console.warn('[detail]',e.message);}
+
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:480px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:800;">회원 상세 정보</h3>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:14px;">
+      ${user.avatar?'<img src="'+_esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">':'<div style="width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>'}
+      <div>
+        <div style="font-size:16px;font-weight:800;">${_esc(user.name)}</div>
+        <div style="font-size:12px;color:var(--t3);">${pi} &middot; ${pb}</div>
+        ${user.email?'<div style="font-size:11px;color:var(--t3);">'+_esc(user.email)+'</div>':''}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--acc);">${user.login_count||1}</div>
+        <div style="font-size:10px;color:var(--t3);">총 로그인</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--grn);">${trackCount}</div>
+        <div style="font-size:10px;color:var(--t3);">생성 곡</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:#f59e0b;">${user.credits||0}</div>
+        <div style="font-size:10px;color:var(--t3);">잔여 크레딧</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--red);">❤️ ${totalLikes}</div>
+        <div style="font-size:10px;color:var(--t3);">받은 좋아요</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;">${followerCount}</div>
+        <div style="font-size:10px;color:var(--t3);">팔로워</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;">${followingCount}</div>
+        <div style="font-size:10px;color:var(--t3);">팔로잉</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--t1);">활동 요약</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><span style="color:var(--t3);">가입일:</span> ${joinDt}</div>
+        <div><span style="color:var(--t3);">마지막 접속:</span> ${lastDt}</div>
+        <div><span style="color:var(--t3);">가입 후:</span> ${daysSinceJoin}일</div>
+        <div><span style="color:var(--t3);">미접속:</span> <span style="${daysSinceLogin>14?'color:var(--red);font-weight:700;':''}">${daysSinceLogin}일</span></div>
+        <div><span style="color:var(--t3);">일평균 로그인:</span> ${loginsPerDay}회</div>
+        <div><span style="color:var(--t3);">디바이스:</span> ${user.is_mobile?'📱 모바일':'💻 PC'}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-acc" onclick="_changePlan('${_esc(user.name)}','${_esc(user.provider)}','pro');this.closest('div[style*=fixed]').remove();" style="flex:1;">💜 Pro 업그레이드</button>
+      <button class="btn" onclick="_notifyUser('${_esc(user.name)}','${_esc(user.provider)}')" style="flex:1;">📢 알림 발송</button>
+      <button class="btn btn-red" onclick="_suspendUser('${_esc(user.name)}','${_esc(user.provider)}');this.closest('div[style*=fixed]').remove();">🔒 정지</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
 
 </script>
 </body>

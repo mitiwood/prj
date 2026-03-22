@@ -68,7 +68,7 @@ async function sbFetch(path, options = {}) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -146,6 +146,35 @@ export default async function handler(req, res) {
         else { _memStore.unshift(memEntry); if (_memStore.length > 200) _memStore = _memStore.slice(0, 200); }
         return res.status(200).json({ success: true, source: 'memory', note: e.message });
       }
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  /* ── PATCH: 사용자 정보 수정 (관리자 전용) ── */
+  if (req.method === 'PATCH') {
+    const auth = req.headers.authorization || '';
+    if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    const { name, provider, plan, credits, plan_expires } = body || {};
+    if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
+
+    const update = {};
+    if (plan) update.plan = plan;
+    if (typeof credits === 'number') update.credits = credits;
+    if (plan_expires !== undefined) update.plan_expires = plan_expires;
+
+    if (Object.keys(update).length === 0) return res.status(400).json({ error: 'nothing to update' });
+
+    try {
+      await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(update),
+      });
+      return res.status(200).json({ success: true, updated: update });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
