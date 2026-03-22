@@ -11958,6 +11958,7 @@ function _myFeedRefresh(){
   if(btn) btn.classList.add('spinning');
   _myFeedCreators=null;
   _myFeedLoadError=false;
+  _myFeedLoading=false; // 로딩 상태 확실히 초기화
   _myFeedDetailCache={};
   _followBatchLoaded=false;
   try{localStorage.removeItem('kms_myfeed_creators');}catch(e){}
@@ -12224,16 +12225,38 @@ function _loadMyFeedCreators(){
   }catch(e){}
 
   /* 4) 최후 수단: 경량 API 호출 (크리에이터용 필수 컬럼만) */
-  fetch('/api/tracks?public=true&limit=200&mode=creators').then(function(r){return r.json();}).then(function(d){
-    var tracks=(d.tracks||d.data||d||[]);
-    _myFeedRawTracks=tracks;
-    _myFeedCreators=_groupCreatorsFromRaw(tracks);
+  var fetchTimeout = setTimeout(function(){
+    console.warn('[my-feed creators] 요청 타임아웃');
+    _myFeedCreators=[];
+    _myFeedLoadError=true;
     _myFeedLoading=false;
-    _saveMyFeedCache(_myFeedCreators);
     if(_histTabFilter==='myfeed') renderHistoryView();
+  }, 10000); // 10초 타임아웃
+  
+  fetch('/api/tracks?public=true&limit=200&mode=creators').then(function(r){
+    clearTimeout(fetchTimeout);
+    return r.json();
+  }).then(function(d){
+    try {
+      var tracks=(d.tracks||d.data||d||[]);
+      _myFeedRawTracks=tracks;
+      _myFeedCreators=_groupCreatorsFromRaw(tracks);
+      // 빈 배열이어도 정상 처리
+      if(!_myFeedCreators) _myFeedCreators=[];
+      _myFeedLoading=false;
+      _saveMyFeedCache(_myFeedCreators);
+      if(_histTabFilter==='myfeed') renderHistoryView();
+    } catch(parseError) {
+      console.warn('[my-feed creators] 데이터 파싱 오류:', parseError);
+      _myFeedCreators=[];
+      _myFeedLoadError=true;
+      _myFeedLoading=false;
+      if(_histTabFilter==='myfeed') renderHistoryView();
+    }
   }).catch(function(e){
+    clearTimeout(fetchTimeout);
     console.warn('[my-feed creators]',e);
-    _myFeedCreators=null;
+    _myFeedCreators=[];
     _myFeedLoadError=true;
     _myFeedLoading=false;
     if(_histTabFilter==='myfeed') renderHistoryView();
