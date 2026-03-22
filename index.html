@@ -23,6 +23,11 @@
 <script>
 /* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
 window.$=window.$||function(id){return document.getElementById(id);};
+/* 전역 변수 stub — 다른 script 블록에서 참조 방어 */
+if(typeof fpCurrentIdx==='undefined')window.fpCurrentIdx=-1;
+if(typeof fpAudio==='undefined')window.fpAudio=null;
+if(typeof historyData==='undefined')window.historyData=[];
+if(typeof fpTimestampLines==='undefined')window.fpTimestampLines=[];
 window.switchTab=window.switchTab||function(){};
 window.selectPlan=window.selectPlan||function(){};
 window.upgradePlan=window.upgradePlan||function(){};
@@ -59,6 +64,9 @@ window._fpDoAddPlaylist=window._fpDoAddPlaylist||function(){};
 window.doRecompose=window.doRecompose||function(){};
 window.closeRecomposeSheet=window.closeRecomposeSheet||function(){};
 window.hesTabLike=window.hesTabLike||function(){};
+window._toggleHomeWidgets=window._toggleHomeWidgets||function(){};
+window._showShortcutHelp=window._showShortcutHelp||function(){};
+window.toggleTutorialReplay=window.toggleTutorialReplay||function(){localStorage.removeItem('kms_tips_done');localStorage.removeItem('kms_onboarded');if(window.toast)toast('온보딩 초기화됨. 새로고침하면 다시 볼 수 있어요','ok',3000);};
 window.hesTabPlaylist=window.hesTabPlaylist||function(){};
 window.buyPack=window.buyPack||function(){};
 /* Kakao SDK 동적 로드 + 초기화 (공유 시 최초 1회만) */
@@ -4706,7 +4714,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div class="settings-item-label" data-i18n="homeWidgets">홈 위젯 표시</div>
             <div class="settings-item-desc" data-i18n="homeWidgetsDesc">음악 만들기 화면에 위젯 표시</div>
           </div>
-          <div class="settings-item-right" id="hw-toggle-indicator" style="font-size:12px;color:var(--t3);">OFF</div>
+          <div class="toggle-label-row" id="hw-toggle-row">
+            <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -16942,22 +16952,23 @@ function commSaveEdit(pid,hIdx){
 try{updateLoginUI();}catch(e){}
 
 function renderSettings(){
+  var t=typeof _t==='function'?_t:function(k){return k;};
   const nameEl=$('settings-user-name');
   const subEl=$('settings-user-sub');
   const avatarEl=$('settings-avatar');
   const loginBtn=$('settings-login-btn');
   var editBtn=$('settings-edit-btn');
   if(currentUser && currentUser.provider!=='guest'){
-    if(nameEl)nameEl.textContent=currentUser.name||'사용자';
-    if(subEl)subEl.textContent=currentUser.email||'로그인됨';
+    if(nameEl)nameEl.textContent=currentUser.name||t('user');
+    if(subEl)subEl.textContent=currentUser.email||t('loggedIn');
     if(avatarEl)avatarEl.textContent=currentUser.name?currentUser.name[0]:'👤';
-    if(loginBtn){loginBtn.textContent='로그아웃';loginBtn.onclick=logout;}
-    if(editBtn)editBtn.style.display='';
+    if(loginBtn){loginBtn.textContent=t('logoutText');loginBtn.onclick=logout;}
+    if(editBtn){editBtn.style.display='';editBtn.textContent=t('editProfile');}
   } else {
-    if(nameEl)nameEl.textContent='게스트';
-    if(subEl)subEl.textContent='로그인하고 내 작곡을 저장하세요';
+    if(nameEl)nameEl.textContent=t('loginPrompt');
+    if(subEl)subEl.textContent=t('loginWithSocial');
     if(avatarEl)avatarEl.textContent='👤';
-    if(loginBtn){loginBtn.textContent='로그인';loginBtn.onclick=openLoginSheet;}
+    if(loginBtn){loginBtn.textContent=t('loginText');loginBtn.onclick=openLoginSheet;}
     if(editBtn)editBtn.style.display='none';
   }
   /* API 상태 반영 */
@@ -16968,7 +16979,7 @@ function renderSettings(){
   }
   /* 플랜 UI + 통계 확장 */
   if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
-  
+
   /* 계정 관리 섹션 표시/숨김 */
   const accSec = document.getElementById('account-section');
   if (accSec) accSec.style.display = currentUser && currentUser.provider !== 'guest' ? '' : 'none';
@@ -16976,6 +16987,11 @@ function renderSettings(){
   updateThemeUI();
   /* 알림 유형 프리퍼런스 로드 */
   _loadNotifPrefs();
+  /* 토글 스위치 UI 업데이트 */
+  if(typeof _updateHcToggleUI==='function') _updateHcToggleUI();
+  if(typeof _updateTutorialToggleUI==='function') _updateTutorialToggleUI();
+  /* 다국어 적용 */
+  if(typeof _applyLang==='function') _applyLang();
 }
 
 /* ── 데이터 내보내기 ── */
@@ -20108,10 +20124,50 @@ function toggleHighContrast(){
   document.body.classList.toggle('high-contrast');
   var on=document.body.classList.contains('high-contrast');
   localStorage.setItem('kms_high_contrast',on?'1':'0');
-  toast(on?'고대비 모드 ON':'고대비 모드 OFF','',1500);
+  _updateHcToggleUI();
+  var msg=on?(typeof _t==='function'?_t('highContrastOn'):'고대비 모드 ON'):(typeof _t==='function'?_t('highContrastOff'):'고대비 모드 OFF');
+  toast(msg,'',1500);
+}
+function _updateHcToggleUI(){
+  var row=document.getElementById('hc-toggle-row');
+  if(row){
+    var on=document.body.classList.contains('high-contrast');
+    if(on) row.classList.add('on'); else row.classList.remove('on');
+  }
 }
 /* 고대비 모드 복원 */
 if(localStorage.getItem('kms_high_contrast')==='1')document.body.classList.add('high-contrast');
+setTimeout(_updateHcToggleUI,300);
+
+/* 튜토리얼 다시 보기 토글 */
+function toggleTutorialReplay(){
+  var isOnboarded=localStorage.getItem('kms_onboarded');
+  var isTipsDone=localStorage.getItem('kms_tips_done');
+  if(isOnboarded||isTipsDone){
+    /* 현재 비활성 상태 → 활성화 (초기화해서 다시 보게 함) */
+    localStorage.removeItem('kms_onboarded');
+    localStorage.removeItem('kms_tips_done');
+    _updateTutorialToggleUI();
+    var msg=typeof _t==='function'?_t('tutorialOn'):'튜토리얼 활성화됨. 새로고침하면 다시 볼 수 있어요';
+    toast(msg,'ok',3000);
+  } else {
+    /* 현재 활성 상태 → 비활성화 (완료 처리) */
+    localStorage.setItem('kms_onboarded','1');
+    localStorage.setItem('kms_tips_done','1');
+    _updateTutorialToggleUI();
+    var msg=typeof _t==='function'?_t('tutorialOff'):'튜토리얼 비활성화됨';
+    toast(msg,'',1500);
+  }
+}
+function _updateTutorialToggleUI(){
+  var row=document.getElementById('tutorial-toggle-row');
+  if(row){
+    /* 토글 ON = 튜토리얼을 다시 볼 수 있는 상태 (onboarded 가 없는 상태) */
+    var on=!localStorage.getItem('kms_onboarded');
+    if(on) row.classList.add('on'); else row.classList.remove('on');
+  }
+}
+setTimeout(_updateTutorialToggleUI,300);
 
 /* ═══ 성능 최적화 ═══ */
 /* 이미지 lazy loading + 에러 핸들링 강화 */
@@ -20159,7 +20215,7 @@ function _toggleHomeWidgets(){
 function _applyHomeWidgetsVisibility(){
   var on=localStorage.getItem('kms_home_widgets')==='on';
   var el=$('home-widgets');if(el)el.style.display=on?'':'none';
-  var ind=$('hw-toggle-indicator');if(ind){ind.textContent=on?'ON':'OFF';ind.style.color=on?'var(--acc)':'var(--t3)';}
+  var row=$('hw-toggle-row');if(row){if(on)row.classList.add('on');else row.classList.remove('on');}
 }
 _applyHomeWidgetsVisibility();
 window._toggleHomeWidgets=_toggleHomeWidgets;
@@ -20964,6 +21020,8 @@ var _i18n={
   }
 };
 var _currentLang=localStorage.getItem('kms_lang')||'ko';
+/* 번역 헬퍼 — _t('key') 로 현재 언어의 문자열 반환 */
+function _t(key){return (_i18n[_currentLang]||_i18n.ko)[key]||(_i18n.ko)[key]||key;}
 function _setLang(lang){_currentLang=lang;localStorage.setItem('kms_lang',lang);document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.toggle('on',b.dataset.lang===lang);});_applyLang();toast(lang==='ko'?'한국어':lang==='en'?'English':'日本語','ok',1500);}
 function _applyLang(){
   var t=_i18n[_currentLang]||_i18n.ko;
@@ -21209,6 +21267,26 @@ function _applyLang(){
     else if(placeholder.includes('이어질 가사')) input.placeholder=t.extendLyrics;
     else if(placeholder.includes('후반부는 더 강렬하게')) input.placeholder=t.extendPrompt;
   });
+
+  // data-i18n 속성으로 일괄 번역 (설정 화면 + 기타)
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key=el.getAttribute('data-i18n');
+    if(t[key]) el.textContent=t[key];
+  });
+
+  // 설정 화면 — 로그인/로그아웃 등 동적 텍스트
+  var nameEl=document.getElementById('settings-user-name');
+  var subEl=document.getElementById('settings-user-sub');
+  var loginBtn=document.getElementById('settings-login-btn');
+  var editBtn=document.getElementById('settings-edit-btn');
+  if(typeof currentUser!=='undefined'&&currentUser&&currentUser.provider!=='guest'){
+    if(loginBtn) loginBtn.textContent=t.logoutText||'로그아웃';
+    if(editBtn) editBtn.textContent=t.editProfile||'편집';
+  } else {
+    if(nameEl&&(!currentUser||currentUser.provider==='guest')) nameEl.textContent=t.loginPrompt||'로그인하세요';
+    if(subEl&&(!currentUser||currentUser.provider==='guest')) subEl.textContent=t.loginWithSocial||'소셜 계정으로 간편 로그인';
+    if(loginBtn) loginBtn.textContent=t.loginText||'로그인';
+  }
 }
 // 페이지 로드 시 언어 설정 적용
 setTimeout(_applyLang,500);
