@@ -66,6 +66,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
+  /* 비정상 URL 무시 (이모지 등 non-ASCII 경로) */
+  if (/[^\x20-\x7E]/.test(decodeURIComponent(url.pathname))) return;
+
   /* 오디오 파일은 캐시하지 않음 (용량 큼) */
   if (url.pathname.match(/\.(mp3|wav|ogg|flac|aac|m4a|webm)$/i)) {
     return;

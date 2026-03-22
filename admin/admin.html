@@ -2425,7 +2425,7 @@ function _appendTrackRows(tbody, fromIdx){
     const owner=t._owner;
     const isGuest=!owner||owner.provider==='guest';
     const pc=provCol[owner&&owner.provider||'']||'badge-acc';
-    const avHtml=(owner&&owner.avatar)?('<img src="'+esc(owner.avatar)+'" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;">'):('');
+    const avHtml=_isImgUrl(owner&&owner.avatar)?('<img src="'+esc(owner.avatar)+'" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.onerror=null;this.style.display=\'none\'">'):('');
     const ownerBadge=isGuest
       ?'<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">게스트</span>'
       :(avHtml+'<span class="badge '+pc+'">'+esc((owner&&owner.name)||'?')+'</span>');
@@ -2814,7 +2814,7 @@ async function renderCommentsAdmin(){
         const rowStyle=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
         return`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${rowStyle}">
           <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;">
-            ${c.author_avatar?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.outerHTML=\'👤\'">':'👤'}
+            ${_isImgUrl(c.author_avatar)?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">':'👤'}
           </div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:11px;color:var(--t3);">🎵 ${esc(trackTitle)} · ${time}${hidden?' <span style="color:var(--red);">[숨김]</span>':''}${reply}</div>
@@ -2933,7 +2933,7 @@ function _appendCommRows(tbody, fromIdx){
     const o=t._owner||{};
     const isGuest=!o.name||o.name==='익명'||o.provider==='guest'||!o.provider;
     const pc=provColor[o.provider]||'badge-acc';
-    const avHtml=(!isGuest&&o.avatar)?('<img src="'+esc(o.avatar)+'" loading="lazy" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):'' ;
+    const avHtml=(!isGuest&&_isImgUrl(o.avatar))?('<img src="'+esc(o.avatar)+'" loading="lazy" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.onerror=null;this.style.display=\'none\'">'):'' ;
     const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">'):'🎵';
     const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const ml=modeLabel[t.genMode||'custom']||'커스텀';
@@ -3199,7 +3199,7 @@ async function renderUsersAdmin(showToast=false){
         const cInfo=creatorMap[u.name+'__'+u.provider];
         return '<tr style="'+(isOnline?'background:rgba(34,197,94,.04);':'')+'">'
           +'<td style="position:relative;">'
-            +(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
+            +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
             +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
           +'</td>'
           +'<td style="font-weight:600;">'+esc(u.name)+'<div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
@@ -3231,7 +3231,7 @@ async function renderUsersAdmin(showToast=false){
       creatorTbody.innerHTML=[...creators].sort((a,b)=>b.count-a.count).map((u,i)=>{
         const pc=provColors[u.provider||'']||'badge-acc';
         return '<tr>'
-          +'<td>'+(u.avatar?'<img src="'+esc(u.avatar)+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">':'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;">🎵</div>')+'</td>'
+          +'<td>'+(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;">🎵</div>')+'</td>'
           +'<td style="font-weight:600;">'+esc(u.name)+'</td>'
           +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
           +'<td style="text-align:center;font-weight:800;color:var(--acc3);">'+u.count+'곡</td>'
@@ -3404,6 +3404,8 @@ function tgNotify(event, data){
 
 // ── 유틸 ──
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function _isImgUrl(u){if(!u||typeof u!=='string')return false;try{var p=new URL(u);return p.protocol==='https:'||p.protocol==='http:';}catch(e){return false;}}
+function _safeImg(url,size,fallback){if(!_isImgUrl(url))return fallback||'<span style="font-size:'+(size>30?'24':'14')+'px;">👤</span>';return '<img src="'+esc(url)+'" loading="lazy" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\';if(this.nextSibling)this.nextSibling.style.display=\'\';else this.parentNode.textContent=\'👤\'">';}
 let _toastTimer;
 function adminToast(msg){
   const t=document.getElementById('admin-toast');
@@ -5100,7 +5102,7 @@ function openUserDetail(userName, provider){
   const totalLikes = userTracks.reduce((a,t)=>a+(t._commLikes||0),0);
 
   const avatarEl = document.getElementById('ud-avatar');
-  if(user.avatar) avatarEl.innerHTML = '<img src="'+esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">';
+  if(_isImgUrl(user.avatar)) avatarEl.innerHTML = '<img src="'+esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">';
   else avatarEl.innerHTML = '<span style="font-size:24px;">👤</span>';
   document.getElementById('ud-name').textContent = user.name;
   document.getElementById('ud-provider').textContent = (user.provider||'guest').toUpperCase();
@@ -6019,7 +6021,7 @@ async function _showUserDetail(name, provider){
     </div>
 
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:14px;">
-      ${user.avatar?'<img src="'+_esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">':'<div style="width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>'}
+      ${_isImgUrl(user.avatar)?'<img src="'+_esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.outerHTML=\'<div style=width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px>👤</div>\'">':'<div style="width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>'}
       <div>
         <div style="font-size:16px;font-weight:800;">${_esc(user.name)}</div>
         <div style="font-size:12px;color:var(--t3);">${pi} &middot; ${pb}</div>
