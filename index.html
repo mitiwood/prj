@@ -18,8 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Lucide Icons CDN -->
 <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" defer></script>
-<!-- Kakao JS SDK (공유 기능용) -->
-<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<!-- Kakao JS SDK — 공유 시 동적 로드 (cross-site cookie 경고 방지) -->
 <link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7c3aed"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
 /* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
@@ -62,15 +61,32 @@ window.closeRecomposeSheet=window.closeRecomposeSheet||function(){};
 window.hesTabLike=window.hesTabLike||function(){};
 window.hesTabPlaylist=window.hesTabPlaylist||function(){};
 window.buyPack=window.buyPack||function(){};
-window.addEventListener('DOMContentLoaded',()=>{
-  /* KAKAO_JS_KEY 환경변수가 있으면 자동 초기화 */
-  fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
-    if(d.kakaoJsKey && window.Kakao && !Kakao.isInitialized()){
-      Kakao.init(d.kakaoJsKey);
-      console.log('[Kakao] SDK initialized');
+/* Kakao SDK 동적 로드 + 초기화 (공유 시 최초 1회만) */
+let _kakaoLoading=false;
+function _ensureKakaoSDK(){
+  return new Promise((resolve)=>{
+    if(window.Kakao&&Kakao.isInitialized?.()) return resolve(true);
+    if(window.Kakao&&!Kakao.isInitialized?.()){
+      fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
+        if(d.kakaoJsKey){Kakao.init(d.kakaoJsKey);console.log('[Kakao] SDK initialized');}
+        resolve(!!Kakao.isInitialized?.());
+      }).catch(()=>resolve(false));
+      return;
     }
-  }).catch(()=>{});
-});
+    if(_kakaoLoading) return resolve(false);
+    _kakaoLoading=true;
+    const s=document.createElement('script');
+    s.src='https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js';
+    s.onload=()=>{
+      fetch('/api/config?type=kakao').then(r=>r.json()).then(d=>{
+        if(d.kakaoJsKey&&window.Kakao&&!Kakao.isInitialized?.()){Kakao.init(d.kakaoJsKey);console.log('[Kakao] SDK initialized');}
+        resolve(!!Kakao.isInitialized?.());
+      }).catch(()=>resolve(false));
+    };
+    s.onerror=()=>{_kakaoLoading=false;resolve(false);};
+    document.head.appendChild(s);
+  });
+}
 </script>
 <style>
 /* ══════════════════════════════
@@ -12999,7 +13015,7 @@ function fpOpenShare(){
 }
 function fpCloseShare(){$('share-sheet').classList.remove('on');}
 
-function fpShareKakao(){
+async function fpShareKakao(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
   const imgUrl=h.image_url||'';
@@ -13008,7 +13024,8 @@ function fpShareKakao(){
   if(imgUrl)params.set('img',imgUrl);
   const shareUrl=window.location.origin+'/api/share?'+params.toString();
 
-  if(window.Kakao?.isInitialized?.()){
+  const sdkOk = await _ensureKakaoSDK();
+  if(sdkOk && window.Kakao?.Share){
     try{
       Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
       fpCloseShare();toast('💬 카카오톡 공유','ok',1500);
@@ -13982,7 +13999,7 @@ function _buildCommItem(t,i,isMine){
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
           <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>
-          ${!isMine?`<button class="comm-item-follow-btn" data-cname="${esc(ownerName)}" data-cprov="${esc(t._owner?.provider||'')}" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>`:''}
+          ${!isMine?(function(){var ck=ownerName+'__'+(t._owner?.provider||'');var isF=_followStateCache[ck]===true;return '<button class="comm-item-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(ownerName)+'" data-cprov="'+esc(t._owner?.provider||'')+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
         ${chainTxt?`<div style="display:flex;align-items:center;gap:4px;"><span class="comm-chain-badge ${chainCls}">${chainTxt}</span></div>`:''}
@@ -14193,7 +14210,7 @@ function _renderCommContent(heroWrap, list){
           <div class="comm-creator-name">${pI} ${esc(g.name)}</div>
           <div class="comm-creator-meta"><span>🎵 ${g.tracks.length}곡</span><span>❤️ ${tl}</span></div>
         </div>
-        <button class="comm-creator-follow-btn" data-cname="${esc(g.name)}" data-cprov="${esc(g.provider)}" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>
+        <button class="comm-creator-follow-btn${_followStateCache[g.name+'__'+g.provider]===true?' following':''}" data-cname="${esc(g.name)}" data-cprov="${esc(g.provider)}" data-following="${_followStateCache[g.name+'__'+g.provider]===true?'1':'0'}" onclick="event.stopPropagation();_creatorFollowToggle(this)">${_followStateCache[g.name+'__'+g.provider]===true?'팔로잉':'팔로우'}</button>
       </div>`;
       g.tracks.forEach(t=>allListTracks.push(t));
     });
@@ -14384,7 +14401,7 @@ function _renderCreatorList(){
             <span>❤️ ${g.totalLikes}좋아요</span>
           </div>
         </div>
-        ${!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+esc(g.name)+'" data-cprov="'+esc(g.provider)+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">팔로우</button>':''}
+        ${!isMe&&isLoggedIn?(function(){var ck=g.name+'__'+g.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(g.name)+'" data-cprov="'+esc(g.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
       </div>`;
 
     /* 해당 크리에이터의 곡 리스트 */
@@ -14411,8 +14428,7 @@ function _renderCreatorList(){
         if(_isMine(g))return;
         const btn=list.querySelector('[data-creator-key="'+gi+'"] .comm-creator-follow-btn');
         if(!btn)return;
-        const cacheKey=g.name+'__'+g.provider;
-        if(_followStateCache[cacheKey]){btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';}
+        _applyFollowToBtn(btn);
       });
     };
     if(_followBatchLoaded){
@@ -14890,16 +14906,17 @@ function commShareSheet(sbId){
   document.body.appendChild(overlay);
 
   /* 카카오톡 — SDK 초기화 확인 → 실패 시 카카오톡 공유 URL 스킴 사용 */
-  overlay.querySelector('#_sh_kakao').onclick=()=>{
-    /* 1순위: Kakao JS SDK (초기화된 경우) */
-    if(window.Kakao?.Share && Kakao.isInitialized?.()){
+  overlay.querySelector('#_sh_kakao').onclick=async()=>{
+    /* Kakao SDK 동적 로드 후 공유 */
+    const sdkReady = await _ensureKakaoSDK();
+    if(sdkReady && window.Kakao?.Share){
       try{
         Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
         overlay.remove();
         return;
       }catch(e){ console.warn('[KakaoShare] SDK 오류:', e.message); }
     }
-    /* SDK 미초기화 → 링크 복사 + 안내 (카카오스토리 API 종료됨) */
+    /* SDK 로드 실패 → 링크 복사 폴백 */
     navigator.clipboard.writeText(shareUrl).then(()=>{
       toast('🔗 링크 복사 완료! 카카오톡에 붙여넣기하세요','ok',3000);
     }).catch(()=>{
@@ -16722,7 +16739,7 @@ async function _loadFollowingList(){
         +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
         +'</div>'
-        +(!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+u.name+'" data-cprov="'+u.provider+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>':'')
+        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+u.name+'" data-cprov="'+u.provider+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
         +'</div>';
     }).join('');
   } catch(e) {
@@ -16751,7 +16768,7 @@ async function _loadFollowerList(){
         +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+u.name+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
         +'</div>'
-        +(!isMe&&isLoggedIn?'<button class="comm-creator-follow-btn" data-cname="'+u.name+'" data-cprov="'+u.provider+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>':'')
+        +(!isMe&&isLoggedIn?(function(){var ck=u.name+'__'+u.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+u.name+'" data-cprov="'+u.provider+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="padding:5px 14px;border-radius:16px;border:none;background:'+(isF?'var(--card)':'linear-gradient(135deg,var(--acc),var(--acc2))')+';color:'+(isF?'var(--t2)':'#fff')+';font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;'+(isF?'border:1px solid var(--border);':'')+'\">'+(isF?'팔로잉':'팔로우')+'</button>';})():'')
         +'</div>';
     }).join('');
   } catch(e) {
