@@ -308,7 +308,25 @@ html,body{
 .attend-streak .dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
 .attend-streak .dot.on{background:var(--acc)}
 .attend-streak .dot.today{background:#f59e0b;box-shadow:0 0 4px rgba(245,158,11,.5)}
+.attend-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.attend-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--card2);color:var(--t3);border:1px solid var(--border);opacity:.5;transition:all .2s}
+.attend-badge.earned{opacity:1;border-color:transparent}
+.attend-badge.b3{background:linear-gradient(135deg,#f97316,#fb923c);color:#fff}
+.attend-badge.b7{background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff}
+.attend-badge.b14{background:linear-gradient(135deg,#a855f7,#c084fc);color:#fff}
+.attend-badge.b30{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;box-shadow:0 0 8px rgba(245,158,11,.3)}
 [data-theme="light"] .attend-banner{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.05));border-color:rgba(124,58,237,.15)}
+/* 주간 차트 */
+.chart-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .15s}
+.chart-item:active{transform:scale(.98)}
+.chart-rank{width:22px;font-size:14px;font-weight:900;text-align:center;flex-shrink:0}
+.chart-rank.r1{color:#f59e0b}.chart-rank.r2{color:#94a3b8}.chart-rank.r3{color:#cd7f32}
+.chart-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--card2)}
+.chart-info{flex:1;min-width:0}
+.chart-info-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart-info-artist{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart-stats{display:flex;gap:8px;font-size:10px;color:var(--t3);flex-shrink:0}
+.chart-play-btn{width:28px;height:28px;border-radius:50%;border:none;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 /* 모드 탭 */
 .mode-tabs{
   display:flex;gap:4px;
@@ -950,6 +968,37 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .hist-view-grid.full-mode .hist-title{font-size:15px;font-weight:800;}
 .hist-view-grid.full-mode .hist-sub{font-size:11px;margin-top:4px;}
 .hist-view-grid.full-mode .hist-more{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);border:none;color:#fff;width:32px;height:32px;border-radius:50%;}
+/* 전체모드 액션 버튼 행 */
+.hist-full-actions{display:none;padding:0 16px 14px;gap:8px;}
+.hist-view-grid.full-mode .hist-full-actions{display:flex;}
+.hist-full-act{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 0;border:1px solid var(--border);border-radius:12px;background:var(--bg2);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.hist-full-act:hover{background:var(--s3);color:var(--t1);border-color:var(--acc);}
+.hist-full-act.act-share{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(59,130,246,.08));border-color:rgba(124,58,237,.2);color:var(--acc);}
+.hist-full-act.act-share:hover{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(59,130,246,.18));border-color:var(--acc);}
+.hist-full-act svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+/* 공유 확인 모달 */
+#share-confirm-modal{position:fixed;inset:0;z-index:10600;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);}
+#share-confirm-modal.on{display:flex;}
+.share-confirm-panel{background:var(--card);border-radius:20px;width:90%;max-width:380px;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.4);animation:scaleIn .2s ease;}
+@keyframes scaleIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.sc-header{text-align:center;margin-bottom:16px;}
+.sc-title{font-size:16px;font-weight:800;color:var(--t1);}
+.sc-sub{font-size:12px;color:var(--t3);margin-top:4px;}
+.sc-preview{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--bg2);margin-bottom:18px;}
+.sc-preview-thumb{width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#1a0537,#2d1a5a);}
+.sc-preview-thumb img{width:100%;height:100%;object-fit:cover;}
+.sc-preview-info{flex:1;min-width:0;}
+.sc-preview-title{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-preview-tag{font-size:11px;color:var(--t3);margin-top:2px;}
+.sc-share-targets{display:flex;gap:8px;margin-bottom:18px;}
+.sc-share-target{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:14px;border:1px solid var(--border);background:transparent;cursor:pointer;transition:all .2s;font-family:inherit;}
+.sc-share-target:hover{background:var(--bg2);border-color:var(--acc);}
+.sc-share-target .sc-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.sc-share-target .sc-label{font-size:10px;font-weight:600;color:var(--t2);}
+.sc-btns{display:flex;gap:8px;}
+.sc-btn-cancel{flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.sc-btn-confirm{flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(124,58,237,.3);}
+.sc-btn-confirm:hover{box-shadow:0 6px 20px rgba(124,58,237,.4);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
 /* 빈 상태 CTA */
@@ -3295,6 +3344,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ab-title" id="attend-title">출석 체크하고 보너스 받기</div>
         <div class="ab-sub" id="attend-sub">매일 접속하면 보너스 크레딧!</div>
         <div class="attend-streak" id="attend-dots"></div>
+        <div class="attend-badges" id="attend-badges"></div>
       </div>
       <button class="ab-btn" id="attend-btn">출석하기</button>
     </div>
@@ -4088,6 +4138,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div id="comm-activity-feed"></div>
     <!-- 추천 / 히어로 -->
     <div id="comm-hero-wrap"></div>
+    <!-- 주간 TOP 10 차트 -->
+    <div id="comm-chart-wrap" style="display:none;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:15px;font-weight:800;color:var(--t1);">🏆 주간 TOP 10</div>
+        <span id="comm-chart-period" style="font-size:10px;color:var(--t3);"></span>
+      </div>
+      <div id="comm-chart-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
   </div>
@@ -4865,6 +4923,45 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="share-copy-row">
       <input class="share-copy-input" id="share-url-input" readonly value="">
+    </div>
+  </div>
+</div>
+
+<!-- ── 공유 확인 모달 ── -->
+<div id="share-confirm-modal">
+  <div class="share-confirm-panel">
+    <div class="sc-header">
+      <div class="sc-title">공유하기</div>
+      <div class="sc-sub">이 곡을 공유할까요?</div>
+    </div>
+    <div class="sc-preview">
+      <div class="sc-preview-thumb" id="sc-thumb"></div>
+      <div class="sc-preview-info">
+        <div class="sc-preview-title" id="sc-track-name"></div>
+        <div class="sc-preview-tag" id="sc-track-tag"></div>
+      </div>
+    </div>
+    <div class="sc-share-targets">
+      <button class="sc-share-target" data-sc-target="kakao">
+        <div class="sc-icon" style="background:#FEE500;">💬</div>
+        <span class="sc-label">카카오톡</span>
+      </button>
+      <button class="sc-share-target" data-sc-target="instagram">
+        <div class="sc-icon" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">📸</div>
+        <span class="sc-label">인스타</span>
+      </button>
+      <button class="sc-share-target" data-sc-target="facebook">
+        <div class="sc-icon" style="background:#1877F2;">📘</div>
+        <span class="sc-label">페이스북</span>
+      </button>
+      <button class="sc-share-target" data-sc-target="copy">
+        <div class="sc-icon" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">🔗</div>
+        <span class="sc-label">링크복사</span>
+      </button>
+    </div>
+    <div class="sc-btns">
+      <button class="sc-btn-cancel" onclick="closeShareConfirm()">취소</button>
+      <button class="sc-btn-confirm" id="sc-confirm-btn">확인</button>
     </div>
   </div>
 </div>
@@ -9753,6 +9850,11 @@ function renderHistoryView(){
         <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}</div>
         <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
       </div>
+      <div class="hist-full-actions">
+        <button class="hist-full-act" data-fullplay-idx="${idx}"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg> 재생</button>
+        <button class="hist-full-act${h._liked?' liked':''}" data-fulllike-idx="${idx}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"${h._liked?' fill="currentColor"':''}/></svg>${h._liked?' 좋아요 취소':' 좋아요'}</button>
+        <button class="hist-full-act act-share" data-fullshare-idx="${idx}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> 공유</button>
+      </div>
       <button class="hist-more" data-more-idx="${idx}" title="더보기" aria-label="더보기">···</button>
     </div>`;
   }).join('')}</div>`;
@@ -9761,6 +9863,23 @@ function renderHistoryView(){
   const wrap=grid.querySelector('.hist-view-grid');
   if(!wrap)return;
   wrap.addEventListener('click',function(e){
+    /* 전체모드 재생 버튼 */
+    const playBtn=e.target.closest('[data-fullplay-idx]');
+    if(playBtn){e.stopPropagation();showMiniPlayer(parseInt(playBtn.dataset.fullplayIdx));return;}
+    /* 전체모드 좋아요 버튼 */
+    const likeBtn=e.target.closest('[data-fulllike-idx]');
+    if(likeBtn){
+      e.stopPropagation();
+      const li=parseInt(likeBtn.dataset.fulllikeIdx);
+      const hd=historyData[li];if(!hd)return;
+      hd._liked=!hd._liked;if(hd._liked)hd._disliked=false;
+      saveHistory();renderHistoryView();
+      toast(hd._liked?'좋아요!':'좋아요 취소','',1200);
+      return;
+    }
+    /* 전체모드 공유 버튼 → 확인 모달 */
+    const shareBtn=e.target.closest('[data-fullshare-idx]');
+    if(shareBtn){e.stopPropagation();openShareConfirm(parseInt(shareBtn.dataset.fullshareIdx));return;}
     /* ··· 더보기 버튼 */
     const moreBtn=e.target.closest('[data-more-idx]');
     if(moreBtn){
@@ -13181,6 +13300,55 @@ function fpOpenShare(){
 }
 function fpCloseShare(){$('share-sheet').classList.remove('on');}
 
+/* ── 공유 확인 모달 ── */
+var _scIdx=-1, _scTarget='copy';
+function openShareConfirm(idx){
+  const h=historyData[idx];if(!h)return;
+  _scIdx=idx;_scTarget='copy';
+  /* 미리보기 업데이트 */
+  const thumb=$('sc-thumb');
+  if(thumb) thumb.innerHTML=h.image_url?'<img src="'+esc(h.image_url)+'" alt="">':'🎵';
+  const nm=$('sc-track-name');if(nm) nm.textContent=h.title||'무제';
+  const tag=$('sc-track-tag');if(tag) tag.textContent=(h.tags?.split(',')[0]?.trim()||'')+(h.created?' · '+formatTimeAgo(h.created):'');
+  /* 타겟 버튼 초기화 */
+  document.querySelectorAll('[data-sc-target]').forEach(b=>{b.style.outline='';b.style.outlineOffset='';});
+  const defBtn=document.querySelector('[data-sc-target="copy"]');
+  if(defBtn){defBtn.style.outline='2px solid var(--acc)';defBtn.style.outlineOffset='2px';}
+  $('share-confirm-modal').classList.add('on');
+}
+function closeShareConfirm(){$('share-confirm-modal').classList.remove('on');_scIdx=-1;}
+/* 타겟 선택 */
+document.querySelectorAll('[data-sc-target]').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    _scTarget=this.dataset.scTarget;
+    document.querySelectorAll('[data-sc-target]').forEach(b=>{b.style.outline='';b.style.outlineOffset='';});
+    this.style.outline='2px solid var(--acc)';this.style.outlineOffset='2px';
+  });
+});
+/* 배경 클릭으로 닫기 */
+$('share-confirm-modal').addEventListener('click',function(e){if(e.target===this)closeShareConfirm();});
+/* 확인 버튼 → 실제 공유 실행 */
+$('sc-confirm-btn').addEventListener('click',function(){
+  if(_scIdx<0)return;
+  const prevIdx=fpCurrentIdx;
+  fpCurrentIdx=_scIdx;
+  closeShareConfirm();
+  if(_scTarget==='kakao'){fpShareKakao();}
+  else if(_scTarget==='instagram'){fpShareInstagram();}
+  else if(_scTarget==='facebook'){fpShareFacebook();}
+  else{
+    /* 링크 복사 */
+    const h=historyData[_scIdx]||{};
+    const title=h.title||'나의 노래';
+    const params=new URLSearchParams({t:title});
+    if(h.audio_url)params.set('play',h.audio_url);
+    if(h.image_url)params.set('img',h.image_url);
+    const url=window.location.origin+'/api/share?'+params.toString();
+    navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
+  }
+  fpCurrentIdx=prevIdx;
+});
+
 async function fpShareKakao(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
@@ -14091,6 +14259,7 @@ async function _renderCommunityInner(force){
   if(_commActiveGenre==='creators'){
     var sr=$('comm-sort-row');if(sr)sr.style.display='none';
     var dj=$('comm-dj-row');if(dj)dj.style.display='none';
+    var cw=$('comm-chart-wrap');if(cw)cw.style.display='none';
     if(!_sbLoaded) await _loadSbTracks(true);
     _renderCreatorList();
     return;
@@ -14099,6 +14268,7 @@ async function _renderCommunityInner(force){
   if(_commActiveGenre==='following'){
     var sr0=$('comm-sort-row');if(sr0)sr0.style.display='none';
     var dj0=$('comm-dj-row');if(dj0)dj0.style.display='none';
+    var cw0=$('comm-chart-wrap');if(cw0)cw0.style.display='none';
     var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
     var hw0=$('comm-hero-wrap');var ls0=$('comm-list');
     if(ls0) await _renderFollowingFeed(hw0,ls0);
@@ -14108,6 +14278,7 @@ async function _renderCommunityInner(force){
   if(_commActiveGenre==='chat'){
     var sr1=$('comm-sort-row');if(sr1)sr1.style.display='none';
     var dj1=$('comm-dj-row');if(dj1)dj1.style.display='none';
+    var cw1=$('comm-chart-wrap');if(cw1)cw1.style.display='none';
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
     var hw1=$('comm-hero-wrap');if(hw1)hw1.innerHTML='';
     var lbl1=$('comm-section-lbl');if(lbl1)lbl1.textContent='💬 커뮤니티 채팅';
@@ -14118,6 +14289,7 @@ async function _renderCommunityInner(force){
   if(_commActiveGenre==='leaderboard'){
     var sr3=$('comm-sort-row');if(sr3)sr3.style.display='none';
     var dj3=$('comm-dj-row');if(dj3)dj3.style.display='none';
+    var cw3=$('comm-chart-wrap');if(cw3)cw3.style.display='none';
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
     var lbl3=$('comm-section-lbl');if(lbl3)lbl3.textContent='🏆 리더보드';
@@ -14137,6 +14309,7 @@ async function _renderCommunityInner(force){
   var cacheValid=_sbLoaded&&_sbTracks.length&&(Date.now()-_sbLoadedAt)<_SB_CACHE_TTL;
   if(cacheValid&&!force){
     _renderCommContent(heroWrap, list);
+    _renderWeeklyChart();
     _renderActivityFeed();
     _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
     _setupCommInfiniteScroll();
@@ -14160,6 +14333,7 @@ async function _renderCommunityInner(force){
   /* 챌린지 배너 */
   _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
   _renderCommContent(heroWrap, list);
+  _renderWeeklyChart();
 
   /* 무한 스크롤 설정 */
   _setupCommInfiniteScroll();
@@ -17150,15 +17324,31 @@ async function _loadNotifications(){
 
   const allNotifs = [];
 
-  /* 1. 내 곡에 달린 좋아요 (서버 조회) */
+  /* 1. 개별 좋아요/댓글/팔로우 알림 (notifications 테이블) */
   if(currentUser?.name){
+    try {
+      const nr = await fetch(`/api/tracks?action=notifications&userName=${encodeURIComponent(currentUser.name)}&userProvider=${encodeURIComponent(currentUser.provider)}`);
+      const nd = await nr.json();
+      const notifRows = nd.notifications || [];
+      notifRows.forEach(n => {
+        allNotifs.push({
+          type: n.type||'like',
+          title: n.title||'',
+          body: n.body||'',
+          ts: new Date(n.created_at||0).getTime(),
+          is_read: n.is_read||false
+        });
+      });
+    } catch(e){ console.warn('[notif] db:', e.message); }
+
+    /* 1b. 곡별 좋아요 집계 (폴백) */
     try {
       const r = await fetch(`/api/tracks?owner=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
       const d = await r.json();
       const tracks = d.tracks || d.data || [];
       tracks.forEach(t => {
         if((t.comm_likes||0) > 0){
-          allNotifs.push({ type:'like', title:`❤️ "${t.title||'무제'}"에 좋아요 ${t.comm_likes}개`, body:`${t.comm_plays||0}회 재생`, ts: new Date(t.created_at||0).getTime(), is_read: false });
+          allNotifs.push({ type:'like', title:`❤️ "${t.title||'무제'}"에 좋아요 ${t.comm_likes}개`, body:`${t.comm_plays||0}회 재생`, ts: new Date(t.created_at||0).getTime(), is_read: true });
         }
       });
     } catch(e){ console.warn('[notif] tracks:', e.message); }
@@ -17261,6 +17451,22 @@ function _addLocalNotif(type, title, body){
   const badge = $('notif-badge');
   if(badge) badge.style.display = 'block';
 }
+
+/* ── 새 알림 배지 폴링 (30초) ── */
+var _notifPollLastCheck = Date.now();
+function _pollNotifBadge(){
+  if(!currentUser||currentUser.provider==='guest')return;
+  fetch('/api/tracks?action=notifications&userName='+encodeURIComponent(currentUser.name)+'&userProvider='+encodeURIComponent(currentUser.provider))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok)return;
+      var unread=(d.notifications||[]).filter(function(n){return !n.is_read;}).length;
+      var badge=$('notif-badge');
+      if(badge) badge.style.display=unread>0?'block':'none';
+    }).catch(function(){});
+}
+setInterval(_pollNotifBadge, 30000);
+setTimeout(_pollNotifBadge, 3000);
 
 let _liveNotifySince = Date.now();
 let _liveNotifyTimer = null;
@@ -18518,6 +18724,46 @@ function _skipOnboarding() {
 
 /* 초기화 후 온보딩 표시 */
 
+/* ── 주간 TOP 10 차트 ── */
+function _renderWeeklyChart(){
+  var wrap=$('comm-chart-wrap'),listEl=$('comm-chart-list');
+  if(!wrap||!listEl)return;
+  if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
+  var weekAgo=Date.now()-7*86400000;
+  var weekly=_sbTracks.filter(function(t){
+    if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return false;
+    var ts=new Date(t.created_at||0).getTime();
+    return ts>weekAgo;
+  });
+  weekly.forEach(function(t){t._score=(t.comm_likes||t.likes||0)*3+(t.comm_plays||t.plays||0);});
+  weekly.sort(function(a,b){return b._score-a._score;});
+  var top10=weekly.slice(0,10);
+  if(top10.length<3){wrap.style.display='none';return;}
+  wrap.style.display='';
+  var now=new Date(),wa=new Date(weekAgo);
+  var fmt=function(d){return(d.getMonth()+1)+'/'+d.getDate();};
+  var period=$('comm-chart-period');
+  if(period)period.textContent=fmt(wa)+' ~ '+fmt(now);
+  listEl.innerHTML=top10.map(function(t,i){
+    var rank=i+1;
+    var rc=rank<=3?'r'+rank:'';
+    var img=t.image_url||t.cover||'';
+    var imgTag=img?'<img class="chart-thumb" src="'+img.replace(/"/g,'&quot;')+'" alt="" loading="lazy">':'<div class="chart-thumb"></div>';
+    var title=(t.title||'무제').replace(/</g,'&lt;');
+    var artist=(t.user_name||'익명').replace(/</g,'&lt;');
+    var likes=t.comm_likes||t.likes||0;
+    var plays=t.comm_plays||t.plays||0;
+    var sid=t._sbId||'';
+    return '<div class="chart-item" onclick="commPlaySb(\''+sid+'\')">'+
+      '<div class="chart-rank '+rc+'">'+rank+'</div>'+
+      imgTag+
+      '<div class="chart-info"><div class="chart-info-title">'+title+'</div><div class="chart-info-artist">'+artist+'</div></div>'+
+      '<div class="chart-stats"><span>❤️'+likes+'</span><span>▶'+plays+'</span></div>'+
+      '<button class="chart-play-btn" onclick="event.stopPropagation();commPlaySb(\''+sid+'\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>'+
+    '</div>';
+  }).join('');
+}
+
 /* ── 출석 체크 시스템 ── */
 var _attendChecked = false;
 async function _initAttendance(){
@@ -18553,6 +18799,16 @@ async function _initAttendance(){
       }
       dots.innerHTML = html;
     }
+    /* 스트릭 마일스톤 배지 */
+    var badges = $('attend-badges');
+    if(badges){
+      var streak = d.currentStreak||0;
+      var milestones = [{d:3,cls:'b3',ico:'🔥',label:'3일'},{d:7,cls:'b7',ico:'⚡',label:'7일'},{d:14,cls:'b14',ico:'💎',label:'14일'},{d:30,cls:'b30',ico:'👑',label:'30일'}];
+      badges.innerHTML = milestones.map(function(m){
+        var earned = streak >= m.d;
+        return '<span class="attend-badge '+m.cls+(earned?' earned':'')+'">'+m.ico+' '+m.label+'</span>';
+      }).join('');
+    }
   } catch(e){ console.warn('[attendance]', e); }
 }
 async function _doAttendance(){
@@ -18575,6 +18831,11 @@ async function _doAttendance(){
       var msg = d.message || '출석 체크 완료!';
       if(d.bonus > 0) msg += ' (+' + d.bonus + '곡 보너스)';
       toast(msg, 'ok');
+      /* 배지 달성 축하 */
+      var _badgeMilestones = [{d:3,ico:'🔥',label:'3일 연속'},{d:7,ico:'⚡',label:'7일 연속'},{d:14,ico:'💎',label:'14일 연속'},{d:30,ico:'👑',label:'30일 연속'}];
+      _badgeMilestones.forEach(function(m){
+        if(d.streak === m.d) setTimeout(function(){toast(m.ico+' '+m.label+' 달성! 배지를 획득했어요','ok',4000);},1500);
+      });
       _initAttendance();
     } else {
       toast(d.error || '출석 체크 실패','err');

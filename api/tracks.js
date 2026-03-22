@@ -63,6 +63,19 @@ export default async function handler(req, res) {
   const limit = Math.min(parseInt(req.query?.limit || "200"), 500);
   const offset = parseInt(req.query?.offset || "0");
 
+  /* ─── GET: 알림 조회 ─── */
+  if (req.method === "GET" && req.query?.action === "notifications") {
+    const userName = req.query?.userName || "";
+    const userProvider = req.query?.userProvider || "";
+    if (!userName) return res.status(400).json({ error: "userName required" });
+    try {
+      const rows = await sb(`/notifications?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&order=created_at.desc&limit=30`);
+      return res.status(200).json({ ok: true, notifications: rows || [] });
+    } catch (e) {
+      return res.status(200).json({ ok: true, notifications: [] });
+    }
+  }
+
   /* ─── GET ─── */
   if (req.method === "GET") {
     if (!isPublic && !ownerName && !isAdmin)
