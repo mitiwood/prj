@@ -125,8 +125,11 @@ function _renderPresetCarousel(){
 
 function _presetChipHtml(key,p,isRecent,isCustom){
   const cls=isRecent?'preset-chip recent':'preset-chip';
-  const del=isCustom?` <span class="preset-del" onclick="event.stopPropagation();_deleteCustomPreset('${key.replace(/'/g,"\\'")}')">✕</span>`:'';
-  return `<button class="${cls}" onclick="_applyPresetV2('${key.replace(/'/g,"\\'")}')" title="${p.desc||p.label||''}">${p.icon||'🎵'} ${p.label||key}${del}</button>`;
+  const safeKey = String(key).replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const del=isCustom?` <span class="preset-del" onclick="event.stopPropagation();_deleteCustomPreset('${safeKey}')">✕</span>`:'';
+  const safeDesc = _esc(p.desc||p.label||'');
+  const safeLabel = _esc(p.label||key);
+  return `<button class="${cls}" onclick="_applyPresetV2('${safeKey}')" title="${safeDesc}">${p.icon||'🎵'} ${safeLabel}${del}</button>`;
 }
 
 function _applyPresetV2(key){
@@ -281,7 +284,9 @@ function _updatePromptPreview(){
   }
 }
 
-function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function _esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
 
 /* -- 4. 생성 진행 UX 개선 -- */
 const GEN_STEPS=[
