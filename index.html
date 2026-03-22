@@ -6364,7 +6364,7 @@ function switchTab(viewId){
   const _mpOn=document.body.classList.contains('mp-on');
   if(!fp?.classList.contains('on')){document.body.className='';if(_mpOn)document.body.classList.add('mp-on');}
   if(viewId==='history-view'||viewId==='community-view'||viewId==='profile-view')document.body.classList.add('tab-library');
-  if(viewId==='settings-view')document.body.classList.add('tab-settings');
+  if(viewId==='settings-view'){document.body.classList.add('tab-settings');try{var t=JSON.parse(localStorage.getItem('kms_custom_theme')||'{}');_updateCustomThemeInputs(t);}catch(e){}}
   if(viewId==='profile-view'){const cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
   window.scrollTo({top:0,behavior:'smooth'});
   /* 커뮤니티 뷰 떠날 때 오디오 + 폴링 정리 */
@@ -20272,11 +20272,20 @@ function _saveCustomTheme(){
 function _resetCustomTheme(){
   localStorage.removeItem('kms_custom_theme');
   ['--acc','--bg','--card'].forEach(function(v){document.documentElement.style.removeProperty(v);});
+  var acc=$('tc-accent');if(acc)acc.value='#7c3aed';
+  var bg=$('tc-bg');if(bg)bg.value='#0f0f1a';
+  var card=$('tc-card');if(card)card.value='#1a1a2e';
   toast('테마 초기화됨','ok',1500);
 }
 function _loadCustomTheme(){
   try{var t=JSON.parse(localStorage.getItem('kms_custom_theme')||'{}');
-  Object.entries(t).forEach(function(e){document.documentElement.style.setProperty(e[0],e[1]);});}catch(e){}
+  Object.entries(t).forEach(function(e){document.documentElement.style.setProperty(e[0],e[1]);});
+  _updateCustomThemeInputs(t);}catch(e){}
+}
+function _updateCustomThemeInputs(theme){
+  var acc=$('tc-accent');if(acc&&theme['--acc'])acc.value=theme['--acc'];
+  var bg=$('tc-bg');if(bg&&theme['--bg'])bg.value=theme['--bg'];
+  var card=$('tc-card');if(card&&theme['--card'])card.value=theme['--card'];
 }
 _loadCustomTheme();
 
