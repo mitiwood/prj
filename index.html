@@ -248,6 +248,7 @@ function _ensureKakaoSDK(){
 [data-theme="light"] .fp-side-btn.edit{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.2);color:#7c3aed;}
 [data-theme="light"] .fp-side-btn.liked{color:#ff6482;}
 [data-theme="light"] .fp-side-btn.added{color:#7c3aed;}
+[data-theme="light"] #fp-karaoke-btn{color:#f59e0b!important;}
 [data-theme="light"] .fp-lyrics-box{color:#8e8e93;}
 [data-theme="light"] .fp-lyric-line.active{color:#1c1c1e;}
 [data-theme="light"] .fp-cover{box-shadow:0 16px 60px rgba(0,0,0,.15),0 4px 20px rgba(0,0,0,.08);}
@@ -5122,7 +5123,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <div id="fullplayer">
   <div class="fp-bg" id="fp-bg"></div>
   <!-- iOS 바텀시트 컨테이너 (transform 스택 컨텍스트 내부) -->
-  <div id="fp-sheet-container" style="display:none;position:absolute;inset:0;z-index:9999;"></div>
+  <div id="fp-sheet-container" style="display:none;position:absolute;inset:0;z-index:10007;"></div>
   <div class="fp-inner">
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -5170,6 +5171,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </button>
           <button class="fp-side-btn edit" onclick="openFpEditSheet()" title="편집">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="fp-side-btn" id="fp-karaoke-btn" onclick="fpOpenKaraoke()" title="노래방" style="color:rgba(255,215,0,.8);display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="11" r="3"/><path d="m7 7 2.5 2.5M17 7l-2.5 2.5m-8 6L9 18m6-3l2.5 2.5M17 3L6 14 3 21l7-3L21 7l-4-4z"/><circle cx="18" cy="6" r="1"/></svg>
           </button>
           <button class="fp-side-btn" id="fp-del-btn" onclick="fpDeleteCurrent()" title="삭제" style="color:rgba(255,80,80,.7);display:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -11804,6 +11808,13 @@ function expandToFullPlayer(){
   var delBtn=$('fp-del-btn');
   if(delBtn) delBtn.style.display=_isMyTrack(h)?'':'none';
 
+  /* ── 노래방 버튼: 가사가 있을 때만 표시 ── */
+  var karaokeBtn=$('fp-karaoke-btn');
+  if(karaokeBtn) {
+    var hasLyrics = h.lyrics && h.lyrics.trim().length > 0;
+    karaokeBtn.style.display = hasLyrics ? '' : 'none';
+  }
+
   /* ── 풀플레이어 열기 (렌더 오류와 무관하게 반드시 실행) ── */
   $('fullplayer').classList.add('on');
   document.body.style.overflow = 'hidden';
@@ -14074,13 +14085,40 @@ function saveFpEdits(){
 function fpDeleteCurrent(){
   if(fpCurrentIdx<0)return;
   const t=historyData[fpCurrentIdx];
-  _showSettingsConfirm('곡 삭제',`"${t?.title||'이 곡'}"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.`,'삭제',()=>{
-    historyData.splice(fpCurrentIdx,1);
-    saveHistory();updateHistBadge();renderHistoryView();
-    if(historyData.length>0){var ni=Math.min(fpCurrentIdx,historyData.length-1);closeFullPlayer();showMiniPlayer(ni);}
-    else{closeFullPlayer();hideMiniPlayer();}
-    toast('삭제되었어요','ok',1500);
-  });
+  // 즉시 삭제 - 확인 팝업 없이 바로 삭제
+  historyData.splice(fpCurrentIdx,1);
+  saveHistory();updateHistBadge();renderHistoryView();
+  if(historyData.length>0){var ni=Math.min(fpCurrentIdx,historyData.length-1);closeFullPlayer();showMiniPlayer(ni);}
+  else{closeFullPlayer();hideMiniPlayer();}
+  toast('삭제되었어요','ok',1500);
+}
+
+/* 노래방 모드 전환 */
+function fpOpenKaraoke(){
+  if(fpCurrentIdx<0)return;
+  const h=historyData[fpCurrentIdx];
+  if(!h)return;
+  
+  // 가사가 없으면 노래방 모드를 열 수 없음
+  if(!h.lyrics || h.lyrics.trim().length === 0){
+    toast('가사가 없어 노래방 모드를 사용할 수 없어요','err',2000);
+    return;
+  }
+  
+  // 풀플레이어 닫고 노래방 모드로 전환
+  $('fullplayer').classList.remove('on');
+  document.body.style.overflow = '';
+  
+  // 노래방 플레이어 열기
+  openKaraokePlayer(
+    h.audio_url || '', 
+    h.title || '', 
+    h.tags || '', 
+    h.image_url || '', 
+    h.task_id || '', 
+    h.id || '', 
+    h.lyrics || ''
+  );
 }
 
 /* 공유 */
