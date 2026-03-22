@@ -7471,14 +7471,22 @@ $('yt-analyze-btn').addEventListener('click', async () => {
 });
 async function kieRequest(apiKey,method,path,body){
   /* 서버 프록시 경유 — API 키 서버에서 관리, 클라이언트 노출 방지 */
-  const res=await fetch('/api/kie-proxy',{
+  var u=(typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
+  var payload={path,method,body:body||undefined};
+  if(u&&u.name){payload.userName=u.name;payload.userProvider=u.provider||'guest';}
+  var res=await fetch('/api/kie-proxy',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({path,method,body:body||undefined}),
+    body:JSON.stringify(payload),
   });
-  const data=await res.json();
+  var data=await res.json();
   if(!res.ok){
-    const errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
+    /* 크레딧 초과 시 업그레이드 안내 */
+    if(data?.error==='credit_exceeded'){
+      var upgrade=data.upgrade==='pro'?'Pro':'Creator';
+      throw new Error('이번 달 사용량을 초과했어요. '+upgrade+' 플랜으로 업그레이드해보세요!');
+    }
+    var errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
     if(errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')){
       throw new Error('작업을 처리할 수 없습니다. 다시 시도해주세요.');
     }
