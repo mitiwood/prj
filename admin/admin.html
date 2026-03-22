@@ -925,6 +925,13 @@ textarea.form-input{line-height:1.5;}
       <div class="admin-section" id="sec-live">
         <div class="sec-hdr"><h2>⚡ 실시간 알림</h2><p>접속 중인 모든 사용자(게스트 포함)에게 즉시 알림을 보냅니다. 10초 폴링 기반.</p></div>
 
+        <!-- 발송 통계 -->
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">📨</div><div class="stat-val" id="live-total-sent">0</div><div class="stat-label">총 발송</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="live-today-sent">0</div><div class="stat-label">오늘 발송</div></div>
+          <div class="stat-card"><div class="stat-icon">🕐</div><div class="stat-val" id="live-last-sent" style="font-size:14px;">—</div><div class="stat-label">마지막 발송</div></div>
+        </div>
+
         <!-- 알림 발송 폼 -->
         <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(168,85,247,.35);">
           <div class="admin-table-header" style="background:rgba(168,85,247,.08);">
@@ -937,14 +944,17 @@ textarea.form-input{line-height:1.5;}
               <button class="btn" onclick="_liveTemplate('feature')">🆕 신기능</button>
               <button class="btn" onclick="_liveTemplate('maintenance')">🔧 점검</button>
               <button class="btn" onclick="_liveTemplate('challenge')">🔥 챌린지</button>
+              <button class="btn" onclick="_liveTemplate('welcome')">👋 환영</button>
+              <button class="btn" onclick="_liveTemplate('credit')">💎 크레딧</button>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input class="settings-input" id="live-icon" value="🔔" style="width:50px;text-align:center;font-size:20px;">
-              <input class="settings-input" id="live-title" placeholder="알림 제목" style="flex:1;">
+              <input class="settings-input" id="live-icon" value="🔔" style="width:50px;text-align:center;font-size:20px;" oninput="_updateLivePreview()">
+              <input class="settings-input" id="live-title" placeholder="알림 제목" style="flex:1;" oninput="_updateLivePreview()">
             </div>
-            <textarea id="live-body" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical;min-height:60px;" placeholder="알림 내용을 입력하세요..."></textarea>
+            <textarea id="live-body" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical;min-height:60px;" placeholder="알림 내용을 입력하세요..." oninput="_updateLivePreview()"></textarea>
             <div style="display:flex;gap:8px;align-items:center;">
               <button class="btn btn-acc" onclick="_sendLiveNotify()" id="live-send-btn" style="padding:10px 24px;font-size:14px;">⚡ 실시간 발송</button>
+              <span style="font-size:11px;color:var(--t3);" id="live-char-count">0자</span>
               <span id="live-send-result" style="font-size:12px;color:var(--grn);"></span>
             </div>
             <!-- 미리보기 -->
@@ -961,12 +971,13 @@ textarea.form-input{line-height:1.5;}
           </div>
         </div>
 
-        <!-- 발송 이력 (실시간 갱신) -->
+        <!-- 발송 이력 -->
         <div class="admin-table-wrap">
           <div class="admin-table-header">
             <h3>📋 발송 이력 <span id="live-hist-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
             <div style="display:flex;gap:6px;">
-              <button class="btn" onclick="_loadLiveHistory()" style="font-size:11px;">🔄 새로고침</button>
+              <input class="table-search" id="live-hist-search" placeholder="검색..." oninput="_filterLiveHistory()" style="width:120px;">
+              <button class="btn" onclick="_loadLiveHistory()" style="font-size:11px;">🔄</button>
             </div>
           </div>
           <table><thead><tr><th style="width:30px;">No</th><th>아이콘</th><th>제목</th><th>내용</th><th>발송일</th><th>저장</th><th>액션</th></tr></thead>
@@ -1371,6 +1382,7 @@ textarea.form-input{line-height:1.5;}
             <span id="err-live-label" style="font-size:11px;color:#22c55e;font-weight:700;">LIVE</span>
             <button class="btn btn-acc" onclick="_errToggleLive()" id="err-live-btn" style="font-size:11px;">⏸ 일시정지</button>
             <button class="btn" onclick="_errRefreshNow()" style="font-size:11px;">🔄 새로고침</button>
+            <button class="btn" onclick="_errExportCsv()" style="font-size:11px;">📥 CSV</button>
             <button class="btn btn-red" onclick="cleanErrorLogs()" style="font-size:11px;">🗑 정리</button>
           </div>
         </div>
@@ -1398,10 +1410,12 @@ textarea.form-input{line-height:1.5;}
 
         <!-- 통계 카드 -->
         <div class="stats-grid" style="margin-bottom:12px;">
-          <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-val" id="err-total24">0</div><div class="stat-label">24시간 에러</div></div>
-          <div class="stat-card"><div class="stat-icon">🔴</div><div class="stat-val" id="err-5xx">0</div><div class="stat-label">5xx 서버</div></div>
-          <div class="stat-card"><div class="stat-icon">🟡</div><div class="stat-val" id="err-4xx">0</div><div class="stat-label">4xx 클라이언트</div></div>
+          <div class="stat-card" style="border-left:3px solid #ef4444;"><div class="stat-icon">🚨</div><div class="stat-val" id="err-total24">0</div><div class="stat-label">24시간 에러</div></div>
+          <div class="stat-card" style="border-left:3px solid #ef4444;"><div class="stat-icon">🔴</div><div class="stat-val" id="err-5xx">0</div><div class="stat-label">5xx 서버</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b;"><div class="stat-icon">🟡</div><div class="stat-val" id="err-4xx">0</div><div class="stat-label">4xx 클라이언트</div></div>
           <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-val" id="err-rate">0</div><div class="stat-label">에러/분</div></div>
+          <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-val" id="err-top-endpoint" style="font-size:12px;">—</div><div class="stat-label">최다 에러 엔드포인트</div></div>
+          <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val" id="err-health" style="color:var(--grn);">—</div><div class="stat-label">헬스 스코어</div></div>
         </div>
 
         <!-- 24시간 타임라인 -->
@@ -1681,7 +1695,7 @@ textarea.form-input{line-height:1.5;}
           <h2>📝 감사 로그</h2>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-acc" onclick="renderAuditLog()">🔄 새로고침</button>
-            <button class="btn" onclick="exportAuditCsv()">📥 CSV 내보내기</button>
+            <button class="btn" onclick="exportAuditCsv()">📥 CSV</button>
             <button class="btn btn-red" onclick="clearAuditLog()">🗑 초기화</button>
           </div>
         </div>
@@ -1690,18 +1704,27 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="audit-today">0</div><div class="stat-label">오늘 활동</div></div>
           <div class="stat-card"><div class="stat-icon">🗑</div><div class="stat-val" id="audit-deletes">0</div><div class="stat-label">삭제 작업</div></div>
           <div class="stat-card"><div class="stat-icon">🚫</div><div class="stat-val" id="audit-bans">0</div><div class="stat-label">차단 작업</div></div>
+          <div class="stat-card"><div class="stat-icon">📢</div><div class="stat-val" id="audit-announces">0</div><div class="stat-label">공지 발송</div></div>
+          <div class="stat-card"><div class="stat-icon">⚙️</div><div class="stat-val" id="audit-settings">0</div><div class="stat-label">설정 변경</div></div>
         </div>
-        <div class="audit-filter-bar">
+        <!-- 유형별 분포 -->
+        <div style="display:flex;gap:0;height:6px;border-radius:3px;overflow:hidden;margin-bottom:8px;" id="audit-type-bar"></div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;font-size:11px;color:var(--t3);flex-wrap:wrap;" id="audit-type-legend"></div>
+
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
           <select class="table-search" id="audit-type-filter" onchange="renderAuditLog()" style="width:120px;">
             <option value="">전체 유형</option>
-            <option value="login">로그인</option>
-            <option value="delete">삭제</option>
-            <option value="hide">숨기기</option>
-            <option value="ban">차단</option>
-            <option value="announce">공지</option>
-            <option value="push">푸시</option>
-            <option value="manager">매니저</option>
-            <option value="setting">설정</option>
+            <option value="login">🔑 로그인</option>
+            <option value="delete">🗑 삭제</option>
+            <option value="hide">🙈 숨기기</option>
+            <option value="show">👁 노출</option>
+            <option value="ban">🚫 차단</option>
+            <option value="suspend">🔒 정지</option>
+            <option value="plan_change">💜 플랜변경</option>
+            <option value="announce">📢 공지</option>
+            <option value="push">🔔 푸시</option>
+            <option value="manager">🛡️ 매니저</option>
+            <option value="setting">⚙️ 설정</option>
           </select>
           <input class="table-search" id="audit-search" placeholder="검색..." oninput="renderAuditLog()">
           <span id="audit-filter-count" style="font-size:11px;color:var(--t3);"></span>
@@ -5179,8 +5202,20 @@ function renderAuditLog(){
   if(el('audit-total')) el('audit-total').textContent = log.length;
   if(el('audit-today')) el('audit-today').textContent = log.filter(e=>e.ts>=today.getTime()).length;
   if(el('audit-deletes')) el('audit-deletes').textContent = log.filter(e=>e.type==='delete').length;
-  if(el('audit-bans')) el('audit-bans').textContent = log.filter(e=>e.type==='ban').length;
+  if(el('audit-bans')) el('audit-bans').textContent = log.filter(e=>e.type==='ban'||e.type==='suspend').length;
+  if(el('audit-announces')) el('audit-announces').textContent = log.filter(e=>e.type==='announce'||e.type==='push').length;
+  if(el('audit-settings')) el('audit-settings').textContent = log.filter(e=>e.type==='setting'||e.type==='manager').length;
   if(el('audit-filter-count')) el('audit-filter-count').textContent = filtered.length+'건';
+
+  /* 유형별 분포 바 */
+  const typeCnt={};
+  const typeColors2={login:'#3b82f6',delete:'#ef4444',hide:'#f59e0b',show:'#22c55e',ban:'#ef4444',suspend:'#f97316',plan_change:'#8b5cf6',announce:'#14b8a6',push:'#a855f7',manager:'#ec4899',setting:'#64748b'};
+  const typeLabels2={login:'로그인',delete:'삭제',hide:'숨기기',show:'노출',ban:'차단',suspend:'정지',plan_change:'플랜변경',announce:'공지',push:'푸시',manager:'매니저',setting:'설정'};
+  log.forEach(e=>{typeCnt[e.type]=(typeCnt[e.type]||0)+1;});
+  const barEl=el('audit-type-bar');
+  if(barEl&&log.length) barEl.innerHTML=Object.entries(typeCnt).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]).map(([t,c])=>'<div style="flex:'+c+';background:'+(typeColors2[t]||'#888')+'"></div>').join('');
+  const legEl=el('audit-type-legend');
+  if(legEl&&log.length) legEl.innerHTML=Object.entries(typeCnt).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]).map(([t,c])=>'<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(typeColors2[t]||'#888')+';margin-right:3px;"></span>'+(typeLabels2[t]||t)+' '+c+'</span>').join('');
 
   const list = document.getElementById('audit-log-list');
   if(!list) return;
@@ -5756,12 +5791,31 @@ function _liveTemplate(type){
     feature:     { icon:'🆕', title:'신기능 출시', body:'새로운 기능을 만나보세요!' },
     maintenance: { icon:'🔧', title:'점검 안내', body:'잠시 후 서비스 점검이 예정되어 있어요.' },
     challenge:   { icon:'🔥', title:'챌린지 공개', body:'새로운 챌린지에 참여해보세요!' },
+    welcome:     { icon:'👋', title:'환영합니다!', body:'Kenny\'s Music Studio에 오신 것을 환영합니다!' },
+    credit:      { icon:'💎', title:'크레딧 지급', body:'무료 크레딧이 지급됐어요! 지금 곡을 만들어보세요.' },
   };
   const t = templates[type] || templates.update;
   document.getElementById('live-icon').value = t.icon;
   document.getElementById('live-title').value = t.title;
   document.getElementById('live-body').value = t.body;
   _updateLivePreview();
+}
+/* 글자 수 표시 */
+function _updateLivePreview(){
+  const icon=document.getElementById('live-icon')?.value||'🔔';
+  const title=document.getElementById('live-title')?.value||'알림 제목';
+  const body=document.getElementById('live-body')?.value||'알림 내용';
+  const pi=document.getElementById('live-prev-icon');if(pi)pi.textContent=icon;
+  const pt=document.getElementById('live-prev-title');if(pt)pt.textContent=title;
+  const pb=document.getElementById('live-prev-body');if(pb)pb.textContent=body;
+  const cc=document.getElementById('live-char-count');if(cc)cc.textContent=(title.length+body.length)+'자';
+}
+/* 발송 이력 검색 */
+function _filterLiveHistory(){
+  const q=(document.getElementById('live-hist-search')?.value||'').toLowerCase();
+  document.querySelectorAll('#live-history-tbody tr').forEach(r=>{
+    r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';
+  });
 }
 
 async function _sendLiveNotify(){
@@ -6514,6 +6568,22 @@ async function cleanErrorLogs(){
 }
 var loadErrorStats=_errRefreshNow;
 var loadErrorLogs=_errRefreshNow;
+
+/* 에러 로그 CSV 내보내기 */
+function _errExportCsv(){
+  const logs=window._errAllLogs||[];
+  if(!logs.length){adminToast('에러 로그 없음','err');return;}
+  const header='시간,엔드포인트,상태코드,메서드,에러메시지\n';
+  const rows=logs.map(l=>[
+    l.timestamp?new Date(l.timestamp).toISOString():'',
+    '"'+(l.endpoint||'')+'"',l.status||'',l.method||'',
+    '"'+((l.message||'').replace(/"/g,'""')).slice(0,200)+'"'
+  ].join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='kms_errors_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(a.href);adminToast('📥 에러 로그 CSV 다운로드 완료');
+}
 
 /* 에러 섹션 진입 시 자동 LIVE 시작 */
 (function(){
