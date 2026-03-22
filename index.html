@@ -3870,7 +3870,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
           </div>
           <textarea class="form-input" id="prompt" rows="4"
-            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..." oninput="_updateLyricsInfo()"></textarea>
+            placeholder="느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리..." oninput="_updateLyricsInfo()"></textarea>
           <!-- 가사 도우미 -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;">
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -3899,7 +3899,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
           <div class="lyrics-btn-row" id="lyrics-btn-row">
             <button class="lyrics-reset-btn" onclick="_resetLyrics('prompt')" title="가사 초기화" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;transition:all .2s;">🗑 초기화</button>
-            <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
+            <span class="lyrics-hint">✦ 가사 없으면 AI가 자동 생성</span>
             <button class="ai-assist-btn" id="stream-lyrics-btn" onclick="streamLyricsGenerate()" style="font-size:12px;">
               <span class="lspin" id="stream-lyrics-spinner" style="display:none;"></span>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> 빠른 작사
@@ -4227,7 +4227,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
           </div>
           <textarea class="form-input" id="simple-lyrics" rows="4"
-            placeholder="가사를 직접 입력하거나 AI 자동 작사를 이용하세요&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구..."></textarea>
+            placeholder="느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리..."></textarea>
           <div class="lyrics-btn-row">
             <button class="lyrics-reset-btn" onclick="_resetLyrics('simple-lyrics')" title="가사 초기화" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;transition:all .2s;">🗑 초기화</button>
             <span class="lyrics-hint">✦ 가사 없으면 AI가 자동 생성</span>
@@ -8738,7 +8738,6 @@ async function _autoLyricsAndGenerate(){
 }
 /* ── 음악 생성 ── */
 $('gen-btn').addEventListener('click',generate);
-$('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)generate();});
 
 /* ══════════════════════════════
    AI 작곡 어시스턴트 — 로컬 랜덤 컨셉 생성
@@ -19118,7 +19117,7 @@ async function streamLyricsGenerate(){
     if(!_lyricsGenCancelled) toast('❌ '+e.message, 'err', 4000);
   }finally{
     btn.disabled = false; spinner.style.display='none';
-    textarea.placeholder = '가사를 직접 입력하거나 AI 자동 작사를 이용하세요';
+    textarea.placeholder = '느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요';
   }
 }
 
@@ -20455,7 +20454,7 @@ var _i18n={
     
     // 폼 필드
     songTitle:'곡 제목을 입력하세요 (선택)',
-    lyricsPlaceholder:'가사를 직접 입력하거나 AI 자동 작사를 이용하세요',
+    lyricsPlaceholder:'느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요',
     stylePlaceholder:'예: K-Pop, 감성적인',
     moodPlaceholder:'예: 비 오는 날 듣기 좋은 재즈 느낌의 곡',
     negativePrompt:'예: heavy metal, screaming, distorted guitar...',
@@ -21095,13 +21094,13 @@ function _applyLang(){
   if(ytSongTitle&&ytSongTitle.placeholder.includes('곡 제목')) ytSongTitle.placeholder=t.songTitle;
   
   var prompt=document.getElementById('prompt');
-  if(prompt&&prompt.placeholder.includes('가사를 직접')) {
-    prompt.placeholder=t.lyricsPlaceholder+'&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구...';
+  if(prompt&&(prompt.placeholder.includes('느낌만')||prompt.placeholder.includes('가사를 직접'))) {
+    prompt.placeholder=t.lyricsPlaceholder+'&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리...';
   }
-  
+
   var simpleLyrics=document.getElementById('simple-lyrics');
-  if(simpleLyrics&&simpleLyrics.placeholder.includes('가사를 직접')) {
-    simpleLyrics.placeholder=t.lyricsPlaceholder+'&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구...';
+  if(simpleLyrics&&(simpleLyrics.placeholder.includes('느낌만')||simpleLyrics.placeholder.includes('가사를 직접'))) {
+    simpleLyrics.placeholder=t.lyricsPlaceholder+'&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리...';
   }
   
   var aiAssistInput=document.getElementById('ai-assist-input');
