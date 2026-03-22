@@ -327,6 +327,17 @@ html,body{
 .chart-info-artist{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chart-stats{display:flex;gap:8px;font-size:10px;color:var(--t3);flex-shrink:0}
 .chart-play-btn{width:28px;height:28px;border-radius:50%;border:none;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+/* 리믹스 계보 */
+.remix-chain{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:600;background:rgba(124,58,237,.15);color:var(--acc3);border:1px solid rgba(124,58,237,.2);cursor:pointer}
+.remix-chain:hover{background:rgba(124,58,237,.25)}
+/* 검색 자동완성 */
+.search-suggest{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.search-suggest-item{padding:8px 12px;font-size:12px;color:var(--t1);cursor:pointer;display:flex;align-items:center;gap:8px}
+.search-suggest-item:hover{background:rgba(124,58,237,.08)}
+.search-suggest-item .ss-icon{color:var(--t3);font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.search-suggest-label{font-size:10px;font-weight:700;color:var(--t3);padding:6px 12px;text-transform:uppercase}
+.search-suggest-item.ss-recent .ss-remove{margin-left:auto;color:var(--t3);font-size:14px;cursor:pointer;padding:0 4px}
+.search-suggest-item.ss-recent .ss-remove:hover{color:var(--err)}
 /* 모드 탭 */
 .mode-tabs{
   display:flex;gap:4px;
@@ -999,6 +1010,59 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .sc-btn-cancel{flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
 .sc-btn-confirm{flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(124,58,237,.3);}
 .sc-btn-confirm:hover{box-shadow:0 6px 20px rgba(124,58,237,.4);}
+.sc-comm-share{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(59,130,246,.06));border:1px solid rgba(124,58,237,.15);margin-bottom:14px;cursor:pointer;transition:all .2s;}
+.sc-comm-share:hover{background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(59,130,246,.12));}
+.sc-comm-share.checked{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(59,130,246,.15));border-color:var(--acc);}
+.sc-comm-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s;color:transparent;}
+.sc-comm-share.checked .sc-comm-check{background:var(--acc);border-color:var(--acc);color:#fff;}
+.sc-comm-txt{font-size:12px;font-weight:600;color:var(--t2);}
+.sc-comm-txt span{display:block;font-size:10px;font-weight:400;color:var(--t3);margin-top:1px;}
+@keyframes cardSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hist-view-grid.full-mode .hist-card{animation:cardSlideUp .35s ease both;}
+.hist-view-grid.full-mode .hist-card:nth-child(2){animation-delay:.06s;}
+.hist-view-grid.full-mode .hist-card:nth-child(3){animation-delay:.12s;}
+.hist-view-grid.full-mode .hist-card:nth-child(4){animation-delay:.18s;}
+.hist-view-grid.full-mode .hist-card:nth-child(5){animation-delay:.24s;}
+.hist-view-grid.full-mode .hist-card.now-playing{border:2px solid var(--acc);box-shadow:0 0 20px rgba(124,58,237,.25);}
+.hist-view-grid.full-mode .hist-card.now-playing .hist-play-icon{animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.hist-swipe-hint{display:none;text-align:center;padding:8px;font-size:11px;color:var(--t3);opacity:0;animation:fadeHint 2s ease 1s both;}
+.hist-view-grid.full-mode~.hist-swipe-hint{display:block;}
+@keyframes fadeHint{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.hist-full-stats{display:none;padding:0 16px 4px;gap:12px;font-size:11px;color:var(--t3);}
+.hist-view-grid.full-mode .hist-full-stats{display:flex;}
+.hist-full-stat{display:flex;align-items:center;gap:3px;}
+.credit-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+.credit-badge.low{background:linear-gradient(135deg,#f59e0b,#ef4444);animation:creditPulse 2s ease infinite;}
+.credit-badge.empty{background:#ef4444;}
+@keyframes creditPulse{0%,100%{opacity:1}50%{opacity:.6}}
+.credit-history{max-height:200px;overflow-y:auto;margin-top:8px;}
+.credit-history-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg2);margin-bottom:4px;font-size:11px;}
+.credit-history-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.credit-history-info{flex:1;min-width:0;}
+.credit-history-title{font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.credit-history-time{font-size:9px;color:var(--t3);}
+.credit-history-cost{font-weight:700;color:var(--red);white-space:nowrap;}
+.credit-warn-banner{display:none;padding:10px 14px;margin-bottom:10px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.1));border:1px solid rgba(245,158,11,.25);font-size:12px;color:#f59e0b;align-items:center;gap:8px;}
+.credit-warn-banner.show{display:flex;}
+@keyframes heartBurst{0%{transform:scale(1)}25%{transform:scale(1.4)}50%{transform:scale(.9)}100%{transform:scale(1)}}
+.comm-reaction-sm.liked{animation:heartBurst .4s ease;}
+.comm-comment-preview{display:flex;align-items:center;gap:6px;padding:6px 10px;margin-top:6px;background:var(--bg2);border-radius:8px;font-size:11px;color:var(--t3);cursor:pointer;overflow:hidden;}
+.comm-comment-preview:hover{background:var(--s3);}
+.comm-comment-preview .ccp-avatar{width:16px;height:16px;border-radius:50%;flex-shrink:0;}
+.comm-comment-preview .ccp-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.comm-notif-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 3px;border-radius:7px;background:#ef4444;color:#fff;font-size:8px;font-weight:800;display:none;align-items:center;justify-content:center;line-height:1;}
+.comm-notif-badge.show{display:flex;}
+.comm-suggest-follow{display:flex;gap:10px;overflow-x:auto;padding:10px 0;margin-bottom:12px;-webkit-overflow-scrolling:touch;}
+.comm-suggest-follow::-webkit-scrollbar{display:none;}
+.comm-suggest-card{flex-shrink:0;width:100px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:14px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.comm-suggest-card:hover{border-color:var(--acc);transform:translateY(-2px);}
+.comm-suggest-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--bg2);}
+.comm-suggest-avatar img{width:100%;height:100%;object-fit:cover;}
+.comm-suggest-name{font-size:11px;font-weight:700;color:var(--t1);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;}
+.comm-suggest-meta{font-size:9px;color:var(--t3);}
+.comm-suggest-btn{padding:4px 12px;border-radius:8px;border:1px solid var(--acc);background:transparent;color:var(--acc);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
 /* 빈 상태 CTA */
@@ -4109,8 +4173,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="comm-title">커뮤니티</div>
     </div>
     <div class="comm-search-wrap">
-      <input class="comm-search" id="comm-search-input" type="text" placeholder="장르, 분위기, 아티스트 검색...">
+      <input class="comm-search" id="comm-search-input" type="text" placeholder="장르, 분위기, 아티스트 검색..." autocomplete="off">
       <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
+      <div id="search-suggest" class="search-suggest" style="display:none;"></div>
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
@@ -4590,6 +4655,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="fp-info" style="text-align:left;margin-bottom:0;">
             <div class="fp-title" id="fp-title">곡 제목</div>
             <div class="fp-tags" id="fp-tags"></div>
+            <div id="fp-remix-chain" style="display:none;margin-top:6px;"></div>
           </div>
           <!-- 제목 아래 가사 (크게) -->
           <div class="fp-lyrics-main" id="fp-lyrics-main">
@@ -6789,19 +6855,35 @@ function _saveLoginUser(user){
   }
 })()
 
-/* ── 공유 링크 자동 재생 처리 ── */
+/* ── 공유 링크 자동 재생 처리 (딥링크) ── */
 ;(function handleSharedTrack(){
   const p=new URLSearchParams(window.location.search);
   const sharedAudio=p.get('play');
-  const sharedTitle=p.get('track');
+  const sharedTitle=p.get('t');
   const sharedImg=p.get('img');
-  if(!sharedAudio && !sharedTitle) return;
+  const sharedTrackId=p.get('track');
+
+  if(!sharedAudio && !sharedTitle && !sharedTrackId) return;
 
   /* 페이지 로드 완료 후 처리 */
   window.addEventListener('load', ()=>{
     setTimeout(()=>{
-      if(sharedAudio){
-        /* 공유 플레이어 팝업 표시 */
+      /* 트랙 ID로 서버 조회 후 재생 */
+      if(sharedTrackId){
+        fetch('/api/tracks?public=true&limit=200').then(r=>r.json()).then(d=>{
+          var tracks=d.tracks||d.data||[];
+          var found=tracks.find(function(t){return t.id===sharedTrackId;});
+          if(found&&found.audio_url){
+            _showSharedPlayer(found.title||sharedTitle||'공유된 노래', found.audio_url, found.image_url||sharedImg||'');
+          } else if(sharedAudio){
+            _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+          } else {
+            toast('공유된 곡을 찾을 수 없어요','',2000);
+          }
+        }).catch(function(){
+          if(sharedAudio) _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+        });
+      } else if(sharedAudio){
         _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
       }
       /* URL 클린업 */
@@ -11257,6 +11339,7 @@ function _saveTrackToServer(track){
     tags:           track.tags           || '',
     lyrics:         track.lyrics         || '',
     genMode:        track.genMode        || 'custom',
+    parent_id:      track.parent_id      || track._extendedFrom || track._coveredFrom || track._remasteredFrom || track._styleFrom || track._vocalRemovedFrom || '',
     owner_name:     track._owner?.name     || currentUser?.name     || '익명',
     owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
     owner_provider: track._owner?.provider || currentUser?.provider || 'guest',
@@ -11409,6 +11492,22 @@ function _doOpenFullPlayer(idx){
   if(_fpHdr){
     var _rmLabel=h._extendedFrom?'🔄 연장 곡':h._coveredFrom?'🎤 커버 곡':h._remasteredFrom?'✨ 리마스터':h._styleFrom?'🎨 스타일 재사용':h._vocalRemovedFrom?'🎙 보컬 분리':hasVideo?'뮤직비디오 재생 중':'재생 중';
     _fpHdr.textContent=_rmLabel;
+  }
+  /* 리믹스 계보 표시 */
+  var chainEl=$('fp-remix-chain');
+  if(chainEl){
+    var parentId=h.parent_id||h._extendedFrom||h._coveredFrom||h._remasteredFrom||h._styleFrom||h._vocalRemovedFrom||'';
+    var genMode=h.genMode||h.gen_mode||'';
+    if(parentId&&genMode&&genMode!=='custom'){
+      var modeLabels={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
+      var mLabel=modeLabels[genMode]||genMode;
+      var parentTrack=historyData.find(function(t){return t.id===parentId;})||_sbTracks?.find(function(t){return t.id===parentId||t._sbId===parentId;});
+      var parentTitle=parentTrack?(parentTrack.title||'무제'):'원곡';
+      chainEl.innerHTML='<span class="remix-chain" onclick="event.stopPropagation();_playParentTrack(\''+parentId+'\')">'+mLabel+' ← '+parentTitle.replace(/</g,'&lt;').slice(0,20)+'</span>';
+      chainEl.style.display='';
+    } else {
+      chainEl.style.display='none';
+    }
   }
 
   /* 좋아요 상태 + 별점 복원 */
@@ -11584,6 +11683,16 @@ $('fp-play-btn').addEventListener('click',()=>{
 function fpSeekRel(sec){
   if(!fpAudio?.duration)return;
   fpAudio.currentTime=Math.max(0,Math.min(fpAudio.duration,fpAudio.currentTime+sec));
+}
+
+/* 원곡 재생 (리믹스 계보) */
+function _playParentTrack(parentId){
+  if(!parentId)return;
+  var idx=historyData.findIndex(function(t){return t.id===parentId;});
+  if(idx>=0){_doOpenFullPlayer(idx);return;}
+  var sbTrack=(_sbTracks||[]).find(function(t){return t.id===parentId||t._sbId===parentId;});
+  if(sbTrack){commPlaySb(sbTrack._sbId||sbTrack.id);return;}
+  toast('원곡을 찾을 수 없어요','',2000);
 }
 
 /* 다음/이전 곡 — audio_url 없는 트랙 스킵 */
@@ -11850,6 +11959,7 @@ function _renderPlaylistView(grid,countEl){
   headerHtml+='</select>'
     +'<button onclick="_createPlaylist()" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">+ 새 플리</button>'
     +'<button onclick="_renamePlaylist()" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;" title="이름변경">&#x270F;&#xFE0F;</button>'
+    +'<button onclick="_deletePlaylist()" style="padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#ef4444;font-size:12px;cursor:pointer;font-family:inherit;" title="삭제">&#x1F5D1;&#xFE0F;</button>'
     +'</div>';
   if(!pl.length){
     grid.innerHTML=headerHtml+'<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M15 6H3"/><path d="M15 12H3"/><path d="M15 18H3"/><path d="M19 6v12"/><path d="M22 9l-3-3-3 3"/></svg></div><div class="he-txt">플레이리스트가 비어있어요</div><div class="he-sub">풀플레이어에서 ♡ 옆 버튼으로 추가하세요</div></div>';
@@ -13257,11 +13367,12 @@ function fpDeleteCurrent(){
 }
 
 /* 공유 */
-function _updateOgTags(title,imageUrl,shareUrl){
+function _updateOgTags(title,imageUrl,shareUrl,trackId){
   try{
     const BASE='https://ai-music-studio-bice.vercel.app';
     const safeTitle=(title||'나의 노래').slice(0,28);
-    const ogImgUrl=BASE+'/api/og-image?title='+encodeURIComponent(safeTitle)+'&artist='+encodeURIComponent('AI 아티스트');
+    var ogImgUrl=BASE+'/api/og-image?title='+encodeURIComponent(safeTitle)+'&artist='+encodeURIComponent('AI 아티스트');
+    if(trackId) ogImgUrl+='&trackId='+encodeURIComponent(trackId);
     /* OG 메타 업데이트 */
     const ogTitle=document.querySelector('meta[property="og:title"]');
     const ogDesc =document.querySelector('meta[property="og:description"]');
@@ -13281,11 +13392,13 @@ function fpOpenShare(){
   const audioUrl=h.audio_url||h.song_path||'';
   const imgUrl=h.image_url||h.cover_image_url||'';
   const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  const trackId=h.id||h._sbId||'';
   const params=new URLSearchParams({t:title});
+  if(trackId)  params.set('track', trackId);
   if(audioUrl) params.set('play', audioUrl);
   if(imgUrl)   params.set('img',  imgUrl);
   const url=window.location.origin+'/api/share?'+params.toString();
-  _updateOgTags(title, imgUrl, url);
+  _updateOgTags(title, imgUrl, url, trackId);
   /* 공유 이미지 미리보기 업데이트 */
   const prevImg = document.getElementById('share-preview-img');
   if(prevImg){ prevImg.src = imgUrl||''; prevImg.style.display = imgUrl?'block':'none'; }
@@ -13432,8 +13545,106 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
   });
 });
 
-/* ── 커뮤니티 검색 기능 ── */
+/* ── 커뮤니티 검색 기능 (자동완성 + 히스토리) ── */
 let _commSearchTimer=null;
+var _SEARCH_HISTORY_KEY='kms_search_history';
+var _SEARCH_TAGS=['K-Pop','Hip-Hop','R&B','Lo-Fi','Electronic','Ballad','Rock','Jazz','OST','Indie','Trap','EDM','Acoustic','Pop','Soul','Funk','Reggae','Latin','Classical'];
+
+function _getSearchHistory(){
+  try{return JSON.parse(localStorage.getItem(_SEARCH_HISTORY_KEY)||'[]').slice(0,8);}catch(e){return[];}
+}
+function _addSearchHistory(q){
+  if(!q||q.length<2)return;
+  var hist=_getSearchHistory().filter(function(h){return h!==q;});
+  hist.unshift(q);
+  if(hist.length>8)hist.length=8;
+  localStorage.setItem(_SEARCH_HISTORY_KEY,JSON.stringify(hist));
+}
+function _removeSearchHistory(q){
+  var hist=_getSearchHistory().filter(function(h){return h!==q;});
+  localStorage.setItem(_SEARCH_HISTORY_KEY,JSON.stringify(hist));
+  _showSearchSuggest(document.getElementById('comm-search-input')?.value||'');
+}
+function _showSearchSuggest(q){
+  var el=$('search-suggest');
+  if(!el)return;
+  q=(q||'').trim().toLowerCase();
+  var html='';
+
+  if(!q){
+    /* 최근 검색어 */
+    var hist=_getSearchHistory();
+    if(hist.length){
+      html+='<div class="search-suggest-label">최근 검색</div>';
+      hist.forEach(function(h){
+        html+='<div class="search-suggest-item ss-recent" onclick="_selectSearch(\''+h.replace(/'/g,"\\'")+'\')">'
+          +'<span class="ss-icon">🕐</span>'+h.replace(/</g,'&lt;')
+          +'<span class="ss-remove" onclick="event.stopPropagation();_removeSearchHistory(\''+h.replace(/'/g,"\\'")+'\')">&times;</span></div>';
+      });
+    }
+    /* 인기 태그 */
+    html+='<div class="search-suggest-label">인기 태그</div>';
+    _SEARCH_TAGS.slice(0,10).forEach(function(t){
+      html+='<div class="search-suggest-item" onclick="_selectSearch(\''+t+'\')"><span class="ss-icon">🏷</span>'+t+'</div>';
+    });
+  } else {
+    /* 태그 매칭 */
+    var matched=_SEARCH_TAGS.filter(function(t){return t.toLowerCase().indexOf(q)>=0;});
+    /* 아티스트 매칭 */
+    var artists=[];
+    if(_sbTracks&&_sbTracks.length){
+      var seen={};
+      _sbTracks.forEach(function(t){
+        var name=t.owner_name||t.user_name||'';
+        if(name&&name.toLowerCase().indexOf(q)>=0&&!seen[name]){
+          seen[name]=true;artists.push(name);
+        }
+      });
+    }
+    /* 곡 제목 매칭 */
+    var titles=[];
+    if(_sbTracks&&_sbTracks.length){
+      _sbTracks.forEach(function(t){
+        if((t.title||'').toLowerCase().indexOf(q)>=0) titles.push(t.title);
+      });
+    }
+    if(matched.length){
+      html+='<div class="search-suggest-label">태그</div>';
+      matched.slice(0,5).forEach(function(t){
+        html+='<div class="search-suggest-item" onclick="_selectSearch(\''+t+'\')"><span class="ss-icon">🏷</span>'+t+'</div>';
+      });
+    }
+    if(artists.length){
+      html+='<div class="search-suggest-label">크리에이터</div>';
+      artists.slice(0,5).forEach(function(a){
+        html+='<div class="search-suggest-item" onclick="_selectSearch(\''+a.replace(/'/g,"\\'")+'\')">'
+          +'<span class="ss-icon">👤</span>'+a.replace(/</g,'&lt;')+'</div>';
+      });
+    }
+    if(titles.length){
+      html+='<div class="search-suggest-label">곡</div>';
+      titles.slice(0,5).forEach(function(t){
+        html+='<div class="search-suggest-item" onclick="_selectSearch(\''+t.replace(/'/g,"\\'")+'\')">'
+          +'<span class="ss-icon">🎵</span>'+t.replace(/</g,'&lt;')+'</div>';
+      });
+    }
+  }
+  el.innerHTML=html;
+  el.style.display=html?'':'none';
+}
+function _selectSearch(q){
+  var input=document.getElementById('comm-search-input');
+  if(input)input.value=q;
+  var el=$('search-suggest');if(el)el.style.display='none';
+  var clearBtn=document.getElementById('comm-search-clear');
+  if(clearBtn)clearBtn.style.display=q?'block':'none';
+  _commSearchQuery=q.toLowerCase();
+  _addSearchHistory(q);
+  _commPrevSnapshot='';
+  _commCreatorShowCount=10;
+  if(_commActiveGenre==='creators') _renderCreatorList();
+  else renderCommunity();
+}
 document.addEventListener('DOMContentLoaded',function(){
   const searchInput=document.getElementById('comm-search-input');
   const clearBtn=document.getElementById('comm-search-clear');
@@ -13442,13 +13653,24 @@ document.addEventListener('DOMContentLoaded',function(){
       clearTimeout(_commSearchTimer);
       const q=this.value.trim();
       if(clearBtn) clearBtn.style.display=q?'block':'none';
+      _showSearchSuggest(q);
       _commSearchTimer=setTimeout(()=>{
         _commSearchQuery=q.toLowerCase();
+        if(q)_addSearchHistory(q);
         _commPrevSnapshot='';
         _commCreatorShowCount=10;
         if(_commActiveGenre==='creators') _renderCreatorList();
         else renderCommunity();
-      },250);
+      },400);
+    });
+    searchInput.addEventListener('focus',function(){
+      _showSearchSuggest(this.value.trim());
+    });
+    document.addEventListener('click',function(e){
+      var suggest=$('search-suggest');
+      if(suggest&&!suggest.contains(e.target)&&e.target!==searchInput){
+        suggest.style.display='none';
+      }
     });
   }
 });
@@ -13457,6 +13679,7 @@ function clearCommSearch(){
   const clearBtn=document.getElementById('comm-search-clear');
   if(searchInput){searchInput.value='';searchInput.focus();}
   if(clearBtn) clearBtn.style.display='none';
+  var suggest=$('search-suggest');if(suggest)suggest.style.display='none';
   _commSearchQuery='';
   _commPrevSnapshot='';
   _commCreatorShowCount=10;
@@ -16885,7 +17108,7 @@ function _downloadLicense(){
   toast('📜 상업 라이선스 다운로드 완료','ok',2000);
 }
 /* AI DJ 모드 — 무드 기반 자동 재생 */function _startDJ(mood){  var tracks=getCommTracks();  if(!tracks.length){toast('커뮤니티에 곡이 없어요','err',2000);return;}  var moodKeywords={chill:['chill','lofi','jazz','acoustic','calm','relax'],energetic:['dance','edm','rock','pop','energy','party','hiphop','trap'],emotional:['ballad','emotional','sad','love','romantic','piano']}[mood]||[];  var filtered;  if(mood==='random'){    filtered=[...tracks].sort(function(){return Math.random()-0.5;});  } else {    filtered=tracks.filter(function(t){var tags=(t.allTags||t.tags||'').toLowerCase();return moodKeywords.some(function(k){return tags.includes(k);});});    if(filtered.length<3) filtered=[...tracks].sort(function(){return Math.random()-0.5;});  }  var queue=filtered.slice(0,10);  /* 히스토리에 추가 + 첫 곡 재생 */  queue.forEach(function(t){    var hIdx=historyData.findIndex(function(h){return h.id===(t._sbId||t.id);});    if(hIdx<0){historyData.unshift({id:t._sbId||t.id,title:t.title,audio_url:t.audioUrl,image_url:t.img||'',tags:t.allTags||t.tags||'',lyrics:'',created:Date.now(),type:'audio',genMode:'dj',_owner:t._owner});    }  });  saveHistory(); updateHistBadge();  var labels={chill:'☕ Chill',energetic:'🔥 Energy',emotional:'💙 Mood',random:'🎲 Mix'};  toast('🎧 AI DJ: '+(labels[mood]||mood)+' 모드 ('+queue.length+'곡)','ok',3000);  var firstId=queue[0]?._sbId||queue[0]?.id;  if(firstId) commPlaySb(firstId);}
-/* PWA 설치 배너 */let _deferredInstall = null;window.addEventListener('beforeinstallprompt', function(e) {  e.preventDefault();  _deferredInstall = e;  /* 3초 후 설치 배너 표시 */  setTimeout(function(){    if(!_deferredInstall) return;    var el = document.createElement('div');    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99998;max-width:360px;width:calc(100% - 32px);background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(124,58,237,.4);display:flex;align-items:center;gap:12px;';    el.innerHTML = '<div style="flex:1;"><div style="font-size:13px;font-weight:800;color:#fff;">📱 앱 설치하기</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">홈 화면에 추가하고 더 빠르게!</div></div><button id="_pwa_install" style="padding:8px 16px;border-radius:10px;border:none;background:#fff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">설치</button><button onclick="this.parentNode.remove()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;">✕</button>';    document.body.appendChild(el);    el.querySelector('#_pwa_install').onclick = function(){ _deferredInstall.prompt(); _deferredInstall.userChoice.then(function(r){ if(r.outcome==="accepted") toast("앱 설치 완료!","ok",2000); }); _deferredInstall=null; el.remove(); };    setTimeout(function(){if(el.parentNode)el.remove();},15000);  }, 3000);});
+/* PWA 설치 배너 */let _deferredInstall = null;window.addEventListener('beforeinstallprompt', function(e) {  e.preventDefault();  _deferredInstall = e;  /* 이미 닫았으면 재표시 안 함 */  if(localStorage.getItem('kms_pwa_dismissed')) return;  /* 3초 후 설치 배너 표시 */  setTimeout(function(){    if(!_deferredInstall) return;    var el = document.createElement('div');    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99998;max-width:360px;width:calc(100% - 32px);background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(124,58,237,.4);display:flex;align-items:center;gap:12px;';    el.innerHTML = '<div style="flex:1;"><div style="font-size:13px;font-weight:800;color:#fff;">📱 앱 설치하기</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">홈 화면에 추가하고 더 빠르게!</div></div><button id="_pwa_install" style="padding:8px 16px;border-radius:10px;border:none;background:#fff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">설치</button><button onclick="localStorage.setItem(\'kms_pwa_dismissed\',\'1\');this.parentNode.remove()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;">✕</button>';    document.body.appendChild(el);    el.querySelector('#_pwa_install').onclick = function(){ _deferredInstall.prompt(); _deferredInstall.userChoice.then(function(r){ if(r.outcome==="accepted") toast("앱 설치 완료!","ok",2000); }); _deferredInstall=null; el.remove(); };    setTimeout(function(){if(el.parentNode)el.remove();},15000);  }, 3000);});
 function _checkAttendance(){
   if(!currentUser || currentUser.provider==="guest") return;
   const today=new Date().toISOString().split("T")[0];
