@@ -413,9 +413,34 @@ textarea.form-input{line-height:1.5;}
       <div class="admin-section" id="sec-comments">
         <div class="sec-hdr">
           <h2>💬 댓글 관리</h2>
-          <button class="btn" onclick="renderCommentsAdmin()">🔄 새로고침</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-acc" onclick="renderCommentsAdmin()" id="cm-refresh-btn">🔄 새로고침</button>
+            <button class="btn" onclick="_cmBulkAction('hide')" id="cm-bulk-hide">🙈 선택 숨김</button>
+            <button class="btn btn-red" onclick="_cmBulkAction('delete')" id="cm-bulk-del">🗑 선택 삭제</button>
+          </div>
         </div>
-        <div id="comments-admin-list" style="margin-top:12px;">댓글을 불러오는 중...</div>
+
+        <!-- 통계 카드 -->
+        <div class="stats-grid" style="margin-bottom:12px;">
+          <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-val" id="cm-total">0</div><div class="stat-label">전체 댓글</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="cm-today">0</div><div class="stat-label">오늘</div></div>
+          <div class="stat-card"><div class="stat-icon">🙈</div><div class="stat-val" id="cm-hidden">0</div><div class="stat-label">숨김</div></div>
+          <div class="stat-card"><div class="stat-icon">🚩</div><div class="stat-val" id="cm-reported">0</div><div class="stat-label">신고</div></div>
+        </div>
+
+        <!-- 필터/검색 -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+          <button class="btn cm-filter-btn on" data-cf="all" onclick="_cmFilter('all')" style="font-size:11px;padding:4px 10px;">전체</button>
+          <button class="btn cm-filter-btn" data-cf="visible" onclick="_cmFilter('visible')" style="font-size:11px;padding:4px 10px;">공개</button>
+          <button class="btn cm-filter-btn" data-cf="hidden" onclick="_cmFilter('hidden')" style="font-size:11px;padding:4px 10px;">🙈 숨김</button>
+          <button class="btn cm-filter-btn" data-cf="reply" onclick="_cmFilter('reply')" style="font-size:11px;padding:4px 10px;">↩ 답글</button>
+          <button class="btn cm-filter-btn" data-cf="today" onclick="_cmFilter('today')" style="font-size:11px;padding:4px 10px;">📅 오늘</button>
+          <input type="text" id="cm-search" placeholder="작성자·내용·트랙 검색..." style="flex:1;min-width:120px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:11px;" oninput="_cmApplyFilter()">
+          <label style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="cm-select-all" onchange="_cmToggleAll(this.checked)"> 전체선택</label>
+        </div>
+
+        <div id="comments-admin-list" style="max-height:600px;overflow-y:auto;">댓글을 불러오는 중...</div>
+        <div id="cm-pagination" style="display:flex;justify-content:center;gap:6px;margin-top:12px;"></div>
       </div>
 
       <div class="admin-section" id="sec-community">
@@ -468,16 +493,25 @@ textarea.form-input{line-height:1.5;}
       <div class="admin-section" id="sec-users">
         <div class="sec-hdr">
           <h2>사용자 관리</h2>
-          <button class="btn btn-acc" onclick="renderUsersAdmin(true)">🔄 새로고침</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" onclick="_exportUsersCsv()" style="font-size:11px;">📥 CSV</button>
+            <button class="btn btn-acc" onclick="renderUsersAdmin(true)">🔄 새로고침</button>
+          </div>
         </div>
 
         <!-- 통계 요약 -->
-        <div class="stats-grid" style="margin-bottom:20px;" id="user-stats-grid">
+        <div class="stats-grid" style="margin-bottom:16px;" id="user-stats-grid">
           <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-total">0</div><div class="stat-label">전체 사용자</div></div>
-          <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
+          <div class="stat-card" style="border-left:3px solid var(--grn);"><div class="stat-icon">🟢</div><div class="stat-val" id="ustat-online" style="color:var(--grn);">0</div><div class="stat-label">현재 온라인</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div></div>
+          <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
+          <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-val" id="ustat-mobile">0%</div><div class="stat-label">모바일 비율</div></div>
           <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
         </div>
+
+        <!-- 소셜 분포 미니 바 -->
+        <div style="display:flex;gap:0;height:6px;border-radius:3px;overflow:hidden;margin-bottom:16px;" id="ustat-provider-bar"></div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;font-size:11px;color:var(--t3);flex-wrap:wrap;" id="ustat-provider-legend"></div>
 
         <!-- 탭 전환 -->
         <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:4px;width:fit-content;">
@@ -490,9 +524,29 @@ textarea.form-input{line-height:1.5;}
           <div class="admin-table-wrap">
             <div class="admin-table-header">
               <h3>로그인 사용자 목록 <span id="login-user-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
-              <input class="table-search" id="user-search" placeholder="이름, 이메일 검색..." oninput="filterUsers()" style="min-width:200px;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <input class="table-search" id="user-search" placeholder="이름, 이메일 검색..." oninput="filterUsers()" style="min-width:160px;">
+                <select class="table-search" id="user-provider-filter" onchange="filterUsers()" style="width:90px;">
+                  <option value="">전체 소셜</option>
+                  <option value="google">🔵 Google</option>
+                  <option value="kakao">💬 카카오</option>
+                  <option value="naver">🟢 네이버</option>
+                </select>
+                <select class="table-search" id="user-plan-filter" onchange="filterUsers()" style="width:80px;">
+                  <option value="">전체 플랜</option>
+                  <option value="free">Free</option>
+                  <option value="pro">Pro</option>
+                  <option value="creator">Creator</option>
+                </select>
+                <select class="table-search" id="user-sort" onchange="_sortAndRenderUsers()" style="width:110px;">
+                  <option value="lastLogin">최근 로그인순</option>
+                  <option value="loginCount">로그인 많은순</option>
+                  <option value="name">이름순</option>
+                  <option value="created">가입일순</option>
+                </select>
+              </div>
             </div>
-            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>플랜</th><th>로그인 횟수</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
+            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>플랜</th><th>로그인</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
             <tbody id="users-login-tbody"></tbody></table>
           </div>
         </div>
@@ -1838,8 +1892,7 @@ function switchSec(id){
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
   if(id==='managers'){ loadManagersFromServer().then(()=>renderManagersSection()); }
-  if(id==='reports') loadReports();
-  if(id==='reports') renderReportsAdmin();
+  if(id==='reports') loadReportsFromDB();
   if(id==='usage') loadUsageAdmin();
   if(id==='logs') initLogSection();
   if(id==='kielogs'){const f=document.getElementById('kie-iframe');if(f&&!f.src.includes('kie.ai'))f.src='https://kie.ai/logs';}
@@ -2776,61 +2829,139 @@ async function fetchKieUsage(){
 let _commShowHidden = false; /* 숨김 트랙 표시 토글 */
 let _commAllTracksCache = [];
 
-/* ── 댓글 관리 ── */
+/* ── 댓글 관리 (고도화) ── */
+var _cmAll=[], _cmFiltered=[], _cmFilter_='all', _cmPage=0, _cmPerPage=30, _cmSelected={}, _cmTrackMap={};
+
 async function renderCommentsAdmin(){
-  const wrap=document.getElementById('comments-admin-list');if(!wrap)return;
+  var wrap=document.getElementById('comments-admin-list');if(!wrap)return;
   wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);">불러오는 중...</div>';
   try{
-    /* 전체 댓글 한번에 조회 (관리자 API) */
-    const r=await adminFetch('/api/comments?all=true&limit=500');
-    const d=await r.json();
-    const allComments=d.comments||[];
-
-    /* 트랙 제목 매핑을 위한 트랙 목록 */
-    const tracks=_serverTracks||[];
-    const trackMap={};
-    tracks.forEach(t=>{ if(t.id) trackMap[t.id]=t.title||'무제'; });
-
-    allComments.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-
-    const totalCount=allComments.length;
-    const hiddenCount=allComments.filter(c=>c.is_hidden).length;
-
-    if(!totalCount){
-      wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">등록된 댓글이 없습니다.</div>';
-      return;
-    }
-
-    wrap.innerHTML=`<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;color:var(--t3);">
-      <span>전체 <b style="color:var(--t1);">${totalCount}</b>개</span>
-      <span>숨김 <b style="color:var(--red);">${hiddenCount}</b>개</span>
-      <span>출처: <b style="color:var(--acc);">${d.source||'?'}</b></span>
-    </div>`+
-      allComments.map(c=>{
-        const time=new Date(c.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const trackTitle=trackMap[c.track_id]||c.track_id||'?';
-        const hidden=c.is_hidden;
-        const reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
-        const rowStyle=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
-        return`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${rowStyle}">
-          <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;">
-            ${_isImgUrl(c.author_avatar)?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">':'👤'}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:var(--t3);">🎵 ${esc(trackTitle)} · ${time}${hidden?' <span style="color:var(--red);">[숨김]</span>':''}${reply}</div>
-            <div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">
-              ${esc(c.author_name||'익명')}
-              <span class="badge ${({google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'})[c.author_provider]||'badge-acc'}" style="font-size:9px;">${esc(c.author_provider||'guest')}</span>
-            </div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.5;word-break:break-word;">${esc(c.content)}</div>
-          </div>
-          <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button class="btn" onclick="toggleCommentAdmin('${c.id}',${!hidden})" style="font-size:11px;padding:3px 8px;">${hidden?'👁 공개':'🙈 숨김'}</button>
-            <button class="btn btn-red" onclick="deleteCommentAdmin('${c.id}')" style="font-size:11px;padding:3px 8px;">🗑</button>
-          </div>
-        </div>`;
-      }).join('');
+    var r=await adminFetch('/api/comments?all=true&limit=1000');
+    var d=await r.json();
+    _cmAll=d.comments||[];
+    var tracks=_serverTracks||[];
+    _cmTrackMap={};
+    tracks.forEach(function(t){if(t.id)_cmTrackMap[t.id]=t.title||'무제';});
+    _cmAll.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+    _cmSelected={};
+    document.getElementById('cm-select-all').checked=false;
+    _cmUpdateStats();
+    _cmPage=0;
+    _cmApplyFilter();
   }catch(e){wrap.innerHTML='<div style="color:var(--red);padding:20px;">로드 실패: '+e.message+'</div>';}
+}
+
+function _cmUpdateStats(){
+  var today=new Date().toISOString().slice(0,10);
+  document.getElementById('cm-total').textContent=_cmAll.length;
+  document.getElementById('cm-today').textContent=_cmAll.filter(function(c){return (c.created_at||'').slice(0,10)===today;}).length;
+  document.getElementById('cm-hidden').textContent=_cmAll.filter(function(c){return c.is_hidden;}).length;
+  /* 신고 수는 reports API에서 가져오기 어려우니 댓글 기반 추정 */
+  document.getElementById('cm-reported').textContent=_cmAll.filter(function(c){return c.report_count>0;}).length;
+}
+
+function _cmFilter(f){
+  _cmFilter_=f;_cmPage=0;
+  document.querySelectorAll('.cm-filter-btn').forEach(function(b){b.classList.toggle('on',b.dataset.cf===f);});
+  _cmApplyFilter();
+}
+
+function _cmApplyFilter(){
+  var q=(document.getElementById('cm-search')||{}).value||'';
+  q=q.toLowerCase();
+  var today=new Date().toISOString().slice(0,10);
+  _cmFiltered=_cmAll.filter(function(c){
+    if(_cmFilter_==='visible'&&c.is_hidden)return false;
+    if(_cmFilter_==='hidden'&&!c.is_hidden)return false;
+    if(_cmFilter_==='reply'&&!c.parent_id)return false;
+    if(_cmFilter_==='today'&&(c.created_at||'').slice(0,10)!==today)return false;
+    if(q){
+      var name=(c.author_name||'').toLowerCase();
+      var content=(c.content||'').toLowerCase();
+      var track=(_cmTrackMap[c.track_id]||'').toLowerCase();
+      if(name.indexOf(q)<0&&content.indexOf(q)<0&&track.indexOf(q)<0)return false;
+    }
+    return true;
+  });
+  _cmRenderList();
+  _cmRenderPagination();
+}
+
+function _cmRenderList(){
+  var wrap=document.getElementById('comments-admin-list');if(!wrap)return;
+  var start=_cmPage*_cmPerPage;
+  var page=_cmFiltered.slice(start,start+_cmPerPage);
+  if(!page.length){wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">표시할 댓글이 없습니다.</div>';return;}
+  var provCls={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  wrap.innerHTML=page.map(function(c){
+    var time=new Date(c.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    var trackTitle=_cmTrackMap[c.track_id]||'알 수 없는 트랙';
+    var hidden=c.is_hidden;
+    var reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
+    var checked=_cmSelected[c.id]?' checked':'';
+    var rowBg=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
+    var avatar=_isImgUrl(c.author_avatar)?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">':'👤';
+    return'<div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;'+rowBg+'" data-cmid="'+c.id+'">'
+      +'<input type="checkbox" onchange="_cmToggleSel(\''+c.id+'\',this.checked)" style="margin-top:8px;cursor:pointer;accent-color:var(--acc);"'+checked+'>'
+      +'<div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;">'+avatar+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:11px;color:var(--t3);">🎵 '+esc(trackTitle)+' · '+time+(hidden?' <span style="color:var(--red);font-weight:700;">[숨김]</span>':'')+reply+'</div>'
+        +'<div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">'+esc(c.author_name||'익명')+' <span class="badge '+(provCls[c.author_provider]||'badge-acc')+'" style="font-size:9px;">'+esc(c.author_provider||'guest')+'</span></div>'
+        +'<div style="font-size:13px;color:var(--t2);line-height:1.5;word-break:break-word;">'+esc(c.content)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;flex-shrink:0;flex-direction:column;">'
+        +'<button class="btn" onclick="toggleCommentAdmin(\''+c.id+'\','+(!hidden)+')" style="font-size:10px;padding:3px 8px;">'+(hidden?'👁 공개':'🙈 숨김')+'</button>'
+        +'<button class="btn btn-red" onclick="deleteCommentAdmin(\''+c.id+'\')" style="font-size:10px;padding:3px 8px;">🗑 삭제</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function _cmRenderPagination(){
+  var el=document.getElementById('cm-pagination');if(!el)return;
+  var totalPages=Math.ceil(_cmFiltered.length/_cmPerPage);
+  if(totalPages<=1){el.innerHTML='<span style="font-size:11px;color:var(--t3);">'+_cmFiltered.length+'건</span>';return;}
+  var html='';
+  for(var i=0;i<totalPages;i++){
+    html+='<button class="btn" style="font-size:11px;padding:3px 10px;'+(i===_cmPage?'background:var(--acc);color:#fff;':'')+'" onclick="_cmGoPage('+i+')">'+(i+1)+'</button>';
+  }
+  html+='<span style="font-size:11px;color:var(--t3);margin-left:8px;">'+_cmFiltered.length+'건</span>';
+  el.innerHTML=html;
+}
+
+function _cmGoPage(p){_cmPage=p;_cmRenderList();_cmRenderPagination();document.getElementById('comments-admin-list').scrollTop=0;}
+
+/* 체크박스 선택 */
+function _cmToggleSel(id,checked){if(checked)_cmSelected[id]=true;else delete _cmSelected[id];}
+function _cmToggleAll(checked){
+  _cmSelected={};
+  if(checked){
+    var start=_cmPage*_cmPerPage;
+    _cmFiltered.slice(start,start+_cmPerPage).forEach(function(c){_cmSelected[c.id]=true;});
+  }
+  document.querySelectorAll('#comments-admin-list input[type=checkbox]').forEach(function(cb){cb.checked=checked;});
+}
+
+/* 일괄 작업 */
+async function _cmBulkAction(action){
+  var ids=Object.keys(_cmSelected);
+  if(!ids.length){adminToast('선택된 댓글이 없습니다');return;}
+  if(action==='delete'&&!confirm(ids.length+'개 댓글을 삭제할까요?'))return;
+  if(action==='hide'&&!confirm(ids.length+'개 댓글을 숨김 처리할까요?'))return;
+  var success=0,fail=0;
+  for(var i=0;i<ids.length;i++){
+    try{
+      if(action==='delete'){
+        await adminFetch('/api/comments?id='+encodeURIComponent(ids[i]),{method:'DELETE'});
+      }else{
+        await adminFetch('/api/comments?id='+encodeURIComponent(ids[i])+'&action=hide',{method:'PATCH'});
+      }
+      success++;
+    }catch(e){fail++;}
+  }
+  addAudit(action==='delete'?'delete':'hide','댓글 일괄 '+action,success+'건 성공'+(fail?', '+fail+'건 실패':''));
+  adminToast((action==='delete'?'🗑 ':'🙈 ')+success+'건 처리 완료'+(fail?' ('+fail+'건 실패)':''));
+  _cmSelected={};
+  renderCommentsAdmin();
 }
 
 async function toggleCommentAdmin(id,hide){
@@ -2838,7 +2969,10 @@ async function toggleCommentAdmin(id,hide){
     await adminFetch('/api/comments?id='+encodeURIComponent(id)+'&action='+(hide?'hide':'show'),{method:'PATCH'});
     adminToast(hide?'댓글 숨김 처리':'댓글 공개 처리');
     addAudit(hide?'hide':'show', '댓글 '+(hide?'숨김':'공개'), 'ID: '+id);
-    renderCommentsAdmin();
+    /* 로컬 캐시 즉시 업데이트 (재로드 없이) */
+    var c=_cmAll.find(function(x){return x.id===id;});
+    if(c) c.is_hidden=hide;
+    _cmUpdateStats();_cmApplyFilter();
   }catch(e){adminToast('실패: '+e.message);}
 }
 
@@ -2848,7 +2982,8 @@ async function deleteCommentAdmin(id){
     await adminFetch('/api/comments?id='+encodeURIComponent(id),{method:'DELETE'});
     adminToast('🗑 댓글 삭제됨');
     addAudit('delete','댓글 삭제','ID: '+id);
-    renderCommentsAdmin();
+    _cmAll=_cmAll.filter(function(x){return x.id!==id;});
+    _cmUpdateStats();_cmApplyFilter();
   }catch(e){adminToast('실패: '+e.message);}
 }
 
@@ -4803,61 +4938,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 //  신고 관리 구현 (getReports/saveReports는 위에서 정의)
 // ══════════════════════════════════════════════
 
-function loadReports(){
-  const reports = getReports();
-  const empty = document.getElementById('reports-empty');
-  const table = document.getElementById('reports-table');
-  
-  if(!reports.length){
-    if(empty) empty.style.display='block';
-    if(table) table.style.display='none';
-    return;
-  }
-  if(empty) empty.style.display='none';
-  
-  if(!table){
-    /* 테이블 없으면 생성 */
-    const sec = document.getElementById('sec-reports');
-    if(!sec) return;
-    const tw = document.createElement('div');
-    tw.className='admin-table-wrap';
-    tw.innerHTML=`<div class="admin-table-header"><h3>📋 신고 목록</h3><div style="font-size:12px;color:var(--t3);">총 ${reports.length}건</div></div>
-    <table id="reports-table"><thead><tr><th>곡 제목</th><th>신고 유형</th><th>신고 사유</th><th>신고자</th><th>신고일</th><th>상태</th><th>처리</th></tr></thead>
-    <tbody id="reports-tbody"></tbody></table>`;
-    sec.appendChild(tw);
-  }
-  
-  const tbody = document.getElementById('reports-tbody');
-  if(!tbody) return;
-  tbody.innerHTML = reports.map((r,i)=>`
-    <tr style="${r.resolved?'opacity:0.5':''}">
-      <td style="font-weight:600;">${esc(r.trackTitle||'제목 없음')}</td>
-      <td><span class="badge badge-red">${esc(r.type||'기타')}</span></td>
-      <td style="font-size:12px;color:var(--t2);">${esc(r.reason||'-')}</td>
-      <td style="font-size:11px;color:var(--t3);">${esc(r.reporter||'익명')}</td>
-      <td style="font-size:11px;color:var(--t3);">${new Date(r.at||Date.now()).toLocaleDateString('ko-KR')}</td>
-      <td><span class="badge ${r.resolved?'badge-grn':'badge-acc'}">${r.resolved?'처리완료':'미처리'}</span></td>
-      <td>
-        <div style="display:flex;gap:5px;">
-          ${!r.resolved?`<button class="btn" style="padding:3px 8px;font-size:11px;" onclick="resolveReport(${i})">처리</button>`:''}
-          <button class="btn" style="padding:3px 8px;font-size:11px;color:var(--red);" onclick="deleteReport(${i})">삭제</button>
-        </div>
-      </td>
-    </tr>`).join('');
-}
-
-function deleteReport(i){
-  if(!confirm('신고를 삭제할까요?')) return;
-  const r = getReports();
-  r.splice(i,1); saveReports(r); loadReports(); adminToast('삭제됨');
-}
-
-/* 신고하기 함수 (앱에서 호출 가능) */
-window.submitReport = function(trackTitle, type, reason, reporter){
-  const r = getReports();
-  r.unshift({trackTitle, type, reason, reporter, at:Date.now(), resolved:false});
-  saveReports(r.slice(0,200));
-};
+/* 레거시 loadReports/deleteReport/submitReport 제거됨 — Supabase 연동으로 대체 (loadReportsFromDB) */
 
 /* 신고 탭 진입 시 로드 */
 const _origSwitchSecRep = switchSec;
