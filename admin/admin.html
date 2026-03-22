@@ -136,6 +136,27 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .health-err{background:var(--red);}
 .health-warn{background:var(--ylw);}
 .health-label{font-size:11px;color:var(--t2);}
+/* 폼 입력 */
+.form-input{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:12px;font-family:inherit;width:100%;transition:border-color .15s;}
+.form-input:focus{outline:none;border-color:var(--acc);}
+.form-input::placeholder{color:var(--t3);}
+textarea.form-input{line-height:1.5;}
+/* 챌린지 상세 모달 */
+.ch-detail-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;}
+.ch-detail-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;}
+.ch-detail-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.ch-detail-icon{font-size:36px;}
+.ch-detail-title{font-size:16px;font-weight:800;color:var(--t1);}
+.ch-detail-status{margin-left:auto;}
+.ch-detail-field{margin-bottom:12px;}
+.ch-detail-field-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.ch-detail-field-value{font-size:13px;color:var(--t2);line-height:1.6;}
+.ch-detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.ch-detail-stat{background:var(--bg3);border-radius:10px;padding:10px;text-align:center;}
+.ch-detail-stat .val{font-size:18px;font-weight:800;color:var(--t1);}
+.ch-detail-stat .lbl{font-size:10px;color:var(--t3);margin-top:2px;}
+.ch-detail-actions{display:flex;gap:8px;margin-top:16px;}
+.ch-detail-actions .btn{flex:1;text-align:center;}
 /* 반응형 */
 @media(max-width:768px){.sidebar{display:none;}.chart-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}.user-detail-stats{grid-template-columns:repeat(2,1fr);}#dashboard-charts{grid-template-columns:1fr !important;}}
 </style>
@@ -4198,7 +4219,7 @@ async function loadManagersFromServer(){
 let _rptData = [], _rptCurrentFilter = 'pending';
 async function loadReportsFromDB(){
   try{
-    const r = await fetch('/api/reports?limit=200', {headers:{'Authorization':'Bearer '+ADMIN_SECRET}});
+    const r = await fetch('/api/reports?limit=200', {headers:{'Authorization':'Bearer '+getAdminPw()}});
     const j = await r.json();
     _rptData = j.reports || [];
     _renderReports();
@@ -4260,7 +4281,7 @@ async function _rptAction(id, status){
   try{
     const r = await fetch('/api/reports', {
       method:'PATCH',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},
       body:JSON.stringify({id,status})
     });
     const j = await r.json();
@@ -4273,7 +4294,7 @@ async function _rptDelete(id){
   try{
     const r = await fetch('/api/reports?id='+id, {
       method:'DELETE',
-      headers:{'Authorization':'Bearer '+ADMIN_SECRET}
+      headers:{'Authorization':'Bearer '+getAdminPw()}
     });
     const j = await r.json();
     if(j.ok){ adminToast('삭제됨'); loadReportsFromDB(); }
@@ -4318,18 +4339,21 @@ async function _loadChallengesAdmin(){
     const table=document.getElementById('ch-table');
     if(!chs.length){if(empty)empty.style.display='block';if(table)table.style.display='none';return;}
     if(empty)empty.style.display='none';if(table)table.style.display='block';
+    /* 챌린지 데이터 캐시 (상세 모달용) */
+    window._challengeCache=chs;
     tbody.innerHTML=chs.map(c=>{
       const endStr=c.end_at?new Date(c.end_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'무기한';
       const statusBadge=c.active?'<span class="badge badge-grn">활성</span>':'<span class="badge badge-red">비활성</span>';
-      return `<tr>
+      return `<tr onclick="_openChallengeDetail(${c.id})" style="cursor:pointer;">
         <td style="font-size:20px;text-align:center;">${esc(c.icon||'🔥')}</td>
-        <td style="font-weight:600;">${esc(c.title)}</td>
+        <td class="td-title">${esc(c.title)}</td>
         <td><span class="badge badge-acc">#${esc(c.theme||'')}</span></td>
         <td style="font-size:11px;color:var(--t3);">${endStr}</td>
         <td>${statusBadge}</td>
-        <td style="white-space:nowrap;">
+        <td style="white-space:nowrap;" onclick="event.stopPropagation();">
+          <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="_openChallengeDetail(${c.id})">상세</button>
           <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="_toggleChallenge(${c.id},${!c.active})">${c.active?'비활성':'활성화'}</button>
-          <button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_deleteChallenge(${c.id})">삭제</button>
+          <button class="btn btn-red" style="padding:4px 10px;font-size:11px;" onclick="_deleteChallenge(${c.id})">삭제</button>
         </td>
       </tr>`;
     }).join('');
@@ -4347,7 +4371,7 @@ async function _createChallenge(){
     end_at:document.getElementById('ch-end')?.value?new Date(document.getElementById('ch-end').value).toISOString():null
   };
   try{
-    const r=await fetch('/api/challenges',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},body:JSON.stringify(body)});
+    const r=await fetch('/api/challenges',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify(body)});
     const d=await r.json();
     if(d.ok){adminToast('챌린지 생성 완료!');document.getElementById('ch-title').value='';document.getElementById('ch-desc').value='';document.getElementById('ch-theme').value='';document.getElementById('ch-reward').value='';_loadChallengesAdmin();}
     else adminToast('실패: '+(d.error||''),'err');
@@ -4355,14 +4379,14 @@ async function _createChallenge(){
 }
 async function _toggleChallenge(id,active){
   try{
-    await fetch('/api/challenges',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},body:JSON.stringify({id,active})});
+    await fetch('/api/challenges',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify({id,active})});
     adminToast(active?'활성화됨':'비활성화됨');_loadChallengesAdmin();
   }catch(e){adminToast('오류','err');}
 }
 async function _deleteChallenge(id){
   if(!confirm('이 챌린지를 삭제하시겠습니까?')) return;
   try{
-    await fetch('/api/challenges?id='+id,{method:'DELETE',headers:{'Authorization':'Bearer '+ADMIN_SECRET}});
+    await fetch('/api/challenges?id='+id,{method:'DELETE',headers:{'Authorization':'Bearer '+getAdminPw()}});
     adminToast('삭제됨');_loadChallengesAdmin();
   }catch(e){adminToast('오류','err');}
 }
@@ -5945,7 +5969,7 @@ async function _showUserDetail(name, provider){
 /* ── 에러 모니터링 ── */
 async function loadErrorStats(){
   try {
-    const r = await fetch('/api/error-logs?stats=true',{headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    const r = await fetch('/api/error-logs?stats=true',{headers:{Authorization:'Bearer '+getAdminPw()}});
     const d = await r.json();
     if(!d.ok) return;
     document.getElementById('err-total24').textContent = d.total24h||0;
@@ -5963,7 +5987,7 @@ async function loadErrorStats(){
 }
 async function loadErrorLogs(){
   try {
-    const r = await fetch('/api/error-logs?limit=100',{headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    const r = await fetch('/api/error-logs?limit=100',{headers:{Authorization:'Bearer '+getAdminPw()}});
     const d = await r.json();
     if(!d.ok) return;
     var tbody = document.getElementById('err-tbody');
@@ -5978,7 +6002,7 @@ async function loadErrorLogs(){
 async function cleanErrorLogs(){
   if(!confirm('30일 이전 에러 로그를 삭제할까요?')) return;
   try {
-    await fetch('/api/error-logs',{method:'DELETE',headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    await fetch('/api/error-logs',{method:'DELETE',headers:{Authorization:'Bearer '+getAdminPw()}});
     toast('정리 완료');
     loadErrorLogs();
     loadErrorStats();
