@@ -2229,8 +2229,10 @@ export default async function handler(req, res) {
     const fromUser = update.message.from?.first_name || update.message.from?.username || '?';
 
     /* 보안: 허용된 chatId만 명령 실행 */
+    console.log(`[TG webhook] chatId=${chatId} CHAT_ID=${CHAT_ID} text="${text.slice(0,30)}" match=${String(chatId)===String(CHAT_ID)}`);
     if (CHAT_ID && String(chatId) !== String(CHAT_ID)) {
-      await tgSend(chatId, '⛔ 권한이 없습니다. 관리자 채팅에서만 명령을 사용할 수 있어요.');
+      console.log(`[TG webhook] REJECTED chatId=${chatId} expected=${CHAT_ID}`);
+      await tgSend(chatId, '⛔ 권한이 없습니다. 관리자 채팅에서만 명령을 사용할 수 있어요.\n\n(your chatId: ' + chatId + ')');
       return res.status(200).json({ ok: true, rejected: true });
     }
 
@@ -2268,10 +2270,8 @@ export default async function handler(req, res) {
       }
     }
 
-    /* 명령 실행 — 즉시 200 응답 후 백그라운드 실행 (웹훅 타임아웃 방지) */
+    /* 명령 실행 — 완료 후 200 응답 (Vercel은 응답 후 함수 종료 가능) */
     const handler = COMMANDS[cmd];
-    res.status(200).json({ ok: true });
-
     if (handler) {
       try {
         await handler(chatId, arg);
@@ -2283,7 +2283,7 @@ export default async function handler(req, res) {
       await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
     }
 
-    return;
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
