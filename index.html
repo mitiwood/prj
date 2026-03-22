@@ -1104,6 +1104,40 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
+/* ═══ 5대 영역 고도화 (검색/수익/PWA/분석/보안) ═══ */
+/* 검색 히스토리 + 고급 필터 */
+.search-history{padding:8px 0;}
+.search-history-title{font-size:10px;font-weight:700;color:var(--t3);margin-bottom:6px;display:flex;justify-content:space-between;}
+.search-history-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.search-history-chip{padding:4px 10px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.search-history-chip:hover{border-color:var(--acc);color:var(--acc);}
+.adv-filter-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.adv-filter-select{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
+/* 출석체크 개선 */
+.attendance-card{padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(245,158,11,.08));border:1px solid rgba(124,58,237,.15);margin-bottom:12px;}
+.att-streak{display:flex;align-items:center;gap:8px;}
+.att-streak-num{font-size:28px;font-weight:900;color:var(--acc);}
+.att-streak-fire{font-size:24px;}
+.att-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;}
+.att-day{width:100%;aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t3);background:var(--bg2);}
+.att-day.checked{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:700;}
+.att-day.today{border:2px solid var(--acc);}
+/* 리워드 배지 */
+.reward-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.reward-badge{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;background:var(--bg2);font-size:10px;color:var(--t2);}
+.reward-badge.earned{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(251,191,36,.1));border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+/* 오프라인 표시 */
+.offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:100000;padding:8px;text-align:center;background:#ef4444;color:#fff;font-size:12px;font-weight:700;}
+.offline-banner.show{display:block;}
+/* 내 음악 통계 */
+.my-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.my-stat-card{padding:14px;border-radius:12px;background:var(--card);border:1px solid var(--border);text-align:center;}
+.my-stat-num{font-size:22px;font-weight:900;color:var(--t1);}
+.my-stat-label{font-size:10px;color:var(--t3);margin-top:2px;}
+.my-stat-trend{font-size:9px;margin-top:4px;}
+/* 보안: 레이트리밋 UI */
+.rate-limit-warn{display:none;padding:8px 14px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:11px;margin-bottom:8px;align-items:center;gap:6px;}
+.rate-limit-warn.show{display:flex;}
 /* ═══ 소셜/생성/관리 고도화 ═══ */
 /* DM 시스템 */
 #dm-sheet{position:fixed;inset:0;z-index:100002;display:none;background:rgba(0,0,0,.6);}
@@ -3543,6 +3577,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 </head>
 <body>
 <a href="#create-view" class="skip-link" tabindex="1">메인 콘텐츠로 건너뛰기</a>
+<div class="offline-banner" id="offline-banner">📡 오프라인 상태 — 일부 기능이 제한됩니다</div>
 <div class="app-wrap">
 
   <!-- ── 헤더 ── -->
@@ -4357,6 +4392,18 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <input class="comm-search" id="comm-search-input" type="text" placeholder="장르, 분위기, 아티스트 검색..." autocomplete="off">
       <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
       <div id="search-suggest" class="search-suggest" style="display:none;"></div>
+    </div>
+    <!-- 고급 필터 -->
+    <div class="adv-filter-row" id="adv-filter-row">
+      <select class="adv-filter-select" id="adv-sort-filter" onchange="_advFilterChange()">
+        <option value="">정렬</option><option value="likes">좋아요순</option><option value="newest">최신순</option><option value="plays">재생순</option><option value="rating">별점순</option>
+      </select>
+      <select class="adv-filter-select" id="adv-time-filter" onchange="_advFilterChange()">
+        <option value="">기간</option><option value="today">오늘</option><option value="week">이번 주</option><option value="month">이번 달</option><option value="all">전체</option>
+      </select>
+      <select class="adv-filter-select" id="adv-vocal-filter" onchange="_advFilterChange()">
+        <option value="">보컬</option><option value="vocal">보컬 있음</option><option value="inst">인스트루멘탈</option>
+      </select>
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
@@ -12275,10 +12322,10 @@ function fpAddToPlaylist(){
   if(sheet)sheet.remove();
   sheet=document.createElement('div');
   sheet.id='fp-pl-sheet';
-  sheet.style.cssText='position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
+  sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
-  sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);;" onclick="document.getElementById(\'fp-pl-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheet-up .25s ease-out;">'
+  sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'fp-pl-sheet\').remove()"></div>'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -13434,10 +13481,10 @@ function _mfOpenTrackMenu(idx){
   if(sheet) sheet.remove();
   sheet=document.createElement('div');
   sheet.id='mf-trk-sheet';
-  sheet.style.cssText='position:fixed;inset:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
+  sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   var imgHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:24px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'mf-trk-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:sheet-up .25s ease-out;">'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(128,128,128,.3);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
