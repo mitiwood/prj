@@ -100,7 +100,7 @@ jobs:
         id: claude
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.PAT_TOKEN }}
           direct_prompt: |
             다음 수정 요청을 처리해주세요:
 
@@ -120,7 +120,7 @@ jobs:
         if: success()
         id: merge_main
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
@@ -171,7 +171,7 @@ jobs:
         if: success() && steps.merge_main.outputs.status == 'merged'
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
           curl -s -X PATCH \
