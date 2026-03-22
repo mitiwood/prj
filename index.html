@@ -16391,8 +16391,14 @@ function commPlaySb(sbId){
   if(currentH && currentH.id === sbId && fpAudio){
     if(fpAudio.paused){
       stopAllAudio();
-      fpAudio.play();
-      _syncAllPlayBtns(true);
+      fpAudio.play().then(() => {
+        _syncAllPlayBtns(true);
+      }).catch(err => {
+        if(err.name !== 'AbortError') {
+          console.warn('[commPlaySb play() failed]', err.message);
+          toast('재생할 수 없어요','err',2000);
+        }
+      });
     } else {
       fpAudio.pause();
       _syncAllPlayBtns(false);
