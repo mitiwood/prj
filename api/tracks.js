@@ -159,11 +159,11 @@ export default async function handler(req, res) {
       const row = {
         id,
         task_id: taskId || "",
-        title: title || "무제",
+        title: (title || "무제").slice(0, 100),
         audio_url,
         video_url: video_url || "",
         image_url: image_url || "",
-        tags: tags || "",
+        tags: (tags || "").slice(0, 500),
         lyrics: (lyrics || "").slice(0, 5000),
         gen_mode: genMode || "custom",
         parent_id: parent_id || null,

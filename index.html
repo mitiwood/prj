@@ -5857,10 +5857,13 @@ function switchTab(viewId){
   if(viewId==='settings-view')document.body.classList.add('tab-settings');
   if(viewId==='profile-view'){const cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
   window.scrollTo({top:0,behavior:'smooth'});
-  /* 커뮤니티 뷰 떠날 때 히어로 오디오 정리 */
+  /* 커뮤니티 뷰 떠날 때 오디오 + 폴링 정리 */
   if(viewId!=='community-view'){
     if(typeof commHeroAudio!=='undefined'&&commHeroAudio){try{commHeroAudio.pause();}catch(e){}}
     if(typeof commAudio!=='undefined'&&commAudio){try{commAudio.pause();}catch(e){}}
+    if(typeof _commPollPaused!=='undefined') _commPollPaused=true;
+  } else {
+    if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
   }
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
   if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}

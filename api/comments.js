@@ -255,7 +255,7 @@ export default async function handler(req, res) {
       track_id, parent_id: parent_id || null,
       author_name: author_name || "익명", author_avatar: author_avatar || "",
       author_provider: author_provider || "guest",
-      content: content.slice(0, 2000), created_at: new Date().toISOString(), is_hidden: false,
+      content: content.slice(0, 500), created_at: new Date().toISOString(), is_hidden: false,
     };
 
     if (_sbAvailable) {
