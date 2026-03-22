@@ -8985,6 +8985,20 @@ function _simpleToCustom(){
 /* ══════════════════════════════
    가사 에디터 도우미
 ══════════════════════════════ */
+function _resetLyrics(id){
+  const ta=$(id);
+  if(!ta || !ta.value) return;
+  if(!confirm('입력된 가사를 초기화할까요?')) return;
+  ta.value='';
+  ta.focus();
+  if(id==='prompt'){
+    _updateLyricsInfo();
+    const pw=$('lyrics-preview-wrap');
+    if(pw) pw.style.display='none';
+  }
+  toast('가사가 초기화되었습니다','',1500);
+}
+
 function _insertTag(tag){
   const ta=$('prompt');
   if(!ta) return;
