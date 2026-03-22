@@ -17307,14 +17307,14 @@ async function aiTrendStyle(){
     const genre = $('genre-sub')?.value || $('genre-cat')?.value || 'K-pop';
     const moodContext = $('mood')?.value ? ` 분위기: ${$('mood').value}` : '';
     const result = await callClaudeWithSearch(
-      `2025년 현재 ${genre} 음악에서 가장 핫한 트렌드 스타일 키워드 10개를 쉼표로 구분해서 영문으로만 답해줘.${moodContext} 각각 2~5단어의 구체적인 프로덕션 스타일 구문으로. 실제 차트 상위곡, 신보, 트렌드를 반영해줘. 예: "cinematic trap drop, airy falsetto hook, heavy 808 sub-bass, dreamy ambient synth, Y2K pop revival, dark R&B, lo-fi bedroom pop, hyperpop glitch, phonk drift beat, emotional piano ballad"`
+      `2026년 현재 ${genre} 음악에서 가장 핫한 트렌드 스타일 키워드 10개를 쉼표로 구분해서 영문으로만 답해줘.${moodContext} 각각 2~5단어의 구체적인 프로덕션 스타일 구문으로. 실제 차트 상위곡, 신보, 트렌드를 반영해줘. 예: "cinematic trap drop, airy falsetto hook, heavy 808 sub-bass, dreamy ambient synth, Y2K pop revival, dark R&B, lo-fi bedroom pop, hyperpop glitch, phonk drift beat, emotional piano ballad"`
     );
     if(result){
       const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<50).slice(0,10);
       if(chips.length){
         showAiAssistSheet({
           title: '🌐 트렌드 스타일 추천',
-          sub: `${genre} 2025 최신 트렌드 — 원하는 스타일을 선택하세요 (복수 선택 가능)`,
+          sub: `${genre} 2026 최신 트렌드 — 원하는 스타일을 선택하세요 (복수 선택 가능)`,
           chips,
           onApply: (val)=>{
             const el = $('song-desc');
