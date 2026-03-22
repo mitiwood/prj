@@ -330,6 +330,34 @@ html,body{
 /* 리믹스 계보 */
 .remix-chain{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:600;background:rgba(124,58,237,.15);color:var(--acc3);border:1px solid rgba(124,58,237,.2);cursor:pointer}
 .remix-chain:hover{background:rgba(124,58,237,.25)}
+/* 무드 플레이리스트 */
+.mood-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mood-scroll::-webkit-scrollbar{display:none}
+.mood-card{min-width:140px;border-radius:14px;padding:16px 14px;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s;flex-shrink:0}
+.mood-card:active{transform:scale(.96)}
+.mood-card-emoji{font-size:28px;margin-bottom:6px}
+.mood-card-title{font-size:13px;font-weight:800;color:#fff}
+.mood-card-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:2px}
+.mood-card-count{font-size:10px;color:rgba(255,255,255,.5);margin-top:4px}
+/* 크리에이터 스포트라이트 */
+.spotlight-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.spotlight-row::-webkit-scrollbar{display:none}
+.spotlight-card{min-width:160px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;flex-shrink:0;transition:transform .15s}
+.spotlight-card:active{transform:scale(.96)}
+.spotlight-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;margin-bottom:8px;background:var(--card2)}
+.spotlight-name{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spotlight-stats{font-size:10px;color:var(--t3);margin-top:2px}
+.spotlight-track{font-size:10px;color:var(--acc3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spotlight-follow{margin-top:8px;padding:5px 12px;border-radius:8px;border:1px solid var(--acc);background:transparent;color:var(--acc);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
+.spotlight-follow.following{border-color:var(--border);color:var(--t3);background:var(--card2)}
+/* 장르 탐색 그리드 */
+.genre-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.genre-card{border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;border:1px solid var(--border);background:var(--card);transition:transform .15s}
+.genre-card:active{transform:scale(.95)}
+.genre-card-emoji{font-size:22px;margin-bottom:4px}
+.genre-card-name{font-size:11px;font-weight:700;color:var(--t1)}
+.genre-card-count{font-size:9px;color:var(--t3);margin-top:2px}
+@media(max-width:360px){.genre-grid{grid-template-columns:repeat(3,1fr)}}
 /* 검색 자동완성 */
 .search-suggest{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .search-suggest-item{padding:8px 12px;font-size:12px;color:var(--t1);cursor:pointer;display:flex;align-items:center;gap:8px}
@@ -1065,6 +1093,44 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
+/* ═══ UX 고도화 ═══ */
+/* 온보딩 개선 */
+#onboarding-overlay{transition:opacity .3s;}
+.onboard-slide{animation:onboardIn .4s ease both;}
+@keyframes onboardIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.onboard-progress{display:flex;gap:4px;align-items:center;}
+.onboard-progress-bar{flex:1;height:3px;border-radius:2px;background:var(--border);overflow:hidden;}
+.onboard-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s ease;}
+.onboard-demo{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:16px;transition:all .2s;}
+.onboard-demo:hover{background:rgba(168,85,247,.15);}
+/* 기능 팁 (코치마크) */
+.feature-tip{position:absolute;z-index:99998;padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:600;max-width:220px;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:tipBounce .5s ease;}
+.feature-tip::after{content:'';position:absolute;width:10px;height:10px;background:#7c3aed;transform:rotate(45deg);}
+.feature-tip.tip-bottom::after{top:-5px;left:50%;margin-left:-5px;}
+.feature-tip.tip-top::after{bottom:-5px;left:50%;margin-left:-5px;}
+.feature-tip .tip-close{position:absolute;top:4px;right:8px;background:none;border:none;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;}
+.feature-tip .tip-step{font-size:9px;opacity:.6;margin-bottom:2px;}
+@keyframes tipBounce{0%{opacity:0;transform:scale(.8) translateY(10px)}60%{transform:scale(1.02) translateY(-2px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+/* 접근성: skip link */
+.skip-link{position:absolute;top:-40px;left:0;padding:8px 16px;background:var(--acc);color:#fff;z-index:100000;font-size:13px;font-weight:700;border-radius:0 0 8px 0;transition:top .2s;}
+.skip-link:focus{top:0;}
+/* 접근성: 포커스 표시 강화 */
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px;}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+/* 접근성: reduced motion */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}}
+/* 접근성: 고대비 모드 */
+.high-contrast{--t1:#fff;--t2:#e0e0e0;--t3:#bbb;--bg:#000;--card:#111;--border:#555;--acc:#b794f6;--acc2:#d4a5ff;}
+.high-contrast .bnav-item{border:1px solid #555;}
+.high-contrast input,.high-contrast textarea,.high-contrast select{border:2px solid #777!important;}
+/* 성능: GPU 가속 힌트 */
+.view{will-change:auto;}
+.view.on{will-change:contents;}
+#fullplayer{will-change:transform;}
+.hist-card,.comm-list-item{contain:content;}
+/* 로딩 스켈레톤 개선 */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skeleton-shimmer{background:linear-gradient(90deg,var(--border) 25%,rgba(255,255,255,.05) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}
 /* 빈 상태 CTA */
 .hist-empty-cta{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);}
 .hist-empty-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.4);}
@@ -3422,7 +3488,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 </style>
 </head>
 <body>
-
+<a href="#create-view" class="skip-link" tabindex="1">메인 콘텐츠로 건너뛰기</a>
 <div class="app-wrap">
 
   <!-- ── 헤더 ── -->
@@ -4258,6 +4324,21 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
       <div id="comm-chart-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
+    <!-- 무드 플레이리스트 -->
+    <div id="comm-mood-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:8px;">🎧 무드 플레이리스트</div>
+      <div id="comm-mood-list" class="mood-scroll"></div>
+    </div>
+    <!-- 크리에이터 스포트라이트 -->
+    <div id="comm-spotlight-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:8px;">🌟 이번 주 크리에이터</div>
+      <div id="comm-spotlight-list" class="spotlight-row"></div>
+    </div>
+    <!-- 장르 탐색 -->
+    <div id="comm-genre-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:8px;">🏷 장르 탐색</div>
+      <div id="comm-genre-grid" class="genre-grid"></div>
+    </div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
   </div>
@@ -4308,6 +4389,28 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <div class="theme-preview-bottom"></div>
             </div>
             <span class="theme-label">데이</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 접근성 설정 ── -->
+    <div class="settings-section">
+      <div class="settings-section-title">♿ 접근성</div>
+      <div class="settings-card">
+        <div class="settings-item" onclick="toggleHighContrast()" style="cursor:pointer;">
+          <div class="settings-item-icon">🔲</div>
+          <div class="settings-item-body">
+            <div class="settings-item-label">고대비 모드</div>
+            <div class="settings-item-desc">시각 접근성을 위한 고대비 색상</div>
+          </div>
+          <div class="settings-item-right" id="hc-toggle-indicator" style="font-size:12px;color:var(--t3);">OFF</div>
+        </div>
+        <div class="settings-item" onclick="localStorage.removeItem('kms_tips_done');localStorage.removeItem('kms_onboarded');toast('온보딩이 초기화됨. 새로고침하면 다시 볼 수 있어요','ok',3000);" style="cursor:pointer;">
+          <div class="settings-item-icon">📖</div>
+          <div class="settings-item-body">
+            <div class="settings-item-label">튜토리얼 다시 보기</div>
+            <div class="settings-item-desc">온보딩과 기능 팁을 초기화합니다</div>
           </div>
         </div>
       </div>
@@ -19256,10 +19359,11 @@ window.kmsRequestPush = async function(){
 <script>
 /* ── 온보딩 플로우 ── */
 const _onboardSlides = [
-  { emoji: '\u{1F3B5}', title: 'Kenny\'s Music Studio', desc: 'AI로 나만의 음악을 만들어보세요!\n텍스트 한 줄이면 곡이 완성됩니다.' },
-  { emoji: '\u2728', title: '4가지 모드', desc: '커스텀 \xB7 심플 \xB7 YouTube \xB7 MV\n다양한 방식으로 음악을 만들 수 있어요.' },
-  { emoji: '\u{1F465}', title: '커뮤니티', desc: '다른 크리에이터의 음악을 감상하고\n팔로우하고 소통해보세요.' },
-  { emoji: '\u{1F4C2}', title: '내 라이브러리', desc: '만든 곡을 저장하고 관리하세요.\n플레이리스트도 만들 수 있어요!' },
+  { emoji: '\u{1F3B5}', title: 'Kenny\'s Music Studio', desc: 'AI로 나만의 음악을 만들어보세요!\n텍스트 한 줄이면 곡이 완성됩니다.', demo: null },
+  { emoji: '\u2728', title: '4가지 창작 모드', desc: '커스텀 — 세밀한 제어\n심플 — 원클릭 생성\nYouTube — 영상에서 음악 추출\nMV — 뮤직비디오 제작', demo: 'create-view' },
+  { emoji: '\u{1F3A7}', title: '프로 플레이어', desc: '이퀄라이저 \xB7 슬립타이머 \xB7 크로스페이드\n가사 싱크까지 프로 기능을 경험하세요.', demo: null },
+  { emoji: '\u{1F465}', title: '커뮤니티', desc: '다른 크리에이터의 음악을 감상하고\n팔로우하고 댓글로 소통해보세요.', demo: 'community-view' },
+  { emoji: '\u{1F4C2}', title: '내 라이브러리', desc: '만든 곡을 저장하고 관리하세요.\n3가지 뷰 모드 \xB7 플레이리스트 \xB7 앨범', demo: 'history-view' },
 ];
 let _onboardIdx = 0;
 
@@ -19278,18 +19382,20 @@ function _renderOnboardSlide() {
   var dots = document.getElementById('onboard-dots');
   var nextBtn = document.getElementById('onboard-next');
   if (!content) return;
-
-  content.innerHTML = '<div style="text-align:center;padding:20px;">' +
-    '<div style="font-size:80px;margin-bottom:24px;">' + slide.emoji + '</div>' +
+  var pct = Math.round(((_onboardIdx+1)/_onboardSlides.length)*100);
+  var demoBtn = slide.demo ? '<button class="onboard-demo" onclick="_onboardDemo(\''+slide.demo+'\')">직접 둘러보기 →</button>' : '';
+  content.innerHTML = '<div class="onboard-slide" style="text-align:center;padding:20px;">' +
+    '<div style="font-size:80px;margin-bottom:24px;animation:tipBounce .5s ease;">' + slide.emoji + '</div>' +
     '<div style="font-size:24px;font-weight:800;color:var(--t1);margin-bottom:12px;">' + slide.title + '</div>' +
-    '<div style="font-size:14px;color:var(--t2);line-height:1.6;white-space:pre-line;">' + slide.desc + '</div>' +
+    '<div style="font-size:14px;color:var(--t2);line-height:1.8;white-space:pre-line;">' + slide.desc + '</div>' +
+    demoBtn +
   '</div>';
-
-  dots.innerHTML = _onboardSlides.map(function(_, i) {
-    return '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _onboardIdx ? 'var(--acc)' : 'var(--border)') + ';transition:all .3s;"></div>';
-  }).join('');
-
-  nextBtn.textContent = _onboardIdx === _onboardSlides.length - 1 ? '시작하기' : '다음';
+  dots.innerHTML = '<div class="onboard-progress" style="flex:1;"><div class="onboard-progress-bar"><div class="onboard-progress-fill" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--t3);margin-left:6px;">'+(_onboardIdx+1)+'/'+_onboardSlides.length+'</span></div>';
+  nextBtn.textContent = _onboardIdx === _onboardSlides.length - 1 ? '시작하기 🎵' : '다음';
+}
+function _onboardDemo(viewId){
+  _skipOnboarding();
+  setTimeout(function(){switchTab(viewId);},400);
 }
 
 function _nextOnboarding() {
@@ -19312,6 +19418,106 @@ function _skipOnboarding() {
 }
 
 /* 초기화 후 온보딩 표시 */
+
+/* ═══ 기능 팁 (코치마크) 시스템 ═══ */
+var _featureTips=[
+  {id:'tip_create',target:'[data-view="create-view"]',text:'여기서 AI 음악을 만들어보세요!',pos:'top'},
+  {id:'tip_community',target:'[data-view="community-view"]',text:'다른 크리에이터의 음악을 감상하세요',pos:'top'},
+  {id:'tip_library',target:'[data-view="history-view"]',text:'만든 곡은 여기에 저장돼요',pos:'top'},
+];
+var _tipIdx=0;
+function _showFeatureTips(){
+  if(localStorage.getItem('kms_tips_done'))return;
+  if(localStorage.getItem('kms_onboarded')!=='1')return;
+  _tipIdx=0;_showNextTip();
+}
+function _showNextTip(){
+  document.querySelectorAll('.feature-tip').forEach(function(e){e.remove();});
+  if(_tipIdx>=_featureTips.length){localStorage.setItem('kms_tips_done','1');return;}
+  var tip=_featureTips[_tipIdx];
+  var target=document.querySelector(tip.target);if(!target)return;
+  var rect=target.getBoundingClientRect();
+  var el=document.createElement('div');
+  el.className='feature-tip tip-'+tip.pos;
+  el.innerHTML='<div class="tip-step">'+(_tipIdx+1)+'/'+_featureTips.length+'</div>'+tip.text+'<button class="tip-close" onclick="_dismissTip()">✕</button>';
+  if(tip.pos==='top'){el.style.top=(rect.top-el.offsetHeight-14)+'px';el.style.left=(rect.left+rect.width/2)+'px';el.style.transform='translateX(-50%)';}
+  else{el.style.top=(rect.bottom+10)+'px';el.style.left=(rect.left+rect.width/2)+'px';el.style.transform='translateX(-50%)';}
+  document.body.appendChild(el);
+  /* 위치 재계산 */
+  setTimeout(function(){
+    var r2=target.getBoundingClientRect();
+    if(tip.pos==='top'){el.style.top=(r2.top-el.offsetHeight-14)+'px';}
+    else{el.style.top=(r2.bottom+10)+'px';}
+    el.style.left=(r2.left+r2.width/2)+'px';
+  },50);
+}
+function _dismissTip(){_tipIdx++;_showNextTip();}
+setTimeout(function(){_showFeatureTips();},3000);
+
+/* ═══ 접근성 개선 ═══ */
+/* 키보드 내비게이션: 좌우 화살표로 탭 전환 */
+document.getElementById('bottom-nav')?.addEventListener('keydown',function(e){
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  var btns=Array.from(this.querySelectorAll('.bnav-item'));
+  var cur=btns.findIndex(function(b){return b.classList.contains('on');});
+  if(cur<0)return;
+  if(e.key==='ArrowRight')cur=Math.min(btns.length-1,cur+1);
+  else cur=Math.max(0,cur-1);
+  btns[cur].focus();btns[cur].click();e.preventDefault();
+});
+/* Escape 키로 모달/오버레이 닫기 */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  /* 풀플레이어 */
+  var fp=document.getElementById('fullplayer');
+  if(fp&&fp.classList.contains('on')){var cb=document.getElementById('fp-back-btn');if(cb)cb.click();return;}
+  /* 공유 확인 모달 */
+  var sc=document.getElementById('share-confirm-modal');
+  if(sc&&sc.classList.contains('on')){if(typeof closeShareConfirm==='function')closeShareConfirm();return;}
+  /* 로그인 시트 */
+  var ls=document.getElementById('login-sheet');
+  if(ls&&ls.style.opacity==='1'){if(typeof closeLoginSheet==='function')closeLoginSheet();return;}
+  /* 기능 팁 */
+  var tips=document.querySelectorAll('.feature-tip');
+  if(tips.length){_dismissTip();return;}
+});
+/* 고대비 모드 토글 */
+function toggleHighContrast(){
+  document.body.classList.toggle('high-contrast');
+  var on=document.body.classList.contains('high-contrast');
+  localStorage.setItem('kms_high_contrast',on?'1':'0');
+  toast(on?'고대비 모드 ON':'고대비 모드 OFF','',1500);
+}
+/* 고대비 모드 복원 */
+if(localStorage.getItem('kms_high_contrast')==='1')document.body.classList.add('high-contrast');
+
+/* ═══ 성능 최적화 ═══ */
+/* 이미지 lazy loading + 에러 핸들링 강화 */
+var _imgObserver=null;
+function _initImgLazyLoad(){
+  if(!('IntersectionObserver' in window))return;
+  _imgObserver=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting)return;
+      var img=entry.target;
+      if(img.dataset.src){img.src=img.dataset.src;delete img.dataset.src;}
+      _imgObserver.unobserve(img);
+    });
+  },{rootMargin:'200px'});
+  document.querySelectorAll('img[data-src]').forEach(function(img){_imgObserver.observe(img);});
+}
+setTimeout(_initImgLazyLoad,1000);
+/* 스크롤 성능: passive 이벤트 힌트 */
+document.addEventListener('touchstart',function(){},{passive:true});
+document.addEventListener('touchmove',function(){},{passive:true});
+/* 렌더링 최적화: 뷰 전환 시 비활성 뷰 숨기기 */
+var _origSwitchTab=switchTab;
+switchTab=function(viewId){
+  _origSwitchTab(viewId);
+  /* 비활성 뷰의 무거운 콘텐츠 정리 */
+  document.querySelectorAll('.view:not(.on) video').forEach(function(v){v.pause();v.removeAttribute('src');});
+};
+window.switchTab=switchTab;
 
 /* ── 주간 TOP 10 차트 ── */
 function _renderWeeklyChart(){
