@@ -157,6 +157,14 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `진행상황 — GitHub Action 작업 추적`,
     `취소 — 진행 중인 Claude 작업 취소`,
     ``,
+    `━━ 🔀 Git 관리 (6) ━━`,
+    `브랜치 — 원격 브랜치 목록`,
+    `브랜치삭제 <이름> — 브랜치 삭제`,
+    `이슈 [open|closed] — 이슈 목록`,
+    `이슈닫기 <번호> — 이슈 닫기`,
+    `PR닫기 <번호> — PR 닫기 + 브랜치 삭제`,
+    `커밋 [N] — 최근 커밋 (기본 10)`,
+    ``,
     `━━ 📋 기획 (3) ━━`,
     `기획 <기능설명> — Issue 등록`,
     `백로그 — 미완료 Issue 목록`,
@@ -2092,6 +2100,94 @@ COMMANDS['mc'] = COMMANDS['md'] = COMMANDS['문서'] = async (chatId, arg) => {
   } catch (e) {
     await tgSend(chatId, `❌ 파일 조회 실패: ${e.message}`, { parse_mode: '' });
   }
+};
+
+/* ── Git 관리 명령어 ── */
+
+/* /브랜치 — 원격 브랜치 목록 */
+COMMANDS['브랜치'] = COMMANDS['branch'] = COMMANDS['branches'] = async (chatId, arg) => {
+  try {
+    const branches = await ghApi('GET', '/branches?per_page=30');
+    if (!branches.length) { await tgSend(chatId, '브랜치 없음', { parse_mode: '' }); return; }
+    const lines = ['🔀 원격 브랜치 (' + branches.length + '개)', ''];
+    branches.forEach(b => {
+      const isMain = b.name === 'main' ? ' ⭐' : '';
+      lines.push((b.protected ? '🔒 ' : '  ') + b.name + isMain);
+    });
+    await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
+};
+
+/* /브랜치삭제 <이름> */
+COMMANDS['브랜치삭제'] = COMMANDS['delbranch'] = async (chatId, arg) => {
+  if (!arg) { await tgSend(chatId, '사용법: 브랜치삭제 <브랜치이름>', { parse_mode: '' }); return; }
+  if (arg === 'main' || arg === 'master') { await tgSend(chatId, '⛔ main/master 브랜치는 삭제할 수 없습니다.', { parse_mode: '' }); return; }
+  try {
+    await ghApi('DELETE', '/git/refs/heads/' + arg);
+    await tgSend(chatId, '✅ 브랜치 삭제 완료: ' + arg, { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
+};
+
+/* /이슈 — 이슈 목록 */
+COMMANDS['이슈'] = COMMANDS['issues'] = COMMANDS['issue'] = async (chatId, arg) => {
+  try {
+    const state = (arg === 'closed' || arg === '닫힌') ? 'closed' : 'open';
+    const issues = await ghApi('GET', '/issues?state=' + state + '&per_page=15&sort=updated&direction=desc');
+    /* PR 제외 */
+    const real = issues.filter(i => !i.pull_request);
+    if (!real.length) { await tgSend(chatId, '📋 ' + state + ' 이슈 없음', { parse_mode: '' }); return; }
+    const lines = ['📋 이슈 (' + state + ', ' + real.length + '개)', ''];
+    real.forEach(i => {
+      const labels = i.labels.map(l => l.name).join(',');
+      lines.push('#' + i.number + ' ' + i.title + (labels ? ' [' + labels + ']' : ''));
+    });
+    await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
+};
+
+/* /이슈닫기 <번호> */
+COMMANDS['이슈닫기'] = COMMANDS['closeissue'] = async (chatId, arg) => {
+  if (!arg) { await tgSend(chatId, '사용법: 이슈닫기 <번호>', { parse_mode: '' }); return; }
+  try {
+    const d = await ghApi('PATCH', '/issues/' + arg.replace('#', ''), { state: 'closed', state_reason: 'completed' });
+    await tgSend(chatId, '✅ 이슈 #' + d.number + ' 닫기 완료: ' + d.title, { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
+};
+
+/* /PR닫기 <번호> — PR 닫기 + 브랜치 삭제 */
+COMMANDS['PR닫기'] = COMMANDS['pr닫기'] = COMMANDS['closepr'] = async (chatId, arg) => {
+  if (!arg) { await tgSend(chatId, '사용법: PR닫기 <번호>', { parse_mode: '' }); return; }
+  try {
+    const pr = await ghApi('PATCH', '/pulls/' + arg.replace('#', ''), { state: 'closed' });
+    let msg = '✅ PR #' + pr.number + ' 닫기 완료: ' + pr.title;
+    /* 브랜치 삭제 */
+    const branch = pr.head?.ref;
+    if (branch && branch !== 'main') {
+      try {
+        await ghApi('DELETE', '/git/refs/heads/' + branch);
+        msg += '\n🗑 브랜치 삭제: ' + branch;
+      } catch(e) { msg += '\n⚠ 브랜치 삭제 실패: ' + e.message; }
+    }
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
+};
+
+/* /커밋 — 최근 커밋 목록 */
+COMMANDS['커밋'] = COMMANDS['commits'] = COMMANDS['log'] = async (chatId, arg) => {
+  try {
+    const n = Math.min(parseInt(arg) || 10, 20);
+    const commits = await ghApi('GET', '/commits?per_page=' + n);
+    if (!commits.length) { await tgSend(chatId, '커밋 없음', { parse_mode: '' }); return; }
+    const lines = ['📝 최근 커밋 (' + commits.length + '개)', ''];
+    commits.forEach(c => {
+      const sha = c.sha.slice(0, 7);
+      const msg = (c.commit.message || '').split('\n')[0].slice(0, 60);
+      const author = c.commit.author?.name || '?';
+      const date = new Date(c.commit.author?.date).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      lines.push(sha + ' ' + msg + ' (' + author + ', ' + date + ')');
+    });
+    await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+  } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
 };
 
 /* ── 메인 핸들러 ── */
