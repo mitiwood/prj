@@ -116,19 +116,16 @@ jobs:
           allowed_tools: "Edit,Read,Glob,Grep,Write"
           timeout_minutes: 30
 
-      - name: Create PR and auto-merge
+      - name: Merge to main
         if: success()
-        id: create_merge
+        id: merge_main
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           # claude-code-action creates branch as claude/issue-{num}-{date}
-          # Find the branch dynamically using grep (glob patterns unreliable)
           BRANCH=$(git ls-remote --heads origin | grep "refs/heads/claude/issue-${ISSUE_NUM}-" | awk '{print $2}' | sed 's|refs/heads/||' | sort | tail -1)
-
-          # Fallback: also check fix/issue-{num}
           if [ -z "$BRANCH" ]; then
             BRANCH=$(git ls-remote --heads origin | grep "refs/heads/fix/issue-${ISSUE_NUM}$" | awk '{print $2}' | sed 's|refs/heads/||' | head -1)
           fi
@@ -141,59 +138,25 @@ jobs:
 
           echo "Found branch: $BRANCH"
 
-          # Create PR via GitHub REST API (gh cli can fail with token auth)
-          PR_RESULT=$(curl -s -X POST \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls" \
-            -d "{\"title\":\"fix: ${ISSUE_TITLE}\",\"head\":\"${BRANCH}\",\"base\":\"main\",\"body\":\"Closes #${ISSUE_NUM}\"}")
+          # Fetch the branch and merge directly to main (no PR needed)
+          git fetch origin "$BRANCH"
+          git checkout main
+          git pull origin main
 
-          echo "PR create result: $PR_RESULT"
-
-          PR_NUM=$(echo "$PR_RESULT" | jq -r '.number // empty')
-
-          # If PR already exists (422 error), find it
-          if [ -z "$PR_NUM" ]; then
-            echo "PR create failed, searching existing PRs..."
-            PR_NUM=$(curl -s \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls?state=open&head=${{ github.repository_owner }}:${BRANCH}" \
-              | jq -r '.[0].number // empty')
-          fi
-
-          if [ -z "$PR_NUM" ]; then
-            echo "status=no_pr" >> "$GITHUB_OUTPUT"
-            echo "Failed to create or find PR"
-            exit 0
-          fi
-
-          echo "pr_num=${PR_NUM}" >> "$GITHUB_OUTPUT"
-          echo "Created/Found PR #${PR_NUM}"
-
-          # Auto-merge (squash) via REST API
-          MERGE_RESULT=$(curl -s -X PUT \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUM}/merge" \
-            -d "{\"merge_method\":\"squash\",\"commit_title\":\"fix: ${ISSUE_TITLE}\"}")
-
-          echo "Merge result: $MERGE_RESULT"
-
-          MERGED=$(echo "$MERGE_RESULT" | jq -r '.merged // false')
-
-          if [ "$MERGED" = "true" ]; then
+          # Merge with squash (combines all branch commits into one)
+          if git merge --squash "origin/$BRANCH"; then
+            git commit -m "fix: ${ISSUE_TITLE}" -m "Closes #${ISSUE_NUM}" \
+              --author="claude-bot <claude-bot@users.noreply.github.com>"
+            git push origin main
             echo "status=merged" >> "$GITHUB_OUTPUT"
-            echo "PR #${PR_NUM} merged successfully"
+            echo "Merged $BRANCH to main successfully"
 
-            # Delete branch
-            curl -s -X DELETE \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/${BRANCH}" || true
+            # Delete remote branch
+            git push origin --delete "$BRANCH" 2>/dev/null || true
           else
+            git merge --abort 2>/dev/null || true
             echo "status=merge_failed" >> "$GITHUB_OUTPUT"
-            echo "Merge failed"
+            echo "Merge conflict — manual merge needed"
           fi
 
       - name: Notify success
@@ -203,8 +166,7 @@ jobs:
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUM: ${{ github.event.issue.number }}
-          PR_NUM: ${{ steps.create_merge.outputs.pr_num }}
-          MERGE_STATUS: ${{ steps.create_merge.outputs.status }}
+          MERGE_STATUS: ${{ steps.merge_main.outputs.status }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SITE_URL: https://ai-music-studio-bice.vercel.app
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
@@ -217,18 +179,17 @@ jobs:
           msg_id = os.environ.get('MSG_ID', '').strip()
           title = os.environ.get('ISSUE_TITLE', '')
           num = os.environ.get('ISSUE_NUM', '?')
-          pr_num = os.environ.get('PR_NUM', '').strip()
           status = os.environ.get('MERGE_STATUS', '').strip()
           run_url = os.environ.get('RUN_URL', '')
 
           if status == 'merged':
-            pr_line = f'\u2705 PR #{pr_num} 생성 + 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)'
+            pr_line = '\u2705 main 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)'
           elif status == 'merge_failed':
-            pr_line = f'\U0001f500 PR #{pr_num} 생성됨 (자동 머지 실패)\n\n수동 머지 필요: 머지 {pr_num}'
+            pr_line = '\u26a0 머지 충돌 발생 — 수동 머지 필요'
           elif status == 'no_branch':
             pr_line = '\u26a0 변경사항 없음 (브랜치 미생성)'
           else:
-            pr_line = '\u26a0 PR 미생성'
+            pr_line = '\u26a0 머지 미완료'
 
           msg = f'\u2705 Claude Code 작업 완료!\n\nIssue #{num}: {title}\n\n{pr_line}\n\n{run_url}'
 
