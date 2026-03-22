@@ -14,6 +14,11 @@ self.addEventListener('push', e => {
   );
 });
 
+/* fetch 이벤트 — 네트워크 패스스루 (가로채지 않음) */
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request));
+});
+
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = e.notification.data?.url || '/';
