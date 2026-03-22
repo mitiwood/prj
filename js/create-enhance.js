@@ -1,11 +1,11 @@
-/* ══════════════════════════════════════════════════════
-   create-enhance.js — 음악 만들기 고도화 (v2)
+/* ======================================================
+   create-enhance.js - 음악 만들기 고도화 (v2)
    1. 프리셋 시스템   2. 장르/무드 UI   3. 프롬프트 빌더
    4. 생성 진행 UX    5. 결과 카드      6. 심플모드 AI
    7. 고급 설정 (믹싱/마스터링/EQ)
-   ══════════════════════════════════════════════════════ */
+   ====================================================== */
 
-/* ── 1. 프리셋 시스템 고도화 ── */
+/* -- 1. 프리셋 시스템 고도화 -- */
 const PRESET_CATEGORIES = {
   popular: { label: '인기', icon: '🔥', presets: ['kpop_girl','kpop_boy','ballad','hiphop','lofi'] },
   dance:   { label: '댄스/일렉', icon: '💃', presets: ['edm','future_bass','house','techno','synthwave'] },
@@ -205,7 +205,7 @@ function _showSavePresetDialog(){
   _saveCustomPreset(name.trim());
 }
 
-/* ── 3. 실시간 프롬프트 미리보기 ── */
+/* -- 3. 실시간 프롬프트 미리보기 -- */
 function _updatePromptPreview(){
   const wrap=document.getElementById('prompt-preview-panel');
   if(!wrap) return;
@@ -283,7 +283,7 @@ function _updatePromptPreview(){
 
 function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-/* ── 4. 생성 진행 UX 개선 ── */
+/* -- 4. 생성 진행 UX 개선 -- */
 const GEN_STEPS=[
   {label:'요청 전송',icon:'📡',duration:3},
   {label:'곡 구상',icon:'🧠',duration:12},
@@ -353,7 +353,7 @@ function _stopGenProgress(){
   },2000);
 }
 
-/* ── 6. 심플모드 AI 대화형 — 자연어 → 설정 매핑 ── */
+/* -- 6. 심플모드 AI 대화형 - 자연어 -> 설정 매핑 -- */
 const _NLP_GENRE_MAP = {
   '케이팝':'pop','k-pop':'pop','kpop':'pop','팝':'pop','발라드':'pop','ballad':'pop',
   '힙합':'hiphop','hip hop':'hiphop','hiphop':'hiphop','랩':'hiphop','rap':'hiphop','트랩':'hiphop','trap':'hiphop',
@@ -474,7 +474,7 @@ function _applyParsedToSimple(parsed){
 
 const _NLP_GENRE_MAP_REVERSE={pop:'팝',hiphop:'힙합',electronic:'일렉트로닉',rock:'록',lofi:'로파이',jazz:'재즈',classical:'클래식',acoustic:'어쿠스틱'};
 
-/* ── 7. 고급 설정 - 믹싱/마스터링/EQ ── */
+/* -- 7. 고급 설정 - 믹싱/마스터링/EQ -- */
 const MASTERING_PRESETS=[
   {id:'default',label:'🎵 기본',desc:'밸런스된 표준 마스터링',eq:{low:0,mid:0,high:0},comp:0.5,reverb:0.3},
   {id:'warm',label:'🔥 따뜻한',desc:'저음 강화, 아날로그 느낌',eq:{low:3,mid:0,high:-1},comp:0.6,reverb:0.35},
@@ -538,7 +538,7 @@ function _getMixingTags(){
   return tags.join(', ');
 }
 
-/* ── 초기화 ── */
+/* -- 초기화 -- */
 function _initCreateEnhance(){
   _renderPresetCarousel();
   _renderSimpleSuggestions();
@@ -579,7 +579,7 @@ function _initCreateEnhance(){
   }
 }
 
-/* ── 5. 결과 카드 — 공유 기능 ── */
+/* -- 5. 결과 카드 - 공유 기능 -- */
 function commShareTrack(audioUrl,title){
   /* 커뮤니티에 공유 → 트랙이 이미 서버에 저장되어 있으므로 커뮤니티 탭으로 이동 */
   if(typeof switchTab==='function') switchTab('community-view');
