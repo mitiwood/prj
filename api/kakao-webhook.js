@@ -127,16 +127,13 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
   return card(
     '🤖 Kenny Bot',
     [
-      '🎵 음악 생성',
-      '  커스텀 <가사> — 가사 입력 생성',
-      '  심플 <설명> — 설명만으로 생성',
-      '  유튜브 <스타일> — 스타일 기반 생성',
-      '  MV <트랙ID> — 뮤직비디오 생성',
-      '',
+      '🎵 음악: 커스텀 · 심플 · 유튜브 · MV',
       '📊 모니터링: 상태 · 헬스 · 트랙 · 유저 · 댓글',
       '📝 관리: 공지 · 삭제 · 공개 · 비공개',
       '🛠 개발: 수정 · PR · 머지 · QA',
+      '🔀 Git: 브랜치 · 이슈 · PR닫기 · 커밋',
       '📊 분석: 사용량 · 일간 · 주간 · 인기곡 · 순위',
+      '📖 문서: mc <파일명>',
     ].join('\n'),
     [
       { label: '커스텀 생성', msg: '커스텀' },
@@ -1261,6 +1258,92 @@ COMMANDS['mv'] = COMMANDS['MV'] = COMMANDS['뮤비'] = async (arg) => {
     [{ label: '사이트 열기', url: BASE }],
     ['상태', '트랙']
   );
+};
+
+/* ── Git 관리 ── */
+COMMANDS['브랜치'] = COMMANDS['branch'] = COMMANDS['branches'] = async () => {
+  const branches = await ghApi('GET', '/branches?per_page=30');
+  if (!branches.length) return text('브랜치 없음');
+  const lines = branches.map(b => (b.protected ? '🔒 ' : '  ') + b.name + (b.name === 'main' ? ' ⭐' : ''));
+  return text('🔀 원격 브랜치 (' + branches.length + '개)\n\n' + lines.join('\n'), ['브랜치삭제', '커밋', '도움']);
+};
+
+COMMANDS['브랜치삭제'] = COMMANDS['delbranch'] = async (arg) => {
+  if (!arg) return text('사용법: 브랜치삭제 <브랜치이름>');
+  if (arg === 'main' || arg === 'master') return text('⛔ main/master는 삭제 불가');
+  await ghApi('DELETE', '/git/refs/heads/' + arg);
+  return text('✅ 브랜치 삭제 완료: ' + arg, ['브랜치']);
+};
+
+COMMANDS['이슈'] = COMMANDS['issues'] = COMMANDS['issue'] = async (arg) => {
+  const state = (arg === 'closed' || arg === '닫힌') ? 'closed' : 'open';
+  const issues = await ghApi('GET', '/issues?state=' + state + '&per_page=15&sort=updated&direction=desc');
+  const real = issues.filter(i => !i.pull_request);
+  if (!real.length) return text('📋 ' + state + ' 이슈 없음');
+  const lines = real.map(i => {
+    const labels = i.labels.map(l => l.name).join(',');
+    return '#' + i.number + ' ' + i.title + (labels ? ' [' + labels + ']' : '');
+  });
+  return text('📋 이슈 (' + state + ', ' + real.length + '개)\n\n' + lines.join('\n'), ['이슈닫기', '이슈 closed', '도움']);
+};
+
+COMMANDS['이슈닫기'] = COMMANDS['closeissue'] = async (arg) => {
+  if (!arg) return text('사용법: 이슈닫기 <번호>');
+  const d = await ghApi('PATCH', '/issues/' + arg.replace('#', ''), { state: 'closed', state_reason: 'completed' });
+  return text('✅ 이슈 #' + d.number + ' 닫기 완료: ' + d.title, ['이슈']);
+};
+
+COMMANDS['PR닫기'] = COMMANDS['pr닫기'] = COMMANDS['closepr'] = async (arg) => {
+  if (!arg) return text('사용법: PR닫기 <번호>');
+  const pr = await ghApi('PATCH', '/pulls/' + arg.replace('#', ''), { state: 'closed' });
+  let msg = '✅ PR #' + pr.number + ' 닫기 완료: ' + pr.title;
+  const branch = pr.head?.ref;
+  if (branch && branch !== 'main') {
+    try { await ghApi('DELETE', '/git/refs/heads/' + branch); msg += '\n🗑 브랜치 삭제: ' + branch; } catch(e) {}
+  }
+  return text(msg, ['PR', '브랜치']);
+};
+
+COMMANDS['커밋'] = COMMANDS['commits'] = async (arg) => {
+  const n = Math.min(parseInt(arg) || 10, 20);
+  const commits = await ghApi('GET', '/commits?per_page=' + n);
+  if (!commits.length) return text('커밋 없음');
+  const lines = commits.map(c => {
+    const sha = c.sha.slice(0, 7);
+    const msg = (c.commit.message || '').split('\n')[0].slice(0, 50);
+    const date = new Date(c.commit.author?.date).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return sha + ' ' + msg + ' (' + date + ')';
+  });
+  return text('📝 최근 커밋 (' + commits.length + '개)\n\n' + lines.join('\n'), ['브랜치', '도움']);
+};
+
+/* ── mc — 프로젝트 MD 파일 조회 ── */
+COMMANDS['mc'] = COMMANDS['md'] = COMMANDS['문서'] = async (arg) => {
+  const KNOWN = {
+    'claude': 'CLAUDE.md', 'readme': 'README.md', 'api': 'KIE_API_REFERENCE.md',
+    'kie': 'KIE_API_REFERENCE.md', 'bot': 'docs/TELEGRAM_BOT.md',
+    'roadmap': 'docs/ROADMAP.md', 'plan': 'docs/WORK_PLAN.md',
+    'policy': 'docs/POLICY.md', 'cicd': 'docs/CI_CD_PIPELINE.md',
+    'flutter': 'docs/FLUTTER_APP.md', 'architecture': 'docs/API_ARCHITECTURE.md',
+    'sequence': 'docs/SEQUENCE_DIAGRAM.md', 'tab': 'docs/tab-structure.md',
+    'zindex': 'docs/z-index-layers.md', 'community': 'docs/community-layout.md',
+    'storyboard': 'docs/STORYBOARD.md', 'changelog': 'docs/changelog-20260322.md',
+  };
+  if (!arg) {
+    const list = Object.entries(KNOWN).map(([k, v]) => k + ' → ' + v).join('\n');
+    return text('📄 프로젝트 문서 조회\n\n사용법: mc <파일명>\n\n' + list, ['mc claude', 'mc bot', '도움']);
+  }
+  const key = arg.toLowerCase().replace(/\.md$/i, '').replace(/\//g, '');
+  let filePath = KNOWN[key] || arg;
+  if (!filePath.endsWith('.md')) filePath += '.md';
+
+  const _ghHeaders = GH_TOKEN ? { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.raw' } : {};
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${encodeURIComponent(filePath)}?ref=main`, { headers: _ghHeaders });
+  if (!r.ok) throw new Error('파일 없음: ' + filePath);
+  let content = await r.text();
+  /* 카카오 1000자 제한 */
+  if (content.length > 950) content = content.slice(0, 950) + '\n\n... (이하 생략)';
+  return text('📄 ' + filePath + '\n\n' + content, ['mc', '도움']);
 };
 
 /* ── 메인 핸들러 ── */
