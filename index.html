@@ -66,6 +66,7 @@ window.closeRecomposeSheet=window.closeRecomposeSheet||function(){};
 window.hesTabLike=window.hesTabLike||function(){};
 window._toggleHomeWidgets=window._toggleHomeWidgets||function(){};
 window._showShortcutHelp=window._showShortcutHelp||function(){};
+window.toggleHighContrast=window.toggleHighContrast||function(){};
 window.toggleTutorialReplay=window.toggleTutorialReplay||function(){localStorage.removeItem('kms_tips_done');localStorage.removeItem('kms_onboarded');if(window.toast)toast('온보딩 초기화됨. 새로고침하면 다시 볼 수 있어요','ok',3000);};
 window.hesTabPlaylist=window.hesTabPlaylist||function(){};
 window.buyPack=window.buyPack||function(){};
@@ -6691,6 +6692,9 @@ let instOn=false,vocalGender='',currentMode='custom';
 let extendAudioId=null,toastTmr=null;
 let selectedEmotions=new Set(),makeMV=false;
 let currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
+/* 관리자 판별 */
+const _ADMIN_NAMES=['Kenny Lee','이승호'];
+function _isAdmin(){return !!(currentUser&&_ADMIN_NAMES.indexOf(currentUser.name)>=0);}
 let kieApiKey=''; /* /api/config 에서 로드됨 */
 let bpmAuto=false, selectedBpm=120;
 let selectedDuration=120; /* 초 */
@@ -16980,9 +16984,9 @@ function renderSettings(){
   /* 플랜 UI + 통계 확장 */
   if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
 
-  /* 계정 관리 섹션 표시/숨김 */
+  /* 계정 관리 섹션 — 관리자만 표시 */
   const accSec = document.getElementById('account-section');
-  if (accSec) accSec.style.display = currentUser && currentUser.provider !== 'guest' ? '' : 'none';
+  if (accSec) accSec.style.display = _isAdmin() ? '' : 'none';
   /* 테마 UI 상태 업데이트 */
   updateThemeUI();
   /* 알림 유형 프리퍼런스 로드 */
@@ -20135,6 +20139,7 @@ function _updateHcToggleUI(){
     if(on) row.classList.add('on'); else row.classList.remove('on');
   }
 }
+window.toggleHighContrast=toggleHighContrast;
 /* 고대비 모드 복원 */
 if(localStorage.getItem('kms_high_contrast')==='1')document.body.classList.add('high-contrast');
 setTimeout(_updateHcToggleUI,300);
@@ -20167,6 +20172,7 @@ function _updateTutorialToggleUI(){
     if(on) row.classList.add('on'); else row.classList.remove('on');
   }
 }
+window.toggleTutorialReplay=toggleTutorialReplay;
 setTimeout(_updateTutorialToggleUI,300);
 
 /* ═══ 성능 최적화 ═══ */
@@ -20211,6 +20217,7 @@ function _toggleHomeWidgets(){
   var next=on?'off':'on';
   localStorage.setItem('kms_home_widgets',next);
   _applyHomeWidgetsVisibility();
+  toast(next==='on'?'홈 위젯 표시 ON':'홈 위젯 표시 OFF','',1500);
 }
 function _applyHomeWidgetsVisibility(){
   var on=localStorage.getItem('kms_home_widgets')==='on';
