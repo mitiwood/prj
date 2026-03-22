@@ -67,6 +67,11 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     if (!isPublic && !ownerName && !isAdmin)
       return res.status(401).json({ error: "Unauthorized" });
+
+    /* 경량 모드: 크리에이터 목록용 (필수 컬럼만) */
+    const isLite = req.query?.mode === 'creators';
+    const liteSelect = 'owner_name,owner_provider,owner_avatar,image_url,comm_likes,comm_plays,created_at';
+
     try {
       let filter;
       if (isAdmin) {
@@ -74,7 +79,8 @@ export default async function handler(req, res) {
       } else if (ownerName) {
         filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
       } else {
-        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=*`;
+        const sel = isLite ? liteSelect : '*';
+        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
       const mapped = (rows || []).map((r) => ({

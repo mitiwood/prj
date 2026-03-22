@@ -183,6 +183,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="snav-item" data-sec="database" onclick="switchSec('database')"><span class="snav-icon">🗄️</span>DB 관리</div>
       <div class="snav-item" data-sec="logs" onclick="switchSec('logs')"><span class="snav-icon">📋</span>로그 보기</div>
       <div class="snav-item" data-sec="kielogs" onclick="switchSec('kielogs')"><span class="snav-icon">🔗</span>kie.ai 로그</div>
+      <div class="snav-item" data-sec="errors" onclick="switchSec('errors')"><span class="snav-icon">🚨</span>에러 모니터</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
     </div>
     <div class="sidebar-footer">
@@ -197,7 +198,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <h1 id="sec-title">대시보드</h1>
       <div class="header-right">
         <span class="admin-badge">Admin</span>
-        <span id="auto-refresh-label" style="font-size:11px;color:var(--t3);">10초 후 갱신</span>
+        <span id="auto-refresh-label" style="font-size:11px;color:var(--t3);">30초 후 갱신</span>
         <button class="btn" onclick="loadData().then(()=>adminToast('✅ 갱신됨')).catch(()=>{});">🔄 즉시 갱신</button>
       </div>
     </div>
@@ -425,7 +426,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="admin-table-wrap">
           <div class="admin-table-header">
             <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
-            <button class="btn btn-acc" onclick="renderCommunityAdmin()">🔄 새로고침</button>
+            <button class="btn btn-acc" onclick="renderCommunityAdmin(true)">🔄 새로고침</button>
           </div>
           <table><thead><tr><th><input type="checkbox" id="comm-chk-all" onchange="toggleAllComm(this)"></th><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>출처</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="comm-tbody"></tbody></table>
@@ -1255,6 +1256,26 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </div>
 
+      <div class="admin-section" id="sec-errors">
+        <div class="sec-hdr">
+          <h2>🚨 에러 모니터링</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-acc" onclick="loadErrorStats()">📊 통계</button>
+            <button class="btn btn-acc" onclick="loadErrorLogs()">🔄 새로고침</button>
+            <button class="btn btn-red" onclick="cleanErrorLogs()">🗑 30일 이전 삭제</button>
+          </div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-val" id="err-total24">0</div><div class="stat-label">24시간 에러</div></div>
+          <div class="stat-card"><div class="stat-icon">🔴</div><div class="stat-val" id="err-5xx">0</div><div class="stat-label">5xx 에러</div></div>
+          <div class="stat-card"><div class="stat-icon">🟡</div><div class="stat-val" id="err-4xx">0</div><div class="stat-label">4xx 에러</div></div>
+          <div class="stat-card"><div class="stat-icon">📡</div><div class="stat-val" id="err-endpoints">0</div><div class="stat-label">영향 엔드포인트</div></div>
+        </div>
+        <div id="err-by-endpoint" style="margin-bottom:16px;"></div>
+        <div style="max-height:400px;overflow-y:auto;">
+          <table class="admin-tbl"><thead><tr><th>시간</th><th>엔드포인트</th><th>상태</th><th>에러</th></tr></thead><tbody id="err-tbody"></tbody></table>
+        </div>
+      </div>
       <div class="admin-section" id="sec-settings">
         <div class="sec-hdr"><h2>앱 설정</h2></div>
         <div class="settings-group">
@@ -1711,6 +1732,11 @@ if(localStorage.getItem('kms_admin_auth')==='1'){
   if(!sessionStorage.getItem('kms_admin_session')){
     sessionStorage.setItem('kms_admin_session', localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW);
   }
+  /* 프리페치: 인증 후 즉시 모든 데이터를 백그라운드 로딩 */
+  _fetchServerData().then(()=>{
+    _buildCommCacheFromServer(); /* 커뮤니티 캐시도 미리 빌드 */
+    console.log('[Admin] 프리페치 완료: '+_serverTracks.length+'트랙, '+_serverUsers.length+'유저');
+  }).catch(e=>console.warn('[prefetch]',e.message));
   loadData();
   renderUsersAdmin();
 }
@@ -1724,7 +1750,7 @@ function switchSec(id){
   const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
-  if(id==='community')renderCommunityAdmin();
+  if(id==='community')renderCommunityAdmin(false);
   if(id==='comments')renderCommentsAdmin();
   if(id==='users')renderUsersAdmin();
   if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
@@ -1990,7 +2016,21 @@ function _mapUser(u){
 }
 
 /* 서버에서 트랙+사용자 데이터 로드 — 증분(incremental) 방식 */
-async function _fetchServerData(){
+const CACHE_TTL = 30000; /* 30초 캐시 — 이 시간 내 재요청 스킵 */
+let _fetchPromise = null; /* 동시 요청 방지 (dedup) */
+
+async function _fetchServerData(force=false){
+  /* 캐시 TTL: 마지막 fetch로부터 30초 이내면 스킵 */
+  if(!force && _dataLoaded && (Date.now() - _lastFetchAt) < CACHE_TTL){
+    return;
+  }
+  /* 동시 호출 dedup — 이미 진행 중이면 기다리기만 */
+  if(_fetchPromise) return _fetchPromise;
+  _fetchPromise = _doFetchServerData();
+  try{ await _fetchPromise; }finally{ _fetchPromise = null; }
+}
+
+async function _doFetchServerData(){
   const isFirst = !_dataLoaded;
 
   /* 트랙: 첫 로드는 전체, 이후는 마지막 fetch 이후 생성된 것만 */
@@ -2269,11 +2309,26 @@ async function renderTracksAdmin(){
   const tm = document.getElementById('tstat-mv');       if(tm) tm.textContent = mv;
   renderTracksTable(h);
 }
+const PAGE_SIZE = 50; /* 한 번에 렌더할 행 수 */
+let _trackPage = 0;
+let _trackListForRender = [];
+
 function renderTracksTable(list){
   const tbody=document.getElementById('tracks-tbody');
   if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">데이터 없음</td></tr>';return;}
+  _trackListForRender = list;
+  _trackPage = 0;
+  tbody.innerHTML = '';
+  _appendTrackRows(tbody, 0);
+}
+
+function _appendTrackRows(tbody, fromIdx){
+  const list = _trackListForRender;
+  const end = Math.min(fromIdx + PAGE_SIZE, list.length);
   const provCol={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
-  tbody.innerHTML=list.map((t,i)=>{
+  const fragment = document.createDocumentFragment();
+  for(let i=fromIdx; i<end; i++){
+    const t=list[i];
     const owner=t._owner;
     const isGuest=!owner||owner.provider==='guest';
     const pc=provCol[owner&&owner.provider||'']||'badge-acc';
@@ -2281,7 +2336,7 @@ function renderTracksTable(list){
     const ownerBadge=isGuest
       ?'<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">게스트</span>'
       :(avHtml+'<span class="badge '+pc+'">'+esc((owner&&owner.name)||'?')+'</span>');
-    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">'):'🎵';
+    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;">'):'🎵';
     const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const au=t.audio_url?esc(t.audio_url):'';
     const tl=esc(t.title||'track');
@@ -2290,10 +2345,10 @@ function renderTracksTable(list){
         +'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayTrack(this.dataset.url,this.dataset.title,this,'+i+')" style="padding:5px 12px;font-size:12px;min-width:66px;">▶ 재생</button>'
         +'<button class="btn" data-url="'+au+'" data-title="'+tl+'" onclick="adminDownloadTrack(this.dataset.url,this.dataset.title)" style="padding:5px 10px;font-size:12px;">⬇ 저장</button>'
         +'</div>'
-        +'<div id="apl-'+i+'" style="display:none;margin-top:2px;"><audio class="admin-audio-player" controls style="width:200px;"></audio></div>')
+        +'<div id="apl-'+i+'" style="display:none;margin-top:2px;"><audio class="admin-audio-player" controls preload="none" style="width:200px;"></audio></div>')
       :'<span style="color:var(--t3);font-size:11px;">URL 없음</span>';
-    return '<tr>'
-      +'<td><input type="checkbox" data-idx="'+i+'"></td>'
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
       +'<td class="td-title">'+esc(t.title||'무제')+'</td>'
       +'<td>'+ownerBadge+'</td>'
@@ -2302,8 +2357,25 @@ function renderTracksTable(list){
       +'<td style="font-size:11px;">'+timeStr+'</td>'
       +'<td><div class="table-action-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'+audioHtml
       +'<button class="btn btn-red" onclick="deleteTrackByIdx('+i+')" style="font-size:11px;padding:3px 8px;">🗑 삭제</button>'
-      +'</div></td></tr>';
-  }).join('');
+      +'</div></td>';
+    fragment.appendChild(tr);
+  }
+  /* 더보기 버튼 (이전 것 제거) */
+  const oldMore = tbody.querySelector('.load-more-row');
+  if(oldMore) oldMore.remove();
+  tbody.appendChild(fragment);
+  if(end < list.length){
+    const moreRow = document.createElement('tr');
+    moreRow.className = 'load-more-row';
+    moreRow.innerHTML = '<td colspan="8" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreTracks()" style="padding:8px 32px;">더 보기 ('+(list.length-end)+'곡 남음)</button></td>';
+    tbody.appendChild(moreRow);
+  }
+  _trackPage = end;
+}
+
+function _loadMoreTracks(){
+  const tbody=document.getElementById('tracks-tbody');
+  if(tbody) _appendTrackRows(tbody, _trackPage);
 }
 function filterTracks(){
   const q=(document.getElementById('track-search')?.value||'').toLowerCase();
@@ -2687,36 +2759,51 @@ async function deleteCommentAdmin(id){
   }catch(e){adminToast('실패: '+e.message);}
 }
 
-async function renderCommunityAdmin(){
+async function renderCommunityAdmin(forceRefresh=false){
   const tbody=document.getElementById('comm-tbody');
   if(!tbody) return;
-  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
-  let allTracks=[];
-  try{
-    const r=await adminFetch('/api/tracks?limit=500');
-    const raw=await r.text();
-    if(r.ok&&raw.trim().startsWith('{')){
-      const d=JSON.parse(raw);
-      if(Array.isArray(d.tracks)){
-        allTracks=d.tracks.map(t=>({
-          id:t.id, taskId:t.task_id||'', title:t.title||'무제',
-          audio_url:t.audio_url||'', image_url:t.image_url||'',
-          tags:t.tags||'', genMode:t.gen_mode||'custom', created:t.created||0,
-          is_public:t.is_public!==false,
-          _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
-          _owner:{name:t.owner_name||'익명',avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'},
-          _source:d.source||'supabase',
-        }));
-      }
-    }
-  }catch(e){ console.warn('[Admin] Supabase 실패:',e.message); }
-  if(!allTracks.length){
-    const h=getHistory();
-    allTracks=h.filter(t=>t.audio_url).map((t,i)=>({...t,is_public:true,_hIdx:i,_source:'local'}));
+
+  /* 캐시에 데이터가 이미 있으면 즉시 렌더 (네트워크 대기 없음) */
+  if(_commAllTracksCache.length && !forceRefresh){
+    _renderCommTable();
+    /* 백그라운드에서 최신 데이터 갱신 */
+    _refreshCommCacheBackground();
+    return;
   }
-  _commAllTracksCache = allTracks;
+
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">🔄 불러오는 중...</td></tr>';
+
+  /* _serverTracks 캐시 활용 — 별도 fetch 제거 */
+  if(!_serverTracks.length) await _fetchServerData();
+  _buildCommCacheFromServer();
   _renderCommTable();
 }
+
+/* _serverTracks → _commAllTracksCache 변환 (중복 fetch 제거) */
+function _buildCommCacheFromServer(){
+  if(_serverTracks.length){
+    _commAllTracksCache = _serverTracks.map(t=>({
+      ...t,
+      is_public: t.is_public !== false,
+      _source: 'supabase',
+    }));
+  } else {
+    const h=getHistory();
+    _commAllTracksCache=h.filter(t=>t.audio_url).map((t,i)=>({...t,is_public:true,_hIdx:i,_source:'local'}));
+  }
+}
+
+/* 백그라운드 갱신: UI 블로킹 없이 최신 데이터 반영 */
+async function _refreshCommCacheBackground(){
+  try{
+    await _fetchServerData();
+    _buildCommCacheFromServer();
+    _renderCommTable();
+  }catch(e){ console.warn('[comm bg refresh]',e.message); }
+}
+
+let _commPage = 0;
+let _commDisplayTracks = [];
 
 function _renderCommTable(){
   const tbody=document.getElementById('comm-tbody');
@@ -2724,8 +2811,8 @@ function _renderCommTable(){
   const allTracks = _commAllTracksCache;
   const publicTracks = allTracks.filter(t=>t.is_public!==false);
   const hiddenTracks = allTracks.filter(t=>t.is_public===false);
-  const displayTracks = _commShowHidden ? allTracks : publicTracks;
-  displayTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+  _commDisplayTracks = (_commShowHidden ? allTracks : publicTracks).slice();
+  _commDisplayTracks.sort((a,b)=>(b.created||0)-(a.created||0));
 
   /* 통계 업데이트 */
   const cnt=document.getElementById('comm-count');
@@ -2733,18 +2820,28 @@ function _renderCommTable(){
   const toggleEl=document.getElementById('comm-hidden-toggle');
   if(toggleEl) toggleEl.className=_commShowHidden?'toggle on':'toggle';
 
-  if(!displayTracks.length){
+  if(!_commDisplayTracks.length){
     tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3);">표시할 트랙이 없습니다</td></tr>';
     return;
   }
+  tbody.innerHTML='';
+  _commPage = 0;
+  _appendCommRows(tbody, 0);
+}
+
+function _appendCommRows(tbody, fromIdx){
+  const displayTracks = _commDisplayTracks;
+  const end = Math.min(fromIdx + PAGE_SIZE, displayTracks.length);
   const provColor={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
   const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
-  tbody.innerHTML=displayTracks.map((t,i)=>{
+  const fragment = document.createDocumentFragment();
+  for(let i=fromIdx; i<end; i++){
+    const t=displayTracks[i];
     const o=t._owner||{};
     const isGuest=!o.name||o.name==='익명'||o.provider==='guest'||!o.provider;
     const pc=provColor[o.provider]||'badge-acc';
-    const avHtml=(!isGuest&&o.avatar)?('<img src="'+esc(o.avatar)+'" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):'' ;
-    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">'):'🎵';
+    const avHtml=(!isGuest&&o.avatar)?('<img src="'+esc(o.avatar)+'" loading="lazy" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display=\'none\'">'):'' ;
+    const thumbHtml=t.image_url?('<img src="'+esc(t.image_url)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">'):'🎵';
     const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const ml=modeLabel[t.genMode||'custom']||'커스텀';
     const au=esc(t.audio_url||''); const tl=esc(t.title||'무제');
@@ -2764,7 +2861,10 @@ function _renderCommTable(){
       ? '<span class="badge badge-red" style="font-size:9px;">숨김</span>'
       : '<span class="badge badge-grn" style="font-size:9px;">공개</span>';
     const rowStyle = isHidden ? 'opacity:0.55;background:rgba(255,69,96,.03);' : '';
-    return '<tr id="comm-row-'+i+'" style="'+rowStyle+'">'
+    const tr=document.createElement('tr');
+    tr.id='comm-row-'+i;
+    if(rowStyle) tr.style.cssText=rowStyle;
+    tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
       +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b> '+statusBadge+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
       +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
@@ -2774,8 +2874,25 @@ function _renderCommTable(){
       +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
         +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
         +visBtn+deleteBtn
-      +'</div></td></tr>';
-  }).join('');
+      +'</div></td>';
+    fragment.appendChild(tr);
+  }
+  /* 더보기 버튼 */
+  const oldMore = tbody.querySelector('.load-more-row');
+  if(oldMore) oldMore.remove();
+  tbody.appendChild(fragment);
+  if(end < displayTracks.length){
+    const moreRow = document.createElement('tr');
+    moreRow.className = 'load-more-row';
+    moreRow.innerHTML = '<td colspan="8" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreComm()" style="padding:8px 32px;">더 보기 ('+(displayTracks.length-end)+'곡 남음)</button></td>';
+    tbody.appendChild(moreRow);
+  }
+  _commPage = end;
+}
+
+function _loadMoreComm(){
+  const tbody=document.getElementById('comm-tbody');
+  if(tbody) _appendCommRows(tbody, _commPage);
 }
 
 /* 숨김 트랙 표시 토글 */
@@ -4271,7 +4388,7 @@ function startDashAutoRefresh(){
       const key = localStorage.getItem('kms_kie_key') || document.getElementById('kie-api-input')?.value.trim();
       if(key) fetchKieUsageForStats(key).catch(()=>{});
     }
-  }, 10000);
+  }, 30000);
 }
 function stopDashAutoRefresh(){
   if(_dashAutoTimer){ clearInterval(_dashAutoTimer); _dashAutoTimer = null; }
@@ -4531,7 +4648,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let _autoRefreshTick = 10;
   const _autoLabel = document.getElementById('auto-refresh-label');
   setInterval(()=>{
-    _autoRefreshTick = _autoRefreshTick <= 1 ? 10 : _autoRefreshTick - 1;
+    _autoRefreshTick = _autoRefreshTick <= 1 ? 30 : _autoRefreshTick - 1;
     if(_autoLabel) _autoLabel.textContent = _autoRefreshTick + '초 후 갱신';
   }, 1000);
   
@@ -5824,6 +5941,49 @@ async function _showUserDetail(name, provider){
   document.body.appendChild(modal);
 }
 
+
+/* ── 에러 모니터링 ── */
+async function loadErrorStats(){
+  try {
+    const r = await fetch('/api/error-logs?stats=true',{headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    const d = await r.json();
+    if(!d.ok) return;
+    document.getElementById('err-total24').textContent = d.total24h||0;
+    const s5 = Object.entries(d.byStatus||{}).filter(([k])=>k.startsWith('5')).reduce((a,[,v])=>a+v,0);
+    const s4 = Object.entries(d.byStatus||{}).filter(([k])=>k.startsWith('4')).reduce((a,[,v])=>a+v,0);
+    document.getElementById('err-5xx').textContent = s5;
+    document.getElementById('err-4xx').textContent = s4;
+    document.getElementById('err-endpoints').textContent = Object.keys(d.byEndpoint||{}).length;
+    var epHtml = '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">엔드포인트별 에러</div>';
+    Object.entries(d.byEndpoint||{}).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([ep,cnt])=>{
+      epHtml += '<div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:12px;color:var(--t2);border-bottom:1px solid var(--border);"><span>'+ep+'</span><span style="color:var(--red);font-weight:700;">'+cnt+'</span></div>';
+    });
+    document.getElementById('err-by-endpoint').innerHTML = epHtml;
+  } catch(e){ console.warn('[admin] error stats:', e); }
+}
+async function loadErrorLogs(){
+  try {
+    const r = await fetch('/api/error-logs?limit=100',{headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    const d = await r.json();
+    if(!d.ok) return;
+    var tbody = document.getElementById('err-tbody');
+    if(!tbody) return;
+    tbody.innerHTML = (d.logs||[]).map(function(l){
+      var t = new Date(l.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+      var sc = (l.status||500)>=500?'color:#ef4444':'color:#f59e0b';
+      return '<tr><td style="font-size:11px;white-space:nowrap;">'+t+'</td><td style="font-size:11px;">'+l.endpoint+'</td><td style="font-size:12px;font-weight:700;'+sc+'">'+l.status+'</td><td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+((l.error_message||'').replace(/</g,'&lt;'))+'</td></tr>';
+    }).join('');
+  } catch(e){ console.warn('[admin] error logs:', e); }
+}
+async function cleanErrorLogs(){
+  if(!confirm('30일 이전 에러 로그를 삭제할까요?')) return;
+  try {
+    await fetch('/api/error-logs',{method:'DELETE',headers:{Authorization:'Bearer '+ADMIN_SECRET}});
+    toast('정리 완료');
+    loadErrorLogs();
+    loadErrorStats();
+  } catch(e){ toast('삭제 실패: '+e.message,'err'); }
+}
 </script>
 </body>
 </html>

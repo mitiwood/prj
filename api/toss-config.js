@@ -6,7 +6,7 @@
 /* 환경변수 없으면 토스 공식 테스트 키 사용 (실결제 안 됨) */
 const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
 
-const PLANS = {
+export const PLANS = {
   free: {
     price: 0,
     period: "월",
@@ -59,7 +59,7 @@ const PLANS = {
 };
 
 /* 크레딧 팩 (일회성 구매) */
-const CREDIT_PACKS = {
+export const CREDIT_PACKS = {
   pack10: { price: 1900, credits: 10, label: "10곡 팩" },
   pack30: { price: 4900, credits: 30, label: "30곡 팩" },
   pack100: { price: 12900, credits: 100, label: "100곡 팩" },

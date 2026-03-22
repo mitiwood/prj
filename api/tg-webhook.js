@@ -39,15 +39,19 @@ const VERCEL_TOKEN = process.env.VERCEL_TOKEN || '';
 const VERCEL_PROJECT = process.env.VERCEL_PROJECT || '';
 
 /* ── 유틸 ── */
+function mdToHtml(t) {
+  /* Markdown *bold* → HTML <b>bold</b>, `code` → <code>code</code> */
+  return t.replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/`([^`\n]+)`/g, '<code>$1</code>');
+}
 async function tgSend(chatId, text, opts = {}) {
   if (!BOT_TOKEN) return;
+  const pm = 'parse_mode' in opts ? opts.parse_mode : 'HTML';
+  const finalText = pm === 'HTML' ? mdToHtml(text) : text;
   const payload = {
     chat_id: chatId,
-    text,
+    text: finalText,
     disable_notification: !!opts.silent,
   };
-  /* parse_mode: '' 이면 필드 자체를 제외 (Telegram 기본=텍스트) */
-  const pm = 'parse_mode' in opts ? opts.parse_mode : 'Markdown';
   if (pm) payload.parse_mode = pm;
 
   const body = Buffer.from(JSON.stringify(payload), 'utf-8');

@@ -60,108 +60,133 @@ export default async function handler(req, res) {
 
     const action = req.query?.action;
 
-    /* ── 팔로잉 목록 ── */
+    /* ── 팔로잉 목록 (병렬 쿼리) ── */
     if (action === 'following') {
       try {
         const { data: follows } = await sb('GET',
           `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&order=created_at.desc&limit=50`);
         const list = Array.isArray(follows) ? follows : [];
-        const following = [];
-        for (const f of list) {
+        const following = await Promise.all(list.map(async f => {
           try {
-            const { count: trackCount } = await sb('GET',
-              `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&is_public=eq.true&select=id&limit=0`);
-            const { count: followerCount } = await sb('GET',
-              `/follows?following_name=ilike.${encodeURIComponent(f.following_name)}&following_provider=eq.${encodeURIComponent(f.following_provider)}&select=id&limit=0`);
-            const { data: avatarRows } = await sb('GET',
-              `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&select=owner_avatar&limit=1`);
-            const avatar = Array.isArray(avatarRows) && avatarRows[0] ? avatarRows[0].owner_avatar : '';
-            following.push({ name: f.following_name, provider: f.following_provider, avatar, trackCount: trackCount || 0, followerCount: followerCount || 0 });
+            const [tc, fc, av] = await Promise.all([
+              sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&is_public=eq.true&select=id&limit=0`),
+              sb('GET', `/follows?following_name=ilike.${encodeURIComponent(f.following_name)}&following_provider=eq.${encodeURIComponent(f.following_provider)}&select=id&limit=0`),
+              sb('GET', `/users?name=ilike.${encodeURIComponent(f.following_name)}&provider=ilike.${encodeURIComponent(f.following_provider)}&select=avatar&limit=1`),
+            ]);
+            const avatar = Array.isArray(av.data) && av.data[0] ? av.data[0].avatar : '';
+            return { name: f.following_name, provider: f.following_provider, avatar, trackCount: tc.count || 0, followerCount: fc.count || 0 };
           } catch (e) {
-            following.push({ name: f.following_name, provider: f.following_provider, avatar: '', trackCount: 0, followerCount: 0 });
+            return { name: f.following_name, provider: f.following_provider, avatar: '', trackCount: 0, followerCount: 0 };
           }
-        }
+        }));
         return res.status(200).json({ ok: true, following });
       } catch (e) {
         return res.status(200).json({ ok: false, error: e.message });
       }
     }
 
-    /* ── 팔로워 목록 ── */
+    /* ── 팔로워 목록 (병렬 쿼리) ── */
     if (action === 'followers') {
       try {
         const { data: follows } = await sb('GET',
           `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=follower_name,follower_provider&order=created_at.desc&limit=50`);
         const list = Array.isArray(follows) ? follows : [];
-        const followers = [];
-        for (const f of list) {
+        const followers = await Promise.all(list.map(async f => {
           try {
-            const { count: trackCount } = await sb('GET',
-              `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&is_public=eq.true&select=id&limit=0`);
-            const { count: followerCount } = await sb('GET',
-              `/follows?following_name=ilike.${encodeURIComponent(f.follower_name)}&following_provider=eq.${encodeURIComponent(f.follower_provider)}&select=id&limit=0`);
-            const { data: avatarRows } = await sb('GET',
-              `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&select=owner_avatar&limit=1`);
-            const avatar = Array.isArray(avatarRows) && avatarRows[0] ? avatarRows[0].owner_avatar : '';
-            followers.push({ name: f.follower_name, provider: f.follower_provider, avatar, trackCount: trackCount || 0, followerCount: followerCount || 0 });
+            const [tc, fc, av] = await Promise.all([
+              sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&is_public=eq.true&select=id&limit=0`),
+              sb('GET', `/follows?following_name=ilike.${encodeURIComponent(f.follower_name)}&following_provider=eq.${encodeURIComponent(f.follower_provider)}&select=id&limit=0`),
+              sb('GET', `/users?name=ilike.${encodeURIComponent(f.follower_name)}&provider=ilike.${encodeURIComponent(f.follower_provider)}&select=avatar&limit=1`),
+            ]);
+            const avatar = Array.isArray(av.data) && av.data[0] ? av.data[0].avatar : '';
+            return { name: f.follower_name, provider: f.follower_provider, avatar, trackCount: tc.count || 0, followerCount: fc.count || 0 };
           } catch (e) {
-            followers.push({ name: f.follower_name, provider: f.follower_provider, avatar: '', trackCount: 0, followerCount: 0 });
+            return { name: f.follower_name, provider: f.follower_provider, avatar: '', trackCount: 0, followerCount: 0 };
           }
-        }
+        }));
         return res.status(200).json({ ok: true, followers });
       } catch (e) {
         return res.status(200).json({ ok: false, error: e.message });
       }
     }
 
-    try {
-      /* 유저 정보 */
-      const { data: users } = await sb('GET',
-        `/users?name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits,login_count,created_at&limit=1`);
-      const user = users[0] || { name, provider, avatar: '', plan: 'free' };
-
-      /* 곡 목록 */
-      const { data: tracks, count: trackCount } = await sb('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,created_at&limit=50`);
-
-      /* 통계 */
-      const totalLikes = (tracks || []).reduce((s, t) => s + (t.comm_likes || 0), 0);
-      const totalPlays = (tracks || []).reduce((s, t) => s + (t.comm_plays || 0), 0);
-
-      /* 팔로워/팔로잉 수 */
-      let followerCount = 0, followingCount = 0;
+    /* ── 배치 아바타 조회 (users 테이블 기준) ── */
+    if (action === 'batch-avatars') {
       try {
-        const { count: fc } = await sb('GET',
-          `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
-        followerCount = fc || 0;
-      } catch {}
-      try {
-        const { count: fc } = await sb('GET',
-          `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`);
-        followingCount = fc || 0;
-      } catch {}
+        const names = req.query?.names; // comma-separated "name::provider" pairs
+        if (!names) return res.status(400).json({ error: 'names 필요' });
+        const pairs = names.split(',').slice(0, 50); // max 50
+        const avatarMap = {};
+        await Promise.all(pairs.map(async pair => {
+          const [n, p] = pair.split('::');
+          if (!n) return;
+          try {
+            const { data } = await sb('GET', `/users?name=ilike.${encodeURIComponent(n)}&provider=ilike.${encodeURIComponent(p || '')}&select=name,provider,avatar&limit=1`);
+            if (Array.isArray(data) && data[0]) {
+              avatarMap[pair] = data[0].avatar || '';
+            }
+          } catch {}
+        }));
+        return res.status(200).json({ ok: true, avatars: avatarMap });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
+      }
+    }
 
-      /* 팔로우 여부 확인 (viewer 기준) */
-      let isFollowing = false;
+    /* ── 배치 팔로우 상태 확인 (N+1 제거) ── */
+    if (action === 'batch-follow-check') {
       const viewerName = req.query?.viewerName;
       const viewerProvider = req.query?.viewerProvider;
-      if (viewerName && viewerProvider) {
-        try {
-          const { data: fw } = await sb('GET',
-            `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`);
-          isFollowing = fw?.length > 0;
-        } catch {}
+      if (!viewerName || !viewerProvider) return res.status(400).json({ error: 'viewerName, viewerProvider 필요' });
+      try {
+        const { data: allFollows } = await sb('GET',
+          `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&select=following_name,following_provider&limit=200`);
+        const set = {};
+        (allFollows || []).forEach(f => { set[f.following_name + '__' + f.following_provider] = true; });
+        return res.status(200).json({ ok: true, followingSet: set });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
       }
+    }
+
+    try {
+      const viewerName = req.query?.viewerName;
+      const viewerProvider = req.query?.viewerProvider;
+
+      /* 병렬로 모든 쿼리 실행 */
+      const promises = [
+        sb('GET', `/users?name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits,login_count,created_at&limit=1`),
+        sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,created_at&limit=50`),
+        sb('GET', `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
+        sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
+      ];
+      if (viewerName && viewerProvider) {
+        promises.push(
+          sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`).catch(() => ({ data: [] }))
+        );
+      }
+
+      const results = await Promise.all(promises);
+      const users = results[0].data;
+      const user = users[0] || { name, provider, avatar: '', plan: 'free' };
+      const tracks = results[1].data || [];
+      const trackCount = results[1].count;
+      const followerCount = results[2].count || 0;
+      const followingCount = results[3].count || 0;
+      const isFollowing = results[4] ? (results[4].data?.length > 0) : false;
+
+      const totalLikes = tracks.reduce((s, t) => s + (t.comm_likes || 0), 0);
+      const totalPlays = tracks.reduce((s, t) => s + (t.comm_plays || 0), 0);
 
       return res.status(200).json({
         ok: true,
         profile: {
           ...user,
-          trackCount: trackCount || tracks?.length || 0,
+          trackCount: trackCount || tracks.length || 0,
           totalLikes, totalPlays,
           followerCount, followingCount, isFollowing,
         },
-        tracks: tracks || [],
+        tracks,
       });
     } catch (e) {
       return res.status(200).json({ ok: false, error: e.message });

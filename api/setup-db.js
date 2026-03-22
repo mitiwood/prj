@@ -80,6 +80,9 @@ const ALL_TABLE_SQL = {
   users: `CREATE TABLE IF NOT EXISTS public.users (id BIGSERIAL PRIMARY KEY, uid TEXT NOT NULL, name TEXT DEFAULT '', email TEXT DEFAULT '', avatar TEXT DEFAULT '', provider TEXT NOT NULL, plan TEXT DEFAULT 'free', plan_expires TIMESTAMPTZ, credits_song INTEGER DEFAULT 5, credits_mv INTEGER DEFAULT 0, credits_lyrics INTEGER DEFAULT 5, ua TEXT DEFAULT '', is_mobile BOOLEAN DEFAULT FALSE, login_count INTEGER DEFAULT 1, last_login BIGINT DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(uid, provider))`,
   chat_messages: `CREATE TABLE IF NOT EXISTS public.chat_messages (id BIGSERIAL PRIMARY KEY, room TEXT NOT NULL DEFAULT 'general', author_name TEXT NOT NULL, author_avatar TEXT DEFAULT '', author_provider TEXT DEFAULT '', content TEXT NOT NULL, reply_to TEXT DEFAULT NULL, created_at TIMESTAMPTZ DEFAULT NOW())`,
   challenges: `CREATE TABLE IF NOT EXISTS public.challenges (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT DEFAULT '', icon TEXT DEFAULT '🔥', theme TEXT DEFAULT '', start_at TIMESTAMPTZ DEFAULT NOW(), end_at TIMESTAMPTZ, reward TEXT DEFAULT '', active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW())`,
+  playlists: `CREATE TABLE IF NOT EXISTS public.playlists (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, name TEXT NOT NULL DEFAULT '내 플레이리스트', description TEXT DEFAULT '', track_ids JSONB DEFAULT '[]', is_public BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
+  attendance: `CREATE TABLE IF NOT EXISTS public.attendance (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, check_date DATE NOT NULL DEFAULT CURRENT_DATE, streak INTEGER DEFAULT 1, bonus_credits INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_name, user_provider, check_date))`,
+  error_logs: `CREATE TABLE IF NOT EXISTS public.error_logs (id BIGSERIAL PRIMARY KEY, endpoint TEXT NOT NULL, method TEXT DEFAULT 'GET', status INTEGER DEFAULT 500, error_message TEXT DEFAULT '', user_agent TEXT DEFAULT '', ip TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`,
 };
 
 export default async function handler(req, res) {
@@ -92,7 +95,7 @@ export default async function handler(req, res) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
   if (auth !== ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
 
-  const tables = { tracks:false, users:false, comments:false, announcements:false, managers:false, payments:false, likes:false, follows:false, reports:false, notifications:false, live_notifications:false, settings:false };
+  const tables = { tracks:false, users:false, comments:false, announcements:false, managers:false, payments:false, likes:false, follows:false, reports:false, notifications:false, live_notifications:false, settings:false, chat_messages:false, challenges:false, playlists:false, attendance:false, error_logs:false };
   for (const t of Object.keys(tables)) {
     tables[t] = await tableExists(t);
   }

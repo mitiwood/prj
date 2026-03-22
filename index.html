@@ -212,6 +212,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 [data-theme="light"] .fp-prog-wrap{background:rgba(0,0,0,.1);}
 [data-theme="light"] .fp-prog-fill{background:#7c3aed;}
 [data-theme="light"] .fp-prog-time{color:#8e8e93;}
+[data-theme="light"] .fp-bpm-badge{color:#7c3aed;background:rgba(124,58,237,.1);}
 [data-theme="light"] .fp-prog-wrap:hover .fp-prog-thumb,[data-theme="light"] .fp-prog-wrap:active .fp-prog-thumb{background:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,.4);}
 [data-theme="light"] .fp-act-btn{color:#48484a;}
 [data-theme="light"] .fp-act-btn:hover{color:#1c1c1e;}
@@ -279,6 +280,19 @@ html,body{
 .create-hero-title{font-size:28px;font-weight:800;letter-spacing:-0.8px;}
 .create-hero-sub{font-size:14px;color:var(--t3);margin-top:6px;line-height:1.5;}
 
+.attend-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:0 16px 10px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1));border:1px solid rgba(124,58,237,.2);cursor:pointer;transition:transform .15s}
+.attend-banner:active{transform:scale(.98)}
+.attend-banner .ab-icon{font-size:24px;flex-shrink:0}
+.attend-banner .ab-info{flex:1;min-width:0}
+.attend-banner .ab-title{font-size:13px;font-weight:700;color:var(--t1)}
+.attend-banner .ab-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.attend-banner .ab-btn{padding:6px 14px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.attend-banner .ab-btn.done{background:var(--card2);color:var(--t3)}
+.attend-streak{display:flex;gap:3px;margin-top:4px}
+.attend-streak .dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.attend-streak .dot.on{background:var(--acc)}
+.attend-streak .dot.today{background:#f59e0b;box-shadow:0 0 4px rgba(245,158,11,.5)}
+[data-theme="light"] .attend-banner{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.05));border-color:rgba(124,58,237,.15)}
 /* 모드 탭 */
 .mode-tabs{
   display:flex;gap:4px;
@@ -1919,7 +1933,8 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
   top:-4px;opacity:1;transform:translateX(-50%);
   box-shadow:0 2px 8px rgba(0,0,0,.5);
 }
-.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.35);font-weight:500;font-variant-numeric:tabular-nums;}
+.fp-prog-time{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.35);font-weight:500;font-variant-numeric:tabular-nums;align-items:center;}
+.fp-bpm-badge{font-size:10px;font-weight:700;color:rgba(168,85,247,.8);background:rgba(168,85,247,.1);padding:1px 8px;border-radius:10px;letter-spacing:.5px;transition:color .4s,background .4s;}
 /* 컨트롤 — Apple Music 스타일 */
 .fp-controls{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:16px;}
 .fp-play-btn{
@@ -3121,6 +3136,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="create-hero-title">새 곡 만들기</div>
     </div>
 
+    <!-- 출석 체크 배너 (로그인 시만 표시) -->
+    <div id="attend-banner" class="attend-banner" style="display:none;" onclick="_doAttendance()">
+      <div class="ab-icon">📅</div>
+      <div class="ab-info">
+        <div class="ab-title" id="attend-title">출석 체크하고 보너스 받기</div>
+        <div class="ab-sub" id="attend-sub">매일 접속하면 보너스 크레딧!</div>
+        <div class="attend-streak" id="attend-dots"></div>
+      </div>
+      <button class="ab-btn" id="attend-btn">출석하기</button>
+    </div>
     <!-- 모드 탭 -->
     <div class="mode-tabs">
       <button class="mtab on" data-mode="custom"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.91 5.87H20l-4.95 3.6L16.96 18 12 14.27 7.04 18l1.91-5.53L4 8.87h6.09z"/></svg> 커스텀</button>
@@ -4341,6 +4366,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
         <div class="fp-prog-time">
           <span id="fp-cur">0:00</span>
+          <span class="fp-bpm-badge" id="fp-bpm-badge">-- BPM</span>
           <span id="fp-dur">0:00</span>
         </div>
       </div>
@@ -10306,6 +10332,10 @@ let _fpAudioGenId=0; /* 오디오 세대 ID — stale 이벤트 방지 */
 
 function _destroyFpAudio(){
   if(!fpAudio) return;
+  /* BPM 분석기 해제 */
+  if(typeof _stopBpmDetection==='function') _stopBpmDetection();
+  if(_bpmSource){try{_bpmSource.disconnect();}catch(e){}_bpmSource=null;}
+  fpAudio._bpmConnected=false;
   fpAudio.pause();
   fpAudio.src='about:blank';
   fpAudio=null;
@@ -10417,6 +10447,11 @@ function showMiniPlayer(idx){
       toast(msg,'err',3000);
     }
   });
+
+  /* BPM 분석기 연결 (AudioContext는 play 전에 초기화) */
+  if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
+  /* BPM 뱃지 초기화 */
+  var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
   audio.play().then(()=>{
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
@@ -11089,6 +11124,7 @@ function _doOpenFullPlayer(idx){
   audio.addEventListener('canplay',function _onCanPlay(){
     audio.removeEventListener('canplay',_onCanPlay);
     if(genId!==_fpAudioGenId)return;
+    if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
     audio.play().then(()=>{
       if(genId!==_fpAudioGenId)return;
       console.log('[FP] 재생 시작 genId='+genId, 'title='+h.title);
@@ -11099,6 +11135,8 @@ function _doOpenFullPlayer(idx){
   });
   audio.src=_audioUrl;
   audio.load();
+  /* BPM 뱃지 초기화 */
+  var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
   /* 시크 */
   $('fp-prog-wrap').onclick=e=>{
@@ -11163,15 +11201,136 @@ function fpPlayPrev(){
 /* 풀플레이어 스와이프 제스처 — 히든 처리 (이전/다음 곡 비활성화) */
 /* TODO: historyData 인덱스 동기화 문제 해결 후 복원 */
 
+/* ── BPM 실시간 측정 (Web Audio API) ── */
+var _bpmCtx=null,_bpmAnalyser=null,_bpmSource=null,_bpmRafId=0;
+var _bpmBeats=[],_bpmLastEnergy=0,_bpmValue=0,_bpmSmoothed=0;
+
+function _initBpmAnalyser(){
+  if(!fpAudio)return;
+  try{
+    if(!_bpmCtx) _bpmCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(_bpmCtx.state==='suspended') _bpmCtx.resume();
+    /* 이전 소스 해제 */
+    if(_bpmSource){try{_bpmSource.disconnect();}catch(e){}_bpmSource=null;}
+    _bpmAnalyser=_bpmCtx.createAnalyser();
+    _bpmAnalyser.fftSize=1024;
+    _bpmAnalyser.smoothingTimeConstant=0.4;
+    _bpmSource=_bpmCtx.createMediaElementSource(fpAudio);
+    _bpmSource.connect(_bpmAnalyser);
+    _bpmAnalyser.connect(_bpmCtx.destination);
+    _bpmBeats=[];_bpmLastEnergy=0;_bpmValue=0;_bpmSmoothed=0;
+    fpAudio._bpmConnected=true;
+  }catch(e){console.warn('[BPM] init error',e.message);}
+}
+
+function _detectBpmFrame(){
+  if(!_bpmAnalyser||!fpAudio||fpAudio.paused){
+    const badge=$('fp-bpm-badge');
+    if(badge&&_bpmSmoothed>0) badge.textContent=Math.round(_bpmSmoothed)+' BPM';
+    return;
+  }
+  _bpmRafId=requestAnimationFrame(_detectBpmFrame);
+
+  var buf=new Uint8Array(_bpmAnalyser.frequencyBinCount);
+  _bpmAnalyser.getByteFrequencyData(buf);
+
+  /* 저주파 대역(20~200Hz) 에너지 합산 — 킥/베이스 감지 */
+  var sampleRate=_bpmCtx.sampleRate;
+  var binHz=sampleRate/_bpmAnalyser.fftSize;
+  var lo=Math.floor(20/binHz), hi=Math.min(Math.ceil(200/binHz),buf.length);
+  var energy=0;
+  for(var i=lo;i<hi;i++) energy+=buf[i];
+  energy/=(hi-lo)||1;
+
+  /* 피크 감지: 에너지가 임계값 초과 + 이전 프레임보다 상승 */
+  var now=performance.now();
+  var threshold=(_bpmLastEnergy*1.15)+8;
+  if(energy>threshold && energy>40){
+    /* 최근 비트와 최소 200ms(300BPM) 간격 */
+    if(_bpmBeats.length===0||now-_bpmBeats[_bpmBeats.length-1]>200){
+      _bpmBeats.push(now);
+      /* 최근 16비트만 유지 */
+      if(_bpmBeats.length>16) _bpmBeats.shift();
+    }
+  }
+  _bpmLastEnergy=energy;
+
+  /* 비트 간격으로 BPM 계산 */
+  if(_bpmBeats.length>=4){
+    var intervals=[];
+    for(var j=1;j<_bpmBeats.length;j++) intervals.push(_bpmBeats[j]-_bpmBeats[j-1]);
+    /* 중간값 사용 (이상치 제거) */
+    intervals.sort(function(a,b){return a-b;});
+    var mid=intervals[Math.floor(intervals.length/2)];
+    var rawBpm=60000/mid;
+    /* 60~200 범위로 정규화 */
+    while(rawBpm>200) rawBpm/=2;
+    while(rawBpm<60) rawBpm*=2;
+    _bpmValue=rawBpm;
+    /* 스무딩 (급변 방지) */
+    _bpmSmoothed=_bpmSmoothed>0?_bpmSmoothed*0.7+_bpmValue*0.3:_bpmValue;
+  }
+
+  /* UI 업데이트 (매 10프레임) */
+  if(!_detectBpmFrame._fc) _detectBpmFrame._fc=0;
+  if(++_detectBpmFrame._fc%10===0){
+    var badge=$('fp-bpm-badge');
+    if(badge){
+      var val=Math.round(_bpmSmoothed);
+      if(val>=60&&val<=200){
+        badge.textContent=val+' BPM';
+        /* 빠르기에 따라 색상 변화 */
+        var hue=val<100?270:val<130?265:val<160?45:0;
+        var sat=val<100?'60%':val<130?'70%':val<160?'80%':'70%';
+        badge.style.color='hsl('+hue+','+sat+',60%)';
+        badge.style.background='hsla('+hue+','+sat+',50%,.1)';
+      } else {
+        badge.textContent='-- BPM';
+        badge.style.color='';badge.style.background='';
+      }
+    }
+  }
+
+  /* 이퀄라이저 바도 실제 오디오 데이터로 구동 */
+  var vizEl=$('fp-viz');
+  if(vizEl){
+    var bars=vizEl.querySelectorAll('.fp-vbar');
+    var step=Math.floor(buf.length/bars.length);
+    bars.forEach(function(b,idx){
+      var val=buf[idx*step]/255;
+      b.style.transform='scaleY('+Math.max(0.08,val).toFixed(3)+')';
+    });
+  }
+}
+
+function _startBpmDetection(){
+  cancelAnimationFrame(_bpmRafId);
+  if(fpAudio&&!fpAudio._bpmConnected) _initBpmAnalyser();
+  _detectBpmFrame._fc=0;
+  _bpmRafId=requestAnimationFrame(_detectBpmFrame);
+}
+
+function _stopBpmDetection(){
+  cancelAnimationFrame(_bpmRafId);
+  _bpmRafId=0;
+}
+
 function fpStartViz(){
   clearInterval(fpVizTimer);
+  /* BPM 분석기가 있으면 실제 오디오 데이터로 바 구동 — setInterval 불필요 */
+  if(_bpmAnalyser&&fpAudio&&!fpAudio.paused){
+    _startBpmDetection();
+    return;
+  }
   const el=$('fp-viz'); if(!el)return;
   const bars=el.querySelectorAll('.fp-vbar');
   if(!bars.length)return;
   fpVizTimer=setInterval(()=>{bars.forEach(b=>{b.style.transform='scaleY('+(Math.max(0.125,Math.random())).toFixed(2)+')';});},150);
+  _startBpmDetection();
 }
 function fpStopViz(){
   clearInterval(fpVizTimer);
+  _stopBpmDetection();
   const el=$('fp-viz'); if(!el)return;
   el.querySelectorAll('.fp-vbar').forEach(b=>{b.style.transform='scaleY(0.125)';});
 }
@@ -11439,7 +11598,8 @@ var _mfRenderedCount=0; /* 현재 렌더링된 크리에이터 개수 */
 var _mfAllCreators=[];
 var _mfBlockedHosts=['pexels.com','unsplash.com','placeholder.com','placekitten.com','picsum.photos'];
 function _mfIsBlocked(u){if(!u)return true;try{var h=new URL(u).hostname;for(var i=0;i<_mfBlockedHosts.length;i++)if(h.indexOf(_mfBlockedHosts[i])>=0)return true;}catch(e){}return false;}
-function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_mfIsBlocked(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',this.dataset.fb)" data-fb="'+fb.replace(/"/g,'&amp;quot;')+'">';}
+function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_mfIsBlocked(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" data-initial="'+ch+'" onerror="_mfImgFail(this)">';}
+function _mfImgFail(el){el.onerror=null;var ch=el.dataset.initial||'?';var p=el.parentNode;if(p){p.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';}}
 function _mfThumb(u){if(!u||_mfIsBlocked(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
 
 function _renderMyFeedView(grid,countEl){
@@ -11512,7 +11672,7 @@ function _renderMyFeedView(grid,countEl){
     html+='<div class="mf-trending"><div class="mf-trending-title">HOT 크리에이터</div><div class="mf-trending-row">';
     var medals=['🥇','🥈','🥉'];
     creators.slice(0,3).forEach(function(c,i){
-      var aH=c.avatar?'<img src="'+esc(c.avatar)+'" alt="">':'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>';
+      var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+esc(c.name.charAt(0).toUpperCase())+'</div>\'">';
       html+='<div class="mf-trend-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
         +'<div class="mf-trend-medal">'+medals[i]+'</div>'
         +'<div class="mf-trend-avatar">'+aH+'</div>'
@@ -11537,7 +11697,7 @@ function _renderMyFeedView(grid,countEl){
       html+='<div class="mf-recent-title">🆕 최근 업로드</div>';
       html+='<div class="mf-recent-scroll">';
       recentTracks.forEach(function(rt){
-        var thumb=rt.image_url?'<img src="'+esc(rt.image_url)+'" alt="" loading="lazy">':'<div class="mf-recent-ph">🎵</div>';
+        var thumb=_mfThumb(rt.image_url);
         html+='<div class="mf-recent-card" data-mf-action="play-recent" data-mf-rt-id="'+esc(rt.id)+'" data-mf-rt-name="'+esc(rt.owner_name||'')+'" data-mf-rt-prov="'+esc(rt.owner_provider||'')+'">'
           +'<div class="mf-recent-thumb">'+thumb+'</div>'
           +'<div class="mf-recent-info">'
@@ -11659,16 +11819,14 @@ function _mfLoadMoreCreators(){
   nextChunk.forEach(function(c,idx){
     var actualIdx=_mfRenderedCount+idx;
     var provIcon=c.provider==='google'?'🔵':c.provider==='kakao'?'💬':c.provider==='naver'?'🟢':'👤';
-    var avatarHtml=c.avatar
-      ?'<img src="'+esc(c.avatar)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
-      :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+esc(c.name.charAt(0).toUpperCase())+'</div>';
+    var avatarHtml=_mfAvatar(c.avatar,c.name,true);
     var previews='';
     if(c.previewImgs&&c.previewImgs.length){
       c.previewImgs.slice(0,2).forEach(function(img){
-        previews+='<div class="mf-preview-thumb">'+(img?'<img src="'+esc(img)+'" alt="" loading="lazy">':'<span>🎵</span>')+'</div>';
+        previews+='<div class="mf-preview-thumb">'+_mfThumb(img)+'</div>';
       });
     } else if(c.latestTrack&&c.latestTrack.image_url){
-      previews+='<div class="mf-preview-thumb"><img src="'+esc(c.latestTrack.image_url)+'" alt="" loading="lazy"></div>';
+      previews+='<div class="mf-preview-thumb">'+_mfThumb(c.latestTrack.image_url)+'</div>';
     }
     var totalPlays=c.totalPlays||0;
     html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
@@ -11704,9 +11862,7 @@ function _renderCreatorDetailView(grid,countEl){
   html+='<div class="mf-detail-hero">';
   html+='<button class="mf-back-btn" onclick="_closeCreatorDetail()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>';
   var avatarUrl=p.avatar||'';
-  var avatarHtml=avatarUrl
-    ?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
-    :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+esc(d.name.charAt(0).toUpperCase())+'</div>';
+  var avatarHtml=_mfAvatar(avatarUrl,d.name,false);
   var provIcon=d.provider==='google'?'🔵':d.provider==='kakao'?'💬':d.provider==='naver'?'🟢':'👤';
 
   html+='<div class="mf-detail-profile">'
@@ -11751,7 +11907,7 @@ function _renderCreatorDetailView(grid,countEl){
   if(d.tracks.length>=3){
     var topTracks=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
     var top=topTracks[0];
-    if(top&&top.image_url){
+    if(top&&top.image_url&&!_mfIsBlocked(top.image_url)){
       html+='<div class="mf-detail-top" data-mf-action="play-detail" data-mf-trk-idx="'+d.tracks.indexOf(top)+'">'
         +'<div class="mf-detail-top-img"><img src="'+esc(top.image_url)+'" alt="">'
         +'<div class="mf-detail-top-play">▶</div>'
@@ -11787,7 +11943,7 @@ function _renderCreatorDetailView(grid,countEl){
   html+='<div class="mf-detail-tracklist">';
   sortedTracks.forEach(function(t,i){
     var origIdx=d.tracks.indexOf(t);
-    var thumb=t.image_url?'<img src="'+esc(t.image_url)+'" alt="">':'<div class="mf-trk-thumb-ph">🎵</div>';
+    var thumb=(!t.image_url||_mfIsBlocked(t.image_url))?'<div class="mf-trk-thumb-ph">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trk-thumb-ph>🎵</div>\'">';
     var tag1=(t.tags||'').split(',')[0]?.trim()||'';
     var hasVideo=!!t.video_url;
     var likes=t.comm_likes||0, plays=t.comm_plays||0;
@@ -12131,7 +12287,7 @@ function _buildMyFeedInsight(){
       html+='<div class="mf-insight-label">💜 취향 맞는 크리에이터</div>';
       html+='<div class="mf-match-row">';
       matchedCreators.forEach(function(c){
-        var aH=c.avatar?'<img src="'+esc(c.avatar)+'" alt="">':'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>';
+        var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+esc(c.name.charAt(0).toUpperCase())+'</div>\'">';
         var tagChips=c.matchTags.map(function(tag){return'<span class="mf-match-chip">#'+esc(tag)+'</span>';}).join('');
         var matchPct=tagTotal>0?Math.min(99,Math.round(c.score/tagTotal*100)):0;
         html+='<div class="mf-match-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
@@ -12190,14 +12346,15 @@ function _groupCreatorsFromTracks(sbTracks){
     
     var creator=map[key];
     if(!creator){
-      creator=map[key]={name:o.name,provider:o.provider,avatar:o.avatar||'',trackCount:0,totalLikes:0,totalPlays:0,latestTrack:null,previewImgs:[],_latestTs:0};
+      var av=o.avatar||'';if(_mfIsBlocked(av))av='';
+      creator=map[key]={name:o.name,provider:o.provider,avatar:av,trackCount:0,totalLikes:0,totalPlays:0,latestTrack:null,previewImgs:[],_latestTs:0};
     }
     creator.trackCount++;
     creator.totalLikes+=(t.likes||0);
     creator.totalPlays+=(t.plays||0);
     
     /* 미리보기 이미지 3개까지만 */
-    if(t.img&&creator.previewImgs.length<3&&creator.previewImgs.indexOf(t.img)<0){
+    if(t.img&&!_mfIsBlocked(t.img)&&creator.previewImgs.length<3&&creator.previewImgs.indexOf(t.img)<0){
       creator.previewImgs.push(t.img);
     }
     if(!creator.latestTrack) creator.latestTrack={image_url:t.img};
@@ -12225,17 +12382,18 @@ function _groupCreatorsFromRaw(tracks){
     
     var creator=map[key];
     if(!creator){
-      creator=map[key]={name:name,provider:prov,avatar:t.owner_avatar||'',trackCount:0,totalLikes:0,totalPlays:0,latestTrack:null,previewImgs:[],_latestTs:0,_latestCreated:''};
+      var av=t.owner_avatar||'';if(_mfIsBlocked(av))av='';
+      creator=map[key]={name:name,provider:prov,avatar:av,trackCount:0,totalLikes:0,totalPlays:0,latestTrack:null,previewImgs:[],_latestTs:0,_latestCreated:''};
     }
     creator.trackCount++;
     creator.totalLikes+=(t.comm_likes||0);
     creator.totalPlays+=(t.comm_plays||0);
     
-    /* 미리보기 이미지 3개까지만 (중복 체크 최적화) */
-    if(t.image_url&&creator.previewImgs.length<3&&creator.previewImgs.indexOf(t.image_url)<0){
+    /* 미리보기 이미지 3개까지만 (중복 체크 + 외부이미지 차단) */
+    if(t.image_url&&!_mfIsBlocked(t.image_url)&&creator.previewImgs.length<3&&creator.previewImgs.indexOf(t.image_url)<0){
       creator.previewImgs.push(t.image_url);
     }
-    if(!creator.latestTrack) creator.latestTrack={image_url:t.image_url};
+    if(!creator.latestTrack){var li=t.image_url;creator.latestTrack={image_url:_mfIsBlocked(li)?'':li};}
     
     /* 최신 타임스탬프 업데이트 (문자열 비교로 최적화) */
     var created=t.created_at||'';
@@ -17898,6 +18056,75 @@ function _skipOnboarding() {
 }
 
 /* 초기화 후 온보딩 표시 */
+
+/* ── 출석 체크 시스템 ── */
+var _attendChecked = false;
+async function _initAttendance(){
+  var u = _getUser();
+  if(!u || u.provider === 'guest'){ var ab=$('attend-banner'); if(ab)ab.style.display='none'; return; }
+  try {
+    var r = await fetch('/api/attendance?userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider));
+    var d = await r.json();
+    if(!d.ok) return;
+    var banner = $('attend-banner');
+    if(!banner) return;
+    banner.style.display = 'flex';
+    _attendChecked = d.todayChecked;
+    var btn = $('attend-btn');
+    if(d.todayChecked){
+      btn.textContent = '완료';
+      btn.classList.add('done');
+      $('attend-title').textContent = d.currentStreak + '일 연속 출석 중!';
+      $('attend-sub').textContent = '이번 달 ' + d.monthCount + '일 출석 · 총 보너스 ' + d.totalBonus + '곡';
+    } else {
+      btn.textContent = '출석하기';
+      btn.classList.remove('done');
+    }
+    var dots = $('attend-dots');
+    if(dots){
+      var html = '';
+      for(var i=6;i>=0;i--){
+        var dd = new Date(Date.now() - i*86400000);
+        var ds = dd.toISOString().slice(0,10);
+        var isOn = (d.monthDays||[]).includes(ds);
+        var isToday = i === 0;
+        html += '<div class="dot'+(isOn?' on':'')+(isToday&&d.todayChecked?' today':'')+'"></div>';
+      }
+      dots.innerHTML = html;
+    }
+  } catch(e){ console.warn('[attendance]', e); }
+}
+async function _doAttendance(){
+  if(_attendChecked) return;
+  var u = _getUser();
+  if(!u || u.provider === 'guest'){ toast('로그인 후 이용할 수 있어요','info'); return; }
+  var btn = $('attend-btn');
+  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  try {
+    var r = await fetch('/api/attendance', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userName:u.name, userProvider:u.provider})
+    });
+    var d = await r.json();
+    if(d.ok){
+      _attendChecked = true;
+      if(btn){ btn.textContent = '완료'; btn.classList.add('done'); btn.disabled = false; }
+      $('attend-title').textContent = d.streak + '일 연속 출석!';
+      var msg = d.message || '출석 체크 완료!';
+      if(d.bonus > 0) msg += ' (+' + d.bonus + '곡 보너스)';
+      toast(msg, 'ok');
+      _initAttendance();
+    } else {
+      toast(d.error || '출석 체크 실패','err');
+      if(btn){ btn.textContent = '출석하기'; btn.disabled = false; }
+    }
+  } catch(e){
+    toast('출석 체크 중 오류 발생','err');
+    if(btn){ btn.textContent = '출석하기'; btn.disabled = false; }
+  }
+}
+setTimeout(_initAttendance, 2000);
 setTimeout(_showOnboarding, 1500);
 </script>
 

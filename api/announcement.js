@@ -214,7 +214,7 @@ export default async function handler(req, res) {
       }
       const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
       const notifyMsg = `📣 인앱 공지 발송\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`;
-      await Promise.allSettled([_tgNotify(`📣 *인앱 공지 발송*\n제목: ${annData.title}\n대상: ${annData.target === 'all' ? '전체' : '로그인 사용자'}\n⏰ ${ts}`), _kakaoNotify(notifyMsg)]);
+      await Promise.allSettled([_tgNotify(notifyMsg), _kakaoNotify(notifyMsg)]);
       return res.status(200).json({ success: true, storage: sbOk ? 'supabase' : 'memory' });
     } catch (e) {
       // 최후 폴백: 메모리 저장

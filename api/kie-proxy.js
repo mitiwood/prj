@@ -2,8 +2,14 @@
  * /api/kie-proxy — kie.ai API 서버 프록시 (보안 강화)
  * - API 키는 서버에서만 관리 (클라이언트 노출 차단)
  * - 허용 경로 화이트리스트로 악용 방지
- * Usage: POST /api/kie-proxy  body: { path, method, body }
+ * - 서버사이드 크레딧 검증 (클라이언트 우회 차단)
+ * Usage: POST /api/kie-proxy  body: { path, method, body, userName, userProvider }
  */
+
+import { PLANS } from './toss-config.js';
+
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 /* 허용 경로 화이트리스트 (prefix match) */
 const ALLOWED_PATHS = [
@@ -16,9 +22,93 @@ const ALLOWED_PATHS = [
   '/gemini-2.5-flash/v1/chat/completions',  // LLM (AI 프롬프트/추천)
 ];
 
+/* 크레딧 소모가 발생하는 경로 (조회/폴링은 제외) */
+const CREDIT_PATHS = {
+  '/api/v1/generate/music':       'song',
+  '/api/v1/generate/mv':          'mv',
+  '/api/v1/generate/extend':      'song',
+  '/api/v1/generate/remaster':    'song',
+  '/api/v1/generate/add-vocals':  'song',
+  '/api/v1/generate/cover':       'song',
+  '/api/v1/lyrics/generate':      'lyrics',
+  '/api/v1/vocal-removal/create': 'vr',
+};
+
 function isPathAllowed(path) {
   if (!path || typeof path !== 'string') return false;
   return ALLOWED_PATHS.some(prefix => path.startsWith(prefix));
+}
+
+function getCreditType(path, method) {
+  if (method === 'GET') return null; // 조회는 크레딧 불필요
+  for (const [prefix, type] of Object.entries(CREDIT_PATHS)) {
+    if (path.startsWith(prefix)) return type;
+  }
+  return null;
+}
+
+async function sbFetch(method, path, body = null) {
+  if (!SB_URL || !SB_KEY) return null;
+  const headers = {
+    apikey: SB_KEY,
+    Authorization: `Bearer ${SB_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: method === 'GET' ? '' : 'return=representation',
+  };
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, opts);
+  const txt = await r.text();
+  if (!r.ok) return null;
+  return txt ? JSON.parse(txt) : [];
+}
+
+async function checkServerCredit(userName, userProvider, creditType) {
+  if (!SB_URL || !SB_KEY) return { ok: true, fallback: true };
+  try {
+    const users = await sbFetch('GET',
+      `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+    );
+    if (!users || !users[0]) return { ok: true, fallback: true };
+    const user = users[0];
+    let plan = user.plan || 'free';
+
+    /* 만료 체크 */
+    if (plan !== 'free' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
+      plan = 'free';
+    }
+
+    const limits = (PLANS[plan] || PLANS.free).limits;
+    const key = creditType === 'song' ? 'songs' : creditType === 'vr' ? 'songs' : creditType;
+    const limit = limits[key] || 0;
+    if (limit >= 999) return { ok: true, plan };
+
+    /* 이번 달 사용량 조회 */
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    let used = 0;
+    if (creditType === 'song' || creditType === 'vr') {
+      const tracks = await sbFetch('GET',
+        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+      );
+      used = tracks ? tracks.length : 0;
+    } else if (creditType === 'mv') {
+      const tracks = await sbFetch('GET',
+        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+      );
+      used = tracks ? tracks.length : 0;
+    }
+
+    if (used >= limit) {
+      return { ok: false, reason: 'limit_exceeded', plan, used, limit, upgrade: plan === 'free' ? 'pro' : 'creator' };
+    }
+    return { ok: true, plan, used, remaining: limit - used };
+  } catch (e) {
+    console.warn('[kie-proxy] credit check failed:', e.message);
+    return { ok: true, fallback: true };
+  }
 }
 
 export default async function handler(req, res) {
@@ -31,8 +121,7 @@ export default async function handler(req, res) {
   let payload = req.body || {};
   if (typeof payload === 'string') try { payload = JSON.parse(payload); } catch { payload = {}; }
 
-  const { path, method = 'GET', body: reqBody } = payload;
-  /* 서버 환경변수에서만 API 키 사용 — 클라이언트 apiKey 파라미터 무시 */
+  const { path, method = 'GET', body: reqBody, userName, userProvider } = payload;
   const key = process.env.KIE_API_KEY;
 
   if (!key) return res.status(500).json({ error: 'KIE_API_KEY not configured' });
@@ -41,6 +130,22 @@ export default async function handler(req, res) {
   /* 경로 화이트리스트 검증 */
   if (!isPathAllowed(path)) {
     return res.status(403).json({ error: 'Path not allowed: ' + path });
+  }
+
+  /* 서버사이드 크레딧 검증 (크레딧 소모 경로만) */
+  const creditType = getCreditType(path, method);
+  if (creditType && userName && userProvider) {
+    const creditCheck = await checkServerCredit(userName, userProvider, creditType);
+    if (!creditCheck.ok) {
+      return res.status(403).json({
+        error: 'credit_exceeded',
+        reason: creditCheck.reason,
+        plan: creditCheck.plan,
+        used: creditCheck.used,
+        limit: creditCheck.limit,
+        upgrade: creditCheck.upgrade,
+      });
+    }
   }
 
   const KIE_BASE = 'https://api.kie.ai';
