@@ -154,6 +154,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `청소 [일수] — stale 브랜치 정리 (기본 7일)`,
     `QA — 전체 코드 점검+봇 리포트`,
     `진행상황 — GitHub Action 작업 추적`,
+    `취소 — 진행 중인 Claude 작업 취소`,
     ``,
     `━━ 📋 기획 (3) ━━`,
     `기획 <기능설명> — Issue 등록`,
@@ -849,6 +850,33 @@ COMMANDS['진행상황'] = COMMANDS['진행'] = COMMANDS['progress'] = async (ch
     await tgSend(chatId, msg, { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, `❌ 진행상황 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 취소 — 진행 중인 GitHub Actions 워크플로우 취소 */
+COMMANDS['취소'] = COMMANDS['cancel'] = COMMANDS['중지'] = async (chatId, arg) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+  try {
+    const runs = await ghApi('GET', '/actions/runs?status=in_progress&per_page=10');
+    const items = (runs.workflow_runs || []).filter(r => r.name === 'Claude Code Auto-Fix');
+    if (!items.length) {
+      return tgSend(chatId, '✅ 현재 진행 중인 Claude 작업이 없습니다.', { parse_mode: '' });
+    }
+    let msg = '';
+    for (const run of items) {
+      try {
+        await ghApi('POST', `/actions/runs/${run.id}/cancel`);
+        const issueMatch = (run.display_title || '').match(/#(\d+)/);
+        const issueNum = issueMatch ? issueMatch[1] : '';
+        msg += `🛑 취소됨: ${run.name}${issueNum ? ' (Issue #' + issueNum + ')' : ''} [Run #${run.id}]\n`;
+      } catch (e) {
+        msg += `⚠️ 취소 실패: ${run.name} — ${e.message}\n`;
+      }
+    }
+    msg += `\n총 ${items.length}개 작업 취소 요청 완료`;
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, `❌ 취소 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 
@@ -1689,6 +1717,7 @@ export default async function handler(req, res) {
     /* 자연어 → 명령 매핑 */
     const NL_MAP = [
       { re: /진행.*(어때|어디|상황|상태|됐|됨|완료|얼마)|어디.*까지|다\s*됐|끝났|작업.*추적/i, cmd: '진행상황' },
+      { re: /취소|중지|cancel|작업.*멈|그만|stop/i, cmd: '취소' },
       { re: /PR.*(있|목록|확인|열린|리스트)|풀리퀘/i, cmd: 'PR' },
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
