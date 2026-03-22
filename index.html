@@ -5280,14 +5280,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
       <!-- 크로스페이드 표시 -->
       <div class="fp-crossfade-indicator" id="fp-xfade-ind">크로스페이드</div>
-      <div class="fp-viz" id="fp-viz">
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-        <div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div><div class="fp-vbar"></div>
-      </div>
       <!-- 스펙트럼 바 -->
       <div class="spectrum-bars" id="fp-spectrum"></div>
       <!-- 가사 편집 도구 -->
@@ -6731,6 +6723,7 @@ function guestLogin(){
   const mock={provider:'guest',name:'게스트',avatar:'👤',at:Date.now()};
   currentUser=mock;localStorage.setItem('kms_user',JSON.stringify(mock));
   closeLoginSheet();updateLoginUI();toast('👤 게스트로 시작합니다','ok');
+  _notifyBot('\uD83D\uDD13 \uAC8C\uC2A4\uD2B8 \uB85C\uADF8\uC778\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
   /* 게스트도 커뮤니티 볼 수 있도록 커뮤니티 탭으로 이동 */
   setTimeout(()=>switchTab('community-view'),300);
 }
@@ -6780,6 +6773,7 @@ function logout(){
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
   document.getElementById('_logout_confirm').onclick=()=>{
     overlay.remove();
+    _notifyBot('\uD83D\uDD12 \uB85C\uADF8\uC544\uC6C3\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83D\uDD17 '+(currentUser&&currentUser.provider||'guest')+'\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
     /* 유저 상태 초기화 */
     currentUser=null;
     historyData=[];
@@ -7478,6 +7472,7 @@ function _saveLoginUser(user){
     const providerNames={google:'Google',kakao:'카카오',naver:'네이버'};
     const pName=providerNames[user.provider]||user.provider;
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
+    _notifyBot('\uD83D\uDD13 \uB85C\uADF8\uC778\n\n\uD83D\uDC64 '+(user.name||'\uC775\uBA85')+'\n\uD83D\uDD17 '+pName+'\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
     /* 로그인 사용자 목록에 추가 (관리자 통계용) */
     _saveLoginUser(user);
     /* DB에서 플랜 정보 즉시 조회 → 로컬 동기화 */
@@ -12047,16 +12042,10 @@ function _saveTrackToServer(track){
 }
 
 /* ════════════════════════════════════
-   음악 생성 알림 (텔레그램 + 카카오)
+   봇 알림 (텔레그램 + 카카오 동시 전송)
 ════════════════════════════════════ */
-function _notifyMusicCreated(tracks, mode, tags){
-  if(!tracks||!tracks.length) return;
-  var userName = currentUser&&currentUser.name||'익명';
-  var trackTitle = tracks[0]&&tracks[0].title||'무제';
-  var count = tracks.length;
-  var extra = count > 1 ? ' 외 ' + (count-1) + '곡' : '';
-  var lines = ['🎵 음악 생성 완료!','','👤 '+userName,'🎶 '+trackTitle+extra,'🎸 모드: '+(mode||'custom'),'🏷️ 태그: '+(tags||'-')];
-  var text = lines.join(String.fromCharCode(10));
+function _notifyBot(text){
+  if(!text) return;
   fetch('/api/telegram',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -12065,8 +12054,16 @@ function _notifyMusicCreated(tracks, mode, tags){
   fetch('/api/kakao-notify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:text}),
+    body:JSON.stringify({text:text.slice(0,300)}),
   }).catch(function(){});
+}
+function _notifyMusicCreated(tracks, mode, tags){
+  if(!tracks||!tracks.length) return;
+  var userName = currentUser&&currentUser.name||'\uC775\uBA85';
+  var trackTitle = tracks[0]&&tracks[0].title||'\uBB34\uC81C';
+  var count = tracks.length;
+  var extra = count > 1 ? ' \uC678 ' + (count-1) + '\uACE1' : '';
+  _notifyBot('\uD83C\uDFB5 \uC74C\uC545 \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+userName+'\n\uD83C\uDFB6 '+trackTitle+extra+'\n\uD83C\uDFB8 \uBAA8\uB4DC: '+(mode||'custom')+'\n\uD83C\uDFF7\uFE0F \uD0DC\uADF8: '+(tags||'-'));
 }
 
 /* ════════════════════════════════════
@@ -16101,6 +16098,7 @@ async function _creatorFollowToggle(btn){
     if(d.ok){
       const nowFollowing=!isFollowing;
       _followStateCache[name+'__'+prov]=nowFollowing;
+      _notifyBot((nowFollowing?'\uD83D\uDC65 \uD314\uB85C\uC6B0':'\uD83D\uDC64 \uC5B8\uD314\uB85C\uC6B0')+'\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+' \u2192 '+name);
       /* 팔로잉 피드 캐시 무효화 */
       _followFeedCache=null;_followFeedAt=0;
       _followingNames=null;
@@ -16652,6 +16650,7 @@ function openReportSheet(sbId){
           reported.push(sbId);
           localStorage.setItem(reportedKey,JSON.stringify(reported));
           toast('신고가 접수되었습니다','ok',2500);
+          _notifyBot('\uD83D\uDEA8 \uD2B8\uB799 \uC2E0\uACE0\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'?')+'\n\uD83C\uDFB6 '+title+'\n\u2757 '+reason);
         } else {
           toast(data.error||'신고 처리 중 오류가 발생했습니다','err',2500);
         }
@@ -16790,6 +16789,7 @@ function commSeekLine(el){
 /* ── 서버 좋아요/싫어요 반영 헬퍼 ── */
 function _sbReact(sbId, action){
   if(!sbId) return;
+  var _t=_sbTracks.find(function(x){return x._sbId===sbId;});
   /* 유저 정보 전송 → 서버에서 중복 투표 방지 */
   const body = currentUser ? { userName: currentUser.name, userProvider: currentUser.provider } : {};
   fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action='+action, {
@@ -16800,10 +16800,11 @@ function _sbReact(sbId, action){
     .then(r=>r.json())
     .then(d=>{
       if(d.duplicate){ toast('이미 투표했어요','',1500); return; }
-      const t=_sbTracks.find(t=>t._sbId===sbId);
+      var t=_sbTracks.find(function(x){return x._sbId===sbId;});
       if(!t) return;
       if(d.comm_likes    !== undefined) t.likes    = d.comm_likes;
       if(d.comm_dislikes !== undefined) t.dislikes = d.comm_dislikes;
+      _notifyBot((action==='like'?'\uD83D\uDC4D \uC88B\uC544\uC694':'\uD83D\uDC4E \uC2AB\uC5B4\uC694')+'\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+(_t&&_t.title||sbId));
     }).catch(()=>{});
 }
 
@@ -18548,6 +18549,7 @@ function _reportUser(){
     })
   }).then(r=>r.json()).then(d=>{
     toast(d.ok ? '🚩 신고 접수 완료' : '신고 실패', d.ok?'ok':'err', 2000);
+    if(d.ok) _notifyBot('\uD83D\uDEA8 \uC720\uC800 \uC2E0\uACE0\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'?')+' \u2192 '+(_pfTarget&&_pfTarget.name||'?')+'\n\u2757 '+reason);
   });
 }
 
@@ -19740,6 +19742,7 @@ async function _submitComment(){
   const _cUser = currentUser || {name:'익명',avatar:'',provider:'guest'};
   input.value='';
   try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:_cUser.name||'익명',author_avatar:_cUser.avatar||'',author_provider:_cUser.provider||'guest'})});
+  _notifyBot('\uD83D\uDCAC \uB313\uAE00\n\n\uD83D\uDC64 '+(_cUser.name||'\uC775\uBA85')+'\n\uD83D\uDCDD '+content.slice(0,100));
   _cancelReply();await _loadComments();const list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;}catch(e){toast('댓글 전송 실패','err');}
 }
 async function _deleteMyComment(id){
@@ -19771,7 +19774,7 @@ function _reportComment(commentId, authorName, contentPreview){
       try{
         const r=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'report',reporterName:currentUser.name,reporterProvider:currentUser.provider,targetType:'comment',targetId:commentId,reason:btn.dataset.reason+' | '+authorName+': '+contentPreview})});
         const d=await r.json();
-        if(d.ok){reported.push(commentId);localStorage.setItem(rKey,JSON.stringify(reported));toast('댓글 신고가 접수되었습니다','ok',2500);}
+        if(d.ok){reported.push(commentId);localStorage.setItem(rKey,JSON.stringify(reported));toast('댓글 신고가 접수되었습니다','ok',2500);_notifyBot('\uD83D\uDEA8 \uB313\uAE00 \uC2E0\uACE0\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'?')+'\n\uD83D\uDCDD '+authorName+': '+contentPreview+'\n\u2757 '+btn.dataset.reason);}
         else toast(d.error||'신고 처리 실패','err',2500);
       }catch{toast('신고 처리 중 오류','err',2500);}
       overlay.remove();
