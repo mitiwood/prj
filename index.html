@@ -4663,8 +4663,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="settings-section-title">🌐 언어 / Language</div>
       <div class="settings-card" style="padding:12px 14px;">
         <div class="lang-toggle" id="lang-toggle">
-          <button class="lang-btn" data-lang="ko" onclick="_setLang('ko')">한국어</button>
-          <button class="lang-btn on" data-lang="en" onclick="_setLang('en')">English</button>
+          <button class="lang-btn on" data-lang="ko" onclick="_setLang('ko')">한국어</button>
+          <button class="lang-btn" data-lang="en" onclick="_setLang('en')">English</button>
           <button class="lang-btn" data-lang="ja" onclick="_setLang('ja')">日本語</button>
         </div>
         <div style="font-size:10px;color:var(--t3);margin-top:6px;" id="lang-note">UI 언어를 변경합니다 (베타)</div>
@@ -20303,40 +20303,459 @@ function _quickAiSuggest(text){var i=$('ai-assist-input');if(i){i.value=text;var
 /* ═══ 다국어 (i18n) ═══ */
 var _i18n={
   ko:{
+    // 네비게이션
     create:'음악 만들기',
     community:'커뮤니티',
     library:'라이브러리',
     settings:'설정',
     myLibrary:'내 라이브러리',
+    
+    // 설정 메뉴
     advancedSettings:'고급 설정',
     themeSettings:'테마 설정',
     languageSettings:'언어 / Language',
-    lyricsLanguage:'가사 언어'
+    lyricsLanguage:'가사 언어',
+    accessibility:'접근성',
+    pushNotifications:'푸시 알림',
+    
+    // 메인 화면
+    newSongTitle:'새 곡 만들기',
+    attendanceCheck:'출석 체크하고 보너스 받기',
+    attendanceDesc:'매일 접속하면 보너스 크레딧!',
+    attendanceBtn:'출석하기',
+    
+    // 모드 탭
+    custom:'커스텀',
+    simple:'심플',
+    youtube:'YouTube',
+    mv:'MV',
+    
+    // 홈 위젯
+    songs:'곡',
+    browseTracks:'새 트랙 둘러보기',
+    bonusCredits:'보너스 크레딧',
+    shortcuts:'단축키',
+    quickStart:'빠른 시작',
+    
+    // 폼 필드
+    songTitle:'곡 제목을 입력하세요 (선택)',
+    lyricsPlaceholder:'가사를 직접 입력하거나 AI 자동 작사를 이용하세요',
+    stylePlaceholder:'예: K-Pop, 감성적인',
+    moodPlaceholder:'예: 비 오는 날 듣기 좋은 재즈 느낌의 곡',
+    negativePrompt:'예: heavy metal, screaming, distorted guitar...',
+    
+    // 버튼 텍스트
+    generate:'생성하기',
+    generateMusic:'음악 생성하기',
+    playPause:'재생/일시정지',
+    nextSong:'다음 곡',
+    prevSong:'이전곡',
+    playlist:'재생 목록',
+    close:'닫기',
+    like:'좋아요',
+    dislike:'싫어요',
+    share:'공유',
+    download:'저장',
+    edit:'편집',
+    delete:'삭제',
+    
+    // 검색 및 정렬
+    search:'장르, 분위기, 아티스트 검색...',
+    searchClear:'검색 초기화',
+    listView:'리스트',
+    gridView:'그리드',
+    fullView:'전체',
+    
+    // 설정 항목
+    totalPlays:'총 재생',
+    likes:'좋아요',
+    uiLanguageNote:'UI 언어를 변경합니다 (베타)',
+    darkTheme:'다크',
+    lightTheme:'데이',
+    customColors:'커스텀 색상',
+    mainColor:'메인 색상',
+    background:'배경',
+    card:'카드',
+    reset:'초기화',
+    save:'저장',
+    
+    // 접근성
+    highContrast:'고대비 모드',
+    highContrastDesc:'시각 접근성을 위한 고대비 색상',
+    tutorialRestart:'튜토리얼 다시 보기',
+    tutorialDesc:'온보딩과 기능 팁을 초기화합니다',
+    
+    // 알림
+    appNotifications:'앱 알림 구독',
+    notificationDesc:'새 기능, 이벤트, 챌린지 소식을 알림으로 받아보세요',
+    allow:'허용',
+    notificationTypes:'알림 유형 설정',
+    likeNotifications:'❤️ 좋아요 알림',
+    
+    // 미니플레이어
+    equalizer:'이퀄라이저',
+    sleepTimer:'슬립타이머',
+    crossfade:'크로스페이드',
+    lyrics:'가사',
+    
+    // AI 추천 칩
+    rainyDay:'🌧 비 오는 날',
+    dawnMood:'🌙 새벽 감성',
+    party:'🎉 파티',
+    focus:'🧘 집중',
+    drive:'🚗 드라이브',
+    confession:'💕 고백',
+    
+    // 오류 및 상태 메시지
+    unknownFile:'알 수 없는 파일',
+    unknownError:'알 수 없는 오류',
+    allSongsLoaded:'모든 곡을 불러왔어요',
+    untitled:'무제',
+    guest:'게스트',
+    login:'로그인',
+    anonymous:'익명',
+    
+    // 플레이어 컨트롤
+    loopMode:'루프 모드',
+    
+    // 편집 시트
+    songTitleEdit:'곡 제목',
+    lyricsEdit:'가사가 없어요. 직접 입력해보세요!',
+    lyricsInput:'가사를 입력하세요...',
+    
+    // DM 시스템
+    conversation:'님과의 대화',
+    firstMessage:'첫 메시지를 보내보세요!',
+    messageInput:'메시지 입력...',
+    
+    // 확장 기능
+    extendLyrics:'이어질 가사를 입력하세요...',
+    extendLyricsDesc:'비워두면 AI가 자동으로 이어서 작사해요',
+    extendPrompt:'예: 후반부는 더 강렬하게, 드럼 추가',
+    
+    // 토스트 메시지
+    korean:'한국어',
+    english:'English',
+    japanese:'日本語',
+    onboardingReset:'온보딩이 초기화됨. 새로고침하면 다시 볼 수 있어요',
+    historyCleared:'히스토리가 삭제되었어요',
+    previousSettings:'이전 설정 불러옴',
+    
+    // 확인 대화상자
+    deleteAllData:'정말 모든 데이터를 삭제하시겠습니까?',
+    deleteAllDesc:'히스토리, 플레이리스트, 설정 등이 모두 초기화됩니다.',
+    irreversible:'이 작업은 되돌릴 수 없습니다.',
+    
+    // 기타
+    selectNone:'선택 안함',
+    clear:'지우기',
+    online:'온라인 복귀!',
+    offline:'오프라인'
   },
+  
   en:{
+    // Navigation
     create:'Create',
     community:'Community',
     library:'Library',
     settings:'Settings',
     myLibrary:'My Library',
+    
+    // Settings Menu
     advancedSettings:'Advanced Settings',
     themeSettings:'Theme Settings',
     languageSettings:'언어 / Language',
-    lyricsLanguage:'Lyrics Language'
+    lyricsLanguage:'Lyrics Language',
+    accessibility:'Accessibility',
+    pushNotifications:'Push Notifications',
+    
+    // Main Screen
+    newSongTitle:'Create New Song',
+    attendanceCheck:'Check in and Get Bonus',
+    attendanceDesc:'Daily login rewards!',
+    attendanceBtn:'Check In',
+    
+    // Mode Tabs
+    custom:'Custom',
+    simple:'Simple',
+    youtube:'YouTube',
+    mv:'MV',
+    
+    // Home Widgets
+    songs:'songs',
+    browseTracks:'Browse new tracks',
+    bonusCredits:'Bonus credits',
+    shortcuts:'Shortcuts',
+    quickStart:'Quick start',
+    
+    // Form Fields
+    songTitle:'Enter song title (optional)',
+    lyricsPlaceholder:'Enter lyrics or use AI auto-lyric generation',
+    stylePlaceholder:'e.g. K-Pop, emotional',
+    moodPlaceholder:'e.g. Jazz for a rainy day',
+    negativePrompt:'e.g. heavy metal, screaming, distorted guitar...',
+    
+    // Button Text
+    generate:'Generate',
+    generateMusic:'Generate Music',
+    playPause:'Play/Pause',
+    nextSong:'Next',
+    prevSong:'Previous',
+    playlist:'Playlist',
+    close:'Close',
+    like:'Like',
+    dislike:'Dislike',
+    share:'Share',
+    download:'Save',
+    edit:'Edit',
+    delete:'Delete',
+    
+    // Search & Sort
+    search:'Search genres, moods, artists...',
+    searchClear:'Clear search',
+    listView:'List',
+    gridView:'Grid',
+    fullView:'Full',
+    
+    // Settings Items
+    totalPlays:'Total Plays',
+    likes:'Likes',
+    uiLanguageNote:'Change UI language (beta)',
+    darkTheme:'Dark',
+    lightTheme:'Light',
+    customColors:'Custom Colors',
+    mainColor:'Main Color',
+    background:'Background',
+    card:'Card',
+    reset:'Reset',
+    save:'Save',
+    
+    // Accessibility
+    highContrast:'High Contrast Mode',
+    highContrastDesc:'High contrast colors for visual accessibility',
+    tutorialRestart:'Restart Tutorial',
+    tutorialDesc:'Reset onboarding and feature tips',
+    
+    // Notifications
+    appNotifications:'App Notifications',
+    notificationDesc:'Get notified about new features, events, and challenges',
+    allow:'Allow',
+    notificationTypes:'Notification Types',
+    likeNotifications:'❤️ Like Notifications',
+    
+    // Mini Player
+    equalizer:'Equalizer',
+    sleepTimer:'Sleep Timer',
+    crossfade:'Crossfade',
+    lyrics:'Lyrics',
+    
+    // AI Recommendation Chips
+    rainyDay:'🌧 Rainy Day',
+    dawnMood:'🌙 Dawn Mood',
+    party:'🎉 Party',
+    focus:'🧘 Focus',
+    drive:'🚗 Drive',
+    confession:'💕 Confession',
+    
+    // Error & Status Messages
+    unknownFile:'Unknown file',
+    unknownError:'Unknown error',
+    allSongsLoaded:'All songs loaded',
+    untitled:'Untitled',
+    guest:'Guest',
+    login:'Login',
+    anonymous:'Anonymous',
+    
+    // Player Controls
+    loopMode:'Loop Mode',
+    
+    // Edit Sheet
+    songTitleEdit:'Song Title',
+    lyricsEdit:'No lyrics. Try adding some!',
+    lyricsInput:'Enter lyrics...',
+    
+    // DM System
+    conversation:'Conversation with',
+    firstMessage:'Send your first message!',
+    messageInput:'Type message...',
+    
+    // Extend Features
+    extendLyrics:'Enter continuing lyrics...',
+    extendLyricsDesc:'Leave empty for AI to continue automatically',
+    extendPrompt:'e.g. More intense in the second half, add drums',
+    
+    // Toast Messages
+    korean:'한국어',
+    english:'English',
+    japanese:'日本語',
+    onboardingReset:'Onboarding reset. Refresh to see tutorial again',
+    historyCleared:'History cleared',
+    previousSettings:'Previous settings loaded',
+    
+    // Confirm Dialogs
+    deleteAllData:'Really delete all data?',
+    deleteAllDesc:'History, playlists, settings will all be reset.',
+    irreversible:'This action cannot be undone.',
+    
+    // Misc
+    selectNone:'None selected',
+    clear:'Clear',
+    online:'Back online!',
+    offline:'Offline'
   },
+  
   ja:{
+    // Navigation
     create:'作曲',
     community:'コミュニティ',
     library:'ライブラリ',
     settings:'設定',
     myLibrary:'マイライブラリ',
+    
+    // Settings Menu
     advancedSettings:'詳細設定',
     themeSettings:'テーマ設定',
     languageSettings:'언어 / Language',
-    lyricsLanguage:'歌詞言語'
+    lyricsLanguage:'歌詞言語',
+    accessibility:'アクセシビリティ',
+    pushNotifications:'プッシュ通知',
+    
+    // Main Screen
+    newSongTitle:'新しい曲を作成',
+    attendanceCheck:'出席チェックでボーナス獲得',
+    attendanceDesc:'毎日のログインでボーナスクレジット！',
+    attendanceBtn:'出席する',
+    
+    // Mode Tabs
+    custom:'カスタム',
+    simple:'シンプル',
+    youtube:'YouTube',
+    mv:'MV',
+    
+    // Home Widgets
+    songs:'曲',
+    browseTracks:'新しいトラックを見る',
+    bonusCredits:'ボーナスクレジット',
+    shortcuts:'ショートカット',
+    quickStart:'クイックスタート',
+    
+    // Form Fields
+    songTitle:'曲名を入力してください（任意）',
+    lyricsPlaceholder:'歌詞を直接入力するか、AI自動作詞をご利用ください',
+    stylePlaceholder:'例：K-Pop、感情的',
+    moodPlaceholder:'例：雨の日に聞きたいジャズ風の曲',
+    negativePrompt:'例：heavy metal, screaming, distorted guitar...',
+    
+    // Button Text
+    generate:'生成',
+    generateMusic:'音楽生成',
+    playPause:'再生/一時停止',
+    nextSong:'次の曲',
+    prevSong:'前の曲',
+    playlist:'プレイリスト',
+    close:'閉じる',
+    like:'いいね',
+    dislike:'よくない',
+    share:'シェア',
+    download:'保存',
+    edit:'編集',
+    delete:'削除',
+    
+    // Search & Sort
+    search:'ジャンル、ムード、アーティストで検索...',
+    searchClear:'検索をクリア',
+    listView:'リスト',
+    gridView:'グリッド',
+    fullView:'フル',
+    
+    // Settings Items
+    totalPlays:'総再生回数',
+    likes:'いいね数',
+    uiLanguageNote:'UI言語を変更します（ベータ）',
+    darkTheme:'ダーク',
+    lightTheme:'ライト',
+    customColors:'カスタムカラー',
+    mainColor:'メインカラー',
+    background:'背景',
+    card:'カード',
+    reset:'リセット',
+    save:'保存',
+    
+    // Accessibility
+    highContrast:'ハイコントラストモード',
+    highContrastDesc:'視覚アクセシビリティのためのハイコントラスト色',
+    tutorialRestart:'チュートリアルを再開',
+    tutorialDesc:'オンボーディングと機能ヒントをリセット',
+    
+    // Notifications
+    appNotifications:'アプリ通知',
+    notificationDesc:'新機能、イベント、チャレンジの情報を通知で受け取る',
+    allow:'許可',
+    notificationTypes:'通知タイプ',
+    likeNotifications:'❤️ いいね通知',
+    
+    // Mini Player
+    equalizer:'イコライザー',
+    sleepTimer:'スリープタイマー',
+    crossfade:'クロスフェード',
+    lyrics:'歌詞',
+    
+    // AI Recommendation Chips
+    rainyDay:'🌧 雨の日',
+    dawnMood:'🌙 夜明けの気分',
+    party:'🎉 パーティー',
+    focus:'🧘 集中',
+    drive:'🚗 ドライブ',
+    confession:'💕 告白',
+    
+    // Error & Status Messages
+    unknownFile:'不明なファイル',
+    unknownError:'不明なエラー',
+    allSongsLoaded:'すべての曲が読み込まれました',
+    untitled:'無題',
+    guest:'ゲスト',
+    login:'ログイン',
+    anonymous:'匿名',
+    
+    // Player Controls
+    loopMode:'ループモード',
+    
+    // Edit Sheet
+    songTitleEdit:'曲名',
+    lyricsEdit:'歌詞がありません。追加してみてください！',
+    lyricsInput:'歌詞を入力...',
+    
+    // DM System
+    conversation:'さんとの会話',
+    firstMessage:'最初のメッセージを送信してください！',
+    messageInput:'メッセージを入力...',
+    
+    // Extend Features
+    extendLyrics:'続く歌詞を入力してください...',
+    extendLyricsDesc:'空にするとAIが自動的に続きを作詞します',
+    extendPrompt:'例：後半はより激しく、ドラムを追加',
+    
+    // Toast Messages
+    korean:'한국어',
+    english:'English',
+    japanese:'日本語',
+    onboardingReset:'オンボーディングがリセットされました。更新してチュートリアルを再表示',
+    historyCleared:'履歴がクリアされました',
+    previousSettings:'以前の設定を読み込みました',
+    
+    // Confirm Dialogs
+    deleteAllData:'本当にすべてのデータを削除しますか？',
+    deleteAllDesc:'履歴、プレイリスト、設定がすべてリセットされます。',
+    irreversible:'この操作は元に戻せません。',
+    
+    // Misc
+    selectNone:'選択なし',
+    clear:'クリア',
+    online:'オンラインに復帰！',
+    offline:'オフライン'
   }
 };
-var _currentLang=localStorage.getItem('kms_lang')||'en';
+var _currentLang=localStorage.getItem('kms_lang')||'ko';
 function _setLang(lang){_currentLang=lang;localStorage.setItem('kms_lang',lang);document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.toggle('on',b.dataset.lang===lang);});_applyLang();toast(lang==='ko'?'한국어':lang==='en'?'English':'日本語','ok',1500);}
 function _applyLang(){
   var t=_i18n[_currentLang]||_i18n.ko;
@@ -20350,9 +20769,132 @@ function _applyLang(){
     ls[3].textContent=t.settings;
   }
   
-  // 홈 위젯 라벨들
+  // 메인 화면 타이틀
+  var createHeroTitle=document.querySelector('.create-hero-title');
+  if(createHeroTitle) createHeroTitle.textContent=t.newSongTitle;
+  
+  // 출석 체크 배너
+  var attendTitle=document.getElementById('attend-title');
+  if(attendTitle) attendTitle.textContent=t.attendanceCheck;
+  var attendSub=document.getElementById('attend-sub');
+  if(attendSub) attendSub.textContent=t.attendanceDesc;
+  var attendBtn=document.getElementById('attend-btn');
+  if(attendBtn) attendBtn.textContent=t.attendanceBtn;
+  
+  // 모드 탭 버튼
+  var modeTabs=document.querySelectorAll('.mtab');
+  modeTabs.forEach(function(tab){
+    var mode=tab.dataset.mode;
+    if(mode==='custom'&&tab.textContent.includes('커스텀')) {
+      tab.innerHTML = tab.innerHTML.replace('커스텀', t.custom);
+    }
+    else if(mode==='simple'&&tab.textContent.includes('심플')) {
+      tab.innerHTML = tab.innerHTML.replace('심플', t.simple);
+    }
+  });
+  
+  // 홈 위젯
   var hwCommunity=document.getElementById('hw-community');
   if(hwCommunity) hwCommunity.textContent=t.community;
+  
+  var hwSubs=document.querySelectorAll('.home-widget-sub');
+  hwSubs.forEach(function(sub){
+    if(sub.textContent.includes('내 라이브러리')) sub.textContent=t.myLibrary;
+    else if(sub.textContent.includes('새 트랙')) sub.textContent=t.browseTracks;
+    else if(sub.textContent.includes('보너스')) sub.textContent=t.bonusCredits;
+  });
+  
+  var hwLabels=document.querySelectorAll('.home-widget-label');
+  hwLabels.forEach(function(label){
+    if(label.id==='hw-streak'&&label.textContent==='출석체크') label.textContent=t.attendanceCheck;
+    else if(label.textContent==='단축키') label.textContent=t.shortcuts;
+  });
+  
+  // 입력 필드 placeholder
+  var songTitle=document.getElementById('song-title');
+  if(songTitle&&songTitle.placeholder.includes('곡 제목')) songTitle.placeholder=t.songTitle;
+  
+  var simpleSongTitle=document.getElementById('simple-song-title');
+  if(simpleSongTitle&&simpleSongTitle.placeholder.includes('곡 제목')) simpleSongTitle.placeholder=t.songTitle;
+  
+  var ytSongTitle=document.getElementById('yt-song-title');
+  if(ytSongTitle&&ytSongTitle.placeholder.includes('곡 제목')) ytSongTitle.placeholder=t.songTitle;
+  
+  var prompt=document.getElementById('prompt');
+  if(prompt&&prompt.placeholder.includes('가사를 직접')) {
+    prompt.placeholder=t.lyricsPlaceholder+'&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구...';
+  }
+  
+  var simpleLyrics=document.getElementById('simple-lyrics');
+  if(simpleLyrics&&simpleLyrics.placeholder.includes('가사를 직접')) {
+    simpleLyrics.placeholder=t.lyricsPlaceholder+'&#10;&#10;[Verse 1]&#10;여기에 가사...&#10;&#10;[Chorus]&#10;후렴구...';
+  }
+  
+  var aiAssistInput=document.getElementById('ai-assist-input');
+  if(aiAssistInput&&aiAssistInput.placeholder.includes('비 오는 날')) aiAssistInput.placeholder=t.moodPlaceholder;
+  
+  var negTags=document.getElementById('neg-tags');
+  if(negTags&&negTags.placeholder.includes('heavy metal')) negTags.placeholder=t.negativePrompt;
+  
+  // AI 추천 칩
+  var aiChips=document.querySelectorAll('.ai-suggest-chip');
+  aiChips.forEach(function(chip){
+    var text=chip.textContent;
+    if(text.includes('비 오는 날')) chip.textContent=t.rainyDay;
+    else if(text.includes('새벽 감성')) chip.textContent=t.dawnMood;
+    else if(text.includes('파티')) chip.textContent=t.party;
+    else if(text.includes('집중')) chip.textContent=t.focus;
+    else if(text.includes('드라이브')) chip.textContent=t.drive;
+    else if(text.includes('고백')) chip.textContent=t.confession;
+  });
+  
+  // 생성 버튼
+  var genBtn=document.getElementById('gen-btn');
+  if(genBtn&&genBtn.getAttribute('aria-label')&&genBtn.getAttribute('aria-label').includes('음악')) {
+    genBtn.setAttribute('aria-label',t.generateMusic);
+  }
+  
+  var simpleGenBtn=document.getElementById('simple-gen-btn');
+  if(simpleGenBtn&&simpleGenBtn.getAttribute('aria-label')&&simpleGenBtn.getAttribute('aria-label').includes('심플')) {
+    simpleGenBtn.setAttribute('aria-label',t.generateMusic);
+  }
+  
+  // 검색 입력
+  var commSearchInput=document.getElementById('comm-search-input');
+  if(commSearchInput&&commSearchInput.placeholder.includes('장르')) commSearchInput.placeholder=t.search;
+  
+  // 버튼 타이틀
+  var buttons=document.querySelectorAll('button[title]');
+  buttons.forEach(function(btn){
+    var title=btn.title;
+    if(title==='알림') btn.title=t.notifications||'알림';
+    else if(title==='리스트') btn.title=t.listView;
+    else if(title==='그리드') btn.title=t.gridView;
+    else if(title==='전체') btn.title=t.fullView;
+    else if(title==='재생/일시정지') btn.title=t.playPause;
+    else if(title==='다음 곡') btn.title=t.nextSong;
+    else if(title==='재생 목록') btn.title=t.playlist;
+    else if(title==='닫기') btn.title=t.close;
+    else if(title==='좋아요') btn.title=t.like;
+    else if(title==='싫어요') btn.title=t.dislike;
+    else if(title==='플레이리스트 추가') btn.title=t.playlist+' 추가';
+    else if(title==='공유') btn.title=t.share;
+    else if(title==='저장') btn.title=t.download;
+    else if(title==='편집') btn.title=t.edit;
+    else if(title==='삭제') btn.title=t.delete;
+    else if(title==='이전곡') btn.title=t.prevSong;
+    else if(title==='다음곡') btn.title=t.nextSong;
+    else if(title==='이퀄라이저') btn.title=t.equalizer;
+    else if(title==='슬립타이머') btn.title=t.sleepTimer;
+    else if(title==='크로스페이드') btn.title=t.crossfade;
+    else if(title==='가사') btn.title=t.lyrics;
+    else if(title==='루프 모드') btn.title=t.loopMode;
+    else if(title==='다운로드') btn.title=t.download;
+  });
+  
+  // 대화상자 경고 버튼
+  var searchClear=document.getElementById('comm-search-clear');
+  if(searchClear&&searchClear.title.includes('초기화')) searchClear.title=t.searchClear;
   
   // 히스토리 뷰 타이틀
   var histViewTitle=document.querySelector('.hist-view-title');
@@ -20362,15 +20904,7 @@ function _applyLang(){
   var commTitle=document.querySelector('.comm-title');
   if(commTitle) commTitle.textContent=t.community;
   
-  // 고급 설정 라벨들
-  var advLabels=document.querySelectorAll('.adv-lbl');
-  advLabels.forEach(function(label){
-    if(label.textContent.includes('고급 설정')){
-      label.textContent='⚙️ '+t.advancedSettings;
-    }
-  });
-  
-  // 설정 섹션 타이틀들
+  // 설정 섹션
   var settingSections=document.querySelectorAll('.settings-section-title');
   settingSections.forEach(function(section){
     if(section.textContent.includes('테마 설정')){
@@ -20378,6 +20912,56 @@ function _applyLang(){
     }
     else if(section.textContent.includes('언어')){
       section.textContent='🌐 '+t.languageSettings;
+    }
+    else if(section.textContent.includes('접근성')){
+      section.textContent='♿ '+t.accessibility;
+    }
+    else if(section.textContent.includes('푸시 알림')){
+      section.textContent='🔔 '+t.pushNotifications;
+    }
+  });
+  
+  // 설정 항목들
+  var settingsItems=document.querySelectorAll('.settings-item-label');
+  settingsItems.forEach(function(item){
+    if(item.textContent==='고대비 모드') item.textContent=t.highContrast;
+    else if(item.textContent==='튜토리얼 다시 보기') item.textContent=t.tutorialRestart;
+    else if(item.textContent==='앱 알림 구독') item.textContent=t.appNotifications;
+  });
+  
+  var settingsDescs=document.querySelectorAll('.settings-item-desc');
+  settingsDescs.forEach(function(desc){
+    if(desc.textContent.includes('시각 접근성')) desc.textContent=t.highContrastDesc;
+    else if(desc.textContent.includes('온보딩')) desc.textContent=t.tutorialDesc;
+  });
+  
+  // 통계 라벨
+  var statLabels=document.querySelectorAll('.settings-stat-label');
+  statLabels.forEach(function(label){
+    if(label.textContent==='총 재생') label.textContent=t.totalPlays;
+    else if(label.textContent==='좋아요') label.textContent=t.likes;
+  });
+  
+  // 테마 라벨
+  var themeLabels=document.querySelectorAll('.theme-label');
+  themeLabels.forEach(function(label){
+    if(label.textContent==='다크') label.textContent=t.darkTheme;
+    else if(label.textContent==='데이') label.textContent=t.lightTheme;
+  });
+  
+  // 커스텀 테마 설정
+  var customColorLabels=document.querySelectorAll('.theme-color-label');
+  customColorLabels.forEach(function(label){
+    if(label.textContent==='메인 색상') label.textContent=t.mainColor;
+    else if(label.textContent==='배경') label.textContent=t.background;
+    else if(label.textContent==='카드') label.textContent=t.card;
+  });
+  
+  // 고급 설정 레이블
+  var advLabels=document.querySelectorAll('.adv-lbl');
+  advLabels.forEach(function(label){
+    if(label.textContent.includes('고급 설정')){
+      label.textContent='⚙️ '+t.advancedSettings;
     }
   });
   
@@ -20389,13 +20973,46 @@ function _applyLang(){
     }
   });
   
-  // 홈 위젯 서브 텍스트
-  var hwSub=document.querySelector('.home-widget-sub');
-  if(hwSub && hwSub.textContent.includes('내 라이브러리')){
-    hwSub.textContent=t.myLibrary;
+  // 언어 설명
+  var langNote=document.getElementById('lang-note');
+  if(langNote&&langNote.textContent.includes('UI 언어')) langNote.textContent=t.uiLanguageNote;
+  
+  // 버튼 텍스트 직접 변경
+  var buttons=document.querySelectorAll('button');
+  buttons.forEach(function(btn){
+    var text=btn.textContent;
+    if(text==='초기화') btn.textContent=t.reset;
+    else if(text==='저장') btn.textContent=t.save;
+    else if(text==='허용') btn.textContent=t.allow;
+    else if(text==='지우기') btn.textContent=t.clear;
+  });
+  
+  // 알림 설명
+  var pushStatusDesc=document.getElementById('push-status-desc');
+  if(pushStatusDesc&&pushStatusDesc.textContent.includes('새 기능')) {
+    pushStatusDesc.textContent=t.notificationDesc;
   }
+  
+  // 대화상자나 입력 필드들
+  var inputs=document.querySelectorAll('input[placeholder], textarea[placeholder]');
+  inputs.forEach(function(input){
+    var placeholder=input.placeholder;
+    if(placeholder.includes('가사를 입력하세요')) input.placeholder=t.lyricsInput;
+    else if(placeholder.includes('메시지 입력')) input.placeholder=t.messageInput;
+    else if(placeholder.includes('이어질 가사')) input.placeholder=t.extendLyrics;
+    else if(placeholder.includes('후반부는 더 강렬하게')) input.placeholder=t.extendPrompt;
+  });
 }
-if(_currentLang!=='ko')setTimeout(_applyLang,500);
+// 페이지 로드 시 언어 설정 적용
+setTimeout(_applyLang,500);
+// 언어 변경 시 다시 적용
+if(typeof window!=='undefined') {
+  var originalSetLang = _setLang;
+  _setLang = function(lang) {
+    originalSetLang(lang);
+    setTimeout(_applyLang, 100);
+  };
+}
 
 /* ═══ 라이브 세션 표시 ═══ */
 function _updateLiveSession(){var b=$('live-session-badge'),c=$('live-session-count');if(!b||!c)return;fetch('/api/chat?room=general&limit=1').then(function(r){return r.json();}).then(function(d){if(d.ok&&d.insight){var n=d.insight.onlineCount||0;if(n>0){c.textContent=n;b.style.display='inline-flex';}else b.style.display='none';}}).catch(function(){b.style.display='none';});}
