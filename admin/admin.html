@@ -2274,11 +2274,12 @@ async function renderDashboardCharts() {
   try {
     var tracks = _serverTracks || [];
     var now = new Date();
+    var DAY = 86400000;
 
-    // 1. Daily tracks chart (last 14 days)
+    /* ── 1. 일별 트랙 생성 (14일) ── */
     var dailyCounts = {};
     for (var i = 13; i >= 0; i--) {
-      var d = new Date(now - i * 86400000);
+      var d = new Date(now - i * DAY);
       dailyCounts[d.toISOString().split('T')[0]] = 0;
     }
     tracks.forEach(function(t) {
@@ -2287,52 +2288,77 @@ async function renderDashboardCharts() {
         if (dailyCounts[day] !== undefined) dailyCounts[day]++;
       }
     });
+    var dailyVals = Object.values(dailyCounts);
+    var dailyTotal = dailyVals.reduce(function(a,b){return a+b;},0);
+    var dailyMax = Math.max.apply(null, dailyVals.concat([1]));
+    var dailyAvg = dailyVals.length > 0 ? (dailyTotal / dailyVals.length).toFixed(1) : 0;
+    var sumEl = document.getElementById('chart-daily-summary');
+    if(sumEl) sumEl.innerHTML = '합계 <b style="color:var(--acc);">'+dailyTotal+'</b>곡 · 일평균 <b style="color:var(--t2);">'+dailyAvg+'</b>곡 · 최대 <b style="color:var(--grn);">'+dailyMax+'</b>곡';
+    var dailyColors = dailyVals.map(function(_,idx){ return idx === dailyVals.length-1 ? 'rgba(168,85,247,.9)' : 'rgba(124,58,237,.45)'; });
     _renderChart('chart-daily-tracks', 'bar', {
-      labels: Object.keys(dailyCounts).map(function(d) { return d.slice(5); }),
-      datasets: [{ label: '트랙', data: Object.values(dailyCounts), backgroundColor: 'rgba(124,58,237,.6)', borderRadius: 4 }]
+      labels: Object.keys(dailyCounts).map(function(d){ var p=d.split('-'); return parseInt(p[1])+'/'+parseInt(p[2]); }),
+      datasets: [{ label:'트랙 생성', data:dailyVals, backgroundColor:dailyColors, borderColor:dailyColors.map(function(_,i){return i===dailyVals.length-1?'#a855f7':'transparent';}), borderWidth:2, borderRadius:6, borderSkipped:false, maxBarThickness:40 }]
+    }, {
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(30,30,42,.95)', titleFont:{size:13,weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{label:function(c){return c.parsed.y+'곡 생성';}} } },
+      scales:{ x:{ticks:{color:'#aaa',font:{size:11}},grid:{display:false}}, y:{beginAtZero:true,ticks:{color:'#888',font:{size:11},stepSize:Math.max(1,Math.ceil(dailyMax/5))},grid:{color:'rgba(255,255,255,.06)',drawBorder:false}} }
     });
 
-    // 2. Genre distribution
+    /* ── 2. 장르 분포 (도넛 + 커스텀 범례) ── */
     var genreCounts = {};
     tracks.forEach(function(t) {
       var tags = (t.tags || '').toLowerCase();
-      var genres = ['k-pop','hip-hop','lofi','electronic','ballad','rock','jazz','r&b','ost'];
-      genres.forEach(function(g) { if (tags.includes(g)) genreCounts[g] = (genreCounts[g]||0)+1; });
+      ['k-pop','hip-hop','lofi','electronic','ballad','rock','jazz','r&b','ost','pop','classical','ambient','funk','reggae'].forEach(function(g) {
+        if (tags.includes(g)) genreCounts[g] = (genreCounts[g]||0)+1;
+      });
     });
-    var gLabels = Object.keys(genreCounts);
-    var gColors = ['#7c3aed','#ef4444','#22c55e','#3b82f6','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
+    var taggedCount = Object.values(genreCounts).reduce(function(a,b){return a+b;},0);
+    if(tracks.length > taggedCount) genreCounts['기타'] = tracks.length - taggedCount;
+    var gEntries = Object.entries(genreCounts).sort(function(a,b){return b[1]-a[1];});
+    var gLabels = gEntries.map(function(e){return e[0];});
+    var gValues = gEntries.map(function(e){return e[1];});
+    var gColors = ['#7c3aed','#ef4444','#22c55e','#3b82f6','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1','#8b5cf6','#10b981','#e11d48','#0ea5e9','#a3e635','#64748b'];
     if (gLabels.length > 0) {
+      var gTotal = gValues.reduce(function(a,b){return a+b;},0);
       _renderChart('chart-genre', 'doughnut', {
-        labels: gLabels,
-        datasets: [{ data: Object.values(genreCounts), backgroundColor: gColors.slice(0, gLabels.length) }]
-      }, { plugins: { legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } } } });
+        labels:gLabels, datasets:[{data:gValues,backgroundColor:gColors.slice(0,gLabels.length),borderWidth:0,hoverOffset:8}]
+      }, { cutout:'62%', plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(30,30,42,.95)', bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{label:function(c){return c.label+': '+c.parsed+'곡 ('+(c.parsed/gTotal*100).toFixed(1)+'%)';}} } } });
+      var legendEl = document.getElementById('genre-legend');
+      if(legendEl) legendEl.innerHTML = gEntries.map(function(e,i){
+        var pct = gTotal>0?(e[1]/gTotal*100).toFixed(0):0;
+        return '<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);background:var(--bg3);padding:3px 8px;border-radius:6px;"><span style="width:8px;height:8px;border-radius:50%;background:'+gColors[i]+';flex-shrink:0;"></span><span style="font-weight:600;">'+e[0]+'</span><span style="color:var(--t3);">'+e[1]+'('+pct+'%)</span></div>';
+      }).join('');
     }
 
-    // 3. Daily users
+    /* ── 3. 일별 활성 사용자 ── */
     var users = _serverUsers || [];
     var userDaily = {};
-    for (var j = 13; j >= 0; j--) {
-      var d2 = new Date(now - j * 86400000);
-      userDaily[d2.toISOString().split('T')[0]] = 0;
-    }
+    for (var j = 13; j >= 0; j--) { var d2=new Date(now-j*DAY); userDaily[d2.toISOString().split('T')[0]]=0; }
     users.forEach(function(u) {
-      if (u.last_login || u.lastLogin) {
-        var day = new Date(u.last_login || u.lastLogin).toISOString().split('T')[0];
-        if (userDaily[day] !== undefined) userDaily[day]++;
-      }
+      if (u.last_login||u.lastLogin) { var day=new Date(u.last_login||u.lastLogin).toISOString().split('T')[0]; if(userDaily[day]!==undefined)userDaily[day]++; }
     });
+    var userVals = Object.values(userDaily);
+    var userTotal = userVals.reduce(function(a,b){return a+b;},0);
+    var userSumEl = document.getElementById('chart-user-summary');
+    if(userSumEl) userSumEl.innerHTML = '합계 <b style="color:#22c55e;">'+userTotal+'</b>명 · 일평균 <b style="color:var(--t2);">'+(userVals.length>0?(userTotal/userVals.length).toFixed(1):0)+'</b>명';
     _renderChart('chart-daily-users', 'line', {
-      labels: Object.keys(userDaily).map(function(d) { return d.slice(5); }),
-      datasets: [{ label: '가입자', data: Object.values(userDaily), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.1)', fill: true, tension: 0.3 }]
+      labels:Object.keys(userDaily).map(function(d){var p=d.split('-');return parseInt(p[1])+'/'+parseInt(p[2]);}),
+      datasets:[{label:'활성 사용자',data:userVals,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.12)',fill:true,tension:0.4,pointBackgroundColor:'#22c55e',pointRadius:3,pointHoverRadius:6,borderWidth:2.5}]
+    }, {
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(30,30,42,.95)',bodyFont:{size:12},padding:10,cornerRadius:8,callbacks:{label:function(c){return c.parsed.y+'명 활성';}}}},
+      scales:{x:{ticks:{color:'#aaa',font:{size:11}},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#888',font:{size:11}},grid:{color:'rgba(255,255,255,.06)',drawBorder:false}}}
     });
 
-    // 4. Top likes
-    var topTracks = tracks.slice().sort(function(a,b) { return (b._commLikes||0) - (a._commLikes||0); }).slice(0, 10).filter(function(t) { return (t._commLikes||0) > 0; });
+    /* ── 4. 좋아요 Top 10 (수평 바) ── */
+    var topTracks = tracks.slice().sort(function(a,b){return (b._commLikes||0)-(a._commLikes||0);}).slice(0,10).filter(function(t){return (t._commLikes||0)>0;});
     if (topTracks.length > 0) {
       _renderChart('chart-top-likes', 'bar', {
-        labels: topTracks.map(function(t) { return (t.title||'무제').slice(0, 12); }),
-        datasets: [{ label: '좋아요', data: topTracks.map(function(t) { return t._commLikes||0; }), backgroundColor: 'rgba(239,68,68,.6)', borderRadius: 4 }]
-      }, { indexAxis: 'y' });
+        labels:topTracks.map(function(t){return (t.title||'무제').slice(0,15);}),
+        datasets:[{label:'좋아요',data:topTracks.map(function(t){return t._commLikes||0;}),backgroundColor:topTracks.map(function(_,i){return 'rgba(239,68,68,'+(1-i*0.07)+')';}),borderRadius:6,borderSkipped:false,maxBarThickness:24}]
+      }, {
+        indexAxis:'y',
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(30,30,42,.95)',bodyFont:{size:12},padding:10,cornerRadius:8,callbacks:{label:function(c){return '❤️ '+c.parsed.x+'개';}}}},
+        scales:{x:{beginAtZero:true,ticks:{color:'#888',font:{size:10}},grid:{color:'rgba(255,255,255,.06)',drawBorder:false}},y:{ticks:{color:'#ccc',font:{size:11}},grid:{display:false}}}
+      });
     }
   } catch(e) { console.warn('Charts error:', e); }
 }
@@ -2342,25 +2368,9 @@ function _renderChart(canvasId, type, data, extraOpts) {
   var ctx = document.getElementById(canvasId);
   if (!ctx) return;
   if (_chartInstances[canvasId]) _chartInstances[canvasId].destroy();
-
-  var defaultOpts = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: type !== 'bar', labels: { color: '#ccc' } } },
-    scales: type === 'doughnut' ? {} : {
-      x: { ticks: { color: '#888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.05)' } },
-      y: { ticks: { color: '#888', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.05)' } }
-    }
-  };
-
-  var mergedOpts = Object.assign({}, defaultOpts, extraOpts);
-  if (extraOpts.plugins) mergedOpts.plugins = Object.assign({}, defaultOpts.plugins, extraOpts.plugins);
-  if (extraOpts.scales) mergedOpts.scales = Object.assign({}, defaultOpts.scales, extraOpts.scales);
-
   _chartInstances[canvasId] = new Chart(ctx, {
-    type: type,
-    data: data,
-    options: mergedOpts
+    type: type, data: data,
+    options: Object.assign({ responsive:true, maintainAspectRatio:false, animation:{duration:600,easing:'easeOutQuart'} }, extraOpts)
   });
 }
 
