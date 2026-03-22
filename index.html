@@ -1104,7 +1104,29 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
-/* ═══ 5대 영역 고도화 (검색/수익/PWA/분석/보안) ═══ */
+/* ═══ 6대 영역 (MV/앨범/AI/다국어/협업) ═══ */
+.mv-fx-row{display:flex;gap:6px;margin:8px 0;overflow-x:auto;padding:2px 0;}.mv-fx-row::-webkit-scrollbar{display:none;}
+.mv-fx-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
+.mv-fx-chip.on{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#a855f7;}
+.album-editor{padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--border);margin-bottom:12px;}
+.album-cover-preview{width:120px;height:120px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#1a0537,#2d1a5a);margin:0 auto 12px;position:relative;}
+.album-cover-preview img{width:100%;height:100%;object-fit:cover;}
+.album-track-list{display:flex;flex-direction:column;gap:4px;}
+.album-track-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg2);font-size:12px;color:var(--t1);}
+.album-track-item .ati-num{width:20px;text-align:center;font-weight:700;color:var(--t3);}
+.album-track-item .ati-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.album-track-item .ati-remove{background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;}
+.ai-suggest-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.ai-suggest-chip{padding:5px 12px;border-radius:16px;border:1px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.05);color:var(--acc);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.ai-suggest-chip:hover{background:rgba(168,85,247,.12);border-style:solid;}
+.lang-toggle{display:flex;gap:4px;padding:2px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);}
+.lang-btn{padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.lang-btn.on{background:var(--acc);color:#fff;}
+.live-session-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:10px;font-weight:700;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:livePulse 1.5s ease infinite;}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}
+.collab-session-panel{padding:12px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(124,58,237,.06));border:1px solid rgba(59,130,246,.15);margin-bottom:12px;}
+/* ═══ 5대 영역 고도화 ═══ */
 /* 검색 히스토리 + 고급 필터 */
 .search-history{padding:8px 0;}
 .search-history-title{font-size:10px;font-weight:700;color:var(--t3);margin-bottom:6px;display:flex;justify-content:space-between;}
@@ -2404,6 +2426,15 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-eq-band input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7);cursor:pointer;box-shadow:0 0 6px rgba(124,58,237,.4);}
 .fp-eq-band-label{font-size:8px;color:rgba(255,255,255,.35);font-weight:600;}
 .fp-eq-band-val{font-size:8px;color:rgba(168,85,247,.7);font-weight:700;min-height:12px;}
+[data-theme="light"] .fp-eq-panel{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);}
+[data-theme="light"] .fp-eq-title{color:var(--t2);}
+[data-theme="light"] .fp-eq-preset{border-color:rgba(0,0,0,.12);color:var(--t2);}
+[data-theme="light"] .fp-eq-preset.on{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.3);color:#7c3aed;}
+[data-theme="light"] .fp-eq-band input[type="range"]{background:rgba(0,0,0,.1);}
+[data-theme="light"] .fp-eq-band-label{color:var(--t3);}
+[data-theme="light"] .fp-eq-band-val{color:#7c3aed;}
+[data-theme="light"] .eq-band-label{color:var(--t3);}
+[data-theme="light"] .eq-band-val{color:#7c3aed;}
 /* 슬립타이머 */
 .fp-sleep-panel{display:none;padding:10px 16px;margin:8px 0;background:rgba(255,255,255,.04);border-radius:14px;border:1px solid rgba(255,255,255,.08);}
 .fp-sleep-panel.on{display:block;}
@@ -4003,6 +4034,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
           </div>
           <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
+          <div class="ai-suggest-chips" id="ai-quick-suggests">
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">🌧 비 오는 날</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">🌙 새벽 감성</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 파티 EDM')">🎉 파티</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">🧘 집중</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">🚗 드라이브</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('고백할 때 부르는 노래')">💕 고백</button>
+          </div>
           <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
           <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
         </div>
@@ -4155,6 +4194,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
           <textarea class="form-input" id="mv-prompt" rows="4"
             placeholder="예: 네온 빛이 반짝이는 무대 위에서 가수가 공연하는 시네마틱 뮤직비디오, 역동적인 카메라, 보라색과 파란색 톤의 어두운 분위기, 4K 고화질"></textarea>
+          <!-- MV 영상 효과 프리셋 -->
+          <div class="mv-fx-row" id="mv-fx-row">
+            <button class="mv-fx-chip on" data-mvfx="" onclick="_setMvFx(this)">기본</button>
+            <button class="mv-fx-chip" data-mvfx="cinematic, film grain, dramatic lighting" onclick="_setMvFx(this)">🎬 시네마틱</button>
+            <button class="mv-fx-chip" data-mvfx="neon lights, cyberpunk, glowing" onclick="_setMvFx(this)">🌃 네온</button>
+            <button class="mv-fx-chip" data-mvfx="anime style, japanese animation" onclick="_setMvFx(this)">🎌 애니메</button>
+            <button class="mv-fx-chip" data-mvfx="watercolor painting, artistic, dreamy" onclick="_setMvFx(this)">🎨 수채화</button>
+            <button class="mv-fx-chip" data-mvfx="retro 80s, VHS, synthwave" onclick="_setMvFx(this)">📼 레트로</button>
+            <button class="mv-fx-chip" data-mvfx="nature, forest, peaceful, aerial shot" onclick="_setMvFx(this)">🌿 자연</button>
+            <button class="mv-fx-chip" data-mvfx="abstract, geometric, trippy visuals" onclick="_setMvFx(this)">🔮 추상</button>
+          </div>
           <div class="lyrics-btn-row" style="justify-content:flex-end;">
             <button class="lyrics-gen-btn" id="mv-ai-prompt-btn">
               <span class="lspin" id="mv-prompt-spinner"></span>
@@ -4386,6 +4436,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <div class="view" id="community-view">
     <div class="comm-header">
       <div class="comm-title">커뮤니티</div>
+      <div class="live-session-badge" id="live-session-badge" style="display:none;"><div class="live-dot"></div><span id="live-session-count">0</span>명 접속 중</div>
     </div>
     <div class="comm-search-wrap">
       <input class="comm-search" id="comm-search-input" type="text" placeholder="장르, 분위기, 아티스트 검색..." autocomplete="off">
@@ -4484,6 +4535,19 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="settings-stat-num" id="stat-likes">0</div>
           <div class="settings-stat-label">좋아요</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── 언어 설정 ── -->
+    <div class="settings-section">
+      <div class="settings-section-title">🌐 언어 / Language</div>
+      <div class="settings-card" style="padding:12px 14px;">
+        <div class="lang-toggle" id="lang-toggle">
+          <button class="lang-btn on" data-lang="ko" onclick="_setLang('ko')">한국어</button>
+          <button class="lang-btn" data-lang="en" onclick="_setLang('en')">English</button>
+          <button class="lang-btn" data-lang="ja" onclick="_setLang('ja')">日本語</button>
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:6px;" id="lang-note">UI 언어를 변경합니다 (베타)</div>
       </div>
     </div>
 
@@ -4933,6 +4997,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="fp-header-title" id="fp-header-title">재생 중</div>
+      <span id="fp-live-badge"></span>
       <div style="width:32px;"></div>
     </div>
     <div class="fp-scroll" id="fp-scroll">
@@ -11899,6 +11964,9 @@ function _doOpenFullPlayer(idx){
     var _rmLabel=h._extendedFrom?'🔄 연장 곡':h._coveredFrom?'🎤 커버 곡':h._remasteredFrom?'✨ 리마스터':h._styleFrom?'🎨 스타일 재사용':h._vocalRemovedFrom?'🎙 보컬 분리':hasVideo?'뮤직비디오 재생 중':'재생 중';
     _fpHdr.textContent=_rmLabel;
   }
+  /* 실시간 리스너 배지 */
+  var fpLive=$('fp-live-badge');
+  if(fpLive&&typeof _getLiveHtml==='function') fpLive.innerHTML=_getLiveHtml();
   /* 리믹스 계보 표시 */
   var chainEl=$('fp-remix-chain');
   if(chainEl){
@@ -15381,8 +15449,10 @@ function _renderCommContent(heroWrap, list){
         <button class="comm-featured-play-btn" id="comm-hero-play-btn">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         </button>
-        <div class="comm-featured-badge-wrap" style="position:absolute;top:12px;right:12px;z-index:15;">
-          <div class="comm-featured-like-badge">❤️ 좋아요 ${hero.likes>0?hero.likes:0}</div>
+        <div class="comm-featured-badge-wrap" style="position:absolute;top:12px;right:12px;z-index:15;display:flex;gap:6px;align-items:center;">
+          ${(typeof _isTrending==='function'&&_isTrending(hero))?_getTrendingBadge():''}
+          ${(typeof _getLiveHtml==='function')?_getLiveHtml():''}
+          <div class="comm-featured-like-badge">❤️ ${hero.likes>0?hero.likes:0}</div>
         </div>
       </div>
       <div class="comm-featured-prog-wrap">
@@ -19830,6 +19900,33 @@ switchTab=function(viewId){
 };
 window.switchTab=switchTab;
 
+/* ═══ MV 영상 효과 ═══ */
+var _mvFxValue='';
+function _setMvFx(btn){document.querySelectorAll('.mv-fx-chip').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');_mvFxValue=btn.dataset.mvfx||'';var p=$('mv-prompt');if(p&&_mvFxValue){var c=p.value.trim();if(c&&!c.endsWith(','))c+=', ';p.value=c+_mvFxValue;toast('🎬 효과 적용','ok',1200);}}
+
+/* ═══ 앨범 편집 ═══ */
+function _openAlbumEditor(idx){var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');var a=albums[idx];if(!a)return;var tks=a.tracks||[];var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';ov.innerHTML='<div style="background:var(--card);border-radius:20px;padding:24px;max-width:380px;width:90%;max-height:80vh;overflow-y:auto;"><div style="text-align:center;margin-bottom:16px;"><div class="album-cover-preview"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#1a0537,#2d1a5a);color:rgba(255,255,255,.3);">💿</div></div><input id="_ae_name" value="'+esc(a.name||'')+'" style="width:100%;text-align:center;background:none;border:none;color:var(--t1);font-size:16px;font-weight:800;font-family:inherit;outline:none;" placeholder="앨범 이름"></div><div class="album-track-list" id="_ae_tracks">'+tks.map(function(t,i){return '<div class="album-track-item"><span class="ati-num">'+(i+1)+'</span><span class="ati-title">'+esc(t.title||'무제')+'</span><button class="ati-remove" onclick="this.parentNode.remove()">✕</button></div>';}).join('')+'</div><div style="display:flex;gap:8px;margin-top:16px;"><button onclick="this.closest(\'[style*=fixed]\').remove()" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;cursor:pointer;font-family:inherit;">취소</button><button onclick="_saveAlbumEdit('+idx+')" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button></div></div>';ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});document.body.appendChild(ov);}
+function _saveAlbumEdit(idx){var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');if(!albums[idx])return;albums[idx].name=document.getElementById('_ae_name')?.value||albums[idx].name;localStorage.setItem('kms_albums',JSON.stringify(albums));document.querySelector('[style*="fixed"][style*="99999"]')?.remove();toast('💿 앨범 저장!','ok',1500);try{renderHistoryView();}catch(e){}}
+
+/* ═══ AI 퀵 추천 ═══ */
+function _quickAiSuggest(text){var i=$('ai-assist-input');if(i){i.value=text;var b=$('ai-assist-btn');if(b)b.click();}}
+
+/* ═══ 다국어 (i18n) ═══ */
+var _i18n={ko:{create:'음악 만들기',community:'커뮤니티',library:'라이브러리',settings:'설정'},en:{create:'Create',community:'Community',library:'Library',settings:'Settings'},ja:{create:'作曲',community:'コミュニティ',library:'ライブラリ',settings:'設定'}};
+var _currentLang=localStorage.getItem('kms_lang')||'ko';
+function _setLang(lang){_currentLang=lang;localStorage.setItem('kms_lang',lang);document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.toggle('on',b.dataset.lang===lang);});_applyLang();toast(lang==='ko'?'한국어':lang==='en'?'English':'日本語','ok',1500);}
+function _applyLang(){var t=_i18n[_currentLang]||_i18n.ko;var ls=document.querySelectorAll('.bnav-label');if(ls.length>=4){ls[0].textContent=t.community;ls[1].textContent=t.create;ls[2].textContent=t.library;ls[3].textContent=t.settings;}}
+if(_currentLang!=='ko')setTimeout(_applyLang,500);
+
+/* ═══ 라이브 세션 표시 ═══ */
+function _updateLiveSession(){var b=$('live-session-badge'),c=$('live-session-count');if(!b||!c)return;fetch('/api/chat?room=general&limit=1').then(function(r){return r.json();}).then(function(d){if(d.ok&&d.insight){var n=d.insight.onlineCount||0;if(n>0){c.textContent=n;b.style.display='inline-flex';}else b.style.display='none';}}).catch(function(){b.style.display='none';});}
+setInterval(_updateLiveSession,30000);setTimeout(_updateLiveSession,2000);
+
+/* ═══ 협업 세션 ═══ */
+function _startCollabSession(trackId){if(!currentUser||currentUser.provider==='guest'){toast('로그인 필요','err');return;}var url=window.location.origin+'/?collab='+trackId+'&host='+encodeURIComponent(currentUser.name);navigator.clipboard.writeText(url).then(function(){toast('🎵 협업 링크 복사됨!','ok',2500);}).catch(function(){});}
+function _joinCollabSession(){var p=new URLSearchParams(window.location.search);var c=p.get('collab'),h=p.get('host');if(!c||!h)return;toast('🎵 '+decodeURIComponent(h)+'님의 협업 세션에 참여!','ok',3000);window.history.replaceState({},'',window.location.pathname);}
+setTimeout(_joinCollabSession,1500);
+
 /* ═══ 검색 히스토리 + 고급 필터 ═══ */
 function _getSearchHistory(){try{return JSON.parse(localStorage.getItem('kms_search_hist')||'[]');}catch(e){return[];}}
 function _addSearchHistory(q){if(!q||q.length<2)return;var h=_getSearchHistory();h=h.filter(function(x){return x!==q;});h.unshift(q);if(h.length>10)h.length=10;localStorage.setItem('kms_search_hist',JSON.stringify(h));}
@@ -20016,7 +20113,7 @@ function _renderSpotlight(){
     var provIcon=c.provider==='google'?'🔵':c.provider==='kakao'?'💬':'🟢';
     return '<div class="spotlight-card" onclick="openProfileSheet(\''+c.name.replace(/'/g,"\\'")+'\',\''+c.provider+'\')">'
       +'<img class="spotlight-avatar" src="'+avatarUrl.replace(/"/g,'&quot;')+'" alt="" loading="lazy" onerror="this.src=\'https://api.dicebear.com/7.x/thumbs/svg?seed=default\'">'
-      +'<div class="spotlight-name">'+provIcon+' '+c.name.replace(/</g,'&lt;')+'</div>'
+      +'<div class="spotlight-name">'+provIcon+' '+c.name.replace(/</g,'&lt;')+' '+_getCreatorLevelHtml(c.songs,c.likes)+'</div>'
       +'<div class="spotlight-stats">🎵 '+c.songs+'곡 · ❤️ '+c.likes+' · ▶ '+c.plays+'</div>'
       +(bestTitle?'<div class="spotlight-track">🏆 '+bestTitle+'</div>':'')
       +'</div>';
