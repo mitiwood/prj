@@ -365,6 +365,37 @@ textarea.form-input{line-height:1.5;}
           </div>
         </div>
 
+        <!-- 실시간 활동 요약 -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;" id="realtime-activity">
+          <div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(168,85,247,.05));border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:900;color:#a855f7;" id="rt-tracks-today">0</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px;">오늘 생성</div>
+            <div style="font-size:9px;color:#22c55e;margin-top:4px;" id="rt-tracks-delta">-</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(96,165,250,.05));border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:900;color:#3b82f6;" id="rt-users-today">0</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px;">오늘 접속</div>
+            <div style="font-size:9px;color:#22c55e;margin-top:4px;" id="rt-users-delta">-</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(248,113,113,.05));border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:900;color:#ef4444;" id="rt-likes-today">0</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px;">오늘 좋아요</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(251,191,36,.05));border:1px solid rgba(245,158,11,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:900;color:#f59e0b;" id="rt-revenue">₩0</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px;">이번 달 매출</div>
+          </div>
+        </div>
+
+        <!-- 유저 활동 시간대 히트맵 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <h4>🕐 시간대별 활동 (최근 7일)</h4>
+          <div id="activity-heatmap" style="display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin-top:12px;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--t3);margin-top:4px;padding:0 2px;">
+            <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
+          </div>
+        </div>
+
         <!-- Chart.js 대시보드 차트 -->
         <div id="dashboard-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;margin-bottom:20px;">
           <!-- 일별 트랙 생성 — 풀 와이드 -->
@@ -2714,7 +2745,42 @@ async function loadData(){
 // ── Chart.js 대시보드 차트 ──
 var _chartInstances = {};
 
+/* ═══ 실시간 활동 지표 + 히트맵 ═══ */
+function _renderRealtimeActivity(){
+  var tracks=_serverTracks||[];var users=_memAllUsers||[];
+  var now=new Date();var todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  var yesterdayStart=todayStart-86400000;
+  /* 오늘 트랙 */
+  var todayTracks=tracks.filter(function(t){return new Date(t.created_at||0).getTime()>=todayStart;}).length;
+  var yesterdayTracks=tracks.filter(function(t){var ts=new Date(t.created_at||0).getTime();return ts>=yesterdayStart&&ts<todayStart;}).length;
+  var el1=document.getElementById('rt-tracks-today');if(el1)el1.textContent=todayTracks;
+  var d1=document.getElementById('rt-tracks-delta');if(d1){var diff=todayTracks-yesterdayTracks;d1.textContent=(diff>=0?'+':'')+diff+' vs 어제';d1.style.color=diff>=0?'#22c55e':'#ef4444';}
+  /* 오늘 접속 */
+  var todayUsers=users.filter(function(u){return(u.last_login||0)>=todayStart;}).length;
+  var yesterdayUsers=users.filter(function(u){var ll=u.last_login||0;return ll>=yesterdayStart&&ll<todayStart;}).length;
+  var el2=document.getElementById('rt-users-today');if(el2)el2.textContent=todayUsers;
+  var d2=document.getElementById('rt-users-delta');if(d2){var diff2=todayUsers-yesterdayUsers;d2.textContent=(diff2>=0?'+':'')+diff2+' vs 어제';d2.style.color=diff2>=0?'#22c55e':'#ef4444';}
+  /* 오늘 좋아요 */
+  var todayLikes=tracks.filter(function(t){return new Date(t.created_at||0).getTime()>=todayStart;}).reduce(function(s,t){return s+(t.comm_likes||0);},0);
+  var el3=document.getElementById('rt-likes-today');if(el3)el3.textContent=todayLikes;
+  /* 매출 (결제 데이터가 있으면) */
+  var rev=document.getElementById('rt-revenue');if(rev){
+    try{var pays=JSON.parse(localStorage.getItem('_admin_payments')||'[]');var monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();var monthRev=pays.filter(function(p){return new Date(p.created_at||0).getTime()>=monthStart&&p.status==='DONE';}).reduce(function(s,p){return s+(p.amount||0);},0);rev.textContent='₩'+monthRev.toLocaleString('ko-KR');}catch(e){rev.textContent='₩0';}
+  }
+  /* 히트맵 */
+  var hm=document.getElementById('activity-heatmap');if(hm){
+    var hours=new Array(24).fill(0);
+    tracks.forEach(function(t){var d=new Date(t.created_at||0);if(now-d<604800000)hours[d.getHours()]++;});
+    var maxH=Math.max.apply(null,hours)||1;
+    hm.innerHTML=hours.map(function(c,i){
+      var pct=c/maxH;var bg=pct>0.7?'rgba(124,58,237,.8)':pct>0.4?'rgba(124,58,237,.5)':pct>0.1?'rgba(124,58,237,.25)':'rgba(255,255,255,.05)';
+      return '<div style="height:28px;border-radius:4px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,.6);" title="'+i+'시: '+c+'건">'+(c>0?c:'')+'</div>';
+    }).join('');
+  }
+}
+
 async function renderDashboardCharts() {
+  _renderRealtimeActivity();
   if (typeof Chart === 'undefined') return;
   try {
     var tracks = _serverTracks || [];
