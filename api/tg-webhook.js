@@ -194,66 +194,21 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
   await tgSend(chatId, help, { parse_mode: '' });
 };
 
-/* /헬스체크 — API/DB 전체 점검 */
+/* /헬스체크 — API/DB 전체 점검 (병렬 실행) */
 COMMANDS['헬스'] = COMMANDS['health'] = COMMANDS['점검'] = async (chatId) => {
-  const checks = [];
-
-  /* Supabase DB */
-  try {
-    const t0 = Date.now();
-    const { count } = await sb('GET', '/tracks?select=id&limit=0');
-    checks.push(`✅ Supabase DB — ${Date.now()-t0}ms (${count}곡)`);
-  } catch (e) { checks.push(`❌ Supabase DB — ${e.message.slice(0,60)}`); }
-
-  /* Supabase Users */
-  try {
-    const t0 = Date.now();
-    const { count } = await sb('GET', '/users?select=id&limit=0');
-    checks.push(`✅ Supabase Users — ${Date.now()-t0}ms (${count}명)`);
-  } catch (e) { checks.push(`❌ Supabase Users — ${e.message.slice(0,60)}`); }
-
-  /* kie.ai API */
-  try {
-    const t0 = Date.now();
-    const r = await fetch('https://api.kie.ai/api/v1/generate/record-info?taskId=test', {
-      headers: { Authorization: `Bearer ${KIE_KEY}` },
-    });
-    const ms = Date.now()-t0;
-    checks.push(r.status < 500 ? `✅ kie.ai API — ${ms}ms (HTTP ${r.status})` : `⚠️ kie.ai API — ${ms}ms (HTTP ${r.status})`);
-  } catch (e) { checks.push(`❌ kie.ai API — ${e.message.slice(0,60)}`); }
-
-  /* 사이트 */
-  try {
-    const t0 = Date.now();
-    const r = await fetch(BASE, { method: 'HEAD' });
-    checks.push(r.status < 400 ? `✅ 사이트 — ${Date.now()-t0}ms` : `⚠️ 사이트 — ${Date.now()-t0}ms (HTTP ${r.status})`);
-  } catch (e) { checks.push(`❌ 사이트 — ${e.message.slice(0,60)}`); }
-
-  /* 텔레그램 봇 */
-  try {
-    const t0 = Date.now();
-    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
-    const d = await r.json();
-    checks.push(d.ok ? `✅ 텔레그램 봇 — ${Date.now()-t0}ms` : `❌ 텔레그램 봇 — ${d.description}`);
-  } catch (e) { checks.push(`❌ 텔레그램 봇 — ${e.message.slice(0,60)}`); }
-
-  /* 카카오 알림 */
-  try {
-    const t0 = Date.now();
-    const r = await fetch(`${BASE}/api/kakao-notify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"text":""}' });
-    checks.push(r.status < 500 ? `✅ 카카오 알림 — ${Date.now()-t0}ms` : `⚠️ 카카오 알림 — HTTP ${r.status}`);
-  } catch (e) { checks.push(`❌ 카카오 알림 — ${e.message.slice(0,60)}`); }
-
-  /* GitHub API */
-  if (GH_TOKEN) {
-    try {
-      const t0 = Date.now();
-      await ghApi('GET', '');
-      checks.push(`✅ GitHub API — ${Date.now()-t0}ms`);
-    } catch (e) { checks.push(`❌ GitHub API — ${e.message.slice(0,60)}`); }
-  } else {
-    checks.push(`⚠️ GitHub API — 토큰 미설정`);
+  async function chk(name, fn) {
+    try { const t0=Date.now(); const info=await fn(); return `✅ ${name} — ${Date.now()-t0}ms${info?' '+info:''}`; }
+    catch(e) { return `❌ ${name} — ${e.message.slice(0,60)}`; }
   }
+  const checks = await Promise.all([
+    chk('Supabase DB', async()=>{ const{count}=await sb('GET','/tracks?select=id&limit=0'); return `(${count}곡)`; }),
+    chk('Supabase Users', async()=>{ const{count}=await sb('GET','/users?select=id&limit=0'); return `(${count}명)`; }),
+    chk('kie.ai API', async()=>{ const r=await fetch('https://api.kie.ai/api/v1/generate/record-info?taskId=test',{headers:{Authorization:`Bearer ${KIE_KEY}`}}); if(r.status>=500)throw new Error('HTTP '+r.status); return `(HTTP ${r.status})`; }),
+    chk('사이트', async()=>{ const r=await fetch(BASE,{method:'HEAD'}); if(r.status>=400)throw new Error('HTTP '+r.status); return ''; }),
+    chk('텔레그램 봇', async()=>{ const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`); const d=await r.json(); if(!d.ok)throw new Error(d.description); return ''; }),
+    chk('카카오 알림', async()=>{ const r=await fetch(`${BASE}/api/kakao-notify`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"text":""}'}); if(r.status>=500)throw new Error('HTTP '+r.status); return ''; }),
+    GH_TOKEN ? chk('GitHub API', async()=>{ await ghApi('GET',''); return ''; }) : Promise.resolve('⚠️ GitHub API — 토큰 미설정'),
+  ]);
 
   const ok = checks.filter(c => c.startsWith('✅')).length;
   const total = checks.length;
