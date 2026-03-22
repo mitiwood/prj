@@ -235,6 +235,7 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">로그인 사용자</div></div>
           <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="stat-mv">0</div><div class="stat-label">뮤직비디오</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="stat-today">0</div><div class="stat-label">오늘 생성</div></div>
+          <div class="stat-card"><div class="stat-icon">▶️</div><div class="stat-val" id="stat-plays">0</div><div class="stat-label">총 재생</div></div>
           <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="stat-comm">0</div><div class="stat-label">커뮤니티 공개</div></div>
           <div class="stat-card" style="border-color:rgba(255,208,0,.2);"><div class="stat-icon">💰</div><div class="stat-val" id="stat-cost" style="color:var(--ylw);font-size:18px;">₩0</div><div class="stat-label">예상 API 비용</div><div class="stat-change up" id="stat-cost-detail" style="font-size:9px;"></div></div>
           <div class="stat-card" style="border-color:rgba(0,221,160,.2);"><div class="stat-icon">🔔</div><div class="stat-val" id="stat-subs">0</div><div class="stat-label">푸시 구독자</div></div>
@@ -307,8 +308,38 @@ textarea.form-input{line-height:1.5;}
             <div class="bar-chart" id="mode-chart"></div>
           </div>
           <div class="chart-card">
-            <h4>Top 5 인기 트랙</h4>
+            <h4>Top 5 인기 트랙 (좋아요)</h4>
             <div class="bar-chart" id="top-chart"></div>
+          </div>
+        </div>
+        <div class="chart-row" style="margin-bottom:16px;">
+          <div class="chart-card">
+            <h4>▶️ Top 5 재생 트랙</h4>
+            <div class="bar-chart" id="top-plays-chart"></div>
+          </div>
+          <div class="chart-card">
+            <h4>📊 재생/좋아요 비율</h4>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#3b82f6;" id="dash-total-plays">0</div>
+                <div style="font-size:10px;color:var(--t3);">총 재생</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#ef4444;" id="dash-total-likes2">0</div>
+                <div style="font-size:10px;color:var(--t3);">총 좋아요</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:24px;font-weight:800;color:#22c55e;" id="dash-play-like-ratio">0</div>
+                <div style="font-size:10px;color:var(--t3);">재생당 좋아요율</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;display:flex;">
+              <div id="dash-plays-bar" style="background:#3b82f6;height:100%;transition:width .5s;"></div>
+              <div id="dash-likes-bar" style="background:#ef4444;height:100%;transition:width .5s;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:4px;">
+              <span>▶️ 재생</span><span>❤️ 좋아요</span>
+            </div>
           </div>
         </div>
         <!-- 시스템 헬스체크 -->
@@ -434,7 +465,7 @@ textarea.form-input{line-height:1.5;}
           <div class="admin-table-header">
             <h3>최근 생성 트랙</h3>
           </div>
-          <table><thead><tr><th>커버</th><th>제목</th><th>모드</th><th>생성일</th><th>좋아요</th><th>공개</th><th>관리</th></tr></thead>
+          <table><thead><tr><th>커버</th><th>제목</th><th>모드</th><th>생성일</th><th>❤️</th><th>▶️</th><th>공개</th><th>관리</th></tr></thead>
           <tbody id="recent-tbody"></tbody></table>
         </div>
       </div>
@@ -488,7 +519,7 @@ textarea.form-input{line-height:1.5;}
           </div>
         </div>
         <div class="admin-table-wrap">
-          <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>생성자</th><th>모드</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
+          <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>생성자</th><th>모드</th><th>▶️</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="tracks-tbody"></tbody></table>
         </div>
       </div>
@@ -2480,7 +2511,7 @@ function _mapTrack(t){
     id:t.id, taskId:t.task_id||'', title:t.title||'무제',
     audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
     tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
-    created:t.created||0, _commLikes:t.comm_likes||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
+    created:t.created||0, _commLikes:t.comm_likes||0, _commPlays:t.comm_plays||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
     _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
   };
 }
@@ -2592,12 +2623,14 @@ async function loadData(){
   if(_kieKey) fetchKieUsageForStats(_kieKey).catch(()=>{});
 
   const totalLikes=h.reduce((a,t)=>a+(t._commLikes||0),0);
+  const totalPlays=h.reduce((a,t)=>a+(t._commPlays||0),0);
   const mvCount=h.filter(t=>t.video_url).length;
   const todayCount=h.filter(t=>t.created&&new Date(t.created)>=today).length;
   const commCount=h.filter(t=>t.audio_url).length;
 
   document.getElementById('stat-total').textContent=h.length;
   document.getElementById('stat-likes').textContent=totalLikes;
+  document.getElementById('stat-plays').textContent=totalPlays;
   document.getElementById('stat-users').textContent=_serverUsers.length;
   document.getElementById('stat-mv').textContent=mvCount;
   document.getElementById('stat-today').textContent=todayCount;
@@ -2641,6 +2674,23 @@ async function loadData(){
     `<div class="bar-item"><div class="bar-label" style="font-size:10px;">${(t.title||'무제').slice(0,6)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round((t._commLikes||0)/maxL*100)}%"></div></div><div class="bar-val">${t._commLikes||0}</div></div>`
   ).join('');
 
+  /* Top 5 재생 트랙 */
+  const topP=[...h].sort((a,b)=>(b._commPlays||0)-(a._commPlays||0)).slice(0,5);
+  const maxP=topP[0]?._commPlays||1;
+  const tpc=document.getElementById('top-plays-chart');
+  if(tpc) tpc.innerHTML=topP.map(t=>
+    `<div class="bar-item"><div class="bar-label" style="font-size:10px;">${(t.title||'무제').slice(0,6)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round((t._commPlays||0)/maxP*100)}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div></div><div class="bar-val">${t._commPlays||0}</div></div>`
+  ).join('');
+
+  /* 재생/좋아요 비율 */
+  const dtpEl=document.getElementById('dash-total-plays');if(dtpEl)dtpEl.textContent=totalPlays;
+  const dtlEl=document.getElementById('dash-total-likes2');if(dtlEl)dtlEl.textContent=totalLikes;
+  const plr=totalPlays>0?((totalLikes/totalPlays)*100).toFixed(1)+'%':'0%';
+  const plrEl=document.getElementById('dash-play-like-ratio');if(plrEl)plrEl.textContent=plr;
+  const plTotal=totalPlays+totalLikes||1;
+  const pbEl=document.getElementById('dash-plays-bar');if(pbEl)pbEl.style.width=Math.round(totalPlays/plTotal*100)+'%';
+  const lbEl=document.getElementById('dash-likes-bar');if(lbEl)lbEl.style.width=Math.round(totalLikes/plTotal*100)+'%';
+
   const tbody=document.getElementById('recent-tbody');
   if(tbody) tbody.innerHTML=h.slice(0,10).map((t,i)=>`
     <tr>
@@ -2649,6 +2699,7 @@ async function loadData(){
       <td><span class="badge badge-acc">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[t.genMode||'custom']||'?'}</span></td>
       <td>${t.created?new Date(t.created).toLocaleDateString('ko-KR'):'—'}</td>
       <td>${t._commLikes||0}</td>
+      <td>${t._commPlays||0}</td>
       <td><span class="badge ${t._owner?'badge-grn':'badge-ylw'}">${t._owner?'공개':'비공개'}</span></td>
       <td><div class="table-action-row">
         ${t.audio_url?`<button class="btn" onclick="window.open('${esc(t.audio_url)}')">▶</button>`:''}
@@ -2842,9 +2893,10 @@ function _appendTrackRows(tbody, fromIdx){
     const tr=document.createElement('tr');
     tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
-      +'<td class="td-title" style="cursor:pointer;color:var(--acc);" onclick="_trackDetail('+i+')">'+esc(t.title||'무제')+'<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️'+(t._commLikes||0)+'</div></td>'
+      +'<td class="td-title" style="cursor:pointer;color:var(--acc);" onclick="_trackDetail('+i+')">'+esc(t.title||'무제')+'<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️'+(t._commLikes||0)+' ▶'+(t._commPlays||0)+'</div></td>'
       +'<td>'+ownerBadge+'</td>'
       +'<td><span class="badge badge-acc">'+(t.genMode||'custom')+'</span></td>'
+      +'<td style="font-size:12px;font-weight:600;color:var(--t2);">'+(t._commPlays||0)+'</td>'
       +'<td><span class="badge '+(t.audio_url?'badge-grn':'badge-red')+'">'+(t.audio_url?'있음':'없음')+'</span></td>'
       +'<td style="font-size:11px;">'+timeStr+'</td>'
       +'<td><div class="table-action-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'+audioHtml
