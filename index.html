@@ -13207,6 +13207,7 @@ $('clear-all-btn').addEventListener('click',()=>{
 /* ── 커뮤니티 필터 ── */
 let _commActiveGenre='all';
 let _commSearchQuery='';
+var _commCreatorShowCount=10;
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
     document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
@@ -13216,6 +13217,7 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     var isCreatorMode=_commActiveGenre==='creators';
     var sortRow=$('comm-sort-row');if(sortRow)sortRow.style.display=isCreatorMode?'none':'';
     var djRow=$('comm-dj-row');if(djRow)djRow.style.display=isCreatorMode?'none':'';
+    _commCreatorShowCount=10;
     if(isCreatorMode){
       _renderCreatorList();
     } else {
@@ -13237,6 +13239,7 @@ document.addEventListener('DOMContentLoaded',function(){
       _commSearchTimer=setTimeout(()=>{
         _commSearchQuery=q.toLowerCase();
         _commPrevSnapshot='';
+        _commCreatorShowCount=10;
         if(_commActiveGenre==='creators') _renderCreatorList();
         else renderCommunity();
       },250);
@@ -13250,6 +13253,7 @@ function clearCommSearch(){
   if(clearBtn) clearBtn.style.display='none';
   _commSearchQuery='';
   _commPrevSnapshot='';
+  _commCreatorShowCount=10;
   if(_commActiveGenre==='creators') _renderCreatorList();
   else renderCommunity();
 }
@@ -14587,12 +14591,19 @@ function _renderCreatorList(){
     return;
   }
 
+  /* 페이지네이션: 10개씩 표시 */
+  var PAGE_SIZE=10;
+  var showCount=_commCreatorShowCount||PAGE_SIZE;
+  if(showCount>filteredKeys.length) showCount=filteredKeys.length;
+  var visibleKeys=filteredKeys.slice(0,showCount);
+  var remaining=filteredKeys.length-showCount;
+
   const isLoggedIn=currentUser&&currentUser.provider!=='guest';
   const _isMine=(c)=>isLoggedIn&&currentUser.name===c.name&&currentUser.provider===c.provider;
 
   let html='';
   let trackIdx=0;
-  filteredKeys.forEach((key,gi)=>{
+  visibleKeys.forEach((key,gi)=>{
     const g=groupMap[key];
     const provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[g.provider]||'';
     const isMe=_isMine(g);
@@ -14619,6 +14630,17 @@ function _renderCreatorList(){
 
     html+=`</div>`;
   });
+
+  /* 더보기 버튼 */
+  if(remaining>0){
+    html+=`<div style="text-align:center;padding:16px 0 8px;">
+      <button onclick="_commCreatorShowCount=${showCount+PAGE_SIZE};_renderCreatorList();"
+        style="display:inline-flex;align-items:center;gap:6px;padding:10px 28px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;">
+        더보기 (${remaining}명 더)
+      </button>
+    </div>`;
+  }
+
   list.innerHTML=html;
 
   /* 팔로우 상태 + 재생시간 비동기 갱신 */
@@ -14630,7 +14652,7 @@ function _renderCreatorList(){
   /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 (배치 캐시 활용) */
   if(isLoggedIn){
     const _applyCreatorFollowStates=()=>{
-      filteredKeys.forEach((key,gi)=>{
+      visibleKeys.forEach((key,gi)=>{
         const g=groupMap[key];
         if(_isMine(g))return;
         const btn=list.querySelector('[data-creator-key="'+gi+'"] .comm-creator-follow-btn');

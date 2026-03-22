@@ -167,6 +167,29 @@ history-view
 커뮤니티 크리에이터의 음악을 모아보는 서브 뷰.
 `_renderMyFeedView()` 로 별도 렌더.
 
+```
+myfeed 렌더링 구조
+├── 검색 + 새로고침            mf-search-input + mf-refresh-btn
+├── 정렬 탭                    인기순 / 최신순 / 곡 많은순
+├── HOT 크리에이터 TOP 3       인기순일 때 3명 이상 시 표시
+├── 추천 인사이트              _buildMyFeedInsight()
+├── 최근 업로드                _getRecentCreatorTracks(8)
+├── 크리에이터 리스트           청크 렌더링 (20개 단위)
+│   └── IntersectionObserver   스크롤 자동 로드
+└── 크리에이터 상세 뷰          _renderCreatorDetailView()
+    ├── 히어로 프로필           아바타 + 통계 + 팔로우
+    ├── BEST 인기곡             상위 1곡 (3곡 이상일 때)
+    ├── 전체재생 + 셔플
+    └── 트랙 리스트             기본/인기/재생/최신 정렬
+```
+
+**성능 최적화 (2026-03-22):**
+- 4단 캐시: 메모리(`_sbTracks`) → localStorage(5분 TTL) → 커뮤니티 캐시 → 경량 API(`mode=creators`)
+- 커뮤니티 로드 완료 시 크리에이터 프리로드 → 탭 전환 즉시 표시
+- 외부 이미지 차단(`_mfBlockedHosts`) — pexels/unsplash 등 NS_BINDING_ABORTED 방지
+- 안전한 이미지 헬퍼: `_mfAvatar()`, `_mfThumb()`, `_mfImgFail()`
+- 이미지 `loading="lazy"` + onerror 이니셜 폴백
+
 ---
 
 ## 3. 커뮤니티 (`#community-view`)
@@ -197,6 +220,14 @@ community-view
 **렌더링 분기:**
 - 기본 모드 → `_renderCommContent()` : Hero → 인기차트 → 내곡 → 다른트랙
 - 크리에이터 모드 → `_renderCreatorList()` : 크리에이터별 곡 그룹핑
+
+**데이터 로딩 정책 (2026-03-22):**
+- 폴링: 30초 간격, Visibility API 연동 (탭 비활성 시 중단)
+- 캐시: 30초 TTL, 유효 시 `renderCommunity(false)` → 서버 호출 스킵
+- 디바운스: `renderCommunity` 100ms 연속 호출 병합
+- 부분 갱신: 좋아요/싫어요 → `_commQuickRender()` (버튼+숫자만 인라인 수정)
+- 스냅샷: `ID+likes+plays+dislikes+sortMode` 비교 → 변경 없으면 DOM 유지
+- 탭 복귀: 캐시 만료 시 즉시 1회 갱신
 
 ---
 
@@ -249,6 +280,15 @@ profile-view
 
 **데이터 로드:** `/api/profile?name=&provider=&viewerName=&viewerProvider=`
 **반환:** `trackCount`, `totalLikes`, `followerCount`, `isFollowing`, `tracks[]`
+
+**배치 팔로우 체크:** `/api/profile?action=batch-follow-check&viewerName=&viewerProvider=`
+**반환:** `followingSet` (1회 쿼리로 전체 팔로우 상태)
+
+**팔로우 상태 관리:**
+- `_followStateCache{}` — 팔로우 상태 인메모리 캐시 (`true`/`false`)
+- `_followBatchLoaded` — 배치 API 호출 완료 플래그
+- `_applyFollowToBtn(btn)` — 캐시 기반 버튼 상태 적용 (팔로잉/팔로우 양방향)
+- DOM 재생성 시 `_followStateCache` 참조하여 초기 상태 반영 (팔로우 풀림 방지)
 
 ---
 

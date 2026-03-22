@@ -121,6 +121,99 @@
 
 ---
 
+## MY탭 성능 최적화
+
+### 서버 최적화 (api/)
+- `profile.js`: 프로필 조회 5쿼리 → `Promise.all` 병렬 실행
+- `profile.js`: followers/following N+1 → `Promise.all(list.map(...))` 병렬화
+- `profile.js`: 배치 팔로우 체크 API 신설 (`?action=batch-follow-check`)
+- `tracks.js`: `mode=creators` 경량 모드 추가 (7개 컬럼만 SELECT)
+
+### 클라이언트 최적화 (index.html)
+- 외부 이미지 차단 (`_mfBlockedHosts`) — pexels/unsplash 등 NS_BINDING_ABORTED 완전 해소
+- 안전한 이미지 헬퍼 (`_mfAvatar`, `_mfThumb`, `_mfImgFail`) — onerror 이니셜 폴백
+- 팔로우 상태 배치 로드 + 캐시 적용 (`_loadCommFollowStates` → 1회 API)
+- 커뮤니티 로드 완료 시 크리에이터 프리로드 (탭 전환 즉시 표시)
+- 초기 청크 10→20개 + IntersectionObserver 스크롤 자동 로드
+- 모든 이미지 `loading="lazy"` 적용
+
+### 결과
+- MY탭 진입: 5~15초 → ~0ms (프리로드), 콜드 스타트 ~0.5초
+- 크리에이터 상세: ~1.5초 → ~0.3초
+- 팔로우 상태 표시: N×1초 → ~0.2초
+
+---
+
+## 팔로우 상태 풀림 버그 수정
+
+### 원인
+- tracks API 폴링으로 DOM 재생성(innerHTML) 시 팔로우 버튼이 항상 "팔로우"로 초기화
+- `_loadCommFollowStates`가 `.comm-item-follow-btn`만 탐색, `.comm-creator-follow-btn` 누락
+- 언팔로우 시 `cache[key]=false` → `if(cache[key])` 조건 false → 팔로잉 미복원
+
+### 수정
+- `_loadCommFollowStates`: 아이템 + 크리에이터 헤더 버튼 모두 선택
+- `_applyFollowToBtn()`: `===true`(팔로잉) / `===false`(팔로우) 양방향 적용
+- 모든 팔로우 버튼 생성 시 `_followStateCache` 참조하여 초기 상태 반영
+- 적용 위치: `_renderCommContent`, `_renderCreatorList`, `_buildCommItem`, 팔로잉/팔로워 목록
+
+---
+
+## 커뮤니티 데이터 로딩 고도화
+
+### 폴링 최적화
+- 폴링 간격 10초 → **30초**로 변경 (불필요한 서버 요청 감소)
+- 캐시 TTL 10초 → **30초** (`_SB_CACHE_TTL`)
+- **Page Visibility API** 연동 — 브라우저 탭 비활성 시 폴링 완전 중단, 탭 복귀 시 캐시 만료 시 즉시 갱신
+
+### 캐시 유효 시 서버 호출 스킵
+- `renderCommunity(force=false)` + 캐시 유효 → 즉시 렌더, **API 0회**
+- 탭 전환 시 `force=false`로 변경 — 30초 내 재방문 시 깜빡임 제로
+
+### 부분 DOM 갱신 (`_commQuickRender`)
+- 좋아요/싫어요 시 `renderCommunity()` 전체 리렌더 → **버튼+숫자만 인라인 갱신**
+- 히어로: 좋아요 카운트, 버튼 상태, 배지 텍스트 부분 갱신
+- 리스트: `data-sbid`로 해당 아이템 찾아 액션 버튼만 업데이트
+- 실패 시 전체 리렌더 폴백
+
+### renderCommunity 디바운스
+- 100ms 내 연속 호출 병합 — 좋아요→싫어요 빠른 연타 시 1회만 렌더
+- `_renderCommunityInner()`로 내부 로직 분리
+
+### 스냅샷 비교 강화
+- `ID+likes` → **`ID+likes+plays+dislikes+sortMode`**
+- 정렬 모드 변경도 스냅샷에 포함
+
+---
+
+## Admin 패널 버그 수정
+
+### 신고 로드 실패 수정
+- **원인:** `switchSec('reports')` → `loadReports()` + `renderReportsAdmin()` 호출 — 둘 다 미정의 함수
+- **수정:** `loadReportsFromDB()` 1회 호출로 교체
+- 레거시 localStorage 기반 `loadReports`, `deleteReport`, `submitReport` 함수 제거
+
+---
+
+## 이미지 분석 기능 오류 수정
+
+### 원인
+- `KIE_CLAUDE_URL` 변수가 정의되지 않음 → `fetch(undefined)` → 에러
+- kie.ai API 프록시 전환 시 이미지 분석 함수만 업데이트 누락
+
+### 수정
+- `fetch(KIE_CLAUDE_URL)` → `fetch('/api/kie-proxy')` + `path: KIE_LLM_PATH` (서버 프록시 경유)
+- `kieApiKey` 클라이언트 체크 제거 (프록시가 서버에서 API 키 관리)
+- 에러 응답 처리 추가 (`res.ok` 체크)
+
+---
+
+## 기타 수정
+
+- `_getUser` 함수 미정의 에러 수정 (출석 체크 시스템)
+
+---
+
 ## 커밋 목록
 
 | 해시 | 내용 |

@@ -1,15 +1,19 @@
 // /api/payments/confirm.js — Toss Payments 승인 + 결제 내역 조회
+// 플랜 정의는 toss-config.js에서 import (Single Source of Truth)
+
+import { PLANS, CREDIT_PACKS } from '../toss-config.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const TOSS_SECRET = process.env.TOSS_SECRET_KEY || "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
+const TOSS_SECRET = process.env.TOSS_SECRET_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
-const PLANS = {
-  basic:     { price: 4900,  credits: 30,  label: "Basic" },
-  pro:       { price: 9900,  credits: 100, label: "Pro" },
-  unlimited: { price: 19900, credits: 999999, label: "Unlimited" },
-};
+/* 플랜/크레딧팩 통합 조회 — plan 또는 credit_pack 키로 검색 */
+function findPlanOrPack(key) {
+  if (PLANS[key]) return { price: PLANS[key].price, credits: PLANS[key].limits?.songs || 0, label: PLANS[key].label };
+  if (CREDIT_PACKS[key]) return { price: CREDIT_PACKS[key].price, credits: CREDIT_PACKS[key].credits, label: CREDIT_PACKS[key].label };
+  return null;
+}
 
 async function sb(path, opts = {}) {
   const controller = new AbortController();
@@ -68,14 +72,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method not allowed" });
   }
 
+  if (!TOSS_SECRET) {
+    return res.status(500).json({ error: "TOSS_SECRET_KEY 환경변수 미설정" });
+  }
+
   const { paymentKey, orderId, amount, plan, userName, userProvider } = req.body || {};
 
   if (!paymentKey || !orderId || !amount || !plan) {
     return res.status(400).json({ error: "missing required fields" });
   }
 
-  // 금액 검증
-  const planDef = PLANS[plan];
+  // 금액 검증 (플랜 + 크레딧팩 모두 지원)
+  const planDef = findPlanOrPack(plan);
   if (!planDef || planDef.price !== amount) {
     return res.status(400).json({ error: "invalid plan or amount mismatch" });
   }

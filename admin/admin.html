@@ -419,6 +419,7 @@ textarea.form-input{line-height:1.5;}
             <button class="btn btn-acc" onclick="renderCommentsAdmin()" id="cm-refresh-btn">🔄 새로고침</button>
             <button class="btn" onclick="_cmViewMode='list';_cmApplyFilter()" style="font-size:11px;">📋 리스트</button>
             <button class="btn" onclick="_cmViewMode='group';_cmApplyFilter()" style="font-size:11px;">📂 그룹</button>
+            <button class="btn" onclick="_cmExportCsv()" style="font-size:11px;">📥 CSV</button>
             <button class="btn" onclick="_cmBulkAction('hide')" id="cm-bulk-hide">🙈 선택 숨김</button>
             <button class="btn btn-red" onclick="_cmBulkAction('delete')" id="cm-bulk-del">🗑 선택 삭제</button>
           </div>
@@ -592,6 +593,14 @@ textarea.form-input{line-height:1.5;}
         <div class="sec-hdr">
           <h2>매니저 관리</h2>
           <button class="btn btn-acc" onclick="openAddManagerModal()">➕ 매니저 추가</button>
+        </div>
+
+        <!-- 매니저 통계 -->
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">🛡️</div><div class="stat-val" id="mgr-total">0</div><div class="stat-label">전체 매니저</div></div>
+          <div class="stat-card" style="border-left:3px solid #ef4444;"><div class="stat-icon">👑</div><div class="stat-val" id="mgr-admin-cnt">0</div><div class="stat-label">관리자</div></div>
+          <div class="stat-card" style="border-left:3px solid #f97316;"><div class="stat-icon">🔧</div><div class="stat-val" id="mgr-mod-cnt">0</div><div class="stat-label">모더레이터</div></div>
+          <div class="stat-card" style="border-left:3px solid #3b82f6;"><div class="stat-icon">👁</div><div class="stat-val" id="mgr-viewer-cnt">0</div><div class="stat-label">뷰어</div></div>
         </div>
 
         <div class="admin-table-wrap" style="margin-bottom:16px;">
@@ -1451,6 +1460,15 @@ textarea.form-input{line-height:1.5;}
       </div>
       <div class="admin-section" id="sec-settings">
         <div class="sec-hdr"><h2>앱 설정</h2></div>
+
+        <!-- 시스템 정보 -->
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card"><div class="stat-icon">🚀</div><div class="stat-val" id="sys-version" style="font-size:16px;">v3.0</div><div class="stat-label">앱 버전</div></div>
+          <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="sys-env" style="font-size:14px;">—</div><div class="stat-label">환경</div></div>
+          <div class="stat-card"><div class="stat-icon">⏱️</div><div class="stat-val" id="sys-uptime" style="font-size:14px;">—</div><div class="stat-label">세션 시간</div></div>
+          <div class="stat-card"><div class="stat-icon">💾</div><div class="stat-val" id="sys-storage" style="font-size:14px;">—</div><div class="stat-label">로컬 사용량</div></div>
+        </div>
+
         <div class="settings-group">
           <div class="settings-row">
             <div><label>앱 버전</label><div class="desc">현재 배포 버전</div></div>
@@ -1944,6 +1962,7 @@ function switchSec(id){
   if(id==='claude') loadClaudeUsage();
   if(id==='database') loadDatabaseInfo();
   if(id==='audit') renderAuditLog();
+  if(id==='settings') _updateSysInfo();
 }
 
 /* ══════════════════════════════════════════════
@@ -3141,6 +3160,18 @@ async function deleteCommentAdmin(id){
     _cmAll=_cmAll.filter(function(x){return x.id!==id;});
     _cmUpdateStats();_cmApplyFilter();
   }catch(e){adminToast('실패: '+e.message);}
+}
+
+/* 댓글 CSV 내보내기 */
+function _cmExportCsv(){
+  const all=window._cmAllComments||[];
+  if(!all.length){adminToast('댓글 데이터 없음','err');return;}
+  const header='작성자,프로바이더,내용,트랙ID,숨김,답글,작성일\n';
+  const rows=all.map(c=>['"'+esc(c.user_name||'')+'"',c.user_provider||'','"'+((c.text||'').replace(/"/g,'""')).slice(0,200)+'"',c.track_id||'',c.hidden?'Y':'N',c.is_reply?'Y':'N',c.created_at?new Date(c.created_at).toISOString():''].join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='kms_comments_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(a.href);adminToast('📥 댓글 CSV 다운로드');
 }
 
 async function renderCommunityAdmin(forceRefresh=false){
@@ -4956,6 +4987,18 @@ function renderManagersSection(){
   const tbody = document.getElementById('managers-tbody');
   if(!tbody) return;
   const managers = getManagers();
+  /* 매니저 통계 */
+  const _ms=id=>{const e=document.getElementById(id);return e;};
+  const mgrTotal=_ms('mgr-total');if(mgrTotal)mgrTotal.textContent=managers.length;
+  const adminCnt=managers.filter(m=>m.role==='admin'||m.role==='super').length;
+  const modCnt=managers.filter(m=>m.role==='manager').length;
+  const viewerCnt=managers.filter(m=>m.role==='viewer').length;
+  if(_ms('mgr-admin-cnt'))_ms('mgr-admin-cnt').textContent=adminCnt;
+  if(_ms('mgr-mod-cnt'))_ms('mgr-mod-cnt').textContent=modCnt;
+  if(_ms('mgr-viewer-cnt'))_ms('mgr-viewer-cnt').textContent=viewerCnt;
+  const mgrCntEl=document.getElementById('mgr-count');
+  if(mgrCntEl) mgrCntEl.textContent='('+managers.length+'명)';
+
   if(!managers.length){
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);">등록된 매니저가 없습니다<br><small>+ 매니저 추가 버튼으로 생성하세요</small></td></tr>';
     return;

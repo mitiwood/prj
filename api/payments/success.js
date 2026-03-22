@@ -1,9 +1,11 @@
 // /api/payments/success.js — 토스 결제 성공 리다이렉트 핸들러
-// 토스가 successUrl로 리다이렉트하면 여기서 서버 승인 후 프론트로 보냄
+// 플랜 정의는 toss-config.js에서 import (Single Source of Truth)
+
+import { PLANS, CREDIT_PACKS } from '../toss-config.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
-const TOSS_SECRET = process.env.TOSS_SECRET_KEY || "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
+const TOSS_SECRET = process.env.TOSS_SECRET_KEY;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || "").trim();
 
@@ -28,10 +30,12 @@ async function _kakaoNotify(text) {
   } catch {}
 }
 
-const PLANS = {
-  pro:       { price: 9900,  credits: 50,     label: "Pro" },
-  creator:   { price: 19900, credits: 999,    label: "Creator" },
-};
+/* 플랜/크레딧팩 통합 조회 */
+function findPlanOrPack(key) {
+  if (PLANS[key]) return { price: PLANS[key].price, credits: PLANS[key].limits?.songs || 0, label: PLANS[key].label };
+  if (CREDIT_PACKS[key]) return { price: CREDIT_PACKS[key].price, credits: CREDIT_PACKS[key].credits, label: CREDIT_PACKS[key].label };
+  return null;
+}
 
 async function sb(path, opts = {}) {
   const controller = new AbortController();
@@ -55,6 +59,10 @@ async function sb(path, opts = {}) {
 }
 
 export default async function handler(req, res) {
+  if (!TOSS_SECRET) {
+    return res.redirect(`/?payment=fail&message=${encodeURIComponent('서버 결제 설정 오류')}`);
+  }
+
   const { paymentKey, orderId, amount, plan, userName, userProvider } = req.query;
 
   if (!paymentKey || !orderId || !amount) {
@@ -62,7 +70,7 @@ export default async function handler(req, res) {
   }
 
   const numAmount = parseInt(amount);
-  const planDef = PLANS[plan];
+  const planDef = findPlanOrPack(plan);
 
   if (!planDef || planDef.price !== numAmount) {
     return res.redirect(`/?payment=fail&message=${encodeURIComponent('금액 불일치')}`);
@@ -131,7 +139,7 @@ export default async function handler(req, res) {
     /* 4) 텔레그램 알림 */
     const ts = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     const payMsg = `💰 결제 완료\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`;
-    await Promise.allSettled([_tgNotify(`💰 *결제 완료*\n플랜: ${planDef.label} (₩${numAmount.toLocaleString()})\n사용자: ${userName || '알 수 없음'}\n결제수단: ${tossData.method || '-'}\n주문번호: ${orderId}\n⏰ ${ts}`), _kakaoNotify(payMsg)]);
+    await Promise.allSettled([_tgNotify(payMsg), _kakaoNotify(payMsg)]);
 
     /* 5) 프론트로 리다이렉트 */
     return res.redirect(`/?payment=success&plan=${plan}`);

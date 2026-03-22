@@ -158,7 +158,43 @@ kie.ai:
 변경 시 반드시 양쪽 확인!
 ```
 
-### 2.7 관리자 역할 정책
+### 2.7 성능 정책
+
+```
+외부 이미지 차단:
+- 차단 도메인: pexels.com, unsplash.com, placeholder.com, placekitten.com, picsum.photos
+- _mfIsBlocked(url)로 사전 검사 → 차단 시 이미지 요청 안 함
+- 아바타: 이니셜 아이콘 폴백 (_mfAvatar)
+- 썸네일: 🎵 아이콘 폴백 (_mfThumb)
+- _groupCreatorsFromTracks/Raw에서 데이터 수집 시에도 차단
+
+API 쿼리 최적화:
+- profile.js: 프로필 조회 5쿼리 → Promise.all 병렬 (순차 금지)
+- profile.js: followers/following N+1 → Promise.all(list.map) 병렬
+- 팔로우 상태: batch-follow-check API (1회 쿼리로 전체 확인)
+- tracks.js: mode=creators 경량 모드 (7개 컬럼만 SELECT)
+
+클라이언트 캐싱:
+- 크리에이터 목록: 4단 캐시 (메모리→localStorage→커뮤니티캐시→경량API)
+- 팔로우: _followStateCache + _followBatchLoaded (세션 중 유지)
+- 커뮤니티 로드 완료 시 크리에이터 프리로드 (MY탭 즉시 표시)
+
+커뮤니티 데이터 로딩:
+- 폴링 간격: 30초 (_SB_CACHE_TTL=30000)
+- Page Visibility API: 탭 비활성 시 폴링 중단, 복귀 시 캐시 만료 시 즉시 갱신
+- renderCommunity(false) + 캐시 유효 → 서버 호출 스킵
+- renderCommunity 디바운스: 100ms 내 연속 호출 병합
+- 스냅샷 비교: ID+likes+plays+dislikes+sortMode (불필요한 리렌더 차단)
+
+DOM 렌더링:
+- 청크 렌더링 (20개 단위) + IntersectionObserver 자동 로드
+- 이미지 loading="lazy" (5번째 이후)
+- onerror에서 this.onerror=null 필수 (무한 루프 방지)
+- DOM 재생성 시 _followStateCache 참조하여 초기 상태 반영
+- 좋아요/싫어요: _commQuickRender()로 부분 DOM 갱신 (전체 리렌더 금지)
+```
+
+### 2.8 관리자 역할 정책
 
 ```
 admin (최고 관리자):

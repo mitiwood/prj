@@ -22,6 +22,8 @@
 │  │ /api/analyze      → Claude YouTube→Suno 프롬프트                │  │
 │  │ /api/yt-analyze   → YouTube URL 분석                           │  │
 │  │ /api/check-credit → 서버 크레딧 검증/차감                       │  │
+│  │ /api/kie-proxy    → kie.ai API 프록시 (키 보호+크레딧 검증)     │  │
+│  │                     음악생성/가사/보컬/LLM/이미지분석             │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  ┌─ 인증/결제 ────────────────────────────────────────────────────┐  │
@@ -121,4 +123,64 @@
     │
     └─→ trackUsage() → localStorage (kms_usage_YYYYMM)
          └─→ _serverCreditDeduct() → /api/check-credit
+```
+
+## 프로필 & 팔로우 API (`/api/profile`)
+
+```
+GET  ?name=&provider=                        → 프로필 + 곡 + 통계 (5쿼리 병렬)
+GET  ?name=&provider=&action=following        → 팔로잉 목록 (병렬 쿼리)
+GET  ?name=&provider=&action=followers        → 팔로워 목록 (병렬 쿼리)
+GET  ?name=_&provider=_&action=batch-follow-check  → 전체 팔로우 상태 (1쿼리)
+     &viewerName=&viewerProvider=
+POST {action:'follow/unfollow', followerName, followerProvider, followingName, followingProvider}
+POST {action:'report/block/update-profile', ...}
+```
+
+### 성능 최적화 (2026-03-22)
+
+```
+Before (순차):
+  users → tracks → followerCount → followingCount → isFollowing
+  = 5 순차 쿼리 × 100~300ms = 0.5~1.5초
+
+After (병렬):
+  Promise.all([users, tracks, followerCount, followingCount, isFollowing])
+  = 가장 느린 1쿼리 기준 ~0.3초
+
+팔로우 상태 확인:
+  Before: 크리에이터 N명 × /api/profile = N×5 DB 쿼리
+  After:  batch-follow-check 1회 = 1 DB 쿼리
+```
+
+## 트랙 API 경량 모드 (`/api/tracks`)
+
+```
+GET ?public=true&limit=200&mode=creators
+  → select: owner_name, owner_provider, owner_avatar, image_url, comm_likes, comm_plays, created_at
+  → 페이로드 60~70% 감소 (select=* 대비)
+  → MY탭 크리에이터 목록 전용
+```
+
+## 팔로우 상태 동기화 흐름
+
+```
+[앱 시작]
+  └─→ _loadSbTracks()
+       └─→ 커뮤니티 트랙 로드 완료
+            ├─→ _groupCreatorsFromTracks() → _myFeedCreators (프리로드)
+            └─→ renderCommunity()
+                 └─→ _loadCommFollowStates()
+                      └─→ batch-follow-check API (1회)
+                           └─→ _followStateCache{} + _followBatchLoaded=true
+
+[팔로우 클릭]
+  └─→ _creatorFollowToggle(btn)
+       ├─→ POST /api/profile {action:'follow'}
+       ├─→ _followStateCache[key] = true/false (즉시 갱신)
+       └─→ document.querySelectorAll(...).forEach (모든 동일 유저 버튼 동기화)
+
+[DOM 재생성 (폴링/리렌더)]
+  └─→ innerHTML 재생성 시 _followStateCache 참조하여 초기 상태 반영
+       └─→ _loadCommFollowStates() → 캐시 히트 → _applyFollowToBtn()
 ```

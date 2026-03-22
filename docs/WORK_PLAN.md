@@ -1,6 +1,6 @@
 # 작업 계획 & 일정 관리
 
-## 현재 진행 상황 (2026-03-21 기준)
+## 현재 진행 상황 (2026-03-22 기준)
 
 ### 완료된 작업
 
@@ -18,10 +18,59 @@
 | 🔔 알림 | 실시간/푸시/인앱공지 | 03-21 |
 | 📖 문서 | SPEC/KIE레퍼런스/CLAUDE.md | 03-21 |
 | 🚀 CI/CD | GitHub Actions + 자가치유 헬스체크 | 03-21 |
+| ⚡ 성능 | MY탭 크리에이터 로딩 대폭 최적화 | 03-22 |
+| ⚡ 성능 | 커뮤니티 데이터 로딩 고도화 (폴링/캐시/부분렌더) | 03-22 |
+| 🐛 버그 | 팔로우 풀림, 신고 로드, 이미지 분석, _getUser 수정 | 03-22 |
 
 ---
 
 ## Phase 2: 안정화 (03-22 ~ 03-28)
+
+### 03-22 완료: MY탭 크리에이터 성능 최적화
+
+<details>
+<summary>상세 내역 (클릭하여 펼치기)</summary>
+
+**문제:** MY탭 크리에이터 목록 로딩 5~15초 소요
+
+**원인 분석:**
+1. 팔로우 상태 확인: 크리에이터 N명 × 개별 `/api/profile` 호출 → N×5 DB 순차쿼리
+2. `profile.js` 프로필 조회: 5개 DB 쿼리 순차 실행 (users→tracks→follower→following→isFollowing)
+3. followers/following 목록: 1명당 3개 순차 쿼리 (N+1 패턴)
+4. 외부 이미지(pexels.com 등) NS_BINDING_ABORTED → 브라우저 연결 블로킹
+
+**서버 최적화 (api/):**
+- `profile.js`: 배치 팔로우 체크 API 신설 (`?action=batch-follow-check`) — 1회 쿼리로 전체 팔로우 상태
+- `profile.js`: 프로필 조회 5쿼리 → `Promise.all` 병렬 실행
+- `profile.js`: followers/following N+1 → `Promise.all(list.map(...))` 병렬화
+- `tracks.js`: `mode=creators` 경량 모드 추가 (7개 컬럼만 SELECT)
+
+**클라이언트 최적화 (index.html):**
+- 외부 이미지 차단 (`_mfBlockedHosts`, `_mfIsBlocked`) — pexels/unsplash 등 사전 차단
+- 안전한 이미지 헬퍼 (`_mfAvatar`, `_mfThumb`, `_mfImgFail`) — onerror 이니셜 폴백
+- `_loadCommFollowStates` → 배치 API 1회 호출로 교체
+- `_renderCreatorList` 팔로우 → 배치 캐시 재사용
+- 커뮤니티 로드 완료 시 크리에이터 프리로드 (탭 전환 즉시 표시)
+- 초기 청크 10→20개, IntersectionObserver 스크롤 자동 로드
+- 모든 이미지 `loading="lazy"` + `_groupCreatorsFromTracks/Raw`에서 차단 도메인 필터링
+
+**결과:**
+- MY탭 진입: 5~15초 → **~0ms** (프리로드 캐시 히트)
+- 크리에이터 상세: ~1.5초 → **~0.3초**
+- 팔로우 상태: N×1초 → **~0.2초** (배치 1회)
+- NS_BINDING_ABORTED: **완전 해소**
+
+</details>
+
+### 03-22 완료: 커뮤니티 고도화 + 버그 수정
+
+- 커뮤니티 폴링 30초 + Visibility API + 캐시 유효 시 서버 스킵
+- 좋아요/싫어요 부분 DOM 갱신 (`_commQuickRender`)
+- renderCommunity 디바운스 + 스냅샷 강화
+- 팔로우 풀림 버그 수정 (배치 캐시 양방향 적용)
+- admin 신고 로드 실패 수정 (레거시 함수 제거)
+- 이미지 분석 오류 수정 (`KIE_CLAUDE_URL` → kie-proxy)
+- `_getUser` 미정의 에러 수정
 
 ### 우선순위 P0 (필수)
 

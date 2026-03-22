@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       await fetch(`${BASE}/api/telegram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-        body: JSON.stringify({ text: tgMsg, parse_mode: 'HTML' }),
+        body: JSON.stringify({ text: tgMsg }),
       });
     } catch {}
 
