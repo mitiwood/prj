@@ -8,7 +8,6 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const body = req.body;
-    console.log('[callback] kie.ai webhook received:', JSON.stringify(body).slice(0, 500));
     return res.status(200).json({ ok: true, received: true });
   }
 

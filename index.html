@@ -4575,11 +4575,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
       </div>
       <div class="fp-controls">
-        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡" style="display:none;" id="fp-prev-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡" id="fp-prev-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;color:currentColor;">10</span></button>
         <button class="fp-play-btn" id="fp-play-btn"><svg id="fp-play-icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;color:currentColor;">10</span></button>
-        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡" style="display:none;" id="fp-next-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡" id="fp-next-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
       </div>
       <!-- 볼륨 UI 제거 -->
       <div class="fp-viz" id="fp-viz">
@@ -4878,7 +4878,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 성별</div>
       <div style="display:flex;gap:8px;">
-        <button class="vbtn on" id="vc-gender-auto" data-vg=""><i data-lucide="mic" style="width:14px;height:14px;vertical-align:-2px;"></i> 자동</button>
+        <button class="vbtn on" id="vc-gender-auto" data-vg="" data-v=""><i data-lucide="mic" style="width:14px;height:14px;vertical-align:-2px;"></i> 자동</button>
         <button class="vbtn" id="vc-gender-m" data-vg="m" data-v="m"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="4" r="3"/><path d="M12 7v6"/><path d="M8 22l4-9 4 9"/><path d="M5 13h14"/></svg> 남성</button>
         <button class="vbtn" id="vc-gender-f" data-vg="f" data-v="f"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="4" r="3"/><path d="M12 7v3"/><path d="M7 16l5-6 5 6"/><path d="M8 22v-6"/><path d="M16 22v-6"/></svg> 여성</button>
       </div>
@@ -4899,12 +4899,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:12px;">
       <div class="opt-label" style="margin-bottom:6px;">보컬 스타일 프리셋</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;">
-        <button onclick="$('vc-prompt').value='sweet female vocal, K-Pop idol style, bright tone';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎀 걸그룹</button>
-        <button onclick="$('vc-prompt').value='deep male vocal, R&B smooth, soulful';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 R&B 남성</button>
-        <button onclick="$('vc-prompt').value='powerful female ballad vocal, emotional, wide range';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 발라드 여성</button>
-        <button onclick="$('vc-prompt').value='raspy male vocal, rock energy, raw emotion';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎸 록 남성</button>
-        <button onclick="$('vc-prompt').value='soft breathy female vocal, indie, whisper-like';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌙 인디 여성</button>
-        <button onclick="$('vc-prompt').value='aggressive male rap vocal, trap flow, hard';document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 래퍼</button>
+        <button onclick="$('vc-prompt').value='sweet female vocal, K-Pop idol style, bright tone';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on');vcGender='f'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎀 걸그룹</button>
+        <button onclick="$('vc-prompt').value='deep male vocal, R&B smooth, soulful';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on');vcGender='m'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">💜 R&B 남성</button>
+        <button onclick="$('vc-prompt').value='powerful female ballad vocal, emotional, wide range';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on');vcGender='f'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎤 발라드 여성</button>
+        <button onclick="$('vc-prompt').value='raspy male vocal, rock energy, raw emotion';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on');vcGender='m'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🎸 록 남성</button>
+        <button onclick="$('vc-prompt').value='soft breathy female vocal, indie, whisper-like';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-f')?.classList.add('on');vcGender='f'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🌙 인디 여성</button>
+        <button onclick="$('vc-prompt').value='aggressive male rap vocal, trap flow, hard';document.querySelectorAll('#vocal-modal .vbtn').forEach(b=>b.classList.remove('on'));$('vc-gender-m')?.classList.add('on');vcGender='m'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;cursor:pointer;font-family:inherit;">🔥 래퍼</button>
       </div>
     </div>
     <div style="margin-bottom:12px;">
@@ -6292,6 +6292,7 @@ $('simple-inst-toggle').addEventListener('click',function(){
 /* ── 심플 모드 AI 자동 작사 ── */
 $('simple-lyrics-btn').addEventListener('click',async()=>{
   if(!currentUser){toast('로그인 후 AI 작사를 이용할 수 있어요','err',2500);openLoginSheet();return;}
+  if(!checkPlanLimit('lyrics'))return;
   if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
   const btn=$('simple-lyrics-btn'),sp=$('simple-lyrics-spinner'),ta=$('simple-lyrics');
   const desc=$('simple-prompt').value.trim()||'감성적인 한국 팝송';
@@ -7521,6 +7522,7 @@ $('yt-analyze-btn').addEventListener('click', async () => {
 
     /* AI 가사 생성 버튼 */
     document.getElementById('yt-lyrics-gen-btn').addEventListener('click', async function(){
+      if(!checkPlanLimit('lyrics')){return;}
       const self = this;
       self.disabled = true; self.textContent = '⏳ 가사 생성 중...';
       try{
@@ -7664,6 +7666,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
     toast('AI 작사는 로그인 후 이용할 수 있어요','err',3000);
     return;
   }
+  if(!checkPlanLimit('lyrics'))return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   const sub=$('genre-sub').value||'';
@@ -11360,7 +11363,25 @@ function _doOpenFullPlayer(idx){
   audio.addEventListener('ended',()=>{
     if(genId!==_fpAudioGenId)return;
     _syncAllPlayBtns(false);
-    /* TODO: 자동 다음곡 비활성화 — 인덱스 동기화 해결 후 복원 */
+    /* 자동 다음곡 — audio_url 없는 트랙 스킵 */
+    if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
+      var nqi=_mfPlayQueueIdx+1;
+      if(nqi<_mfPlayQueue.length){
+        _mfPlayQueueIdx=nqi;
+        setTimeout(function(){_mfQueuePlay(nqi);},600);
+      } else {
+        _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+        toast('크리에이터 재생 완료','',2000);
+      }
+    } else {
+      let next=fpCurrentIdx+1;
+      while(next<historyData.length&&!historyData[next]?.audio_url) next++;
+      if(next<historyData.length){
+        setTimeout(()=>_doOpenFullPlayer(next),600);
+      } else {
+        toast('마지막 곡이에요','',2000);
+      }
+    }
   });
   audio.addEventListener('error',(ev)=>{
     if(genId!==_fpAudioGenId)return;
@@ -11446,20 +11467,42 @@ function fpSeekRel(sec){
   fpAudio.currentTime=Math.max(0,Math.min(fpAudio.duration,fpAudio.currentTime+sec));
 }
 
-/* 다음/이전 곡 */
+/* 다음/이전 곡 — audio_url 없는 트랙 스킵 */
 function fpPlayNext(){
   if(fpCurrentIdx<0)return;
-  const next=fpCurrentIdx+1;
+  let next=fpCurrentIdx+1;
+  while(next<historyData.length&&!historyData[next]?.audio_url) next++;
   if(next>=historyData.length){toast('마지막 곡이에요','',1500);return;}
   _doOpenFullPlayer(next);
 }
 function fpPlayPrev(){
   if(fpCurrentIdx<=0){toast('첫 번째 곡이에요','',1500);return;}
-  _doOpenFullPlayer(fpCurrentIdx-1);
+  let prev=fpCurrentIdx-1;
+  while(prev>=0&&!historyData[prev]?.audio_url) prev--;
+  if(prev<0){toast('첫 번째 곡이에요','',1500);return;}
+  _doOpenFullPlayer(prev);
 }
 
-/* 풀플레이어 스와이프 제스처 — 히든 처리 (이전/다음 곡 비활성화) */
-/* TODO: historyData 인덱스 동기화 문제 해결 후 복원 */
+/* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
+(function(){
+  const el=$('fullplayer');
+  if(!el)return;
+  let _fpTX=0,_fpTY=0,_fpTTime=0;
+  el.addEventListener('touchstart',function(e){
+    _fpTX=e.touches[0].clientX;
+    _fpTY=e.touches[0].clientY;
+    _fpTTime=Date.now();
+  },{passive:true});
+  el.addEventListener('touchend',function(e){
+    const dx=_fpTX-e.changedTouches[0].clientX;
+    const dy=_fpTY-e.changedTouches[0].clientY;
+    const dt=Date.now()-_fpTTime;
+    if(dt>400||Math.abs(dx)<70)return;
+    if(Math.abs(dy)>Math.abs(dx))return;
+    if(dx>0) fpPlayNext();
+    else fpPlayPrev();
+  },{passive:true});
+})();
 
 /* ── BPM 실시간 측정 (Web Audio API) ── */
 var _bpmCtx=null,_bpmAnalyser=null,_bpmSource=null,_bpmRafId=0;

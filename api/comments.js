@@ -124,7 +124,6 @@ async function ensureTable() {
         body: JSON.stringify({ query: CREATE_TABLE_SQL }),
       });
       if (sqlRes.ok) {
-        console.log("[comments] table created via rpc");
         _sbAvailable = true;
         return;
       }

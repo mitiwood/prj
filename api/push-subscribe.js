@@ -16,9 +16,8 @@ export default function handler(req, res) {
 
     // 구독 정보를 응답으로 반환 (클라이언트 localStorage에 저장)
     // 실제 서비스에서는 DB에 저장 필요
-    console.log('[Push] New subscriber:', subscription.endpoint.slice(-20), userInfo?.name || 'guest');
-    
-    return res.status(200).json({ 
+
+    return res.status(200).json({
       success: true, 
       message: '푸시 알림이 등록되었습니다',
       endpoint: subscription.endpoint.slice(-30)

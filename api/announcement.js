@@ -72,7 +72,7 @@ async function ensureTable() {
     // 테이블 없으면 SQL로 생성
     const sql = `
       CREATE TABLE IF NOT EXISTS public.announcements (
-        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        id BIGSERIAL PRIMARY KEY,
         title text NOT NULL,
         body text NOT NULL,
         icon text DEFAULT '🎵',

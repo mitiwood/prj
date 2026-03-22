@@ -1699,8 +1699,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, rejected: true });
     }
 
-    console.log(`[TG CMD] from=${fromUser} chat=${chatId} text=${text}`);
-
     /* 명령 파싱: /명령 [인자] 또는 일반 텍스트 */
     let cmd = '', arg = '';
     if (text.startsWith('/')) {
