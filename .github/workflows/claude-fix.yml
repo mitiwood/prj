@@ -141,46 +141,59 @@ jobs:
 
           echo "Found branch: $BRANCH"
 
-          # Create PR
-          PR_URL=$(gh pr create \
-            --head "$BRANCH" \
-            --base main \
-            --title "fix: ${ISSUE_TITLE}" \
-            --body "Closes #${ISSUE_NUM}" 2>&1) || true
+          # Create PR via GitHub REST API (gh cli can fail with token auth)
+          PR_RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls" \
+            -d "{\"title\":\"fix: ${ISSUE_TITLE}\",\"head\":\"${BRANCH}\",\"base\":\"main\",\"body\":\"Closes #${ISSUE_NUM}\"}")
 
-          # If PR already exists, find it
-          if echo "$PR_URL" | grep -q "already exists"; then
-            PR_URL=$(gh pr list --state open --head "$BRANCH" --json url --jq '.[0].url' 2>/dev/null)
+          echo "PR create result: $PR_RESULT"
+
+          PR_NUM=$(echo "$PR_RESULT" | jq -r '.number // empty')
+
+          # If PR already exists (422 error), find it
+          if [ -z "$PR_NUM" ]; then
+            echo "PR create failed, searching existing PRs..."
+            PR_NUM=$(curl -s \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls?state=open&head=${{ github.repository_owner }}:${BRANCH}" \
+              | jq -r '.[0].number // empty')
           fi
-
-          PR_NUM=$(echo "$PR_URL" | grep -oP '\d+$' || echo "")
 
           if [ -z "$PR_NUM" ]; then
             echo "status=no_pr" >> "$GITHUB_OUTPUT"
-            echo "Failed to create PR"
+            echo "Failed to create or find PR"
             exit 0
           fi
 
           echo "pr_num=${PR_NUM}" >> "$GITHUB_OUTPUT"
-          echo "Created PR #${PR_NUM}"
+          echo "Created/Found PR #${PR_NUM}"
 
-          # Auto-merge (squash)
-          MERGE_RESULT=$(gh pr merge "$PR_NUM" --squash --delete-branch 2>&1) || true
+          # Auto-merge (squash) via REST API
+          MERGE_RESULT=$(curl -s -X PUT \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUM}/merge" \
+            -d "{\"merge_method\":\"squash\",\"commit_title\":\"fix: ${ISSUE_TITLE}\"}")
 
-          if echo "$MERGE_RESULT" | grep -qi "merge\|merged"; then
+          echo "Merge result: $MERGE_RESULT"
+
+          MERGED=$(echo "$MERGE_RESULT" | jq -r '.merged // false')
+
+          if [ "$MERGED" = "true" ]; then
             echo "status=merged" >> "$GITHUB_OUTPUT"
             echo "PR #${PR_NUM} merged successfully"
+
+            # Delete branch
+            curl -s -X DELETE \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/${BRANCH}" || true
           else
-            # Try rebase merge as fallback (for conflict cases)
-            MERGE_RESULT2=$(gh pr merge "$PR_NUM" --merge --delete-branch 2>&1) || true
-            if echo "$MERGE_RESULT2" | grep -qi "merge\|merged"; then
-              echo "status=merged" >> "$GITHUB_OUTPUT"
-              echo "PR #${PR_NUM} merged (rebase fallback)"
-            else
-              echo "status=merge_failed" >> "$GITHUB_OUTPUT"
-              echo "merge_error=${MERGE_RESULT}" >> "$GITHUB_OUTPUT"
-              echo "Merge failed: ${MERGE_RESULT}"
-            fi
+            echo "status=merge_failed" >> "$GITHUB_OUTPUT"
+            echo "Merge failed"
           fi
 
       - name: Notify success
