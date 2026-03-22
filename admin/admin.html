@@ -417,17 +417,38 @@ textarea.form-input{line-height:1.5;}
           <h2>💬 댓글 관리</h2>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-acc" onclick="renderCommentsAdmin()" id="cm-refresh-btn">🔄 새로고침</button>
+            <button class="btn" onclick="_cmViewMode='list';_cmApplyFilter()" style="font-size:11px;">📋 리스트</button>
+            <button class="btn" onclick="_cmViewMode='group';_cmApplyFilter()" style="font-size:11px;">📂 그룹</button>
             <button class="btn" onclick="_cmBulkAction('hide')" id="cm-bulk-hide">🙈 선택 숨김</button>
             <button class="btn btn-red" onclick="_cmBulkAction('delete')" id="cm-bulk-del">🗑 선택 삭제</button>
           </div>
         </div>
 
-        <!-- 통계 카드 -->
+        <!-- 인사이트 대시보드 -->
         <div class="stats-grid" style="margin-bottom:12px;">
           <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-val" id="cm-total">0</div><div class="stat-label">전체 댓글</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="cm-today">0</div><div class="stat-label">오늘</div></div>
           <div class="stat-card"><div class="stat-icon">🙈</div><div class="stat-val" id="cm-hidden">0</div><div class="stat-label">숨김</div></div>
-          <div class="stat-card"><div class="stat-icon">🚩</div><div class="stat-val" id="cm-reported">0</div><div class="stat-label">신고</div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="cm-authors">0</div><div class="stat-label">작성자</div></div>
+          <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="cm-tracks-cnt">0</div><div class="stat-label">트랙</div></div>
+          <div class="stat-card"><div class="stat-icon">↩</div><div class="stat-val" id="cm-replies">0</div><div class="stat-label">답글</div></div>
+        </div>
+
+        <!-- 인사이트 차트: 활발한 작성자 + 인기 트랙 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🏆 활발한 작성자 Top 5</div>
+            <div id="cm-top-authors"></div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🔥 댓글 많은 트랙 Top 5</div>
+            <div id="cm-top-tracks"></div>
+          </div>
+        </div>
+        <!-- 일별 추이 -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📊 최근 7일 댓글 추이</div>
+          <div id="cm-daily-chart" style="display:flex;align-items:flex-end;gap:4px;height:60px;"></div>
         </div>
 
         <!-- 필터/검색 -->
@@ -2879,8 +2900,8 @@ async function fetchKieUsage(){
 let _commShowHidden = false; /* 숨김 트랙 표시 토글 */
 let _commAllTracksCache = [];
 
-/* ── 댓글 관리 (고도화) ── */
-var _cmAll=[], _cmFiltered=[], _cmFilter_='all', _cmPage=0, _cmPerPage=30, _cmSelected={}, _cmTrackMap={};
+/* ── 댓글 관리 (고도화 v2) ── */
+var _cmAll=[], _cmFiltered=[], _cmFilter_='all', _cmPage=0, _cmPerPage=30, _cmSelected={}, _cmTrackMap={}, _cmViewMode='group';
 
 async function renderCommentsAdmin(){
   var wrap=document.getElementById('comments-admin-list');if(!wrap)return;
@@ -2906,8 +2927,35 @@ function _cmUpdateStats(){
   document.getElementById('cm-total').textContent=_cmAll.length;
   document.getElementById('cm-today').textContent=_cmAll.filter(function(c){return (c.created_at||'').slice(0,10)===today;}).length;
   document.getElementById('cm-hidden').textContent=_cmAll.filter(function(c){return c.is_hidden;}).length;
-  /* 신고 수는 reports API에서 가져오기 어려우니 댓글 기반 추정 */
-  document.getElementById('cm-reported').textContent=_cmAll.filter(function(c){return c.report_count>0;}).length;
+  /* 고유 작성자 수 */
+  var authors={};_cmAll.forEach(function(c){if(c.author_name)authors[c.author_name+'|'+c.author_provider]=true;});
+  document.getElementById('cm-authors').textContent=Object.keys(authors).length;
+  /* 트랙 수 */
+  var tracks={};_cmAll.forEach(function(c){if(c.track_id)tracks[c.track_id]=true;});
+  document.getElementById('cm-tracks-cnt').textContent=Object.keys(tracks).length;
+  /* 답글 수 */
+  document.getElementById('cm-replies').textContent=_cmAll.filter(function(c){return !!c.parent_id;}).length;
+
+  /* 인사이트: 활발한 작성자 Top 5 */
+  var authorCnt={};_cmAll.forEach(function(c){var k=c.author_name||'익명';authorCnt[k]=(authorCnt[k]||0)+1;});
+  var topAuthors=Object.entries(authorCnt).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var maxA=topAuthors[0]?topAuthors[0][1]:1;
+  var el=document.getElementById('cm-top-authors');
+  if(el)el.innerHTML=topAuthors.map(function(a){var pct=Math.round(a[1]/maxA*100);return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="font-size:11px;color:var(--t2);width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a[0])+'</span><div style="flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));border-radius:3px;"></div></div><span style="font-size:10px;color:var(--t3);width:24px;text-align:right;">'+a[1]+'</span></div>';}).join('');
+
+  /* 인사이트: 댓글 많은 트랙 Top 5 */
+  var trackCnt={};_cmAll.forEach(function(c){if(c.track_id)trackCnt[c.track_id]=(trackCnt[c.track_id]||0)+1;});
+  var topTracks=Object.entries(trackCnt).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var maxT=topTracks[0]?topTracks[0][1]:1;
+  var el2=document.getElementById('cm-top-tracks');
+  if(el2)el2.innerHTML=topTracks.map(function(t){var pct=Math.round(t[1]/maxT*100);var name=_cmTrackMap[t[0]]||t[0].slice(0,12);return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="font-size:11px;color:var(--t2);width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(name)+'</span><div style="flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:3px;"></div></div><span style="font-size:10px;color:var(--t3);width:24px;text-align:right;">'+t[1]+'</span></div>';}).join('');
+
+  /* 일별 추이 차트 (최근 7일) */
+  var dayCnt={};for(var i=6;i>=0;i--){var d=new Date(Date.now()-i*86400000).toISOString().slice(0,10);dayCnt[d]=0;}
+  _cmAll.forEach(function(c){var d=(c.created_at||'').slice(0,10);if(d in dayCnt)dayCnt[d]++;});
+  var days=Object.entries(dayCnt);var maxD=Math.max.apply(null,days.map(function(d){return d[1];}));if(!maxD)maxD=1;
+  var chart=document.getElementById('cm-daily-chart');
+  if(chart)chart.innerHTML=days.map(function(d){var pct=Math.round(d[1]/maxD*100)||2;var label=d[0].slice(5);return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:100%;background:linear-gradient(180deg,var(--acc),var(--acc2));border-radius:4px 4px 0 0;height:'+pct+'%;min-height:2px;transition:height .3s;"></div><span style="font-size:9px;color:var(--t3);">'+label+'</span><span style="font-size:10px;font-weight:700;color:var(--t1);">'+d[1]+'</span></div>';}).join('');
 }
 
 function _cmFilter(f){
@@ -2937,32 +2985,67 @@ function _cmApplyFilter(){
   _cmRenderPagination();
 }
 
+function _cmRenderItem(c){
+  var time=new Date(c.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  var trackTitle=_cmTrackMap[c.track_id]||'알 수 없는 트랙';
+  var hidden=c.is_hidden;
+  var reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
+  var checked=_cmSelected[c.id]?' checked':'';
+  var rowBg=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
+  var provCls={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  var avatar=_isImgUrl(c.author_avatar)?'<img src="'+esc(c.author_avatar)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">':'👤';
+  return'<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:4px;'+rowBg+'" data-cmid="'+c.id+'">'
+    +'<input type="checkbox" onchange="_cmToggleSel(\''+c.id+'\',this.checked)" style="margin-top:6px;cursor:pointer;accent-color:var(--acc);"'+checked+'>'
+    +'<div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;">'+avatar+'</div>'
+    +'<div style="flex:1;min-width:0;">'
+      +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;"><span style="font-weight:700;color:var(--t1);">'+esc(c.author_name||'익명')+'</span><span class="badge '+(provCls[c.author_provider]||'badge-acc')+'" style="font-size:8px;">'+esc(c.author_provider||'guest')+'</span><span style="color:var(--t3);">'+time+'</span>'+(hidden?'<span style="color:var(--red);font-weight:700;font-size:9px;">[숨김]</span>':'')+reply+'</div>'
+      +'<div style="font-size:12px;color:var(--t2);line-height:1.4;word-break:break-word;margin-top:1px;">'+esc(c.content)+'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:3px;flex-shrink:0;">'
+      +'<button class="btn" onclick="toggleCommentAdmin(\''+c.id+'\','+(!hidden)+')" style="font-size:9px;padding:2px 6px;">'+(hidden?'👁':'🙈')+'</button>'
+      +'<button class="btn btn-red" onclick="deleteCommentAdmin(\''+c.id+'\')" style="font-size:9px;padding:2px 6px;">🗑</button>'
+    +'</div></div>';
+}
+
 function _cmRenderList(){
   var wrap=document.getElementById('comments-admin-list');if(!wrap)return;
+  if(!_cmFiltered.length){wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">표시할 댓글이 없습니다.</div>';return;}
+
+  /* 그룹 모드: 트랙별 접이식 그룹 */
+  if(_cmViewMode==='group'){
+    var groups={},order=[];
+    _cmFiltered.forEach(function(c){
+      var tid=c.track_id||'_none';
+      if(!groups[tid]){groups[tid]=[];order.push(tid);}
+      groups[tid].push(c);
+    });
+    wrap.innerHTML=order.map(function(tid){
+      var items=groups[tid];
+      var title=_cmTrackMap[tid]||'알 수 없는 트랙';
+      var hiddenCnt=items.filter(function(c){return c.is_hidden;}).length;
+      var replyCnt=items.filter(function(c){return !!c.parent_id;}).length;
+      var latest=items[0]?new Date(items[0].created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      return '<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">'
+        +'<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.cm-g-arrow\').textContent=this.nextElementSibling.style.display===\'none\'?\'▸\':\'▾\'" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);cursor:pointer;user-select:none;">'
+          +'<span class="cm-g-arrow" style="font-size:12px;color:var(--t3);width:12px;">▾</span>'
+          +'<span style="font-size:13px;font-weight:700;color:var(--t1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🎵 '+esc(title)+'</span>'
+          +'<span style="font-size:11px;color:var(--acc);font-weight:700;">'+items.length+'개</span>'
+          +(replyCnt?'<span style="font-size:10px;color:var(--t3);">↩'+replyCnt+'</span>':'')
+          +(hiddenCnt?'<span style="font-size:10px;color:var(--red);">🙈'+hiddenCnt+'</span>':'')
+          +'<span style="font-size:10px;color:var(--t3);">'+latest+'</span>'
+        +'</div>'
+        +'<div style="padding:6px 10px;background:var(--bg2);">'
+          +items.map(function(c){return _cmRenderItem(c);}).join('')
+        +'</div></div>';
+    }).join('');
+    return;
+  }
+
+  /* 리스트 모드: 기존 페이지네이션 */
   var start=_cmPage*_cmPerPage;
   var page=_cmFiltered.slice(start,start+_cmPerPage);
-  if(!page.length){wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">표시할 댓글이 없습니다.</div>';return;}
-  var provCls={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
   wrap.innerHTML=page.map(function(c){
-    var time=new Date(c.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-    var trackTitle=_cmTrackMap[c.track_id]||'알 수 없는 트랙';
-    var hidden=c.is_hidden;
-    var reply=c.parent_id?'<span style="color:var(--acc);font-size:10px;"> ↩답글</span>':'';
-    var checked=_cmSelected[c.id]?' checked':'';
-    var rowBg=hidden?'opacity:0.5;background:rgba(255,69,96,.03);':'';
-    var avatar=_isImgUrl(c.author_avatar)?'<img src="'+esc(c.author_avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\'👤\'">':'👤';
-    return'<div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;'+rowBg+'" data-cmid="'+c.id+'">'
-      +'<input type="checkbox" onchange="_cmToggleSel(\''+c.id+'\',this.checked)" style="margin-top:8px;cursor:pointer;accent-color:var(--acc);"'+checked+'>'
-      +'<div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;">'+avatar+'</div>'
-      +'<div style="flex:1;min-width:0;">'
-        +'<div style="font-size:11px;color:var(--t3);">🎵 '+esc(trackTitle)+' · '+time+(hidden?' <span style="color:var(--red);font-weight:700;">[숨김]</span>':'')+reply+'</div>'
-        +'<div style="font-size:12px;font-weight:700;color:var(--t1);margin:2px 0;">'+esc(c.author_name||'익명')+' <span class="badge '+(provCls[c.author_provider]||'badge-acc')+'" style="font-size:9px;">'+esc(c.author_provider||'guest')+'</span></div>'
-        +'<div style="font-size:13px;color:var(--t2);line-height:1.5;word-break:break-word;">'+esc(c.content)+'</div>'
-      +'</div>'
-      +'<div style="display:flex;gap:4px;flex-shrink:0;flex-direction:column;">'
-        +'<button class="btn" onclick="toggleCommentAdmin(\''+c.id+'\','+(!hidden)+')" style="font-size:10px;padding:3px 8px;">'+(hidden?'👁 공개':'🙈 숨김')+'</button>'
-        +'<button class="btn btn-red" onclick="deleteCommentAdmin(\''+c.id+'\')" style="font-size:10px;padding:3px 8px;">🗑 삭제</button>'
-      +'</div></div>';
+    return '<div style="font-size:11px;color:var(--t3);margin-bottom:2px;">🎵 '+esc(_cmTrackMap[c.track_id]||'알 수 없는 트랙')+'</div>'+_cmRenderItem(c);
   }).join('');
 }
 
