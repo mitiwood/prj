@@ -1,7 +1,7 @@
-/* ── KMS Service Worker v2 — Offline Cache + Push Handler ── */
+/* ── KMS Service Worker v3 — Offline Cache + Push Handler ── */
 
-const STATIC_CACHE = 'kms-static-v2';
-const RUNTIME_CACHE = 'kms-runtime-v2';
+const STATIC_CACHE = 'kms-static-v3';
+const RUNTIME_CACHE = 'kms-runtime-v3';
 const VALID_CACHES = [STATIC_CACHE, RUNTIME_CACHE];
 
 const STATIC_ASSETS = [
