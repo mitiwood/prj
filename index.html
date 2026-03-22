@@ -12576,16 +12576,13 @@ function fpAddToPlaylist(){
   const h=historyData[fpCurrentIdx];
   if(!h){toast('곡 정보 없음','err');return;}
   if(!currentUser){toast('로그인이 필요해요','err',2000);return;}
-  let sheet=document.getElementById('fp-pl-sheet');
-  if(sheet)sheet.remove();
-  sheet=document.createElement('div');
-  sheet.id='fp-pl-sheet';
-  /* iOS: transform된 fullplayer 내부에서 position:fixed 미작동 → absolute+fullplayer 내부 배치 */
-  var _fpOn=$('fullplayer')?.classList.contains('on');
-  sheet.style.cssText='position:'+(_fpOn?'absolute':'fixed')+';top:0;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  /* iOS Safari: fullplayer에 transform+will-change가 있어 position:fixed 작동 불가
+     → fullplayer 내부에 미리 배치된 #fp-sheet-container 사용 */
+  var container=$('fp-sheet-container');
+  if(!container){toast('시스템 오류','err');return;}
   const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
-  sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'fp-pl-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;">'
+  container.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;" onclick="_fpClosePlSheet()">'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -12593,15 +12590,14 @@ function fpAddToPlaylist(){
     +'<div style="font-size:12px;color:var(--t3);margin-top:2px;">'+esc((h.tags||'').split(',')[0]?.trim()||'')+'</div></div></div>'
     +'<div style="font-size:13px;color:var(--t2);margin-bottom:16px;">이 곡을 내 플레이리스트에 추가할까요?</div>'
     +'<div style="display:flex;gap:8px;">'
-    +'<button onclick="document.getElementById(\'fp-pl-sheet\').remove()" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
-    +'<button id="fp-pl-confirm-btn" onclick="_fpDoAddPlaylist()" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">추가하기</button>'
-    +'</div></div>';
-  if(_fpOn){
-    var fp=$('fullplayer');fp.style.overflow='visible';fp.appendChild(sheet);
-    /* 시트 닫힐 때 overflow 복원 */
-    var _obs=new MutationObserver(function(){if(!document.getElementById('fp-pl-sheet')){fp.style.overflow='';_obs.disconnect();}});
-    _obs.observe(fp,{childList:true});
-  } else { document.body.appendChild(sheet); }
+    +'<button onclick="_fpClosePlSheet()" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
+    +'<button onclick="_fpDoAddPlaylist()" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">추가하기</button>'
+    +'</div></div></div>';
+  container.style.display='block';
+}
+function _fpClosePlSheet(){
+  var c=$('fp-sheet-container');
+  if(c){c.style.display='none';c.innerHTML='';}
 }
 function _fpDoAddPlaylist(){
   const h=historyData[fpCurrentIdx];
@@ -12612,7 +12608,7 @@ function _fpDoAddPlaylist(){
   var id=h.id||h._sbId||h.taskId||'';
   if(pl.some(function(p){return p.id===id;})){
     toast('이미 플레이리스트에 있어요','',1500);
-    var sheet=document.getElementById('fp-pl-sheet');if(sheet)sheet.remove();
+    _fpClosePlSheet();
     return;
   }
   pl.unshift({id:id,title:h.title||'무제',audio_url:h.audio_url||'',image_url:h.image_url||'',tags:h.tags||'',added:Date.now()});
