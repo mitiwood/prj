@@ -1128,7 +1128,33 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .comm-suggest-btn:hover{background:var(--acc);color:#fff;}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card{box-shadow:0 2px 12px rgba(0,0,0,.06);}
 [data-theme="light"] .hist-view-grid.full-mode .hist-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);}
-/* ═══ 미니플레이어/프로필/챌린지/다운로드/테마 고도화 ═══ */
+/* ═══ 단축키/위젯/시각화/가사편집/공유카드 ═══ */
+#shortcut-help{position:fixed;inset:0;z-index:100004;display:none;background:rgba(0,0,0,.7);align-items:center;justify-content:center;}
+#shortcut-help.on{display:flex;}
+.shortcut-panel{background:var(--card);border-radius:20px;padding:24px;max-width:360px;width:90%;max-height:80vh;overflow-y:auto;}
+.shortcut-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.shortcut-key kbd{padding:2px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--t1);font-family:monospace;}
+.shortcut-desc{font-size:12px;color:var(--t2);}
+.home-widgets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.home-widget{padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;text-align:center;}
+.home-widget:hover{border-color:var(--acc);transform:translateY(-2px);}
+.home-widget-icon{font-size:24px;margin-bottom:6px;}
+.home-widget-label{font-size:11px;font-weight:700;color:var(--t1);}
+.home-widget-sub{font-size:9px;color:var(--t3);margin-top:2px;}
+.spectrum-bars{display:flex;align-items:flex-end;gap:1px;height:40px;justify-content:center;margin:8px 0;}
+.spectrum-bar{width:3px;background:linear-gradient(to top,var(--acc),var(--acc2));border-radius:1px;transition:height 80ms ease-out;}
+.lyrics-edit-toolbar{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.lyrics-edit-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:3px;}
+.lyrics-edit-btn:hover{border-color:var(--acc);color:var(--acc);}
+.lyrics-analysis{padding:10px;border-radius:10px;background:var(--bg2);margin-top:8px;font-size:11px;color:var(--t2);line-height:1.6;}
+.share-card-preview{width:100%;aspect-ratio:1.91/1;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#1a0537,#2d1a5a);position:relative;margin-bottom:12px;}
+.share-card-preview .scp-title{position:absolute;bottom:20px;left:16px;right:16px;font-size:16px;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+.share-card-preview .scp-artist{position:absolute;bottom:6px;left:16px;font-size:11px;color:rgba(255,255,255,.7);}
+.share-card-preview img{width:100%;height:100%;object-fit:cover;opacity:.7;}
+.share-card-styles{display:flex;gap:6px;margin-bottom:10px;}
+.share-card-style{width:48px;height:28px;border-radius:6px;border:2px solid transparent;cursor:pointer;overflow:hidden;transition:border-color .15s;}
+.share-card-style.on{border-color:var(--acc);}
+/* ═══ 미니플레이어/프로필/챌린지/다운로드/테마 ═══ */
 .mp-queue-btn{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:4px;display:flex;align-items:center;}
 #queue-sheet{position:fixed;inset:0;z-index:100003;display:none;background:rgba(0,0,0,.6);}
 #queue-sheet.on{display:block;}
@@ -2529,9 +2555,9 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 /* ══════════════════════════════
    SHARE SHEET
 ══════════════════════════════ */
-#share-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10500;display:none;}
+#share-sheet{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10500;display:none;}
 #share-sheet.on{display:block;}
-.share-backdrop{position:absolute;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);}
+.share-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
 .share-panel{
   position:absolute;bottom:0;left:50%;transform:translateX(-50%);
   width:100%;max-width:480px;
@@ -12488,10 +12514,12 @@ function fpAddToPlaylist(){
   if(sheet)sheet.remove();
   sheet=document.createElement('div');
   sheet.id='fp-pl-sheet';
-  sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
+  /* iOS: transform된 fullplayer 내부에서 position:fixed 미작동 → absolute+fullplayer 내부 배치 */
+  var _fpOn=$('fullplayer')?.classList.contains('on');
+  sheet.style.cssText='position:'+(_fpOn?'absolute':'fixed')+';top:0;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
   const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'fp-pl-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
+    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -12502,7 +12530,12 @@ function fpAddToPlaylist(){
     +'<button onclick="document.getElementById(\'fp-pl-sheet\').remove()" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
     +'<button id="fp-pl-confirm-btn" onclick="_fpDoAddPlaylist()" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">추가하기</button>'
     +'</div></div>';
-  document.body.appendChild(sheet);
+  if(_fpOn){
+    var fp=$('fullplayer');fp.style.overflow='visible';fp.appendChild(sheet);
+    /* 시트 닫힐 때 overflow 복원 */
+    var _obs=new MutationObserver(function(){if(!document.getElementById('fp-pl-sheet')){fp.style.overflow='';_obs.disconnect();}});
+    _obs.observe(fp,{childList:true});
+  } else { document.body.appendChild(sheet); }
 }
 function _fpDoAddPlaylist(){
   const h=historyData[fpCurrentIdx];
@@ -13647,7 +13680,7 @@ function _mfOpenTrackMenu(idx){
   if(sheet) sheet.remove();
   sheet=document.createElement('div');
   sheet.id='mf-trk-sheet';
-  sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
+  sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   var imgHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:24px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'mf-trk-sheet\').remove()"></div>'
     +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
