@@ -402,6 +402,8 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="tstat-loggedin">0</div><div class="stat-label">로그인 생성</div></div>
           <div class="stat-card"><div class="stat-icon">🕵️</div><div class="stat-val" id="tstat-guest">0</div><div class="stat-label">게스트 생성</div></div>
           <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="tstat-mv">0</div><div class="stat-label">MV 포함</div></div>
+          <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="tstat-likes">0</div><div class="stat-label">총 좋아요</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="tstat-today">0</div><div class="stat-label">오늘 생성</div></div>
         </div>
         <div class="admin-table-wrap">
           <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>생성자</th><th>모드</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
@@ -605,28 +607,25 @@ textarea.form-input{line-height:1.5;}
         <div class="sec-hdr"><h2>🚩 신고 관리</h2><p>Supabase 실시간 연동 — 신고 접수 현황 및 처리</p></div>
         <!-- 필터 탭 -->
         <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">
-          <button class="btn btn-acc" id="rpt-tab-pending" onclick="_rptFilter('pending')">대기중</button>
-          <button class="btn" id="rpt-tab-resolved" onclick="_rptFilter('resolved')">처리됨</button>
-          <button class="btn" id="rpt-tab-ignored" onclick="_rptFilter('ignored')">무시됨</button>
+          <button class="btn btn-acc" id="rpt-tab-pending" onclick="_rptFilter('pending')">🔴 대기중</button>
+          <button class="btn" id="rpt-tab-resolved" onclick="_rptFilter('resolved')">✅ 처리됨</button>
+          <button class="btn" id="rpt-tab-ignored" onclick="_rptFilter('ignored')">⏭ 무시됨</button>
           <button class="btn" id="rpt-tab-all" onclick="_rptFilter('all')">전체</button>
           <div style="flex:1;"></div>
+          <input class="table-search" id="rpt-search" placeholder="신고 사유 검색..." oninput="_renderReports()" style="width:160px;">
           <button class="btn" onclick="loadReportsFromDB()" title="새로고침">🔄</button>
         </div>
         <!-- 통계 -->
-        <div style="display:flex;gap:12px;margin-bottom:16px;" id="rpt-stats">
-          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
-            <div style="font-size:22px;font-weight:800;color:#ef4444;" id="rpt-cnt-pending">0</div>
-            <div style="font-size:11px;color:var(--t3);">대기중</div>
-          </div>
-          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
-            <div style="font-size:22px;font-weight:800;color:#22c55e;" id="rpt-cnt-resolved">0</div>
-            <div style="font-size:11px;color:var(--t3);">처리됨</div>
-          </div>
-          <div style="flex:1;background:var(--card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
-            <div style="font-size:22px;font-weight:800;color:var(--t3);" id="rpt-cnt-ignored">0</div>
-            <div style="font-size:11px;color:var(--t3);">무시됨</div>
-          </div>
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card" style="border-left:3px solid #ef4444;"><div class="stat-icon">🔴</div><div class="stat-val" id="rpt-cnt-pending" style="color:#ef4444;">0</div><div class="stat-label">대기중</div></div>
+          <div class="stat-card" style="border-left:3px solid #22c55e;"><div class="stat-icon">✅</div><div class="stat-val" id="rpt-cnt-resolved" style="color:#22c55e;">0</div><div class="stat-label">처리됨</div></div>
+          <div class="stat-card" style="border-left:3px solid var(--t3);"><div class="stat-icon">⏭</div><div class="stat-val" id="rpt-cnt-ignored">0</div><div class="stat-label">무시됨</div></div>
+          <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val" id="rpt-cnt-total">0</div><div class="stat-label">전체</div></div>
         </div>
+        <!-- 유형별 분포 바 -->
+        <div style="display:flex;gap:0;height:6px;border-radius:3px;overflow:hidden;margin-bottom:8px;" id="rpt-type-bar"></div>
+        <div style="display:flex;gap:12px;margin-bottom:16px;font-size:11px;color:var(--t3);" id="rpt-type-legend"></div>
+
         <div id="reports-empty" style="text-align:center;padding:48px;color:var(--t3);">
           <div style="font-size:32px;margin-bottom:12px;">✅</div>
           <div style="font-weight:700;">처리할 신고가 없습니다</div>
@@ -977,7 +976,7 @@ textarea.form-input{line-height:1.5;}
         </div>
         <div id="ch-empty" style="text-align:center;padding:32px;color:var(--t3);"><div style="font-size:28px;margin-bottom:8px;">🔥</div>활성 챌린지가 없습니다</div>
         <div class="admin-table-wrap" id="ch-table" style="display:none;">
-          <table><thead><tr><th>아이콘</th><th>제목</th><th>테마</th><th>종료일</th><th>상태</th><th>관리</th></tr></thead>
+          <table><thead><tr><th>아이콘</th><th>제목</th><th>테마</th><th>참여</th><th>종료일</th><th>상태</th><th>관리</th></tr></thead>
           <tbody id="ch-tbody"></tbody></table>
         </div>
       </div>
@@ -1308,28 +1307,30 @@ textarea.form-input{line-height:1.5;}
         </div>
 
         <!-- 테이블 목록 + 행 수 -->
-        <div class="stats-grid" style="margin-bottom:20px;" id="db-stats-grid">
+        <div class="stats-grid" style="margin-bottom:16px;" id="db-stats-grid">
           <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="db-tracks-count">-</div><div class="stat-label">tracks</div></div>
           <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="db-users-count">-</div><div class="stat-label">users</div></div>
           <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-val" id="db-comments-count">-</div><div class="stat-label">comments</div></div>
           <div class="stat-card"><div class="stat-icon">📣</div><div class="stat-val" id="db-announcements-count">-</div><div class="stat-label">announcements</div></div>
+          <div class="stat-card"><div class="stat-icon">🚩</div><div class="stat-val" id="db-reports-count">-</div><div class="stat-label">reports</div></div>
+          <div class="stat-card"><div class="stat-icon">🤝</div><div class="stat-val" id="db-follows-count">-</div><div class="stat-label">follows</div></div>
+          <div class="stat-card"><div class="stat-icon">💳</div><div class="stat-val" id="db-payments-count">-</div><div class="stat-label">payments</div></div>
+          <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="db-notifications-count">-</div><div class="stat-label">notifications</div></div>
         </div>
+
+        <!-- 데이터 분포 바 -->
+        <div style="display:flex;gap:0;height:10px;border-radius:5px;overflow:hidden;margin-bottom:8px;" id="db-dist-bar"></div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;font-size:11px;color:var(--t3);flex-wrap:wrap;" id="db-dist-legend"></div>
 
         <!-- 테이블 상태 -->
         <div class="admin-table-wrap" style="margin-bottom:16px;">
           <div class="admin-table-header"><h3>📋 Supabase 테이블 상태</h3></div>
           <table>
-            <thead><tr><th>테이블</th><th>상태</th><th>행 수</th><th>용도</th></tr></thead>
+            <thead><tr><th>테이블</th><th>상태</th><th>행 수</th><th>비율</th><th>스키마</th><th>용도</th></tr></thead>
             <tbody id="db-tables-tbody">
-              <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--t3);">로딩 중...</td></tr>
+              <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--t3);">로딩 중...</td></tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- DB 용량/사용량 -->
-        <div class="chart-card" style="margin-bottom:16px;">
-          <h4>📊 데이터 사용량</h4>
-          <div class="bar-chart" id="db-usage-chart" style="margin-top:12px;"></div>
         </div>
 
         <!-- Supabase 바로가기 -->
@@ -2449,10 +2450,15 @@ async function renderTracksAdmin(){
   const loggedIn = h.filter(t => t._owner && t._owner.provider !== 'guest').length;
   const guest = h.filter(t => !t._owner || t._owner.provider === 'guest').length;
   const mv = h.filter(t => t.video_url).length;
+  const totalLikes = h.reduce((s,t)=>s+(t._commLikes||0),0);
+  const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+  const todayTracks = h.filter(t=>t.created&&new Date(t.created)>=todayDate).length;
   const ts = document.getElementById('tstat-total');    if(ts) ts.textContent = h.length;
   const tl = document.getElementById('tstat-loggedin'); if(tl) tl.textContent = loggedIn;
   const tg = document.getElementById('tstat-guest');    if(tg) tg.textContent = guest;
   const tm = document.getElementById('tstat-mv');       if(tm) tm.textContent = mv;
+  const tlk = document.getElementById('tstat-likes');   if(tlk) tlk.textContent = totalLikes;
+  const ttd = document.getElementById('tstat-today');   if(ttd) ttd.textContent = todayTracks;
   renderTracksTable(h);
 }
 const PAGE_SIZE = 50; /* 한 번에 렌더할 행 수 */
@@ -2496,7 +2502,7 @@ function _appendTrackRows(tbody, fromIdx){
     const tr=document.createElement('tr');
     tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
-      +'<td class="td-title">'+esc(t.title||'무제')+'</td>'
+      +'<td class="td-title" style="cursor:pointer;color:var(--acc);" onclick="_trackDetail('+i+')">'+esc(t.title||'무제')+'<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️'+(t._commLikes||0)+'</div></td>'
       +'<td>'+ownerBadge+'</td>'
       +'<td><span class="badge badge-acc">'+(t.genMode||'custom')+'</span></td>'
       +'<td><span class="badge '+(t.audio_url?'badge-grn':'badge-red')+'">'+(t.audio_url?'있음':'없음')+'</span></td>'
@@ -2522,6 +2528,50 @@ function _appendTrackRows(tbody, fromIdx){
 function _loadMoreTracks(){
   const tbody=document.getElementById('tracks-tbody');
   if(tbody) _appendTrackRows(tbody, _trackPage);
+}
+/* 트랙 상세 모달 */
+function _trackDetail(idx){
+  const t=_trackListForRender[idx];if(!t)return;
+  const owner=t._owner;
+  const isGuest=!owner||owner.provider==='guest';
+  const ownerName=isGuest?'게스트':(owner.name||'?');
+  const ownerProv=isGuest?'':(owner.provider||'');
+  const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'뮤직비디오'}[t.genMode]||t.genMode||'custom';
+  const hasAudio=!!t.audio_url;
+  const hasVideo=!!t.video_url;
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  modal.onclick=e=>{if(e.target===modal){modal.querySelector('audio')?.pause();modal.remove();}};
+  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:500px;max-width:92vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:800;">🎵 트랙 상세</h3>
+      <button onclick="this.closest('div[style*=fixed]').querySelector('audio')?.pause();this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:20px;">
+      <div style="width:80px;height:80px;border-radius:12px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;">
+        ${t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'🎵'}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:16px;font-weight:800;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.title||'무제')}</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:6px;">${!isGuest?'👤 '+esc(ownerName)+' ('+ownerProv+')':'🕵️ 게스트'} · <span class="badge badge-acc" style="font-size:10px;">${modeLabel}</span></div>
+        <div style="font-size:11px;color:var(--t3);">${timeStr}</div>
+      </div>
+    </div>
+    ${hasAudio?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:16px;"><div style="font-size:11px;color:var(--t3);margin-bottom:6px;">오디오 프리뷰</div><audio controls preload="metadata" style="width:100%;height:36px;border-radius:6px;" src="'+esc(t.audio_url)+'"></audio></div>':''}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#ef4444;">❤️ ${t._commLikes||0}</div><div style="font-size:10px;color:var(--t3);">좋아요</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;">${hasVideo?'🎬 있음':'—'}</div><div style="font-size:10px;color:var(--t3);">뮤직비디오</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;">${t._commRating?'⭐'.repeat(t._commRating):'—'}</div><div style="font-size:10px;color:var(--t3);">평점</div></div>
+    </div>
+    ${t.tags?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">태그</div><div style="font-size:12px;display:flex;flex-wrap:wrap;gap:4px;">'+t.tags.split(',').map(tag=>'<span style="background:rgba(168,85,247,.15);color:var(--acc);padding:2px 8px;border-radius:6px;font-size:11px;">'+esc(tag.trim())+'</span>').join('')+'</div></div>':''}
+    ${t.lyrics?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">가사</div><div style="font-size:12px;color:var(--t2);max-height:120px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;">'+esc(t.lyrics.slice(0,500))+(t.lyrics.length>500?'...':'')+'</div></div>':''}
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-red" onclick="deleteTrackByIdx(${idx});this.closest('div[style*=fixed]').remove();" style="flex:1;">🗑 삭제</button>
+      ${!isGuest?'<button class="btn" onclick="_showUserDetail(\''+esc(ownerName)+'\',\''+esc(ownerProv)+'\');this.closest(\'div[style*=fixed]\').remove();" style="flex:1;">👤 소유자 보기</button>':''}
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
 }
 function filterTracks(){
   const q=(document.getElementById('track-search')?.value||'').toLowerCase();
@@ -4464,45 +4514,92 @@ function _renderReports(){
   const empty = document.getElementById('reports-empty');
   const table = document.getElementById('reports-table');
   if(!tbody) return;
-  // 통계
   const pending = _rptData.filter(r=>r.status==='pending').length;
   const resolved = _rptData.filter(r=>r.status==='resolved').length;
   const ignored = _rptData.filter(r=>r.status==='ignored').length;
-  const pe = document.getElementById('rpt-cnt-pending'); if(pe) pe.textContent = pending;
-  const re = document.getElementById('rpt-cnt-resolved'); if(re) re.textContent = resolved;
-  const ig = document.getElementById('rpt-cnt-ignored'); if(ig) ig.textContent = ignored;
-  // 대시보드 stat 업데이트
-  const statR = document.getElementById('stat-reports'); if(statR) statR.textContent = pending;
-  // 필터
-  const filtered = _rptCurrentFilter==='all' ? _rptData : _rptData.filter(r=>r.status===_rptCurrentFilter);
+  const _s=id=>{const e=document.getElementById(id);if(e)e.textContent=arguments[1]!==undefined?arguments[1]:'';return e;};
+  _s('rpt-cnt-pending',pending);_s('rpt-cnt-resolved',resolved);_s('rpt-cnt-ignored',ignored);
+  const totalEl=document.getElementById('rpt-cnt-total');if(totalEl)totalEl.textContent=_rptData.length;
+  const statR=document.getElementById('stat-reports');if(statR)statR.textContent=pending;
+
+  /* 유형별 분포 바 */
+  const typeCnt={track:0,comment:0,user:0};
+  _rptData.forEach(r=>{const t=r.target_type||'user';typeCnt[t]=(typeCnt[t]||0)+1;});
+  const typeColors={track:'var(--acc)',comment:'#f59e0b',user:'#ef4444'};
+  const typeLabels={track:'트랙',comment:'댓글',user:'사용자'};
+  const barEl=document.getElementById('rpt-type-bar');
+  if(barEl&&_rptData.length) barEl.innerHTML=Object.entries(typeCnt).filter(e=>e[1]>0).map(([t,c])=>'<div style="flex:'+c+';background:'+typeColors[t]+'"></div>').join('');
+  const legEl=document.getElementById('rpt-type-legend');
+  if(legEl&&_rptData.length) legEl.innerHTML=Object.entries(typeCnt).filter(e=>e[1]>0).map(([t,c])=>'<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+typeColors[t]+';margin-right:3px;"></span>'+typeLabels[t]+' '+c+'건</span>').join('');
+
+  /* 필터 + 검색 */
+  let filtered = _rptCurrentFilter==='all' ? [..._rptData] : _rptData.filter(r=>r.status===_rptCurrentFilter);
+  const sq=(document.getElementById('rpt-search')?.value||'').toLowerCase();
+  if(sq) filtered=filtered.filter(r=>(r.reason||'').toLowerCase().includes(sq)||(r.reporter_name||'').toLowerCase().includes(sq)||(r.target_id||'').toLowerCase().includes(sq));
+
   if(!filtered.length){
-    if(empty) empty.style.display='block';
-    if(table) table.style.display='none';
-    return;
+    if(empty) empty.style.display='block';if(table) table.style.display='none';return;
   }
-  if(empty) empty.style.display='none';
-  if(table) table.style.display='block';
-  const typeBadge = t => t==='track'?'<span class="badge badge-acc">트랙</span>':t==='comment'?'<span class="badge badge-ylw">댓글</span>':'<span class="badge badge-red">사용자</span>';
-  const statusBadge = s => s==='pending'?'<span class="badge badge-red">대기</span>':s==='resolved'?'<span class="badge badge-grn">처리됨</span>':'<span class="badge badge-ylw">무시</span>';
+  if(empty) empty.style.display='none';if(table) table.style.display='block';
+  const typeBadge=t=>t==='track'?'<span class="badge badge-acc">트랙</span>':t==='comment'?'<span class="badge badge-ylw">댓글</span>':'<span class="badge badge-red">사용자</span>';
+  const statusBadge=s=>s==='pending'?'<span class="badge badge-red">대기</span>':s==='resolved'?'<span class="badge badge-grn">처리됨</span>':'<span class="badge badge-ylw">무시</span>';
   tbody.innerHTML = filtered.map(r=>{
-    const d = r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
-    const tid = esc(r.target_id||'');
-    const shortId = tid.length>16 ? tid.slice(0,16)+'...' : tid;
-    const isPending = r.status==='pending';
-    return `<tr>
+    const d=r.created_at?new Date(r.created_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+    const tid=esc(r.target_id||'');
+    const shortId=tid.length>16?tid.slice(0,16)+'...':tid;
+    const isPending=r.status==='pending';
+    return `<tr style="cursor:pointer;" onclick="_rptDetail(${r.id})">
       <td>${typeBadge(r.target_type)}</td>
       <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${tid}">${shortId}</td>
       <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.reason||'사유 없음')}</td>
       <td style="font-size:12px;">${esc(r.reporter_name||'익명')}</td>
       <td style="font-size:11px;color:var(--t3);">${d}</td>
       <td>${statusBadge(r.status)}</td>
-      <td style="white-space:nowrap;">${isPending?`
-        <button class="btn btn-acc" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'resolved')">처리</button>
-        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'ignored')">무시</button>
-        <button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_rptDelete(${r.id})" title="삭제">🗑</button>
-      `:`<button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_rptDelete(${r.id})" title="삭제">🗑</button>`}</td>
+      <td style="white-space:nowrap;" onclick="event.stopPropagation()">${isPending?`
+        <button class="btn btn-acc" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'resolved')">✅ 처리</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;margin-right:4px;" onclick="_rptAction(${r.id},'ignored')">⏭ 무시</button>
+      `:`<button class="btn" style="padding:4px 10px;font-size:11px;color:#ef4444;" onclick="_rptDelete(${r.id})">🗑</button>`}</td>
     </tr>`;
   }).join('');
+}
+/* 신고 상세 모달 */
+function _rptDetail(id){
+  const r=_rptData.find(x=>x.id===id);if(!r)return;
+  const typeBadge=t=>t==='track'?'🎵 트랙':t==='comment'?'💬 댓글':'👤 사용자';
+  const statusLabel=s=>s==='pending'?'🔴 대기중':s==='resolved'?'✅ 처리됨':'⏭ 무시됨';
+  const d=r.created_at?new Date(r.created_at).toLocaleString('ko-KR',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  const isPending=r.status==='pending';
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:440px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:800;">🚩 신고 상세</h3>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;">유형</div><div style="font-size:14px;font-weight:700;">${typeBadge(r.target_type)}</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;">상태</div><div style="font-size:14px;font-weight:700;">${statusLabel(r.status)}</div></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px;">대상 ID</div>
+      <div style="font-size:13px;font-weight:600;word-break:break-all;">${esc(r.target_id||'-')}</div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px;">신고 사유</div>
+      <div style="font-size:13px;line-height:1.6;">${esc(r.reason||'사유 없음')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;">신고자</div><div style="font-size:13px;font-weight:600;">${esc(r.reporter_name||'익명')} <span style="font-size:11px;color:var(--t3);">${esc(r.reporter_provider||'')}</span></div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;">신고일</div><div style="font-size:13px;">${d}</div></div>
+    </div>
+    ${isPending?`<div style="display:flex;gap:8px;">
+      <button class="btn btn-acc" onclick="_rptAction(${r.id},'resolved');this.closest('div[style*=fixed]').remove();" style="flex:1;padding:12px;">✅ 처리 완료</button>
+      <button class="btn" onclick="_rptAction(${r.id},'ignored');this.closest('div[style*=fixed]').remove();" style="flex:1;padding:12px;">⏭ 무시</button>
+      <button class="btn btn-red" onclick="_rptDelete(${r.id});this.closest('div[style*=fixed]').remove();" style="padding:12px;">🗑</button>
+    </div>`:'<div style="text-align:center;color:var(--t3);font-size:12px;">이미 처리된 신고입니다</div>'}
+  </div>`;
+  document.body.appendChild(modal);
 }
 async function _rptAction(id, status){
   try{
@@ -4571,14 +4668,16 @@ async function _loadChallengesAdmin(){
     tbody.innerHTML=chs.map(c=>{
       const endStr=c.end_at?new Date(c.end_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'무기한';
       const statusBadge=c.active?'<span class="badge badge-grn">활성</span>':'<span class="badge badge-red">비활성</span>';
+      const isExpired=c.end_at&&new Date(c.end_at)<new Date();
+      const partCount=c.submission_count||c.participant_count||0;
       return `<tr onclick="_openChallengeDetail(${c.id})" style="cursor:pointer;">
         <td style="font-size:20px;text-align:center;">${esc(c.icon||'🔥')}</td>
-        <td class="td-title">${esc(c.title)}</td>
+        <td class="td-title" style="font-weight:700;">${esc(c.title)}<div style="font-size:10px;color:var(--t3);font-weight:400;">${esc(c.description||'').slice(0,30)}</div></td>
         <td><span class="badge badge-acc">#${esc(c.theme||'')}</span></td>
-        <td style="font-size:11px;color:var(--t3);">${endStr}</td>
+        <td style="text-align:center;font-weight:700;color:var(--acc);">${partCount}<span style="font-size:9px;color:var(--t3);font-weight:400;">곡</span></td>
+        <td style="font-size:11px;color:${isExpired?'var(--red)':'var(--t3)'};">${endStr}${isExpired?' (만료)':''}</td>
         <td>${statusBadge}</td>
         <td style="white-space:nowrap;" onclick="event.stopPropagation();">
-          <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="_openChallengeDetail(${c.id})">상세</button>
           <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="_toggleChallenge(${c.id},${!c.active})">${c.active?'비활성':'활성화'}</button>
           <button class="btn btn-red" style="padding:4px 10px;font-size:11px;" onclick="_deleteChallenge(${c.id})">삭제</button>
         </td>
@@ -5381,73 +5480,62 @@ function clearClaudeLog(){
 async function loadDatabaseInfo(){
   const el = id => document.getElementById(id);
   const tableInfo = [
-    { name:'tracks',        icon:'🎵', desc:'음악 트랙',       api:'/api/tracks?limit=500' },
-    { name:'users',         icon:'👥', desc:'사용자 + 매니저', api:'/api/users' },
-    { name:'comments',      icon:'💬', desc:'댓글',           api:'/api/comments?all=true&limit=500' },
-    { name:'announcements', icon:'📣', desc:'공지사항',        api:'/api/announcement' },
+    { name:'tracks',        icon:'🎵', desc:'음악 트랙',       api:'/api/tracks?limit=500',              color:'var(--acc)',  schema:'id, task_id, title, audio_url, video_url, image_url, tags, lyrics, gen_mode, owner_name, owner_provider, owner_avatar, comm_likes, comm_plays, is_public, created_at' },
+    { name:'users',         icon:'👥', desc:'사용자 + 매니저', api:'/api/users',                         color:'#3b82f6',     schema:'id, name, provider, email, avatar, plan, credits, login_count, last_login, is_mobile, ua, created_at' },
+    { name:'comments',      icon:'💬', desc:'댓글',           api:'/api/comments?all=true&limit=500',    color:'#f59e0b',     schema:'id, track_id, user_name, user_provider, user_avatar, text, is_reply, parent_id, hidden, created_at' },
+    { name:'announcements', icon:'📣', desc:'공지사항',        api:'/api/announcement',                   color:'#22c55e',     schema:'id, title, body, icon, type, target, url, expires_at, created_at' },
+    { name:'reports',       icon:'🚩', desc:'신고',           api:'/api/reports?limit=200',               color:'#ef4444',     schema:'id, reporter_name, reporter_provider, target_type, target_id, reason, status, created_at' },
+    { name:'follows',       icon:'🤝', desc:'팔로우 관계',    api:null,                                   color:'#ec4899',     schema:'id, follower_name, follower_provider, following_name, following_provider, created_at' },
+    { name:'payments',      icon:'💳', desc:'결제 내역',      api:'/api/payments/confirm',                color:'#14b8a6',     schema:'id, order_id, user_name, user_provider, payment_key, amount, plan, status, method, created_at' },
+    { name:'notifications', icon:'🔔', desc:'알림',           api:null,                                   color:'#8b5cf6',     schema:'id, user_name, user_provider, type, title, body, data, read, created_at' },
   ];
 
   const results = [];
-
   for(const t of tableInfo){
     let count = '-', status = 'checking';
+    if(!t.api){ results.push({...t, count:'—', status:'indirect'}); continue; }
     try{
       const r = await adminFetch(t.api);
       const d = await r.json();
-      if(t.name==='tracks'){
-        count = Array.isArray(d.tracks) ? d.tracks.length : 0;
-        status = d.source||'unknown';
-      } else if(t.name==='users'){
-        count = d.total||0;
-        status = d.source||'unknown';
-      } else if(t.name==='comments'){
-        count = d.total||0;
-        status = d.source||'unknown';
-      } else if(t.name==='announcements'){
-        count = d.hasAnnouncement ? 1 : 0;
-        status = r.ok ? 'ok' : 'error';
-      }
+      if(t.name==='tracks'){ count=Array.isArray(d.tracks)?d.tracks.length:0; status=d.source||'unknown'; }
+      else if(t.name==='users'){ count=d.total||0; status=d.source||'unknown'; }
+      else if(t.name==='comments'){ count=d.total||0; status=d.source||'unknown'; }
+      else if(t.name==='announcements'){ count=d.hasAnnouncement?1:0; status=r.ok?'ok':'error'; }
+      else if(t.name==='reports'){ count=Array.isArray(d.reports)?d.reports.length:0; status=r.ok?'supabase':'error'; }
+      else if(t.name==='payments'){ count=Array.isArray(d.payments)?d.payments.length:0; status=r.ok?'supabase':'error'; }
     }catch(e){ status='error'; count=0; }
     results.push({...t, count, status});
   }
 
-  /* 통계 카드 업데이트 */
-  results.forEach(t=>{
-    const statEl = el('db-'+t.name+'-count');
-    if(statEl) statEl.textContent = t.count;
-  });
+  /* 통계 카드 */
+  results.forEach(t=>{ const s=el('db-'+t.name+'-count'); if(s) s.textContent=t.count; });
 
-  /* 테이블 목록 */
-  const tbody = el('db-tables-tbody');
+  /* 분포 바 */
+  const numResults=results.filter(t=>typeof t.count==='number'&&t.count>0);
+  const totalRows=numResults.reduce((s,t)=>s+t.count,0);
+  const barEl=el('db-dist-bar');
+  if(barEl&&totalRows) barEl.innerHTML=numResults.map(t=>'<div style="flex:'+t.count+';background:'+t.color+';"></div>').join('');
+  const legEl=el('db-dist-legend');
+  if(legEl&&totalRows) legEl.innerHTML=numResults.map(t=>'<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+t.color+';margin-right:3px;"></span>'+t.name+' '+t.count+' ('+Math.round(t.count/totalRows*100)+'%)</span>').join('');
+
+  /* 테이블 목록 + 스키마 */
+  const tbody=el('db-tables-tbody');
   if(tbody){
-    tbody.innerHTML = results.map(t=>{
-      const statusBadge = t.status==='supabase'
-        ? '<span class="badge badge-grn">Supabase</span>'
-        : t.status==='memory'
-        ? '<span class="badge badge-ylw">Memory</span>'
-        : t.status==='ok'
-        ? '<span class="badge badge-grn">OK</span>'
-        : '<span class="badge badge-red">'+esc(t.status)+'</span>';
+    tbody.innerHTML=results.map(t=>{
+      const statusBadge=t.status==='supabase'?'<span class="badge badge-grn">Supabase</span>':t.status==='memory'?'<span class="badge badge-ylw">Memory</span>':t.status==='ok'?'<span class="badge badge-grn">OK</span>':t.status==='indirect'?'<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;border:1px solid rgba(139,92,246,.2);">간접</span>':'<span class="badge badge-red">'+esc(t.status)+'</span>';
+      const cnt=typeof t.count==='number'?t.count:t.count;
+      const pct=totalRows>0&&typeof t.count==='number'?Math.round(t.count/totalRows*100):0;
+      const pctBar=typeof t.count==='number'&&totalRows?'<div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+t.color+';border-radius:2px;"></div></div><span style="font-size:10px;color:var(--t3);width:30px;">'+pct+'%</span></div>':'—';
+      const schemaCols=t.schema.split(', ');
+      const schemaHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;">'+schemaCols.slice(0,6).map(c=>'<span style="background:var(--bg3);padding:1px 6px;border-radius:4px;font-size:9px;color:var(--t3);">'+c+'</span>').join('')+(schemaCols.length>6?'<span style="font-size:9px;color:var(--t3);">+'+( schemaCols.length-6)+'</span>':'')+'</div>';
       return `<tr>
-        <td style="font-weight:700;">${t.icon} ${t.name}</td>
+        <td style="font-weight:700;"><span style="display:inline-block;width:3px;height:16px;border-radius:2px;background:${t.color};margin-right:6px;vertical-align:middle;"></span>${t.icon} ${t.name}</td>
         <td>${statusBadge}</td>
-        <td style="font-weight:700;color:var(--acc);">${t.count}</td>
+        <td style="font-weight:700;color:var(--acc);">${cnt}</td>
+        <td style="width:120px;">${pctBar}</td>
+        <td>${schemaHtml}</td>
         <td style="color:var(--t3);font-size:12px;">${t.desc}</td>
       </tr>`;
-    }).join('');
-  }
-
-  /* 사용량 차트 */
-  const chart = el('db-usage-chart');
-  if(chart){
-    const maxCount = Math.max(...results.map(t=>typeof t.count==='number'?t.count:0), 1);
-    chart.innerHTML = results.map(t=>{
-      const cnt = typeof t.count==='number'?t.count:0;
-      return `<div class="bar-item">
-        <div class="bar-label">${t.icon} ${t.name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxCount*100)}%"></div></div>
-        <div class="bar-val">${cnt}</div>
-      </div>`;
     }).join('');
   }
 }
