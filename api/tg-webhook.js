@@ -1752,10 +1752,13 @@ COMMANDS['생성'] = COMMANDS['generate'] = COMMANDS['만들어'] = async (chatI
     }
     const taskId = genData.data.taskId;
 
-    /* 2. 폴링 (최대 5분) */
+    /* 2. 폴링 (최대 45초 — Vercel 서버리스 60초 타임아웃 안전 마진) */
     let tracks = null;
-    for (let i = 0; i < 60; i++) {
-      await new Promise(r => setTimeout(r, i < 5 ? 3000 : 5000));
+    const pollStart = Date.now();
+    const POLL_LIMIT_MS = 45000;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      if (Date.now() - pollStart > POLL_LIMIT_MS) break;
       const pollRes = await fetch(`https://api.kie.ai/api/v1/generate/record-info?taskId=${taskId}`, {
         headers: { Authorization: `Bearer ${KIE_KEY}` },
       });
@@ -1775,7 +1778,25 @@ COMMANDS['생성'] = COMMANDS['generate'] = COMMANDS['만들어'] = async (chatI
     }
 
     if (!tracks || tracks.length === 0) {
-      throw new Error('시간 초과 — 5분 내 생성 완료되지 않음');
+      /* 시간 내 미완료 → 백그라운드 폴링 예약 (callback 기반) */
+      await tgSend(chatId, '⏳ 생성 진행 중 (taskId: ' + taskId.slice(0, 12) + ')\n\n아직 완료되지 않았어요. 완료되면 자동으로 알림이 갑니다.\n\n수동 확인: 트랙 명령으로 확인하세요.', { parse_mode: '' });
+      /* Supabase에 대기 중인 작업 저장 */
+      try {
+        await sb('POST', '/tracks', {
+          id: 'pending-' + taskId.slice(0, 12),
+          task_id: taskId,
+          title: title || '생성 중...',
+          audio_url: '',
+          tags: style || 'bot-generating',
+          lyrics: prompt || '',
+          gen_mode: 'bot-pending',
+          is_public: false,
+          owner_name: 'Kenny Bot',
+          owner_avatar: '🤖',
+          owner_provider: 'bot',
+        });
+      } catch(e) {}
+      return;
     }
 
     /* 3. Supabase에 트랙 저장 (커뮤니티 즉시 노출) */
@@ -2071,8 +2092,10 @@ export default async function handler(req, res) {
       }
     }
 
-    /* 명령 실행 */
+    /* 명령 실행 — 즉시 200 응답 후 백그라운드 실행 (웹훅 타임아웃 방지) */
     const handler = COMMANDS[cmd];
+    res.status(200).json({ ok: true });
+
     if (handler) {
       try {
         await handler(chatId, arg);
@@ -2084,7 +2107,7 @@ export default async function handler(req, res) {
       await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
     }
 
-    return res.status(200).json({ ok: true });
+    return;
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
