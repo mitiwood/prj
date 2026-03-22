@@ -102,20 +102,19 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
           direct_prompt: |
-            다음 수정 요청을 처리해주세요:
+            다음 수정 요청을 처리해주세요 (최고 권한 — 모든 파일 수정 가능):
 
             ${{ github.event.issue.body }}
 
             규칙:
-            - index.html, api/*.js, .github/workflows/*.yml, admin/, scripts/ 등 프로젝트 내 모든 파일을 수정할 수 있습니다
-            - 단, node_modules/, .env, package-lock.json 파일은 절대 수정하지 마세요
+            - 프로젝트 내 모든 파일을 수정할 수 있습니다 (index.html, api/*.js, .github/workflows/*.yml, admin/, scripts/, public/, package.json 등)
+            - node_modules/, .env 파일만 수정하지 마세요
             - 기존 기능, 함수, CSS를 절대 제거하지 마세요. 추가/수정만 하세요
-            - 요청받은 부분만 최소한으로 수정하세요. 관련 없는 코드를 건드리지 마세요
-            - git diff로 변경사항을 확인하고, 삭제된 줄이 100줄 이상이면 수정을 중단하세요
             - 수정이 완료되면 변경 내용을 한국어로 요약해주세요
             - 수정한 파일을 반드시 git add + git commit 해주세요. 브랜치와 push는 시스템이 처리합니다.
-          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash(git add:*),Bash(git status:*),Bash(git diff:*),Bash(git commit:*),Bash(node --check:*),Bash(ls:*),Bash(cat:*)"
-          timeout_minutes: 30
+            - CLAUDE.md 파일을 읽고 프로젝트 규칙을 따르세요
+          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash"
+          timeout_minutes: 60
 
       - name: Merge to main
         if: success()
