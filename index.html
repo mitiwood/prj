@@ -14910,6 +14910,9 @@ async function _renderCommunityInner(force){
     var sr=$('comm-sort-row');if(sr)sr.style.display='none';
     var dj=$('comm-dj-row');if(dj)dj.style.display='none';
     var cw=$('comm-chart-wrap');if(cw)cw.style.display='none';
+    var mw=$('comm-mood-wrap');if(mw)mw.style.display='none';
+    var sw=$('comm-spotlight-wrap');if(sw)sw.style.display='none';
+    var gw=$('comm-genre-wrap');if(gw)gw.style.display='none';
     if(!_sbLoaded) await _loadSbTracks(true);
     _renderCreatorList();
     return;
@@ -14919,6 +14922,7 @@ async function _renderCommunityInner(force){
     var sr0=$('comm-sort-row');if(sr0)sr0.style.display='none';
     var dj0=$('comm-dj-row');if(dj0)dj0.style.display='none';
     var cw0=$('comm-chart-wrap');if(cw0)cw0.style.display='none';
+    ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
     var hw0=$('comm-hero-wrap');var ls0=$('comm-list');
     if(ls0) await _renderFollowingFeed(hw0,ls0);
@@ -14929,6 +14933,7 @@ async function _renderCommunityInner(force){
     var sr1=$('comm-sort-row');if(sr1)sr1.style.display='none';
     var dj1=$('comm-dj-row');if(dj1)dj1.style.display='none';
     var cw1=$('comm-chart-wrap');if(cw1)cw1.style.display='none';
+    ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
     var hw1=$('comm-hero-wrap');if(hw1)hw1.innerHTML='';
     var lbl1=$('comm-section-lbl');if(lbl1)lbl1.textContent='💬 커뮤니티 채팅';
@@ -14940,6 +14945,7 @@ async function _renderCommunityInner(force){
     var sr3=$('comm-sort-row');if(sr3)sr3.style.display='none';
     var dj3=$('comm-dj-row');if(dj3)dj3.style.display='none';
     var cw3=$('comm-chart-wrap');if(cw3)cw3.style.display='none';
+    ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
     var lbl3=$('comm-section-lbl');if(lbl3)lbl3.textContent='🏆 리더보드';
@@ -14960,6 +14966,7 @@ async function _renderCommunityInner(force){
   if(cacheValid&&!force){
     _renderCommContent(heroWrap, list);
     _renderWeeklyChart();
+    _renderCommBottom();
     _renderActivityFeed();
     _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
     _setupCommInfiniteScroll();
@@ -14984,6 +14991,7 @@ async function _renderCommunityInner(force){
   _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
   _renderCommContent(heroWrap, list);
   _renderWeeklyChart();
+  _renderCommBottom();
 
   /* 무한 스크롤 설정 */
   _setupCommInfiniteScroll();
@@ -19557,6 +19565,161 @@ function _renderWeeklyChart(){
       '<button class="chart-play-btn" onclick="event.stopPropagation();commPlaySb(\''+sid+'\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>'+
     '</div>';
   }).join('');
+}
+
+/* ── 무드 플레이리스트 ── */
+function _renderMoodPlaylists(){
+  var wrap=$('comm-mood-wrap'),list=$('comm-mood-list');
+  if(!wrap||!list)return;
+  if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
+  var hour=new Date().getHours();
+  var moods=[
+    {id:'morning',emoji:'☀️',name:'모닝 바이브',sub:'상쾌한 하루의 시작',bg:'linear-gradient(135deg,#f59e0b,#fb923c)',keys:['acoustic','pop','bright','morning','happy','cheerful']},
+    {id:'chill',emoji:'☕',name:'칠 아웃',sub:'여유로운 시간',bg:'linear-gradient(135deg,#06b6d4,#22d3ee)',keys:['chill','lofi','jazz','acoustic','calm','relax','ambient']},
+    {id:'energy',emoji:'🔥',name:'에너지 부스트',sub:'신나는 비트',bg:'linear-gradient(135deg,#ef4444,#f97316)',keys:['dance','edm','rock','pop','energy','party','hiphop','trap','electronic']},
+    {id:'mood',emoji:'💜',name:'감성 무드',sub:'감성에 빠지는 밤',bg:'linear-gradient(135deg,#7c3aed,#a855f7)',keys:['ballad','emotional','sad','love','romantic','piano','r&b','soul']},
+    {id:'focus',emoji:'🎯',name:'집중 모드',sub:'작업에 몰입',bg:'linear-gradient(135deg,#3b82f6,#60a5fa)',keys:['lofi','ambient','instrumental','piano','study','focus']},
+    {id:'sleep',emoji:'🌙',name:'슬립 뮤직',sub:'잠들기 전 평화',bg:'linear-gradient(135deg,#6366f1,#818cf8)',keys:['ambient','sleep','calm','peaceful','rain','nature','piano']}
+  ];
+  var preferred=hour<10?'morning':hour<14?'focus':hour<18?'energy':hour<22?'mood':'sleep';
+  moods.sort(function(a,b){return(a.id===preferred?-1:0)-(b.id===preferred?-1:0);});
+  moods.forEach(function(m){
+    m.count=_sbTracks.filter(function(t){
+      if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return false;
+      var tags=(t.tags||t.allTags||'').toLowerCase();
+      return m.keys.some(function(k){return tags.indexOf(k)>=0;});
+    }).length;
+  });
+  var visible=moods.filter(function(m){return m.count>=1;});
+  if(visible.length<2){wrap.style.display='none';return;}
+  wrap.style.display='';
+  list.innerHTML=visible.map(function(m){
+    return '<div class="mood-card" style="background:'+m.bg+';" onclick="_playMoodPlaylist(\''+m.id+'\')">'
+      +'<div class="mood-card-emoji">'+m.emoji+'</div>'
+      +'<div class="mood-card-title">'+m.name+'</div>'
+      +'<div class="mood-card-sub">'+m.sub+'</div>'
+      +'<div class="mood-card-count">'+m.count+'곡</div>'
+      +'</div>';
+  }).join('');
+}
+function _playMoodPlaylist(moodId){
+  var moods={
+    morning:['acoustic','pop','bright','morning','happy','cheerful'],
+    chill:['chill','lofi','jazz','acoustic','calm','relax','ambient'],
+    energy:['dance','edm','rock','pop','energy','party','hiphop','trap','electronic'],
+    mood:['ballad','emotional','sad','love','romantic','piano','r&b','soul'],
+    focus:['lofi','ambient','instrumental','piano','study','focus'],
+    sleep:['ambient','sleep','calm','peaceful','rain','nature','piano']
+  };
+  var keys=moods[moodId]||[];
+  var filtered=(_sbTracks||[]).filter(function(t){
+    if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return false;
+    var tags=(t.tags||t.allTags||'').toLowerCase();
+    return keys.some(function(k){return tags.indexOf(k)>=0;});
+  });
+  if(!filtered.length){toast('해당 무드의 곡이 없어요','',2000);return;}
+  for(var j=filtered.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1));var tmp=filtered[j];filtered[j]=filtered[k];filtered[k]=tmp;}
+  var first=filtered[0];
+  if(first)commPlaySb(first._sbId||first.id);
+  var labels={morning:'☀️ 모닝',chill:'☕ 칠',energy:'🔥 에너지',mood:'💜 감성',focus:'🎯 집중',sleep:'🌙 슬립'};
+  toast((labels[moodId]||moodId)+' 플레이리스트 ('+Math.min(filtered.length,10)+'곡)','ok',2500);
+}
+
+/* ── 크리에이터 스포트라이트 ── */
+function _renderSpotlight(){
+  var wrap=$('comm-spotlight-wrap'),list=$('comm-spotlight-list');
+  if(!wrap||!list)return;
+  if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
+  var weekAgo=Date.now()-7*86400000;
+  var creators={};
+  _sbTracks.forEach(function(t){
+    if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return;
+    var name=t.owner_name||t.user_name||'';
+    var prov=t.owner_provider||t.user_provider||'';
+    if(!name||name==='익명')return;
+    var key=name+'__'+prov;
+    if(!creators[key])creators[key]={name:name,provider:prov,avatar:t.owner_avatar||'',songs:0,likes:0,plays:0,bestTrack:null,bestScore:0,recentCount:0};
+    var c=creators[key];
+    c.songs++;
+    c.likes+=(t.comm_likes||t.likes||0);
+    c.plays+=(t.comm_plays||t.plays||0);
+    var ts=new Date(t.created_at||0).getTime();
+    if(ts>weekAgo)c.recentCount++;
+    var score=(t.comm_likes||t.likes||0)*3+(t.comm_plays||t.plays||0);
+    if(score>c.bestScore){c.bestScore=score;c.bestTrack=t;}
+  });
+  var sorted=Object.values(creators).sort(function(a,b){return(b.recentCount*10+b.likes)-(a.recentCount*10+a.likes);});
+  var top3=sorted.slice(0,3);
+  if(top3.length<1){wrap.style.display='none';return;}
+  wrap.style.display='';
+  list.innerHTML=top3.map(function(c){
+    var avatarUrl=c.avatar||'https://api.dicebear.com/7.x/thumbs/svg?seed='+encodeURIComponent(c.name);
+    var bestTitle=c.bestTrack?(c.bestTrack.title||'무제').replace(/</g,'&lt;').slice(0,18):'';
+    var provIcon=c.provider==='google'?'🔵':c.provider==='kakao'?'💬':'🟢';
+    return '<div class="spotlight-card" onclick="openProfileSheet(\''+c.name.replace(/'/g,"\\'")+'\',\''+c.provider+'\')">'
+      +'<img class="spotlight-avatar" src="'+avatarUrl.replace(/"/g,'&quot;')+'" alt="" loading="lazy" onerror="this.src=\'https://api.dicebear.com/7.x/thumbs/svg?seed=default\'">'
+      +'<div class="spotlight-name">'+provIcon+' '+c.name.replace(/</g,'&lt;')+'</div>'
+      +'<div class="spotlight-stats">🎵 '+c.songs+'곡 · ❤️ '+c.likes+' · ▶ '+c.plays+'</div>'
+      +(bestTitle?'<div class="spotlight-track">🏆 '+bestTitle+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+/* ── 장르 탐색 그리드 ── */
+function _renderGenreGrid(){
+  var wrap=$('comm-genre-wrap'),grid=$('comm-genre-grid');
+  if(!wrap||!grid)return;
+  if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
+  var genres=[
+    {id:'kpop',emoji:'🎵',name:'K-Pop',keys:['kpop','k-pop','korean pop']},
+    {id:'hiphop',emoji:'🎤',name:'Hip-Hop',keys:['hiphop','hip-hop','rap','trap']},
+    {id:'rnb',emoji:'💜',name:'R&B',keys:['r&b','rnb','soul','rhythm']},
+    {id:'ballad',emoji:'🎹',name:'Ballad',keys:['ballad','emotional','piano ballad']},
+    {id:'lofi',emoji:'☕',name:'Lo-Fi',keys:['lofi','lo-fi','chill','chillhop']},
+    {id:'edm',emoji:'⚡',name:'EDM',keys:['edm','electronic','dance','house','techno']},
+    {id:'rock',emoji:'🎸',name:'Rock',keys:['rock','punk','alternative','indie rock']},
+    {id:'jazz',emoji:'🎷',name:'Jazz',keys:['jazz','swing','blues','bossa']},
+    {id:'ost',emoji:'🎬',name:'OST',keys:['ost','cinematic','soundtrack','film']},
+    {id:'acoustic',emoji:'🪕',name:'Acoustic',keys:['acoustic','folk','unplugged']},
+    {id:'latin',emoji:'💃',name:'Latin',keys:['latin','reggaeton','salsa']},
+    {id:'classical',emoji:'🎻',name:'Classic',keys:['classical','orchestra','symphony']}
+  ];
+  genres.forEach(function(g){
+    g.count=_sbTracks.filter(function(t){
+      if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return false;
+      var tags=(t.tags||t.allTags||'').toLowerCase();
+      return g.keys.some(function(k){return tags.indexOf(k)>=0;});
+    }).length;
+  });
+  var visible=genres.filter(function(g){return g.count>=1;});
+  if(visible.length<2){wrap.style.display='none';return;}
+  wrap.style.display='';
+  grid.innerHTML=visible.slice(0,8).map(function(g){
+    return '<div class="genre-card" onclick="_filterGenre(\''+g.id+'\')">'
+      +'<div class="genre-card-emoji">'+g.emoji+'</div>'
+      +'<div class="genre-card-name">'+g.name+'</div>'
+      +'<div class="genre-card-count">'+g.count+'곡</div>'
+      +'</div>';
+  }).join('');
+}
+function _filterGenre(genreId){
+  var genreNames={kpop:'K-Pop',hiphop:'Hip-Hop',rnb:'R&B',ballad:'Ballad',lofi:'Lo-Fi',edm:'EDM',rock:'Rock',jazz:'Jazz',ost:'OST',acoustic:'Acoustic',latin:'Latin',classical:'Classical'};
+  var name=genreNames[genreId]||genreId;
+  var input=document.getElementById('comm-search-input');
+  if(input)input.value=name;
+  _commSearchQuery=name.toLowerCase();
+  _addSearchHistory(name);
+  var clearBtn=document.getElementById('comm-search-clear');
+  if(clearBtn)clearBtn.style.display='block';
+  renderCommunity();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── 커뮤니티 하단 3종 통합 렌더 ── */
+function _renderCommBottom(){
+  _renderMoodPlaylists();
+  _renderSpotlight();
+  _renderGenreGrid();
 }
 
 /* ── 출석 체크 시스템 ── */
