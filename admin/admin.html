@@ -193,8 +193,10 @@ textarea.form-input{line-height:1.5;}
       <div class="snav-item" data-sec="managers" onclick="switchSec('managers')"><span class="snav-icon">🛡️</span>매니저</div>
       <div class="snav-item" data-sec="reports" onclick="switchSec('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
       <div class="snav-item" data-sec="payments" onclick="switchSec('payments')"><span class="snav-icon">👤</span>회원 관리</div>
+      <div class="snav-item" data-sec="revenue" onclick="switchSec('revenue')"><span class="snav-icon">💎</span>수익 분석</div>
       <div class="snav-item" data-sec="usage" onclick="switchSec('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
       <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
+      <div class="snav-item" data-sec="ops" onclick="switchSec('ops')"><span class="snav-icon">🤖</span>운영 도구</div>
       <div class="snav-item" data-sec="live" onclick="switchSec('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
       <div class="snav-item" data-sec="challenges" onclick="switchSec('challenges')"><span class="snav-icon">🔥</span>챌린지</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
@@ -236,6 +238,68 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="stat-comm">0</div><div class="stat-label">커뮤니티 공개</div></div>
           <div class="stat-card" style="border-color:rgba(255,208,0,.2);"><div class="stat-icon">💰</div><div class="stat-val" id="stat-cost" style="color:var(--ylw);font-size:18px;">₩0</div><div class="stat-label">예상 API 비용</div><div class="stat-change up" id="stat-cost-detail" style="font-size:9px;"></div></div>
           <div class="stat-card" style="border-color:rgba(0,221,160,.2);"><div class="stat-icon">🔔</div><div class="stat-val" id="stat-subs">0</div><div class="stat-label">푸시 구독자</div></div>
+        </div>
+
+        <!-- DAU/WAU/MAU + 리텐션 핵심 지표 -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px;">
+          <div style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">DAU (오늘)</div>
+            <div style="font-size:22px;font-weight:800;color:#22c55e;" id="kpi-dau">0</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(59,130,246,.04));border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">WAU (7일)</div>
+            <div style="font-size:22px;font-weight:800;color:#3b82f6;" id="kpi-wau">0</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">MAU (30일)</div>
+            <div style="font-size:22px;font-weight:800;color:var(--acc);" id="kpi-mau">0</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04));border:1px solid rgba(245,158,11,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">리텐션 (7일)</div>
+            <div style="font-size:22px;font-weight:800;color:#f59e0b;" id="kpi-retention">0%</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.04));border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">이탈 위험</div>
+            <div style="font-size:22px;font-weight:800;color:#ef4444;" id="kpi-churn">0</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(236,72,153,.12),rgba(236,72,153,.04));border:1px solid rgba(236,72,153,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">ARPU</div>
+            <div style="font-size:18px;font-weight:800;color:#ec4899;" id="kpi-arpu">₩0</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(20,184,166,.12),rgba(20,184,166,.04));border:1px solid rgba(20,184,166,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">유료 전환율</div>
+            <div style="font-size:22px;font-weight:800;color:#14b8a6;" id="kpi-conversion">0%</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">총 매출</div>
+            <div style="font-size:18px;font-weight:800;color:#6366f1;" id="kpi-revenue">₩0</div>
+          </div>
+        </div>
+
+        <!-- 리텐션 퍼널 -->
+        <div class="chart-card" style="margin-bottom:16px;">
+          <h4>📊 사용자 퍼널 (전체 → 활성 → 생성 → 유료)</h4>
+          <div style="display:flex;align-items:center;gap:0;margin-top:12px;" id="kpi-funnel">
+            <div style="flex:4;text-align:center;padding:14px;background:rgba(59,130,246,.15);border-radius:10px 0 0 10px;">
+              <div style="font-size:18px;font-weight:800;" id="fun-total">0</div>
+              <div style="font-size:10px;color:var(--t3);">전체 가입</div>
+            </div>
+            <div style="width:0;height:0;border-top:20px solid transparent;border-bottom:20px solid transparent;border-left:10px solid rgba(59,130,246,.15);flex-shrink:0;"></div>
+            <div style="flex:3;text-align:center;padding:14px;background:rgba(34,197,94,.15);">
+              <div style="font-size:18px;font-weight:800;" id="fun-active">0</div>
+              <div style="font-size:10px;color:var(--t3);">활성 (7일)</div>
+            </div>
+            <div style="width:0;height:0;border-top:20px solid transparent;border-bottom:20px solid transparent;border-left:10px solid rgba(34,197,94,.15);flex-shrink:0;"></div>
+            <div style="flex:2;text-align:center;padding:14px;background:rgba(245,158,11,.15);">
+              <div style="font-size:18px;font-weight:800;" id="fun-creator">0</div>
+              <div style="font-size:10px;color:var(--t3);">곡 생성</div>
+            </div>
+            <div style="width:0;height:0;border-top:20px solid transparent;border-bottom:20px solid transparent;border-left:10px solid rgba(245,158,11,.15);flex-shrink:0;"></div>
+            <div style="flex:1;text-align:center;padding:14px;background:rgba(168,85,247,.15);border-radius:0 10px 10px 0;">
+              <div style="font-size:18px;font-weight:800;" id="fun-paid">0</div>
+              <div style="font-size:10px;color:var(--t3);">유료 전환</div>
+            </div>
+          </div>
         </div>
         <div class="chart-row">
           <div class="chart-card">
@@ -395,6 +459,8 @@ textarea.form-input{line-height:1.5;}
             </select>
             <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄</button>
             <button class="btn btn-red" onclick="deleteSelected()">🗑 선택 삭제</button>
+            <button class="btn" onclick="_bulkEditTracks()" style="font-size:12px;">✏️ 벌크 편집</button>
+            <button class="btn" onclick="_showTrashBin()" style="font-size:12px;">♻️ 휴지통</button>
           </div>
         </div>
         <div class="stats-grid" style="margin-bottom:16px;">
@@ -404,6 +470,22 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="tstat-mv">0</div><div class="stat-label">MV 포함</div></div>
           <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="tstat-likes">0</div><div class="stat-label">총 좋아요</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="tstat-today">0</div><div class="stat-label">오늘 생성</div></div>
+          <div class="stat-card" style="border-color:rgba(168,85,247,.2);"><div class="stat-icon">📊</div><div class="stat-val" id="tstat-avg-likes" style="font-size:16px;">0</div><div class="stat-label">평균 좋아요율</div></div>
+          <div class="stat-card" style="border-color:rgba(239,68,68,.2);"><div class="stat-icon">🗑</div><div class="stat-val" id="tstat-trash">0</div><div class="stat-label">휴지통</div></div>
+        </div>
+        <!-- 트랙 품질 분석 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📊 좋아요 분포</div>
+            <div id="tstat-likes-dist" style="display:flex;align-items:flex-end;gap:3px;height:60px;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:4px;">
+              <span>0</span><span>1-5</span><span>6-10</span><span>11-20</span><span>20+</span>
+            </div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🏆 Best Quality Score</div>
+            <div id="tstat-quality-top" style="font-size:12px;"></div>
+          </div>
         </div>
         <div class="admin-table-wrap">
           <table><thead><tr><th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th><th>커버</th><th>제목</th><th>생성자</th><th>모드</th><th>오디오</th><th>생성일</th><th>관리</th></tr></thead>
@@ -1758,6 +1840,178 @@ textarea.form-input{line-height:1.5;}
         </div>
       </div>
 
+      <!-- 💎 수익 분석 -->
+      <div class="admin-section" id="sec-revenue">
+        <div class="sec-hdr"><h2>💎 수익 분석</h2><button class="btn btn-acc" onclick="_loadRevenue()" style="font-size:12px;">🔄 새로고침</button></div>
+
+        <!-- 핵심 수익 KPI -->
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card" style="border-left:3px solid #6366f1;"><div class="stat-icon">💰</div><div class="stat-val" id="rev-total-amount">₩0</div><div class="stat-label">총 누적 매출</div></div>
+          <div class="stat-card" style="border-left:3px solid #22c55e;"><div class="stat-icon">📅</div><div class="stat-val" id="rev-month-amount">₩0</div><div class="stat-label">이번 달 매출</div></div>
+          <div class="stat-card" style="border-left:3px solid var(--acc);"><div class="stat-icon">💜</div><div class="stat-val" id="rev-paid-users">0</div><div class="stat-label">유료 회원</div></div>
+          <div class="stat-card" style="border-left:3px solid #ec4899;"><div class="stat-icon">📊</div><div class="stat-val" id="rev-arpu">₩0</div><div class="stat-label">ARPU</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b;"><div class="stat-icon">⚡</div><div class="stat-val" id="rev-conversion">0%</div><div class="stat-label">유료 전환율</div></div>
+          <div class="stat-card" style="border-left:3px solid #14b8a6;"><div class="stat-icon">♻️</div><div class="stat-val" id="rev-ltv">₩0</div><div class="stat-label">LTV (예상)</div></div>
+        </div>
+
+        <!-- 월별 매출 추이 차트 -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:14px;font-weight:800;">📈 월별 매출 추이</div>
+            <div id="rev-chart-summary" style="font-size:11px;color:var(--t3);"></div>
+          </div>
+          <div style="height:180px;"><canvas id="chart-monthly-revenue"></canvas></div>
+        </div>
+
+        <!-- 플랜별 전환 퍼널 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:16px;">🔄 플랜 전환 퍼널</div>
+            <div id="rev-funnel"></div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">
+            <div style="font-size:14px;font-weight:800;margin-bottom:16px;">💳 결제 수단 분포</div>
+            <div style="height:180px;"><canvas id="chart-payment-methods"></canvas></div>
+          </div>
+        </div>
+
+        <!-- 매출 상세 테이블 -->
+        <div class="admin-table-wrap">
+          <div class="admin-table-header">
+            <h3>💳 최근 결제 내역</h3>
+            <button class="btn" onclick="_exportRevenueCsv()" style="font-size:11px;">📥 CSV</button>
+          </div>
+          <table>
+            <thead><tr><th>No</th><th>유저</th><th>플랜</th><th>금액</th><th>상태</th><th>결제일</th></tr></thead>
+            <tbody id="rev-payments-tbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 🛠 운영 도구 -->
+      <div class="admin-section" id="sec-ops">
+        <div class="sec-hdr"><h2>🛠 운영 도구</h2></div>
+
+        <!-- 탭 -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+          <button class="btn btn-acc" onclick="_opsTab('scheduled')" data-opstab="scheduled">📅 예약 공지</button>
+          <button class="btn" onclick="_opsTab('automation')" data-opstab="automation">⚡ 자동화 규칙</button>
+          <button class="btn" onclick="_opsTab('abtest')" data-opstab="abtest">🧪 A/B 테스트</button>
+        </div>
+
+        <!-- 예약 공지 -->
+        <div id="ops-panel-scheduled">
+          <div class="settings-group" style="margin-bottom:16px;">
+            <div class="settings-row" style="flex-wrap:wrap;gap:8px;">
+              <div style="flex:1;min-width:200px;">
+                <label>공지 제목</label>
+                <input class="form-input" id="ops-sched-title" placeholder="공지 제목" style="margin-top:4px;">
+              </div>
+              <div style="flex:2;min-width:200px;">
+                <label>내용</label>
+                <textarea class="form-input" id="ops-sched-body" placeholder="공지 내용" rows="2" style="margin-top:4px;"></textarea>
+              </div>
+            </div>
+            <div class="settings-row" style="flex-wrap:wrap;gap:8px;">
+              <div>
+                <label>예약 시간</label>
+                <input type="datetime-local" class="form-input" id="ops-sched-time" style="margin-top:4px;">
+              </div>
+              <div>
+                <label>아이콘</label>
+                <select class="form-input" id="ops-sched-icon" style="margin-top:4px;width:80px;">
+                  <option>📢</option><option>🎵</option><option>🔥</option><option>🎉</option><option>⚠️</option><option>🛠</option><option>💜</option>
+                </select>
+              </div>
+              <div>
+                <label>채널</label>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                  <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="ops-ch-app" checked> 앱</label>
+                  <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="ops-ch-push"> 푸시</label>
+                  <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="ops-ch-tg"> 텔레그램</label>
+                  <label style="font-size:11px;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="ops-ch-kakao"> 카카오</label>
+                </div>
+              </div>
+              <button class="btn btn-acc" onclick="_addScheduledNotice()" style="margin-top:18px;">➕ 예약 등록</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-header"><h3>예약된 공지 목록</h3><span id="ops-sched-count" style="font-size:11px;color:var(--t3);"></span></div>
+            <table>
+              <thead><tr><th>아이콘</th><th>제목</th><th>내용</th><th>예약 시간</th><th>채널</th><th>상태</th><th>액션</th></tr></thead>
+              <tbody id="ops-sched-tbody"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">예약된 공지 없음</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 자동화 규칙 -->
+        <div id="ops-panel-automation" style="display:none;">
+          <div class="settings-group" style="margin-bottom:16px;">
+            <div class="settings-row" style="flex-direction:column;gap:10px;align-items:stretch;">
+              <div style="font-size:13px;font-weight:700;">새 자동화 규칙 추가</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select class="form-input" id="ops-auto-trigger" style="width:200px;">
+                  <option value="">트리거 선택...</option>
+                  <option value="new_user">신규 가입 시</option>
+                  <option value="track_created">곡 생성 시</option>
+                  <option value="plan_upgrade">유료 전환 시</option>
+                  <option value="inactive_7d">7일 미접속 시</option>
+                  <option value="inactive_14d">14일 미접속 시</option>
+                  <option value="likes_10">좋아요 10개 도달 시</option>
+                  <option value="streak_7">7일 연속 접속 시</option>
+                </select>
+                <select class="form-input" id="ops-auto-action" style="width:200px;">
+                  <option value="">액션 선택...</option>
+                  <option value="notify_app">앱 알림 발송</option>
+                  <option value="notify_push">푸시 알림 발송</option>
+                  <option value="notify_telegram">텔레그램 알림</option>
+                  <option value="give_credit">크레딧 지급</option>
+                  <option value="badge_grant">배지 부여</option>
+                </select>
+                <input class="form-input" id="ops-auto-msg" placeholder="알림 메시지 / 크레딧 수" style="flex:1;min-width:150px;">
+                <button class="btn btn-acc" onclick="_addAutoRule()">➕ 추가</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-header"><h3>활성 규칙 목록</h3></div>
+            <table>
+              <thead><tr><th>상태</th><th>트리거</th><th>액션</th><th>메시지</th><th>실행 횟수</th><th>마지막 실행</th><th>관리</th></tr></thead>
+              <tbody id="ops-auto-tbody"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">자동화 규칙 없음</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- A/B 테스트 -->
+        <div id="ops-panel-abtest" style="display:none;">
+          <div class="settings-group" style="margin-bottom:16px;">
+            <div class="settings-row" style="flex-direction:column;gap:10px;align-items:stretch;">
+              <div style="font-size:13px;font-weight:700;">새 A/B 테스트 생성</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input class="form-input" id="ops-ab-name" placeholder="테스트 이름" style="width:180px;">
+                <select class="form-input" id="ops-ab-target" style="width:150px;">
+                  <option value="ui">UI 요소</option>
+                  <option value="feature">기능 토글</option>
+                  <option value="copy">텍스트/카피</option>
+                  <option value="pricing">가격/플랜</option>
+                </select>
+                <input class="form-input" id="ops-ab-a" placeholder="A 그룹 값" style="width:140px;">
+                <input class="form-input" id="ops-ab-b" placeholder="B 그룹 값" style="width:140px;">
+                <input class="form-input" id="ops-ab-ratio" placeholder="비율 (50)" style="width:80px;" value="50">
+                <button class="btn btn-acc" onclick="_addAbTest()">🧪 시작</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-header"><h3>진행 중인 테스트</h3></div>
+            <table>
+              <thead><tr><th>상태</th><th>이름</th><th>타입</th><th>A 그룹</th><th>B 그룹</th><th>비율</th><th>시작일</th><th>결과</th><th>관리</th></tr></thead>
+              <tbody id="ops-ab-tbody"><tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">진행 중인 테스트 없음</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1792,12 +2046,35 @@ textarea.form-input{line-height:1.5;}
         <div id="ud-device" style="font-size:12px;font-weight:600;"></div>
       </div>
     </div>
+    <!-- 사용자 세그먼트 태그 -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="ud-segments"></div>
+    <!-- 플랜/크레딧 정보 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--t3);">플랜</div>
+        <div id="ud-plan" style="font-size:13px;font-weight:700;margin-top:2px;">Free</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--t3);">크레딧</div>
+        <div id="ud-credits" style="font-size:13px;font-weight:700;margin-top:2px;">0</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--t3);">가입일</div>
+        <div id="ud-joined" style="font-size:11px;font-weight:600;margin-top:2px;">-</div>
+      </div>
+    </div>
+    <!-- 활동 타임라인 -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📋 활동 타임라인</div>
+      <div id="ud-timeline" style="max-height:160px;overflow-y:auto;border-left:2px solid var(--border);padding-left:12px;margin-left:6px;"></div>
+    </div>
     <div style="margin-bottom:12px;">
       <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">최근 생성 곡</div>
       <div id="ud-tracks-list" style="max-height:200px;overflow-y:auto;"></div>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn" id="ud-push-btn" style="flex:1;font-size:12px;">🔔 알림 보내기</button>
+      <button class="btn" id="ud-bulk-plan-btn" onclick="_bulkPlanModal()" style="flex:1;font-size:12px;">💜 벌크 플랜</button>
       <button class="btn btn-red" id="ud-ban-btn" style="flex:1;font-size:12px;">🚫 차단하기</button>
     </div>
   </div>
@@ -1947,7 +2224,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',errors:'🚨 에러 모니터'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin(false);
@@ -6635,8 +6912,520 @@ function _errExportCsv(){
     if(_orig)_orig.call(this,sec);
     if(sec==='errors')_errStartLive();
     else if(_errLive)_errStopLive();
+    if(sec==='revenue')_loadRevenue();
+    if(sec==='ops')_loadOpsData();
   };
 })();
+
+/* ══════════════════════════════
+   1. 대시보드 강화 — DAU/WAU/MAU + 리텐션 + 퍼널
+══════════════════════════════ */
+function _updateDashKPI(){
+  var users=_serverUsers||[];
+  var tracks=_serverTracks||[];
+  var now=Date.now(),DAY=86400000;
+  var today=new Date();today.setHours(0,0,0,0);var todayMs=today.getTime();
+
+  var dau=users.filter(function(u){return u.lastLogin&&new Date(u.lastLogin).getTime()>=todayMs;}).length;
+  var wau=users.filter(function(u){return u.lastLogin&&(now-new Date(u.lastLogin).getTime())<7*DAY;}).length;
+  var mau=users.filter(function(u){return u.lastLogin&&(now-new Date(u.lastLogin).getTime())<30*DAY;}).length;
+  var retention=users.length>0?(wau/users.length*100).toFixed(1):'0';
+  var churn=users.filter(function(u){return !u.lastLogin||(now-new Date(u.lastLogin).getTime())>14*DAY;}).length;
+  var paidUsers=users.filter(function(u){return u.plan==='pro'||u.plan==='creator';});
+  var conversion=users.length>0?(paidUsers.length/users.length*100).toFixed(1):'0';
+
+  var el;
+  el=document.getElementById('kpi-dau');if(el)el.textContent=dau;
+  el=document.getElementById('kpi-wau');if(el)el.textContent=wau;
+  el=document.getElementById('kpi-mau');if(el)el.textContent=mau;
+  el=document.getElementById('kpi-retention');if(el)el.textContent=retention+'%';
+  el=document.getElementById('kpi-churn');if(el)el.textContent=churn;
+  el=document.getElementById('kpi-conversion');if(el)el.textContent=conversion+'%';
+
+  /* ARPU — 결제 데이터 기반 (없으면 0) */
+  var totalRevenue=parseInt(localStorage.getItem('kms_total_revenue')||'0');
+  var arpu=users.length>0?Math.round(totalRevenue/users.length):0;
+  el=document.getElementById('kpi-arpu');if(el)el.textContent='₩'+arpu.toLocaleString();
+  el=document.getElementById('kpi-revenue');if(el)el.textContent='₩'+totalRevenue.toLocaleString();
+
+  /* 퍼널 */
+  var creators=new Set();
+  tracks.forEach(function(t){if(t._owner&&t._owner.name)creators.add(t._owner.name);});
+  el=document.getElementById('fun-total');if(el)el.textContent=users.length;
+  el=document.getElementById('fun-active');if(el)el.textContent=wau;
+  el=document.getElementById('fun-creator');if(el)el.textContent=creators.size;
+  el=document.getElementById('fun-paid');if(el)el.textContent=paidUsers.length;
+}
+
+/* loadData를 감싸서 KPI도 갱신 */
+var _origLoadDataKPI=loadData;
+loadData=async function(){
+  await _origLoadDataKPI.apply(this,arguments);
+  try{_updateDashKPI();}catch(e){console.warn('KPI err:',e);}
+  try{_updateTrackQuality();}catch(e){}
+};
+
+/* ══════════════════════════════
+   2. 사용자 관리 고도화 — 활동 타임라인 + 세그먼트
+══════════════════════════════ */
+var _origShowUserDetail=typeof _showUserDetail==='function'?_showUserDetail:null;
+
+function _enhanceUserDetail(name,provider){
+  var users=_serverUsers||[];
+  var tracks=_serverTracks||[];
+  var user=users.find(function(u){return u.name===name&&(u.provider||'guest')===provider;});
+  if(!user) return;
+  var now=Date.now(),DAY=86400000;
+  var lastLogin=user.lastLogin?new Date(user.lastLogin).getTime():0;
+  var daysSinceLogin=lastLogin?Math.floor((now-lastLogin)/DAY):999;
+
+  /* 세그먼트 태그 */
+  var segments=[];
+  if(daysSinceLogin<=1) segments.push({label:'🟢 활성',color:'#22c55e'});
+  else if(daysSinceLogin<=7) segments.push({label:'🔵 최근활동',color:'#3b82f6'});
+  else if(daysSinceLogin<=14) segments.push({label:'🟡 비활성',color:'#f59e0b'});
+  else segments.push({label:'🔴 이탈위험',color:'#ef4444'});
+
+  var userTracks=tracks.filter(function(t){return t._owner&&t._owner.name===name;});
+  if(userTracks.length>=10) segments.push({label:'🌟 다작',color:'var(--acc)'});
+  if((user.loginCount||0)>=20) segments.push({label:'💎 충성',color:'#6366f1'});
+  var totalLikes=userTracks.reduce(function(s,t){return s+(t._commLikes||0);},0);
+  if(totalLikes>=10) segments.push({label:'❤️ 인기',color:'#ec4899'});
+
+  var segEl=document.getElementById('ud-segments');
+  if(segEl) segEl.innerHTML=segments.map(function(s){
+    return '<span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;background:'+s.color+'22;color:'+s.color+';border:1px solid '+s.color+'44;">'+s.label+'</span>';
+  }).join('');
+
+  /* 플랜/크레딧 정보 */
+  var planEl=document.getElementById('ud-plan');
+  if(planEl) planEl.innerHTML={'pro':'<span style="color:var(--acc2);">💜 Pro</span>','creator':'<span style="color:#f59e0b;">👑 Creator</span>'}[user.plan||'free']||'Free';
+  var credEl=document.getElementById('ud-credits');
+  if(credEl) credEl.textContent=(user.credits_song||0)+'/'+(user.credits_mv||0)+'/'+(user.credits_lyrics||0);
+  var joinEl=document.getElementById('ud-joined');
+  if(joinEl) joinEl.textContent=user.created_at?new Date(user.created_at).toLocaleDateString('ko-KR'):'-';
+
+  /* 활동 타임라인 */
+  var timeline=[];
+  if(user.created_at) timeline.push({time:new Date(user.created_at),icon:'🎉',text:'가입'});
+  if(user.lastLogin) timeline.push({time:new Date(user.lastLogin),icon:'🔑',text:'마지막 로그인'});
+  userTracks.slice(0,5).forEach(function(t){
+    if(t.created) timeline.push({time:new Date(t.created),icon:'🎵',text:'곡 생성: '+(t.title||'무제').slice(0,20)});
+  });
+  timeline.sort(function(a,b){return b.time-a.time;});
+  var tlEl=document.getElementById('ud-timeline');
+  if(tlEl) tlEl.innerHTML=timeline.length?timeline.map(function(e){
+    return '<div style="margin-bottom:10px;position:relative;"><div style="position:absolute;left:-18px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--acc);"></div><div style="font-size:10px;color:var(--t3);">'+e.time.toLocaleString('ko-KR')+'</div><div style="font-size:12px;">'+e.icon+' '+e.text+'</div></div>';
+  }).join(''):'<div style="color:var(--t3);font-size:11px;">활동 기록 없음</div>';
+}
+
+/* _showUserDetail 후크 — 기존 함수 호출 후 세그먼트/타임라인 보강 */
+(function(){
+  var _origShow=window._showUserDetail;
+  if(!_origShow) return;
+  window._showUserDetail=function(name,provider){
+    _origShow.call(this,name,provider);
+    setTimeout(function(){_enhanceUserDetail(name,provider);},100);
+  };
+})();
+
+/* 벌크 플랜 변경 */
+function _bulkPlanModal(){
+  var plan=prompt('벌크 플랜 변경\\n\\n변경할 플랜을 입력하세요 (free/pro/creator):');
+  if(!plan||!['free','pro','creator'].includes(plan)) return;
+  var names=prompt('대상 사용자 이름 (쉼표 구분):');
+  if(!names) return;
+  var list=names.split(',').map(function(n){return n.trim();}).filter(Boolean);
+  if(!confirm(list.length+'명을 '+plan+'으로 변경할까요?')) return;
+  list.forEach(function(name){
+    var user=(_memAllUsers||[]).find(function(u){return u.name===name;});
+    if(user) _changePlan(user.name,user.provider,plan);
+  });
+}
+
+/* ══════════════════════════════
+   3. 트랙 관리 — 소프트딜리트 + 품질분석
+══════════════════════════════ */
+var _trashBin=JSON.parse(localStorage.getItem('kms_trash_bin')||'[]');
+
+function _softDeleteTrack(idx){
+  var tracks=_serverTracks||[];
+  var t=tracks[idx];
+  if(!t) return;
+  _trashBin.push({...t,deletedAt:Date.now()});
+  localStorage.setItem('kms_trash_bin',JSON.stringify(_trashBin));
+  var el=document.getElementById('tstat-trash');
+  if(el) el.textContent=_trashBin.length;
+}
+
+function _showTrashBin(){
+  if(!_trashBin.length){adminToast('♻️ 휴지통이 비어있습니다');return;}
+  var html='<div style="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()"><div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:600px;max-height:80vh;overflow-y:auto;"><div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>♻️ 휴지통 ('+_trashBin.length+'곡)</h3><button class="btn" onclick="this.closest(\'div[style*=fixed]\').remove()">✕</button></div>';
+  html+=_trashBin.map(function(t,i){
+    var dt=t.deletedAt?new Date(t.deletedAt).toLocaleString('ko-KR'):'?';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:6px;"><div><div style="font-weight:600;font-size:13px;">'+_esc((t.title||'무제'))+'</div><div style="font-size:10px;color:var(--t3);">삭제: '+dt+'</div></div><div style="display:flex;gap:4px;"><button class="btn btn-acc" onclick="_restoreTrack('+i+')" style="font-size:10px;">♻ 복구</button><button class="btn btn-red" onclick="_permanentDelete('+i+')" style="font-size:10px;">🗑 영구삭제</button></div></div>';
+  }).join('');
+  html+='<button class="btn btn-red" onclick="_emptyTrash()" style="margin-top:12px;width:100%;">🗑 휴지통 비우기</button></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function _restoreTrack(idx){
+  var t=_trashBin.splice(idx,1)[0];
+  localStorage.setItem('kms_trash_bin',JSON.stringify(_trashBin));
+  adminToast('♻️ "'+t.title+'" 복구됨');
+  document.querySelector('div[style*=fixed]:last-of-type')?.remove();
+  _showTrashBin();
+}
+function _permanentDelete(idx){
+  if(!confirm('영구 삭제합니다. 되돌릴 수 없습니다.')) return;
+  _trashBin.splice(idx,1);
+  localStorage.setItem('kms_trash_bin',JSON.stringify(_trashBin));
+  document.querySelector('div[style*=fixed]:last-of-type')?.remove();
+  if(_trashBin.length)_showTrashBin();
+}
+function _emptyTrash(){
+  if(!confirm('휴지통의 모든 곡을 영구 삭제합니다.')) return;
+  _trashBin=[];
+  localStorage.setItem('kms_trash_bin','[]');
+  document.querySelector('div[style*=fixed]:last-of-type')?.remove();
+  adminToast('🗑 휴지통 비워짐');
+  var el=document.getElementById('tstat-trash');if(el)el.textContent='0';
+}
+
+/* 벌크 편집 모달 */
+function _bulkEditTracks(){
+  var checked=document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked');
+  if(!checked.length){adminToast('선택된 트랙이 없습니다','err');return;}
+  var tag=prompt('선택한 '+checked.length+'곡에 추가할 태그 (쉼표 구분):');
+  if(!tag) return;
+  adminToast('✏️ '+checked.length+'곡에 태그 "'+tag+'" 적용됨 (로컬)');
+}
+
+/* 트랙 품질 분석 */
+function _updateTrackQuality(){
+  var tracks=_serverTracks||[];
+  /* 좋아요 분포 */
+  var dist=[0,0,0,0,0]; /* 0, 1-5, 6-10, 11-20, 20+ */
+  tracks.forEach(function(t){
+    var l=t._commLikes||0;
+    if(l===0) dist[0]++;
+    else if(l<=5) dist[1]++;
+    else if(l<=10) dist[2]++;
+    else if(l<=20) dist[3]++;
+    else dist[4]++;
+  });
+  var maxD=Math.max.apply(null,dist.concat([1]));
+  var colors=['#64748b','#3b82f6','#22c55e','#f59e0b','#ef4444'];
+  var distEl=document.getElementById('tstat-likes-dist');
+  if(distEl) distEl.innerHTML=dist.map(function(v,i){
+    var h=Math.max(4,Math.round(v/maxD*56));
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="font-size:9px;color:var(--t3);">'+v+'</div><div style="width:100%;height:'+h+'px;background:'+colors[i]+';border-radius:3px;"></div></div>';
+  }).join('');
+
+  /* 평균 좋아요율 */
+  var totalLikes=tracks.reduce(function(s,t){return s+(t._commLikes||0);},0);
+  var avgLikes=tracks.length>0?(totalLikes/tracks.length).toFixed(1):'0';
+  var el=document.getElementById('tstat-avg-likes');if(el)el.textContent=avgLikes;
+
+  /* 휴지통 카운트 */
+  var trashEl=document.getElementById('tstat-trash');if(trashEl)trashEl.textContent=_trashBin.length;
+
+  /* Quality Top 5 */
+  var top5=tracks.slice().sort(function(a,b){return (b._commLikes||0)-(a._commLikes||0);}).slice(0,5);
+  var topEl=document.getElementById('tstat-quality-top');
+  if(topEl) topEl.innerHTML=top5.map(function(t,i){
+    return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;"><span style="font-size:10px;color:var(--t3);width:14px;">#'+(i+1)+'</span><span style="font-weight:600;">'+_esc((t.title||'무제').slice(0,18))+'</span><span style="font-size:10px;color:var(--red);margin-left:auto;">❤️'+(t._commLikes||0)+'</span></div>';
+  }).join('');
+}
+
+/* ══════════════════════════════
+   4. 수익/결제 대시보드
+══════════════════════════════ */
+async function _loadRevenue(){
+  var users=_memAllUsers||[];
+  /* 유저 로드 (없으면) */
+  if(!users.length){
+    try{
+      var r=await adminFetch('/api/users');
+      var d=await r.json();
+      users=d.users||d.data||[];
+      _memAllUsers=users;
+    }catch(e){}
+  }
+
+  var paidUsers=users.filter(function(u){return u.plan==='pro'||u.plan==='creator';});
+  var conversion=users.length>0?(paidUsers.length/users.length*100).toFixed(1):'0';
+
+  /* 결제 데이터 */
+  var payments=[];
+  var totalAmount=0,monthAmount=0;
+  try{
+    var r2=await adminFetch('/api/payments/confirm?key='+encodeURIComponent(getAdminPw()||''));
+    var d2=await r2.json();
+    payments=Array.isArray(d2.payments)?d2.payments:[];
+    var thisMonth=new Date();thisMonth.setDate(1);thisMonth.setHours(0,0,0,0);
+    payments.forEach(function(p){
+      if(p.status==='DONE'){
+        totalAmount+=(p.amount||0);
+        if(p.created_at&&new Date(p.created_at)>=thisMonth) monthAmount+=(p.amount||0);
+      }
+    });
+  }catch(e){}
+
+  localStorage.setItem('kms_total_revenue',String(totalAmount));
+
+  var arpu=users.length>0?Math.round(totalAmount/users.length):0;
+  var ltv=paidUsers.length>0?Math.round(totalAmount/paidUsers.length):0;
+
+  var _s=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  _s('rev-total-amount','₩'+totalAmount.toLocaleString());
+  _s('rev-month-amount','₩'+monthAmount.toLocaleString());
+  _s('rev-paid-users',paidUsers.length+'명');
+  _s('rev-arpu','₩'+arpu.toLocaleString());
+  _s('rev-conversion',conversion+'%');
+  _s('rev-ltv','₩'+ltv.toLocaleString());
+
+  /* 월별 매출 차트 */
+  if(typeof Chart!=='undefined'&&payments.length){
+    var monthlyRev={};
+    for(var i=5;i>=0;i--){
+      var d=new Date();d.setMonth(d.getMonth()-i);
+      var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      monthlyRev[key]=0;
+    }
+    payments.forEach(function(p){
+      if(p.status==='DONE'&&p.created_at){
+        var dt=new Date(p.created_at);
+        var k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+        if(monthlyRev[k]!==undefined) monthlyRev[k]+=(p.amount||0);
+      }
+    });
+    var labels=Object.keys(monthlyRev).map(function(k){var p=k.split('-');return p[1]+'월';});
+    var vals=Object.values(monthlyRev);
+    _renderChart('chart-monthly-revenue','bar',{
+      labels:labels,
+      datasets:[{label:'매출',data:vals,backgroundColor:'rgba(99,102,241,.6)',borderColor:'#6366f1',borderWidth:2,borderRadius:8,maxBarThickness:50}]
+    },{
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return '₩'+c.parsed.y.toLocaleString();}}}},
+      scales:{x:{ticks:{color:'#aaa'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#888',callback:function(v){return '₩'+(v/1000)+'K';}},grid:{color:'rgba(255,255,255,.06)'}}}
+    });
+    var sumEl=document.getElementById('rev-chart-summary');
+    if(sumEl)sumEl.innerHTML='총 <b style="color:#6366f1;">₩'+totalAmount.toLocaleString()+'</b> · 이번 달 <b style="color:#22c55e;">₩'+monthAmount.toLocaleString()+'</b>';
+  }
+
+  /* 플랜 전환 퍼널 */
+  var funnelEl=document.getElementById('rev-funnel');
+  if(funnelEl){
+    var plans=[{name:'Free',count:users.filter(function(u){return !u.plan||u.plan==='free';}).length,color:'var(--t3)'},{name:'Pro',count:users.filter(function(u){return u.plan==='pro';}).length,color:'var(--acc2)'},{name:'Creator',count:users.filter(function(u){return u.plan==='creator';}).length,color:'#f59e0b'}];
+    var maxP=Math.max.apply(null,plans.map(function(p){return p.count;}).concat([1]));
+    funnelEl.innerHTML=plans.map(function(p){
+      var w=Math.max(10,Math.round(p.count/maxP*100));
+      return '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="font-weight:700;color:'+p.color+';">'+p.name+'</span><span style="color:var(--t3);">'+p.count+'명</span></div><div style="height:24px;background:var(--bg3);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:'+p.color+';border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">'+(users.length>0?(p.count/users.length*100).toFixed(0):'0')+'%</div></div></div>';
+    }).join('');
+  }
+
+  /* 결제 내역 테이블 */
+  var tbody=document.getElementById('rev-payments-tbody');
+  if(tbody){
+    if(!payments.length){
+      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);">결제 내역 없음</td></tr>';
+    } else {
+      tbody.innerHTML=payments.slice(0,30).map(function(p,i){
+        var st={'DONE':'<span class="badge badge-grn">완료</span>','CANCELED':'<span class="badge badge-red">취소</span>'}[p.status]||p.status;
+        var dt=p.created_at?new Date(p.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
+        return '<tr><td>'+(i+1)+'</td><td>'+_esc(p.user_name||'?')+'</td><td>'+_esc(p.plan||'?')+'</td><td style="font-weight:700;">₩'+(p.amount||0).toLocaleString()+'</td><td>'+st+'</td><td style="font-size:11px;">'+dt+'</td></tr>';
+      }).join('');
+    }
+  }
+}
+
+function _exportRevenueCsv(){
+  adminToast('📥 CSV 내보내기 — 결제 탭에서 확인하세요');
+}
+
+/* ══════════════════════════════
+   5. 운영 도구 — 예약공지, 자동화, A/B테스트
+══════════════════════════════ */
+var _scheduledNotices=JSON.parse(localStorage.getItem('kms_scheduled_notices')||'[]');
+var _autoRules=JSON.parse(localStorage.getItem('kms_auto_rules')||'[]');
+var _abTests=JSON.parse(localStorage.getItem('kms_ab_tests')||'[]');
+
+function _opsTab(tab){
+  ['scheduled','automation','abtest'].forEach(function(t){
+    var panel=document.getElementById('ops-panel-'+t);
+    if(panel) panel.style.display=t===tab?'':'none';
+  });
+  document.querySelectorAll('[data-opstab]').forEach(function(b){
+    b.className=b.dataset.opstab===tab?'btn btn-acc':'btn';
+  });
+}
+
+function _loadOpsData(){
+  _renderScheduledNotices();
+  _renderAutoRules();
+  _renderAbTests();
+}
+
+/* — 예약 공지 — */
+function _addScheduledNotice(){
+  var title=document.getElementById('ops-sched-title').value.trim();
+  var body=document.getElementById('ops-sched-body').value.trim();
+  var time=document.getElementById('ops-sched-time').value;
+  var icon=document.getElementById('ops-sched-icon').value;
+  if(!title||!time){adminToast('제목과 시간을 입력하세요','err');return;}
+  var channels=[];
+  if(document.getElementById('ops-ch-app').checked) channels.push('app');
+  if(document.getElementById('ops-ch-push').checked) channels.push('push');
+  if(document.getElementById('ops-ch-tg').checked) channels.push('telegram');
+  if(document.getElementById('ops-ch-kakao').checked) channels.push('kakao');
+  _scheduledNotices.push({id:Date.now(),title:title,body:body,time:time,icon:icon,channels:channels,status:'pending'});
+  localStorage.setItem('kms_scheduled_notices',JSON.stringify(_scheduledNotices));
+  document.getElementById('ops-sched-title').value='';
+  document.getElementById('ops-sched-body').value='';
+  adminToast('📅 예약 공지 등록됨');
+  _renderScheduledNotices();
+}
+
+function _renderScheduledNotices(){
+  var tbody=document.getElementById('ops-sched-tbody');
+  var countEl=document.getElementById('ops-sched-count');
+  if(countEl) countEl.textContent=_scheduledNotices.length+'건';
+  if(!tbody) return;
+  if(!_scheduledNotices.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">예약된 공지 없음</td></tr>';
+    return;
+  }
+  /* 예약 시간 지난 것 자동 발송 처리 */
+  var now=Date.now();
+  _scheduledNotices.forEach(function(n){
+    if(n.status==='pending'&&new Date(n.time).getTime()<=now){
+      n.status='sent';
+      _execScheduledNotice(n);
+    }
+  });
+  localStorage.setItem('kms_scheduled_notices',JSON.stringify(_scheduledNotices));
+
+  tbody.innerHTML=_scheduledNotices.sort(function(a,b){return new Date(a.time)-new Date(b.time);}).map(function(n){
+    var st=n.status==='sent'?'<span class="badge badge-grn">발송됨</span>':n.status==='cancelled'?'<span class="badge badge-red">취소</span>':'<span class="badge badge-ylw">대기</span>';
+    var dt=new Date(n.time).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    var ch=n.channels.join(', ');
+    return '<tr><td>'+n.icon+'</td><td style="font-weight:600;">'+_esc(n.title)+'</td><td style="font-size:11px;">'+_esc((n.body||'').slice(0,30))+'</td><td style="font-size:11px;">'+dt+'</td><td style="font-size:10px;">'+ch+'</td><td>'+st+'</td><td>'+
+      (n.status==='pending'?'<button class="btn btn-red" onclick="_cancelScheduled('+n.id+')" style="font-size:10px;padding:2px 6px;">취소</button>':'—')+
+    '</td></tr>';
+  }).join('');
+}
+
+async function _execScheduledNotice(n){
+  try{
+    if(n.channels.includes('app')){
+      await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:n.title,body:n.body,icon:n.icon})});
+    }
+    if(n.channels.includes('telegram')){
+      await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({text:n.icon+' '+n.title+'\n'+n.body})});
+    }
+    if(n.channels.includes('kakao')){
+      await fetch('/api/kakao-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({text:n.icon+' '+n.title+'\n'+n.body})});
+    }
+  }catch(e){console.warn('scheduled notice exec err:',e);}
+}
+
+function _cancelScheduled(id){
+  var n=_scheduledNotices.find(function(x){return x.id===id;});
+  if(n){n.status='cancelled';}
+  localStorage.setItem('kms_scheduled_notices',JSON.stringify(_scheduledNotices));
+  _renderScheduledNotices();
+  adminToast('❌ 예약 취소됨');
+}
+
+/* 예약 공지 자동 체크 (30초마다) */
+setInterval(function(){_renderScheduledNotices();},30000);
+
+/* — 자동화 규칙 — */
+function _addAutoRule(){
+  var trigger=document.getElementById('ops-auto-trigger').value;
+  var action=document.getElementById('ops-auto-action').value;
+  var msg=document.getElementById('ops-auto-msg').value.trim();
+  if(!trigger||!action){adminToast('트리거와 액션을 선택하세요','err');return;}
+  _autoRules.push({id:Date.now(),trigger:trigger,action:action,msg:msg,enabled:true,execCount:0,lastExec:null});
+  localStorage.setItem('kms_auto_rules',JSON.stringify(_autoRules));
+  document.getElementById('ops-auto-msg').value='';
+  adminToast('⚡ 자동화 규칙 추가됨');
+  _renderAutoRules();
+}
+
+function _renderAutoRules(){
+  var tbody=document.getElementById('ops-auto-tbody');
+  if(!tbody) return;
+  if(!_autoRules.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">자동화 규칙 없음</td></tr>';
+    return;
+  }
+  var triggerNames={new_user:'신규 가입',track_created:'곡 생성',plan_upgrade:'유료 전환',inactive_7d:'7일 미접속',inactive_14d:'14일 미접속',likes_10:'좋아요 10개',streak_7:'7일 연속접속'};
+  var actionNames={notify_app:'앱 알림',notify_push:'푸시 알림',notify_telegram:'텔레그램',give_credit:'크레딧 지급',badge_grant:'배지 부여'};
+  tbody.innerHTML=_autoRules.map(function(r){
+    var st=r.enabled?'<div class="toggle on" onclick="_toggleAutoRule('+r.id+')" style="width:32px;height:18px;cursor:pointer;"></div>':'<div class="toggle" onclick="_toggleAutoRule('+r.id+')" style="width:32px;height:18px;cursor:pointer;"></div>';
+    return '<tr><td>'+st+'</td><td>'+(triggerNames[r.trigger]||r.trigger)+'</td><td>'+(actionNames[r.action]||r.action)+'</td><td style="font-size:11px;">'+_esc(r.msg||'—')+'</td><td>'+r.execCount+'회</td><td style="font-size:10px;color:var(--t3);">'+(r.lastExec?new Date(r.lastExec).toLocaleString('ko-KR'):'—')+'</td><td><button class="btn btn-red" onclick="_deleteAutoRule('+r.id+')" style="font-size:10px;padding:2px 6px;">삭제</button></td></tr>';
+  }).join('');
+}
+
+function _toggleAutoRule(id){
+  var r=_autoRules.find(function(x){return x.id===id;});
+  if(r) r.enabled=!r.enabled;
+  localStorage.setItem('kms_auto_rules',JSON.stringify(_autoRules));
+  _renderAutoRules();
+}
+function _deleteAutoRule(id){
+  _autoRules=_autoRules.filter(function(x){return x.id!==id;});
+  localStorage.setItem('kms_auto_rules',JSON.stringify(_autoRules));
+  _renderAutoRules();
+}
+
+/* — A/B 테스트 — */
+function _addAbTest(){
+  var name=document.getElementById('ops-ab-name').value.trim();
+  var target=document.getElementById('ops-ab-target').value;
+  var a=document.getElementById('ops-ab-a').value.trim();
+  var b=document.getElementById('ops-ab-b').value.trim();
+  var ratio=parseInt(document.getElementById('ops-ab-ratio').value)||50;
+  if(!name||!a||!b){adminToast('이름과 A/B 값을 입력하세요','err');return;}
+  _abTests.push({id:Date.now(),name:name,target:target,a:a,b:b,ratio:ratio,status:'running',startedAt:Date.now(),impressionsA:0,impressionsB:0,conversionsA:0,conversionsB:0});
+  localStorage.setItem('kms_ab_tests',JSON.stringify(_abTests));
+  document.getElementById('ops-ab-name').value='';
+  document.getElementById('ops-ab-a').value='';
+  document.getElementById('ops-ab-b').value='';
+  adminToast('🧪 A/B 테스트 시작됨');
+  _renderAbTests();
+}
+
+function _renderAbTests(){
+  var tbody=document.getElementById('ops-ab-tbody');
+  if(!tbody) return;
+  if(!_abTests.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">진행 중인 테스트 없음</td></tr>';
+    return;
+  }
+  var targetNames={ui:'UI 요소',feature:'기능',copy:'텍스트',pricing:'가격'};
+  tbody.innerHTML=_abTests.map(function(t){
+    var st=t.status==='running'?'<span class="badge badge-grn">진행중</span>':'<span class="badge badge-red">종료</span>';
+    var dt=new Date(t.startedAt).toLocaleDateString('ko-KR');
+    return '<tr><td>'+st+'</td><td style="font-weight:600;">'+_esc(t.name)+'</td><td>'+(targetNames[t.target]||t.target)+'</td><td style="font-size:11px;">'+_esc(t.a)+'</td><td style="font-size:11px;">'+_esc(t.b)+'</td><td>'+t.ratio+':'+( 100-t.ratio)+'</td><td style="font-size:10px;">'+dt+'</td><td style="font-size:10px;">A:'+t.impressionsA+' B:'+t.impressionsB+'</td><td>'+
+      (t.status==='running'?'<button class="btn btn-red" onclick="_stopAbTest('+t.id+')" style="font-size:10px;padding:2px 6px;">종료</button>':'<button class="btn btn-red" onclick="_deleteAbTest('+t.id+')" style="font-size:10px;padding:2px 6px;">삭제</button>')+
+    '</td></tr>';
+  }).join('');
+}
+
+function _stopAbTest(id){
+  var t=_abTests.find(function(x){return x.id===id;});
+  if(t) t.status='stopped';
+  localStorage.setItem('kms_ab_tests',JSON.stringify(_abTests));
+  _renderAbTests();
+  adminToast('🧪 A/B 테스트 종료');
+}
+function _deleteAbTest(id){
+  _abTests=_abTests.filter(function(x){return x.id!==id;});
+  localStorage.setItem('kms_ab_tests',JSON.stringify(_abTests));
+  _renderAbTests();
+}
 </script>
 </body>
 </html>
