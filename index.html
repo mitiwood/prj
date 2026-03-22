@@ -4974,7 +4974,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
       </div>
     </div>
-    <div class="settings-section">
+    <div class="settings-section" id="data-section" style="display:none;">
       <div class="settings-section-title" data-i18n="dataSection">📦 데이터 관리</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <div class="settings-item" onclick="_exportUserData('json')">
@@ -6792,6 +6792,9 @@ function logout(){
     historyData=[];
     _sbTracks=[]; _sbLoaded=false; _sbLoadedAt=0;
     _sbMyTracks=[]; _sbMyLoaded=false;
+    /* 관리자 전용 섹션 즉시 숨김 */
+    var _as=document.getElementById('account-section');if(_as)_as.style.display='none';
+    var _ds=document.getElementById('data-section');if(_ds)_ds.style.display='none';
     /* 캐시 완전 삭제 */
     localStorage.clear();
     sessionStorage.clear();
@@ -16984,9 +16987,12 @@ function renderSettings(){
   /* 플랜 UI + 통계 확장 */
   if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
 
-  /* 계정 관리 섹션 — 관리자만 표시 */
-  const accSec = document.getElementById('account-section');
-  if (accSec) accSec.style.display = _isAdmin() ? '' : 'none';
+  /* 계정·데이터 관리 섹션 — 관리자만 표시 */
+  var _adm = _isAdmin();
+  var accSec = document.getElementById('account-section');
+  if (accSec) accSec.style.display = _adm ? '' : 'none';
+  var dataSec = document.getElementById('data-section');
+  if (dataSec) dataSec.style.display = _adm ? '' : 'none';
   /* 테마 UI 상태 업데이트 */
   updateThemeUI();
   /* 알림 유형 프리퍼런스 로드 */
