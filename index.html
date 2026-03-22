@@ -11740,11 +11740,16 @@ var _myFeedTrkSort='default'; /* default | likes | plays | newest */
 var _mfRenderChunkSize=20; /* 한번에 렌더링할 크리에이터 개수 */
 var _mfRenderedCount=0; /* 현재 렌더링된 크리에이터 개수 */
 var _mfAllCreators=[];
-var _mfBlockedHosts=['pexels.com','unsplash.com','placeholder.com','placekitten.com','picsum.photos'];
-function _mfIsBlocked(u){if(!u)return true;try{var h=new URL(u).hostname;for(var i=0;i<_mfBlockedHosts.length;i++)if(h.indexOf(_mfBlockedHosts[i])>=0)return true;}catch(e){}return false;}
-function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_mfIsBlocked(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" data-initial="'+ch+'" onerror="_mfImgFail(this)">';}
+var _mfBlockedHosts=['pexels.com','unsplash.com','placeholder.com','placekitten.com','picsum.photos','lorempixel.com','dummyimage.com','via.placeholder.com'];
+function _isBlockedImgHost(u){if(!u)return true;try{var h=new URL(u).hostname;for(var i=0;i<_mfBlockedHosts.length;i++)if(h.indexOf(_mfBlockedHosts[i])>=0)return true;}catch(e){}return false;}
+var _mfIsBlocked=_isBlockedImgHost;
+/* 공통 안전 아바타 HTML — 차단 호스트이면 이니셜 폴백 */
+function _safeAvatarHtml(url,name){var ch=esc((name||'?').charAt(0).toUpperCase());if(!url||_isBlockedImgHost(url))return ch;return '<img src="'+esc(url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.textContent=\''+ch+'\'">';}
+/* 공통 안전 썸네일 HTML */
+function _safeThumbHtml(url){if(!url||_isBlockedImgHost(url))return '<span>🎵</span>';return '<img src="'+esc(url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
+function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_isBlockedImgHost(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" data-initial="'+ch+'" onerror="_mfImgFail(this)">';}
 function _mfImgFail(el){el.onerror=null;var ch=el.dataset.initial||'?';var p=el.parentNode;if(p){p.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';}}
-function _mfThumb(u){if(!u||_mfIsBlocked(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
+function _mfThumb(u){if(!u||_isBlockedImgHost(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
 
 function _renderMyFeedView(grid,countEl){
   /* 크리에이터 상세 뷰 */
@@ -13534,7 +13539,7 @@ function _renderFollowFeedUI(list){
     const created=t.created_at?formatTimeAgo(new Date(t.created_at).getTime()):'';
     const sid=t.id||'';
     html+=`<div class="comm-feed-item" data-cname="${esc(owner)}" data-cprov="${esc(prov)}">${i<tracks.length-1?'<div class="comm-feed-line"></div>':''}
-      <div class="comm-feed-avatar">${avatar?'<img src="'+esc(avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+      <div class="comm-feed-avatar">${_safeAvatarHtml(avatar,owner)}</div>
       <div class="comm-feed-content">
         <div class="comm-feed-creator">${provIcon} ${esc(owner)} <span class="comm-feed-time">${created}</span></div>
         <div class="comm-list-item" data-sbid="${esc(sid)}" onclick="commPlaySb('${esc(sid)}')" style="margin-top:4px;">
@@ -13744,7 +13749,7 @@ async function _loadChatMessages(){
       const deleteBtn=mine?`<button class="chat-action-btn" onclick="_chatDeleteMsg('${msgId}')" title="삭제">🗑</button>`:'';
       const reactBtn=`<button class="chat-action-btn" onclick="this.nextElementSibling.classList.toggle('show')" title="리액션">😀</button><div class="chat-react-picker">${_CHAT_REACT_QUICK.map(e=>`<span class="chat-react-opt" onclick="_chatToggleReact('${msgId}','${e}');this.parentNode.classList.remove('show')">${e}</span>`).join('')}</div>`;
       return dateSep+`<div class="comm-chat-msg${mine?' mine':''}" data-msg-id="${msgId}">
-        <div class="comm-chat-avatar"${avatarClick}>${m.author_avatar?'<img src="'+esc(m.author_avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+        <div class="comm-chat-avatar"${avatarClick}>${_safeAvatarHtml(m.author_avatar,m.author_name)}</div>
         <div style="min-width:0;">
           ${!mine?'<div class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</div>':''}
           ${replyHtml}
@@ -13967,8 +13972,8 @@ function _buildCommItem(t,i,isMine){
   return `<div class="comm-list-item" data-sbid="${sid}" data-genre="${genre}" onclick="commPlaySb('${sid}')">
     <div class="comm-list-top">
       <div class="comm-list-img">
-        ${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
-          :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`}
+        ${(!t.img||_isBlockedImgHost(t.img))?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`
+          :`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='<span>🎵</span>'">`}
       </div>
       <div class="comm-list-info">
         <!-- 1열: 제목 + 재생시간 -->
@@ -14060,8 +14065,8 @@ function _renderCommContent(heroWrap, list){
     heroWrap.innerHTML=`
     <div class="comm-featured" id="comm-hero">
       <div class="comm-featured-cover">
-        ${hero.img
-          ?`<img src="${esc(hero.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`
+        ${(hero.img&&!_isBlockedImgHost(hero.img))
+          ?`<img src="${esc(hero.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.onerror=null;this.style.display='none'">`
           :`<div class="comm-featured-bg">
               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </div>`}
@@ -14115,7 +14120,7 @@ function _renderCommContent(heroWrap, list){
         var rc=_getChartRankChange(sid,i);
         html+='<div class="comm-chart-item" onclick="commPlaySb(\''+sid+'\')">';
         html+='<span class="comm-chart-rank">'+medal+'</span>';
-        html+='<div class="comm-chart-thumb">'+(t.img?'<img src="'+esc(t.img)+'" alt="">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px;">🎵</div>')+'</div>';
+        html+='<div class="comm-chart-thumb">'+((t.img&&!_isBlockedImgHost(t.img))?'<img src="'+esc(t.img)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div style=width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px>🎵</div>\'">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px;">🎵</div>')+'</div>';
         html+='<div class="comm-chart-info"><div class="comm-chart-name">'+esc(t.title||'무제')+'</div><div class="comm-chart-meta"><span>❤️ '+(t.likes||0)+'</span><span>▶ '+(t.plays||0)+'</span></div></div>';
         html+='<span class="comm-chart-change '+rc.cls+'">'+rc.txt+'</span>';
         html+='</div>';
@@ -14133,7 +14138,7 @@ function _renderCommContent(heroWrap, list){
         recs.forEach(function(t){
           var sid=t._sbId||'';
           html+='<div class="comm-rec-card" onclick="commPlaySb(\''+esc(sid)+'\')">';
-          html+='<div class="comm-rec-card-img">'+(t.img?'<img src="'+esc(t.img)+'" alt="">':'<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" width="40" height="40"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>')+'</div>';
+          html+='<div class="comm-rec-card-img">'+((t.img&&!_isBlockedImgHost(t.img))?'<img src="'+esc(t.img)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'🎵\'">':'<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" width="40" height="40"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>')+'</div>';
           html+='<div class="comm-rec-card-info"><div class="comm-rec-card-title">'+esc(t.title||'무제')+'</div><div class="comm-rec-card-tag">'+esc((t.tags||'').split(',')[0]||'')+'</div></div></div>';
         });
         html+='</div></div>';
@@ -14183,7 +14188,7 @@ function _renderCommContent(heroWrap, list){
       const topTrack=g.tracks[0];
       const topSid=topTrack?esc(topTrack._sbId||''):'';
       html+=`<div class="comm-creator-item" data-creator-key="${gi}" onclick="_playCreatorTop('${topSid}','${esc(g.name)}','${esc(g.provider)}')">
-        <div class="comm-creator-avatar">${g.avatar?'<img src="'+esc(g.avatar)+'" alt="" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+        <div class="comm-creator-avatar">${_safeAvatarHtml(g.avatar,g.name)}</div>
         <div class="comm-creator-info">
           <div class="comm-creator-name">${pI} ${esc(g.name)}</div>
           <div class="comm-creator-meta"><span>🎵 ${g.tracks.length}곡</span><span>❤️ ${tl}</span></div>
@@ -14371,7 +14376,7 @@ function _renderCreatorList(){
     /* 크리에이터 헤더 */
     html+=`<div class="comm-creator-group" data-creator-key="${gi}">
       <div class="comm-creator-header" onclick="openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">
-        <div class="comm-creator-avatar">${g.avatar?'<img src="'+esc(g.avatar)+'" alt="" onerror="this.parentNode.textContent=\'👤\'">':'👤'}</div>
+        <div class="comm-creator-avatar">${_safeAvatarHtml(g.avatar,g.name)}</div>
         <div class="comm-creator-info">
           <div class="comm-creator-name">${provIcon} ${esc(g.name)}${isMe?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
           <div class="comm-creator-meta">
@@ -18201,10 +18206,9 @@ function _skipOnboarding() {
 /* 초기화 후 온보딩 표시 */
 
 /* ── 출석 체크 시스템 ── */
-function _getUser(){return typeof currentUser!=='undefined'?currentUser:null;}
 var _attendChecked = false;
 async function _initAttendance(){
-  var u = _getUser();
+  var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
   if(!u || u.provider === 'guest'){ var ab=$('attend-banner'); if(ab)ab.style.display='none'; return; }
   try {
     var r = await fetch('/api/attendance?userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider));
@@ -18240,7 +18244,7 @@ async function _initAttendance(){
 }
 async function _doAttendance(){
   if(_attendChecked) return;
-  var u = _getUser();
+  var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
   if(!u || u.provider === 'guest'){ toast('로그인 후 이용할 수 있어요','info'); return; }
   var btn = $('attend-btn');
   if(btn){ btn.textContent = '...'; btn.disabled = true; }
