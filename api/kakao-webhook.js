@@ -122,7 +122,7 @@ const COMMANDS = {};
 /* 도움 */
 COMMANDS['도움'] = COMMANDS['help'] = async () => {
   return card(
-    '🤖 Kenny Bot (26개 명령)',
+    '🤖 Kenny Bot (30개 명령)',
     [
       '📊 모니터링: 상태 · 트랙 · 유저 · 댓글 · 배포',
       '📝 관리: 공지 · 공지삭제 · 삭제 · 공개 · 비공개 · 댓글삭제',
@@ -131,6 +131,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
       '📋 기획: 기획 · 백로그 · 버그',
       '🎨 디자인: 디자인 <지시>',
       '📊 사용량: 사용량 · 일간 · 주간',
+      '📈 인사이트: 인기곡 · 순위 · 플랫폼 · 장르',
       '📖 레퍼런스: kie <질문> · 작업 <카테고리>',
       '🚀 고도화 [Phase] — 고도화 진행률',
       '',
@@ -791,6 +792,140 @@ COMMANDS['kie'] = COMMANDS['api'] = async (arg) => {
     return card('❌ 로드 실패', e.message, [{ label: 'GitHub에서 보기', url: `https://github.com/${GH_REPO}/blob/main/KIE_API_REFERENCE.md` }]);
   }
 };
+
+/* ── 📈 인사이트 명령어 ── */
+
+/* 인기곡 — 인기 트랙 TOP 10 */
+COMMANDS['인기곡'] = async (arg) => {
+  const medals = ['🥇','🥈','🥉'];
+  let hours = 24, label = '24시간';
+  if (arg && (arg.includes('주간') || arg.includes('7d'))) { hours = 168; label = '주간'; }
+  else if (arg && (arg.includes('월간') || arg.includes('30d'))) { hours = 720; label = '월간'; }
+
+  const since = new Date(Date.now() - hours * 3600000).toISOString();
+  const { data } = await sb('GET', `/tracks?created_at=gte.${since}&select=id,title,owner_name,comm_likes,comm_plays,gen_mode&order=comm_likes.desc,comm_plays.desc&limit=10`);
+
+  if (!data.length) return text(`${label} 기간 트랙이 없습니다.`, ['순위', '플랫폼', '장르']);
+
+  let msg = `🔥 인기곡 TOP ${data.length} (${label})\n\n`;
+  data.forEach((t, i) => {
+    const medal = medals[i] || `${i + 1}.`;
+    const likes = t.comm_likes || 0;
+    const plays = t.comm_plays || 0;
+    const title = (t.title || '무제').slice(0, 18);
+    const owner = (t.owner_name || '익명').slice(0, 8);
+    msg += `${medal} ${title}\n   ${owner} · ❤️${likes} ▶${plays}\n`;
+  });
+  msg += `\n⏰ ${ts()}`;
+
+  return text(msg, ['순위', '플랫폼', '장르']);
+};
+COMMANDS['인기'] = COMMANDS['인기곡'];
+COMMANDS['trending'] = COMMANDS['인기곡'];
+COMMANDS['핫'] = COMMANDS['인기곡'];
+
+/* 순위 — 크리에이터 랭킹 */
+COMMANDS['순위'] = async () => {
+  const { data } = await sb('GET', '/tracks?select=owner_name,comm_likes,comm_plays&limit=1000');
+  if (!data.length) return text('트랙 데이터가 없습니다.', ['인기곡', '플랫폼']);
+
+  const creators = {};
+  data.forEach(t => {
+    const name = t.owner_name || '익명';
+    if (!creators[name]) creators[name] = { tracks: 0, likes: 0, plays: 0 };
+    creators[name].tracks++;
+    creators[name].likes += (t.comm_likes || 0);
+    creators[name].plays += (t.comm_plays || 0);
+  });
+
+  const ranked = Object.entries(creators)
+    .map(([name, s]) => ({ name, ...s, score: s.likes * 3 + s.plays }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  const medals = ['🥇','🥈','🥉'];
+  let msg = `👑 크리에이터 랭킹 TOP ${ranked.length}\n\n`;
+  ranked.forEach((c, i) => {
+    const medal = medals[i] || `${i + 1}.`;
+    msg += `${medal} ${c.name.slice(0, 10)}\n   🎵${c.tracks} ❤️${c.likes} ▶${c.plays}\n`;
+  });
+  msg += `\n⏰ ${ts()}`;
+
+  return text(msg, ['인기곡', '플랫폼']);
+};
+COMMANDS['랭킹'] = COMMANDS['순위'];
+COMMANDS['ranking'] = COMMANDS['순위'];
+
+/* 플랫폼 — 서비스 인사이트 */
+COMMANDS['플랫폼'] = async () => {
+  const { count: trackCount } = await sb('GET', '/tracks?select=id&limit=0');
+  const { count: userCount } = await sb('GET', '/users?select=id&limit=0');
+
+  let totalLikes = 0, totalPlays = 0;
+  try {
+    const { data: all } = await sb('GET', '/tracks?select=comm_likes,comm_plays&limit=5000');
+    all.forEach(t => { totalLikes += (t.comm_likes || 0); totalPlays += (t.comm_plays || 0); });
+  } catch {}
+
+  const today = new Date().toISOString().split('T')[0];
+  let todayTracks = 0, todayUsers = 0;
+  try { todayTracks = (await sb('GET', `/tracks?created_at=gte.${today}&select=id&limit=500`)).data.length; } catch {}
+  try { todayUsers = (await sb('GET', `/users?created_at=gte.${today}&select=id&limit=500`)).data.length; } catch {}
+
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  let weekTracks = 0;
+  try { weekTracks = (await sb('GET', `/tracks?created_at=gte.${weekAgo}&select=id&limit=500`)).data.length; } catch {}
+
+  const tc = trackCount ?? 0;
+  const avgLikes = tc > 0 ? (totalLikes / tc).toFixed(1) : '0';
+
+  let msg = `📊 서비스 인사이트\n\n`;
+  msg += `🎵 총 트랙: ${tc}곡\n`;
+  msg += `👥 총 사용자: ${userCount ?? '?'}명\n`;
+  msg += `❤️ 총 좋아요: ${totalLikes}\n`;
+  msg += `▶ 총 재생: ${totalPlays}\n\n`;
+  msg += `📅 오늘: 트랙 +${todayTracks} / 유저 +${todayUsers}\n`;
+  msg += `📆 이번 주: 트랙 +${weekTracks}\n`;
+  msg += `📈 트랙당 평균 좋아요: ${avgLikes}\n\n`;
+  msg += `⏰ ${ts()}`;
+
+  return text(msg, ['인기곡', '순위', '장르']);
+};
+COMMANDS['인사이트'] = COMMANDS['플랫폼'];
+COMMANDS['insight'] = COMMANDS['플랫폼'];
+
+/* 장르 — 모드별 분석 */
+COMMANDS['장르'] = async () => {
+  const { data } = await sb('GET', '/tracks?select=gen_mode,comm_likes&limit=5000');
+  if (!data.length) return text('트랙 데이터가 없습니다.', ['인기곡', '순위']);
+
+  const modes = {};
+  data.forEach(t => {
+    const m = t.gen_mode || 'unknown';
+    if (!modes[m]) modes[m] = { count: 0, likes: 0 };
+    modes[m].count++;
+    modes[m].likes += (t.comm_likes || 0);
+  });
+
+  const total = data.length;
+  const sorted = Object.entries(modes).sort((a, b) => b[1].count - a[1].count);
+
+  const modeNames = { simple: '🎹 심플', custom: '🎨 커스텀', extend: '🔄 연장', remix: '🎤 리믹스', unknown: '❓ 기타' };
+  let msg = `🎼 모드별 분석 (총 ${total}곡)\n\n`;
+  sorted.forEach(([mode, s]) => {
+    const pct = ((s.count / total) * 100).toFixed(1);
+    const barLen = Math.round(s.count / total * 10);
+    const bar = '█'.repeat(barLen) + '░'.repeat(10 - barLen);
+    const avgL = s.count > 0 ? (s.likes / s.count).toFixed(1) : '0';
+    const label = modeNames[mode] || `🎵 ${mode}`;
+    msg += `${label}\n${bar} ${pct}% (${s.count}곡) 평균❤️${avgL}\n`;
+  });
+  msg += `\n⏰ ${ts()}`;
+
+  return text(msg, ['인기곡', '순위']);
+};
+COMMANDS['모드'] = COMMANDS['장르'];
+COMMANDS['genre'] = COMMANDS['장르'];
 
 /* ── 메인 핸들러 ── */
 export default async function handler(req, res) {

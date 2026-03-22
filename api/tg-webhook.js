@@ -130,6 +130,12 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `댓글 [트랙ID] — 최근 댓글`,
     `배포 — 사이트 헬스체크+응답속도`,
     ``,
+    `━━ 📊 인사이트 (4) ━━`,
+    `인기곡 [주간|월간] — 인기 트랙 TOP 10`,
+    `순위 — 크리에이터 랭킹`,
+    `플랫폼 — 서비스 성장 대시보드`,
+    `장르 — 생성 모드별 분석`,
+    ``,
     `━━ 📝 콘텐츠 관리 (6) ━━`,
     `공지 <내용> — 인앱 공지 등록`,
     `공지삭제 — 공지 비활성화`,
@@ -572,6 +578,156 @@ COMMANDS['청소'] = COMMANDS['cleanup'] = async (chatId, arg) => {
     ].join('\n'), { parse_mode: '' });
   } catch(e) {
     await tgSend(chatId, `❌ 브랜치 정리 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 인기곡 — 좋아요+재생 기준 인기 트랙 */
+COMMANDS['인기곡'] = COMMANDS['인기'] = COMMANDS['trending'] = COMMANDS['핫'] = async (chatId, arg) => {
+  const period = (arg || '').includes('주') ? 7 : (arg || '').includes('월') ? 30 : 1;
+  const label = period === 1 ? '24시간' : period === 7 ? '7일' : '30일';
+
+  try {
+    const since = new Date(Date.now() - period * 86400000).toISOString();
+    const { data: tracks } = await sb('GET', `/tracks?is_public=eq.true&created_at=gte.${since}&order=comm_likes.desc,comm_plays.desc&limit=10&select=title,owner_name,comm_likes,comm_plays,gen_mode,created_at`);
+
+    if (!tracks?.length) return tgSend(chatId, `최근 ${label} 인기곡이 없습니다.`, { parse_mode: '' });
+
+    let msg = `🔥 인기곡 TOP ${tracks.length} (${label})\n\n`;
+    tracks.forEach((t, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+      const mode = t.gen_mode === 'custom' ? '🎹' : t.gen_mode === 'simple' ? '🎵' : '🎶';
+      msg += `${medal} ${t.title || '무제'}\n`;
+      msg += `   ${mode} ${t.owner_name || '?'} · ❤️${t.comm_likes || 0} · ▶️${t.comm_plays || 0}\n\n`;
+    });
+    msg += `💡 인기곡 주간: "인기곡 주간" / 월간: "인기곡 월간"`;
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch(e) {
+    await tgSend(chatId, `❌ 인기곡 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 순위 — 크리에이터 랭킹 TOP 10 */
+COMMANDS['순위'] = COMMANDS['랭킹'] = COMMANDS['ranking'] = async (chatId, arg) => {
+  try {
+    const { data: tracks } = await sb('GET', '/tracks?is_public=eq.true&select=owner_name,comm_likes,comm_plays');
+    if (!tracks?.length) return tgSend(chatId, '트랙 데이터가 없습니다.', { parse_mode: '' });
+
+    // Aggregate by creator
+    const creators = {};
+    for (const t of tracks) {
+      const name = t.owner_name || '?';
+      if (!creators[name]) creators[name] = { tracks: 0, likes: 0, plays: 0 };
+      creators[name].tracks++;
+      creators[name].likes += (t.comm_likes || 0);
+      creators[name].plays += (t.comm_plays || 0);
+    }
+
+    // Sort by score (likes*3 + plays)
+    const ranked = Object.entries(creators)
+      .map(([name, s]) => ({ name, ...s, score: s.likes * 3 + s.plays }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    let msg = `🏆 크리에이터 랭킹 TOP ${ranked.length}\n\n`;
+    ranked.forEach((c, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+      msg += `${medal} ${c.name}\n`;
+      msg += `   🎵${c.tracks}곡 · ❤️${c.likes} · ▶️${c.plays}\n\n`;
+    });
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch(e) {
+    await tgSend(chatId, `❌ 랭킹 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 플랫폼 — 서비스 인사이트 대시보드 */
+COMMANDS['플랫폼'] = COMMANDS['인사이트'] = COMMANDS['insight'] = async (chatId, arg) => {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+
+    // Parallel queries
+    const [totalRes, userRes, todayRes, todayUserRes, weekRes, publicRes] = await Promise.all([
+      sb('GET', '/tracks?select=id&limit=0'),
+      sb('GET', '/users?select=id&limit=0'),
+      sb('GET', `/tracks?created_at=gte.${today}&select=id`),
+      sb('GET', `/users?created_at=gte.${today}&select=id`),
+      sb('GET', `/tracks?created_at=gte.${weekAgo}&select=id`),
+      sb('GET', '/tracks?is_public=eq.true&select=comm_likes,comm_plays'),
+    ]);
+
+    const totalTracks = totalRes.count || 0;
+    const totalUsers = userRes.count || 0;
+    const todayTracks = todayRes.data?.length || 0;
+    const todayUsers = todayUserRes.data?.length || 0;
+    const weekTracks = weekRes.data?.length || 0;
+    const publicTracks = publicRes.data || [];
+
+    const totalLikes = publicTracks.reduce((s, t) => s + (t.comm_likes || 0), 0);
+    const totalPlays = publicTracks.reduce((s, t) => s + (t.comm_plays || 0), 0);
+    const avgLikes = publicTracks.length ? (totalLikes / publicTracks.length).toFixed(1) : 0;
+
+    const msg = [
+      '📊 플랫폼 인사이트',
+      '',
+      '━━ 전체 현황 ━━',
+      `🎵 총 트랙: ${totalTracks.toLocaleString()}곡`,
+      `👤 총 유저: ${totalUsers.toLocaleString()}명`,
+      `❤️ 총 좋아요: ${totalLikes.toLocaleString()}`,
+      `▶️ 총 재생: ${totalPlays.toLocaleString()}`,
+      '',
+      '━━ 오늘 ━━',
+      `🆕 신규 트랙: ${todayTracks}곡`,
+      `🆕 신규 가입: ${todayUsers}명`,
+      '',
+      '━━ 주간 ━━',
+      `📈 주간 트랙: ${weekTracks}곡`,
+      `📊 곡당 평균 좋아요: ${avgLikes}`,
+      '',
+      `⏰ ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+    ].join('\n');
+
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch(e) {
+    await tgSend(chatId, `❌ 인사이트 조회 실패: ${e.message}`, { parse_mode: '' });
+  }
+};
+
+/* 장르 — 생성 모드별 트랙 분석 */
+COMMANDS['장르'] = COMMANDS['모드'] = COMMANDS['genre'] = async (chatId, arg) => {
+  try {
+    const { data: tracks } = await sb('GET', '/tracks?is_public=eq.true&select=gen_mode,comm_likes,comm_plays');
+    if (!tracks?.length) return tgSend(chatId, '트랙 데이터가 없습니다.', { parse_mode: '' });
+
+    const modes = {};
+    for (const t of tracks) {
+      const mode = t.gen_mode || 'unknown';
+      if (!modes[mode]) modes[mode] = { count: 0, likes: 0, plays: 0 };
+      modes[mode].count++;
+      modes[mode].likes += (t.comm_likes || 0);
+      modes[mode].plays += (t.comm_plays || 0);
+    }
+
+    const modeLabels = { simple: '🎵 심플모드', custom: '🎹 커스텀모드', extend: '🔄 확장모드', unknown: '❓ 기타' };
+    const total = tracks.length;
+
+    let msg = '🎼 생성 모드별 분석\n\n';
+    const sorted = Object.entries(modes).sort((a, b) => b[1].count - a[1].count);
+
+    for (const [mode, s] of sorted) {
+      const pct = ((s.count / total) * 100).toFixed(0);
+      const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
+      const avgLikes = s.count ? (s.likes / s.count).toFixed(1) : 0;
+      msg += `${modeLabels[mode] || mode}\n`;
+      msg += `${bar} ${pct}% (${s.count}곡)\n`;
+      msg += `❤️ 평균 ${avgLikes} · ▶️ 총 ${s.plays}\n\n`;
+    }
+
+    msg += `📊 전체 ${total}곡 기준`;
+    await tgSend(chatId, msg, { parse_mode: '' });
+  } catch(e) {
+    await tgSend(chatId, `❌ 장르 분석 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 
@@ -1539,6 +1695,9 @@ export default async function handler(req, res) {
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
       { re: /구현.*현황|뭐.*했|뭐.*만들|기능.*목록|어디.*까지.*구현|작업.*내역/i, cmd: '작업' },
       { re: /고도화|phase|업그레이드.*진행|어디.*까지.*고도화/i, cmd: '고도화' },
+      { re: /인기.*곡|핫|유행|트렌드|trending/i, cmd: '인기곡' },
+      { re: /순위|랭킹|탑|리더보드|ranking/i, cmd: '순위' },
+      { re: /플랫폼|인사이트|성장|대시보드|insight/i, cmd: '플랫폼' },
     ];
     if (!COMMANDS[cmd]) {
       const full = text.toLowerCase();
