@@ -123,8 +123,9 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `🤖 Kenny Music Studio 봇`,
     `총 ${Object.keys(COMMANDS).length}개 명령어 · ${ts()}`,
     ``,
-    `━━ 📊 모니터링 (5) ━━`,
+    `━━ 📊 모니터링 (6) ━━`,
     `상태 — 서버+DB+사이트 리포트`,
+    `헬스 — API/DB 전체 점검 (응답속도 포함)`,
     `트랙 [N] — 최근 트랙 (기본 10곡)`,
     `유저 — 유저 통계+최근 가입자`,
     `댓글 [트랙ID] — 최근 댓글`,
@@ -190,6 +191,81 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `💬 자연어도 OK (예: "뭐 했어", "서버 괜찮아?")`,
   ].join('\n');
   await tgSend(chatId, help, { parse_mode: '' });
+};
+
+/* /헬스체크 — API/DB 전체 점검 */
+COMMANDS['헬스'] = COMMANDS['health'] = COMMANDS['점검'] = async (chatId) => {
+  await tgSend(chatId, '🔍 시스템 점검 중...', { parse_mode: '' });
+  const checks = [];
+
+  /* Supabase DB */
+  try {
+    const t0 = Date.now();
+    const { count } = await sb('GET', '/tracks?select=id&limit=0');
+    checks.push(`✅ Supabase DB — ${Date.now()-t0}ms (${count}곡)`);
+  } catch (e) { checks.push(`❌ Supabase DB — ${e.message.slice(0,60)}`); }
+
+  /* Supabase Users */
+  try {
+    const t0 = Date.now();
+    const { count } = await sb('GET', '/users?select=id&limit=0');
+    checks.push(`✅ Supabase Users — ${Date.now()-t0}ms (${count}명)`);
+  } catch (e) { checks.push(`❌ Supabase Users — ${e.message.slice(0,60)}`); }
+
+  /* kie.ai API */
+  try {
+    const t0 = Date.now();
+    const r = await fetch('https://api.kie.ai/api/v1/generate/record-info?taskId=test', {
+      headers: { Authorization: `Bearer ${KIE_KEY}` },
+    });
+    const ms = Date.now()-t0;
+    checks.push(r.status < 500 ? `✅ kie.ai API — ${ms}ms (HTTP ${r.status})` : `⚠️ kie.ai API — ${ms}ms (HTTP ${r.status})`);
+  } catch (e) { checks.push(`❌ kie.ai API — ${e.message.slice(0,60)}`); }
+
+  /* 사이트 */
+  try {
+    const t0 = Date.now();
+    const r = await fetch(BASE, { method: 'HEAD' });
+    checks.push(r.status < 400 ? `✅ 사이트 — ${Date.now()-t0}ms` : `⚠️ 사이트 — ${Date.now()-t0}ms (HTTP ${r.status})`);
+  } catch (e) { checks.push(`❌ 사이트 — ${e.message.slice(0,60)}`); }
+
+  /* 텔레그램 봇 */
+  try {
+    const t0 = Date.now();
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
+    const d = await r.json();
+    checks.push(d.ok ? `✅ 텔레그램 봇 — ${Date.now()-t0}ms` : `❌ 텔레그램 봇 — ${d.description}`);
+  } catch (e) { checks.push(`❌ 텔레그램 봇 — ${e.message.slice(0,60)}`); }
+
+  /* 카카오 알림 */
+  try {
+    const t0 = Date.now();
+    const r = await fetch(`${BASE}/api/kakao-notify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"text":""}' });
+    checks.push(r.status < 500 ? `✅ 카카오 알림 — ${Date.now()-t0}ms` : `⚠️ 카카오 알림 — HTTP ${r.status}`);
+  } catch (e) { checks.push(`❌ 카카오 알림 — ${e.message.slice(0,60)}`); }
+
+  /* GitHub API */
+  if (GH_TOKEN) {
+    try {
+      const t0 = Date.now();
+      await ghApi('GET', '');
+      checks.push(`✅ GitHub API — ${Date.now()-t0}ms`);
+    } catch (e) { checks.push(`❌ GitHub API — ${e.message.slice(0,60)}`); }
+  } else {
+    checks.push(`⚠️ GitHub API — 토큰 미설정`);
+  }
+
+  const ok = checks.filter(c => c.startsWith('✅')).length;
+  const total = checks.length;
+  const emoji = ok === total ? '💚' : ok >= total-1 ? '💛' : '🔴';
+
+  await tgSend(chatId, [
+    `${emoji} 시스템 헬스체크 (${ok}/${total})`,
+    '',
+    ...checks,
+    '',
+    `⏰ ${ts()}`,
+  ].join('\n'), { parse_mode: '' });
 };
 
 /* /상태 */
