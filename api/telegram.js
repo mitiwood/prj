@@ -11,6 +11,19 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const DEFAULT_CHAT_ID = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+const SB_URL = process.env.SUPABASE_URL || '';
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+
+/* bot_logs 테이블에 발송 기록 저장 (fire-and-forget) */
+function logBotMessage(channel, text, messageId) {
+  if (!SB_URL || !SB_KEY) return;
+  const body = JSON.stringify({ channel, text: (text || '').slice(0, 500), message_id: String(messageId || '') });
+  fetch(`${SB_URL}/rest/v1/bot_logs`, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body,
+  }).catch(() => {});
+}
 
 function checkAuth(req) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
@@ -159,6 +172,7 @@ export default async function handler(req, res) {
         ...(parse_mode ? { parse_mode } : {}),
         disable_notification: !!silent,
       });
+      logBotMessage('telegram', msg, result.message_id);
       return res.status(200).json({ ok: true, message_id: result.message_id });
     } catch (e) {
       return res.status(500).json({ ok: false, error: e.message });

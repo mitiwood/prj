@@ -128,7 +128,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async () => {
     '🤖 Kenny Bot',
     [
       '🎵 생성: 커스텀 · 심플 · 유튜브 · MV',
-      '📊 모니터링: 상태 · 트랙 · 유저 · 댓글 · 배포',
+      '📊 모니터링: 상태 · 트랙 · 유저 · 댓글 · 배포 · 로그',
       '📝 관리: 공지 · 삭제 · 공개 · 비공개 · 댓글삭제',
       '📣 알림: 알림 <메시지>',
       '🛠 개발: 수정 · PR · 머지 · QA · 진행상황',
@@ -243,6 +243,21 @@ COMMANDS['댓글'] = COMMANDS['comments'] = async (arg) => {
   });
 
   return listCard('💬 최근 댓글', items, [], ['상태', '트랙', '유저']);
+};
+
+/* 로그 — 최근 봇 발송 기록 조회 */
+COMMANDS['로그'] = COMMANDS['log'] = COMMANDS['logs'] = async (arg) => {
+  const limit = Math.min(parseInt(arg) || 10, 20);
+  const { data } = await sb('GET', `/bot_logs?select=channel,text,created_at&order=created_at.desc&limit=${limit}`);
+  if (!data || !data.length) return text('📭 봇 발송 기록이 없습니다.', ['상태', '도움']);
+  let lines = [`📋 최근 봇 알림 ${data.length}건\n`];
+  data.forEach((d, i) => {
+    const ch = d.channel === 'telegram' ? '📨TG' : '💬KA';
+    const t = new Date(d.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const preview = (d.text || '').replace(/\n/g, ' ').slice(0, 60);
+    lines.push(`${ch} ${t} ${preview}`);
+  });
+  return text(lines.join('\n'), ['상태', '트랙', '도움']);
 };
 
 /* 배포 */

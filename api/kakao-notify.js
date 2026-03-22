@@ -168,6 +168,12 @@ export default async function handler(req, res) {
 
     try {
       await kakaoSend(msg);
+      /* bot_logs 기록 (fire-and-forget) */
+      fetch(`${SB_URL}/rest/v1/bot_logs`, {
+        method: 'POST',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ channel: 'kakao', text: msg.slice(0, 500) }),
+      }).catch(() => {});
       return res.status(200).json({ ok: true });
     } catch (e) {
       console.warn('[kakao-notify] 발송 실패:', e.message);
