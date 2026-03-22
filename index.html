@@ -361,19 +361,22 @@ textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
 
 /* 장르 버튼 */
 .genre-btn-grid{
-  display:flex;flex-wrap:wrap;gap:7px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
 }
 .genre-btn{
-  padding:8px 14px;border-radius:10px;
-  border:none;background:var(--bg2);
-  color:var(--t2);font-size:12px;font-weight:600;
-  cursor:pointer;transition:all .25s ease;font-family:inherit;
+  padding:12px 6px 10px;border-radius:12px;
+  border:1.5px solid rgba(255,255,255,.06);background:var(--bg2);
+  color:var(--t2);font-size:11px;font-weight:600;text-align:center;
+  cursor:pointer;transition:all .2s ease;font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2;
 }
-.genre-btn:hover{border-color:var(--acc2);color:var(--acc3);background:rgba(168,85,247,.08);}
+.genre-btn .genre-ico{font-size:22px;display:block;}
+.genre-btn:hover{border-color:var(--acc2);color:var(--acc3);background:rgba(168,85,247,.08);transform:translateY(-1px);}
 .genre-btn.on{
   background:linear-gradient(135deg,rgba(124,58,237,.55),rgba(168,85,247,.45));
   border-color:var(--acc2);color:#fff;font-weight:800;
-  box-shadow:0 0 0 1px rgba(168,85,247,.35),0 2px 10px rgba(124,58,237,.25);
+  box-shadow:0 0 0 1px rgba(168,85,247,.35),0 4px 12px rgba(124,58,237,.3);
+  transform:translateY(-1px);
 }
 
 /* 서브 장르 */
@@ -504,6 +507,24 @@ textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
 .options-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
 .opt-group{flex:1 1 calc(50% - 5px);min-width:140px;}
 .opt-label{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:5px;letter-spacing:0.2px;text-transform:uppercase;}
+
+/* 분위기 그리드 */
+.mood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.mood-chip{
+  padding:8px 4px;border-radius:10px;border:1.5px solid rgba(255,255,255,.06);
+  background:var(--bg2);color:var(--t2);font-size:10px;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:inherit;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2;
+}
+.mood-ico{font-size:18px;display:block;}
+.mood-chip:hover{border-color:var(--acc2);background:rgba(168,85,247,.08);transform:translateY(-1px);}
+.mood-chip.on{
+  background:linear-gradient(135deg,rgba(124,58,237,.5),rgba(168,85,247,.4));
+  border-color:var(--acc2);color:#fff;font-weight:800;
+  box-shadow:0 2px 10px rgba(124,58,237,.25);
+}
+[data-theme="light"] .mood-chip{background:#f2f2f7;color:#48484a;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mood-chip.on{background:#7c3aed;color:#fff;border-color:#7c3aed;}
 
 /* 고급설정 */
 .advanced-toggle{
@@ -3275,14 +3296,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg></span> 장르 / 스타일
           </div>
           <div class="genre-btn-grid" id="genre-btn-grid">
-            <button class="genre-btn" data-cat="pop">🎵 K-Pop</button>
-            <button class="genre-btn" data-cat="hiphop">🎤 Hip-Hop</button>
-            <button class="genre-btn" data-cat="electronic">⚡ Electronic</button>
-            <button class="genre-btn" data-cat="rock">🎸 Rock</button>
-            <button class="genre-btn" data-cat="lofi">☕ Lo-Fi</button>
-            <button class="genre-btn" data-cat="jazz">🎷 Jazz</button>
-            <button class="genre-btn" data-cat="classical">🎻 Classical</button>
-            <button class="genre-btn" data-cat="acoustic">🪕 Acoustic</button>
+            <button class="genre-btn" data-cat="pop"><span class="genre-ico">🎵</span>K-Pop</button>
+            <button class="genre-btn" data-cat="hiphop"><span class="genre-ico">🎤</span>Hip-Hop</button>
+            <button class="genre-btn" data-cat="electronic"><span class="genre-ico">⚡</span>Electronic</button>
+            <button class="genre-btn" data-cat="rock"><span class="genre-ico">🎸</span>Rock</button>
+            <button class="genre-btn" data-cat="lofi"><span class="genre-ico">☕</span>Lo-Fi</button>
+            <button class="genre-btn" data-cat="jazz"><span class="genre-ico">🎷</span>Jazz</button>
+            <button class="genre-btn" data-cat="classical"><span class="genre-ico">🎻</span>Classical</button>
+            <button class="genre-btn" data-cat="acoustic"><span class="genre-ico">🪕</span>Acoustic</button>
           </div>
           <div class="sub-genre-row" id="sub-genre-row"></div>
           <select id="genre-cat" style="display:none;"></select>
@@ -3322,27 +3343,32 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
         </div>
 
-        <!-- 분위기 셀렉트 + 인스트루멘탈 — 곡설명 바로 아래 -->
-<!-- 분위기 셀렉트 + 인스트루멘탈 -->
-        <div class="options-row">
-          <div class="opt-group">
-            <div class="opt-label">분위기</div>
-            <select class="opt-select" id="mood">
-              <option value="">선택 안함</option>
-              <option value="happy, uplifting">밝고 신나는</option>
-              <option value="sad, emotional">슬프고 감성적인</option>
-              <option value="calm, relaxing">잔잔하고 편안한</option>
-              <option value="dark, intense">어둡고 강렬한</option>
-              <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
-              <option value="epic, cinematic">웅장하고 영화적인</option>
-              <option value="energetic, hype">에너지 넘치는</option>
-              <option value="nostalgic, retro">노스탤직하고 레트로</option>
-              <option value="aggressive, powerful">강렬하고 파워풀</option>
-              <option value="chill, lofi">칠하고 로파이</option>
-              <option value="hopeful, inspiring">희망차고 영감주는</option>
-              <option value="mysterious, ethereal">신비롭고 몽환적</option>
-            </select>
+        <!-- 분위기 그리드 -->
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span> 분위기
           </div>
+          <select id="mood" style="display:none;">
+            <option value="">선택 안함</option>
+            <option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="epic, cinematic">웅장하고 영화적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
+          </select>
+          <div class="mood-grid" id="mood-grid">
+            <button class="mood-chip" data-mood="happy, uplifting" onclick="_setMood(this)"><span class="mood-ico">😊</span>신나는</button>
+            <button class="mood-chip" data-mood="sad, emotional" onclick="_setMood(this)"><span class="mood-ico">😢</span>감성적</button>
+            <button class="mood-chip" data-mood="calm, relaxing" onclick="_setMood(this)"><span class="mood-ico">🍃</span>편안한</button>
+            <button class="mood-chip" data-mood="dark, intense" onclick="_setMood(this)"><span class="mood-ico">🌑</span>강렬한</button>
+            <button class="mood-chip" data-mood="romantic, dreamy" onclick="_setMood(this)"><span class="mood-ico">💕</span>로맨틱</button>
+            <button class="mood-chip" data-mood="epic, cinematic" onclick="_setMood(this)"><span class="mood-ico">🎬</span>시네마틱</button>
+            <button class="mood-chip" data-mood="energetic, hype" onclick="_setMood(this)"><span class="mood-ico">🔥</span>에너지</button>
+            <button class="mood-chip" data-mood="nostalgic, retro" onclick="_setMood(this)"><span class="mood-ico">📼</span>레트로</button>
+            <button class="mood-chip" data-mood="aggressive, powerful" onclick="_setMood(this)"><span class="mood-ico">💪</span>파워풀</button>
+            <button class="mood-chip" data-mood="chill, lofi" onclick="_setMood(this)"><span class="mood-ico">☕</span>로파이</button>
+            <button class="mood-chip" data-mood="hopeful, inspiring" onclick="_setMood(this)"><span class="mood-ico">🌅</span>영감</button>
+            <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setMood(this)"><span class="mood-ico">🔮</span>신비</button>
+          </div>
+        </div>
+        <!-- 인스트루멘탈 토글 -->
+        <div class="options-row" style="margin-bottom:12px;">
           <div class="opt-group">
             <div class="opt-label">인스트루멘탈</div>
             <div class="toggle-label-row" id="inst-toggle">
@@ -5527,7 +5553,7 @@ function switchTab(viewId){
   if(viewId==='profile-view'){const cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
   window.scrollTo({top:0,behavior:'smooth'});
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_updateCommBadge();try{renderCommunity(true);}catch(e){console.error(e);}}
+  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
@@ -5573,7 +5599,7 @@ let _sbLoaded    = false;
 let _sbMyLoaded  = false;
 let _sbLoading   = false;
 let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
-const _SB_CACHE_TTL = 10000; /* 10초 캐시 */
+const _SB_CACHE_TTL = 30000; /* 30초 캐시 */
 
 /* ── 무한 스크롤 페이지네이션 상태 ── */
 const _SB_PAGE_SIZE = 20;
@@ -5733,19 +5759,32 @@ try{
   }
 }catch(e){}
 
-/* ── 커뮤니티 주기적 자동 갱신 (10초마다, 깜빡임 없음) ── */
+/* ── 커뮤니티 주기적 자동 갱신 (30초, Visibility API 연동) ── */
 let _commPollTimer = null;
+var _commPollPaused = false;
 function _startCommPoll(){
   if(_commPollTimer) return;
   _commPollTimer = setInterval(async()=>{
-    /* 커뮤니티 뷰가 열려있을 때만 갱신 */
+    /* 브라우저 탭 비활성 또는 커뮤니티 뷰 안 열림 → 스킵 */
+    if(_commPollPaused || document.hidden) return;
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
     await _pollRefreshSbTracks();
-    /* _renderCommContent 내부에서 스냅샷 비교 → 변경 시에만 DOM 갱신 */
     try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
-  }, 10000);
+  }, 30000);
 }
+/* 브라우저 탭 전환 시 폴링 일시정지/재개 */
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden && _sbLoaded){
+    /* 탭 복귀 시 30초 넘었으면 즉시 갱신 */
+    if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
+      var cv=document.getElementById('community-view');
+      if(cv&&cv.classList.contains('on')){
+        _pollRefreshSbTracks().then(function(){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));}catch(e){}});
+      }
+    }
+  }
+});
 /* 페이지 로드 시 폴링 시작 + 프리로드 */
 _startCommPoll();
 /* 캐시 없으면 백그라운드 프리로드 */
@@ -13938,7 +13977,18 @@ function getCommTracks(){
   return all;
 }
 
+var _commRenderTimer=null;
+var _commRendering=false;
 async function renderCommunity(force=false){
+  /* 디바운스 — 100ms 내 연속 호출 병합 (깜빡임 방지) */
+  if(!force&&_commRenderTimer){return;}
+  if(!force&&!_commRendering){
+    _commRenderTimer=setTimeout(function(){_commRenderTimer=null;},100);
+  }
+  _commRendering=true;
+  try{ await _renderCommunityInner(force); }finally{ _commRendering=false; }
+}
+async function _renderCommunityInner(force){
   /* 크리에이터 모드이면 별도 렌더 */
   if(_commActiveGenre==='creators'){
     var sr=$('comm-sort-row');if(sr)sr.style.display='none';
@@ -13985,7 +14035,17 @@ async function renderCommunity(force=false){
   const list=$('comm-list');
   if(!list)return;
 
-  /* 캐시 있으면 즉시 렌더 (깜빡임 방지) */
+  /* 캐시 유효하면 즉시 렌더만 (서버 재요청 안 함) */
+  var cacheValid=_sbLoaded&&_sbTracks.length&&(Date.now()-_sbLoadedAt)<_SB_CACHE_TTL;
+  if(cacheValid&&!force){
+    _renderCommContent(heroWrap, list);
+    _renderActivityFeed();
+    _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
+    _setupCommInfiniteScroll();
+    return;
+  }
+
+  /* 캐시 있으면 즉시 렌더 (깜빡임 방지) → 백그라운드에서 갱신 */
   if(_sbLoaded && _sbTracks.length){
     _renderCommContent(heroWrap, list);
   } else {
@@ -13993,13 +14053,12 @@ async function renderCommunity(force=false){
     heroWrap.innerHTML='';
   }
 
-  /* 항상 서버에서 최신 데이터 로드 */
+  /* 서버에서 최신 데이터 로드 */
   var _prevSnap=(_sbTracks||[]).map(t=>({_sbId:t._sbId,likes:t.likes,plays:t.plays}));
   await _loadSbTracks(true);
-  /* 활동 피드: 변화 감지 (Feature 9) */
+  /* 활동 피드: 변화 감지 */
   if(_prevSnap.length) _detectActivityChanges(_prevSnap,_sbTracks||[]);
   _renderActivityFeed();
-  /* 트렌딩 태그 (Feature 5) */
   /* 챌린지 배너 */
   _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
   _renderCommContent(heroWrap, list);
@@ -14063,6 +14122,63 @@ function _skeleton(type){
   return '';
 }
 
+/* 로컬 데이터 변경 후 서버 재요청 없이 부분 DOM 갱신 */
+function _commQuickRender(){
+  try{
+    /* 히어로 좋아요 카운트 인라인 갱신 */
+    var heroLikeCnt=$('comm-hero-like-cnt');
+    var heroLikeBtn=$('comm-hero-like');
+    var heroDislikeBtn=$('comm-hero-dislike');
+    if(heroLikeCnt){
+      var ht=_getHeroTrack();
+      if(ht){
+        heroLikeCnt.textContent=ht.likes||0;
+        if(heroLikeBtn){heroLikeBtn.className='comm-reaction-btn'+(ht.liked?' liked':'');heroLikeBtn.innerHTML=(ht.liked?'❤️':'🤍')+' 좋아요 <span id="comm-hero-like-cnt">'+(ht.likes||0)+'</span>';}
+        if(heroDislikeBtn){heroDislikeBtn.className='comm-reaction-btn'+(ht.disliked?' disliked':'');}
+        /* 히어로 배지도 갱신 */
+        var hBadge=document.querySelector('.comm-featured-like-badge');
+        if(hBadge) hBadge.textContent='❤️ 좋아요 '+(ht.likes>0?ht.likes:0);
+      }
+    }
+    /* 리스트 아이템의 좋아요/재생 카운트 인라인 갱신 */
+    document.querySelectorAll('.comm-list-item').forEach(function(el){
+      var sid=el.dataset.sbid;if(!sid)return;
+      var t=(_sbTracks||[]).find(function(x){return x._sbId===sid;});if(!t)return;
+      /* 액션 버튼 영역의 좋아요/싫어요 상태 갱신 */
+      var actions=el.querySelector('.comm-list-actions');if(!actions)return;
+      var btns=actions.querySelectorAll('.comm-reaction-sm');
+      btns.forEach(function(btn){
+        var onclick=btn.getAttribute('onclick')||'';
+        if(onclick.indexOf('commLikeSb')>=0){
+          btn.className='comm-reaction-sm'+(t.liked?' liked':'');
+          btn.innerHTML=(t.liked?'❤️':'🤍')+' <span>'+(t.likes>0?t.likes:'')+'</span>';
+        } else if(onclick.indexOf('commDislikeSb')>=0){
+          btn.className='comm-reaction-sm'+(t.disliked?' disliked':'');
+        }
+      });
+      /* 2열의 재생수/좋아요 텍스트 갱신 */
+      var metaSpans=el.querySelectorAll('.comm-list-info span[style*="margin-left:auto"] span');
+      if(metaSpans.length>=1){
+        var html='';
+        if(t.plays>0) html+='<span>▶ '+t.plays+'</span>';
+        if(t.likes>0) html+='<span>❤️ '+t.likes+'</span>';
+        metaSpans[0].parentNode.innerHTML=html;
+      }
+    });
+  }catch(e){
+    /* 부분 갱신 실패 시 전체 리렌더 폴백 */
+    try{var hw=$('comm-hero-wrap'),cl=$('comm-list');if(hw&&cl) _renderCommContent(hw,cl);}catch(e2){}
+  }
+}
+/* 히어로 트랙 가져오기 헬퍼 */
+function _getHeroTrack(){
+  var tracks=typeof getCommTracks==='function'?getCommTracks():(_sbTracks||[]);
+  if(!tracks.length)return null;
+  var sortFns={likes:function(a,b){return b.likes-a.likes;},newest:function(a,b){return (b._created||0)-(a._created||0);},rating:function(a,b){return (b.rating||0)-(a.rating||0);},plays:function(a,b){return (b.plays||0)-(a.plays||0);}};
+  var sorted=tracks.slice().sort(sortFns[_commSortMode]||sortFns.likes);
+  return sorted[0]||null;
+}
+
 function _renderCommContent(heroWrap, list){
   let tracks=getCommTracks();
   if(!tracks.length){
@@ -14099,10 +14215,12 @@ function _renderCommContent(heroWrap, list){
   const otherTracks=rest.filter(t=>!_isMine(t));
 
   /* 변경 감지용 스냅샷: ID + likes + 곡 수 */
+  var _snapKey=function(t){return t._sbId+':'+t.likes+':'+t.plays+':'+(t.dislikes||0);};
   const snapshot=JSON.stringify({
-    hero:hero._sbId+':'+hero.likes,
-    my:myTracks.map(t=>t._sbId+':'+t.likes),
-    other:otherTracks.map(t=>t._sbId+':'+t.likes)
+    hero:_snapKey(hero),
+    sort:_commSortMode,
+    my:myTracks.map(_snapKey),
+    other:otherTracks.map(_snapKey)
   });
   const isFirstRender=!list.querySelector('.comm-list-item');
   const changed=snapshot!==_commPrevSnapshot;
@@ -14871,7 +14989,7 @@ function commLikeSb(sbId){
   const h=historyData.find(h=>h.id===sbId);
   if(h){h._commLiked=newLiked;h._commDisliked=false;h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));saveHistory();}
   toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
-  renderCommunity();
+  _commQuickRender();
 }
 
 /* Supabase sbId로 싫어요 */
@@ -14884,7 +15002,7 @@ function commDislikeSb(sbId){
   const h=historyData.find(h=>h.id===sbId);
   if(h){h._commDisliked=newDisliked;h._commLiked=false;h._commDislikes=Math.max(0,(h._commDislikes||0)+(newDisliked?1:-1));saveHistory();}
   toast(newDisliked?'💔 싫어요':'싫어요 취소','',1200);
-  renderCommunity();
+  _commQuickRender();
 }
 
 /* Supabase sbId로 공유 */
@@ -15240,7 +15358,7 @@ function commLikeByHIdx(hIdx){
   h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));
   saveHistory();
   toast(h._commLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
-  renderCommunity();
+  _commQuickRender();
 }
 
 function commDislikeByHIdx(hIdx){
@@ -15248,7 +15366,7 @@ function commDislikeByHIdx(hIdx){
   h._commDisliked=!h._commDisliked;if(h._commDisliked)h._commLiked=false;
   saveHistory();
   toast(h._commDisliked?'👎 싫어요':'싫어요 취소','',1200);
-  renderCommunity();
+  _commQuickRender();
 }
 
 function commShareByHIdx(hIdx){
@@ -15463,22 +15581,43 @@ function _getNotifPrefs(){
 
 function _editProfile() {
   if (!currentUser || currentUser.provider === 'guest') { openLoginSheet(); return; }
-  var newName = prompt('표시 이름을 입력하세요:', currentUser.name || '');
-  if (!newName || newName.trim() === '' || newName === currentUser.name) return;
-  newName = newName.trim().slice(0, 30);
-  var oldName = currentUser.name;
-  currentUser.name = newName;
-  localStorage.setItem('kms_user', JSON.stringify(currentUser));
-  if ($('settings-user-name')) $('settings-user-name').textContent = newName;
-  if ($('settings-avatar')) $('settings-avatar').textContent = newName[0] || '👤';
-  fetch('/api/profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'update-profile', name: newName, provider: currentUser.provider, oldName: oldName })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.ok) toast('프로필이 업데이트되었어요', 'ok', 2000);
-    else { currentUser.name = oldName; localStorage.setItem('kms_user', JSON.stringify(currentUser)); toast('업데이트 실패: ' + (d.error||''), 'err'); renderSettings(); }
-  }).catch(function(){ currentUser.name = oldName; localStorage.setItem('kms_user', JSON.stringify(currentUser)); toast('업데이트 실패', 'err'); renderSettings(); });
+  var bio = currentUser.bio || '';
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));">' +
+    '<div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>' +
+    '<div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:16px;">프로필 편집</div>' +
+    '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--t2);display:block;margin-bottom:4px;">닉네임</label>' +
+    '<input id="_pf_edit_name" type="text" value="' + (currentUser.name||'').replace(/"/g,'&quot;') + '" maxlength="30" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;"></div>' +
+    '<div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:600;color:var(--t2);display:block;margin-bottom:4px;">소개글</label>' +
+    '<textarea id="_pf_edit_bio" maxlength="100" rows="2" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;outline:none;resize:none;box-sizing:border-box;">' + (bio||'').replace(/</g,'&lt;') + '</textarea>' +
+    '<div style="text-align:right;font-size:10px;color:var(--t3);margin-top:2px;"><span id="_pf_bio_cnt">' + (bio||'').length + '</span>/100</div></div>' +
+    '<div style="display:flex;gap:8px;">' +
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>' +
+    '<button id="_pf_save_btn" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button></div></div>';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  var bioInput = document.getElementById('_pf_edit_bio');
+  if(bioInput) bioInput.addEventListener('input', function(){ document.getElementById('_pf_bio_cnt').textContent = this.value.length; });
+  document.getElementById('_pf_save_btn').onclick = async function(){
+    var newName = (document.getElementById('_pf_edit_name')?.value||'').trim();
+    var newBio = (document.getElementById('_pf_edit_bio')?.value||'').trim().slice(0,100);
+    if(!newName){toast('닉네임을 입력해주세요','err');return;}
+    this.disabled=true;this.textContent='저장 중...';
+    var oldName = currentUser.name;
+    try{
+      var r = await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update-profile',name:newName,provider:currentUser.provider,oldName:oldName,bio:newBio})});
+      var d = await r.json();
+      if(d.ok){
+        currentUser.name=newName;currentUser.bio=newBio;
+        localStorage.setItem('kms_user',JSON.stringify(currentUser));
+        if($('settings-user-name'))$('settings-user-name').textContent=newName;
+        if($('settings-avatar'))$('settings-avatar').textContent=newName[0]||'👤';
+        toast('프로필이 업데이트되었어요','ok',2000);
+        overlay.remove();
+      } else {toast(d.error||'업데이트 실패','err');this.disabled=false;this.textContent='저장';}
+    }catch(e){toast('업데이트 실패','err');this.disabled=false;this.textContent='저장';}
+  };
 }
 
 /* ── 테마 관리 함수들 ── */

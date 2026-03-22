@@ -268,16 +268,16 @@ export default async function handler(req, res) {
 
     /* 프로필 수정 */
     if (action === 'update-profile') {
-      const { name: newName, provider: prov, oldName } = body;
+      const { name: newName, provider: prov, oldName, bio } = body;
       if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
       const trimmed = newName.trim().slice(0, 30);
       if (!trimmed) return res.status(400).json({ error: '이름이 비어있어요' });
       try {
-        // Update users table
+        const updateData = { name: trimmed };
+        if (typeof bio === 'string') updateData.ua = JSON.stringify({ ...(JSON.parse('{}') || {}), bio: bio.trim().slice(0, 100) });
         await sb('PATCH',
           `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}`,
-          { name: trimmed });
-        // Update tracks owner_name
+          updateData);
         try {
           await sb('PATCH',
             `/tracks?owner_name=ilike.${encodeURIComponent(oldName)}&owner_provider=ilike.${encodeURIComponent(prov)}`,

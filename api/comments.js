@@ -262,6 +262,19 @@ export default async function handler(req, res) {
     if (_sbAvailable) {
       try {
         const created = await sb("/comments", { method: "POST", body: JSON.stringify(row) });
+        /* 곡 주인에게 알림 (자기 곡에 자기가 댓글 단 경우 제외) */
+        try {
+          const tracks = await sb(`/tracks?id=eq.${encodeURIComponent(track_id)}&select=owner_name,owner_provider,title`);
+          const track = tracks?.[0];
+          if (track && track.owner_name && !(track.owner_name === author_name && track.owner_provider === author_provider)) {
+            await sb("/notifications", { method: "POST", prefer: "return=minimal", body: JSON.stringify({
+              user_name: track.owner_name, user_provider: track.owner_provider,
+              type: "comment", title: `💬 "${track.title || '곡'}"에 새 댓글`,
+              body: `${author_name}: ${content.slice(0, 50)}`,
+              data: JSON.stringify({ trackId: track_id, author: author_name })
+            })});
+          }
+        } catch {}
         await Promise.allSettled([
           _tgComment(row.author_name, row.content, row.track_id),
           _kakaoNotify('comment', { author: row.author_name, text: row.content, track: row.track_id }),
