@@ -411,6 +411,40 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
   return text(`머지 실패: ${result.message || '알 수 없는 오류'}`);
 };
 
+/* 청소 — stale 브랜치 정리 */
+COMMANDS['청소'] = COMMANDS['cleanup'] = async () => {
+  if (!GH_TOKEN) return text('⚠️ GITHUB_TOKEN 미설정');
+
+  const days = 7;
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+
+  try {
+    const branches = await ghApi('GET', '/branches?per_page=100');
+    const staleBranches = [];
+
+    for (const b of branches) {
+      if (!b.name.startsWith('claude/issue-') && !b.name.startsWith('fix/issue-')) continue;
+      try {
+        const commit = await ghApi('GET', `/commits/${b.commit.sha}`);
+        if (commit.commit.author.date < cutoff) {
+          staleBranches.push({ name: b.name, date: commit.commit.author.date.slice(0, 10) });
+        }
+      } catch(e) { continue; }
+    }
+
+    if (!staleBranches.length) return text('✅ 7일 이상 된 stale 브랜치가 없습니다.', ['상태', 'PR']);
+
+    let deleted = 0;
+    for (const sb of staleBranches) {
+      try { await ghApi('DELETE', `/git/refs/heads/${sb.name}`); deleted++; } catch(e) {}
+    }
+
+    return text(`🧹 브랜치 정리 완료\n\n삭제: ${deleted}/${staleBranches.length}개\n기준: ${days}일 이상`, ['상태', 'PR']);
+  } catch(e) {
+    return text(`❌ 브랜치 정리 실패: ${e.message}`);
+  }
+};
+
 /* 진행상황 — GitHub Actions 실행 중인 워크플로우 조회 */
 COMMANDS['진행상황'] = COMMANDS['진행'] = COMMANDS['progress'] = async () => {
   if (!GH_TOKEN) return text('⚠️ GITHUB_TOKEN 미설정');

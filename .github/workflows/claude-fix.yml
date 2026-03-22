@@ -145,6 +145,14 @@ jobs:
 
           # Merge with squash (combines all branch commits into one)
           if git merge --squash "origin/$BRANCH"; then
+            # Validate only index.html was changed
+            CHANGED=$(git diff --cached --name-only)
+            NON_INDEX=$(echo "$CHANGED" | grep -v '^index\.html$' || true)
+            if [ -n "$NON_INDEX" ]; then
+              echo "WARNING: Non-index.html files changed: $NON_INDEX"
+              echo "Allowing merge but logging warning"
+            fi
+
             git commit -m "fix: ${ISSUE_TITLE}" -m "Closes #${ISSUE_NUM}" \
               --author="claude-bot <claude-bot@users.noreply.github.com>"
             git push origin main
@@ -158,6 +166,20 @@ jobs:
             echo "status=merge_failed" >> "$GITHUB_OUTPUT"
             echo "Merge conflict — manual merge needed"
           fi
+
+      - name: Close issue
+        if: success() && steps.merge_main.outputs.status == 'merged'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+        run: |
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUM}" \
+            -d '{"state":"closed","state_reason":"completed"}'
+          echo "Issue #${ISSUE_NUM} closed"
 
       - name: Notify success
         if: success()

@@ -141,10 +141,11 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `━━ 📣 알림 (1) ━━`,
     `알림 <메시지> — 전체 웹 푸시 발송`,
     ``,
-    `━━ 🛠 개발 (5) ━━`,
+    `━━ 🛠 개발 (6) ━━`,
     `수정 <지시> — AI가 코드 수정→PR 자동생성`,
     `PR — 열린 PR 목록`,
     `머지 [번호] — PR 머지 (번호 없으면 자동탐색)`,
+    `청소 [일수] — stale 브랜치 정리 (기본 7일)`,
     `QA — 전체 코드 점검+봇 리포트`,
     `진행상황 — GitHub Action 작업 추적`,
     ``,
@@ -517,6 +518,60 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (chatId, arg) => {
     }
   } catch (e) {
     await tgSend(chatId, `❌ 머지 오류: ${e.message}`);
+  }
+};
+
+/* 청소 — stale 브랜치 정리 */
+COMMANDS['청소'] = COMMANDS['cleanup'] = async (chatId, arg) => {
+  if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
+
+  const days = parseInt(arg) || 7;
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+
+  await tgSend(chatId, `🧹 ${days}일 이상 된 stale 브랜치 검색 중...`, { parse_mode: '' });
+
+  try {
+    // Get all branches with claude/issue- or fix/issue- prefix
+    const branches = await ghApi('GET', '/branches?per_page=100');
+    const staleBranches = [];
+
+    for (const b of branches) {
+      if (!b.name.startsWith('claude/issue-') && !b.name.startsWith('fix/issue-')) continue;
+
+      // Get branch last commit date
+      try {
+        const commit = await ghApi('GET', `/commits/${b.commit.sha}`);
+        const commitDate = commit.commit.author.date;
+        if (commitDate < cutoff) {
+          staleBranches.push({ name: b.name, date: commitDate.slice(0, 10) });
+        }
+      } catch(e) { continue; }
+    }
+
+    if (!staleBranches.length) {
+      return tgSend(chatId, `✅ ${days}일 이상 된 stale 브랜치가 없습니다.`, { parse_mode: '' });
+    }
+
+    // Delete stale branches
+    let deleted = 0;
+    for (const sb of staleBranches) {
+      try {
+        await ghApi('DELETE', `/git/refs/heads/${sb.name}`);
+        deleted++;
+      } catch(e) { /* skip protected branches */ }
+    }
+
+    await tgSend(chatId, [
+      `🧹 브랜치 정리 완료`,
+      ``,
+      `삭제: ${deleted}/${staleBranches.length}개`,
+      `기준: ${days}일 이상`,
+      ``,
+      ...staleBranches.slice(0, 10).map(b => `  ${b.name} (${b.date})`),
+      staleBranches.length > 10 ? `  ... 외 ${staleBranches.length - 10}개` : '',
+    ].join('\n'), { parse_mode: '' });
+  } catch(e) {
+    await tgSend(chatId, `❌ 브랜치 정리 실패: ${e.message}`, { parse_mode: '' });
   }
 };
 
@@ -898,7 +953,7 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
       });
       await _kSend(kakao1);
       await _kSend(kakao2);
-    } catch {}
+    } catch(e) { console.error('[Kakao notify]', e.message); }
   } catch (e) {
     await tgSend(chatId, `❌ 사용량 조회 실패: ${e.message}`, { parse_mode: '' });
   }
@@ -1081,7 +1136,7 @@ COMMANDS['작업'] = COMMANDS['구현'] = COMMANDS['현황'] = COMMANDS['work'] 
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
         body: JSON.stringify({ text: msg.slice(0, 300) }),
       });
-    } catch {}
+    } catch(e) { console.error('[Kakao notify]', e.message); }
     return;
   }
 
@@ -1101,7 +1156,7 @@ COMMANDS['작업'] = COMMANDS['구현'] = COMMANDS['현황'] = COMMANDS['work'] 
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
       body: JSON.stringify({ text: msg.slice(0, 300) }),
     });
-  } catch {}
+  } catch(e) { console.error('[Kakao notify]', e.message); }
 };
 
 /* ── 📖 kie.ai API 레퍼런스 조회 ── */
@@ -1138,7 +1193,7 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
     phase.items.forEach((item, i) => { msg += `${i+1}. ${item}\n`; });
     msg += `\n구현 요청: 고도화 진행 <지시사항>`;
     await tgSend(chatId, msg, { parse_mode: '' });
-    try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+    try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch(e) { console.error('[Kakao notify]', e.message); }
     return;
   }
 
@@ -1194,7 +1249,7 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
   msg += `\n\n📖 조회: 고도화 <번호>  (예: 고도화 3)`;
   msg += `\n🔧 구현: 고도화 진행 <지시>  (예: 고도화 진행 모듈 분리)`;
   await tgSend(chatId, msg, { parse_mode: '' });
-  try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch {}
+  try { await fetch(`${BASE}/api/kakao-notify`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${ADMIN_SECRET}`}, body:JSON.stringify({text:msg.slice(0,300)}) }); } catch(e) { console.error('[Kakao notify]', e.message); }
 };
 
 /* ── 더미 데이터 관리 ── */
@@ -1409,7 +1464,7 @@ COMMANDS['kie'] = COMMANDS['api'] = async (chatId, arg) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
         body: JSON.stringify({ text: summary }),
       });
-    } catch {}
+    } catch(e) { console.error('[Kakao notify]', e.message); }
 
   } catch (e) {
     await tgSend(chatId, `❌ API 문서 로드 실패: ${e.message}\n\n직접 확인: KIE_API_REFERENCE.md`, { parse_mode: '' });
