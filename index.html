@@ -3882,6 +3882,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             </div>
             <div id="lyrics-info" style="font-size:10px;color:var(--t3);">0자 · 0줄</div>
           </div>
+          <!-- 인라인 가사 생성 프로그레스 -->
+          <div id="lyrics-inline-progress" style="display:none;margin-bottom:8px;padding:10px 14px;background:var(--card);border:1px solid rgba(124,58,237,.3);border-radius:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span id="lip-icon" style="font-size:16px;animation:lgi-bounce .8s ease-in-out infinite alternate;">⚡</span>
+                <span id="lip-status" style="font-size:12px;font-weight:700;color:var(--t1);">가사 생성 중...</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span id="lip-lines" style="font-size:11px;color:var(--acc3);font-weight:600;">0줄</span>
+                <button onclick="_cancelLyricsGen()" style="padding:3px 8px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:transparent;color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button>
+              </div>
+            </div>
+            <div style="height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+              <div id="lip-bar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;width:0%;transition:width .3s;"></div>
+            </div>
+          </div>
           <div class="lyrics-btn-row" id="lyrics-btn-row">
             <span class="lyrics-hint">✦ Ctrl+Enter로 바로 생성</span>
             <button class="ai-assist-btn" id="stream-lyrics-btn" onclick="streamLyricsGenerate()" style="font-size:12px;">
@@ -5135,6 +5151,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <!-- ── 풀스크린 플레이어 ── -->
 <div id="fullplayer">
   <div class="fp-bg" id="fp-bg"></div>
+  <!-- iOS 바텀시트 컨테이너 (transform 스택 컨텍스트 내부) -->
+  <div id="fp-sheet-container" style="display:none;position:absolute;inset:0;z-index:9999;"></div>
   <div class="fp-inner">
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -18923,44 +18941,50 @@ async function callClaudeWithSearch(userPrompt){
   }catch{ return null; }
 }
 
-/* ── 가사 생성 중 팝업 헬퍼 ── */
+/* ── 가사 생성 인라인 프로그레스 (모달 팝업 대체) ── */
 let _lyricsGenOverlay = null;
+var _lipTimer = null;
 function showLyricsGenPopup(type){
-  if(_lyricsGenOverlay) return;
-  const isStream = type === 'stream';
-  _lyricsGenOverlay = document.createElement('div');
-  _lyricsGenOverlay.className = 'lyrics-gen-overlay';
-  _lyricsGenOverlay.innerHTML = `
-    <div class="lyrics-gen-box">
-      <div class="lyrics-gen-icon">${isStream ? '⚡' : '✍️'}</div>
-      <div class="lyrics-gen-title">작업중입니다</div>
-      <div class="lyrics-gen-sub" id="_lyricsgen_sub">
-        ${isStream ? 'AI가 실시간으로 가사를 작성하고 있어요' : 'kie.ai가 감성적인 가사를 생성하고 있어요'}<br>
-        <span style="font-size:11px;color:#6b6780;">완료되면 가사 입력폼에 자동으로 채워집니다 ☕</span>
-      </div>
-      <div class="lyrics-gen-progress"><div class="lyrics-gen-progress-bar" id="_lyricsgen_bar"></div></div>
-      <button class="lyrics-gen-cancel" onclick="_cancelLyricsGen()">취소</button>
-    </div>`;
-  document.body.appendChild(_lyricsGenOverlay);
-  /* 진행 바 애니메이션 */
-  let pct = 0;
-  _lyricsGenOverlay._timer = setInterval(()=>{
+  var isStream = type === 'stream';
+  var lip = $('lyrics-inline-progress');
+  if(lip){
+    lip.style.display = '';
+    var icon = $('lip-icon'); if(icon){ icon.textContent = isStream ? '⚡' : '✍️'; icon.style.animation = 'lgi-bounce .8s ease-in-out infinite alternate'; }
+    var st = $('lip-status'); if(st) st.textContent = isStream ? '실시간 작사 중...' : 'AI 가사 생성 중...';
+    var ln = $('lip-lines'); if(ln) ln.textContent = '0줄';
+    var bar = $('lip-bar'); if(bar) bar.style.width = '0%';
+    lip.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  var pct = 0;
+  if(_lipTimer) clearInterval(_lipTimer);
+  _lipTimer = setInterval(function(){
     pct = Math.min(pct + (isStream ? 3 : 1.2), 90);
-    const bar = document.getElementById('_lyricsgen_bar');
-    if(bar) bar.style.width = pct + '%';
+    var b = $('lip-bar'); if(b) b.style.width = pct + '%';
   }, 300);
+  _lyricsGenOverlay = {_timer: _lipTimer};
 }
 function hideLyricsGenPopup(){
-  if(!_lyricsGenOverlay) return;
-  clearInterval(_lyricsGenOverlay._timer);
-  const bar = document.getElementById('_lyricsgen_bar');
-  if(bar) bar.style.width = '100%';
-  setTimeout(()=>{ _lyricsGenOverlay?.remove(); _lyricsGenOverlay=null; }, 300);
+  if(_lipTimer) clearInterval(_lipTimer); _lipTimer = null;
+  var bar = $('lip-bar'); if(bar) bar.style.width = '100%';
+  var st = $('lip-status'); if(st) st.textContent = '완료!';
+  var icon = $('lip-icon'); if(icon){ icon.textContent = '✅'; icon.style.animation = 'none'; }
+  setTimeout(function(){
+    var lip = $('lyrics-inline-progress'); if(lip) lip.style.display = 'none';
+    if(icon) icon.style.animation = '';
+    _lyricsGenOverlay = null;
+  }, 1200);
+}
+function _updateLipLines(text){
+  var lines = text.split('\n').filter(function(l){return l.trim();}).length;
+  var el = $('lip-lines'); if(el) el.textContent = lines + '줄';
+  var st = $('lip-status'); if(st) st.textContent = lines + '줄 작성 중...';
 }
 let _lyricsGenCancelled = false;
 function _cancelLyricsGen(){
   _lyricsGenCancelled = true;
-  hideLyricsGenPopup();
+  if(_lipTimer) clearInterval(_lipTimer); _lipTimer = null;
+  var lip = $('lyrics-inline-progress'); if(lip) lip.style.display = 'none';
+  _lyricsGenOverlay = null;
 }
 
 /* ── 1. ⚡ 빠른 작사 (스트리밍 — 팝업 + 타이핑 효과) ── */
@@ -18997,8 +19021,7 @@ async function streamLyricsGenerate(){
       if(_lyricsGenCancelled) throw new Error('취소됨');
       textarea.value = partial;
       textarea.scrollTop = textarea.scrollHeight;
-      const sub = document.getElementById('_lyricsgen_sub');
-      if(sub){ const lines = partial.split('\n').filter(l=>l.trim()).length; sub.innerHTML = `${lines}줄 작성 중...<br><span style="font-size:11px;color:#6b6780;">거의 다 됐어요!</span>`; }
+      _updateLipLines(partial);
     });
     if(_lyricsGenCancelled) return;
     hideLyricsGenPopup();
