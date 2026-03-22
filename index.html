@@ -20301,10 +20301,100 @@ function _saveAlbumEdit(idx){var albums=JSON.parse(localStorage.getItem('kms_alb
 function _quickAiSuggest(text){var i=$('ai-assist-input');if(i){i.value=text;var b=$('ai-assist-btn');if(b)b.click();}}
 
 /* ═══ 다국어 (i18n) ═══ */
-var _i18n={ko:{create:'음악 만들기',community:'커뮤니티',library:'라이브러리',settings:'설정'},en:{create:'Create',community:'Community',library:'Library',settings:'Settings'},ja:{create:'作曲',community:'コミュニティ',library:'ライブラリ',settings:'設定'}};
+var _i18n={
+  ko:{
+    create:'음악 만들기',
+    community:'커뮤니티',
+    library:'라이브러리',
+    settings:'설정',
+    myLibrary:'내 라이브러리',
+    advancedSettings:'고급 설정',
+    themeSettings:'테마 설정',
+    languageSettings:'언어 / Language',
+    lyricsLanguage:'가사 언어'
+  },
+  en:{
+    create:'Create',
+    community:'Community',
+    library:'Library',
+    settings:'Settings',
+    myLibrary:'My Library',
+    advancedSettings:'Advanced Settings',
+    themeSettings:'Theme Settings',
+    languageSettings:'언어 / Language',
+    lyricsLanguage:'Lyrics Language'
+  },
+  ja:{
+    create:'作曲',
+    community:'コミュニティ',
+    library:'ライブラリ',
+    settings:'設定',
+    myLibrary:'マイライブラリ',
+    advancedSettings:'詳細設定',
+    themeSettings:'テーマ設定',
+    languageSettings:'언어 / Language',
+    lyricsLanguage:'歌詞言語'
+  }
+};
 var _currentLang=localStorage.getItem('kms_lang')||'ko';
 function _setLang(lang){_currentLang=lang;localStorage.setItem('kms_lang',lang);document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.toggle('on',b.dataset.lang===lang);});_applyLang();toast(lang==='ko'?'한국어':lang==='en'?'English':'日本語','ok',1500);}
-function _applyLang(){var t=_i18n[_currentLang]||_i18n.ko;var ls=document.querySelectorAll('.bnav-label');if(ls.length>=4){ls[0].textContent=t.community;ls[1].textContent=t.create;ls[2].textContent=t.library;ls[3].textContent=t.settings;}}
+function _applyLang(){
+  var t=_i18n[_currentLang]||_i18n.ko;
+  
+  // 하단 네비게이션 바
+  var ls=document.querySelectorAll('.bnav-label');
+  if(ls.length>=4){
+    ls[0].textContent=t.community;
+    ls[1].textContent=t.create;
+    ls[2].textContent=t.library;
+    ls[3].textContent=t.settings;
+  }
+  
+  // 홈 위젯 라벨들
+  var hwCommunity=document.getElementById('hw-community');
+  if(hwCommunity) hwCommunity.textContent=t.community;
+  
+  // 히스토리 뷰 타이틀
+  var histViewTitle=document.querySelector('.hist-view-title');
+  if(histViewTitle) histViewTitle.textContent=t.myLibrary;
+  
+  // 커뮤니티 타이틀
+  var commTitle=document.querySelector('.comm-title');
+  if(commTitle) commTitle.textContent=t.community;
+  
+  // 고급 설정 라벨들
+  var advLabels=document.querySelectorAll('.adv-lbl');
+  advLabels.forEach(function(label){
+    if(label.textContent.includes('고급 설정')){
+      label.textContent='⚙️ '+t.advancedSettings;
+    }
+  });
+  
+  // 설정 섹션 타이틀들
+  var settingSections=document.querySelectorAll('.settings-section-title');
+  settingSections.forEach(function(section){
+    if(section.textContent.includes('테마 설정')){
+      section.textContent='🎨 '+t.themeSettings;
+    }
+    else if(section.textContent.includes('언어')){
+      section.textContent='🌐 '+t.languageSettings;
+    }
+  });
+  
+  // 고급 섹션 타이틀
+  var advSections=document.querySelectorAll('.adv-section-title');
+  advSections.forEach(function(section){
+    if(section.textContent.includes('가사 언어')){
+      section.textContent='🌏 '+t.lyricsLanguage;
+    }
+  });
+  
+  // 홈 위젯 서브 텍스트
+  var hwSub=document.querySelector('.home-widget-sub');
+  if(hwSub && hwSub.textContent.includes('내 라이브러리')){
+    hwSub.textContent=t.myLibrary;
+  }
+}
 if(_currentLang!=='ko')setTimeout(_applyLang,500);
 
 /* ═══ 라이브 세션 표시 ═══ */
