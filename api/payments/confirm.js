@@ -145,7 +145,9 @@ export default async function handler(req, res) {
           method: "PATCH",
           body: JSON.stringify({
             plan,
-            credits: planDef.credits,
+            credits_song: PLANS[plan]?.limits?.songs || planDef.credits,
+            credits_mv: PLANS[plan]?.limits?.mv || 0,
+            credits_lyrics: PLANS[plan]?.limits?.lyrics || planDef.credits,
             plan_expires: expiresAt.toISOString(),
           }),
         }

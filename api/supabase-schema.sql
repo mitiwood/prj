@@ -121,9 +121,20 @@ CREATE TRIGGER users_updated_at
 
 -- 8-1. users 테이블에 플랜/크레딧 컬럼 추가
 ALTER TABLE public.users
-  ADD COLUMN IF NOT EXISTS plan         TEXT NOT NULL DEFAULT 'free',
-  ADD COLUMN IF NOT EXISTS credits      INTEGER NOT NULL DEFAULT 2,
-  ADD COLUMN IF NOT EXISTS plan_expires TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS plan           TEXT NOT NULL DEFAULT 'free',
+  ADD COLUMN IF NOT EXISTS credits_song   INTEGER NOT NULL DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS credits_mv     INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS credits_lyrics INTEGER NOT NULL DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS plan_expires   TIMESTAMPTZ;
+
+-- 레거시 credits 컬럼이 있으면 credits_song으로 마이그레이션
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='credits') THEN
+    UPDATE public.users SET credits_song = credits WHERE credits_song = 5 AND credits != 5;
+    ALTER TABLE public.users DROP COLUMN IF EXISTS credits;
+  END IF;
+END $$;
 
 -- 8-2. payments 테이블
 CREATE TABLE IF NOT EXISTS public.payments (
