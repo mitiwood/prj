@@ -8706,7 +8706,7 @@ async function _autoLyricsAndGenerate(){
     /* 제목 자동 생성 */
     if(!$('song-title').value.trim()){
       const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
-      const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||'나의 노래';
+      const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||_autoGenerateTitle(null,text,styleStr||'','custom');
       $('song-title').value=autoTitle;
       toast('✅ 가사+제목 생성 완료! 음악을 생성합니다...','ok',2500);
     } else {
@@ -21168,7 +21168,15 @@ function _renderWeeklyChart(){
   });
   weekly.forEach(function(t){t._score=(t.comm_likes||t.likes||0)*3+(t.comm_plays||t.plays||0);});
   weekly.sort(function(a,b){return b._score-a._score;});
-  var top10=weekly.slice(0,10);
+  /* 상위 트랙 + 나머지에서 랜덤 픽 섞기 (다양성 확보) */
+  var topPart=weekly.slice(0,6);
+  var rest=weekly.slice(6);
+  if(rest.length>0){
+    for(var ri=rest.length-1;ri>0;ri--){var rj=Math.floor(Math.random()*(ri+1));var tmp=rest[ri];rest[ri]=rest[rj];rest[rj]=tmp;}
+    var picks=rest.slice(0,Math.min(4,rest.length));
+    topPart=topPart.concat(picks);
+  }
+  var top10=topPart.slice(0,10);
   if(top10.length<3){wrap.style.display='none';return;}
   wrap.style.display='';
   var now=new Date(),wa=new Date(weekAgo);
