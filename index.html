@@ -584,16 +584,23 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .gen-btn{
   width:100%;padding:16px 20px;
   background:linear-gradient(135deg,var(--acc),var(--acc2));
-  color:#fff;border:none;border-radius:14px;
+  color:#fff;border:none;border-radius:16px;
   font-size:16px;font-weight:800;font-family:inherit;
   cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);
   display:flex;align-items:center;justify-content:center;gap:8px;
   box-shadow:0 4px 20px rgba(124,58,237,.3);
   text-shadow:0 1px 2px rgba(0,0,0,.2);
-  margin-top:8px;
+  margin-top:8px;position:relative;overflow:hidden;
 }
+.gen-btn::after{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:linear-gradient(90deg,transparent 30%,rgba(255,255,255,.12) 50%,transparent 70%);
+  animation:gen-shimmer 3s ease-in-out infinite;
+}
+@keyframes gen-shimmer{0%{transform:translateX(-100%) rotate(25deg);}100%{transform:translateX(100%) rotate(25deg);}}
 .gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,.45);}
 .gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.gen-btn:disabled::after{animation:none;}
 .gen-spinner{
   width:16px;height:16px;border-radius:50%;
   border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
@@ -603,16 +610,23 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 
 /* 로딩 카드 */
 .loading-card{
-  background:var(--card);border:none;
-  border-radius:18px;padding:28px 24px;text-align:center;
-  margin-top:16px;display:none;
-  animation:skeletonPulse 1.5s ease-in-out infinite;
+  background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));
+  border:1px solid rgba(124,58,237,.15);
+  border-radius:20px;padding:32px 24px;text-align:center;
+  margin-top:16px;display:none;position:relative;overflow:hidden;
 }
-.loading-card.on{display:block;}
-@keyframes skeletonPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
-.ld-waveform{display:flex;align-items:center;justify-content:center;gap:4px;height:36px;margin-bottom:12px;}
+.loading-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 40%,rgba(124,58,237,.08) 0%,transparent 70%);
+  animation:ld-glow 4s ease-in-out infinite alternate;
+}
+@keyframes ld-glow{0%{opacity:.3;transform:scale(1);}100%{opacity:.8;transform:scale(1.1);}}
+.loading-card.on{display:block;animation:ld-fadein .4s ease-out;}
+@keyframes ld-fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.ld-waveform{display:flex;align-items:center;justify-content:center;gap:5px;height:40px;margin-bottom:14px;position:relative;z-index:1;}
 .ld-bar{
-  width:4px;border-radius:4px;background:var(--acc2);
+  width:5px;border-radius:6px;
+  background:linear-gradient(180deg,var(--acc2),var(--acc));
   animation:ldWave 1.2s ease-in-out infinite;
 }
 .ld-bar:nth-child(1){height:16px;animation-delay:0s;}
@@ -622,12 +636,14 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .ld-bar:nth-child(5){height:36px;animation-delay:.2s;}
 .ld-bar:nth-child(6){height:24px;animation-delay:.1s;}
 .ld-bar:nth-child(7){height:16px;animation-delay:0s;}
-@keyframes ldWave{0%,100%{transform:scaleY(.6);opacity:.5}50%{transform:scaleY(1);opacity:1}}
-.ld-title{font-size:15px;font-weight:700;margin-bottom:5px;}
-.ld-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:12px;}
-.ld-progress{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin:8px 0;}
-.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;width:0%;transition:width .5s;}
-.ld-task{display:none;}
+@keyframes ldWave{0%,100%{transform:scaleY(.5);opacity:.4}50%{transform:scaleY(1);opacity:1}}
+.ld-title{font-size:16px;font-weight:800;margin-bottom:6px;position:relative;z-index:1;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ld-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:14px;position:relative;z-index:1;}
+.ld-progress{height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin:10px 0;position:relative;z-index:1;}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200% 100%;border-radius:4px;width:0%;transition:width .5s;animation:ld-fill-shift 2s linear infinite;}
+@keyframes ld-fill-shift{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
+.ld-task{display:none;position:relative;z-index:1;}
+[data-theme="light"] .ld-title{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
 
 /* 결과 섹션 */
 .results-section{margin-top:12px;}
@@ -3690,24 +3706,25 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
           </div>
         </div>
-        <div class="options-row">
-          <div class="opt-group">
-            <div class="opt-label">분위기</div>
-            <select class="opt-select" id="simple-mood">
-              <option value="">선택 안함</option>
-              <option value="happy, uplifting">밝고 신나는</option>
-              <option value="sad, emotional">슬프고 감성적인</option>
-              <option value="calm, relaxing">잔잔하고 편안한</option>
-              <option value="dark, intense">어둡고 강렬한</option>
-              <option value="romantic, dreamy">로맨틱하고 몽환적인</option>
-              <option value="energetic, hype">에너지 넘치는</option>
-              <option value="nostalgic, retro">노스탤직하고 레트로</option>
-              <option value="aggressive, powerful">강렬하고 파워풀</option>
-              <option value="chill, lofi">칠하고 로파이</option>
-              <option value="hopeful, inspiring">희망차고 영감주는</option>
-              <option value="mysterious, ethereal">신비롭고 몽환적</option>
-            </select>
+        <div class="form-grp">
+          <div class="form-label">
+            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span> 분위기
           </div>
+          <select id="simple-mood" style="display:none;">
+            <option value="">선택 안함</option><option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
+          </select>
+          <div class="mood-grid" id="simple-mood-grid">
+            <button class="mood-chip" data-mood="happy, uplifting" onclick="_setSimpleMood(this)"><span class="mood-ico">😊</span>신나는</button>
+            <button class="mood-chip" data-mood="sad, emotional" onclick="_setSimpleMood(this)"><span class="mood-ico">😢</span>감성적</button>
+            <button class="mood-chip" data-mood="calm, relaxing" onclick="_setSimpleMood(this)"><span class="mood-ico">🍃</span>편안한</button>
+            <button class="mood-chip" data-mood="dark, intense" onclick="_setSimpleMood(this)"><span class="mood-ico">🌑</span>강렬한</button>
+            <button class="mood-chip" data-mood="romantic, dreamy" onclick="_setSimpleMood(this)"><span class="mood-ico">💕</span>로맨틱</button>
+            <button class="mood-chip" data-mood="energetic, hype" onclick="_setSimpleMood(this)"><span class="mood-ico">🔥</span>에너지</button>
+            <button class="mood-chip" data-mood="nostalgic, retro" onclick="_setSimpleMood(this)"><span class="mood-ico">📼</span>레트로</button>
+            <button class="mood-chip" data-mood="chill, lofi" onclick="_setSimpleMood(this)"><span class="mood-ico">☕</span>로파이</button>
+          </div>
+        </div>
+        <div class="options-row" style="margin-bottom:12px;">
           <div class="opt-group">
             <div class="opt-label">인스트루멘탈</div>
             <div class="toggle-label-row" id="simple-inst-toggle">
@@ -6810,7 +6827,7 @@ function _sharedToMiniAndCreate(){
 /* 분위기 그리드 → select 동기화 */
 function _setMood(btn){
   var val=btn.dataset.mood;
-  document.querySelectorAll('.mood-chip').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('#mood-grid .mood-chip').forEach(function(b){b.classList.remove('on');});
   var sel=$('mood');
   if(sel.value===val){sel.value='';}
   else{btn.classList.add('on');sel.value=val;}
@@ -6818,7 +6835,15 @@ function _setMood(btn){
 }
 function _syncMoodGrid(){
   var val=($('mood')||{}).value||'';
-  document.querySelectorAll('.mood-chip').forEach(function(b){b.classList.toggle('on',b.dataset.mood===val);});
+  document.querySelectorAll('#mood-grid .mood-chip').forEach(function(b){b.classList.toggle('on',b.dataset.mood===val);});
+}
+/* 심플모드 분위기 그리드 */
+function _setSimpleMood(btn){
+  var val=btn.dataset.mood;
+  document.querySelectorAll('#simple-mood-grid .mood-chip').forEach(function(b){b.classList.remove('on');});
+  var sel=$('simple-mood');
+  if(sel.value===val){sel.value='';}
+  else{btn.classList.add('on');sel.value=val;}
 }
 
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
@@ -17604,7 +17629,6 @@ async function aiMoodToStyle(){
 
 /* ── 4. 📸 이미지 분석 → 음악 분위기 추출 (바텀시트) ── */
 async function aiImageToStyle(input){
-  if(!kieApiKey){ toast('API 키 로딩 중...','err'); return; }
   const file = input.files[0];
   if(!file) return;
   if(file.size > 5 * 1024 * 1024){ toast('5MB 이하 이미지만 가능합니다','err'); return; }
@@ -17674,20 +17698,25 @@ async function aiImageToStyle(input){
 }${contextHint ? '\n\nContext: '+contextHint : ''}`;
 
     _imgP(50, '3/4 단계', 'AI가 분석 중...', '음악 프로덕션 요소로 변환 중이에요');
-    const res = await fetch(KIE_CLAUDE_URL, {
+    const res = await fetch('/api/kie-proxy', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${kieApiKey}` },
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({
-        messages: [{
-          role: 'user',
-          content: [
-            { type:'image_url', image_url:{ url: imgUrl } },
-            { type:'text', text: analysisPrompt }
-          ]
-        }],
-        stream: false
+        path: KIE_LLM_PATH,
+        method: 'POST',
+        body: {
+          messages: [{
+            role: 'user',
+            content: [
+              { type:'image_url', image_url:{ url: imgUrl } },
+              { type:'text', text: analysisPrompt }
+            ]
+          }],
+          stream: false
+        }
       })
     });
+    if(!res.ok){ const errJ=await res.json().catch(()=>({})); throw new Error(errJ?.error||errJ?.msg||'AI API 오류 '+res.status); }
     _imgP(90, '4/4 단계', '분석 완료!', '결과를 정리하고 있어요');
     const data = await res.json();
     await new Promise(r=>setTimeout(r,400));
