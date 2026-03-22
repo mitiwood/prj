@@ -1,11 +1,11 @@
-name: Notify Deploy to Telegram
+name: Deploy → Notify + Flutter Build
 
 on:
   push:
     branches: [main]
 
 jobs:
-  notify-deploy:
+  notify-and-trigger:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
           COUNT=$(git diff --name-only HEAD~1 HEAD | wc -l | tr -d ' ')
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
-      - name: Send notification
+      - name: Send Telegram + Kakao notification
         continue-on-error: true
         env:
           COMMIT_MSG: ${{ steps.info.outputs.msg }}
@@ -71,7 +71,7 @@ jobs:
             f'{health}'
           )
 
-          # Telegram via site API
+          # Telegram
           try:
             tg = json.dumps({'text': text, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(
@@ -80,4 +80,27 @@ jobs:
             ))
           except Exception as e:
             print(f'TG error: {e}')
+
+          # Kakao
+          try:
+            kk = json.dumps({'text': text}).encode('utf-8')
+            urllib.request.urlopen(urllib.request.Request(
+              f'{site}/api/kakao-notify', data=kk,
+              headers={'Content-Type': 'application/json; charset=utf-8'}
+            ))
+          except Exception as e:
+            print(f'KK error: {e}')
           PYEOF
+
+      # Flutter 빌드 트리거
+      - name: Trigger Flutter build
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/mitiwood/ai-music-studio-flutter/actions/workflows/build.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "Flutter build triggered"
