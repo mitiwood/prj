@@ -169,9 +169,12 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `일간 — 오늘 활동 리포트`,
     `주간 — 최근 7일 리포트`,
     ``,
-    `━━ 🎵 음악 생성 (1) ━━`,
-    `생성 <가사> — AI 음악 생성 + 커뮤니티 즉시 공개`,
-    `  옵션: -t 제목 -s 스타일 -v m|f -i(인스트) -m 모델`,
+    `━━ 🎵 음악 생성 (5) ━━`,
+    `커스텀 <가사> — 가사 입력 생성`,
+    `심플 <설명> — 설명만으로 생성`,
+    `유튜브 <스타일> — 스타일 기반 생성`,
+    `MV <트랙ID> — 뮤직비디오 생성`,
+    `생성 <가사> — 고급 (옵션: -t -s -v -i -m)`,
     ``,
     `━━ 📖 레퍼런스 (2) ━━`,
     `kie [질문] — kie.ai API 문서 조회`,
@@ -1829,6 +1832,164 @@ COMMANDS['생성'] = COMMANDS['generate'] = COMMANDS['만들어'] = async (chatI
 
   } catch (e) {
     await tgSend(chatId, '❌ 음악 생성 실패\n\n' + e.message, { parse_mode: '' });
+  }
+};
+
+/* 커스텀 = 생성 (가사 기반) */
+COMMANDS['커스텀'] = COMMANDS['custom'] = async (chatId, arg) => {
+  if (!arg) {
+    await tgSend(chatId, [
+      '🎵 커스텀 생성',
+      '',
+      '가사를 직접 입력해서 음악을 만듭니다.',
+      '',
+      '사용법: 커스텀 <가사>',
+      '스타일 추가: 커스텀 -s K-Pop, 발라드 가사내용',
+      '',
+      '예시:',
+      '커스텀 [Verse 1] 너를 만난 그날부터',
+      '커스텀 -s lo-fi, chill 새벽 감성 가사',
+    ].join('\n'), { parse_mode: '' });
+    return;
+  }
+  await COMMANDS['생성'](chatId, arg);
+};
+
+/* 심플 = 설명만으로 생성 */
+COMMANDS['심플'] = COMMANDS['simple'] = async (chatId, arg) => {
+  if (!arg) {
+    await tgSend(chatId, [
+      '✨ 심플 생성',
+      '',
+      '설명만 입력하면 AI가 알아서 만듭니다.',
+      '',
+      '사용법: 심플 <곡 설명>',
+      '',
+      '예시:',
+      '심플 비 오는 날 듣기 좋은 재즈',
+      '심플 신나는 EDM 파티 음악',
+      '심플 잔잔한 어쿠스틱 기타',
+    ].join('\n'), { parse_mode: '' });
+    return;
+  }
+  /* 심플은 설명을 스타일로도 사용 */
+  await COMMANDS['생성'](chatId, `-s ${arg} ${arg}`);
+};
+
+/* 유튜브 = 스타일 기반 생성 */
+COMMANDS['유튜브'] = COMMANDS['youtube'] = COMMANDS['yt'] = async (chatId, arg) => {
+  if (!arg) {
+    await tgSend(chatId, [
+      '🎬 유튜브 스타일 생성',
+      '',
+      '원하는 스타일을 설명하면 음악을 만듭니다.',
+      '',
+      '사용법: 유튜브 <스타일 설명>',
+      '',
+      '예시:',
+      '유튜브 lo-fi hip hop chill beats',
+      '유튜브 cinematic epic orchestral',
+      '유튜브 K-Pop 걸그룹 댄스',
+    ].join('\n'), { parse_mode: '' });
+    return;
+  }
+  await COMMANDS['생성'](chatId, `-s ${arg} ${arg}`);
+};
+
+/* MV 생성 */
+COMMANDS['mv'] = COMMANDS['MV'] = COMMANDS['뮤비'] = async (chatId, arg) => {
+  if (!arg) {
+    await tgSend(chatId, [
+      '🎬 MV 생성',
+      '',
+      '기존 트랙에 뮤직비디오를 생성합니다.',
+      '',
+      '사용법: MV <트랙ID>',
+      '',
+      '"트랙" 명령으로 최근 곡 목록을 확인하세요.',
+    ].join('\n'), { parse_mode: '' });
+    return;
+  }
+
+  if (!KIE_KEY) {
+    await tgSend(chatId, '❌ KIE_API_KEY 미설정', { parse_mode: '' });
+    return;
+  }
+
+  /* 트랙 조회 */
+  let track;
+  try {
+    const { data } = await sb('GET', `/tracks?id=eq.${arg}&select=id,title,audio_url,image_url,lyrics&limit=1`);
+    track = data?.[0];
+  } catch {}
+  if (!track) {
+    await tgSend(chatId, `❌ 트랙 ID "${arg}"를 찾을 수 없습니다.\n\n"트랙" 명령으로 최근 곡 목록을 확인하세요.`, { parse_mode: '' });
+    return;
+  }
+
+  await tgSend(chatId, `🎬 MV 생성 시작!\n\n🎧 ${track.title}\n\n⏳ 3~5분 소요`, { parse_mode: '' });
+
+  try {
+    const mvPayload = {
+      audioUrl: track.audio_url,
+      title: track.title || '무제',
+      lyrics: track.lyrics || '',
+      imageUrl: track.image_url || '',
+      callBackUrl: `${BASE}/api/callback`,
+    };
+    const mvBuf = Buffer.from(JSON.stringify(mvPayload), 'utf-8');
+    const mvRes = await fetch('https://api.kie.ai/api/v1/generate/mv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KIE_KEY}` },
+      body: mvBuf,
+    });
+    const mvData = await mvRes.json();
+    const taskId = mvData?.data?.taskId || mvData?.taskId;
+    if (!taskId) throw new Error('MV taskId 없음');
+
+    /* 폴링 (최대 7분) */
+    let videoUrl = '';
+    for (let i = 0; i < 90; i++) {
+      await new Promise(r => setTimeout(r, i < 5 ? 3000 : 5000));
+      const pollRes = await fetch(`https://api.kie.ai/api/v1/generate/record-info?taskId=${taskId}`, {
+        headers: { Authorization: `Bearer ${KIE_KEY}` },
+      });
+      const poll = await pollRes.json();
+      const status = (poll.data?.status || '').toUpperCase();
+      if (status === 'SUCCESS' || status === 'FIRST_SUCCESS') {
+        const tracks = poll.data?.response?.sunoData || poll.data?.sunoData || poll.data?.tracks || [];
+        videoUrl = tracks[0]?.videoUrl || tracks[0]?.video_url || '';
+        if (videoUrl) break;
+      }
+      if (['FAILED', 'ERROR', 'TIMEOUT'].includes(status)) {
+        throw new Error('MV 생성 실패: ' + status);
+      }
+    }
+    if (!videoUrl) throw new Error('MV 생성 타임아웃');
+
+    /* DB 업데이트 */
+    try { await sb('PATCH', `/tracks?id=eq.${arg}`, { video_url: videoUrl }); } catch {}
+
+    await tgSend(chatId, [
+      '✅ MV 생성 완료!',
+      '',
+      `🎧 ${track.title}`,
+      `🔗 ${videoUrl}`,
+      '',
+      `🌐 ${BASE}`,
+    ].join('\n'), { parse_mode: '' });
+
+    /* 카카오에도 전송 */
+    try {
+      await fetch(`${BASE}/api/kakao-notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: `🎬 MV 생성 완료!\n\n🎧 ${track.title}\n🔗 ${BASE}` }),
+      });
+    } catch {}
+
+  } catch (e) {
+    await tgSend(chatId, '❌ MV 생성 실패\n\n' + e.message, { parse_mode: '' });
   }
 };
 
