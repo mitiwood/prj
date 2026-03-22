@@ -1863,7 +1863,7 @@ let _userKeySet = new Set();
 
 // ── 인증 ──
 const ADMIN_PW_KEY='kms_admin_pw';
-const DEFAULT_PW=''; /* 환경변수 ADMIN_SECRET과 동일한 값을 로그인 시 입력 */
+const DEFAULT_PW='kenny2024!'; /* 환경변수 ADMIN_SECRET과 동일한 값을 로그인 시 입력 */
 
 /* 관리자 비밀번호 — 세션 > 로컬 > 기본값 순으로 */
 function getAdminPw(){
@@ -3457,7 +3457,7 @@ async function renderUsersAdmin(showToast=false){
         loginUsers=d.users.map(u=>({
           name:u.name, provider:u.provider, email:u.email||'',
           avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
-          plan:u.plan||'free', credits:u.credits||0,
+          plan:u.plan||'free', credits_song:u.credits_song||0, credits_mv:u.credits_mv||0, credits_lyrics:u.credits_lyrics||0,
           loginCount:u.login_count||1, lastLogin:u.last_login||0,
           created_at:u.created_at||0,
         }));
@@ -5642,7 +5642,7 @@ async function loadDatabaseInfo(){
   const el = id => document.getElementById(id);
   const tableInfo = [
     { name:'tracks',        icon:'🎵', desc:'음악 트랙',       api:'/api/tracks?limit=500',              color:'var(--acc)',  schema:'id, task_id, title, audio_url, video_url, image_url, tags, lyrics, gen_mode, owner_name, owner_provider, owner_avatar, comm_likes, comm_plays, is_public, created_at' },
-    { name:'users',         icon:'👥', desc:'사용자 + 매니저', api:'/api/users',                         color:'#3b82f6',     schema:'id, name, provider, email, avatar, plan, credits, login_count, last_login, is_mobile, ua, created_at' },
+    { name:'users',         icon:'👥', desc:'사용자 + 매니저', api:'/api/users',                         color:'#3b82f6',     schema:'id, name, provider, email, avatar, plan, credits_song, credits_mv, credits_lyrics, login_count, last_login, is_mobile, ua, created_at' },
     { name:'comments',      icon:'💬', desc:'댓글',           api:'/api/comments?all=true&limit=500',    color:'#f59e0b',     schema:'id, track_id, user_name, user_provider, user_avatar, text, is_reply, parent_id, hidden, created_at' },
     { name:'announcements', icon:'📣', desc:'공지사항',        api:'/api/announcement',                   color:'#22c55e',     schema:'id, title, body, icon, type, target, url, expires_at, created_at' },
     { name:'reports',       icon:'🚩', desc:'신고',           api:'/api/reports?limit=200',               color:'#ef4444',     schema:'id, reporter_name, reporter_provider, target_type, target_id, reason, status, created_at' },
@@ -6012,7 +6012,7 @@ async function _loadPaymentData(){
     document.getElementById('pay-history-tbody').innerHTML=`<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
   }
   /* 정지 회원 */
-  const suspended=_memAllUsers.filter(u=>(u.credits||0)===0&&u.plan==='free'&&u.login_count>1);
+  const suspended=_memAllUsers.filter(u=>(u.credits_song||0)===0&&u.plan==='free'&&u.login_count>1);
   const sl=document.getElementById('mem-suspended-list');
   if(sl) sl.innerHTML=suspended.length?suspended.map(u=>`<div style="padding:6px;background:var(--bg3);border-radius:6px;margin-bottom:4px;">${_esc(u.name)} (${u.provider}) — 크레딧 0</div>`).join(''):'없음';
 }
@@ -6038,7 +6038,7 @@ function _renderMembers(users){
       <td style="font-weight:600;cursor:pointer;color:var(--acc);" onclick="_showUserDetail('${_esc(u.name)}','${_esc(u.provider)}')" title="상세 보기">${_esc(u.name||'?')}</td>
       <td>${pi} ${u.provider||'?'}</td>
       <td>${pb}</td>
-      <td>${u.credits||0}</td>
+      <td>${u.credits_song||0}/${u.credits_mv||0}/${u.credits_lyrics||0}</td>
       <td style="font-size:11px;color:var(--t3);">${exp}</td>
       <td>${u.login_count||0}회</td>
       <td style="font-size:10px;color:var(--t3);">${joinDt}</td>
@@ -6080,7 +6080,7 @@ async function _suspendUser(name, provider){
   if(!confirm(`${name}님을 정지할까요?\n플랜→Free, 크레딧→0으로 변경됩니다.`)) return;
   try {
     /* PATCH API로 안전하게 플랜/크레딧 변경 */
-    await fetch('/api/users',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({name,provider,plan:'free',credits:0})});
+    await fetch('/api/users',{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({name,provider,plan:'free',credits_song:0,credits_mv:0,credits_lyrics:0})});
     await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'계정 정지',body:`${name}님의 계정이 정지됐습니다.`,icon:'🔒'})});
     toast('🔒 '+name+' 정지 완료','ok',2000);
     _loadPaymentData();
@@ -6406,8 +6406,8 @@ async function _showUserDetail(name, provider){
         <div style="font-size:10px;color:var(--t3);">생성 곡</div>
       </div>
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:20px;font-weight:800;color:#f59e0b;">${user.credits||0}</div>
-        <div style="font-size:10px;color:var(--t3);">잔여 크레딧</div>
+        <div style="font-size:20px;font-weight:800;color:#f59e0b;">${user.credits_song||0}</div>
+        <div style="font-size:10px;color:var(--t3);">잔여 곡 크레딧</div>
       </div>
     </div>
 
