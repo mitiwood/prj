@@ -1066,7 +1066,7 @@ COMMANDS['사용량'] = COMMANDS['usage'] = COMMANDS['stats'] = async (chatId) =
     /* ── 7. 유저별 사용량 (상위 5명) ── */
     let userStats = [];
     try {
-      const { data: allUsers } = await sb('GET', '/users?select=name,provider,plan,credits,login_count,last_login&order=last_login.desc&limit=20');
+      const { data: allUsers } = await sb('GET', '/users?select=name,provider,plan,credits_song,credits_mv,credits_lyrics,login_count,last_login&order=last_login.desc&limit=20');
       if (allUsers?.length) {
         /* 각 유저의 이번 달 트랙 수 조회 */
         const monthStart = new Date();

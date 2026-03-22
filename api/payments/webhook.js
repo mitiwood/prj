@@ -90,7 +90,9 @@ export default async function handler(req, res) {
                 method: "PATCH",
                 body: JSON.stringify({
                   plan: "free",
-                  credits: 2,
+                  credits_song: 5,
+                  credits_mv: 0,
+                  credits_lyrics: 5,
                   plan_expires: null,
                 }),
               }

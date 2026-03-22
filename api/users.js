@@ -159,12 +159,15 @@ export default async function handler(req, res) {
     }
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-    const { name, provider, plan, credits, plan_expires } = body || {};
+    const { name, provider, plan, credits, credits_song, credits_mv, credits_lyrics, plan_expires } = body || {};
     if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
 
     const update = {};
     if (plan) update.plan = plan;
-    if (typeof credits === 'number') update.credits = credits;
+    if (typeof credits_song === 'number') update.credits_song = credits_song;
+    else if (typeof credits === 'number') update.credits_song = credits; /* 하위호환 */
+    if (typeof credits_mv === 'number') update.credits_mv = credits_mv;
+    if (typeof credits_lyrics === 'number') update.credits_lyrics = credits_lyrics;
     if (plan_expires !== undefined) update.plan_expires = plan_expires;
 
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'nothing to update' });
