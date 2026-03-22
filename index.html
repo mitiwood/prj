@@ -2442,13 +2442,13 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 /* ══════════════════════════════
    SHARE SHEET
 ══════════════════════════════ */
-#share-sheet{position:fixed;inset:0;z-index:10500;display:none;}
+#share-sheet{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10500;display:none;}
 #share-sheet.on{display:block;}
 .share-backdrop{position:absolute;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);}
 .share-panel{
-  position:absolute;bottom:56px;left:50%;transform:translateX(-50%);
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
   width:100%;max-width:480px;
-  background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 20px;
+  background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px calc(3px + 12px + env(safe-area-inset-bottom,0px));
 }
 .share-handle{width:36px;height:3px;background:var(--t3);border-radius:2px;margin:0 auto 16px;}
 .share-title{font-size:16px;font-weight:800;margin-bottom:16px;text-align:center;}
@@ -2993,7 +2993,6 @@ body.mp-on .view{padding-bottom:118px;}
 body.mp-on .mds-panel,
 body.mp-on .fes-panel,
 body.mp-on .comment-sheet,
-body.mp-on .share-panel,
 body.mp-on .rc-sheet-box,
 body.mp-on .ai-sheet-box,
 body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-inset-bottom,0px));}
@@ -15212,11 +15211,11 @@ function _buildCommItem(t,i,isMine){
       </div>
       <div class="comm-list-info">
         <!-- 1열: 제목 + 재생시간 -->
-        <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}" style="color:var(--t3);font-weight:400;font-size:11px;">${_durCache[t._sbId]||''}</span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
+        <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}" style="color:var(--t3);font-weight:400;font-size:11px;">${_durCache[t._sbId]||''}</span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}${(typeof _isTrending==='function'&&_isTrending(t))?_getTrendingBadge():''}</div>
         <!-- 2열: 사용자 + 팔로우 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
-          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>
+          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>${(typeof _getCreatorLevelHtml==='function'&&t._ownerSongs)?_getCreatorLevelHtml(t._ownerSongs,t._ownerLikes):''}
           ${!isMine?(function(){var ck=ownerName+'__'+(t._owner?.provider||'');var isF=_followStateCache[ck]===true;return '<button class="comm-item-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(ownerName)+'" data-cprov="'+esc(t._owner?.provider||'')+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
@@ -15308,6 +15307,19 @@ function _getHeroTrack(){
 
 function _renderCommContent(heroWrap, list){
   let tracks=getCommTracks();
+  /* 크리에이터 통계 주입 (레벨 배지용) */
+  var _creatorStats={};
+  (_sbTracks||[]).forEach(function(t){
+    var key=(t.owner_name||t.user_name||'')+'__'+(t.owner_provider||t.user_provider||'');
+    if(!_creatorStats[key])_creatorStats[key]={songs:0,likes:0};
+    _creatorStats[key].songs++;
+    _creatorStats[key].likes+=(t.comm_likes||t.likes||0);
+  });
+  tracks.forEach(function(t){
+    var key=(t._owner?.name||'')+'__'+(t._owner?.provider||'');
+    var cs=_creatorStats[key];
+    if(cs){t._ownerSongs=cs.songs;t._ownerLikes=cs.likes;}
+  });
   if(!tracks.length){
     heroWrap.innerHTML='';
     if(_commSearchQuery){
