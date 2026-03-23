@@ -6583,7 +6583,7 @@ let _sbLoaded    = false;
 let _sbMyLoaded  = false;
 let _sbLoading   = false;
 let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
-const _SB_CACHE_TTL = 30000; /* 30초 캐시 */
+const _SB_CACHE_TTL = 300000; /* 5분 메모리 캐시 */
 
 /* ── 무한 스크롤 페이지네이션 상태 ── */
 const _SB_PAGE_SIZE = 20;
@@ -6748,7 +6748,7 @@ function _countTrackPlay(trackId){
 }
 /* 커뮤니티 캐시는 메모리(_sbTracks)만 사용 — localStorage 제거 */
 
-/* ── 커뮤니티 주기적 자동 갱신 (30초, Visibility API 연동) ── */
+/* ── 커뮤니티 주기적 자동 갱신 (60초, Visibility API 연동) ── */
 let _commPollTimer = null;
 var _commPollPaused = false;
 function _startCommPoll(){
@@ -6760,7 +6760,7 @@ function _startCommPoll(){
     if(!commView || !commView.classList.contains('on')) return;
     var changed = await _pollRefreshSbTracks();
     if(changed) try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
-  }, 30000);
+  }, 60000);
 }
 /* 브라우저 탭 전환 시 폴링 일시정지/재개 */
 document.addEventListener('visibilitychange',function(){
@@ -15870,37 +15870,39 @@ async function _renderCommunityInner(force){
     return;
   }
 
-  /* 캐시 있으면 즉시 렌더 (깜빡임 방지) → 백그라운드에서 갱신 */
+  /* 메모리에 데이터 있으면 즉시 렌더 (0ms) */
   var hadCache = _sbLoaded && _sbTracks.length;
   if(hadCache){
     _renderCommContent(heroWrap, list);
     _renderWeeklyChart();
     _renderCommBottom();
-    _setupCommInfiniteScroll();
-  } else {
-    list.innerHTML=Array(4).fill(_skeleton('creator')).join('');
-    heroWrap.innerHTML='';
-  }
-
-  /* 서버에서 최신 데이터 로드 */
-  var _prevFp = _sbFingerprint;
-  var _prevSnap=(_sbTracks||[]).map(t=>({_sbId:t._sbId,likes:t.likes,plays:t.plays}));
-  await _loadSbTracks(true);
-
-  /* 변경 없으면 리렌더 스킵 (깜빡임 방지) */
-  var dataChanged = _sbFingerprint !== _prevFp;
-  if(dataChanged || !hadCache){
-    /* 활동 피드: 변화 감지 */
-    if(_prevSnap.length) _detectActivityChanges(_prevSnap,_sbTracks||[]);
     _renderActivityFeed();
-    _renderCommContent(heroWrap, list);
-    _renderWeeklyChart();
-    _renderCommBottom();
+    _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
     _setupCommInfiniteScroll();
+    try{_renderFollowSuggestions();}catch(e){}
+    /* 백그라운드에서 갱신 (사용자 대기 없음) */
+    var _prevFp = _sbFingerprint;
+    _loadSbTracks(true).then(function(){
+      if(_sbFingerprint !== _prevFp){
+        _renderCommContent(heroWrap, list);
+        _renderWeeklyChart();
+        _renderCommBottom();
+        _renderActivityFeed();
+      }
+    });
+    return;
   }
-  /* 챌린지 배너 */
+
+  /* 첫 로드 — 스켈레톤 + 서버 대기 */
+  list.innerHTML=Array(4).fill(_skeleton('creator')).join('');
+  heroWrap.innerHTML='';
+  await _loadSbTracks(true);
+  _renderCommContent(heroWrap, list);
+  _renderWeeklyChart();
+  _renderCommBottom();
+  _renderActivityFeed();
   _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
-  /* 팔로우 제안 */
+  _setupCommInfiniteScroll();
   try{_renderFollowSuggestions();}catch(e){}
 }
 
