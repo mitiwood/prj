@@ -1,29 +1,41 @@
 /**
  * Sentry 초기화 — 서버리스 공용 모듈
  * 사용법: import { Sentry, withSentry } from './lib/sentry.js';
+ * @sentry/node import 실패 시 no-op 폴백 (배포 안정성 보장)
  */
-import * as Sentry from '@sentry/node';
+
+let Sentry = null;
+
+try {
+  Sentry = await import('@sentry/node');
+} catch {
+  /* @sentry/node 미설치 또는 ESM 호환 문제 — no-op 모드 */
+  Sentry = null;
+}
 
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
 
 let _initialized = false;
 
 function initSentry() {
-  if (_initialized || !SENTRY_DSN) return;
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: process.env.VERCEL_ENV || 'development',
-    tracesSampleRate: 0.2,
-    beforeSend(event) {
-      // PII 제거
-      if (event.request?.headers) {
-        delete event.request.headers['authorization'];
-        delete event.request.headers['cookie'];
-      }
-      return event;
-    },
-  });
-  _initialized = true;
+  if (_initialized || !SENTRY_DSN || !Sentry) return;
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: process.env.VERCEL_ENV || 'development',
+      tracesSampleRate: 0.2,
+      beforeSend(event) {
+        if (event.request?.headers) {
+          delete event.request.headers['authorization'];
+          delete event.request.headers['cookie'];
+        }
+        return event;
+      },
+    });
+    _initialized = true;
+  } catch (e) {
+    console.warn('[Sentry] init failed:', e.message);
+  }
 }
 
 /**
@@ -37,15 +49,17 @@ export function withSentry(handler) {
     try {
       return await handler(req, res);
     } catch (err) {
-      if (SENTRY_DSN) {
-        Sentry.captureException(err, {
-          extra: {
-            method: req.method,
-            url: req.url,
-            query: req.query,
-          },
-        });
-        await Sentry.flush(2000);
+      if (SENTRY_DSN && Sentry) {
+        try {
+          Sentry.captureException(err, {
+            extra: {
+              method: req.method,
+              url: req.url,
+              query: req.query,
+            },
+          });
+          await Sentry.flush(2000);
+        } catch {}
       }
       console.error('[Sentry]', err);
       if (!res.headersSent) {
