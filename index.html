@@ -15935,19 +15935,21 @@ async function _startChatRealtime(){
 
     _sbClient=window.supabase.createClient(cfg.url,cfg.anonKey,{realtime:{params:{eventsPerSecond:10}}});
 
-    /* chat_messages INSERT 구독 */
+    /* chat_messages INSERT/DELETE + 타이핑 broadcast */
     _chatRealtimeChannel=_sbClient.channel('chat-realtime')
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},function(payload){
         _onRealtimeMsg(payload.new);
       })
       .on('postgres_changes',{event:'DELETE',schema:'public',table:'chat_messages'},function(payload){
-        /* 삭제된 메시지 DOM에서 제거 */
         var el=document.querySelector('[data-msg-id="'+payload.old.id+'"]');
         if(el) el.remove();
       })
+      .on('broadcast',{event:'typing'},function(payload){
+        _onRealtimeTyping(payload.payload);
+      })
       .subscribe(function(status){
         _chatRealtimeConnected=(status==='SUBSCRIBED');
-        if(_chatRealtimeConnected) console.log('[Chat] Realtime 연결됨');
+        if(_chatRealtimeConnected) console.log('[Chat] Realtime 연결됨 (DB+broadcast)');
       });
   }catch(e){
     console.warn('[Chat] Realtime 연결 실패, 폴링 폴백:',e.message);
