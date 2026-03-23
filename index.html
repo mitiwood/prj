@@ -16305,7 +16305,7 @@ async function _renderCommunityInner(force){
 
   /* 첫 로드 — 로딩 인디케이터 + 서버 대기 */
   heroWrap.innerHTML='';
-  list.innerHTML=_commLoadingHtml('음악을 불러오는 중...');
+  list.innerHTML=_commLoadingHtml('');
   var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
   await _loadSbTracks(true);
   if(crSec){crSec.style.opacity='';crSec.style.transition='opacity .3s';}
@@ -16647,8 +16647,9 @@ function _renderCommContent(heroWrap, list){
 var _creatorsCache=null;var _creatorsCacheAt=0;
 /* 통일 로딩 인디케이터 헬퍼 */
 function _commLoadingHtml(msg,small){
-  if(small) return '<div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">'+(msg||'불러오는 중...')+'</div></div>';
-  return '<div class="comm-loading-overlay"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">'+(msg||'불러오는 중...')+'</div></div>';
+  var txt=msg?'<div class="comm-loading-text">'+msg+'</div>':'';
+  if(small) return '<div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div>'+txt+'</div>';
+  return '<div class="comm-loading-overlay"><div class="comm-loading-dots"><span></span><span></span><span></span></div>'+txt+'</div>';
 }
 
 function _renderCreatorsInline(){
