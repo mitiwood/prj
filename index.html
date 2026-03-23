@@ -18954,12 +18954,18 @@ async function _syncPlanFromServer(){
       const serverPlan = ud.profile.plan || 'free';
       const localPlan = getPlan();
       if(localPlan.type !== serverPlan){
-        /* debug removed */
         const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
         localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
+        /* 플랜 업그레이드 시 사용량 리셋 */
+        if(serverPlan !== 'free' && localPlan.type === 'free'){
+          localStorage.setItem('kms_usage', JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
+        }
         if(typeof renderPlanUI === 'function') renderPlanUI();
         if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
-        toast(`플랜이 ${serverPlan.toUpperCase()}으로 변경됐어요!`,'ok',3000);
+        if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
+        if(typeof _updateCreditWarn === 'function') _updateCreditWarn();
+        const planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑'};
+        toast('🎫 플랜이 '+(planNames[serverPlan]||serverPlan)+'으로 변경됐어요!','ok',3000);
       }
     }
   } catch(e){ console.warn('[PlanSync]', e.message); }
