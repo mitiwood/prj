@@ -868,6 +868,7 @@ textarea.form-input{line-height:1.5;}
         <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:4px;width:fit-content;">
           <button class="btn btn-acc" id="utab-login" onclick="switchUserTab('login')" style="font-size:12px;padding:7px 16px;">🔑 로그인 사용자</button>
           <button class="btn" id="utab-creator" onclick="switchUserTab('creator')" style="font-size:12px;padding:7px 16px;">🎵 생성 기여자</button>
+          <button class="btn" id="utab-activity" onclick="switchUserTab('activity')" style="font-size:12px;padding:7px 16px;">📝 활동 로그</button>
         </div>
 
         <!-- 로그인 사용자 목록 -->
@@ -911,6 +912,18 @@ textarea.form-input{line-height:1.5;}
             </div>
             <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>생성 곡</th><th>좋아요 합계</th><th>마지막 생성</th><th>관리</th></tr></thead>
             <tbody id="users-creator-tbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- 활동 로그 -->
+        <div id="utab-panel-activity" style="display:none;">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>로그인/로그아웃 활동 로그 <span id="activity-log-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+              <button class="btn btn-acc" onclick="_loadActivityLogs()" style="font-size:11px;">🔄 새로고침</button>
+            </div>
+            <table><thead><tr><th>시간</th><th>유형</th><th>사용자</th><th>프로바이더</th><th>디바이스</th><th>위치</th></tr></thead>
+            <tbody id="activity-log-tbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);">활동 로그 탭 진입 시 로드됩니다</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -2690,7 +2703,7 @@ function switchSec(id){
   const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',attendance:'📅 출석 관리',errors:'🚨 에러 모니터',sentry:'🛡️ Sentry'};
   var _secTitle=document.getElementById('sec-title'); if(_secTitle) _secTitle.textContent=titles[id]||id;
   var _mobTitle=document.getElementById('mob-sec-title'); if(_mobTitle) _mobTitle.textContent=titles[id]||id;
-  if(id==='tracks')renderTracksAdmin();
+  if(id==='tracks'){renderTracksAdmin();_startTracksPoll();}
   if(id==='community')renderCommunityAdmin(false);
   if(id==='comments')renderCommentsAdmin();
   if(id==='users'){renderUsersAdmin();_startUsersPoll();}else{_stopUsersPoll();}
@@ -3337,6 +3350,17 @@ async function renderTracksAdmin(){
   const tlk = document.getElementById('tstat-likes');   if(tlk) tlk.textContent = totalLikes;
   const ttd = document.getElementById('tstat-today');   if(ttd) ttd.textContent = todayTracks;
   renderTracksTable(h);
+}
+/* 음악관리 30초 자동 갱신 */
+let _tracksPollTimer=null;
+function _startTracksPoll(){
+  if(_tracksPollTimer) return;
+  _tracksPollTimer=setInterval(async()=>{
+    const sec=document.getElementById('sec-tracks');
+    if(!sec||!sec.classList.contains('on')){clearInterval(_tracksPollTimer);_tracksPollTimer=null;return;}
+    await _fetchServerData(true);
+    renderTracksAdmin();
+  },30000);
 }
 const PAGE_SIZE = 50; /* 한 번에 렌더할 행 수 */
 let _trackPage = 0;
@@ -4268,8 +4292,42 @@ function switchUserTab(tab){
   _uTabCurrent = tab;
   document.getElementById('utab-panel-login').style.display   = tab==='login'   ? '' : 'none';
   document.getElementById('utab-panel-creator').style.display = tab==='creator' ? '' : 'none';
+  document.getElementById('utab-panel-activity').style.display= tab==='activity'? '' : 'none';
   document.getElementById('utab-login').className   = tab==='login'   ? 'btn btn-acc' : 'btn';
   document.getElementById('utab-creator').className = tab==='creator' ? 'btn btn-acc' : 'btn';
+  document.getElementById('utab-activity').className= tab==='activity'? 'btn btn-acc' : 'btn';
+  if(tab==='activity') _loadActivityLogs();
+}
+
+/* 활동 로그 로드 (bot_logs에서 로그인/로그아웃 기록) */
+async function _loadActivityLogs(){
+  var tbody=document.getElementById('activity-log-tbody');
+  var countEl=document.getElementById('activity-log-count');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>';
+  try{
+    var r=await adminFetch('/api/users?action=activity_logs&limit=100');
+    var d=await r.json();
+    var logs=d.logs||[];
+    if(countEl) countEl.textContent='('+logs.length+'건)';
+    if(!logs.length){
+      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);">활동 로그가 없습니다</td></tr>';
+      return;
+    }
+    tbody.innerHTML=logs.map(function(l){
+      var time=l.created_at?new Date(l.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+      var isLogin=(l.event||l.type||'').includes('login')||(l.message||'').includes('로그인');
+      var isLogout=(l.event||l.type||'').includes('logout')||(l.message||'').includes('로그아웃');
+      var typeBadge=isLogout?'<span class="badge badge-red">로그아웃</span>':isLogin?'<span class="badge badge-grn">로그인</span>':'<span class="badge badge-acc">'+(l.event||l.type||'기타')+'</span>';
+      var name=l.user_name||l.name||'—';
+      var prov=l.provider||'—';
+      var mobile=l.is_mobile?'📱':'💻';
+      var loc=l.location||'—';
+      return '<tr><td style="font-size:11px;color:var(--t3);white-space:nowrap;">'+time+'</td><td>'+typeBadge+'</td><td style="font-weight:600;">'+esc(name)+'</td><td><span class="badge badge-acc">'+esc(prov)+'</span></td><td>'+mobile+'</td><td style="font-size:11px;color:var(--t3);">'+esc(loc)+'</td></tr>';
+    }).join('');
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red);">로드 실패: '+esc(e.message)+'</td></tr>';
+  }
 }
 
 /* 사용자 섹션 30초 자동 갱신 */
