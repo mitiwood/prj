@@ -22179,11 +22179,12 @@ function _renderWeeklyChart(){
   if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
   var weekAgo=Date.now()-7*86400000;
   var weekly=_sbTracks.filter(function(t){
-    if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return false;
-    var ts=new Date(t.created_at||0).getTime();
+    var au=t.audioUrl||t.audio_url||'';
+    if(!au||au.indexOf('example.com')>=0)return false;
+    var ts=t._created||new Date(t.created_at||0).getTime();
     return ts>weekAgo;
   });
-  weekly.forEach(function(t){t._score=(t.comm_likes||t.likes||0)*3+(t.comm_plays||t.plays||0);});
+  weekly.forEach(function(t){t._score=(t.likes||0)*3+(t.plays||0);});
   weekly.sort(function(a,b){return b._score-a._score;});
   /* 상위 트랙 + 나머지에서 랜덤 픽 섞기 (다양성 확보) */
   var topPart=weekly.slice(0,6);
@@ -22286,19 +22287,21 @@ function _renderSpotlight(){
   var weekAgo=Date.now()-7*86400000;
   var creators={};
   _sbTracks.forEach(function(t){
-    if(!t.audio_url||t.audio_url.indexOf('example.com')>=0)return;
-    var name=t.owner_name||t.user_name||'';
-    var prov=t.owner_provider||t.user_provider||'';
+    var au=t.audioUrl||t.audio_url||'';
+    if(!au||au.indexOf('example.com')>=0)return;
+    var o=t._owner||{};
+    var name=o.name||t.owner_name||'';
+    var prov=o.provider||t.owner_provider||'';
     if(!name||name==='익명')return;
     var key=name+'__'+prov;
-    if(!creators[key])creators[key]={name:name,provider:prov,avatar:t.owner_avatar||'',songs:0,likes:0,plays:0,bestTrack:null,bestScore:0,recentCount:0};
+    if(!creators[key])creators[key]={name:name,provider:prov,avatar:o.avatar||t.owner_avatar||'',songs:0,likes:0,plays:0,bestTrack:null,bestScore:0,recentCount:0};
     var c=creators[key];
     c.songs++;
-    c.likes+=(t.comm_likes||t.likes||0);
-    c.plays+=(t.comm_plays||t.plays||0);
-    var ts=new Date(t.created_at||0).getTime();
+    c.likes+=(t.likes||0);
+    c.plays+=(t.plays||0);
+    var ts=t._created||new Date(t.created_at||0).getTime();
     if(ts>weekAgo)c.recentCount++;
-    var score=(t.comm_likes||t.likes||0)*3+(t.comm_plays||t.plays||0);
+    var score=(t.likes||0)*3+(t.plays||0);
     if(score>c.bestScore){c.bestScore=score;c.bestTrack=t;}
   });
   var sorted=Object.values(creators).sort(function(a,b){return(b.recentCount*10+b.likes)-(a.recentCount*10+a.likes);});
@@ -22387,9 +22390,9 @@ function _getLiveHtml(){
 }
 function _isTrending(t){
   if(!t)return false;
-  var likes=t.comm_likes||t.likes||0;
-  var plays=t.comm_plays||t.plays||0;
-  var ts=new Date(t.created_at||0).getTime();
+  var likes=t.likes||t.comm_likes||0;
+  var plays=t.plays||t.comm_plays||0;
+  var ts=t._created||new Date(t.created_at||0).getTime();
   return(Date.now()-ts)/86400000<=3&&(likes>=3||plays>=10);
 }
 function _getTrendingBadge(){return '<span class="trending-badge">🔥 HOT</span>';}
