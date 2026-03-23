@@ -192,6 +192,17 @@ export default async function handler(req, res) {
       }
     }
 
+    /* ── 관리자: 전체 팔로우 목록 ── */
+    if (action === 'admin-follows') {
+      try {
+        const { data: allFollows } = await sb('GET',
+          `/follows?select=*&order=created_at.desc&limit=500`);
+        return res.status(200).json({ ok: true, follows: allFollows || [] });
+      } catch (e) {
+        return res.status(200).json({ ok: false, follows: [], error: e.message });
+      }
+    }
+
     try {
       const viewerName = req.query?.viewerName;
       const viewerProvider = req.query?.viewerProvider;
