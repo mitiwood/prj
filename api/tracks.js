@@ -104,7 +104,7 @@ async function _handler(req, res) {
       if (isAdmin) {
         filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?or=(and(owner_name.ilike.${encodeURIComponent(ownerName)},owner_provider.eq.${encodeURIComponent(ownerProv)}),and(co_owner_name.ilike.${encodeURIComponent(ownerName)},co_owner_provider.eq.${encodeURIComponent(ownerProv)}))&order=created_at.desc&limit=${limit}&select=*`;
+        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
         filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
