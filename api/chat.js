@@ -4,6 +4,7 @@
  * GET  ?room=general&limit=50&since=timestamp → 메시지 조회 + 인사이트
  * POST body: {room, content, author_name, author_avatar, author_provider, reply_to?} → 메시지 전송
  */
+import webpush from 'web-push';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -151,6 +152,12 @@ export default async function handler(req, res) {
     if (SB_URL && SB_KEY) {
       try {
         const { data } = await sb('POST', '/chat_messages', msg);
+        /* 답글이면 해당 사용자에게 푸시 알림 */
+        if (reply_to && reply_to.name && reply_to.name !== author_name) {
+          await _notifyReply(reply_to, author_name, content).catch(e =>
+            console.error('[Chat] push notify error:', e.message)
+          );
+        }
         return res.status(200).json({ ok: true, message: Array.isArray(data) ? data[0] : data });
       } catch (e) {
         _mem.push({ ...msg, id: Date.now() });
@@ -164,4 +171,52 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+/* ── 답글 푸시 알림 ── */
+async function _notifyReply(replyTo, senderName, content) {
+  if (!SB_URL || !SB_KEY) return;
+
+  const VAPID_PUB = process.env.VAPID_PUBLIC_KEY;
+  const VAPID_PRV = process.env.VAPID_PRIVATE_KEY;
+  if (!VAPID_PUB || !VAPID_PRV) return;
+
+  /* 대상 사용자의 푸시 구독 조회 */
+  const targetName = encodeURIComponent(replyTo.name);
+  const { data } = await sb('GET', `/push_subscriptions?user_name=eq.${targetName}&select=subscription`);
+  if (!Array.isArray(data) || !data.length) return;
+
+  /* VAPID 키 설정 (SPKI→raw 변환) */
+  let vapidPub = VAPID_PUB;
+  try {
+    const pad = '='.repeat((4 - vapidPub.length % 4) % 4);
+    const raw = Buffer.from(vapidPub.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
+    if (raw.length === 91) {
+      vapidPub = raw.slice(26).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+  } catch {}
+
+  webpush.setVapidDetails('mailto:admin@ai-music-studio.app', vapidPub, VAPID_PRV);
+
+  const preview = (content || '').slice(0, 60);
+  const payload = JSON.stringify({
+    title: `💬 ${senderName}님이 답장했어요`,
+    body: preview,
+    icon: '/icon-192.png',
+    url: 'https://ai-music-studio-bice.vercel.app/?tab=community&chat=1',
+    badge: '/icon-72.png',
+  });
+
+  for (const row of data) {
+    const sub = row.subscription;
+    if (!sub?.endpoint) continue;
+    try {
+      await webpush.sendNotification(sub, payload);
+    } catch (e) {
+      /* 410 Gone = 만료된 구독 → 삭제 */
+      if (e.statusCode === 410) {
+        await sb('DELETE', `/push_subscriptions?user_name=eq.${targetName}&subscription->>endpoint=eq.${encodeURIComponent(sub.endpoint)}`).catch(() => {});
+      }
+    }
+  }
 }
