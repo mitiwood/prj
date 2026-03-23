@@ -13140,8 +13140,10 @@ function fpToggleLike(){
 }
 function fpToggleDislike(){
   fpDisliked=!fpDisliked;if(fpDisliked)fpLiked=false;
-  if(fpCurrentIdx>=0){historyData[fpCurrentIdx]._liked=fpLiked;historyData[fpCurrentIdx]._disliked=fpDisliked;saveHistory();}
+  var h=fpCurrentIdx>=0?historyData[fpCurrentIdx]:null;
+  if(h){h._liked=fpLiked;h._disliked=fpDisliked;saveHistory();_syncAllLikeStates(h);}
   fpUpdateLikeUI();toast(fpDisliked?'👎 싫어요':'싫어요 취소','',1200);
+  if(h&&(h.id||h._sbId)){fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpDisliked?'dislike':'undislike'),{method:'PATCH'}).catch(()=>{});}
 }
 
 /* 플레이리스트 추가 — 바텀시트 (body 직접 렌더링으로 z-index 보장) */
