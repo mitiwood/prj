@@ -10383,9 +10383,8 @@ function renderTracks(tracks,prompt,tags,mode){
           </div>
           <div class="dl-row">
             <button class="dl-btn audio" data-dl-audio="${esc(audioUrl)}" data-dl-name="${esc(title)}.mp3">⬇ MP3</button>
-            <button class="dl-btn lnk" data-copy-url="${esc(audioUrl)}">🔗 링크</button>
             <button class="dl-btn ext" data-extend-id="${esc(audioId)}"${!audioId?' disabled':''}>➕ 연장</button>
-            <button class="dl-btn vocal-chg" data-vocal-change="${esc(audioUrl)}" data-track-title="${esc(title)}" style="color:var(--grn);border-color:rgba(0,221,160,.25);">🎙 보컬</button>
+            <button class="dl-btn lnk" data-rc-share="${i}" style="color:var(--acc3);border-color:rgba(168,85,247,.25);">↗ 공유</button>
           </div>
           <div class="dl-row" style="margin-top:6px;">
             <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 이 곡으로 다시 작곡</button>
@@ -10431,11 +10430,14 @@ function renderTracks(tracks,prompt,tags,mode){
       this.style.opacity='1';this.style.pointerEvents='none';
       this.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 선택됨!';
       this.style.background='var(--green)';
-      toast(`✅ ${idx===0?'A':'B'} 버전을 선택했어요!`,'ok',2000);
+      toast(`✅ ${idx===0?'A':'B'} 버전을 선택했어요! 라이브러리에서 확인하세요`,'ok',2500);
       setTimeout(()=>{
-        switchTab('history-view');
+        /* 선택 곡을 히스토리 최상위로 이동 */
         const hi=historyData.findIndex(h=>(h.id||h.taskId)===(t.id||''));
         if(hi>0){const [item]=historyData.splice(hi,1);historyData.unshift(item);saveHistory();}
+        /* 라이브러리 전체 모드로 이동 */
+        _switchHistView('full');
+        switchTab('history-view');
         renderHistoryView();
       },800);
     });
@@ -10470,8 +10472,21 @@ function renderTracks(tracks,prompt,tags,mode){
   container.querySelectorAll('.ap-prog-wrap').forEach(wrap=>wrap.addEventListener('click',e=>seekAudio(e,wrap)));
   container.querySelectorAll('[data-extend-id]').forEach(btn=>btn.addEventListener('click',function(){_showExtendOptions(this.dataset.extendId, 0);}));
   container.querySelectorAll('[data-dl-audio]').forEach(btn=>btn.addEventListener('click',function(){downloadFile(this.dataset.dlAudio,this.dataset.dlName);}));
-  container.querySelectorAll('[data-copy-url]').forEach(btn=>{
-    btn.addEventListener('click',function(){navigator.clipboard.writeText(this.dataset.copyUrl).then(()=>toast('🔗 링크 복사됨!','ok')).catch(()=>toast('복사 실패','err'));});
+  /* 공유 버튼 — 전체보기 공유 모달과 동일 */
+  container.querySelectorAll('[data-rc-share]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const ti=parseInt(this.dataset.rcShare);
+      const tr=tracks[ti];if(!tr)return;
+      const audioUrl=tr.audioUrl||tr.audio_url||'';
+      const imgUrl=tr.imageUrl||tr.image_url||'';
+      /* historyData에 추가 후 openShareConfirm */
+      let hIdx=historyData.findIndex(h=>(h.id||'')===(tr.id||''));
+      if(hIdx<0){
+        historyData.unshift({id:tr.id||'',title:tr.title||'무제',audio_url:audioUrl,image_url:imgUrl,tags:tr.tags||'',created:Date.now(),type:'audio'});
+        hIdx=0;
+      }
+      openShareConfirm(hIdx);
+    });
   });
   /* 다시 작곡 버튼 */
   container.querySelectorAll('[data-recompose-idx]').forEach(btn=>{
@@ -10491,12 +10506,7 @@ function renderTracks(tracks,prompt,tags,mode){
       openRecomposeSheet();
     });
   });
-  /* 보컬 변경 버튼 */
-  container.querySelectorAll('[data-vocal-change]').forEach(btn=>{
-    btn.addEventListener('click',function(){
-      openVocalModal(this.dataset.vocalChange, this.dataset.trackTitle||'');
-    });
-  });
+  /* 보컬 변경 버튼 (히스토리 편집 시트에서만 사용) */
 
   /* 노래방 플레이어 오픈 — 커버 클릭 + 노래방 버튼 공통 */
   function openKpFromEl(el){
