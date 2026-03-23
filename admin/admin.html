@@ -3403,7 +3403,7 @@ function _appendTrackRows(tbody, fromIdx){
     const tr=document.createElement('tr');
     tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
-      +'<td class="td-title" style="cursor:pointer;color:var(--acc);" onclick="_trackDetail('+i+')">'+esc(t.title||'무제')+'<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️'+(t._commLikes||0)+' ▶'+(t._commPlays||0)+'</div></td>'
+      +'<td class="td-title" style="cursor:pointer;color:var(--acc);" onclick="_trackDetail('+i+')">'+esc(t.title||'무제')+'<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️'+(t._commLikes||0)+' 👎'+(t._commDislikes||0)+' ▶'+(t._commPlays||0)+(t.is_public===false?' · 🔒':'')+'</div></td>'
       +'<td>'+ownerBadge+'</td>'
       +'<td><span class="badge badge-acc">'+(t.genMode||'custom')+'</span></td>'
       +'<td style="font-size:12px;font-weight:600;color:var(--t2);">'+(t._commPlays||0)+'</td>'
@@ -3439,41 +3439,94 @@ function _trackDetail(idx){
   const ownerName=isGuest?'게스트':(owner.name||'?');
   const ownerProv=isGuest?'':(owner.provider||'');
   const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
-  const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'뮤직비디오'}[t.genMode]||t.genMode||'custom';
+  const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'뮤직비디오',cover:'커버',remaster:'리마스터','style-reuse':'스타일',vocal:'보컬변경'}[t.genMode]||t.genMode||'custom';
   const hasAudio=!!t.audio_url;
   const hasVideo=!!t.video_url;
+  const createdAgo=t.created?_trackTimeAgo(t.created):'';
+  const isPublic=t.is_public!==false;
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-  modal.onclick=e=>{if(e.target===modal){modal.querySelector('audio')?.pause();modal.remove();}};
-  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:500px;max-width:92vw;max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h3 style="font-size:16px;font-weight:800;">🎵 트랙 상세</h3>
-      <button onclick="this.closest('div[style*=fixed]').querySelector('audio')?.pause();this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+  modal.onclick=e=>{if(e.target===modal){modal.querySelector('audio')?.pause();modal.querySelector('video')?.pause();modal.remove();}};
+  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:24px;width:520px;max-width:92vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:15px;font-weight:800;">🎵 트랙 상세</h3>
+      <button onclick="this.closest('div[style*=fixed]').querySelector('audio')?.pause();this.closest('div[style*=fixed]').querySelector('video')?.pause();this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div style="display:flex;gap:16px;margin-bottom:20px;">
-      <div style="width:80px;height:80px;border-radius:12px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;">
+
+    <!-- 헤더: 커버 + 제목 + 생성자 -->
+    <div style="display:flex;gap:14px;margin-bottom:16px;">
+      <div style="width:90px;height:90px;border-radius:14px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;">
         ${t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'🎵'}
       </div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:16px;font-weight:800;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.title||'무제')}</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:6px;">${!isGuest?'👤 '+esc(ownerName)+' ('+ownerProv+')':'🕵️ 게스트'} · <span class="badge badge-acc" style="font-size:10px;">${modeLabel}</span></div>
-        <div style="font-size:11px;color:var(--t3);">${timeStr}</div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:4px;word-break:break-word;">${esc(t.title||'무제')}</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:4px;">${!isGuest?'👤 '+esc(ownerName)+' <span class="badge '+({google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'}[ownerProv]||'badge-acc')+'" style="font-size:9px;">'+ownerProv+'</span>':'🕵️ 게스트'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span class="badge badge-acc" style="font-size:10px;">${modeLabel}</span>
+          <span class="badge ${isPublic?'badge-grn':'badge-red'}" style="font-size:10px;">${isPublic?'공개':'비공개'}</span>
+          ${hasVideo?'<span class="badge badge-ylw" style="font-size:10px;">🎬 MV</span>':''}
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:4px;">📅 ${timeStr} ${createdAgo?'('+createdAgo+')':''}</div>
       </div>
     </div>
-    ${hasAudio?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:16px;"><div style="font-size:11px;color:var(--t3);margin-bottom:6px;">오디오 프리뷰</div><audio controls preload="metadata" style="width:100%;height:36px;border-radius:6px;" src="'+esc(t.audio_url)+'"></audio></div>':''}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#ef4444;">❤️ ${t._commLikes||0}</div><div style="font-size:10px;color:var(--t3);">좋아요</div></div>
-      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;">${hasVideo?'🎬 있음':'—'}</div><div style="font-size:10px;color:var(--t3);">뮤직비디오</div></div>
-      <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:800;">${t._commRating?'⭐'.repeat(t._commRating):'—'}</div><div style="font-size:10px;color:var(--t3);">평점</div></div>
+
+    <!-- 오디오 플레이어 -->
+    ${hasAudio?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">🎧 오디오</div><audio controls preload="metadata" style="width:100%;height:36px;border-radius:6px;" src="'+esc(t.audio_url)+'"></audio></div>':''}
+
+    <!-- 비디오 플레이어 -->
+    ${hasVideo?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">🎬 뮤직비디오</div><video controls preload="metadata" style="width:100%;border-radius:8px;max-height:200px;" src="'+esc(t.video_url)+'"></video></div>':''}
+
+    <!-- 통계 카드 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:#ef4444;">❤️ ${t._commLikes||0}</div><div style="font-size:9px;color:var(--t3);">좋아요</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--acc);">👎 ${t._commDislikes||0}</div><div style="font-size:9px;color:var(--t3);">싫어요</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--grn);">▶ ${t._commPlays||0}</div><div style="font-size:9px;color:var(--t3);">재생수</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">${t._commRating?'⭐'+t._commRating:'—'}</div><div style="font-size:9px;color:var(--t3);">평점</div></div>
     </div>
-    ${t.tags?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">태그</div><div style="font-size:12px;display:flex;flex-wrap:wrap;gap:4px;">'+t.tags.split(',').map(tag=>'<span style="background:rgba(168,85,247,.15);color:var(--acc);padding:2px 8px;border-radius:6px;font-size:11px;">'+esc(tag.trim())+'</span>').join('')+'</div></div>':''}
-    ${t.lyrics?'<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;color:var(--t3);margin-bottom:6px;">가사</div><div style="font-size:12px;color:var(--t2);max-height:120px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;">'+esc(t.lyrics.slice(0,500))+(t.lyrics.length>500?'...':'')+'</div></div>':''}
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-red" onclick="deleteTrackByIdx(${idx});this.closest('div[style*=fixed]').remove();" style="flex:1;">🗑 삭제</button>
-      ${!isGuest?'<button class="btn" onclick="_showUserDetail(\''+esc(ownerName)+'\',\''+esc(ownerProv)+'\');this.closest(\'div[style*=fixed]\').remove();" style="flex:1;">👤 소유자 보기</button>':''}
+
+    <!-- 태그 -->
+    ${t.tags?'<div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:10px;"><div style="font-size:10px;color:var(--t3);margin-bottom:5px;">🏷 태그</div><div style="display:flex;flex-wrap:wrap;gap:4px;">'+t.tags.split(',').map(tag=>'<span style="background:rgba(168,85,247,.15);color:var(--acc);padding:2px 8px;border-radius:6px;font-size:10px;">'+esc(tag.trim())+'</span>').join('')+'</div></div>':''}
+
+    <!-- 가사 -->
+    ${t.lyrics?'<div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><span style="font-size:10px;color:var(--t3);">📝 가사</span><span style="font-size:9px;color:var(--t3);">'+t.lyrics.length+'자</span></div><div style="font-size:11px;color:var(--t2);max-height:150px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;font-family:monospace;">'+esc(t.lyrics)+'</div></div>':''}
+
+    <!-- 메타 정보 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:14px;">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px;">📋 메타 정보</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;">
+        <div style="color:var(--t3);">Track ID</div><div style="color:var(--t2);word-break:break-all;">${esc((t.id||'').slice(0,20))}${(t.id||'').length>20?'...':''}</div>
+        <div style="color:var(--t3);">Task ID</div><div style="color:var(--t2);word-break:break-all;">${esc((t.taskId||t.task_id||'-').slice(0,20))}</div>
+        <div style="color:var(--t3);">생성 모드</div><div style="color:var(--t2);">${modeLabel}</div>
+        <div style="color:var(--t3);">오디오</div><div style="color:${hasAudio?'var(--grn)':'var(--red)'};">${hasAudio?'✅ 있음':'❌ 없음'}</div>
+        <div style="color:var(--t3);">MV</div><div style="color:${hasVideo?'var(--grn)':'var(--t3)'};">${hasVideo?'✅ 있음':'없음'}</div>
+        <div style="color:var(--t3);">공개 상태</div><div style="color:${isPublic?'var(--grn)':'var(--red)'};">${isPublic?'🌐 공개':'🔒 비공개'}</div>
+      </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${hasAudio?'<button class="btn" onclick="adminDownloadTrack(\''+esc(t.audio_url)+'\',\''+esc(t.title||'track')+'\')" style="flex:1;font-size:11px;">⬇ 다운로드</button>':''}
+      <button class="btn" onclick="_toggleTrackPublic(\''+esc(t.id)+'\',${isPublic?'false':'true'},this)" style="flex:1;font-size:11px;">${isPublic?'🔒 비공개':'🌐 공개'} 전환</button>
+      ${!isGuest?'<button class="btn" onclick="_showUserDetail(\''+esc(ownerName)+'\',\''+esc(ownerProv)+'\');this.closest(\'div[style*=fixed]\').remove();" style="flex:1;font-size:11px;">👤 소유자</button>':''}
+      <button class="btn btn-red" onclick="deleteTrackByIdx(${idx});this.closest('div[style*=fixed]').remove();" style="flex:1;font-size:11px;">🗑 삭제</button>
     </div>
   </div>`;
   document.body.appendChild(modal);
+}
+function _trackTimeAgo(ts){
+  const d=Date.now()-(typeof ts==='number'?ts:new Date(ts).getTime());
+  const m=Math.floor(d/60000);if(m<1)return '방금';if(m<60)return m+'분 전';
+  const h=Math.floor(m/60);if(h<24)return h+'시간 전';
+  return Math.floor(h/24)+'일 전';
+}
+async function _toggleTrackPublic(id,pub,btn){
+  try{
+    const pw=getAdminPw();
+    await fetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+(pub?'show':'hide'),{method:'PATCH',headers:{'Authorization':'Bearer '+pw}});
+    adminToast(pub?'🌐 공개 전환':'🔒 비공개 전환');
+    btn.closest('div[style*=fixed]').remove();
+    await _fetchServerData(true);renderTracksAdmin();
+  }catch(e){adminToast('오류: '+e.message);}
 }
 function filterTracks(){
   const q=(document.getElementById('track-search')?.value||'').toLowerCase();
