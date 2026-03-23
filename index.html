@@ -4726,13 +4726,13 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
-      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
     </div>
@@ -5187,6 +5187,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   <!-- ─────────── CREATOR PROFILE VIEW ─────────── -->
   <div class="view" id="profile-view">
+    <div style="padding:12px 16px 0;">
+      <button onclick="switchTab('community-view')" style="background:none;border:none;color:var(--acc);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px 0;">← 커뮤니티로 돌아가기</button>
+    </div>
     <div class="profile-header">
       <div class="profile-header-top">
         <div class="profile-avatar" id="pv-avatar">👤</div>
@@ -15561,7 +15564,14 @@ async function _renderFollowingFeed(heroWrap,list){
 function _renderFollowFeedUI(list){
   const tracks=_followFeedCache||[];
   const lbl=$('comm-section-lbl');if(lbl) lbl.textContent='팔로잉 ('+tracks.length+'곡)';
-  if(!tracks.length){list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">🎵</div><div class="comm-no-title">아직 팔로잉한 아티스트의 곡이 없어요</div><div class="comm-no-desc">커뮤니티에서 마음에 드는 아티스트를 팔로우해보세요</div></div>';return;}
+  if(!tracks.length){
+    /* 팔로잉 곡이 없으면 전체 최신곡 표시 */
+    if(lbl) lbl.textContent='팔로잉 · 추천 곡';
+    var allTracks=(_sbTracks||[]).slice(0,20);
+    if(!allTracks.length){list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">🎵</div><div class="comm-no-title">아직 곡이 없어요</div><div class="comm-no-desc">커뮤니티에서 마음에 드는 아티스트를 팔로우해보세요</div></div>';return;}
+    tracks=allTracks.map(function(t){return{id:t._sbId,title:t.title,image_url:t.img,tags:t.allTags,owner_name:t._owner?.name||'익명',owner_avatar:t._owner?.avatar||'',owner_provider:t._owner?.provider||'',created_at:t._created?new Date(t._created).toISOString():''};});
+    _followFeedCache=tracks;
+  }
   let html='';
   tracks.forEach((t,i)=>{
     const owner=t.owner_name||t.user_name||'익명';
