@@ -2405,7 +2405,7 @@ async function adminFetch(url, options={}){
 }
 
 async function gateLogin(){
-  const inputPw=document.getElementById('gate-pw').value;
+  const inputPw=(document.getElementById('gate-pw').value||'').trim();
   const savedPw=localStorage.getItem(ADMIN_PW_KEY);
 
   /* 관리자 로그인 — 저장된 비밀번호 또는 기본 비밀번호 모두 허용 */
@@ -2450,15 +2450,25 @@ if(localStorage.getItem('kms_admin_auth')==='1'){
   document.getElementById('admin-gate').style.display='none';
   document.getElementById('admin-app').style.display='flex';
   const _llt=document.getElementById('last-login-time'); if(_llt) _llt.textContent=new Date().toLocaleString('ko-KR');
-  /* 세션 비밀번호 복원 */
-  if(!sessionStorage.getItem('kms_admin_session')){
+  /* 세션 비밀번호 복원 — 유효하지 않으면 DEFAULT_PW 사용 */
+  var _sess = sessionStorage.getItem('kms_admin_session')||'';
+  if(!_sess || _sess==='manager_session'){
     sessionStorage.setItem('kms_admin_session', localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW);
   }
   /* 프리페치: 인증 후 즉시 모든 데이터를 백그라운드 로딩 */
   _fetchServerData().then(()=>{
     _buildCommCacheFromServer(); /* 커뮤니티 캐시도 미리 빌드 */
     console.log('[Admin] 프리페치 완료: '+_serverTracks.length+'트랙, '+_serverUsers.length+'유저');
-  }).catch(e=>console.warn('[prefetch]',e.message));
+  }).catch(e=>{
+    console.warn('[prefetch]',e.message);
+    /* 인증 실패 시 게이트로 되돌리기 */
+    if(e.message&&e.message.includes('401')){
+      localStorage.removeItem('kms_admin_auth');
+      sessionStorage.removeItem('kms_admin_session');
+      document.getElementById('admin-gate').style.display='flex';
+      document.getElementById('admin-app').style.display='none';
+    }
+  });
   loadData();
   renderUsersAdmin();
 }
