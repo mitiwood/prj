@@ -4726,7 +4726,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
-      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
@@ -4770,6 +4769,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
+    <!-- 크리에이터 섹션 (항상 표시) -->
+    <div id="comm-creators-section" style="margin-top:20px;">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:10px;">👤 크리에이터</div>
+      <div id="comm-creators-inline"></div>
+    </div>
   </div>
 
   <!-- ─────────── SETTINGS VIEW ─────────── -->
@@ -16421,7 +16425,45 @@ function _renderCommContent(heroWrap, list){
     _loadCommFollowStates(list);
     /* 크리에이터 아바타 동기화 (users 테이블 기준) */
     _syncCreatorAvatars(list);
+    /* 크리에이터 인라인 섹션 렌더 */
+    _renderCreatorsInline();
   }
+}
+
+/* 커뮤니티 하단 크리에이터 인라인 섹션 */
+function _renderCreatorsInline(){
+  var wrap=$('comm-creators-inline');
+  if(!wrap)return;
+  var sec=$('comm-creators-section');
+  /* 크리에이터/팔로잉/채팅/리더보드 모드면 숨김 */
+  if(_commActiveGenre&&_commActiveGenre!=='all'&&!_GENRE_KEYS[_commActiveGenre]){
+    if(sec)sec.style.display='none';return;
+  }
+  if(sec)sec.style.display='';
+  var all=_sbTracks||[];
+  if(!all.length){wrap.innerHTML='';return;}
+  var creators={};
+  all.forEach(function(t){
+    var o=t._owner||{};var k=(o.name||'')+'__'+(o.provider||'');
+    if(!k||k==='__')return;
+    if(!creators[k])creators[k]={name:o.name,provider:o.provider,avatar:o.avatar,tracks:0,likes:0};
+    creators[k].tracks++;creators[k].likes+=(t.likes||0);
+  });
+  var list=Object.values(creators).sort(function(a,b){return(b.tracks-a.tracks)||(b.likes-a.likes);}).slice(0,10);
+  if(!list.length){wrap.innerHTML='';return;}
+  var isLoggedIn=currentUser&&currentUser.provider!=='guest';
+  wrap.innerHTML='<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;">'+list.map(function(c){
+    var av=c.avatar?'<img src="'+c.avatar+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.innerHTML=\'👤\'">':'<div style="width:48px;height:48px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>';
+    var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[c.provider]||'';
+    var isF=_followStateCache[c.name+'__'+c.provider]===true;
+    var isMe=isLoggedIn&&currentUser.name===c.name&&currentUser.provider===c.provider;
+    return '<div style="flex-shrink:0;width:90px;text-align:center;cursor:pointer;" onclick="openCreatorProfile(\''+esc(c.name)+'\',\''+esc(c.provider)+'\')">'
+      +'<div style="margin:0 auto 6px;">'+av+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+provIcon+' '+esc(c.name)+'</div>'
+      +'<div style="font-size:9px;color:var(--t3);">'+c.tracks+'곡 · ❤️'+c.likes+'</div>'
+      +(isLoggedIn&&!isMe?'<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="margin-top:4px;font-size:9px;padding:3px 8px;">'+(isF?'팔로잉':'팔로우')+'</button>':'')
+      +'</div>';
+  }).join('')+'</div>';
 }
 
 /* 커뮤니티 팔로우 버튼 상태 — DB 연동 */
