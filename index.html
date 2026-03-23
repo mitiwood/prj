@@ -7002,6 +7002,10 @@ function logout(){
   document.getElementById('_logout_confirm').onclick=()=>{
     overlay.remove();
     _notifyBot('\uD83D\uDD12 \uB85C\uADF8\uC544\uC6C3\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83D\uDD17 '+(currentUser&&currentUser.provider||'guest')+'\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
+    /* 서버에 로그아웃 상태 전달 (온라인 표시 해제용) */
+    if(currentUser&&currentUser.name){
+      fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:currentUser.name,provider:currentUser.provider||'guest',lastLogin:1})}).catch(()=>{});
+    }
     /* 유저 상태 초기화 */
     currentUser=null;
     historyData=[];
