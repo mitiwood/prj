@@ -14601,6 +14601,7 @@ function fpOpenKaraoke(){
   // 풀플레이어 닫고 노래방 모드로 전환
   $('fullplayer').classList.remove('on');
   document.body.style.overflow='';
+  stopAllAudio();
 
   openKaraokePlayer(
     h.audio_url||'',
@@ -15241,6 +15242,8 @@ function _openFullKaraoke(idx){
   const h=historyData[idx];
   if(!h)return;
   const plain=h._inputLyrics||h.lyric||h.lyrics||h.lrc||'';
+  /* 현재 재생 중인 오디오 정지 (같은 곡 전환이므로 팝업 불필요) */
+  stopAllAudio();
   openKaraokePlayer(h.audio_url||'',h.title||'',_normTags(h.tags),h.image_url||'',h.taskId||'',h.id||'',plain);
 }
 
