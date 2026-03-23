@@ -16051,6 +16051,7 @@ async function _renderCommunityInner(force){
   var cacheValid=_sbLoaded&&_sbTracks.length&&(Date.now()-_sbLoadedAt)<_SB_CACHE_TTL;
   if(cacheValid&&!force){
     _renderCommContent(heroWrap, list);
+    _renderCreatorsInline();
     _renderWeeklyChart();
     _renderCommBottom();
     _renderActivityFeed();
@@ -16063,6 +16064,7 @@ async function _renderCommunityInner(force){
   var hadCache = _sbLoaded && _sbTracks.length;
   if(hadCache){
     _renderCommContent(heroWrap, list);
+    _renderCreatorsInline();
     _renderWeeklyChart();
     _renderCommBottom();
     _renderActivityFeed();
@@ -16077,6 +16079,7 @@ async function _renderCommunityInner(force){
         if(_commActiveGenre==='creators'){_renderCreatorList();return;}
         if(_commActiveGenre==='following'||_commActiveGenre==='chat'||_commActiveGenre==='leaderboard')return;
         _renderCommContent(heroWrap, list);
+        _renderCreatorsInline();
         _renderWeeklyChart();
         _renderCommBottom();
         _renderActivityFeed();
@@ -16090,6 +16093,7 @@ async function _renderCommunityInner(force){
   heroWrap.innerHTML='';
   await _loadSbTracks(true);
   _renderCommContent(heroWrap, list);
+  _renderCreatorsInline();
   _renderWeeklyChart();
   _renderCommBottom();
   _renderActivityFeed();
@@ -16427,8 +16431,6 @@ function _renderCommContent(heroWrap, list){
     _loadCommFollowStates(list);
     /* 크리에이터 아바타 동기화 (users 테이블 기준) */
     _syncCreatorAvatars(list);
-    /* 크리에이터 인라인 섹션 렌더 */
-    _renderCreatorsInline();
   }
 }
 
@@ -16437,10 +16439,6 @@ function _renderCreatorsInline(){
   var wrap=$('comm-creators-inline');
   if(!wrap)return;
   var sec=$('comm-creators-section');
-  /* 크리에이터/팔로잉/채팅/리더보드 모드면 숨김 */
-  if(_commActiveGenre&&_commActiveGenre!=='all'&&!_GENRE_KEYS[_commActiveGenre]){
-    if(sec)sec.style.display='none';return;
-  }
   if(sec)sec.style.display='';
   var all=_sbTracks||[];
   if(!all.length){wrap.innerHTML='';return;}
