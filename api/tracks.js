@@ -196,15 +196,46 @@ async function _handler(req, res) {
         ...(collab_id ? { collab_id } : {}),
         ...(co_owner_name ? { co_owner_name, co_owner_avatar: co_owner_avatar || '', co_owner_provider: co_owner_provider || 'guest' } : {}),
       };
+      const isSync = !!b._sync;
       try {
         await sb("/tracks?on_conflict=id", {
           method: "POST",
           prefer: "resolution=merge-duplicates",
           body: JSON.stringify(row),
         });
-        return res.status(200).json({ success: true, source: "supabase" });
+        /* 동기화 복구 시 알림 로그 기록 */
+        if (isSync && owner_name && owner_provider) {
+          sb("/notifications", {
+            method: "POST",
+            prefer: "return=minimal",
+            body: JSON.stringify({
+              user_name: owner_name,
+              user_provider: owner_provider,
+              type: "system",
+              title: "트랙 동기화 완료",
+              body: `"${(title || "무제").slice(0, 40)}" 서버 저장 복구됨`,
+              data: JSON.stringify({ trackId: id, genMode: genMode || "custom", syncedAt: new Date().toISOString() }),
+            }),
+          }).catch(() => {});
+        }
+        return res.status(200).json({ success: true, source: "supabase", synced: isSync });
       } catch (e) {
         console.warn("[tracks POST]", e.message);
+        /* 저장 실패 시 알림 로그 */
+        if (owner_name && owner_provider) {
+          sb("/notifications", {
+            method: "POST",
+            prefer: "return=minimal",
+            body: JSON.stringify({
+              user_name: owner_name,
+              user_provider: owner_provider,
+              type: "system",
+              title: "트랙 저장 실패",
+              body: `"${(title || "무제").slice(0, 40)}" 저장 실패 (메모리 폴백) — ${e.message.slice(0, 60)}`,
+              data: JSON.stringify({ trackId: id, error: e.message.slice(0, 100) }),
+            }),
+          }).catch(() => {});
+        }
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) _mem[idx] = { ..._mem[idx], ...row };
         else {

@@ -6798,6 +6798,7 @@ async function _loadMyTracks(force=false){
             owner_name:currentUser?.name||'익명',
             owner_avatar:currentUser?.avatar||'',
             owner_provider:currentUser?.provider||'guest',
+            _sync:true,
           });
         }
       });
@@ -6840,6 +6841,8 @@ function _rowToTrack(t){
     _genMode: t.gen_mode || 'custom',
     _created: t.created  || 0,
     _hIdx:    -1,
+    _coOwner: t.co_owner_name ? { name: t.co_owner_name, avatar: t.co_owner_avatar||'', provider: t.co_owner_provider||'' } : null,
+    _collabId: t.collab_id || null,
   };
 }
 let activeAudio=null,activeVizTimer=null;
@@ -12246,7 +12249,15 @@ function _saveTrackToServer(track){
     owner_name:     track._owner?.name     || currentUser?.name     || '익명',
     owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
     owner_provider: track._owner?.provider || currentUser?.provider || 'guest',
+    ...(track._sync ? {_sync:true} : {}),
   };
+  /* 콜라보 트랙이면 co-owner 정보 추가 */
+  if(window._collabPending){
+    payload.collab_id = window._collabPending.collabId;
+    payload.co_owner_name = window._collabPending.coOwnerName;
+    payload.co_owner_provider = window._collabPending.coOwnerProvider;
+    payload.co_owner_avatar = '';
+  }
   const _jwt = localStorage.getItem('kms_jwt')||'';
   fetch('/api/tracks',{
     method:'POST',
@@ -12258,6 +12269,14 @@ function _saveTrackToServer(track){
       if(document.getElementById('community-view')?.classList.contains('on')){
         renderCommunity(true);
       }
+    }
+    /* 콜라보 트랙이면 완료 처리 */
+    if(window._collabPending && d.success){
+      fetch('/api/collabs',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'complete', id: window._collabPending.collabId, trackId: payload.id })
+      }).catch(function(){});
+      window._collabPending = null;
     }
   }).catch(e=>{
     console.error('[SaveTrack] error:', e.message);
@@ -18696,6 +18715,214 @@ function openProfileSheet(name, provider){
 }
 
 function closeProfileSheet(){ $('profile-sheet').style.display = 'none'; _pfTarget = null; }
+
+/* ═══ 콜라보 시스템 ═══ */
+var _activeCollabId = null;
+
+function _openCollabRequest(){
+  if(!currentUser || currentUser.provider === 'guest'){ openLoginSheet(); return; }
+  if(!_pfTarget){ toast('대상을 선택해주세요','',2000); return; }
+  closeProfileSheet();
+  var sheet = $('collab-request-sheet');
+  $('collab-req-name').textContent = _pfTarget.name;
+  $('collab-req-prov').textContent = _pfTarget.provider;
+  $('collab-req-msg').value = '';
+  sheet.style.display = 'block';
+}
+
+async function _sendCollabRequest(){
+  if(!currentUser || !_pfTarget) return;
+  var btn = $('collab-req-send');
+  btn.disabled = true; btn.textContent = '보내는 중...';
+  try {
+    var r = await fetch('/api/collabs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'request',
+        fromName: currentUser.name, fromProvider: currentUser.provider, fromAvatar: currentUser.avatar||'',
+        toName: _pfTarget.name, toProvider: _pfTarget.provider,
+        message: $('collab-req-msg').value.trim()
+      })
+    });
+    var d = await r.json();
+    if(d.ok || d.collab){
+      toast('🤝 콜라보 요청을 보냈어요!','ok',2500);
+      $('collab-request-sheet').style.display = 'none';
+    } else {
+      toast(d.error||'요청 실패','',2500);
+    }
+  } catch(e){ toast('네트워크 오류','',2000); }
+  btn.disabled = false; btn.textContent = '콜라보 요청 보내기';
+}
+
+async function _acceptCollab(id){
+  if(!currentUser) return;
+  try {
+    var r = await fetch('/api/collabs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'accept', id:id, name: currentUser.name, provider: currentUser.provider })
+    });
+    var d = await r.json();
+    if(d.ok){
+      toast('🎉 콜라보를 수락했어요!','ok',2500);
+      await _loadNotifications();
+    } else { toast(d.error||'수락 실패','',2000); }
+  } catch(e){ toast('오류','',2000); }
+}
+
+async function _declineCollab(id){
+  if(!currentUser) return;
+  if(!confirm('콜라보 요청을 거절할까요?')) return;
+  try {
+    var r = await fetch('/api/collabs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'decline', id:id, name: currentUser.name })
+    });
+    var d = await r.json();
+    if(d.ok){
+      toast('요청을 거절했어요','',2000);
+      await _loadNotifications();
+    }
+  } catch(e){ toast('오류','',2000); }
+}
+
+async function _openCollabWorkspace(collabId){
+  if(!currentUser) return;
+  $('notif-sheet').style.display = 'none';
+  _activeCollabId = collabId;
+  var ws = $('collab-workspace-sheet');
+  ws.style.display = 'block';
+  /* 상태 초기화 */
+  $('cws-partner-name').textContent = '로딩 중...';
+  $('cws-status').textContent = '';
+  $('cws-my-prompt').value = '';
+  $('cws-my-genre').value = '';
+  $('cws-my-mood').value = '';
+  $('cws-my-style').value = '';
+  $('cws-partner-section').style.display = 'none';
+  $('cws-merged-section').style.display = 'none';
+
+  try {
+    var r = await fetch(`/api/collabs?action=detail&id=${encodeURIComponent(collabId)}&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
+    var d = await r.json();
+    var c = d.collab;
+    if(!c){ toast('콜라보를 찾을 수 없어요','',2000); _closeCollabWs(); return; }
+
+    var isFrom = c.from_name.toLowerCase() === currentUser.name.toLowerCase() && c.from_provider === currentUser.provider;
+    var partnerName = isFrom ? c.to_name : c.from_name;
+    var partnerProv = isFrom ? c.to_provider : c.from_provider;
+    $('cws-partner-name').textContent = partnerName + ' (' + partnerProv + ')';
+
+    var data = c.collab_data || {};
+    var mySide = isFrom ? 'a' : 'b';
+    var theirSide = isFrom ? 'b' : 'a';
+
+    /* 내 기존 제출 복원 */
+    if(data['prompt_'+mySide]) $('cws-my-prompt').value = data['prompt_'+mySide];
+    if(data['genre_'+mySide]) $('cws-my-genre').value = data['genre_'+mySide];
+    if(data['mood_'+mySide]) $('cws-my-mood').value = data['mood_'+mySide];
+    if(data['style_'+mySide]) $('cws-my-style').value = data['style_'+mySide];
+
+    /* 상대 제출 표시 */
+    if(data['prompt_'+theirSide]){
+      $('cws-partner-section').style.display = 'block';
+      var pHtml = '<div style="font-weight:600;color:var(--t1);margin-bottom:4px;">' + esc(data['prompt_'+theirSide]) + '</div>';
+      if(data['genre_'+theirSide]) pHtml += '<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(168,85,247,.1);color:var(--acc);font-size:10px;font-weight:600;margin-right:4px;">' + esc(data['genre_'+theirSide]) + '</span>';
+      if(data['mood_'+theirSide]) pHtml += '<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(59,130,246,.1);color:#60a5fa;font-size:10px;font-weight:600;">' + esc(data['mood_'+theirSide]) + '</span>';
+      if(data['style_'+theirSide]) pHtml += '<div style="font-size:11px;color:var(--t3);margin-top:4px;">🎨 ' + esc(data['style_'+theirSide]) + '</div>';
+      $('cws-partner-idea').innerHTML = pHtml;
+    }
+
+    /* 머지 결과 */
+    if(data.ready && data.merged_prompt){
+      $('cws-merged-section').style.display = 'block';
+      var mText = data.merged_prompt;
+      if(data.merged_style) mText += '\n🎨 ' + data.merged_style;
+      if(data.merged_genre) mText += '\n🎵 ' + data.merged_genre;
+      if(data.merged_mood) mText += '\n✨ ' + data.merged_mood;
+      $('cws-merged-prompt').textContent = mText;
+      $('cws-status').textContent = '✅ 양쪽 아이디어 준비 완료!';
+      $('cws-status').style.color = 'var(--grn,#00dda0)';
+    } else if(data['prompt_'+theirSide]){
+      $('cws-status').textContent = data['prompt_'+mySide] ? '양쪽 다 제출하면 곡을 생성할 수 있어요' : '아이디어를 제출해주세요';
+      $('cws-status').style.color = 'var(--acc)';
+    } else {
+      $('cws-status').textContent = '파트너의 아이디어를 기다리는 중...';
+      $('cws-status').style.color = 'var(--t3)';
+    }
+  } catch(e){ console.warn('[collab ws]', e); toast('로드 실패','',2000); }
+}
+
+function _closeCollabWs(){ $('collab-workspace-sheet').style.display = 'none'; _activeCollabId = null; }
+
+async function _submitCollabIdea(){
+  if(!currentUser || !_activeCollabId) return;
+  var prompt = $('cws-my-prompt').value.trim();
+  if(!prompt){ toast('프롬프트를 입력해주세요','',2000); return; }
+  try {
+    var r = await fetch('/api/collabs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'submit', id: _activeCollabId,
+        name: currentUser.name, provider: currentUser.provider,
+        prompt: prompt,
+        genre: $('cws-my-genre').value,
+        mood: $('cws-my-mood').value,
+        style: $('cws-my-style').value
+      })
+    });
+    var d = await r.json();
+    if(d.ok){
+      toast('✅ 아이디어를 제출했어요!','ok',2500);
+      /* 새로고침 */
+      await _openCollabWorkspace(_activeCollabId);
+    } else { toast(d.error||'제출 실패','',2000); }
+  } catch(e){ toast('오류','',2000); }
+}
+
+async function _generateCollabTrack(){
+  if(!currentUser || !_activeCollabId) return;
+  var btn = $('cws-generate-btn');
+  btn.disabled = true; btn.textContent = '생성 중...';
+
+  try {
+    /* 콜라보 데이터 가져오기 */
+    var r = await fetch(`/api/collabs?action=detail&id=${encodeURIComponent(_activeCollabId)}&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
+    var d = await r.json();
+    var c = d.collab;
+    if(!c || !c.collab_data?.ready){ toast('양쪽 아이디어가 필요합니다','',2000); btn.disabled=false; btn.textContent='🎵 콜라보 곡 생성하기'; return; }
+
+    var data = c.collab_data;
+    /* generate 함수에 콜라보 데이터 주입 */
+    window._collabPending = {
+      collabId: _activeCollabId,
+      prompt: data.merged_prompt,
+      style: data.merged_style || '',
+      genre: data.merged_genre || '',
+      mood: data.merged_mood || '',
+      coOwnerName: c.from_name.toLowerCase() === currentUser.name.toLowerCase() ? c.to_name : c.from_name,
+      coOwnerProvider: c.from_name.toLowerCase() === currentUser.name.toLowerCase() ? c.to_provider : c.from_provider,
+    };
+
+    _closeCollabWs();
+    /* 커스텀 모드로 전환 후 프롬프트 설정 */
+    switchTab('create-view');
+    var mtabs = document.querySelectorAll('.mtab');
+    mtabs.forEach(function(t){ t.classList.remove('on'); });
+    var customTab = document.querySelector('.mtab[data-mode="custom"]');
+    if(customTab) customTab.classList.add('on');
+    document.querySelectorAll('.mode-panel').forEach(function(p){ p.classList.remove('on'); });
+    var customPanel = $('panel-custom');
+    if(customPanel) customPanel.classList.add('on');
+
+    /* 프롬프트 텍스트 설정 */
+    var promptArea = document.querySelector('#panel-custom textarea');
+    if(promptArea) promptArea.value = data.merged_prompt;
+
+    toast('🎵 콜라보 프롬프트가 설정되었어요!\n생성 버튼을 눌러주세요.','ok',4000);
+  } catch(e){ toast('오류: '+e.message,'',2000); }
+  btn.disabled = false; btn.textContent = '🎵 콜라보 곡 생성하기';
+}
 
 /* ── 크리에이터 프로필 페이지 (전체 뷰) ── */
 function openCreatorProfile(name, provider){
