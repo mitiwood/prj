@@ -79,6 +79,18 @@ export default async function handler(req, res) {
     if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    /* 활동 로그 조회 */
+    if (req.query?.action === 'activity_logs') {
+      const limit = Math.min(parseInt(req.query?.limit) || 100, 500);
+      try {
+        const logs = await sbFetch(`/bot_logs?platform=eq.user_activity&order=created_at.desc&limit=${limit}`);
+        return res.status(200).json({ ok: true, logs: logs || [] });
+      } catch (e) {
+        return res.status(200).json({ ok: true, logs: [], error: e.message });
+      }
+    }
+
     try {
       const users = await sbFetch('/users?order=last_login.desc&limit=200');
       return res.status(200).json({ users, total: users.length, source: 'supabase' });
@@ -145,12 +157,29 @@ export default async function handler(req, res) {
           prefer: 'resolution=merge-duplicates',
           body: JSON.stringify(entry),
         });
-        const eventType = isNew ? 'new_user' : 'login';
+        const isLogout = now === 1;
+        const eventType = isLogout ? 'logout' : (isNew ? 'new_user' : 'login');
         const eventData = { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count };
         await Promise.allSettled([
           _tgNotify(eventType, eventData),
           _kakaoNotify(eventType, eventData),
         ]);
+
+        /* bot_logs에 활동 로그 저장 */
+        try {
+          await sbFetch('/bot_logs', {
+            method: 'POST',
+            prefer: 'return=minimal',
+            body: JSON.stringify({
+              platform: 'user_activity',
+              command: eventType,
+              user_name: name,
+              message: JSON.stringify({ event: eventType, name, provider, is_mobile: !!isMobile, location: location || '', ip: clientIp || '' }),
+              created_at: new Date().toISOString(),
+            }),
+          });
+        } catch {}
+
         return res.status(200).json({ success: true, source: 'supabase' });
       } catch (e) {
         console.warn('[users POST] Supabase 실패, memory fallback:', e.message);

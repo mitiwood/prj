@@ -4316,14 +4316,17 @@ async function _loadActivityLogs(){
     }
     tbody.innerHTML=logs.map(function(l){
       var time=l.created_at?new Date(l.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
-      var isLogin=(l.event||l.type||'').includes('login')||(l.message||'').includes('로그인');
-      var isLogout=(l.event||l.type||'').includes('logout')||(l.message||'').includes('로그아웃');
-      var typeBadge=isLogout?'<span class="badge badge-red">로그아웃</span>':isLogin?'<span class="badge badge-grn">로그인</span>':'<span class="badge badge-acc">'+(l.event||l.type||'기타')+'</span>';
-      var name=l.user_name||l.name||'—';
-      var prov=l.provider||'—';
-      var mobile=l.is_mobile?'📱':'💻';
-      var loc=l.location||'—';
-      return '<tr><td style="font-size:11px;color:var(--t3);white-space:nowrap;">'+time+'</td><td>'+typeBadge+'</td><td style="font-weight:600;">'+esc(name)+'</td><td><span class="badge badge-acc">'+esc(prov)+'</span></td><td>'+mobile+'</td><td style="font-size:11px;color:var(--t3);">'+esc(loc)+'</td></tr>';
+      var d2={};try{d2=JSON.parse(l.message||'{}');}catch{}
+      var evt=l.command||d2.event||'';
+      var isLogout=evt==='logout';
+      var isNew=evt==='new_user';
+      var typeBadge=isLogout?'<span class="badge badge-red">로그아웃</span>':isNew?'<span class="badge badge-ylw">신규가입</span>':'<span class="badge badge-grn">로그인</span>';
+      var name=l.user_name||d2.name||'—';
+      var prov=d2.provider||'—';
+      var provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',guest:'badge-acc'};
+      var mobile=d2.is_mobile?'📱':'💻';
+      var loc=d2.location||'—';
+      return '<tr><td style="font-size:11px;color:var(--t3);white-space:nowrap;">'+time+'</td><td>'+typeBadge+'</td><td style="font-weight:600;">'+esc(name)+'</td><td><span class="badge '+(provColors[prov]||'badge-acc')+'">'+esc(prov)+'</span></td><td>'+mobile+'</td><td style="font-size:11px;color:var(--t3);">'+esc(loc)+'</td></tr>';
     }).join('');
   }catch(e){
     tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red);">로드 실패: '+esc(e.message)+'</td></tr>';
