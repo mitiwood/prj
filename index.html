@@ -3183,8 +3183,14 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 }
 #mini-player.on{transform:translateY(0);opacity:1;pointer-events:auto;}
 /* 진행바 */
-.mp-prog-bar{height:2px;background:rgba(255,255,255,.07);}
-.mp-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s linear;}
+.mp-prog-bar{height:3px;background:rgba(255,255,255,.07);cursor:pointer;position:relative;touch-action:none;}
+.mp-prog-bar:active{height:6px;}
+.mp-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .3s linear;pointer-events:none;}
+.mp-like-btn{width:28px;height:28px;border-radius:50%;background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.mp-like-btn:hover{color:#ff6482;}
+.mp-like-btn.liked{color:#ff6482;}
+.mp-prev-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:var(--t2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.mp-prev-btn:hover{background:rgba(124,58,237,.2);color:var(--acc3);}
 /* 더보기 핸들 행 */
 .mp-handle-row{
   display:flex;align-items:center;justify-content:center;
@@ -3203,16 +3209,20 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 /* 본문 */
 .mp-body{display:flex;align-items:center;gap:10px;padding:7px 12px 9px;}
 .mp-thumb{
-  width:38px;height:38px;border-radius:8px;
+  width:42px;height:42px;border-radius:50%;
   overflow:hidden;background:var(--bg2);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  font-size:18px;border:1px solid rgba(255,255,255,.06);
+  font-size:18px;border:2px solid rgba(168,85,247,.25);transition:border-color .3s;
 }
+.mp-thumb.spinning{animation:mp-spin 8s linear infinite;}
+.mp-thumb.spinning-paused{animation:mp-spin 8s linear infinite;animation-play-state:paused;}
+@keyframes mp-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .mp-thumb img{width:100%;height:100%;object-fit:cover;}
 .mp-info{flex:1;min-width:0;}
 .mp-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;}
 .mp-sub{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mp-viz{display:flex;align-items:center;gap:2px;height:12px;margin-top:2px;}
+.mp-time{font-size:9px;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mp-viz{display:flex;align-items:center;gap:2px;height:12px;margin-top:1px;}
 .mp-vbar{width:2px;height:12px;background:rgba(168,85,247,.4);border-radius:1px;transform-origin:center bottom;transform:scaleY(0.25);will-change:transform;}
 .mp-vbar.on{background:var(--acc2);}
 .mp-controls{display:flex;align-items:center;gap:5px;flex-shrink:0;}
@@ -3807,28 +3817,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .profile-header-top{display:flex;align-items:center;gap:14px;}
 .pv-section-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px;padding:0 2px;}
 .pv-track-item{
-  display:flex;align-items:center;gap:12px;padding:12px;position:relative;
+  display:flex;align-items:center;gap:10px;padding:10px 12px;position:relative;
   background:var(--card);border:1px solid var(--border);border-radius:14px;
-  cursor:pointer;transition:all .2s;margin-bottom:8px;overflow:hidden;
+  cursor:pointer;transition:all .2s;margin-bottom:6px;overflow:hidden;
 }
 .pv-track-item:hover{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.15);}
 .pv-track-item:active{transform:scale(.985);}
 .pv-track-item.playing{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(59,130,246,.05));border-color:rgba(124,58,237,.3);}
 .pv-track-item.playing .pv-track-play-btn{background:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4);}
-.pv-track-item .pv-track-idx{width:18px;font-size:11px;font-weight:700;color:var(--t3);text-align:center;flex-shrink:0;}
-.pv-track-item.playing .pv-track-idx{color:var(--acc);}
-.pv-track-thumb{
-  width:48px;height:48px;border-radius:10px;background:var(--bg);
-  overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;
-  position:relative;box-shadow:0 2px 8px rgba(0,0,0,.15);
-}
-.pv-track-thumb img{width:100%;height:100%;object-fit:cover;}
-.pv-track-info{flex:1;min-width:0;}
-.pv-track-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-track-date{font-size:10px;color:var(--t3);margin-top:1px;}
-.pv-track-stats{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:10px;color:var(--t3);}
-.pv-track-stats span{display:flex;align-items:center;gap:2px;}
-.pv-track-tag{display:inline-block;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(124,58,237,.08);color:var(--acc3);margin-right:4px;}
+.pv-track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.pv-track-row1{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pv-track-row2{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;}
+.pv-track-row3{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t3);}
+.pv-track-row3 span{display:flex;align-items:center;gap:2px;white-space:nowrap;}
+.pv-track-row3 .pv-share-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px;padding:0;font-family:inherit;transition:color .15s;}
+.pv-track-row3 .pv-share-btn:hover{color:var(--acc);}
+.pv-track-rating{color:#f59e0b;}
 .pv-track-play-btn{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -5183,7 +5187,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div class="mp-thumb" id="mp-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" style="color:rgba(255,255,255,.3);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
     <div class="mp-info" id="mp-info-area">
       <div class="mp-title" id="mp-title">재생 중</div>
-      <div class="mp-sub" id="mp-sub"></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="mp-sub" id="mp-sub" style="flex:1;min-width:0;"></div>
+        <div class="mp-time" id="mp-time">0:00 / 0:00</div>
+      </div>
       <div class="mp-lyric-preview" id="mp-lyric-preview" style="display:none;font-size:10px;color:var(--acc3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.7;"></div>
       <div class="mp-viz" id="mp-viz-wrap">
         <div class="mp-vbar"></div><div class="mp-vbar"></div><div class="mp-vbar"></div>
@@ -5192,9 +5199,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
     </div>
     <div class="mp-controls">
+      <button class="mp-like-btn" id="mp-like-btn" title="좋아요" onclick="event.stopPropagation();mpToggleLike()">🤍</button>
+      <button class="mp-prev-btn" id="mp-prev-btn" title="이전 곡"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 6h2v12H6zM18 18l-8.5-6L18 6z"/></svg></button>
       <button class="mp-play-btn" id="mp-play-btn" title="재생/일시정지"><svg id="mp-play-icon" viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg></button>
       <button class="mp-next-btn" id="mp-next-btn" title="다음 곡"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
-      <button class="mp-queue-btn" id="mp-queue-btn" onclick="event.stopPropagation();openQueueSheet()" title="재생 목록"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
       <button class="mp-close-btn" id="mp-close-btn" title="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="12" height="12"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
   </div>
@@ -11727,6 +11735,9 @@ function showMiniPlayer(idx){
   /* 미니플레이어 표시 */
   $('mini-player').classList.add('on');
   document.body.classList.add('mp-on');
+  _syncMpLikeBtn();
+  _syncMpThumbSpin();
+  var mpTimeEl=$('mp-time');if(mpTimeEl) mpTimeEl.textContent='0:00 / 0:00';
 
   if(!h.audio_url){ toast('오디오 URL 없음','err'); return; }
   /* URL 유효성 체크 */
@@ -11746,6 +11757,7 @@ function showMiniPlayer(idx){
     if(!audio.duration) return;
     const pct = (audio.currentTime / audio.duration) * 100;
     const fill=$('mp-prog-fill'); if(fill) fill.style.width = pct + '%';
+    const mpTime=$('mp-time'); if(mpTime) mpTime.textContent=formatTime(audio.currentTime)+' / '+formatTime(audio.duration);
     if($('fullplayer').classList.contains('on')){
       const fpf=$('fp-prog-fill'),fpt=$('fp-prog-thumb'),cur=$('fp-cur'),dur=$('fp-dur');
       if(fpf) fpf.style.width = pct + '%';
@@ -12085,7 +12097,7 @@ function expandToFullPlayer(){
 document.getElementById('mini-player').addEventListener('click', e=>{
   e.stopPropagation();
   /* 컨트롤 버튼 클릭 시 풀플레이어 전환 안 함 */
-  if(e.target.closest('#mp-play-btn,#mp-next-btn,#mp-close-btn')) return;
+  if(e.target.closest('#mp-play-btn,#mp-prev-btn,#mp-next-btn,#mp-close-btn,#mp-like-btn,.mp-prog-bar')) return;
   if(!$('mini-player').classList.contains('on')) return;
   expandToFullPlayer();
 });
@@ -12130,6 +12142,91 @@ $('mp-close-btn').addEventListener('click', e=>{
   e.stopPropagation();
   hideMiniPlayer();
 });
+
+/* 이전 곡 */
+$('mp-prev-btn').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>0){
+    _mfPlayQueueIdx--;
+    _mfQueuePlay(_mfPlayQueueIdx);
+    if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    return;
+  }
+  const prev=fpCurrentIdx-1;
+  if(prev>=0){
+    showMiniPlayer(prev);
+    if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+  } else { toast('첫 번째 곡이에요','',1500); }
+});
+
+/* 좋아요 토글 */
+function mpToggleLike(){
+  if(fpCurrentIdx<0) return;
+  const h=historyData[fpCurrentIdx];if(!h) return;
+  h._liked=!h._liked;if(h._liked)h._disliked=false;
+  saveHistory();
+  _syncMpLikeBtn();
+  toast(h._liked?'❤️ 좋아요!':'좋아요 취소','',1000);
+  /* 커뮤니티 좋아요 동기화 */
+  if(h.id||h._sbId){
+    fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(h._liked?'like':'unlike'),{method:'PATCH'}).catch(()=>{});
+  }
+}
+function _syncMpLikeBtn(){
+  const btn=$('mp-like-btn');if(!btn) return;
+  const h=historyData[fpCurrentIdx];
+  const liked=h&&(h._liked||h._commLiked);
+  btn.textContent=liked?'❤️':'🤍';
+  btn.classList.toggle('liked',!!liked);
+}
+
+/* 진행바 시크 (클릭 + 터치 드래그) */
+(function(){
+  const bar=$('mp-prog-bar');if(!bar) return;
+  function seekTo(e){
+    if(!fpAudio||!fpAudio.duration) return;
+    const r=bar.getBoundingClientRect();
+    const x=e.touches?e.touches[0].clientX:e.clientX;
+    const pct=Math.max(0,Math.min(1,(x-r.left)/r.width));
+    fpAudio.currentTime=fpAudio.duration*pct;
+    const fill=$('mp-prog-fill');if(fill) fill.style.width=(pct*100)+'%';
+  }
+  bar.addEventListener('click',function(e){e.stopPropagation();seekTo(e);});
+  var dragging=false;
+  bar.addEventListener('touchstart',function(e){e.stopPropagation();dragging=true;seekTo(e);},{passive:true});
+  document.addEventListener('touchmove',function(e){if(dragging)seekTo(e);},{passive:true});
+  document.addEventListener('touchend',function(){dragging=false;});
+})();
+
+/* 스와이프 좌우 (이전/다음 곡) */
+(function(){
+  const mp=$('mini-player');if(!mp) return;
+  var sx=0,sy=0,swiping=false;
+  mp.addEventListener('touchstart',function(e){
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;swiping=true;
+  },{passive:true});
+  mp.addEventListener('touchend',function(e){
+    if(!swiping) return;swiping=false;
+    var dx=e.changedTouches[0].clientX-sx;
+    var dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
+    if(dx<-60){/* 왼쪽 스와이프 → 다음 곡 */
+      $('mp-next-btn').click();
+    } else if(dx>60){/* 오른쪽 스와이프 → 이전 곡 */
+      $('mp-prev-btn').click();
+    }
+  },{passive:true});
+})();
+
+/* 썸네일 회전 — 재생 상태 동기화 */
+function _syncMpThumbSpin(){
+  var thumb=$('mp-thumb');if(!thumb) return;
+  if(fpAudio&&!fpAudio.paused){
+    thumb.classList.add('spinning');thumb.classList.remove('spinning-paused');
+  } else {
+    if(thumb.classList.contains('spinning')){thumb.classList.add('spinning-paused');thumb.classList.remove('spinning');}
+  }
+}
 
 
 function formatTimeAgo(ts){
@@ -14655,12 +14752,10 @@ function _fpShareUrl(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
   const trackId=h.id||h._sbId||'';
-  if(trackId){
-    return window.location.origin+'/api/share?trackId='+encodeURIComponent(trackId);
-  }
   const params=new URLSearchParams({t:title});
-  if(h.audio_url)params.set('play',h.audio_url);
-  if(h.image_url)params.set('img',h.image_url);
+  if(trackId) params.set('trackId',trackId);
+  if(h.audio_url) params.set('play',h.audio_url);
+  if(h.image_url) params.set('img',h.image_url);
   return window.location.origin+'/api/share?'+params.toString();
 }
 function fpShareFacebook(){
@@ -16766,6 +16861,9 @@ function _syncAllPlayBtns(isPlaying){
   _syncPvPlayBtns(sbId, isPlaying);
   /* 히스토리 카드 재생 아이콘 */
   _syncHistPlayIcons(isPlaying ? fpCurrentIdx : -1);
+  /* 미니플레이어 썸네일 회전 + 좋아요 */
+  _syncMpThumbSpin();
+  _syncMpLikeBtn();
 }
 
 function _syncHistPlayIcons(playingIdx){
@@ -19000,24 +19098,25 @@ function openCreatorProfile(name, provider){
       let totalLikes = 0;
       $('pv-tracks-list').innerHTML = tracks.map((t,idx) => {
         totalLikes += (t.comm_likes||0);
-        const tagArr = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
         const _pvPlaying = historyData[fpCurrentIdx]?.id===t.id && fpAudio && !fpAudio.paused;
-        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '';
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR',{year:'2-digit',month:'numeric',day:'numeric'}) : '';
         const likes = t.comm_likes||0;
-        const plays = t.comm_plays||t.plays||0;
+        const dislikes = t.comm_dislikes||0;
+        const rating = t.comm_rating||0;
         const durStr = t.duration ? formatTime(t.duration) : '';
+        const stars = rating > 0 ? '★'.repeat(Math.round(rating))+'☆'.repeat(5-Math.round(rating)) : '';
         return `<div class="pv-track-item${_pvPlaying?' playing':''}" data-sbid="${esc(t.id)}" onclick="commPlaySb('${esc(t.id)}')">
-          <div class="pv-track-idx">${idx+1}</div>
-          <div class="pv-track-thumb">
-            ${t.image_url ? `<img src="${esc(t.image_url)}" alt="">` : '🎵'}
-          </div>
           <div class="pv-track-info">
-            <div class="pv-track-title">${esc(t.title||'무제')}</div>
-            <div class="pv-track-date">${dateStr}${durStr?' · '+durStr:''}</div>
-            <div class="pv-track-stats">
-              ${tagArr.slice(0,2).map(tg=>`<span class="pv-track-tag">${esc(tg)}</span>`).join('')}
-              ${likes>0 ? `<span>❤️ ${likes}</span>` : ''}
-              ${plays>0 ? `<span>▶ ${plays}</span>` : ''}
+            <div class="pv-track-row1">${esc(t.title||'무제')}</div>
+            <div class="pv-track-row2">
+              ${dateStr?`<span>${dateStr}</span>`:''}
+              ${durStr?`<span>${durStr}</span>`:''}
+            </div>
+            <div class="pv-track-row3">
+              <span>❤️ ${likes}</span>
+              <span>👎 ${dislikes}</span>
+              ${stars?`<span class="pv-track-rating">${stars}</span>`:''}
+              <button class="pv-share-btn" onclick="event.stopPropagation();_pvShareTrack('${esc(t.id)}','${esc(t.title||'')}','${esc(t.audio_url||'')}','${esc(t.image_url||'')}')">↗ 공유</button>
             </div>
           </div>
           <div class="pv-track-play-btn pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
@@ -19072,6 +19171,15 @@ async function _pvToggleFollow(){
 }
 window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
+
+function _pvShareTrack(id,title,audioUrl,imgUrl){
+  const url=_buildShareUrl?_buildShareUrl(audioUrl,title,imgUrl):(window.location.origin+'/api/share?t='+encodeURIComponent(title)+'&play='+encodeURIComponent(audioUrl)+'&img='+encodeURIComponent(imgUrl));
+  if(navigator.share){
+    navigator.share({title:title||'AI Music',text:'🎵 AI로 만든 음악을 들어봐!',url}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
+  }
+}
 
 function _pfTab(tab){
   ['tracks','followers','following'].forEach(t=>{
