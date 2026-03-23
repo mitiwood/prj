@@ -16434,37 +16434,48 @@ function _renderCommContent(heroWrap, list){
   }
 }
 
-/* 커뮤니티 하단 크리에이터 인라인 섹션 — 모든 사용자 표시 */
+/* 커뮤니티 하단 크리에이터 섹션 — DB 전체 사용자 표시 */
+var _creatorsCache=null;var _creatorsCacheAt=0;
 function _renderCreatorsInline(){
   var wrap=$('comm-creators-inline');
   if(!wrap)return;
   var sec=$('comm-creators-section');
   if(sec)sec.style.display='';
-  var all=_sbTracks||[];
-  if(!all.length){wrap.innerHTML='';return;}
-  var creators={};
-  all.forEach(function(t){
-    var o=t._owner||{};var k=(o.name||'')+'__'+(o.provider||'');
-    if(!k||k==='__')return;
-    if(!creators[k])creators[k]={name:o.name,provider:o.provider,avatar:o.avatar,tracks:0,likes:0};
-    creators[k].tracks++;creators[k].likes+=(t.likes||0);
-  });
-  var list=Object.values(creators).sort(function(a,b){return(b.tracks-a.tracks)||(b.likes-a.likes);});
-  if(!list.length){wrap.innerHTML='';return;}
+
+  /* 캐시 유효하면 즉시 렌더 */
+  if(_creatorsCache&&(Date.now()-_creatorsCacheAt)<300000){
+    _drawCreatorCards(wrap,_creatorsCache);
+    return;
+  }
+
+  /* DB에서 전체 사용자 로드 */
+  fetch('/api/profile?name=_&provider=_&action=creators')
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok&&d.creators){
+        _creatorsCache=d.creators;
+        _creatorsCacheAt=Date.now();
+        _drawCreatorCards(wrap,d.creators);
+      }
+    }).catch(function(){});
+}
+function _drawCreatorCards(wrap,list){
+  if(!list.length){wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">아직 가입한 사용자가 없어요</div>';return;}
   var isLoggedIn=currentUser&&currentUser.provider!=='guest';
+  var headerEl=$('comm-creators-section')?.querySelector('div:first-child');
+  if(headerEl)headerEl.textContent='👤 크리에이터 ('+list.length+'명)';
   wrap.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">'+list.map(function(c){
-    var av=c.avatar?'<img src="'+esc(c.avatar)+'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.innerHTML=\'👤\'">':'<div style="width:44px;height:44px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>';
+    var av=c.avatar&&c.avatar!=='👤'?'<img src="'+esc(c.avatar)+'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.innerHTML=\'👤\'">':'<div style="width:44px;height:44px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>';
     var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[c.provider]||'';
+    var planBadge=c.plan==='creator'?'<span style="font-size:8px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;padding:1px 5px;border-radius:4px;margin-left:3px;">PRO</span>':'';
     var isF=_followStateCache[c.name+'__'+c.provider]===true;
     var isMe=isLoggedIn&&currentUser.name===c.name&&currentUser.provider===c.provider;
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;" onclick="openCreatorProfile(\''+esc(c.name)+'\',\''+esc(c.provider)+'\')">'
       +'<div style="margin:0 auto 6px;">'+av+'</div>'
-      +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+provIcon+' '+esc(c.name)+(isMe?' <span style="font-size:9px;color:var(--acc);">MY</span>':'')+'</div>'
-      +'<div style="font-size:10px;color:var(--t3);margin-top:2px;">🎵 '+c.tracks+'곡 · ❤️ '+c.likes+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+provIcon+' '+esc(c.name)+planBadge+(isMe?' <span style="font-size:9px;color:var(--acc);">MY</span>':'')+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:2px;">🎵 '+c.tracks+'곡</div>'
       +(isLoggedIn&&!isMe?'<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)" style="margin-top:6px;font-size:10px;padding:4px 12px;width:100%;">'+(isF?'팔로잉':'팔로우')+'</button>':'')
       +'</div>';
   }).join('')+'</div>';
-  /* 팔로우 버튼 상태 동기화 */
   _loadCommFollowStates(wrap);
 }
 

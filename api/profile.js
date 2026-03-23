@@ -134,6 +134,29 @@ export default async function handler(req, res) {
       }
     }
 
+    /* ── 전체 사용자 목록 (크리에이터 섹션용) ── */
+    if (action === 'creators') {
+      try {
+        const { data: users } = await sb('GET',
+          `/users?select=name,provider,avatar,plan,login_count&provider=neq.guest&provider=neq.mgr_manager&order=last_login.desc&limit=50`);
+        /* 트랙 수 집계 */
+        const { data: trackCounts } = await sb('GET',
+          `/tracks?select=owner_name,owner_provider,is_public&is_public=eq.true`);
+        const countMap = {};
+        (trackCounts || []).forEach(t => {
+          const k = (t.owner_name || '') + '__' + (t.owner_provider || '');
+          countMap[k] = (countMap[k] || 0) + 1;
+        });
+        const result = (users || []).map(u => ({
+          name: u.name, provider: u.provider, avatar: u.avatar || '',
+          plan: u.plan || 'free', tracks: countMap[u.name + '__' + u.provider] || 0,
+        }));
+        return res.status(200).json({ ok: true, creators: result });
+      } catch (e) {
+        return res.status(200).json({ ok: false, creators: [], error: e.message });
+      }
+    }
+
     /* ── 배치 팔로우 상태 확인 (N+1 제거) ── */
     if (action === 'batch-follow-check') {
       const viewerName = req.query?.viewerName;
