@@ -6853,7 +6853,8 @@ function guestLogin(){
   const mock={provider:'guest',name:'게스트',avatar:'👤',at:Date.now()};
   currentUser=mock;localStorage.setItem('kms_user',JSON.stringify(mock));
   closeLoginSheet();updateLoginUI();toast('👤 게스트로 시작합니다','ok');
-  _notifyBot('\uD83D\uDD13 \uAC8C\uC2A4\uD2B8 \uB85C\uADF8\uC778\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
+  _notifyBot('\uD83D\uDD13 게스트 로그인\n\n👤 게스트\n🔗 Guest\n⏰ '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
+  _saveLoginUser(mock);
   /* 게스트도 커뮤니티 볼 수 있도록 커뮤니티 탭으로 이동 */
   setTimeout(()=>switchTab('community-view'),300);
 }
@@ -6871,6 +6872,8 @@ function socialLogin(provider){
     document.querySelector('.dbtn[data-dur="60"]')?.classList.add('on');
     if($('model-sel')) $('model-sel').value='V3_5';
     toast('👤 게스트 모드로 시작합니다 (1분 곡, V3.5 모델)','',3000);
+    _notifyBot('\uD83D\uDD13 게스트 로그인\n\n👤 게스트\n🔗 Guest\n⏰ '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
+    _saveLoginUser(mockUser);
     return;
   }
   if(provider==='google'){
@@ -7628,7 +7631,7 @@ function _saveLoginUser(user){
   const sharedAudio=p.get('play');
   const sharedTitle=p.get('t');
   const sharedImg=p.get('img');
-  const sharedTrackId=p.get('track');
+  const sharedTrackId=p.get('track')||p.get('trackId');
 
   if(!sharedAudio && !sharedTitle && !sharedTrackId) return;
 
@@ -10260,8 +10263,8 @@ function renderTracks(tracks,prompt,tags,mode){
           </div>
           ${!_isAB ? `<div class="rc-share-row">
             <button class="rc-share-btn" onclick="commShareTrack('${esc(audioUrl)}','${esc(title)}')">🌐 커뮤니티 공유</button>
-            <button class="rc-share-btn" onclick="_copyShareLink('${esc(audioUrl)}','${esc(title)}')">🔗 링크 공유</button>
-            <button class="rc-share-btn" onclick="_shareKakao('${esc(title)}','${esc(audioUrl)}')">💬 카카오</button>
+            <button class="rc-share-btn" onclick="_copyShareLink('${esc(audioUrl)}','${esc(title)}','${esc(imageUrl)}')">🔗 링크 공유</button>
+            <button class="rc-share-btn" onclick="_shareKakao('${esc(title)}','${esc(audioUrl)}','${esc(imageUrl)}')">💬 카카오</button>
           </div>` : ''}
           ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
         </div>
@@ -13037,7 +13040,7 @@ var _mfBlockedHosts=['unsplash.com','placeholder.com','placekitten.com','picsum.
 function _isBlockedImgHost(u){if(!u)return true;try{var h=new URL(u).hostname;for(var i=0;i<_mfBlockedHosts.length;i++)if(h.indexOf(_mfBlockedHosts[i])>=0)return true;}catch(e){}return false;}
 var _mfIsBlocked=_isBlockedImgHost;
 /* 공통 안전 아바타 HTML — 차단 호스트이면 이니셜 폴백 */
-function _safeAvatarHtml(url,name){var ch=esc((name||'?').charAt(0).toUpperCase());if(!url||_isBlockedImgHost(url))return ch;return '<img src="'+esc(url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.textContent=\''+ch+'\'">';}
+function _safeAvatarHtml(url,name){var ch=esc((name||'?').charAt(0).toUpperCase());if(!url||_isBlockedImgHost(url))return ch;return '<img src="'+esc(url)+'" alt="" loading="lazy" onerror="this.onerror=null;if(this.parentNode)this.parentNode.textContent=\''+ch+'\'">';}
 /* 공통 안전 썸네일 HTML */
 function _safeThumbHtml(url){if(!url||_isBlockedImgHost(url))return '<span>🎵</span>';return '<img src="'+esc(url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
 function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_isBlockedImgHost(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" data-initial="'+ch+'" onerror="_mfImgFail(this)">';}
@@ -14359,25 +14362,19 @@ function _updateOgTags(title,imageUrl,shareUrl,trackId){
 function fpOpenShare(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
-  const audioUrl=h.audio_url||h.song_path||'';
   const imgUrl=h.image_url||h.cover_image_url||'';
-  const text='🎵 AI로 만든 노래를 들어봐!\n\"'+title+'\"\nKenny\'s Music Studio에서 만들었어요 🎸';
+  const text='🎵 AI로 만든 노래를 들어봐!\n"'+title+'"\nKenny\'s Music Studio에서 만들었어요 🎸';
   const trackId=h.id||h._sbId||'';
-  const params=new URLSearchParams({t:title});
-  if(trackId)  params.set('track', trackId);
-  if(audioUrl) params.set('play', audioUrl);
-  if(imgUrl)   params.set('img',  imgUrl);
-  const url=window.location.origin+'/api/share?'+params.toString();
+  const url=_fpShareUrl();
   _updateOgTags(title, imgUrl, url, trackId);
   /* 공유 이미지 미리보기 업데이트 */
   const prevImg = document.getElementById('share-preview-img');
   if(prevImg){ prevImg.src = imgUrl||''; prevImg.style.display = imgUrl?'block':'none'; }
   if(navigator.share){
-    /* Web Share API - OG 링크만 전송 (이미지는 OG태그로 미리보기) */
     navigator.share({title, text, url}).catch(()=>{});
   } else {
     $('share-url-input').value=url;
-    $('share-title').textContent='\"'+title+'\" 공유하기';
+    $('share-title').textContent='"'+title+'" 공유하기';
     $('share-sheet').classList.add('on');
   }
 }
@@ -14437,10 +14434,10 @@ $('sc-confirm-btn').addEventListener('click',function(){
   else{
     const h=historyData[_scIdx]||{};
     const title=h.title||'나의 노래';
-    const params=new URLSearchParams({t:title});
-    if(h.audio_url)params.set('play',h.audio_url);
-    if(h.image_url)params.set('img',h.image_url);
-    const url=window.location.origin+'/api/share?'+params.toString();
+    const prevIdx2=fpCurrentIdx;
+    fpCurrentIdx=_scIdx;
+    const url=_fpShareUrl();
+    fpCurrentIdx=prevIdx2;
     navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
   }
   fpCurrentIdx=prevIdx;
@@ -14571,10 +14568,7 @@ async function fpShareKakao(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
   const imgUrl=h.image_url||'';
-  const params=new URLSearchParams({t:title});
-  if(h.audio_url)params.set('play',h.audio_url);
-  if(imgUrl)params.set('img',imgUrl);
-  const shareUrl=window.location.origin+'/api/share?'+params.toString();
+  const shareUrl=_fpShareUrl();
 
   const sdkOk = await _ensureKakaoSDK();
   if(sdkOk && window.Kakao?.Share){
@@ -14596,34 +14590,50 @@ function fpShareInstagram(){
   toast('📸 링크 복사 완료! 인스타 스토리에 붙여넣기하세요','ok',3000);
   fpCloseShare();
 }
+function _fpShareUrl(){
+  const h=historyData[fpCurrentIdx]||{};
+  const title=h.title||'나의 노래';
+  const trackId=h.id||h._sbId||'';
+  if(trackId){
+    return window.location.origin+'/api/share?trackId='+encodeURIComponent(trackId);
+  }
+  const params=new URLSearchParams({t:title});
+  if(h.audio_url)params.set('play',h.audio_url);
+  if(h.image_url)params.set('img',h.image_url);
+  return window.location.origin+'/api/share?'+params.toString();
+}
 function fpShareFacebook(){
   const h=historyData[fpCurrentIdx]||{};
-  const url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`🎵 AI로 만든 노래: "${h.title||'나의 노래'}"`)}`;
+  const shareUrl=_fpShareUrl();
+  const url='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(shareUrl)+'&quote='+encodeURIComponent('🎵 AI로 만든 노래: "'+(h.title||'나의 노래')+'"');
   window.open(url,'_blank','width=600,height=400');
   fpCloseShare();toast('📘 페이스북 공유','ok',1500);
 }
 function fpShareX(){
   const h=historyData[fpCurrentIdx]||{};
-  const text='🎵 AI로 만든 노래: "'+( h.title||'나의 노래')+'" #KennysMusicStudio #AI음악';
-  const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent($('share-url-input').value||window.location.href);
+  const shareUrl=_fpShareUrl();
+  const text='🎵 AI로 만든 노래: "'+(h.title||'나의 노래')+'" #KennysMusicStudio #AI음악';
+  const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(shareUrl);
   window.open(url,'_blank','width=600,height=400');
   fpCloseShare();toast('𝕏 공유','ok',1500);
 }
 function fpShareWhatsApp(){
   const h=historyData[fpCurrentIdx]||{};
-  const text='🎵 AI로 만든 노래를 들어봐! "'+( h.title||'나의 노래')+'" '+($('share-url-input').value||window.location.href);
+  const shareUrl=_fpShareUrl();
+  const text='🎵 AI로 만든 노래를 들어봐! "'+(h.title||'나의 노래')+'" '+shareUrl;
   window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
   fpCloseShare();toast('📱 WhatsApp 공유','ok',1500);
 }
 function fpShareEmail(){
   const h=historyData[fpCurrentIdx]||{};
-  const subject='🎵 '+( h.title||'AI 음악')+' — Kenny\'s Music Studio';
-  const body='AI로 만든 노래를 들어봐!\n\n"'+( h.title||'나의 노래')+'"\n\n'+($('share-url-input').value||window.location.href);
+  const shareUrl=_fpShareUrl();
+  const subject='🎵 '+(h.title||'AI 음악')+' — Kenny\'s Music Studio';
+  const body='AI로 만든 노래를 들어봐!\n\n"'+(h.title||'나의 노래')+'"\n\n'+shareUrl;
   window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   fpCloseShare();toast('📧 이메일 공유','ok',1500);
 }
 function fpCopyLink(){
-  const url=$('share-url-input').value||window.location.href;
+  const url=$('share-url-input').value||_fpShareUrl();
   navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
 }
 
@@ -15548,7 +15558,7 @@ function _renderLeaderboard(period){
     var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[g.provider]||'';
     html+='<div class="comm-lb-item'+(i<3?' top3':'')+'" onclick="openCreatorProfile(\''+esc(g.name)+'\',\''+esc(g.provider)+'\')">';
     html+='<span class="comm-lb-rank">'+medal+'</span>';
-    html+='<div class="comm-lb-avatar">'+(g.avatar?'<img src="'+esc(g.avatar)+'" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>';
+    html+='<div class="comm-lb-avatar">'+(g.avatar?'<img src="'+esc(g.avatar)+'" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'">':'👤')+'</div>';
     html+='<div class="comm-lb-info"><div class="comm-lb-name">'+provIcon+' '+esc(g.name)+'</div><div class="comm-lb-meta"><span>🎵 '+g.tracks+'곡</span><span>❤️ '+g.likes+'</span><span>▶ '+g.plays+'</span></div></div>';
     html+='<div class="comm-lb-score">'+g.score+'</div>';
     html+='</div>';
@@ -16129,7 +16139,7 @@ function _applyAvatarCache(container){
     var av=item.querySelector('.comm-creator-avatar');
     if(!av)return;
     if(_avatarCache[key]){
-      av.innerHTML='<img src="'+esc(_avatarCache[key])+'" alt="" onerror="this.parentNode.textContent=\'👤\'" style="width:100%;height:100%;object-fit:cover;">';
+      av.innerHTML='<img src="'+esc(_avatarCache[key])+'" alt="" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'" style="width:100%;height:100%;object-fit:cover;">';
     }
   });
   /* comm-feed-item 내 avatar 갱신 */
@@ -16147,7 +16157,7 @@ function _applyAvatarCache(container){
     var av=item.querySelector('.comm-feed-avatar');
     if(!av)return;
     if(_avatarCache[key]){
-      av.innerHTML='<img src="'+esc(_avatarCache[key])+'" onerror="this.parentNode.textContent=\'👤\'">';
+      av.innerHTML='<img src="'+esc(_avatarCache[key])+'" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'">';
     }
   });
 }
@@ -18704,7 +18714,7 @@ async function _loadFollowingList(){
       var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
       var en=esc(u.name),ep=esc(u.provider),ea=esc(u.avatar||'');
       return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+en+'\',\''+ep+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
         +'<div style="flex:1;min-width:0;">'
         +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+en+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'
@@ -18734,7 +18744,7 @@ async function _loadFollowerList(){
       var isMe = isLoggedIn && currentUser.name === u.name && currentUser.provider === u.provider;
       var en=esc(u.name),ep=esc(u.provider),ea=esc(u.avatar||'');
       return '<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;border-radius:10px;transition:background .2s;" onclick="openCreatorProfile(\''+en+'\',\''+ep+'\')" onmouseover="this.style.background=\'rgba(124,58,237,.06)\'" onmouseout="this.style.background=\'\'">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0;">'+(u.avatar?'<img src="'+ea+'" style="width:100%;height:100%;object-fit:cover;" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'">':'👤')+'</div>'
         +'<div style="flex:1;min-width:0;">'
         +'<div style="font-size:13px;font-weight:700;color:var(--t1);">'+pI+' '+en+'</div>'
         +'<div style="font-size:11px;color:var(--t3);">'+(u.trackCount||0)+'곡 · '+(u.followerCount||0)+'팔로워</div>'

@@ -6857,17 +6857,20 @@ function _renderInsights(users){
    👤 회원 상세 모달
 ══════════════════════════════ */
 async function _showUserDetail(name, provider){
-  const user=_memAllUsers.find(u=>u.name===name&&u.provider===provider);
+  const user=_memAllUsers.find(u=>u.name===name&&u.provider===provider)||_allLoginUsers.find(u=>u.name===name&&u.provider===provider);
   if(!user){toast('유저 정보 없음','err');return;}
   const now=Date.now();
   const DAY=86400000;
   const pi={'google':'🔵 Google','kakao':'💬 카카오','naver':'🟢 네이버','guest':'👤 게스트'}[user.provider]||user.provider;
   const pb={creator:'👑 Creator',pro:'💜 Pro',free:'🆓 Free'}[user.plan||'free']||'Free';
+  const _lastLogin=user.last_login||user.lastLogin||0;
+  const _loginCount=user.login_count||user.loginCount||1;
+  const _isMobile=user.is_mobile!=null?user.is_mobile:user.isMobile;
   const joinDt=user.created_at?new Date(user.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}):'-';
-  const lastDt=user.last_login?new Date(user.last_login).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
-  const daysSinceLogin=user.last_login?Math.floor((now-user.last_login)/DAY):'-';
+  const lastDt=_lastLogin?new Date(_lastLogin).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  const daysSinceLogin=_lastLogin?Math.floor((now-_lastLogin)/DAY):'-';
   const daysSinceJoin=user.created_at?Math.floor((now-new Date(user.created_at).getTime())/DAY):'-';
-  const loginsPerDay=daysSinceJoin>0?((user.login_count||1)/daysSinceJoin).toFixed(2):'N/A';
+  const loginsPerDay=daysSinceJoin>0?(_loginCount/daysSinceJoin).toFixed(2):'N/A';
 
   /* 프로필 API 호출로 트랙 수 가져오기 */
   let trackCount=0,totalLikes=0,totalPlays=0,followerCount=0,followingCount=0;
@@ -6903,7 +6906,7 @@ async function _showUserDetail(name, provider){
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:20px;font-weight:800;color:var(--acc);">${user.login_count||1}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--acc);">${_loginCount}</div>
         <div style="font-size:10px;color:var(--t3);">총 로그인</div>
       </div>
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
@@ -6939,7 +6942,7 @@ async function _showUserDetail(name, provider){
         <div><span style="color:var(--t3);">가입 후:</span> ${daysSinceJoin}일</div>
         <div><span style="color:var(--t3);">미접속:</span> <span style="${daysSinceLogin>14?'color:var(--red);font-weight:700;':''}">${daysSinceLogin}일</span></div>
         <div><span style="color:var(--t3);">일평균 로그인:</span> ${loginsPerDay}회</div>
-        <div><span style="color:var(--t3);">디바이스:</span> ${user.is_mobile?'📱 모바일':'💻 PC'}</div>
+        <div><span style="color:var(--t3);">디바이스:</span> ${_isMobile?'📱 모바일':'💻 PC'}</div>
       </div>
     </div>
 
