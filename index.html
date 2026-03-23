@@ -6724,7 +6724,6 @@ async function _loadSbTracksMore(){
   }catch(e){ console.warn('[SB] 추가 로드 실패:', e.message); }
   _sbLoadingMore = false;
   _showCommLoadingIndicator(false);
-  if(!_sbHasMore) _showCommEndMessage();
 }
 
 /* 로딩 인디케이터 표시/숨김 */
@@ -6745,19 +6744,6 @@ function _showCommLoadingIndicator(show){
   }
 }
 
-/* "모든 곡을 불러왔어요" 메시지 */
-function _showCommEndMessage(){
-  var el = document.getElementById('comm-scroll-end');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'comm-scroll-end';
-    el.style.cssText = 'text-align:center;padding:16px;color:var(--t3);font-size:12px;font-weight:500;';
-    el.textContent = '모든 곡을 불러왔어요';
-    var list = $('comm-list');
-    if(list) list.parentNode.insertBefore(el, list.nextSibling);
-  }
-  el.style.display = '';
-}
 
 /* IntersectionObserver 기반 무한 스크롤 설정 */
 function _setupCommInfiniteScroll(){
@@ -6770,8 +6756,6 @@ function _setupCommInfiniteScroll(){
     var list = $('comm-list');
     if(list) list.parentNode.insertBefore(sentinel, list.nextSibling);
   }
-  var endEl = document.getElementById('comm-scroll-end');
-  if(endEl) endEl.style.display = 'none';
   var loadEl = document.getElementById('comm-scroll-loading');
   if(loadEl) loadEl.style.display = 'none';
 
