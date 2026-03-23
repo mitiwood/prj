@@ -2693,7 +2693,7 @@ function switchSec(id){
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin(false);
   if(id==='comments')renderCommentsAdmin();
-  if(id==='users')renderUsersAdmin();
+  if(id==='users'){renderUsersAdmin();_startUsersPoll();}else{_stopUsersPoll();}
   if(id==='push'){loadPushStats();updatePushPreview();loadCurrentAnnouncement();}
   if(id==='managers'){ loadManagersFromServer().then(()=>renderManagersSection()); }
   if(id==='reports') loadReportsFromDB();
@@ -4271,6 +4271,19 @@ function switchUserTab(tab){
   document.getElementById('utab-login').className   = tab==='login'   ? 'btn btn-acc' : 'btn';
   document.getElementById('utab-creator').className = tab==='creator' ? 'btn btn-acc' : 'btn';
 }
+
+/* 사용자 섹션 30초 자동 갱신 */
+var _usersPollTimer=null;
+function _startUsersPoll(){
+  if(_usersPollTimer)return;
+  _usersPollTimer=setInterval(function(){
+    if(document.hidden)return;
+    var sec=document.getElementById('sec-users');
+    if(!sec||!sec.classList.contains('on')){_stopUsersPoll();return;}
+    renderUsersAdmin();
+  },30000);
+}
+function _stopUsersPoll(){if(_usersPollTimer){clearInterval(_usersPollTimer);_usersPollTimer=null;}}
 
 async function renderUsersAdmin(showToast=false){
   let loginUsers=[];
