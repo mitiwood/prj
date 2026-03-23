@@ -6590,7 +6590,7 @@ function switchTab(viewId){
   }
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
   if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();if(typeof _preloadFollowStates==='function')_preloadFollowStates();try{renderCommunity(false);}catch(e){console.error(e);}}
-  if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
+  if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();}
   /* 탭 전환 후 다국어 재적용 */
   if(typeof _applyLang==='function') setTimeout(_applyLang,50);
 }
