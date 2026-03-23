@@ -14,6 +14,7 @@
  *   /비공개 <트랙ID>      → 트랙 비공개 전환
  *   /댓글 [트랙ID]        → 최근 댓글 조회
  *   /댓글삭제 <댓글ID>    → 댓글 삭제
+ *   /센트리, /sentry      → Sentry 에러 현황
  *   /도움, /help          → 명령어 목록
  *   /배포                 → 최근 배포 상태 확인
  *   /알림 <메시지>        → 전체 푸시 알림 발송
@@ -123,9 +124,10 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `🤖 Kenny Music Studio 봇`,
     `총 ${Object.keys(COMMANDS).length}개 명령어 · ${ts()}`,
     ``,
-    `━━ 📊 모니터링 (6) ━━`,
+    `━━ 📊 모니터링 (7) ━━`,
     `상태 — 서버+DB+사이트 리포트`,
     `헬스 — API/DB 전체 점검 (응답속도 포함)`,
+    `센트리 — Sentry 에러 현황 (미해결 이슈)`,
     `트랙 [N] — 최근 트랙 (기본 10곡)`,
     `유저 — 유저 통계+최근 가입자`,
     `댓글 [트랙ID] — 최근 댓글`,
@@ -202,6 +204,63 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
   await tgSend(chatId, help, { parse_mode: '' });
 };
 
+/* /센트리, /sentry — Sentry 에러 현황 */
+const SENTRY_TOKEN = process.env.SENTRY_AUTH_TOKEN || '';
+const SENTRY_ORG = process.env.SENTRY_ORG || 'kenny-17';
+const SENTRY_PROJ = process.env.SENTRY_PROJECT || 'javascript';
+
+async function sentryApi(path) {
+  if (!SENTRY_TOKEN) throw new Error('SENTRY_AUTH_TOKEN 미설정');
+  const r = await fetch(`https://sentry.io/api/0${path}`, {
+    headers: { Authorization: `Bearer ${SENTRY_TOKEN}` },
+  });
+  if (!r.ok) throw new Error(`Sentry ${r.status}`);
+  return r.json();
+}
+
+COMMANDS['센트리'] = COMMANDS['sentry'] = COMMANDS['에러현황'] = async (chatId) => {
+  try {
+    const issues = await sentryApi(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/issues/?query=is:unresolved&sort=date&limit=10`);
+    if (!Array.isArray(issues) || issues.length === 0) {
+      await tgSend(chatId, '🛡 Sentry 에러 현황\n\n미해결 이슈가 없습니다! ✅\n\n⏰ ' + ts(), { parse_mode: '' });
+      return;
+    }
+
+    const lines = [
+      '🛡 Sentry 에러 현황',
+      '미해결 이슈: ' + issues.length + '건',
+      '',
+    ];
+
+    issues.forEach((iss, i) => {
+      const lvl = (iss.level || 'error').toUpperCase();
+      const icon = lvl === 'FATAL' ? '💀' : lvl === 'ERROR' ? '🔴' : lvl === 'WARNING' ? '🟡' : '🔵';
+      const ago = _sentryAgo(iss.lastSeen);
+      lines.push(
+        `${icon} #${i + 1} [${lvl}] ${(iss.title || '').slice(0, 50)}`,
+        `   ${(iss.culprit || '').slice(0, 40)}`,
+        `   이벤트: ${iss.count || 0}회 | 최근: ${ago}`,
+        ''
+      );
+    });
+
+    lines.push('⏰ ' + ts());
+    await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, '🛡 Sentry 조회 실패\n\n' + e.message + '\n\n⏰ ' + ts(), { parse_mode: '' });
+  }
+};
+
+function _sentryAgo(d) {
+  if (!d) return '-';
+  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return m + '분 전';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + '시간 전';
+  return Math.floor(h / 24) + '일 전';
+}
+
 /* /헬스체크 — API/DB 전체 점검 (병렬 실행) */
 COMMANDS['헬스'] = COMMANDS['health'] = COMMANDS['점검'] = async (chatId) => {
   async function chk(name, fn) {
@@ -216,6 +275,7 @@ COMMANDS['헬스'] = COMMANDS['health'] = COMMANDS['점검'] = async (chatId) =>
     chk('텔레그램 봇', async()=>{ const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`); const d=await r.json(); if(!d.ok)throw new Error(d.description); return ''; }),
     chk('카카오 알림', async()=>{ const r=await fetch(`${BASE}/api/kakao-notify`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"text":""}'}); if(r.status>=500)throw new Error('HTTP '+r.status); return ''; }),
     GH_TOKEN ? chk('GitHub API', async()=>{ await ghApi('GET',''); return ''; }) : Promise.resolve('⚠️ GitHub API — 토큰 미설정'),
+    SENTRY_TOKEN ? chk('Sentry', async()=>{ const issues=await sentryApi(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/issues/?query=is:unresolved&limit=1`); return `(미해결 ${Array.isArray(issues)?issues.length:'?'}건)`; }) : Promise.resolve('⚠️ Sentry — 토큰 미설정'),
   ]);
 
   const ok = checks.filter(c => c.startsWith('✅')).length;
