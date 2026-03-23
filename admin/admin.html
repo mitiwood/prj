@@ -1016,6 +1016,7 @@ textarea.form-input{line-height:1.5;}
           <button class="btn btn-acc" onclick="_memTab('members')" data-mtab="members">회원 현황</button>
           <button class="btn" onclick="_memTab('insights')" data-mtab="insights">인사이트</button>
           <button class="btn" onclick="_memTab('payments')" data-mtab="payments">결제 내역</button>
+          <button class="btn" onclick="_memTab('follows')" data-mtab="follows">팔로우 이력</button>
           <button class="btn" onclick="_memTab('withdraw')" data-mtab="withdraw">탈퇴/정지</button>
         </div>
 
@@ -1139,6 +1140,38 @@ textarea.form-input{line-height:1.5;}
             <tbody id="pay-history-tbody">
               <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>
             </tbody></table>
+          </div>
+        </div>
+
+        <!-- 팔로우 이력 탭 -->
+        <div id="mem-panel-follows" style="display:none;">
+          <!-- 통계 -->
+          <div class="stats-grid" style="margin-bottom:16px;">
+            <div class="stat-card"><div class="stat-icon">🤝</div><div class="stat-val" id="fol-total">-</div><div class="stat-label">전체 팔로우</div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-val" id="fol-today">-</div><div class="stat-label">오늘 신규</div></div>
+            <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="fol-top-name">-</div><div class="stat-label">가장 많은 팔로워</div></div>
+          </div>
+          <!-- 검색 -->
+          <div class="admin-table-wrap" style="margin-bottom:20px;">
+            <div class="admin-table-header">
+              <h3>🤝 팔로우 목록</h3>
+              <div style="display:flex;gap:6px;">
+                <input class="table-search" id="fol-search" placeholder="이름 검색..." oninput="_filterFollows()">
+                <button class="btn" onclick="_loadFollowData()" style="font-size:11px;">🔄</button>
+              </div>
+            </div>
+            <table><thead><tr>
+              <th>팔로워</th><th>소셜</th><th>→</th><th>팔로잉 대상</th><th>소셜</th><th>날짜</th><th>액션</th>
+            </tr></thead>
+            <tbody id="fol-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
+            </tbody></table>
+          </div>
+          <!-- 인기 크리에이터 TOP -->
+          <div class="admin-table-wrap">
+            <div class="admin-table-header"><h3>🏆 팔로워 TOP 10</h3></div>
+            <table><thead><tr><th>#</th><th>크리에이터</th><th>소셜</th><th>팔로워 수</th></tr></thead>
+            <tbody id="fol-top-tbody"></tbody></table>
           </div>
         </div>
 
@@ -6977,7 +7010,7 @@ setInterval(() => {
 /* ── 회원관리 탭 전환 ── */
 let _memAllUsers = [];
 function _memTab(tab){
-  ['members','insights','payments','withdraw'].forEach(t=>{
+  ['members','insights','payments','follows','withdraw'].forEach(t=>{
     const panel = document.getElementById('mem-panel-'+t);
     if(panel) panel.style.display = t===tab ? '' : 'none';
   });
@@ -6985,6 +7018,106 @@ function _memTab(tab){
     b.className = b.dataset.mtab===tab ? 'btn btn-acc' : 'btn';
   });
   if(tab==='insights') _renderInsights(_memAllUsers);
+  if(tab==='follows') _loadFollowData();
+}
+
+/* ── 팔로우 이력 관리 ── */
+let _allFollows=[];
+async function _loadFollowData(){
+  try{
+    const r=await adminFetch('/api/admin-follows');
+    const d=await r.json();
+    _allFollows=d.follows||[];
+    _renderFollowTable(_allFollows);
+    _renderFollowStats(_allFollows);
+    _renderFollowTop(_allFollows);
+  }catch(e){
+    /* Supabase 직접 조회 폴백 */
+    try{
+      const r2=await fetch('https://efptichfxexjxfatnggm.supabase.co/rest/v1/follows?select=*&order=created_at.desc&limit=500',{
+        headers:{apikey:'sb_secret_i5lzY2SCl2HRP1BoXNNf8A_ERH8QpUS',Authorization:'Bearer sb_secret_i5lzY2SCl2HRP1BoXNNf8A_ERH8QpUS'}
+      });
+      _allFollows=await r2.json();
+      _renderFollowTable(_allFollows);
+      _renderFollowStats(_allFollows);
+      _renderFollowTop(_allFollows);
+    }catch(e2){
+      document.getElementById('fol-tbody').innerHTML='<tr><td colspan="7" style="color:#ef4444;">'+_esc(e2.message)+'</td></tr>';
+    }
+  }
+}
+
+function _renderFollowStats(follows){
+  document.getElementById('fol-total').textContent=follows.length;
+  var today=new Date().toISOString().slice(0,10);
+  var todayCount=follows.filter(f=>(f.created_at||'').slice(0,10)===today).length;
+  document.getElementById('fol-today').textContent=todayCount;
+  /* 가장 많은 팔로워 */
+  var countMap={};
+  follows.forEach(f=>{
+    var k=f.following_name||'?';
+    countMap[k]=(countMap[k]||0)+1;
+  });
+  var topName='—';var topCount=0;
+  Object.entries(countMap).forEach(function(e){if(e[1]>topCount){topCount=e[1];topName=e[0];}});
+  document.getElementById('fol-top-name').textContent=topName+' ('+topCount+')';
+}
+
+function _renderFollowTable(follows){
+  var q=(document.getElementById('fol-search')?.value||'').toLowerCase();
+  var filtered=follows;
+  if(q) filtered=follows.filter(f=>(f.follower_name||'').toLowerCase().includes(q)||(f.following_name||'').toLowerCase().includes(q));
+  var tbody=document.getElementById('fol-tbody');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);">팔로우 이력이 없습니다</td></tr>';return;}
+  tbody.innerHTML=filtered.slice(0,100).map(function(f){
+    var dt=f.created_at?new Date(f.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    var provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+    return '<tr>'
+      +'<td style="font-weight:600;">'+_esc(f.follower_name||'?')+'</td>'
+      +'<td><span class="badge '+(provColors[f.follower_provider]||'badge-acc')+'">'+_esc(f.follower_provider||'?')+'</span></td>'
+      +'<td style="text-align:center;color:var(--acc);">→</td>'
+      +'<td style="font-weight:600;">'+_esc(f.following_name||'?')+'</td>'
+      +'<td><span class="badge '+(provColors[f.following_provider]||'badge-acc')+'">'+_esc(f.following_provider||'?')+'</span></td>'
+      +'<td style="font-size:11px;color:var(--t3);">'+dt+'</td>'
+      +'<td><button class="btn btn-red" onclick="_deleteFollow('+f.id+')" style="font-size:10px;padding:3px 8px;">삭제</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function _renderFollowTop(follows){
+  var countMap={};
+  follows.forEach(function(f){
+    var k=f.following_name+'__'+f.following_provider;
+    if(!countMap[k]) countMap[k]={name:f.following_name,provider:f.following_provider,count:0};
+    countMap[k].count++;
+  });
+  var sorted=Object.values(countMap).sort(function(a,b){return b.count-a.count;}).slice(0,10);
+  var tbody=document.getElementById('fol-top-tbody');
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--t3);">데이터 없음</td></tr>';return;}
+  var provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  tbody.innerHTML=sorted.map(function(c,i){
+    var medal=i<3?['🥇','🥈','🥉'][i]:(i+1);
+    return '<tr>'
+      +'<td style="font-weight:700;">'+medal+'</td>'
+      +'<td style="font-weight:600;">'+_esc(c.name)+'</td>'
+      +'<td><span class="badge '+(provColors[c.provider]||'badge-acc')+'">'+_esc(c.provider)+'</span></td>'
+      +'<td style="font-weight:800;color:var(--acc);">'+c.count+'명</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function _filterFollows(){_renderFollowTable(_allFollows);}
+
+async function _deleteFollow(id){
+  if(!confirm('이 팔로우 관계를 삭제하시겠습니까?'))return;
+  try{
+    await fetch('https://efptichfxexjxfatnggm.supabase.co/rest/v1/follows?id=eq.'+id,{
+      method:'DELETE',
+      headers:{apikey:'sb_secret_i5lzY2SCl2HRP1BoXNNf8A_ERH8QpUS',Authorization:'Bearer sb_secret_i5lzY2SCl2HRP1BoXNNf8A_ERH8QpUS'}
+    });
+    adminToast('팔로우 삭제됨');
+    _loadFollowData();
+  }catch(e){adminToast('삭제 실패: '+e.message,'err');}
 }
 
 async function _loadPaymentData(){
