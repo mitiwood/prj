@@ -21401,7 +21401,7 @@ window._toggleHomeWidgets=_toggleHomeWidgets;
 
 /* 출석 체크 배너 on/off */
 function _toggleAttendBanner(){
-  var on=localStorage.getItem('kms_attend_banner')!=='off';
+  var on=localStorage.getItem('kms_attend_banner')==='on';
   var next=on?'off':'on';
   localStorage.setItem('kms_attend_banner',next);
   _applyAttendBannerToggle();
@@ -21414,7 +21414,7 @@ function _toggleAttendBanner(){
   toast(next==='on'?'📅 출석 배너 ON':'출석 배너 OFF','',1500);
 }
 function _applyAttendBannerToggle(){
-  var on=localStorage.getItem('kms_attend_banner')!=='off';
+  var on=localStorage.getItem('kms_attend_banner')==='on';
   var row=$('ab-toggle-row');if(row){if(on)row.classList.add('on');else row.classList.remove('on');}
 }
 _applyAttendBannerToggle();
@@ -22694,7 +22694,7 @@ async function _initAttendance(){
   var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
   if(!u || u.provider === 'guest'){ var ab=$('attend-banner'); if(ab)ab.style.display='none'; return; }
   /* 토글 OFF면 배너 숨김 */
-  if(localStorage.getItem('kms_attend_banner')==='off'){ var ab2=$('attend-banner'); if(ab2)ab2.style.display='none'; return; }
+  if(localStorage.getItem('kms_attend_banner')!=='on'){ var ab2=$('attend-banner'); if(ab2)ab2.style.display='none'; return; }
   try {
     var r = await fetch('/api/attendance?userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider));
     var d = await r.json();
