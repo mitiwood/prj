@@ -14724,7 +14724,8 @@ function _renderFollowSuggestions(){
   if(!list.length){wrap.innerHTML='';return;}
   wrap.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">추천 크리에이터</div><div class="comm-suggest-follow">'+list.map(function(c){
     var av=c.avatar?'<img src="'+c.avatar+'" alt="">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>';
-    return '<div class="comm-suggest-card"><div class="comm-suggest-avatar">'+av+'</div><div class="comm-suggest-name">'+c.name+'</div><div class="comm-suggest-meta">'+c.tracks+'곡 · ❤️'+c.likes+'</div><button class="comm-suggest-btn" onclick="event.stopPropagation();_suggestFollow(this,\''+c.name.replace(/'/g,"\\'")+'\',\''+c.provider+'\')">팔로우</button></div>';
+    var isF=_followStateCache[c.name+'__'+c.provider]===true;
+    return '<div class="comm-suggest-card"><div class="comm-suggest-avatar">'+av+'</div><div class="comm-suggest-name">'+c.name+'</div><div class="comm-suggest-meta">'+c.tracks+'곡 · ❤️'+c.likes+'</div><button class="comm-suggest-btn comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button></div>';
   }).join('')+'</div>';
 }
 async function _suggestFollow(btn,name,prov){
