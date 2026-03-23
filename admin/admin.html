@@ -674,6 +674,7 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card" style="border-left:3px solid var(--grn);"><div class="stat-icon">🟢</div><div class="stat-val" id="ustat-online" style="color:var(--grn);">0</div><div class="stat-label">현재 온라인</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div></div>
           <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
+          <div class="stat-card" style="border-left:3px solid #888;"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-guest">0</div><div class="stat-label">게스트 접속</div></div>
           <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-val" id="ustat-mobile">0%</div><div class="stat-label">모바일 비율</div></div>
           <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
         </div>
@@ -700,6 +701,7 @@ textarea.form-input{line-height:1.5;}
                   <option value="google">🔵 Google</option>
                   <option value="kakao">💬 카카오</option>
                   <option value="naver">🟢 네이버</option>
+                  <option value="guest">👤 게스트</option>
                 </select>
                 <select class="table-search" id="user-plan-filter" onchange="filterUsers()" style="width:80px;">
                   <option value="">전체 플랜</option>
@@ -3988,17 +3990,19 @@ async function renderUsersAdmin(showToast=false){
 
   /* 통계 카드 */
   const _s=id=>document.getElementById(id);
+  const guestCount=loginUsers.filter(u=>u.provider==='guest').length;
   if(_s('ustat-total')) _s('ustat-total').textContent=loginUsers.length;
   if(_s('ustat-online')) _s('ustat-online').textContent=onlineCount;
   if(_s('ustat-today')) _s('ustat-today').textContent=todayLogins;
   if(_s('ustat-creator')) _s('ustat-creator').textContent=creators.length;
+  if(_s('ustat-guest')) _s('ustat-guest').textContent=guestCount;
   if(_s('ustat-mobile')) _s('ustat-mobile').textContent=mobilePct+'%';
   if(_s('ustat-push')) _s('ustat-push').textContent=pushSubs;
 
   /* 소셜 분포 바 */
-  const provCnt={google:0,kakao:0,naver:0,other:0};
-  const provColor2={google:'#4285f4',kakao:'#fee500',naver:'#03c75a',other:'#888'};
-  const provLabel2={google:'Google',kakao:'카카오',naver:'네이버',other:'기타'};
+  const provCnt={google:0,kakao:0,naver:0,guest:0,other:0};
+  const provColor2={google:'#4285f4',kakao:'#fee500',naver:'#03c75a',guest:'#888',other:'#555'};
+  const provLabel2={google:'Google',kakao:'카카오',naver:'네이버',guest:'게스트',other:'기타'};
   loginUsers.forEach(u=>{const p=u.provider||'';if(provCnt[p]!==undefined)provCnt[p]++;else provCnt.other++;});
   const barEl=_s('ustat-provider-bar');
   if(barEl&&loginUsers.length) barEl.innerHTML=Object.entries(provCnt).filter(e=>e[1]>0).map(([p,c])=>'<div style="flex:'+c+';background:'+provColor2[p]+';'+(p==='kakao'?'opacity:.7;':'')+'"></div>').join('');
@@ -4058,7 +4062,7 @@ function _sortAndRenderUsers(){
     loginTbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">'+(q||pf||plf?'검색 결과 없음':'로그인 기록이 없습니다')+'</td></tr>';
     return;
   }
-  const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+  const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',guest:'badge-acc'};
   loginTbody.innerHTML=users.map(u=>{
     const pc=provColors[u.provider||'']||'badge-acc';
     const isOnline=(now-(u.lastLogin||0))<ONLINE;
@@ -4070,7 +4074,7 @@ function _sortAndRenderUsers(){
         +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
         +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
       +'</td>'
-      +'<td style="font-weight:600;cursor:pointer;color:var(--acc);" onclick="_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\')" title="상세 보기">'+esc(u.name)+'<div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
+      +'<td style="font-weight:600;cursor:pointer;color:var(--acc);" onclick="_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\')" title="상세 보기">'+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
       +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
       +'<td>'+planBadge+' <select onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'
         +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
@@ -6857,7 +6861,7 @@ async function _showUserDetail(name, provider){
   if(!user){toast('유저 정보 없음','err');return;}
   const now=Date.now();
   const DAY=86400000;
-  const pi={'google':'🔵 Google','kakao':'💬 카카오','naver':'🟢 네이버'}[user.provider]||user.provider;
+  const pi={'google':'🔵 Google','kakao':'💬 카카오','naver':'🟢 네이버','guest':'👤 게스트'}[user.provider]||user.provider;
   const pb={creator:'👑 Creator',pro:'💜 Pro',free:'🆓 Free'}[user.plan||'free']||'Free';
   const joinDt=user.created_at?new Date(user.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}):'-';
   const lastDt=user.last_login?new Date(user.last_login).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
@@ -7801,18 +7805,18 @@ async function loadSentryDashboard(){
 
     /* 통계 카드 */
     const unresolvedCount=Array.isArray(issues)?issues.length:0;
-    document.getElementById('sentry-unresolved').textContent=unresolvedCount;
+    const _su=document.getElementById('sentry-unresolved'); if(_su) _su.textContent=unresolvedCount;
 
     /* 24h 이벤트 합산 */
     let total24=0;
     const statsArr=Array.isArray(stats)?stats:[];
     statsArr.forEach(function(s){total24+=(s[1]||0);});
-    document.getElementById('sentry-events24').textContent=total24;
+    const _se=document.getElementById('sentry-events24'); if(_se) _se.textContent=total24;
 
     /* 최다 이슈 */
     if(Array.isArray(issues)&&issues.length>0){
       const top=issues.reduce(function(a,b){return(parseInt(b.count)||0)>(parseInt(a.count)||0)?b:a;},issues[0]);
-      document.getElementById('sentry-top-issue').textContent=(top.title||'').slice(0,30);
+      const _st=document.getElementById('sentry-top-issue'); if(_st) _st.textContent=(top.title||'').slice(0,30);
     }
 
     /* 24h 차트 */
@@ -7821,7 +7825,7 @@ async function loadSentryDashboard(){
     /* 이슈 목록 */
     _renderSentryIssues(Array.isArray(issues)?issues:[]);
 
-    document.getElementById('sentry-last-update').textContent='업데이트: '+new Date().toLocaleTimeString('ko-KR');
+    const _slu=document.getElementById('sentry-last-update'); if(_slu) _slu.textContent='업데이트: '+new Date().toLocaleTimeString('ko-KR');
   }catch(e){
     issuesEl.innerHTML='<div style="text-align:center;padding:40px;color:#ef4444;font-size:12px;">'+_esc(e.message)+'</div>';
   }
@@ -7830,6 +7834,7 @@ async function loadSentryDashboard(){
 
 function _renderSentryChart(stats){
   const el=document.getElementById('sentry-chart');
+  if(!el) return;
   if(!stats.length){el.innerHTML='<span style="font-size:11px;color:var(--t3);">데이터 없음</span>';return;}
   const max=Math.max.apply(null,stats.map(function(s){return s[1]||0;}))||1;
   el.innerHTML=stats.map(function(s){
