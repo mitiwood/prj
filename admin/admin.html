@@ -168,27 +168,83 @@ textarea.form-input{line-height:1.5;}
 .mob-drawer-panel{position:absolute;left:0;top:0;bottom:0;width:260px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 8px;animation:slideInLeft .2s ease;}
 @keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 .mob-drawer-panel .snav-item{padding:12px 14px;font-size:14px;}
-/* 반응형 */
+/* 반응형 — 모바일 최적화 */
 @media(max-width:768px){
   .sidebar{display:none;}
   .admin-header{display:none;}
   .mob-header{display:flex;}
-  .admin-content{padding:14px 10px;}
-  .chart-row{grid-template-columns:1fr;}
-  .stats-grid{grid-template-columns:repeat(2,1fr);}
-  .user-detail-stats{grid-template-columns:repeat(2,1fr);}
+  .admin-content{padding:12px 8px;}
+  /* 통계 그리드 */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+  .stat-card{padding:10px 12px;border-radius:10px;}
+  .stat-card .stat-icon{font-size:18px;margin-bottom:4px;}
+  .stat-card .stat-val{font-size:18px;}
+  .stat-card .stat-label{font-size:10px;}
+  /* 차트 */
+  .chart-row{grid-template-columns:1fr;gap:10px;}
   #dashboard-charts{grid-template-columns:1fr !important;}
-  table{font-size:11px;}
-  th,td{padding:8px 10px;}
-  .admin-table-header{flex-direction:column;gap:8px;align-items:flex-start;}
+  .chart-card{padding:10px;}
+  /* 테이블 — 수평 스크롤 */
+  .admin-table-wrap{border-radius:10px;margin-bottom:14px;}
+  .admin-table-header{flex-direction:column;gap:8px;align-items:flex-start;padding:10px 12px;}
   .admin-table-header>div{width:100%;}
+  .admin-table-header h3{font-size:12px;}
   .table-search{width:100%!important;min-width:0!important;}
+  table{font-size:10px;min-width:500px;}
+  th,td{padding:6px 8px;white-space:nowrap;}
+  td:nth-child(n+7),th:nth-child(n+7){display:none;}
+  .td-title{max-width:120px;}
+  .admin-audio-player{width:100px;height:24px;}
+  /* 섹션 헤더 */
   .sec-hdr{flex-direction:column;gap:8px;align-items:flex-start;}
-  .sec-hdr>div{width:100%;}
+  .sec-hdr h2{font-size:14px;}
+  .sec-hdr>div{width:100%;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;}
+  .sec-hdr>div .btn{font-size:10px;padding:5px 8px;}
+  /* 설정 */
   .settings-row{flex-direction:column;align-items:flex-start;gap:8px;}
   .settings-input{width:100%;}
-  .gate-box{width:calc(100vw - 32px);max-width:360px;}
-  td:nth-child(n+7),th:nth-child(n+7){display:none;}
+  .settings-group{border-radius:10px;}
+  /* 로그인 게이트 */
+  .gate-box{width:calc(100vw - 32px);max-width:360px;padding:24px;}
+  /* 모달 */
+  .user-detail-card{padding:16px;max-width:calc(100vw - 24px);max-height:85vh;}
+  .user-detail-stats{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .user-detail-stat{padding:8px;}
+  .user-detail-stat .val{font-size:15px;}
+  .user-detail-header{gap:10px;margin-bottom:14px;}
+  .ch-detail-card{padding:16px;max-width:calc(100vw - 24px);}
+  .ch-detail-stats{grid-template-columns:repeat(2,1fr);}
+  /* 버튼 */
+  .btn{padding:6px 10px;font-size:11px;}
+  .table-action-row{flex-wrap:wrap;gap:4px;}
+  .table-action-row .btn{font-size:10px;padding:4px 8px;}
+  /* 에러 모니터 */
+  .err-filter-row{gap:4px;}
+  .err-filter-btn{padding:3px 7px;font-size:10px;}
+  .err-group-card{padding:8px 10px;}
+  /* 헬스체크 */
+  .health-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .health-item{padding:8px 10px;font-size:10px;}
+  /* 감사 로그 */
+  .audit-entry{padding:8px 10px;font-size:11px;gap:8px;}
+  .audit-filter-bar{gap:4px;}
+  .audit-filter-bar .btn{font-size:10px;padding:4px 8px;}
+  /* Sentry */
+  #sentry-detail-modal>div{margin:20px auto;padding:14px;max-width:calc(100vw - 24px);}
+  /* 드로어 패널 */
+  .mob-drawer-panel{width:75vw;max-width:280px;}
+  /* 바텀 세이프에어리어 */
+  .admin-content{padding-bottom:env(safe-area-inset-bottom,12px);}
+}
+/* 초소형 모바일 (≤ 400px) */
+@media(max-width:400px){
+  .stats-grid{grid-template-columns:1fr 1fr;gap:6px;}
+  .stat-card .stat-val{font-size:15px;}
+  .admin-content{padding:8px 6px;}
+  .mob-header{padding:8px 12px;}
+  .mob-header h1{font-size:13px;}
+  table{min-width:400px;}
+  th,td{padding:5px 6px;font-size:9px;}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
