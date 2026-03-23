@@ -15931,9 +15931,11 @@ async function _startChatRealtime(){
     /* config 로드 */
     var cfgR=await fetch('/api/supabase-config');
     var cfg=await cfgR.json();
-    if(!cfg.url||!cfg.anonKey) return;
+    var _sbUrl=(cfg.url||'').trim();
+    var _sbAnon=(cfg.anonKey||'').trim();
+    if(!_sbUrl||!_sbAnon) return;
 
-    _sbClient=window.supabase.createClient(cfg.url,cfg.anonKey,{realtime:{params:{eventsPerSecond:10}}});
+    _sbClient=window.supabase.createClient(_sbUrl,_sbAnon,{realtime:{params:{eventsPerSecond:10}}});
 
     /* chat_messages INSERT/DELETE + 타이핑 broadcast */
     _chatRealtimeChannel=_sbClient.channel('chat-realtime')
