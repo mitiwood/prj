@@ -15938,7 +15938,7 @@ async function _renderCommunityInner(force){
     var mw=$('comm-mood-wrap');if(mw)mw.style.display='none';
     var sw=$('comm-spotlight-wrap');if(sw)sw.style.display='none';
     var gw=$('comm-genre-wrap');if(gw)gw.style.display='none';
-    if(!_sbLoaded) await _loadSbTracks(true);
+    if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
     _renderCreatorList();
     return;
   }
@@ -15971,7 +15971,7 @@ async function _renderCommunityInner(force){
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
     var lbl3=$('comm-section-lbl');if(lbl3)lbl3.textContent='🏆 리더보드';
-    if(!_sbLoaded) await _loadSbTracks(true);
+    if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
     _renderLeaderboard();
     return;
   }
