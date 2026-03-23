@@ -16014,7 +16014,8 @@ async function _sendChat(){
     if(_chatReplyTo) body.reply_to=_chatReplyTo;
     await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     _chatCancelReply();_chatAutoScroll=true;
-    _chatLastTs=0;await _loadChatMessages();
+    /* Realtime이 INSERT를 감지하여 자동 표시 — 폴링 불필요 */
+    if(!_chatRealtimeConnected){_chatLastTs=0;await _loadChatMessages();}
   }catch(e){toast('전송 실패','err');}
 }
 
@@ -16023,10 +16024,30 @@ function _chatOnTyping(){
   if(_chatTypingSent) return;
   _chatTypingSent=true;
   if(currentUser&&currentUser.name){
-    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'typing',author_name:currentUser.name})}).catch(()=>{});
+    if(_chatRealtimeChannel&&_chatRealtimeConnected){
+      _chatRealtimeChannel.send({type:'broadcast',event:'typing',payload:{name:currentUser.name}});
+    } else {
+      fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'typing',author_name:currentUser.name})}).catch(()=>{});
+    }
   }
   clearTimeout(_chatTypingTimer);
-  _chatTypingTimer=setTimeout(function(){_chatTypingSent=false;},4000);
+  _chatTypingTimer=setTimeout(function(){_chatTypingSent=false;},3000);
+}
+var _chatTypingNames={};
+function _onRealtimeTyping(data){
+  if(!data||!data.name) return;
+  if(currentUser&&data.name===currentUser.name) return;
+  _chatTypingNames[data.name]=Date.now();
+  _renderTypingBar();
+  setTimeout(function(){delete _chatTypingNames[data.name];_renderTypingBar();},3000);
+}
+function _renderTypingBar(){
+  var bar=$('chat-typing-bar'),txt=$('chat-typing-text');
+  if(!bar||!txt) return;
+  var now=Date.now();
+  var names=Object.keys(_chatTypingNames).filter(function(n){return now-_chatTypingNames[n]<3500;});
+  if(names.length){txt.textContent=names.join(', ')+'님이 입력 중...';bar.style.display='block';}
+  else bar.style.display='none';
 }
 
 /* 고정 메시지 */
