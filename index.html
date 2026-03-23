@@ -4732,6 +4732,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
+      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
     </div>
@@ -14949,7 +14950,8 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     var djRow=$('comm-dj-row');if(djRow)djRow.style.display=isCreatorMode?'none':'';
     _commCreatorShowCount=10;
     if(isCreatorMode){
-      _renderCreatorList();
+      if(!_sbTracks||!_sbTracks.length){_loadSbTracks(true).then(()=>_renderCreatorList());}
+      else _renderCreatorList();
     } else {
       renderCommunity();
     }
