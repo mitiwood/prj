@@ -4455,6 +4455,22 @@ async function changeUserPlan(userName, provider, newPlan) {
     if (r.ok) {
       adminToast('✅ ' + userName + ' 플랜 → ' + newPlan);
       if (typeof logAudit === 'function') logAudit('플랜 변경: ' + userName + ' → ' + newPlan);
+      /* realtime 이벤트 발행 → 사용자 즉시 동기화 */
+      adminFetch('/api/realtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'plan_changed', data: { userName, provider, plan: newPlan } })
+      }).catch(()=>{});
+      /* Supabase notifications 테이블에도 저장 (폴링 대비) */
+      adminFetch('/api/tracks?action=notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_name: userName, user_provider: provider,
+          type: 'system', title: '🎫 플랜 변경',
+          body: (newPlan==='pro'?'💜 Pro':newPlan==='creator'?'👑 Creator':'🆓 Free') + ' 플랜으로 변경되었습니다'
+        })
+      }).catch(()=>{});
     } else {
       adminToast('⚠️ 플랜 변경 실패 (서버 응답: ' + r.status + ')', 'err');
     }

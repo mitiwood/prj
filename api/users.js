@@ -192,6 +192,42 @@ export default async function handler(req, res) {
         method: 'PATCH',
         body: JSON.stringify(update),
       });
+
+      /* 플랜 변경 시 알림 */
+      if (plan) {
+        const planNames = { free: 'Free', pro: 'Pro 💜', creator: 'Creator 👑' };
+        const planLabel = planNames[plan] || plan;
+        const msg = `🎫 플랜 변경\n\n👤 ${name}\n📋 ${planLabel}\n⏰ ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`;
+        await Promise.allSettled([
+          _tgNotify('plan_change', { name, provider, plan }),
+          _kakaoNotify('plan_change', { name, provider, plan }),
+        ]);
+
+        /* 해당 사용자에게 푸시 알림 */
+        try {
+          const subs = await sbFetch(`/push_subscriptions?user_name=eq.${encodeURIComponent(name)}&select=subscription`);
+          if (Array.isArray(subs) && subs.length) {
+            const webpush = (await import('web-push')).default;
+            let vapidPub = process.env.VAPID_PUBLIC_KEY || '';
+            const vapidPrv = process.env.VAPID_PRIVATE_KEY || '';
+            if (vapidPub && vapidPrv) {
+              try {
+                const pad = '='.repeat((4 - vapidPub.length % 4) % 4);
+                const raw = Buffer.from(vapidPub.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
+                if (raw.length === 91) vapidPub = raw.slice(26).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+              } catch {}
+              webpush.setVapidDetails('mailto:admin@ai-music-studio.app', vapidPub, vapidPrv);
+              const payload = JSON.stringify({ title: '🎫 플랜이 변경되었어요!', body: planLabel + ' 플랜으로 업그레이드되었습니다', icon: '/icon-192.png', url: 'https://ai-music-studio-bice.vercel.app' });
+              for (const row of subs) {
+                if (row.subscription?.endpoint) {
+                  try { await webpush.sendNotification(row.subscription, payload); } catch {}
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
       return res.status(200).json({ success: true, updated: update });
     } catch (e) {
       return res.status(500).json({ error: e.message });
