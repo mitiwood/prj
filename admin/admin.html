@@ -162,10 +162,10 @@ textarea.form-input{line-height:1.5;}
 .ch-detail-actions{display:flex;gap:8px;margin-top:16px;}
 .ch-detail-actions .btn{flex:1;text-align:center;}
 /* 모바일 — 상단 바 (현재 섹션 표시) */
-.mob-header{display:none;position:sticky;top:0;z-index:20;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;align-items:center;justify-content:space-between;}
+.mob-header{display:none;position:sticky;top:0;z-index:20;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;padding-right:64px;align-items:center;justify-content:space-between;}
 .mob-header h1{font-size:14px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 /* 플로팅 FAB */
-.mob-fab{display:none;position:fixed;bottom:24px;right:16px;z-index:90;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,.5);transition:transform .2s;-webkit-tap-highlight-color:transparent;}
+.mob-fab{display:none;position:fixed;top:10px;right:12px;z-index:90;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,.5);transition:transform .2s;-webkit-tap-highlight-color:transparent;}
 .mob-fab:active{transform:scale(.9);}
 .mob-fab.open{transform:rotate(45deg);}
 /* 드로어 (모바일 메뉴) */
@@ -273,7 +273,18 @@ textarea.form-input{line-height:1.5;}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<script>if(window.innerWidth<=768){document.documentElement.classList.add('is-mobile');}</script>
+<script>
+(function(){
+  var m=window.matchMedia('(max-width:768px)').matches||('ontouchstart' in window&&window.innerWidth<1024);
+  if(m)document.documentElement.classList.add('is-mobile');
+  /* DOM 로드 후 사이드바 인라인 강제 숨김 */
+  document.addEventListener('DOMContentLoaded',function(){
+    if(!document.documentElement.classList.contains('is-mobile'))return;
+    var sb=document.querySelector('.sidebar');if(sb)sb.style.cssText+='display:none!important;width:0!important;overflow:hidden!important;';
+    var ah=document.querySelector('.admin-header');if(ah)ah.style.cssText+='display:none!important;';
+  });
+})();
+</script>
 
 <!-- 관리자 인증 게이트 -->
 <div id="admin-gate">
