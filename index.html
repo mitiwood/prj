@@ -7430,15 +7430,16 @@ async function _ytDoGenerate(){
     showFeedbackCard();
 
     tracks.forEach(t=>{
+      const _ytTags=_normTags(t.tags)||ytStyle;
       const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
       historyData.unshift({
         id:t.id, taskId,
-        title: _autoGenerateTitle(t.title||songTitle,ytLyrics,t.tags||ytStyle,'youtube'),
+        title: _autoGenerateTitle(t.title||songTitle,ytLyrics,_ytTags,'youtube'),
         audio_url: t.audioUrl||t.audio_url||'',
         video_url: '',
         image_url: t.imageUrl||t.image_url||'',
-        tags: t.tags||ytStyle,
+        tags: _ytTags,
         lyrics: ytLyrics||(isRealLyric?apiLyric:'')||'',
         created: Date.now(),
         type: 'audio',
@@ -7455,12 +7456,13 @@ async function _ytDoGenerate(){
 
     /* 서버에 트랙 저장 */
     tracks.forEach(t=>{
+      const _ytSTags=_normTags(t.tags)||ytStyle;
       _saveTrackToServer({
         id:t.id, taskId,
-        title:_autoGenerateTitle(t.title||songTitle,ytLyrics,t.tags||ytStyle,'youtube'),
+        title:_autoGenerateTitle(t.title||songTitle,ytLyrics,_ytSTags,'youtube'),
         audio_url:t.audioUrl||t.audio_url||'',
         image_url:t.imageUrl||t.image_url||'',
-        tags:t.tags||ytStyle,
+        tags:_ytSTags,
         lyrics:ytLyrics||'',
         genMode:'youtube',
         owner_name:currentUser?.name||'익명',
@@ -9574,12 +9576,13 @@ async function generate(overrideParams){
     /* 서버에 트랙 저장 (admin 전체 조회용) */
     tracks.forEach(t=>{
       const _lyrics = lastLyricsInput || t.lyric || t.lyrics || t.lrc || '';
+      const _sTags = _normTags(t.tags)||styleStr;
       _saveTrackToServer({
         id:t.id, taskId,
-        title:_autoGenerateTitle(t.title,_lyrics,t.tags||styleStr,currentMode),
+        title:_autoGenerateTitle(t.title,_lyrics,_sTags,currentMode),
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
-        tags:t.tags||styleStr,
+        tags:_sTags,
         lyrics:_lyrics,
         genMode:currentMode,
         owner_name:currentUser?.name||'익명',
@@ -10189,7 +10192,7 @@ function renderTracks(tracks,prompt,tags,mode){
     const audioUrl=track.audioUrl||track.audio_url||'';
     const imageUrl=track.imageUrl||track.image_url||'';
     const title=track.title||`트랙 ${i+1}`;
-    const trackTags=(track.tags||tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+    const trackTags=(_normTags(track.tags)||tags||'').split(',').map(t=>t.trim()).filter(Boolean);
     const dur=track.duration?formatTime(track.duration):'—';
     const audioId=track.id||'';
     /* 가사: 입력 가사(커스텀) → API lyric(심플/유튜브) → 빈값
@@ -10710,7 +10713,7 @@ function renderHistoryView(){
       :h.image_url?`<img src="${esc(h.image_url)}" alt="">`
       :'<div class="hist-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>';
     const timeAgo=formatTimeAgo(h.created);
-    const tagLabel=h.tags?.split(',')[0]?.trim()||'';
+    const tagLabel=_normTags(h.tags).split(',')[0]?.trim()||'';
     const typeBadge=hasVideo?'<div class="hist-type-badge">🎬</div>':'';
     const remixBadge=h._extendedFrom?'<div class="hist-type-badge" style="background:rgba(59,130,246,.8);">🔄</div>':h._coveredFrom?'<div class="hist-type-badge" style="background:rgba(245,158,11,.8);">🎤</div>':h._remasteredFrom?'<div class="hist-type-badge" style="background:rgba(16,185,129,.8);">✨</div>':h._styleFrom?'<div class="hist-type-badge" style="background:rgba(168,85,247,.8);">🎨</div>':h._vocalRemovedFrom?'<div class="hist-type-badge" style="background:rgba(239,68,68,.8);">🎙</div>':'';
     const remixLabel=h._extendedFrom?'연장':h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
@@ -11143,10 +11146,11 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     lastTracks=tracks.map(t=>({...t,_inputLyrics:newPrompt}));
     renderTracks(lastTracks,'스타일 재사용: '+h.title,rStyleStr,'custom');
     tracks.forEach(t=>{
+      var _srTags=_normTags(t.tags)||rStyleStr;
       historyData.unshift({
         id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',
         audio_url:t.audioUrl||t.audio_url||'',video_url:'',
-        image_url:t.imageUrl||t.image_url||'',tags:t.tags||rStyleStr,
+        image_url:t.imageUrl||t.image_url||'',tags:_srTags,
         lyrics:newPrompt,created:Date.now(),type:'audio',genMode:'style-reuse',
         _styleFrom:h.id||'',
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
@@ -11157,7 +11161,8 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'style-reuse'});
     tracks.forEach(t=>{
-      _saveTrackToServer({id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||rStyleStr,lyrics:newPrompt,genMode:'style-reuse',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+      var _srTags2=_normTags(t.tags)||rStyleStr;
+      _saveTrackToServer({id:t.id,taskId,title:t.title||newTitle||'스타일 재사용',audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:_srTags2,lyrics:newPrompt,genMode:'style-reuse',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
     });
   }catch(e){
     $('loading-card').classList.remove('on');
@@ -11226,10 +11231,11 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     lastTracks=tracks.map(t=>({...t,_inputLyrics:h.lyrics||''}));
     renderTracks(lastTracks,'Remaster: '+h.title,h.tags||'','custom');
     tracks.forEach(t=>{
+      var _rmTags=_normTags(t.tags)||_normTags(h.tags)||'remaster';
       historyData.unshift({
         id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),
         audio_url:t.audioUrl||t.audio_url||'',video_url:'',
-        image_url:t.imageUrl||t.image_url||'',tags:t.tags||h.tags||'remaster',
+        image_url:t.imageUrl||t.image_url||'',tags:_rmTags,
         lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'remaster',
         _remasteredFrom:h.id||'',
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
@@ -11240,7 +11246,8 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'remaster'});
     tracks.forEach(t=>{
-      _saveTrackToServer({id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:t.tags||h.tags||'remaster',lyrics:h.lyrics||'',genMode:'remaster',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
+      var _rmTags2=_normTags(t.tags)||_normTags(h.tags)||'remaster';
+      _saveTrackToServer({id:t.id,taskId,title:t.title||'[Remaster] '+(h.title||''),audio_url:t.audioUrl||t.audio_url||'',video_url:'',image_url:t.imageUrl||t.image_url||'',tags:_rmTags2,lyrics:h.lyrics||'',genMode:'remaster',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||'guest'});
     });
   }catch(e){
     $('loading-card').classList.remove('on');
