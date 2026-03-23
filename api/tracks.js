@@ -184,7 +184,6 @@ async function _handler(req, res) {
         tags: (tags || "").slice(0, 500),
         lyrics: (lyrics || "").slice(0, 5000),
         gen_mode: genMode || "custom",
-        parent_id: parent_id || null,
         owner_name: owner_name || "익명",
         owner_avatar: owner_avatar || "",
         owner_provider: owner_provider || "guest",
@@ -193,8 +192,6 @@ async function _handler(req, res) {
         comm_dislikes: 0,
         comm_plays: 0,
         created_at: new Date(now).toISOString(),
-        ...(collab_id ? { collab_id } : {}),
-        ...(co_owner_name ? { co_owner_name, co_owner_avatar: co_owner_avatar || '', co_owner_provider: co_owner_provider || 'guest' } : {}),
       };
       const isSync = !!b._sync;
       try {
