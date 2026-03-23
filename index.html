@@ -3820,19 +3820,19 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .profile-header-top{display:flex;align-items:center;gap:14px;}
 .pv-section-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px;padding:0 2px;}
 .pv-track-item{
-  display:flex;align-items:center;gap:10px;padding:10px 12px;position:relative;
+  display:flex;align-items:center;gap:12px;padding:12px 14px;position:relative;
   background:var(--card);border:1px solid var(--border);border-radius:14px;
-  cursor:pointer;transition:all .2s;margin-bottom:6px;overflow:hidden;
+  cursor:pointer;transition:all .2s;margin-bottom:10px;overflow:hidden;
 }
 .pv-track-item:hover{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.15);}
 .pv-track-item:active{transform:scale(.985);}
 .pv-track-item.playing{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(59,130,246,.05));border-color:rgba(124,58,237,.3);}
 .pv-track-item.playing .pv-track-play-btn{background:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4);}
-.pv-track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
-.pv-track-row1{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-track-row2{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-track-row3{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3);}
-.pv-track-row3 .pv-act-btn{background:none;border:1px solid var(--border);color:var(--t3);cursor:pointer;font-size:10px;padding:3px 8px;border-radius:12px;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.pv-track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.pv-track-row1{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pv-track-row2{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pv-track-row3{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);margin-top:2px;}
+.pv-track-row3 .pv-act-btn{background:none;border:1px solid var(--border);color:var(--t3);cursor:pointer;font-size:10px;padding:4px 10px;border-radius:14px;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
 .pv-track-row3 .pv-act-btn:hover{border-color:var(--acc);color:var(--acc);}
 .pv-track-row3 .pv-act-btn.active{border-color:rgba(239,68,68,.4);color:#ef4444;background:rgba(239,68,68,.06);}
 .pv-track-row3 .pv-act-btn.disliked{border-color:rgba(59,130,246,.4);color:#3b82f6;background:rgba(59,130,246,.06);}
@@ -19173,7 +19173,7 @@ function openCreatorProfile(name, provider){
             <div class="pv-track-row3">
               <button class="pv-act-btn${isLiked?' active':''}" data-pv-like="${esc(t.id)}" onclick="event.stopPropagation();_pvLike('${esc(t.id)}',this)">❤️ <span>${likes}</span></button>
               <button class="pv-act-btn${isDisliked?' disliked':''}" data-pv-dislike="${esc(t.id)}" onclick="event.stopPropagation();_pvDislike('${esc(t.id)}',this)">👎 <span>${dislikes}</span></button>
-              <button class="pv-act-btn" data-pv-share="${esc(t.id)}" data-pv-title="${esc(t.title||'')}" data-pv-audio="${esc(t.audio_url||'')}" data-pv-img="${esc(t.image_url||'')}" onclick="event.stopPropagation();_pvShareFromBtn(this)">↗ 공유</button>
+              <button class="pv-act-btn" data-pv-share-id="${esc(t.id)}" onclick="event.stopPropagation();_pvOpenShare(this.dataset.pvShareId)">↗ 공유</button>
             </div>
           </div>
           <div class="pv-track-play-btn pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
@@ -19229,21 +19229,19 @@ async function _pvToggleFollow(){
 window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
 
-function _pvShareTrack(id,title,audioUrl,imgUrl){
-  var params=new URLSearchParams({t:title||'AI Music'});
-  if(id)params.set('trackId',id);
-  if(audioUrl)params.set('play',audioUrl);
-  if(imgUrl)params.set('img',imgUrl);
-  var url=window.location.origin+'/api/share?'+params.toString();
-  if(navigator.share){
-    navigator.share({title:title||'AI Music',text:'🎵 AI로 만든 음악을 들어봐!',url:url}).catch(function(){});
-  } else {
-    navigator.clipboard.writeText(url).then(function(){toast('🔗 링크 복사됨!','ok',1500);}).catch(function(){toast('복사 실패','err');});
+function _pvOpenShare(sbId){
+  if(!sbId) return;
+  /* _sbTracks에서 트랙 정보 가져오기 */
+  var t=_sbTracks?.find(function(x){return x._sbId===sbId;})||null;
+  /* historyData에 없으면 추가 */
+  var hIdx=historyData.findIndex(function(h){return h.id===sbId||h._sbId===sbId;});
+  if(hIdx<0&&t){
+    historyData.unshift({id:sbId,_sbId:sbId,title:t.title,audio_url:t.audioUrl,image_url:t.img||'',video_url:t.videoUrl||'',tags:t.allTags||t.tags||'',type:'audio',created:t._created,_fromSb:true});
+    hIdx=0;
   }
-}
-function _pvShareFromBtn(btn){
-  var d=btn.dataset;
-  _pvShareTrack(d.pvShare||'',d.pvTitle||'',d.pvAudio||'',d.pvImg||'');
+  if(hIdx<0){toast('곡 정보를 찾을 수 없어요','err');return;}
+  /* 전체보기와 동일한 공유 확인 모달 열기 */
+  openShareConfirm(hIdx);
 }
 function _pvLike(sbId,btn){
   if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
