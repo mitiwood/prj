@@ -147,8 +147,9 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `비공개 <트랙ID> — 트랙 비공개`,
     `댓글삭제 <댓글ID> — 댓글 삭제`,
     ``,
-    `━━ 📣 알림 (1) ━━`,
+    `━━ 📣 알림 (2) ━━`,
     `알림 <메시지> — 전체 웹 푸시 발송`,
+    `채팅공지 <메시지> — 커뮤니티 채팅에 관리자 공지`,
     ``,
     `━━ 🛠 개발 (6) ━━`,
     `수정 <지시> — AI가 코드 수정→PR 자동생성`,
@@ -1690,6 +1691,23 @@ COMMANDS['더미삭제'] = COMMANDS['unseed'] = async (chatId) => {
     await tgSend(chatId, `✅ 더미 데이터 삭제 완료!\n\n삭제 대상: ${names.join(', ')}\n트랙 (dummy_*) + 팔로우 전부 제거됨`, { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, '❌ 삭제 실패: ' + e.message, { parse_mode: '' });
+  }
+};
+
+COMMANDS['채팅공지'] = COMMANDS['chatnotice'] = async (chatId, arg) => {
+  if (!arg) { await tgSend(chatId, '사용법: 채팅공지 <메시지>', { parse_mode: '' }); return; }
+  try {
+    const msg = {
+      room: 'general',
+      content: '📢 ' + arg,
+      author_name: '관리자',
+      author_avatar: '',
+      author_provider: 'admin',
+    };
+    await sbRaw('POST', '/chat_messages', msg);
+    await tgSend(chatId, '✅ 채팅 공지 전송 완료!\n\n📢 ' + arg + '\n\n⏰ ' + ts(), { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, '❌ 전송 실패: ' + e.message, { parse_mode: '' });
   }
 };
 
