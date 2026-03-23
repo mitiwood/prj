@@ -4853,6 +4853,23 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
     </div>
 
+    <!-- ── 출석 체크 배너 표시 ── -->
+    <div class="settings-section">
+      <div class="settings-section-title">📅 출석 체크</div>
+      <div class="settings-card">
+        <div class="settings-item" onclick="_toggleAttendBanner()" style="cursor:pointer;">
+          <div class="settings-item-icon">📅</div>
+          <div class="settings-item-body">
+            <div class="settings-item-label">출석 체크 배너</div>
+            <div class="settings-item-desc">음악 만들기 화면에 출석 배너 표시</div>
+          </div>
+          <div class="toggle-label-row" id="ab-toggle-row">
+            <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── 화면 설정 ── -->
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="displaySection">🖥 화면 설정</div>
@@ -21104,6 +21121,27 @@ function _applyHomeWidgetsVisibility(){
 _applyHomeWidgetsVisibility();
 window._toggleHomeWidgets=_toggleHomeWidgets;
 
+/* 출석 체크 배너 on/off */
+function _toggleAttendBanner(){
+  var on=localStorage.getItem('kms_attend_banner')!=='off';
+  var next=on?'off':'on';
+  localStorage.setItem('kms_attend_banner',next);
+  _applyAttendBannerToggle();
+  var banner=$('attend-banner');
+  if(next==='on'){
+    if(typeof _initAttendance==='function') _initAttendance();
+  } else {
+    if(banner) banner.style.display='none';
+  }
+  toast(next==='on'?'📅 출석 배너 ON':'출석 배너 OFF','',1500);
+}
+function _applyAttendBannerToggle(){
+  var on=localStorage.getItem('kms_attend_banner')!=='off';
+  var row=$('ab-toggle-row');if(row){if(on)row.classList.add('on');else row.classList.remove('on');}
+}
+_applyAttendBannerToggle();
+window._toggleAttendBanner=_toggleAttendBanner;
+
 /* ═══ 3. 스펙트럼 시각화 ═══ */
 var _spectrumBars=32;
 function _initSpectrum(){
@@ -22357,6 +22395,8 @@ var _attendChecked = false;
 async function _initAttendance(){
   var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
   if(!u || u.provider === 'guest'){ var ab=$('attend-banner'); if(ab)ab.style.display='none'; return; }
+  /* 토글 OFF면 배너 숨김 */
+  if(localStorage.getItem('kms_attend_banner')==='off'){ var ab2=$('attend-banner'); if(ab2)ab2.style.display='none'; return; }
   try {
     var r = await fetch('/api/attendance?userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider));
     var d = await r.json();
