@@ -6566,7 +6566,7 @@ function switchTab(viewId){
     if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
   }
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
+  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();if(typeof _preloadFollowStates==='function')_preloadFollowStates();try{renderCommunity(false);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
   /* 탭 전환 후 다국어 재적용 */
   if(typeof _applyLang==='function') setTimeout(_applyLang,50);
@@ -13667,6 +13667,7 @@ async function _mfToggleFollow(btn){
       /* 팔로우 캐시 동기화 */
       var fCacheKey=name+'__'+prov;
       _followStateCache[fCacheKey]=!isFollowing;
+      if(typeof _saveFollowCache==='function')_saveFollowCache();
       if(_myFeedDetail&&_myFeedDetail.profile){
         _myFeedDetail.profile.isFollowing=!isFollowing;
         _myFeedDetail.profile.followerCount=(_myFeedDetail.profile.followerCount||0)+(isFollowing?-1:1);
@@ -16291,14 +16292,43 @@ var _followBatchLoaded=false;
 var _followBatchLoadedAt=0;
 const _FOLLOW_CACHE_TTL=300000; /* 5분 */
 
+/* 페이지 로드 시 sessionStorage에서 캐시 복원 */
+;(function(){
+  try{
+    var s=JSON.parse(sessionStorage.getItem('kms_follow_cache')||'null');
+    if(s&&s.data&&s.at&&(Date.now()-s.at)<_FOLLOW_CACHE_TTL){
+      Object.assign(_followStateCache,s.data);
+      _followBatchLoaded=true;_followBatchLoadedAt=s.at;
+    }
+  }catch(e){}
+})();
+function _saveFollowCache(){
+  try{sessionStorage.setItem('kms_follow_cache',JSON.stringify({data:_followStateCache,at:_followBatchLoadedAt}));}catch(e){}
+}
+
 function _applyFollowToBtn(btn){
   var k=btn.dataset.cname+'__'+btn.dataset.cprov;
   if(_followStateCache[k]===true){
     btn.textContent='팔로잉';btn.classList.add('following');btn.dataset.following='1';
   } else {
-    /* undefined도 false로 취급 — 팔로우 안 한 상태 */
     btn.textContent='팔로우';btn.classList.remove('following');btn.dataset.following='0';
   }
+}
+
+/* 커뮤니티 진입 전 팔로우 목록 프리로드 (await 가능) */
+async function _preloadFollowStates(){
+  if(!currentUser||currentUser.provider==='guest')return;
+  if(_followBatchLoaded&&(Date.now()-_followBatchLoadedAt)<_FOLLOW_CACHE_TTL)return;
+  try{
+    var r=await fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider));
+    var d=await r.json();
+    if(d.ok&&d.followingSet){
+      Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
+      _followBatchLoaded=true;
+      _followBatchLoadedAt=Date.now();
+      _saveFollowCache();
+    }
+  }catch(e){}
 }
 
 function _loadCommFollowStates(container){
@@ -16306,7 +16336,7 @@ function _loadCommFollowStates(container){
   var allBtns=container.querySelectorAll('.comm-item-follow-btn,.comm-creator-follow-btn');
   if(!allBtns.length)return;
 
-  /* 캐시 유효하면 즉시 적용 + DB 재조회 스킵 */
+  /* 캐시 유효하면 즉시 적용 */
   if(_followBatchLoaded&&(Date.now()-_followBatchLoadedAt)<_FOLLOW_CACHE_TTL){
     allBtns.forEach(_applyFollowToBtn);
     return;
@@ -16319,15 +16349,14 @@ function _loadCommFollowStates(container){
   fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
     .then(function(r){return r.json();}).then(function(d){
       if(d.ok&&d.followingSet){
-        /* 모든 버튼 크리에이터에 대해 명시적 true/false 설정 */
         allBtns.forEach(function(btn){
           var k=btn.dataset.cname+'__'+btn.dataset.cprov;
           _followStateCache[k]=!!d.followingSet[k];
         });
-        /* API 응답의 팔로우 목록도 반영 */
         Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
         _followBatchLoaded=true;
         _followBatchLoadedAt=Date.now();
+        _saveFollowCache();
       }
       allBtns.forEach(_applyFollowToBtn);
     }).catch(function(){});
@@ -16515,30 +16544,8 @@ function _renderCreatorList(){
   /* 크리에이터 아바타 동기화 (users 테이블 기준) */
   _syncCreatorAvatars(list);
 
-  /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 (배치 캐시 활용) */
-  if(isLoggedIn){
-    const _applyCreatorFollowStates=()=>{
-      visibleKeys.forEach((key,gi)=>{
-        const g=groupMap[key];
-        if(_isMine(g))return;
-        const btn=list.querySelector('[data-creator-key="'+gi+'"] .comm-creator-follow-btn');
-        if(!btn)return;
-        _applyFollowToBtn(btn);
-      });
-    };
-    if(_followBatchLoaded){
-      _applyCreatorFollowStates();
-    }else{
-      fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
-        .then(r=>r.json()).then(d=>{
-          if(d.ok&&d.followingSet){
-            Object.keys(d.followingSet).forEach(k=>{_followStateCache[k]=true;});
-            _followBatchLoaded=true;
-          }
-          _applyCreatorFollowStates();
-        }).catch(()=>{});
-    }
-  }
+  /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 — 공통 함수 사용 */
+  if(isLoggedIn) _loadCommFollowStates(list);
 }
 
 /* 크리에이터 카드 클릭 → 좋아요 1위 곡 재생 + 프로필 뷰 이동 */
@@ -16573,6 +16580,7 @@ async function _creatorFollowToggle(btn){
     if(d.ok){
       const nowFollowing=!isFollowing;
       _followStateCache[name+'__'+prov]=nowFollowing;
+      _saveFollowCache();
       _notifyBot((nowFollowing?'\uD83D\uDC65 \uD314\uB85C\uC6B0':'\uD83D\uDC64 \uC5B8\uD314\uB85C\uC6B0')+'\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+' \u2192 '+name);
       /* 팔로잉 피드 캐시 무효화 */
       _followFeedCache=null;_followFeedAt=0;
