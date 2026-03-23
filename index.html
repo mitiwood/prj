@@ -16283,10 +16283,11 @@ function _renderCommContent(heroWrap, list){
         var sid=t._sbId||'';
         var rc=_getChartRankChange(sid,i);
         html+='<div class="comm-chart-item" onclick="commPlaySb(\''+sid+'\')">';
-        html+='<span class="comm-chart-rank">'+medal+'</span>';
-        html+='<div class="comm-chart-thumb">'+((t.img&&!_isBlockedImgHost(t.img))?'<img src="'+esc(t.img)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div style=width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px>🎵</div>\'">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:14px;">🎵</div>')+'</div>';
         var _o=t._owner||{};
-        html+='<div class="comm-chart-info"><div class="comm-chart-name">'+esc(t.title||'무제')+'</div><div class="comm-chart-meta"><span style="display:inline-flex;align-items:center;gap:3px;">'+((_o.avatar&&!_isBlockedImgHost(_o.avatar))?'<img src="'+esc(_o.avatar)+'" style="width:14px;height:14px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'')+esc(_o.name||'')+'</span><span>❤️ '+(t.likes||0)+'</span><span>▶ '+(t.plays||0)+'</span></div></div>';
+        var _av=_o.avatar||'';
+        html+='<span class="comm-chart-rank">'+medal+'</span>';
+        html+='<div class="comm-chart-thumb" style="border-radius:50%;overflow:hidden;">'+((_av&&!_isBlockedImgHost(_av))?'<img src="'+esc(_av)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div style=width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:16px>👤</div>\'">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0a2e,#2d1a4a);font-size:16px;">👤</div>')+'</div>';
+        html+='<div class="comm-chart-info"><div class="comm-chart-name">'+esc(t.title||'무제')+'</div><div class="comm-chart-meta"><span>'+esc(_o.name||'')+'</span><span>❤️ '+(t.likes||0)+'</span><span>▶ '+(t.plays||0)+'</span></div></div>';
         html+='<span class="comm-chart-change '+rc.cls+'">'+rc.txt+'</span>';
         html+='</div>';
         allListTracks.push(t);
