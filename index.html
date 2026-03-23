@@ -3830,7 +3830,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .pv-track-item.playing .pv-track-play-btn{background:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4);}
 .pv-track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .pv-track-row1{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-track-row2{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;}
+.pv-track-row2{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pv-track-row3{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3);}
 .pv-track-row3 .pv-act-btn{background:none;border:1px solid var(--border);color:var(--t3);cursor:pointer;font-size:10px;padding:3px 8px;border-radius:12px;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
 .pv-track-row3 .pv-act-btn:hover{border-color:var(--acc);color:var(--acc);}
@@ -19173,7 +19173,7 @@ function openCreatorProfile(name, provider){
             <div class="pv-track-row3">
               <button class="pv-act-btn${isLiked?' active':''}" data-pv-like="${esc(t.id)}" onclick="event.stopPropagation();_pvLike('${esc(t.id)}',this)">❤️ <span>${likes}</span></button>
               <button class="pv-act-btn${isDisliked?' disliked':''}" data-pv-dislike="${esc(t.id)}" onclick="event.stopPropagation();_pvDislike('${esc(t.id)}',this)">👎 <span>${dislikes}</span></button>
-              <button class="pv-act-btn" onclick="event.stopPropagation();_pvShareTrack('${esc(t.id)}','${esc(t.title||'')}','${esc(t.audio_url||'')}','${esc(t.image_url||'')}')">↗ 공유</button>
+              <button class="pv-act-btn" data-pv-share="${esc(t.id)}" data-pv-title="${esc(t.title||'')}" data-pv-audio="${esc(t.audio_url||'')}" data-pv-img="${esc(t.image_url||'')}" onclick="event.stopPropagation();_pvShareFromBtn(this)">↗ 공유</button>
             </div>
           </div>
           <div class="pv-track-play-btn pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
@@ -19230,12 +19230,20 @@ window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
 
 function _pvShareTrack(id,title,audioUrl,imgUrl){
-  const url=_buildShareUrl?_buildShareUrl(audioUrl,title,imgUrl):(window.location.origin+'/api/share?t='+encodeURIComponent(title)+'&play='+encodeURIComponent(audioUrl)+'&img='+encodeURIComponent(imgUrl));
+  var params=new URLSearchParams({t:title||'AI Music'});
+  if(id)params.set('trackId',id);
+  if(audioUrl)params.set('play',audioUrl);
+  if(imgUrl)params.set('img',imgUrl);
+  var url=window.location.origin+'/api/share?'+params.toString();
   if(navigator.share){
-    navigator.share({title:title||'AI Music',text:'🎵 AI로 만든 음악을 들어봐!',url}).catch(()=>{});
+    navigator.share({title:title||'AI Music',text:'🎵 AI로 만든 음악을 들어봐!',url:url}).catch(function(){});
   } else {
-    navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
+    navigator.clipboard.writeText(url).then(function(){toast('🔗 링크 복사됨!','ok',1500);}).catch(function(){toast('복사 실패','err');});
   }
+}
+function _pvShareFromBtn(btn){
+  var d=btn.dataset;
+  _pvShareTrack(d.pvShare||'',d.pvTitle||'',d.pvAudio||'',d.pvImg||'');
 }
 function _pvLike(sbId,btn){
   if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
