@@ -9624,7 +9624,9 @@ async function generate(overrideParams){
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
     const _ytStyleStr = overrideParams?.styleStr || styleStr;
-    const body={prompt,customMode:isCustom||isYT,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
+    /* customMode: 가사 500자 초과 시 강제 true (kie.ai 제한) */
+    const _forceCustom = (prompt||'').length > 400;
+    const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
     else if(isCustom && (subGenre||moodVal)){ body.style = styleStr||moodVal; }
     if(negTags)body.negativeTags=negTags;
@@ -9715,7 +9717,7 @@ async function generate(overrideParams){
     clearInterval(typeof _tipTimer!=='undefined'?_tipTimer:null);
     let errMsg = e.message;
     const isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
-    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !_retryAttempted;
+    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && !_retryAttempted;
 
     /* 자동 재시도 (1회, 민감단어/크레딧 제외) */
     if(isRetryable){
@@ -9757,7 +9759,8 @@ function _showGeneratingPopup(){
     <div style="font-size:32px;margin-bottom:12px;">⏳</div>
     <div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">음악 생성 중이에요</div>
     <div style="font-size:13px;color:#a09ab8;margin-bottom:20px;line-height:1.6;">현재 음악을 생성하고 있어요.<br>한 곡이 완성되면 다시 시도해주세요!</div>
-    <button onclick="document.getElementById('_gen_alert_overlay').remove()" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">확인</button>
+    <button onclick="document.getElementById('_gen_alert_overlay').remove()" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">확인</button>
+    <button onclick="document.getElementById('_gen_alert_overlay').remove();_globalGenerating=false;_syncGenButtons();document.getElementById('loading-card')?.classList.remove('on');toast('생성 취소됨','',1500);" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#f87171;font-size:13px;cursor:pointer;font-family:inherit;">⛔ 강제 취소</button>
   </div>`;
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
