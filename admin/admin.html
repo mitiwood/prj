@@ -51,7 +51,8 @@ thead tr{background:rgba(255,255,255,.03);}
 th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--t3);border-bottom:1px solid var(--border);}
 td{padding:10px 16px;font-size:12px;color:var(--t2);border-bottom:1px solid rgba(255,255,255,.04);}
 tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(255,255,255,.02);}
+tr:hover td{background:rgba(124,58,237,.03);}
+tr[style*="cursor:pointer"]:hover td{background:rgba(124,58,237,.06);}
 .td-title{font-weight:600;color:var(--t1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .td-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;}
 .td-thumb img{width:100%;height:100%;border-radius:8px;object-fit:cover;}
@@ -198,6 +199,7 @@ textarea.form-input{line-height:1.5;}
       <div class="snav-item" data-sec="claude" onclick="switchSec('claude')"><span class="snav-icon">🤖</span>Claude 사용량</div>
       <div class="snav-item" data-sec="ops" onclick="switchSec('ops')"><span class="snav-icon">🤖</span>운영 도구</div>
       <div class="snav-item" data-sec="live" onclick="switchSec('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
+      <div class="snav-item" data-sec="attendance" onclick="switchSec('attendance')"><span class="snav-icon">📅</span>출석 관리</div>
       <div class="snav-item" data-sec="challenges" onclick="switchSec('challenges')"><span class="snav-icon">🔥</span>챌린지</div>
       <div class="snav-item" data-sec="push" onclick="switchSec('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
       <div class="snav-item snav-divider"></div>
@@ -496,8 +498,9 @@ textarea.form-input{line-height:1.5;}
         <div class="admin-table-wrap">
           <div class="admin-table-header">
             <h3>최근 생성 트랙</h3>
+            <span style="font-size:11px;color:var(--t3);" id="recent-tracks-count"></span>
           </div>
-          <table><thead><tr><th>커버</th><th>제목</th><th>모드</th><th>생성일</th><th>❤️</th><th>▶️</th><th>공개</th><th>관리</th></tr></thead>
+          <table><thead><tr><th>커버</th><th>제목</th><th>크리에이터</th><th>모드</th><th>생성일</th><th>❤️</th><th>▶️</th><th>관리</th></tr></thead>
           <tbody id="recent-tbody"></tbody></table>
         </div>
       </div>
@@ -1144,6 +1147,79 @@ textarea.form-input{line-height:1.5;}
       </div>
 
       <!-- 챌린지 관리 -->
+      <!-- ══ 출석 관리 ══ -->
+      <div class="admin-section" id="sec-attendance">
+        <div class="sec-hdr"><h2>📅 출석 관리</h2><p>출석 현황, 스트릭 통계, 보너스 크레딧 관리</p></div>
+
+        <!-- 상단 요약 카드 -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-val" id="att-today-count">-</div><div class="stat-label">오늘 출석</div></div>
+          <div class="stat-card"><div class="stat-val" id="att-month-total">-</div><div class="stat-label">이번 달 출석 수</div></div>
+          <div class="stat-card"><div class="stat-val" id="att-unique-users">-</div><div class="stat-label">활성 유저</div></div>
+          <div class="stat-card"><div class="stat-val" id="att-total-bonus">-</div><div class="stat-label">지급 보너스 (곡)</div></div>
+        </div>
+
+        <!-- 스트릭 분포 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;">
+          <div class="admin-table-header"><h3>스트릭 분포</h3></div>
+          <div style="padding:16px;" id="att-streak-dist">
+            <div style="color:var(--t3);font-size:12px;">로딩 중...</div>
+          </div>
+        </div>
+
+        <!-- 일별 출석 차트 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;">
+          <div class="admin-table-header"><h3>일별 출석 추이 (이번 달)</h3></div>
+          <div style="padding:16px;overflow-x:auto;" id="att-daily-chart">
+            <div style="color:var(--t3);font-size:12px;">로딩 중...</div>
+          </div>
+        </div>
+
+        <!-- 보상 규칙 설정 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;">
+          <div class="admin-table-header"><h3>보상 규칙 (현재 적용 중)</h3></div>
+          <div style="padding:16px;" id="att-rules">
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+              <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;"><b>3일 연속</b> → +1곡</div>
+              <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;"><b>7일 연속</b> → +3곡</div>
+              <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;"><b>14일 연속</b> → +5곡</div>
+              <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:12px;"><b>30일 연속</b> → +10곡</div>
+              <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#f59e0b;"><b>복귀 보너스</b> (3일 미접속) → +2곡</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 수동 보너스 지급 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(34,197,94,.3);">
+          <div class="admin-table-header" style="background:rgba(34,197,94,.06);"><h3>수동 보너스 지급 / 출석 초기화</h3></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input class="form-input" id="att-target-name" placeholder="유저 이름" style="flex:2;min-width:120px;">
+              <select class="form-input" id="att-target-provider" style="flex:1;min-width:100px;">
+                <option value="google">Google</option>
+                <option value="kakao">Kakao</option>
+                <option value="naver">Naver</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input class="form-input" id="att-bonus-amount" type="number" placeholder="보너스 크레딧 (곡)" value="5" style="flex:1;">
+              <button class="btn btn-acc" onclick="_grantAttBonus()" style="padding:10px 20px;">보너스 지급</button>
+              <button class="btn" onclick="_resetAttStreak()" style="padding:10px 20px;background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.3);">출석 초기화</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 오늘 출석자 목록 -->
+        <div class="admin-table-wrap" style="margin-bottom:20px;">
+          <div class="admin-table-header"><h3>오늘 출석자</h3></div>
+          <div id="att-today-empty" style="text-align:center;padding:32px;color:var(--t3);"><div style="font-size:28px;margin-bottom:8px;">📅</div>아직 출석자가 없습니다</div>
+          <table id="att-today-table" style="display:none;">
+            <thead><tr><th>유저</th><th>Provider</th><th>스트릭</th><th>보너스</th><th>출석 시간</th></tr></thead>
+            <tbody id="att-today-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="admin-section" id="sec-challenges">
         <div class="sec-hdr"><h2>🔥 챌린지 관리</h2><p>커뮤니티 챌린지/이벤트 생성 및 관리</p></div>
         <div class="admin-table-wrap" style="margin-bottom:20px;border:1px solid rgba(239,68,68,.35);">
@@ -2237,6 +2313,10 @@ textarea.form-input{line-height:1.5;}
       <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">최근 생성 곡</div>
       <div id="ud-tracks-list" style="max-height:200px;overflow-y:auto;"></div>
     </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📋 시스템 로그</div>
+      <div id="ud-system-logs" style="max-height:180px;overflow-y:auto;font-size:11px;color:var(--t3);">로딩 중...</div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn" id="ud-push-btn" style="flex:1;font-size:12px;">🔔 알림 보내기</button>
       <button class="btn" id="ud-bulk-plan-btn" onclick="_bulkPlanModal()" style="flex:1;font-size:12px;">💜 벌크 플랜</button>
@@ -2389,7 +2469,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',errors:'🚨 에러 모니터',sentry:'🛡️ Sentry'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',attendance:'📅 출석 관리',errors:'🚨 에러 모니터',sentry:'🛡️ Sentry'};
   document.getElementById('sec-title').textContent=titles[id]||id;
   if(id==='tracks')renderTracksAdmin();
   if(id==='community')renderCommunityAdmin(false);
@@ -2405,6 +2485,7 @@ function switchSec(id){
   if(id==='database') loadDatabaseInfo();
   if(id==='audit') renderAuditLog();
   if(id==='settings') _updateSysInfo();
+  if(id==='attendance') loadAttendanceAdmin();
   if(id==='sentry') loadSentryDashboard();
 }
 
@@ -2642,11 +2723,13 @@ function getUser(){
 }
 
 function _mapTrack(t){
+  var c=t.created||t.created_at||0;
+  if(typeof c==='string') c=new Date(c).getTime()||0;
   return {
     id:t.id, taskId:t.task_id||'', title:t.title||'무제',
     audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
     tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
-    created:t.created||0, _commLikes:t.comm_likes||0, _commPlays:t.comm_plays||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
+    created:c, _commLikes:t.comm_likes||0, _commPlays:t.comm_plays||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
     _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
   };
 }
@@ -2827,20 +2910,34 @@ async function loadData(){
   const lbEl=document.getElementById('dash-likes-bar');if(lbEl)lbEl.style.width=Math.round(totalLikes/plTotal*100)+'%';
 
   const tbody=document.getElementById('recent-tbody');
-  if(tbody) tbody.innerHTML=h.slice(0,10).map((t,i)=>`
-    <tr>
+  const recentList=[...h].sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,10);
+  const rcEl=document.getElementById('recent-tracks-count');
+  if(rcEl) rcEl.textContent='최근 10곡 / 전체 '+h.length+'곡';
+  if(tbody) tbody.innerHTML=recentList.map((t,i)=>{
+    const owner=t._owner;
+    const isGuest=!owner||owner.provider==='guest';
+    const provCol={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn'};
+    const pc=provCol[owner&&owner.provider||'']||'badge-acc';
+    const avHtml=owner&&owner.avatar&&owner.avatar.startsWith('http')?`<img src="${esc(owner.avatar)}" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.style.display='none'">`:'';
+    const ownerBadge=isGuest
+      ?'<span class="badge" style="background:rgba(255,255,255,.08);color:var(--t3);">게스트</span>'
+      :(avHtml+`<span class="badge ${pc}">${esc((owner&&owner.name)||'?')}</span>`);
+    const timeStr=t.created?new Date(t.created).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const modeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[t.genMode||'custom']||'?';
+    return `<tr>
       <td><div class="td-thumb">${t.image_url?`<img src="${esc(t.image_url)}">`:'🎵'}</div></td>
-      <td class="td-title">${esc(t.title||'무제')}</td>
-      <td><span class="badge badge-acc">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[t.genMode||'custom']||'?'}</span></td>
-      <td>${t.created?new Date(t.created).toLocaleDateString('ko-KR'):'—'}</td>
+      <td class="td-title">${esc(t.title||'무제')}<div style="font-size:9px;color:var(--t3);font-weight:400;">❤️${t._commLikes||0} ▶${t._commPlays||0}</div></td>
+      <td>${ownerBadge}</td>
+      <td><span class="badge badge-acc">${modeLabel}</span></td>
+      <td style="font-size:11px;white-space:nowrap;">${timeStr}</td>
       <td>${t._commLikes||0}</td>
       <td>${t._commPlays||0}</td>
-      <td><span class="badge ${t._owner?'badge-grn':'badge-ylw'}">${t._owner?'공개':'비공개'}</span></td>
       <td><div class="table-action-row">
-        ${t.audio_url?`<button class="btn" onclick="window.open('${esc(t.audio_url)}')">▶</button>`:''}
-        <button class="btn btn-red" onclick="deleteTrack(${i})">🗑</button>
+        ${t.audio_url?`<button class="btn btn-acc" onclick="adminPlayTrack('${esc(t.audio_url)}','${esc(t.title||'track')}',this,-1)" style="padding:4px 10px;font-size:11px;">▶ 재생</button>`:''}
+        <button class="btn btn-red" onclick="_recentDeleteTrack('${t.id}')" style="padding:4px 8px;font-size:11px;">🗑</button>
       </div></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   // Chart.js 차트 렌더링
   renderDashboardCharts();
@@ -3147,6 +3244,7 @@ function filterTracks(){
     const userMatch  = !u || (u==='guest'?isGuest:!isGuest);
     return titleMatch && modeMatch && userMatch;
   });
+  filtered.sort((a,b)=>(b.created||0)-(a.created||0));
   _filteredTracks=filtered;
   renderTracksTable(filtered);
 }
@@ -3261,6 +3359,16 @@ function deleteTrackByIdx(i){
   adminToast('✅ 삭제됨');renderTracksAdmin();loadData();
 }
 function deleteTrack(i){deleteTrackByIdx(i);}
+async function _recentDeleteTrack(id){
+  if(!id){adminToast('❌ 트랙 ID 없음');return;}
+  if(!confirm('이 트랙을 삭제할까요?'))return;
+  try{
+    const r=await adminFetch('/api/tracks?id='+encodeURIComponent(id),{method:'DELETE'});
+    const d=await r.json();
+    if(d.success){adminToast('✅ 삭제 완료');await loadData();}
+    else{adminToast('❌ 삭제 실패: '+(d.error||''));}
+  }catch(e){adminToast('❌ 오류: '+e.message);}
+}
 
 // ── 커뮤니티 관리 ──
 async function kieProxyRequest(apiKey, path, method='GET', body=null){
@@ -4069,14 +4177,14 @@ function _sortAndRenderUsers(){
     const timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const cInfo=_creatorMap[u.name+'__'+u.provider];
     const planBadge={creator:'<span style="color:#f59e0b;font-weight:700;">👑</span>',pro:'<span style="color:var(--acc2);font-weight:700;">💜</span>'}[u.plan||'free']||'';
-    return '<tr style="'+(isOnline?'background:rgba(34,197,94,.04);':'')+'">'
+    return '<tr style="cursor:pointer;'+(isOnline?'background:rgba(34,197,94,.04);':'')+'" onclick="if(!event.target.closest(\'select,button,.btn\')){_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\');}">'
       +'<td style="position:relative;">'
         +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
         +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
       +'</td>'
-      +'<td style="font-weight:600;cursor:pointer;color:var(--acc);" onclick="_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\')" title="상세 보기">'+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
+      +'<td style="font-weight:600;color:var(--acc);">'+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
       +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
-      +'<td>'+planBadge+' <select onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'
+      +'<td><select onclick="event.stopPropagation()" onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'+planBadge
         +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
         +'<option value="pro"'+(u.plan==='pro'?' selected':'')+'>Pro</option>'
         +'<option value="creator"'+(u.plan==='creator'?' selected':'')+'>Creator</option>'
@@ -4085,8 +4193,8 @@ function _sortAndRenderUsers(){
       +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(isOnline?'<div style="font-size:9px;color:var(--grn);">🟢 온라인</div>':'')+'</td>'
       +'<td style="text-align:center;">'+(cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—')+'</td>'
       +'<td><div style="display:flex;gap:4px;">'
-        +'<button class="btn" onclick="sendPushToUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;" title="푸시 알림">🔔</button>'
-        +'<button class="btn btn-red" onclick="banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;" title="차단">🚫</button>'
+        +'<button class="btn" onclick="event.stopPropagation();sendPushToUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;" title="푸시 알림">🔔</button>'
+        +'<button class="btn btn-red" onclick="event.stopPropagation();banUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;" title="차단">🚫</button>'
       +'</div></td>'
       +'</tr>';
   }).join('');
@@ -5999,7 +6107,39 @@ function openUserDetail(userName, provider){
   document.getElementById('ud-push-btn').onclick = ()=>{ modal.style.display='none'; sendPushToUser(userName); };
   document.getElementById('ud-ban-btn').onclick  = ()=>{ modal.style.display='none'; banUser(userName); };
   modal.style.display = 'flex';
+
+  /* 시스템 로그 (트랙 동기화/실패) 로드 */
+  const logsEl = document.getElementById('ud-system-logs');
+  logsEl.innerHTML = '<span style="color:var(--t3);">로딩 중...</span>';
+  _loadUserSystemLogs(userName, provider, logsEl);
 }
+
+async function _loadUserSystemLogs(userName, provider, el){
+  try{
+    const pw = getAdminPw();
+    const r = await fetch('/api/tracks?action=notifications&userName='+encodeURIComponent(userName)+'&userProvider='+encodeURIComponent(provider),{
+      headers:{'Authorization':'Bearer '+pw}
+    });
+    const d = await r.json();
+    const logs = (d.notifications||[]).filter(n=>n.type==='system');
+    if(!logs.length){
+      el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);">시스템 로그 없음</div>';
+      return;
+    }
+    el.innerHTML = logs.map(n=>{
+      const icon = n.title.includes('실패') ? '❌' : n.title.includes('동기화') ? '🔄' : '📋';
+      const time = n.created_at ? new Date(n.created_at).toLocaleString('ko-KR') : '';
+      let dataInfo = '';
+      try{ const dd=JSON.parse(n.data||'{}'); if(dd.trackId) dataInfo=' · ID:'+dd.trackId.slice(0,8); }catch{}
+      return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);">'+
+        '<div>'+icon+' <b>'+esc(n.title)+'</b></div>'+
+        '<div style="color:var(--t3);font-size:10px;">'+esc(n.body||'')+'</div>'+
+        '<div style="color:var(--t3);font-size:9px;margin-top:2px;">'+time+dataInfo+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML = '<div style="color:#ef4444;">로드 실패: '+esc(e.message)+'</div>';
+  }
 
 
 // ══════════════════════════════════════════════
@@ -6872,31 +7012,75 @@ async function _showUserDetail(name, provider){
   const daysSinceJoin=user.created_at?Math.floor((now-new Date(user.created_at).getTime())/DAY):'-';
   const loginsPerDay=daysSinceJoin>0?(_loginCount/daysSinceJoin).toFixed(2):'N/A';
 
-  /* 프로필 API 호출로 트랙 수 가져오기 */
+  /* 프로필 API + 출석 + 결제 + 트랙 병렬 호출 */
   let trackCount=0,totalLikes=0,totalPlays=0,followerCount=0,followingCount=0;
-  try{
-    const r=await fetch('/api/profile?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(provider));
-    const d=await r.json();
-    if(d.ok&&d.profile){
-      trackCount=d.profile.trackCount||0;
-      totalLikes=d.profile.totalLikes||0;
-      totalPlays=d.profile.totalPlays||0;
-      followerCount=d.profile.followerCount||0;
-      followingCount=d.profile.followingCount||0;
-    }
-  }catch(e){console.warn('[detail]',e.message);}
+  let attData={todayChecked:false,currentStreak:0,monthCount:0,totalBonus:0,monthDays:[]};
+  let paymentList=[];
+  let userTracks=[];
+
+  const [profRes, attRes, payRes, trRes] = await Promise.allSettled([
+    fetch('/api/profile?name='+encodeURIComponent(name)+'&provider='+encodeURIComponent(provider)).then(r=>r.json()),
+    fetch('/api/attendance?userName='+encodeURIComponent(name)+'&userProvider='+encodeURIComponent(provider)).then(r=>r.json()),
+    fetch('/api/payments?userName='+encodeURIComponent(name)+'&userProvider='+encodeURIComponent(provider)).then(r=>r.json()).catch(()=>null),
+    fetch('/api/tracks?owner='+encodeURIComponent(name)+'&limit=50').then(r=>r.json()).catch(()=>null),
+  ]);
+  if(profRes.status==='fulfilled'&&profRes.value?.ok&&profRes.value.profile){
+    const p=profRes.value.profile;
+    trackCount=p.trackCount||0; totalLikes=p.totalLikes||0;
+    totalPlays=p.totalPlays||0; followerCount=p.followerCount||0; followingCount=p.followingCount||0;
+  }
+  if(attRes.status==='fulfilled'&&attRes.value?.ok) attData=attRes.value;
+  if(payRes.status==='fulfilled'&&payRes.value?.payments) paymentList=payRes.value.payments;
+  if(trRes.status==='fulfilled'){
+    const td=trRes.value;
+    userTracks=(td?.tracks||td?.data||[]).filter(t=>t._owner?.name===name||t.owner_name===name).slice(0,10);
+  }
+
+  /* 출석 캘린더 HTML */
+  const calNow=new Date(), calY=calNow.getFullYear(), calM=calNow.getMonth();
+  const calFd=new Date(calY,calM,1).getDay(), calDim=new Date(calY,calM+1,0).getDate();
+  const calChecked=new Set((attData.monthDays||[]).map(x=>parseInt(x.split('-')[2])));
+  let calHtml='';
+  for(let i=0;i<calFd;i++) calHtml+='<div style="width:24px;height:24px;"></div>';
+  for(let d=1;d<=calDim;d++){
+    const chk=calChecked.has(d);
+    const isToday=d===calNow.getDate();
+    calHtml+='<div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;'
+      +(chk?'background:var(--acc);color:#fff;':'color:var(--t3);')
+      +(isToday&&!chk?'border:1px solid var(--acc);':'')
+      +'">'+d+'</div>';
+  }
+
+  /* 결제 내역 HTML */
+  const payHtml=paymentList.length?paymentList.slice(0,5).map(p=>{
+    const dt=p.created_at?new Date(p.created_at).toLocaleDateString('ko-KR'):'—';
+    const st=p.status==='DONE'?'<span style="color:var(--grn);">완료</span>':'<span style="color:var(--red);">'+_esc(p.status)+'</span>';
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">'
+      +'<span>'+_esc(p.plan||'')+'</span><span>'+Number(p.amount||0).toLocaleString()+'원</span><span>'+st+'</span><span style="color:var(--t3);">'+dt+'</span></div>';
+  }).join(''):'<div style="font-size:11px;color:var(--t3);padding:8px 0;">결제 내역 없음</div>';
+
+  /* 트랙 목록 HTML */
+  const trHtml=userTracks.length?userTracks.map(t=>{
+    const dt=t.created_at?new Date(t.created_at).toLocaleDateString('ko-KR'):'';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'
+      +(t.image_url?'<img src="'+_esc(t.image_url)+'" style="width:28px;height:28px;border-radius:6px;object-fit:cover;">':'<div style="width:28px;height:28px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;">🎵</div>')
+      +'<div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_esc(t.title||'무제')+'</div>'
+      +'<div style="font-size:9px;color:var(--t3);">'+_esc(t.tags||'').slice(0,40)+' · '+dt+'</div></div>'
+      +'<div style="font-size:10px;color:var(--t3);">❤️ '+(t.comm_likes||t.likes||0)+'</div></div>';
+  }).join(''):'<div style="font-size:11px;color:var(--t3);padding:8px 0;">공유된 곡 없음</div>';
 
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
   modal.onclick=e=>{if(e.target===modal)modal.remove();};
-  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:480px;max-width:90vw;max-height:85vh;overflow-y:auto;">
+  modal.innerHTML=`<div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:28px;width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <h3 style="font-size:16px;font-weight:800;">회원 상세 정보</h3>
       <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
     </div>
 
+    <!-- 프로필 헤더 -->
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:14px;">
-      ${_isImgUrl(user.avatar)?'<img src="'+_esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.outerHTML=\'<div style=width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px>👤</div>\'">':'<div style="width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>'}
+      ${_isImgUrl(user.avatar)?'<img src="'+_esc(user.avatar)+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;" onerror="if(this.parentNode)this.parentNode.textContent=\'👤\'">':'<div style="width:56px;height:56px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>'}
       <div>
         <div style="font-size:16px;font-weight:800;">${_esc(user.name)}</div>
         <div style="font-size:12px;color:var(--t3);">${pi} &middot; ${pb}</div>
@@ -6904,7 +7088,8 @@ async function _showUserDetail(name, provider){
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+    <!-- 주요 지표 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:800;color:var(--acc);">${_loginCount}</div>
         <div style="font-size:10px;color:var(--t3);">총 로그인</div>
@@ -6915,10 +7100,9 @@ async function _showUserDetail(name, provider){
       </div>
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:800;color:#f59e0b;">${user.credits_song||0}</div>
-        <div style="font-size:10px;color:var(--t3);">잔여 곡 크레딧</div>
+        <div style="font-size:10px;color:var(--t3);">잔여 크레딧</div>
       </div>
     </div>
-
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
       <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:800;color:var(--red);">❤️ ${totalLikes}</div>
@@ -6934,6 +7118,21 @@ async function _showUserDetail(name, provider){
       </div>
     </div>
 
+    <!-- 출석 정보 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--t1);">📅 출석 현황</div>
+        <div style="display:flex;gap:10px;font-size:11px;">
+          <span>🔥 <b style="color:var(--acc);">${attData.currentStreak||0}</b>일 연속</span>
+          <span>이번 달 <b>${attData.monthCount||0}</b>일</span>
+          <span>보너스 <b style="color:var(--grn);">+${attData.totalBonus||0}</b>곡</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;">${calHtml}</div>
+      <div style="margin-top:8px;font-size:10px;color:var(--t3);">오늘: ${attData.todayChecked?'<span style="color:var(--grn);">✅ 출석 완료</span>':'<span style="color:var(--red);">⏳ 미출석</span>'}</div>
+    </div>
+
+    <!-- 활동 요약 -->
     <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;">
       <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--t1);">활동 요약</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
@@ -6946,13 +7145,37 @@ async function _showUserDetail(name, provider){
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-acc" onclick="_changePlan('${_esc(user.name)}','${_esc(user.provider)}','pro');this.closest('div[style*=fixed]').remove();" style="flex:1;">💜 Pro 업그레이드</button>
-      <button class="btn" onclick="_notifyUser('${_esc(user.name)}','${_esc(user.provider)}')" style="flex:1;">📢 알림 발송</button>
-      <button class="btn btn-red" onclick="_suspendUser('${_esc(user.name)}','${_esc(user.provider)}');this.closest('div[style*=fixed]').remove();">🔒 정지</button>
+    <!-- 결제 내역 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t1);">💳 결제 내역</div>
+      ${payHtml}
+    </div>
+
+    <!-- 공유된 곡 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t1);">🎵 공유된 곡 (최근 ${userTracks.length}개)</div>
+      ${trHtml}
+    </div>
+
+    <!-- 관리 버튼 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-acc" onclick="_changePlan('${_esc(user.name)}','${_esc(user.provider)}','pro');this.closest('div[style*=fixed]').remove();" style="flex:1;min-width:100px;">💜 Pro 업그레이드</button>
+      <button class="btn" onclick="_notifyUser('${_esc(user.name)}','${_esc(user.provider)}')" style="flex:1;min-width:100px;">📢 알림 발송</button>
+      <button class="btn" onclick="_grantBonusFromDetail('${_esc(user.name)}','${_esc(user.provider)}')" style="flex:1;min-width:100px;color:var(--grn);border-color:rgba(34,197,94,.3);">🎁 보너스 지급</button>
+      <button class="btn btn-red" onclick="_suspendUser('${_esc(user.name)}','${_esc(user.provider)}');this.closest('div[style*=fixed]').remove();" style="min-width:80px;">🔒 정지</button>
     </div>
   </div>`;
   document.body.appendChild(modal);
+}
+
+function _grantBonusFromDetail(name, provider){
+  const amount=prompt(name+'에게 지급할 보너스 크레딧 (곡 수):','5');
+  if(!amount||isNaN(amount)||parseInt(amount)<=0)return;
+  fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({admin:true,action:'grant_bonus',targetName:name,targetProvider:provider,credits:parseInt(amount)})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok) adminToast('✅ '+d.message);
+      else adminToast('실패','err');
+    }).catch(e=>adminToast('오류: '+e.message,'err'));
 }
 
 
@@ -7930,6 +8153,117 @@ async function openSentryDetail(id){
   }catch(e){
     content.innerHTML='<div style="color:#ef4444;">'+_esc(e.message)+'</div>';
   }
+}
+
+/* ══════════════════════════════════════════════
+   출석 관리
+══════════════════════════════════════════════ */
+async function loadAttendanceAdmin(){
+  try{
+    const r=await fetch('/api/attendance?admin=true');
+    const d=await r.json();
+    if(!d.ok){adminToast('출석 데이터 로드 실패','err');return;}
+
+    /* 상단 요약 카드 */
+    document.getElementById('att-today-count').textContent=d.todayCount||0;
+    document.getElementById('att-month-total').textContent=d.monthTotal||0;
+    document.getElementById('att-unique-users').textContent=d.uniqueUsers||0;
+    document.getElementById('att-total-bonus').textContent=d.totalBonus||0;
+
+    /* 스트릭 분포 바 차트 */
+    const dist=d.streakDist||{};
+    const buckets=['1-2','3-6','7-13','14-29','30+'];
+    const colors=['#6b7280','#3b82f6','#22c55e','#f59e0b','#ef4444'];
+    const maxVal=Math.max(1,...buckets.map(b=>dist[b]||0));
+    const distEl=document.getElementById('att-streak-dist');
+    distEl.innerHTML=buckets.map((b,i)=>{
+      const v=dist[b]||0;
+      const pct=Math.round(v/maxVal*100);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'+
+        '<div style="width:50px;font-size:12px;font-weight:600;color:var(--t2);text-align:right;">'+b+'일</div>'+
+        '<div style="flex:1;height:24px;background:var(--bg3);border-radius:6px;overflow:hidden;">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+colors[i]+';border-radius:6px;min-width:'+(v?'4px':'0')+';transition:width .3s;"></div>'+
+        '</div>'+
+        '<div style="width:40px;font-size:12px;font-weight:700;color:var(--t1);">'+v+'명</div>'+
+      '</div>';
+    }).join('');
+
+    /* 일별 출석 차트 */
+    const daily=d.dailyCounts||{};
+    const dates=Object.keys(daily).sort();
+    const maxDay=Math.max(1,...dates.map(d2=>daily[d2]||0));
+    const chartEl=document.getElementById('att-daily-chart');
+    if(dates.length){
+      chartEl.innerHTML='<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">'+
+        dates.map(dt=>{
+          const v=daily[dt]||0;
+          const h=Math.round(v/maxDay*100);
+          const day=dt.split('-')[2];
+          const isToday=dt===new Date().toISOString().slice(0,10);
+          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:16px;">'+
+            '<div style="font-size:9px;color:var(--t2);margin-bottom:2px;">'+v+'</div>'+
+            '<div style="width:100%;height:'+h+'px;min-height:2px;background:'+(isToday?'var(--acc)':'#3b82f6')+';border-radius:3px 3px 0 0;"></div>'+
+            '<div style="font-size:8px;color:var(--t3);margin-top:3px;">'+day+'</div>'+
+          '</div>';
+        }).join('')+
+      '</div>';
+    }else{
+      chartEl.innerHTML='<div style="color:var(--t3);font-size:12px;">데이터 없음</div>';
+    }
+
+    /* 오늘 출석자 테이블 */
+    const tbody=document.getElementById('att-today-tbody');
+    const table=document.getElementById('att-today-table');
+    const empty=document.getElementById('att-today-empty');
+    if(d.todayUsers&&d.todayUsers.length){
+      table.style.display='';
+      empty.style.display='none';
+      tbody.innerHTML=d.todayUsers.map(u=>{
+        const t=u.time?new Date(u.time).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'—';
+        return '<tr>'+
+          '<td><b>'+_esc(u.name)+'</b></td>'+
+          '<td><span style="font-size:10px;background:rgba(124,58,237,.1);padding:2px 6px;border-radius:4px;">'+_esc(u.provider)+'</span></td>'+
+          '<td style="text-align:center;"><span style="color:'+(u.streak>=7?'#22c55e':u.streak>=3?'#f59e0b':'var(--t2)')+';">'+u.streak+'일</span></td>'+
+          '<td style="text-align:center;">'+(u.bonus?'<span style="color:#22c55e;font-weight:700;">+'+u.bonus+'곡</span>':'—')+'</td>'+
+          '<td style="font-size:11px;color:var(--t3);">'+t+'</td>'+
+        '</tr>';
+      }).join('');
+    }else{
+      table.style.display='none';
+      empty.style.display='';
+    }
+  }catch(e){
+    console.error('[attendance-admin]',e);
+    adminToast('출석 관리 로드 오류: '+e.message,'err');
+  }
+}
+
+async function _grantAttBonus(){
+  const name=document.getElementById('att-target-name').value.trim();
+  const provider=document.getElementById('att-target-provider').value;
+  const credits=parseInt(document.getElementById('att-bonus-amount').value)||0;
+  if(!name){adminToast('유저 이름을 입력하세요','err');return;}
+  if(credits<=0){adminToast('보너스 크레딧을 1 이상 입력하세요','err');return;}
+  if(!confirm(name+'('+provider+')에게 '+credits+'곡 보너스를 지급하시겠습니까?'))return;
+  try{
+    const r=await fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({admin:true,action:'grant_bonus',targetName:name,targetProvider:provider,credits})});
+    const d=await r.json();
+    if(d.ok){adminToast(d.message,'ok');loadAttendanceAdmin();}
+    else adminToast('실패: '+(d.reason||''),'err');
+  }catch(e){adminToast('오류: '+e.message,'err');}
+}
+
+async function _resetAttStreak(){
+  const name=document.getElementById('att-target-name').value.trim();
+  const provider=document.getElementById('att-target-provider').value;
+  if(!name){adminToast('유저 이름을 입력하세요','err');return;}
+  if(!confirm(name+'('+provider+')의 출석 기록을 모두 초기화하시겠습니까? (되돌릴 수 없습니다)'))return;
+  try{
+    const r=await fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({admin:true,action:'reset_streak',targetName:name,targetProvider:provider})});
+    const d=await r.json();
+    if(d.ok){adminToast(d.message,'ok');loadAttendanceAdmin();}
+    else adminToast('실패: '+(d.reason||''),'err');
+  }catch(e){adminToast('오류: '+e.message,'err');}
 }
 </script>
 </body>
