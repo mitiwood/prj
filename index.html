@@ -3831,11 +3831,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .pv-track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .pv-track-row1{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pv-track-row2{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;}
-.pv-track-row3{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t3);}
-.pv-track-row3 span{display:flex;align-items:center;gap:2px;white-space:nowrap;}
-.pv-track-row3 .pv-share-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px;padding:0;font-family:inherit;transition:color .15s;}
-.pv-track-row3 .pv-share-btn:hover{color:var(--acc);}
-.pv-track-rating{color:#f59e0b;}
+.pv-track-row3{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3);}
+.pv-track-row3 .pv-act-btn{background:none;border:1px solid var(--border);color:var(--t3);cursor:pointer;font-size:10px;padding:3px 8px;border-radius:12px;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.pv-track-row3 .pv-act-btn:hover{border-color:var(--acc);color:var(--acc);}
+.pv-track-row3 .pv-act-btn.active{border-color:rgba(239,68,68,.4);color:#ef4444;background:rgba(239,68,68,.06);}
+.pv-track-row3 .pv-act-btn.disliked{border-color:rgba(59,130,246,.4);color:#3b82f6;background:rgba(59,130,246,.06);}
 .pv-track-play-btn{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -19159,21 +19159,21 @@ function openCreatorProfile(name, provider){
         const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR',{year:'2-digit',month:'numeric',day:'numeric'}) : '';
         const likes = t.comm_likes||0;
         const dislikes = t.comm_dislikes||0;
-        const rating = t.comm_rating||0;
-        const durStr = t.duration ? formatTime(t.duration) : '';
-        const stars = rating > 0 ? '★'.repeat(Math.round(rating))+'☆'.repeat(5-Math.round(rating)) : '';
+        const tagFirst = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,2).join(' · ');
+        const _sbT = _sbTracks?.find(x=>x._sbId===t.id);
+        const isLiked = _sbT?.liked || false;
+        const isDisliked = _sbT?.disliked || false;
         return `<div class="pv-track-item${_pvPlaying?' playing':''}" data-sbid="${esc(t.id)}" onclick="commPlaySb('${esc(t.id)}')">
           <div class="pv-track-info">
             <div class="pv-track-row1">${esc(t.title||'무제')}</div>
             <div class="pv-track-row2">
               ${dateStr?`<span>${dateStr}</span>`:''}
-              ${durStr?`<span>${durStr}</span>`:''}
+              ${tagFirst?`<span>${esc(tagFirst)}</span>`:''}
             </div>
             <div class="pv-track-row3">
-              <span>❤️ ${likes}</span>
-              <span>👎 ${dislikes}</span>
-              ${stars?`<span class="pv-track-rating">${stars}</span>`:''}
-              <button class="pv-share-btn" onclick="event.stopPropagation();_pvShareTrack('${esc(t.id)}','${esc(t.title||'')}','${esc(t.audio_url||'')}','${esc(t.image_url||'')}')">↗ 공유</button>
+              <button class="pv-act-btn${isLiked?' active':''}" data-pv-like="${esc(t.id)}" onclick="event.stopPropagation();_pvLike('${esc(t.id)}',this)">❤️ <span>${likes}</span></button>
+              <button class="pv-act-btn${isDisliked?' disliked':''}" data-pv-dislike="${esc(t.id)}" onclick="event.stopPropagation();_pvDislike('${esc(t.id)}',this)">👎 <span>${dislikes}</span></button>
+              <button class="pv-act-btn" onclick="event.stopPropagation();_pvShareTrack('${esc(t.id)}','${esc(t.title||'')}','${esc(t.audio_url||'')}','${esc(t.image_url||'')}')">↗ 공유</button>
             </div>
           </div>
           <div class="pv-track-play-btn pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
@@ -19236,6 +19236,28 @@ function _pvShareTrack(id,title,audioUrl,imgUrl){
   } else {
     navigator.clipboard.writeText(url).then(()=>toast('🔗 링크 복사됨!','ok',1500)).catch(()=>toast('복사 실패','err'));
   }
+}
+function _pvLike(sbId,btn){
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  commLikeSb(sbId);
+  /* UI 즉시 반영 */
+  var isNowLiked=btn.classList.toggle('active');
+  var countEl=btn.querySelector('span');
+  if(countEl){var v=parseInt(countEl.textContent)||0;countEl.textContent=isNowLiked?v+1:Math.max(0,v-1);}
+  /* 싫어요 해제 */
+  var disBtn=btn.parentNode.querySelector('[data-pv-dislike="'+sbId+'"]');
+  if(disBtn&&disBtn.classList.contains('disliked')){disBtn.classList.remove('disliked');var dc=disBtn.querySelector('span');if(dc){var dv=parseInt(dc.textContent)||0;dc.textContent=Math.max(0,dv-1);}}
+}
+function _pvDislike(sbId,btn){
+  if(!currentUser||currentUser.provider==='guest'){openLoginSheet();return;}
+  commDislikeSb(sbId);
+  /* UI 즉시 반영 */
+  var isNowDisliked=btn.classList.toggle('disliked');
+  var countEl=btn.querySelector('span');
+  if(countEl){var v=parseInt(countEl.textContent)||0;countEl.textContent=isNowDisliked?v+1:Math.max(0,v-1);}
+  /* 좋아요 해제 */
+  var likeBtn=btn.parentNode.querySelector('[data-pv-like="'+sbId+'"]');
+  if(likeBtn&&likeBtn.classList.contains('active')){likeBtn.classList.remove('active');var lc=likeBtn.querySelector('span');if(lc){var lv=parseInt(lc.textContent)||0;lc.textContent=Math.max(0,lv-1);}}
 }
 
 function _pfTab(tab){
