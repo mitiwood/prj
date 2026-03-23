@@ -2046,7 +2046,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 [data-theme="light"] .comm-creator-group.open .comm-creator-header{border-bottom:1px solid rgba(0,0,0,.06);}
 [data-theme="light"] .comm-creator-header:hover{background:rgba(124,58,237,.04);}
 [data-theme="light"] .comm-creator-group .comm-list-item{border-bottom-color:rgba(0,0,0,.04);}
-[data-theme="light"] .comm-creator-group .comm-list-item{border-bottom-color:rgba(0,0,0,.04);}
 /* 트랙 리스트 내 팔로우 버튼 */
 .comm-item-follow-btn{padding:2px 10px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .2s;line-height:1.4;}
 .comm-item-follow-btn.following{background:var(--card);color:var(--t3);border:1px solid var(--border);}
@@ -6787,6 +6786,22 @@ async function _loadMyTracks(force=false){
       });
       historyData = historyData.sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,200);
       saveHistory(); updateHistBadge();
+      /* 로컬에만 있고 서버에 없는 트랙 → 서버에 동기화 */
+      const _serverIds = new Set(d.tracks.map(t=>t.id));
+      historyData.forEach(h=>{
+        if(h.audio_url && h.id && !h._fromSb && !_serverIds.has(h.id)){
+          _saveTrackToServer({
+            id:h.id, taskId:h.taskId||'',
+            title:h.title||'무제', audio_url:h.audio_url,
+            video_url:h.video_url||'', image_url:h.image_url||'',
+            tags:h.tags||'', lyrics:h.lyrics||h.lyric||h.lrc||'',
+            genMode:h.genMode||'custom',
+            owner_name:currentUser?.name||'익명',
+            owner_avatar:currentUser?.avatar||'',
+            owner_provider:currentUser?.provider||'guest',
+          });
+        }
+      });
       /* 히스토리 뷰 열려있으면 즉시 갱신 */
       const hv=document.getElementById('history-view');
       if(hv&&hv.classList.contains('on')) try{renderHistoryView();}catch(e){}
@@ -12235,14 +12250,23 @@ function _saveTrackToServer(track){
     headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
     body:JSON.stringify(payload),
   }).then(r=>r.json()).then(d=>{
-    /* debug removed */
     if(d.source==='supabase'){
       _sbLoaded=false;
       if(document.getElementById('community-view')?.classList.contains('on')){
         renderCommunity(true);
       }
     }
-  }).catch(e=>{ console.error('[SaveTrack] error:', e.message); });
+  }).catch(e=>{
+    console.error('[SaveTrack] error:', e.message);
+    /* 실패 시 3초 후 1회 재시도 */
+    setTimeout(()=>{
+      fetch('/api/tracks',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
+        body:JSON.stringify(payload),
+      }).catch(()=>{});
+    }, 3000);
+  });
 }
 
 /* ════════════════════════════════════
@@ -16236,9 +16260,9 @@ function _renderCreatorList(){
 
     /* 크리에이터 헤더 */
     html+=`<div class="comm-creator-group" data-creator-key="${gi}">
-      <div class="comm-creator-header" onclick="openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">
-        <div class="comm-creator-avatar">${_safeAvatarHtml(g.avatar,g.name)}</div>
-        <div class="comm-creator-info">
+      <div class="comm-creator-header" onclick="_toggleCreatorAccordion(this)">
+        <div class="comm-creator-avatar" onclick="event.stopPropagation();openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">${_safeAvatarHtml(g.avatar,g.name)}</div>
+        <div class="comm-creator-info" onclick="event.stopPropagation();openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">
           <div class="comm-creator-name">${provIcon} ${esc(g.name)}${isMe?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
           <div class="comm-creator-meta">
             <span>🎵 ${g.tracks.length}곡</span>
@@ -16246,7 +16270,9 @@ function _renderCreatorList(){
           </div>
         </div>
         ${!isMe&&isLoggedIn?(function(){var ck=g.name+'__'+g.provider;var isF=_followStateCache[ck]===true;return '<button class="comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(g.name)+'" data-cprov="'+esc(g.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
-      </div>`;
+        <div class="comm-creator-chevron">▼</div>
+      </div>
+      <div class="comm-creator-tracks">`;
 
     /* 해당 크리에이터의 곡 리스트 */
     g.tracks.sort((a,b)=>(b.likes||0)-(a.likes||0));
@@ -16254,7 +16280,7 @@ function _renderCreatorList(){
       html+=_buildCommItem(t,trackIdx++,isMe);
     });
 
-    html+=`</div>`;
+    html+=`</div></div>`;
   });
 
   /* 더보기 버튼 */
@@ -16305,6 +16331,12 @@ function _renderCreatorList(){
 function _playCreatorTop(sbId,name,provider){
   if(sbId) commPlaySb(sbId);
   openCreatorProfile(name,provider);
+}
+
+function _toggleCreatorAccordion(header){
+  const group=header.closest('.comm-creator-group');
+  if(!group)return;
+  group.classList.toggle('open');
 }
 
 async function _creatorFollowToggle(btn){
