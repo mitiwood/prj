@@ -16056,14 +16056,16 @@ async function _renderCommunityInner(force){
     if(ls0) await _renderFollowingFeed(hw0,ls0);
     return;
   }
-  /* 채팅 모드 — 채팅 + 크리에이터만 표시 */
+  /* 채팅 모드 — 채팅 + 크리에이터만. 다른 콘텐츠 절대 로드 안 함 */
   if(_commActiveGenre==='chat'){
-    var dj1=$('comm-dj-row');if(dj1)dj1.style.display='none';
-    var cw1=$('comm-chart-wrap');if(cw1)cw1.style.display='none';
-    ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-suggest-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
+    ['comm-dj-row','comm-chart-wrap','comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-suggest-wrap'].forEach(function(id){
+      var e=$(id);if(e){e.style.display='none';e.innerHTML='';}
+    });
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
     var hw1=$('comm-hero-wrap');if(hw1)hw1.innerHTML='';
     var ls1=$('comm-list');if(ls1)ls1.innerHTML='';
+    /* 무한 스크롤 해제 */
+    if(_sbIntersectionObserver){_sbIntersectionObserver.disconnect();_sbIntersectionObserver=null;}
     _renderChatUI();
     _renderCreatorsInline();
     return;
