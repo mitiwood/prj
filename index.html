@@ -4827,15 +4827,26 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="theme-label" data-i18n="themeLight">데이</span>
           </div>
         </div>
-        <!-- 커스텀 테마 -->
-        <div class="theme-custom-panel">
-          <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;" data-i18n="customColor">커스텀 색상</div>
-          <div class="theme-color-row"><span class="theme-color-label" data-i18n="mainColor">메인 색상</span><input type="color" class="theme-color-input" id="tc-accent" value="#7c3aed" onchange="_setCustomColor('--acc',this.value)"></div>
-          <div class="theme-color-row"><span class="theme-color-label" data-i18n="bgColor">배경</span><input type="color" class="theme-color-input" id="tc-bg" value="#0f0f1a" onchange="_setCustomColor('--bg',this.value)"></div>
-          <div class="theme-color-row"><span class="theme-color-label" data-i18n="cardColor">카드</span><input type="color" class="theme-color-input" id="tc-card" value="#1a1a2e" onchange="_setCustomColor('--card',this.value)"></div>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <button onclick="_resetCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;" data-i18n="reset">초기화</button>
-            <button onclick="_saveCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;" data-i18n="save">저장</button>
+        <!-- 커스텀 테마 — 토글 스위치 -->
+        <div style="margin-top:12px;">
+          <div class="settings-item" onclick="_toggleCustomColor()" style="cursor:pointer;padding:10px 0;">
+            <div class="settings-item-icon">🎨</div>
+            <div class="settings-item-body">
+              <div class="settings-item-label" data-i18n="customColor">커스텀 색상</div>
+              <div class="settings-item-desc">나만의 테마 색상 적용</div>
+            </div>
+            <div class="toggle-label-row" id="cc-toggle-row">
+              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+            </div>
+          </div>
+          <div id="cc-panel" style="display:none;padding:8px 0 0 36px;">
+            <div class="theme-color-row"><span class="theme-color-label" data-i18n="mainColor">메인 색상</span><input type="color" class="theme-color-input" id="tc-accent" value="#7c3aed" onchange="_setCustomColor('--acc',this.value)"></div>
+            <div class="theme-color-row"><span class="theme-color-label" data-i18n="bgColor">배경</span><input type="color" class="theme-color-input" id="tc-bg" value="#0f0f1a" onchange="_setCustomColor('--bg',this.value)"></div>
+            <div class="theme-color-row"><span class="theme-color-label" data-i18n="cardColor">카드</span><input type="color" class="theme-color-input" id="tc-card" value="#1a1a2e" onchange="_setCustomColor('--card',this.value)"></div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button onclick="_resetCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;" data-i18n="reset">초기화</button>
+              <button onclick="_saveCustomTheme()" style="flex:1;padding:6px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;" data-i18n="save">저장</button>
+            </div>
           </div>
         </div>
       </div>
@@ -21226,13 +21237,13 @@ function _saveCustomTheme(){
   localStorage.setItem('kms_custom_theme',JSON.stringify(theme));
   toast('🎨 커스텀 테마 저장!','ok',1500);
 }
-function _resetCustomTheme(){
+function _resetCustomTheme(silent){
   localStorage.removeItem('kms_custom_theme');
   ['--acc','--bg','--card'].forEach(function(v){document.documentElement.style.removeProperty(v);});
   var acc=$('tc-accent');if(acc)acc.value='#7c3aed';
   var bg=$('tc-bg');if(bg)bg.value='#0f0f1a';
   var card=$('tc-card');if(card)card.value='#1a1a2e';
-  toast('테마 초기화됨','ok',1500);
+  if(!silent) toast('테마 초기화됨','ok',1500);
 }
 function _loadCustomTheme(){
   try{var t=JSON.parse(localStorage.getItem('kms_custom_theme')||'{}');
@@ -21245,6 +21256,24 @@ function _updateCustomThemeInputs(theme){
   var card=$('tc-card');if(card&&theme['--card'])card.value=theme['--card'];
 }
 _loadCustomTheme();
+
+/* 커스텀 색상 on/off 토글 */
+function _toggleCustomColor(){
+  var on=localStorage.getItem('kms_custom_color')==='on';
+  var next=on?'off':'on';
+  localStorage.setItem('kms_custom_color',next);
+  _applyCustomColorToggle();
+  if(next==='off') _resetCustomTheme(true);
+  toast(next==='on'?'🎨 커스텀 색상 ON':'커스텀 색상 OFF','',1500);
+}
+function _applyCustomColorToggle(){
+  var on=localStorage.getItem('kms_custom_color')==='on';
+  var row=$('cc-toggle-row');if(row){if(on)row.classList.add('on');else row.classList.remove('on');}
+  var panel=$('cc-panel');if(panel)panel.style.display=on?'':'none';
+  if(on) _loadCustomTheme();
+}
+_applyCustomColorToggle();
+window._toggleCustomColor=_toggleCustomColor;
 
 /* ═══ MV 영상 효과 ═══ */
 var _mvFxValue='';
