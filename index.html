@@ -15722,9 +15722,15 @@ function _renderChatUI(){
     </div>`;
   _chatLastTs=0;_chatReplyTo=null;_chatNewCount=0;_chatAutoScroll=true;
   _loadChatMessages();
+  /* Supabase Realtime 구독 시작 (폴링 대체) */
+  _startChatRealtime();
+  /* 폴백: Realtime 연결 실패 시 30초 폴링 */
   if(_chatPollTimer)clearInterval(_chatPollTimer);
-  _chatPollTimer=setInterval(_loadChatMessages,1500);
-  /* 스크롤 감지 — 맨 아래가 아니면 새 메시지 배지 표시 */
+  _chatPollTimer=setInterval(function(){
+    if(_chatRealtimeConnected) return; /* Realtime 연결 중이면 폴링 스킵 */
+    _loadChatMessages();
+  },30000);
+  /* 스크롤 감지 */
   setTimeout(()=>{
     const cl=$('comm-chat-list');if(!cl) return;
     cl.addEventListener('scroll',()=>{
@@ -15899,6 +15905,97 @@ async function _chatDeleteMsg(msgId){
     const el=document.querySelector(`[data-msg-id="${msgId}"]`);if(el) el.remove();
     toast('메시지 삭제됨','ok',1500);
   }catch(e){toast('삭제 실패','err');}
+}
+
+/* ── Supabase Realtime 채팅 ── */
+let _chatRealtimeConnected=false;
+let _chatRealtimeChannel=null;
+let _sbClient=null;
+
+async function _startChatRealtime(){
+  try{
+    /* Supabase JS SDK 동적 로드 */
+    if(!window.supabase){
+      await new Promise(function(ok,fail){
+        var s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+        s.onload=ok;s.onerror=fail;
+        document.head.appendChild(s);
+      });
+    }
+    if(!window.supabase) return;
+
+    /* config 로드 */
+    var cfgR=await fetch('/api/supabase-config');
+    var cfg=await cfgR.json();
+    if(!cfg.url||!cfg.anonKey) return;
+
+    _sbClient=window.supabase.createClient(cfg.url,cfg.anonKey,{realtime:{params:{eventsPerSecond:10}}});
+
+    /* chat_messages INSERT 구독 */
+    _chatRealtimeChannel=_sbClient.channel('chat-realtime')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},function(payload){
+        _onRealtimeMsg(payload.new);
+      })
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'chat_messages'},function(payload){
+        /* 삭제된 메시지 DOM에서 제거 */
+        var el=document.querySelector('[data-msg-id="'+payload.old.id+'"]');
+        if(el) el.remove();
+      })
+      .subscribe(function(status){
+        _chatRealtimeConnected=(status==='SUBSCRIBED');
+        if(_chatRealtimeConnected) console.log('[Chat] Realtime 연결됨');
+      });
+  }catch(e){
+    console.warn('[Chat] Realtime 연결 실패, 폴링 폴백:',e.message);
+    _chatRealtimeConnected=false;
+  }
+}
+
+function _stopChatRealtime(){
+  if(_chatRealtimeChannel&&_sbClient){
+    _sbClient.removeChannel(_chatRealtimeChannel);
+    _chatRealtimeChannel=null;
+  }
+  _chatRealtimeConnected=false;
+}
+
+function _onRealtimeMsg(m){
+  if(!m||!m.content) return;
+  var cl=$('comm-chat-list');if(!cl) return;
+  var isMe=currentUser&&m.author_name===currentUser.name&&m.author_provider===currentUser.provider;
+  var msgTime=m.created_at?new Date(m.created_at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
+  var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[m.author_provider]||'';
+  var replyHtml='';
+  try{var rp=m.reply_to?JSON.parse(m.reply_to):null;if(rp)replyHtml='<div class="chat-reply-preview">↩ '+esc(rp.name)+': '+esc(rp.content)+'</div>';}catch{}
+  var safeName=esc(m.author_name||'익명').replace(/'/g,'&#39;');
+  var safeContent=esc(m.content||'').replace(/'/g,'&#39;');
+  var msgId=m.id||('m_'+Date.now());
+  var avatarClick=!isMe?' onclick="openCreatorProfile(\''+safeName+'\',\''+esc(m.author_provider||'')+'\')"':' ';
+  var deleteBtn=isMe?'<button class="chat-action-btn" onclick="_chatDeleteMsg(\''+msgId+'\')" title="삭제">🗑</button>':'';
+  var pinBtn='<button class="chat-action-btn" onclick="_chatPinMsg(\''+msgId+'\')" title="고정">📌</button>';
+  var reactBtn='<button class="chat-action-btn" onclick="this.nextElementSibling.classList.toggle(\'show\')" title="리액션">😀</button><div class="chat-react-picker">'+_CHAT_REACT_QUICK.map(function(e){return '<span class="chat-react-opt" onclick="_chatToggleReact(\''+msgId+'\',\''+e+'\');this.parentNode.classList.remove(\'show\')">'+e+'</span>';}).join('')+'</div>';
+
+  var html='<div class="comm-chat-msg'+(isMe?' mine':'')+'" data-msg-id="'+msgId+'">'
+    +'<div class="comm-chat-avatar"'+avatarClick+'>'+_safeAvatarHtml(m.author_avatar,m.author_name)+'</div>'
+    +'<div style="min-width:0;">'
+    +(!isMe?'<div class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</div>':'')
+    +replyHtml
+    +'<div class="comm-chat-bubble" onclick="_chatSetReply(\''+safeName+'\',\''+safeContent+'\')">'+_chatFormatContent(m.content)+'</div>'
+    +'<div class="chat-reactions" data-react-id="'+msgId+'"></div>'
+    +'<div class="comm-chat-time">'+msgTime+'</div>'
+    +'</div>'
+    +'<div class="chat-actions" style="position:relative;">'+reactBtn+'<button class="chat-action-btn" onclick="_chatSetReply(\''+safeName+'\',\''+safeContent+'\')" title="답장">↩</button>'+pinBtn+deleteBtn+'</div>'
+    +'</div>';
+
+  /* 새 메시지 배지 또는 자동 스크롤 */
+  if(!_chatAutoScroll&&!isMe){
+    _chatNewCount++;
+    var badge=$('chat-new-badge');if(badge){badge.style.display='block';badge.textContent='새 메시지 '+_chatNewCount+'개 ↓';}
+  }
+  cl.innerHTML+=html;
+  if(_chatAutoScroll) cl.scrollTop=cl.scrollHeight;
+  _chatLastTs=new Date(m.created_at||Date.now()).getTime();
 }
 
 async function _sendChat(){
