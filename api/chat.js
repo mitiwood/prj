@@ -35,10 +35,25 @@ function _getOnlineList() {
 }
 
 let _mem = [];
-/* 타이핑 인디케이터 (인메모리, 4초 TTL) */
-const _typingUsers = {};
-function _setTyping(name) { if (name) _typingUsers[name] = Date.now(); }
-function _getTyping() { const now = Date.now(); return Object.entries(_typingUsers).filter(([, ts]) => now - ts < 4000).map(([n]) => n); }
+/* 타이핑 인디케이터 (Supabase DB 기반 — serverless stateless 대응) */
+async function _setTyping(name) {
+  if (!name || !SB_URL || !SB_KEY) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/chat_typing?on_conflict=user_name`, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ user_name: name, updated_at: new Date().toISOString() }),
+    });
+  } catch {}
+}
+async function _getTyping() {
+  if (!SB_URL || !SB_KEY) return [];
+  try {
+    const cutoff = new Date(Date.now() - 4000).toISOString();
+    const { data } = await sb('GET', `/chat_typing?updated_at=gt.${cutoff}&select=user_name`);
+    return Array.isArray(data) ? data.map(r => r.user_name) : [];
+  } catch { return []; }
+}
 /* 고정 메시지 (인메모리) */
 let _pinnedMsg = null;
 
@@ -111,14 +126,14 @@ export default async function handler(req, res) {
           } catch {}
         }
 
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday), typing: _getTyping(), pinned: _pinnedMsg });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday), typing: await _getTyping(), pinned: _pinnedMsg });
       } catch (e) {
         const msgs = _mem.filter(m => m.room === room).slice(-lim);
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: _getTyping(), pinned: _pinnedMsg });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg });
       }
     }
     const msgs = _mem.filter(m => m.room === room).slice(-lim);
-    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: _getTyping(), pinned: _pinnedMsg });
+    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg });
   }
 
   /* POST — 메시지 전송 / 삭제 */
@@ -127,7 +142,7 @@ export default async function handler(req, res) {
 
     /* 타이핑 */
     if (action === 'typing') {
-      _setTyping(author_name);
+      await _setTyping(author_name);
       return res.status(200).json({ ok: true });
     }
 
