@@ -789,7 +789,9 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   background:var(--card);border:none;
   border-radius:16px;overflow:hidden;
   transition:transform .2s ease;
+  margin-bottom:12px;
 }
+.result-card:last-child{margin-bottom:0;}
 .result-card:hover{transform:translateY(-2px);}
 .rc-cover{
   width:100%;height:160px;object-fit:cover;
@@ -811,11 +813,11 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .rctab.on{color:var(--acc2);border-bottom-color:var(--acc2);}
 .rctab:hover:not(.on){color:var(--t1);}
-.rc-body{padding:14px;}
+.rc-body{padding:16px;}
 .rc-tab-panel{display:none;}
 .rc-tab-panel.on{display:block;}
 .rc-title{font-size:16px;font-weight:700;margin-bottom:4px;}
-.rc-meta{font-size:12px;color:var(--t2);margin-bottom:10px;}
+.rc-meta{font-size:12px;color:var(--t2);margin-bottom:12px;}
 .rc-player{
   background:var(--bg2);border:1px solid var(--border);
   border-radius:var(--rs);padding:12px;margin-bottom:10px;
@@ -885,7 +887,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mv-making{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;font-size:12px;color:var(--t2);}
 .mv-spin{width:24px;height:24px;border-radius:50%;border:2px solid rgba(168,85,247,.3);border-top-color:var(--acc2);animation:spin .7s linear infinite;}
 .mv-video{width:100%;border-radius:var(--rs);display:block;}
-.dl-row{display:flex;gap:8px;margin-top:8px;}
+.dl-row{display:flex;gap:10px;margin-top:12px;}
 .dl-btn{
   flex:1;padding:8px;border-radius:var(--rs);
   border:1px solid var(--border);background:var(--card2);
@@ -2909,7 +2911,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .fp-lyric-line.done{color:rgba(255,255,255,.32);}
 .fp-lyric-sec{font-size:10px;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;display:block;margin:8px 0 3px;}
 /* rc-tags */
-.rc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.rc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .ptag{padding:3px 9px;border-radius:var(--rx);background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--acc3);font-size:10px;font-weight:700;}
 /* rc-sheet */
 .rc-sheet-box{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 20px;max-height:70vh;overflow-y:auto;position:relative;z-index:1;margin-bottom:56px;}
@@ -10283,22 +10285,40 @@ function renderTracks(tracks,prompt,tags,mode){
   const batchWrap=document.createElement('div');
   batchWrap.className='result-batch';
   batchWrap.dataset.batchId=batchId;
-  batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:10px;margin-bottom:10px;';
+  batchWrap.dataset.batchTime=Date.now();
+  batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:16px;padding:14px;margin-bottom:16px;';
   const batchHdr=document.createElement('div');
   const _isAB = tracks.length >= 2;
-  batchHdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
-  batchHdr.innerHTML=`<span style="font-size:10px;color:var(--acc3);font-weight:700;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey} · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}${_isAB?' · <span style="color:#f59e0b;">A/B 비교</span>':''}</span><button onclick="this.closest('.result-batch').remove()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;" title="이 배치 닫기">✕</button>`;
+  const _batchModeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey;
+  batchHdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
+  batchHdr.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:10px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.1);padding:3px 8px;border-radius:6px;">${_batchModeLabel}</span>
+      <span style="font-size:10px;color:var(--t3);">${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} · ${tracks.length}곡</span>
+      ${_isAB?'<span style="font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,.1);padding:2px 7px;border-radius:6px;">A/B 비교</span>':''}
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button onclick="_batchPlayAll(this)" title="전체 재생" style="background:none;border:1px solid var(--border);color:var(--t2);font-size:11px;cursor:pointer;padding:4px 10px;border-radius:8px;font-family:inherit;transition:all .15s;">▶ 전체</button>
+      <button onclick="_batchCollapse(this)" title="접기/펼치기" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;transition:transform .2s;">▼</button>
+      <button onclick="this.closest('.result-batch').remove()" style="background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px 6px;" title="닫기">✕</button>
+    </div>`;
   batchWrap.appendChild(batchHdr);
   /* A/B 비교 안내 (2곡 이상) */
   if(_isAB){
     const _abG=document.createElement('div');
-    _abG.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;font-size:11px;color:#f59e0b;';
+    _abG.className='batch-cards-wrap';
+    _abG.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:12px;font-size:11px;color:#f59e0b;';
     _abG.innerHTML='🎧 AI가 2가지 버전을 만들었어요. 둘 다 들어보고 마음에 드는 곡을 선택하세요!';
     batchWrap.appendChild(_abG);
   }
   /* 맨 앞에 삽입 */
   if(container.firstChild) container.insertBefore(batchWrap, container.firstChild);
   else container.appendChild(batchWrap);
+
+  /* 카드 래퍼 (접기/펼치기 대상) */
+  const cardsWrap=document.createElement('div');
+  cardsWrap.className='batch-cards-wrap';
+  batchWrap.appendChild(cardsWrap);
 
   tracks.forEach((track,i)=>{
     const audioUrl=track.audioUrl||track.audio_url||'';
@@ -10397,7 +10417,7 @@ function renderTracks(tracks,prompt,tags,mode){
         </div>
         <div id="mvpanel-slot-${i}"></div>
       </div>`;
-    batchWrap.appendChild(card);
+    cardsWrap.appendChild(card);
   });
 
   /* A/B 선택 버튼 이벤트 */
@@ -10510,6 +10530,33 @@ function renderTracks(tracks,prompt,tags,mode){
 
   /* 해당 섹션으로 부드럽게 스크롤 */
   if(section)section.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* 배치 전체 재생 */
+function _batchPlayAll(btn){
+  var batch=btn.closest('.result-batch');
+  if(!batch)return;
+  var playBtns=batch.querySelectorAll('.ap-play-btn');
+  if(playBtns.length){
+    playBtns[0].click();
+    toast('▶ 배치 재생','ok',1200);
+  }
+}
+
+/* 배치 접기/펼치기 */
+function _batchCollapse(btn){
+  var batch=btn.closest('.result-batch');
+  if(!batch)return;
+  var wraps=batch.querySelectorAll('.batch-cards-wrap');
+  var collapsed=btn.dataset.collapsed==='1';
+  wraps.forEach(function(w){
+    w.style.maxHeight=collapsed?'':'0px';
+    w.style.overflow=collapsed?'':'hidden';
+    w.style.transition='max-height .3s ease';
+    if(collapsed) w.style.maxHeight='5000px';
+  });
+  btn.dataset.collapsed=collapsed?'0':'1';
+  btn.style.transform=collapsed?'':'rotate(180deg)';
 }
 
 /* ── AUDIO PLAYER ── */
