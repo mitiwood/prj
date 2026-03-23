@@ -69,3 +69,7 @@
 - 플랜 정의는 `api/toss-config.js`가 **Single Source of Truth**
 - 클라이언트 검증 + 서버 검증 2중 구조
 - `checkPlanLimit()`은 `generate()`, `generateMV()`, YouTube 모드에서 반드시 호출
+
+---
+
+<!-- 마지막 테스트: 2026-03-23 -->
