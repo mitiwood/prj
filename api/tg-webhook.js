@@ -193,10 +193,11 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `mc [파일명] — 프로젝트 MD 파일 조회 (CLAUDE.md 등)`,
     `고도화 — 진행률 조회 / 고도화 진행 <지시> — AI 구현`,
     ``,
-    `━━ 🧪 데이터 (3) ━━`,
+    `━━ 🧪 데이터 (4) ━━`,
     `더미 — 아이돌 더미 데이터 현황`,
     `더미추가 — 아이돌 트랙+팔로우 삽입`,
     `더미삭제 — 아이돌 더미 데이터 전체 삭제`,
+    `채팅초기화 — 커뮤니티 채팅 메시지 전체 삭제`,
     ``,
     `💡 슬래시(/) 없이 바로 입력!`,
     `💬 자연어도 OK (예: "뭐 했어", "서버 괜찮아?")`,
@@ -1689,6 +1690,16 @@ COMMANDS['더미삭제'] = COMMANDS['unseed'] = async (chatId) => {
     await tgSend(chatId, `✅ 더미 데이터 삭제 완료!\n\n삭제 대상: ${names.join(', ')}\n트랙 (dummy_*) + 팔로우 전부 제거됨`, { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, '❌ 삭제 실패: ' + e.message, { parse_mode: '' });
+  }
+};
+
+COMMANDS['채팅초기화'] = COMMANDS['clearchat'] = async (chatId) => {
+  await tgSend(chatId, '🗑 커뮤니티 채팅 초기화 중...', { parse_mode: '' });
+  try {
+    await sbRaw('DELETE', '/chat_messages?room=eq.general');
+    await tgSend(chatId, '✅ 커뮤니티 채팅 초기화 완료!\n\nchat_messages 테이블 전체 삭제됨\n⏰ ' + ts(), { parse_mode: '' });
+  } catch (e) {
+    await tgSend(chatId, '❌ 초기화 실패: ' + e.message, { parse_mode: '' });
   }
 };
 
