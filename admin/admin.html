@@ -4286,6 +4286,7 @@ async function renderUsersAdmin(showToast=false){
           plan:u.plan||'free', credits_song:u.credits_song||0, credits_mv:u.credits_mv||0, credits_lyrics:u.credits_lyrics||0,
           loginCount:u.login_count||1, lastLogin:u.last_login||0,
           created_at:u.created_at||0,
+          lastIp:u.last_ip||'', lastLocation:u.last_location||'',
         }));
       }
     }
@@ -4401,7 +4402,7 @@ function _sortAndRenderUsers(){
         +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
         +(isOnline?'<span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--grn);border:2px solid var(--bg2);" title="온라인"></span>':'')
       +'</td>'
-      +'<td style="font-weight:600;color:var(--acc);">'+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div></td>'
+      +'<td style="font-weight:600;color:var(--acc);">'+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div>'+(u.lastLocation?'<div style="font-size:9px;color:var(--t3);">📍 '+esc(u.lastLocation)+'</div>':'')+'</td>'
       +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
       +'<td><select onclick="event.stopPropagation()" onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'+planBadge
         +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
@@ -7362,6 +7363,7 @@ async function _showUserDetail(name, provider){
         <div><span style="color:var(--t3);">미접속:</span> <span style="${daysSinceLogin>14?'color:var(--red);font-weight:700;':''}">${daysSinceLogin}일</span></div>
         <div><span style="color:var(--t3);">일평균 로그인:</span> ${loginsPerDay}회</div>
         <div><span style="color:var(--t3);">디바이스:</span> ${_isMobile?'📱 모바일':'💻 PC'}</div>
+        <div><span style="color:var(--t3);">접속 위치:</span> ${user.last_location||user.lastLocation||'—'}</div>
       </div>
     </div>
 

@@ -101,6 +101,19 @@ export default async function handler(req, res) {
 
       const now = typeof lastLogin === 'number' ? lastLogin : Date.now();
 
+      /* IP 추출 + 위치 조회 */
+      const clientIp = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+      let location = '';
+      if (clientIp && clientIp !== '127.0.0.1' && clientIp !== '::1') {
+        try {
+          const geoRes = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,regionName,city&lang=ko`);
+          const geo = await geoRes.json();
+          if (geo.status === 'success') {
+            location = [geo.regionName, geo.city].filter(Boolean).join(' ');
+          }
+        } catch {}
+      }
+
       try {
         /* 기존 유저 조회 → login_count +1 누적 */
         let existingCount = 0;
@@ -122,6 +135,8 @@ export default async function handler(req, res) {
           is_mobile:   !!isMobile,
           last_login:  now,
           login_count: existingCount + 1,
+          ...(clientIp ? { last_ip: clientIp } : {}),
+          ...(location ? { last_location: location } : {}),
         };
 
         /* upsert: name+provider 중복 시 업데이트 */
