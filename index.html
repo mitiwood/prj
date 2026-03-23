@@ -22200,7 +22200,16 @@ setTimeout(_applyLang,300);
 setTimeout(_applyLang,1000);
 
 /* ═══ 라이브 세션 표시 ═══ */
-function _updateLiveSession(){var b=$('live-session-badge'),c=$('live-session-count');if(!b||!c)return;fetch('/api/chat?room=general&limit=1').then(function(r){return r.json();}).then(function(d){if(d.ok&&d.insight){var n=d.insight.onlineCount||0;if(n>0){c.textContent=n;b.style.display='inline-flex';}else b.style.display='none';}}).catch(function(){b.style.display='none';});}
+function _updateLiveSession(){
+  var b=$('live-session-badge'),c=$('live-session-count');if(!b||!c)return;
+  var q='/api/profile?name=_&provider=_&action=heartbeat';
+  if(currentUser&&currentUser.provider!=='guest') q+='&hbName='+encodeURIComponent(currentUser.name)+'&hbProvider='+encodeURIComponent(currentUser.provider);
+  fetch(q).then(function(r){return r.json();}).then(function(d){
+    var n=d.count||0;
+    if(n>0){c.textContent=n;b.style.display='inline-flex';}
+    else b.style.display='none';
+  }).catch(function(){});
+}
 setInterval(_updateLiveSession,30000);setTimeout(_updateLiveSession,2000);
 
 /* ═══ 협업 세션 ═══ */

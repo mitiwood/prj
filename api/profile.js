@@ -157,6 +157,25 @@ export default async function handler(req, res) {
       }
     }
 
+    /* ── heartbeat + 접속자 수 ── */
+    if (action === 'heartbeat') {
+      const hbName = req.query?.hbName;
+      const hbProv = req.query?.hbProvider;
+      try {
+        if (hbName && hbProv) {
+          await sb('PATCH', `/users?name=eq.${encodeURIComponent(hbName)}&provider=eq.${encodeURIComponent(hbProv)}`,
+            { last_login: Date.now() });
+        }
+        /* 최근 5분 이내 활동 = 온라인 */
+        const cutoff = Date.now() - 300000;
+        const { data: online } = await sb('GET',
+          `/users?last_login=gt.${cutoff}&provider=neq.guest&provider=neq.mgr_manager&select=name,provider,avatar&limit=50`);
+        return res.status(200).json({ ok: true, count: (online || []).length, users: online || [] });
+      } catch (e) {
+        return res.status(200).json({ ok: true, count: 0, users: [] });
+      }
+    }
+
     /* ── 배치 팔로우 상태 확인 (N+1 제거) ── */
     if (action === 'batch-follow-check') {
       const viewerName = req.query?.viewerName;
