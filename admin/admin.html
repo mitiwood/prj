@@ -7,13 +7,20 @@
 <meta http-equiv="Pragma" content="no-cache">
 <title>KMS Admin — Kenny's Music Studio</title>
 <style>
+/* ★ 모바일 사이드바 숨김 — 최상단 선언 (캐시 무관 적용) */
+@media(pointer:coarse),(hover:none),(max-width:768px){
+  .sidebar,#admin-sidebar{display:none!important;width:0!important;max-width:0!important;visibility:hidden!important;position:absolute!important;left:-9999px!important;}
+  .admin-header{display:none!important;}
+  .mob-header{display:flex!important;}
+  .mob-fab{display:flex!important;align-items:center;justify-content:center;}
+  .admin-main{width:100%!important;}
+}
 :root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--card:#16161f;--card2:#1e1e2a;--border:rgba(255,255,255,.07);--acc:#a855f7;--acc2:#7c3aed;--t1:#f0f0f8;--t2:#b0b0c8;--t3:#666680;--red:#ff4560;--grn:#00dda0;--ylw:#ffd000;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--t1);font-family:'Pretendard',-apple-system,sans-serif;min-height:100vh;}
 .admin-layout{display:flex;min-height:100vh;}
 /* 사이드바 */
 .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:0;flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
-html.is-mobile .sidebar,html.is-mobile .admin-header{display:none!important;}
 .sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--border);}
 .sidebar-logo .logo-title{font-size:13px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .sidebar-logo .logo-sub{font-size:10px;color:var(--t3);margin-top:2px;}
@@ -351,7 +358,7 @@ textarea.form-input{line-height:1.5;}
     </div>
   </div>
   <!-- 사이드바 -->
-  <div class="sidebar">
+  <div class="sidebar" id="admin-sidebar">
     <div class="sidebar-logo">
       <div class="logo-title">Kenny's Music Studio</div>
       <div class="logo-sub">Admin Dashboard v3.0</div>
