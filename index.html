@@ -4732,7 +4732,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
     </div>
-<!-- AI DJ -->    <div id="comm-dj-row" style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_startDJ('chill')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.2);background:rgba(124,58,237,.04);color:var(--acc3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 Chill</button>      <button onclick="_startDJ('energetic')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.04);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🔥 Energy</button>      <button onclick="_startDJ('emotional')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.04);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💙 Mood</button>      <button onclick="_startDJ('random')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🎲 Mix</button>    </div>
     <!-- 챌린지 배너 -->
     <div id="comm-challenge-wrap"></div>
     <!-- 활동 피드 -->
@@ -14983,7 +14982,6 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     _commActiveGenre=this.dataset.cf||'all';
     /* 크리에이터 모드일 때 정렬/DJ 숨김, 아닐 때 복원 */
     var isCreatorMode=_commActiveGenre==='creators';
-    var djRow=$('comm-dj-row');if(djRow)djRow.style.display=isCreatorMode?'none':'';
     _commCreatorShowCount=10;
     if(isCreatorMode){
       if(!_sbTracks||!_sbTracks.length){_loadSbTracks(true).then(()=>_renderCreatorList());}
@@ -15976,7 +15974,6 @@ async function renderCommunity(force=false){
 async function _renderCommunityInner(force){
   /* 크리에이터 모드이면 별도 렌더 */
   if(_commActiveGenre==='creators'){
-    var dj=$('comm-dj-row');if(dj)dj.style.display='none';
     var cw=$('comm-chart-wrap');if(cw)cw.style.display='none';
     var mw=$('comm-mood-wrap');if(mw)mw.style.display='none';
     var sw=$('comm-spotlight-wrap');if(sw)sw.style.display='none';
@@ -15987,7 +15984,6 @@ async function _renderCommunityInner(force){
   }
   /* 팔로잉 모드 (Feature 3) */
   if(_commActiveGenre==='following'){
-    var dj0=$('comm-dj-row');if(dj0)dj0.style.display='none';
     var cw0=$('comm-chart-wrap');if(cw0)cw0.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
@@ -15997,7 +15993,6 @@ async function _renderCommunityInner(force){
   }
   /* 채팅 모드 */
   if(_commActiveGenre==='chat'){
-    var dj1=$('comm-dj-row');if(dj1)dj1.style.display='none';
     var cw1=$('comm-chart-wrap');if(cw1)cw1.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
@@ -16007,7 +16002,6 @@ async function _renderCommunityInner(force){
   }
   /* 리더보드 모드 */
   if(_commActiveGenre==='leaderboard'){
-    var dj3=$('comm-dj-row');if(dj3)dj3.style.display='none';
     var cw3=$('comm-chart-wrap');if(cw3)cw3.style.display='none';
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
@@ -16017,7 +16011,6 @@ async function _renderCommunityInner(force){
     return;
   }
   /* 일반 모드 — UI 복원 */
-  var dj2=$('comm-dj-row');if(dj2)dj2.style.display='';
 
   const heroWrap=$('comm-hero-wrap');
   const list=$('comm-list');
