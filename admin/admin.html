@@ -4593,34 +4593,39 @@ function _exportUsersCsv(){
 }
 
 async function changeUserPlan(userName, provider, newPlan) {
+  var planLabel = {free:'🆓 Free',pro:'💜 Pro',creator:'👑 Creator'}[newPlan]||newPlan;
+  var planCredits = {free:{credits_song:5,credits_mv:0,credits_lyrics:5},pro:{credits_song:50,credits_mv:3,credits_lyrics:50},creator:{credits_song:999,credits_mv:20,credits_lyrics:999}}[newPlan]||{};
   try {
+    /* 1. DB 플랜 + 크레딧 업데이트 */
     const r = await adminFetch('/api/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: userName, provider: provider, plan: newPlan })
+      body: JSON.stringify({ name: userName, provider: provider, plan: newPlan, ...planCredits })
     });
-    if (r.ok) {
-      adminToast('✅ ' + userName + ' 플랜 → ' + newPlan);
-      if (typeof logAudit === 'function') logAudit('플랜 변경: ' + userName + ' → ' + newPlan);
-      /* realtime 이벤트 발행 → 사용자 즉시 동기화 */
-      adminFetch('/api/realtime', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'plan_changed', data: { userName, provider, plan: newPlan } })
-      }).catch(()=>{});
-      /* Supabase notifications 테이블에도 저장 (폴링 대비) */
-      adminFetch('/api/tracks?action=notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_name: userName, user_provider: provider,
-          type: 'system', title: '🎫 플랜 변경',
-          body: (newPlan==='pro'?'💜 Pro':newPlan==='creator'?'👑 Creator':'🆓 Free') + ' 플랜으로 변경되었습니다'
-        })
-      }).catch(()=>{});
-    } else {
-      adminToast('⚠️ 플랜 변경 실패 (서버 응답: ' + r.status + ')', 'err');
-    }
+    if (!r.ok) { adminToast('⚠️ 플랜 변경 실패 (서버 응답: ' + r.status + ')', 'err'); return; }
+
+    adminToast('✅ ' + userName + ' → ' + planLabel);
+    if (typeof logAudit === 'function') logAudit('플랜 변경: ' + userName + ' → ' + newPlan);
+
+    /* 2. 해당 유저에게 개별 알림 (notifications 테이블) */
+    fetch('/api/live-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+(getAdminPw()||'') },
+      body: JSON.stringify({
+        title: '🎫 플랜이 변경됐어요!',
+        body: planLabel + ' 플랜으로 변경되었습니다. 새로운 혜택을 확인하세요!',
+        icon: newPlan==='creator'?'👑':newPlan==='pro'?'💜':'📋',
+        target: userName
+      })
+    }).catch(()=>{});
+
+    /* 3. realtime 이벤트 → 클라이언트 즉시 동기화 */
+    fetch('/api/realtime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'plan_changed', data: { userName, provider, plan: newPlan } })
+    }).catch(()=>{});
+
   } catch(e) {
     adminToast('⚠️ 플랜 변경 실패: ' + e.message, 'err');
   }
@@ -7199,14 +7204,9 @@ function _esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 
 async function _changePlan(name, provider, plan){
   if(!confirm(`${name}님의 플랜을 ${plan}으로 변경할까요?`)) return;
-  try {
-    await fetch('/api/check-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:name,userProvider:provider,type:'song',action:'set_plan',plan})});
-    /* 실시간 알림 → 사용자에게 플랜 변경 알림 */
-    await fetch('/api/live-notify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(getAdminPw()||'')},body:JSON.stringify({title:'플랜 변경',body:`${name}님의 플랜이 ${plan.toUpperCase()}으로 변경됐어요!`,icon:'💜',target:'all'})});
-    toast('✅ '+name+' → '+plan+' 변경 완료','ok',2000);
-    _loadPaymentData();
-    if(typeof addAuditLog==='function') addAuditLog('plan_change',name,plan);
-  } catch(e){toast('실패: '+e.message,'err');}
+  /* changeUserPlan과 동일한 플로우 사용 */
+  await changeUserPlan(name, provider, plan);
+  _loadPaymentData();
 }
 
 async function _suspendUser(name, provider){
