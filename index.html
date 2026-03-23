@@ -6506,7 +6506,7 @@ function switchTab(viewId){
     if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
   }
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_restoreCommCache();_startCommPoll();_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
+  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
   /* 탭 전환 후 다국어 재적용 */
   if(typeof _applyLang==='function') setTimeout(_applyLang,50);
@@ -6581,7 +6581,6 @@ async function _loadSbTracks(force=false){
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbLoaded = true;
       _sbLoadedAt = Date.now();
-      try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
       if(!_followingNames) _loadFollowingNames(); else _updateCommBadge();
       /* MY탭 크리에이터 프리로드 — 탭 전환 시 즉시 표시 */
       if(typeof _groupCreatorsFromTracks==='function'&&!_myFeedCreators){
@@ -6608,7 +6607,6 @@ async function _pollRefreshSbTracks(){
       _sbTracks = d.tracks.map(_rowToTrack);
       _sbOffset = _sbTracks.length;
       _sbLoadedAt = Date.now();
-      try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
       _updateCommBadge();
     }
   }catch(e){ console.warn('[SB] 폴링 갱신 실패:', e.message); }
@@ -6630,7 +6628,6 @@ async function _loadSbTracksMore(){
       _sbOffset += newTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbLoadedAt = Date.now();
-      try{ localStorage.setItem('kms_comm_cache', JSON.stringify({tracks:_sbTracks,at:_sbLoadedAt})); }catch(e){}
       _commPrevSnapshot = '';
       var heroWrap=$('comm-hero-wrap');
       var list=$('comm-list');
@@ -6706,16 +6703,7 @@ function _countTrackPlay(trackId){
   _playedTrackIds.add(trackId);
   fetch('/api/tracks?id=' + encodeURIComponent(trackId) + '&action=play', { method: 'PATCH' }).catch(function(){});
 }
-/* localStorage 캐시 복원은 커뮤니티 탭 진입 시 수행 (페이지 로드 시 X) */
-function _restoreCommCache(){
-  if(_sbLoaded) return;
-  try{
-    const _cc=JSON.parse(localStorage.getItem('kms_comm_cache')||'null');
-    if(_cc?.tracks?.length && (Date.now()-_cc.at)<300000){
-      _sbTracks=_cc.tracks; _sbLoaded=true; _sbLoadedAt=_cc.at;
-    }
-  }catch(e){}
-}
+/* 커뮤니티 캐시는 메모리(_sbTracks)만 사용 — localStorage 제거 */
 
 /* ── 커뮤니티 주기적 자동 갱신 (30초, Visibility API 연동) ── */
 let _commPollTimer = null;
@@ -11742,6 +11730,20 @@ function showMiniPlayer(idx){
     }
   });
 
+  /* 재생/일시정지 상태 변화 → 프로필뷰 + 커뮤니티 동기화 */
+  audio.addEventListener('play',()=>{
+    if(genId!==_fpAudioGenId) return;
+    const sid=historyData[fpCurrentIdx]?.id||'';
+    _syncPvPlayBtns(sid, true);
+    _syncCommPlayBtn(sid, true);
+  });
+  audio.addEventListener('pause',()=>{
+    if(genId!==_fpAudioGenId) return;
+    const sid=historyData[fpCurrentIdx]?.id||'';
+    _syncPvPlayBtns(sid, false);
+    _syncCommPlayBtn(sid, false);
+  });
+
   audio.addEventListener('error',(e)=>{
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
     const code = e.target?.error?.code;
@@ -13242,7 +13244,6 @@ function _myFeedRefresh(){
   _myFeedLoading=false; // 로딩 상태 확실히 초기화
   _myFeedDetailCache={};
   _followBatchLoaded=false;
-  try{localStorage.removeItem('kms_myfeed_creators');}catch(e){}
   _loadMyFeedCreators();
 }
 
@@ -13480,32 +13481,7 @@ function _loadMyFeedCreators(){
     return;
   }
 
-  /* 2) localStorage 캐시 (15분 TTL - 성능 개선) */
-  try{
-    var cached=JSON.parse(localStorage.getItem('kms_myfeed_creators')||'null');
-    if(cached&&cached.list&&cached.list.length&&(Date.now()-cached.ts)<900000){
-      _myFeedCreators=cached.list;
-      _myFeedLoading=false;
-      if(_histTabFilter==='myfeed') renderHistoryView();
-      /* 백그라운드에서 커뮤니티 데이터 프리로드 */
-      _mfPreloadSbTracks();
-      return;
-    }
-  }catch(e){}
-
-  /* 3) 커뮤니티 캐시(localStorage kms_comm_cache) 활용 */
-  try{
-    var cc=JSON.parse(localStorage.getItem('kms_comm_cache')||'null');
-    if(cc&&cc.tracks&&cc.tracks.length){
-      _myFeedCreators=_groupCreatorsFromTracks(cc.tracks);
-      _myFeedLoading=false;
-      _saveMyFeedCache(_myFeedCreators);
-      if(_histTabFilter==='myfeed') renderHistoryView();
-      return;
-    }
-  }catch(e){}
-
-  /* 4) 최후 수단: 경량 API 호출 (크리에이터용 필수 컬럼만) */
+  /* 2) 경량 API 호출 (크리에이터용 필수 컬럼만) */
   var fetchTimeout = setTimeout(function(){
     console.warn('[my-feed creators] 요청 타임아웃');
     _myFeedCreators=[];
@@ -13544,9 +13520,7 @@ function _loadMyFeedCreators(){
   });
 }
 
-function _saveMyFeedCache(list){
-  try{localStorage.setItem('kms_myfeed_creators',JSON.stringify({list:list,ts:Date.now()}));}catch(e){}
-}
+function _saveMyFeedCache(list){ /* no-op: localStorage 제거됨 */ }
 
 function _mfPreloadSbTracks(){
   if(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0) return;
@@ -14892,6 +14866,7 @@ function stopAllAudio(){
   if(commAudio){commAudio.pause();if(commPlayingIdx>=0){const ob=document.getElementById(`comm-play-${commPlayingIdx}`);if(ob)ob.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}commPlayingIdx=-1;}
   if(kpAudio){kpAudio.pause();}
   _resetAllCommPlayBtns();
+  if(typeof _syncPvPlayBtns==='function') _syncPvPlayBtns('', false);
   if(typeof _syncHistPlayIcons==='function') _syncHistPlayIcons(-1);
 }
 function guardPlay(action){
