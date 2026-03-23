@@ -244,8 +244,8 @@ textarea.form-input{line-height:1.5;}
   .audit-filter-bar .btn{font-size:10px;padding:4px 8px;}
   /* Sentry */
   #sentry-detail-modal>div{margin:20px auto;padding:14px;max-width:calc(100vw - 24px);}
-  /* 드로어 패널 */
-  .mob-drawer-panel{width:75vw;max-width:280px;}
+  /* 바텀시트 메뉴 */
+  .mob-menu-panel{max-height:70vh;}
   /* 바텀 세이프에어리어 */
   .admin-content{padding-bottom:env(safe-area-inset-bottom,12px);}
 }
@@ -278,49 +278,53 @@ textarea.form-input{line-height:1.5;}
 </div>
 
 <div class="admin-layout" id="admin-app" style="display:none;">
-  <!-- 플로팅 메뉴 버튼 (모바일) -->
-  <button class="mob-fab" id="mob-fab" onclick="toggleMobDrawer()">☰</button>
-  <!-- 모바일 헤더 -->
+  <!-- 모바일 FAB -->
+  <button class="mob-fab" id="mob-fab" onclick="toggleMobMenu()">☰</button>
+  <!-- 모바일 상단 바 -->
   <div class="mob-header">
-    <button class="mob-menu-btn" onclick="toggleMobDrawer()">☰</button>
     <h1 id="mob-sec-title">대시보드</h1>
-    <span class="admin-badge">Admin</span>
+    <span class="admin-badge" onclick="adminLogout()" style="cursor:pointer;" title="로그아웃">Admin ⏻</span>
   </div>
-  <!-- 모바일 드로어 -->
-  <div class="mob-drawer" id="mob-drawer" onclick="if(event.target===this||event.target.classList.contains('mob-drawer-overlay'))closeMobDrawer()">
-    <div class="mob-drawer-overlay"></div>
-    <div class="mob-drawer-panel">
-      <div style="padding:16px 14px 12px;border-bottom:1px solid var(--border);margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">KMS Admin</div>
+  <!-- 모바일 바텀시트 메뉴 -->
+  <div class="mob-menu-sheet" id="mob-menu-sheet" onclick="if(event.target===this||event.target.classList.contains('mob-menu-overlay'))closeMobMenu()">
+    <div class="mob-menu-overlay"></div>
+    <div class="mob-menu-panel">
+      <div class="mob-menu-handle"></div>
+      <div class="mob-menu-title">관리</div>
+      <div class="mob-menu-grid">
+        <button class="mob-menu-item on" data-sec="dashboard" onclick="mobNav('dashboard')"><span class="mi-icon">📊</span><span class="mi-label">대시보드</span></button>
+        <button class="mob-menu-item" data-sec="tracks" onclick="mobNav('tracks')"><span class="mi-icon">🎵</span><span class="mi-label">음악</span></button>
+        <button class="mob-menu-item" data-sec="community" onclick="mobNav('community')"><span class="mi-icon">🌐</span><span class="mi-label">커뮤니티</span></button>
+        <button class="mob-menu-item" data-sec="comments" onclick="mobNav('comments')"><span class="mi-icon">💬</span><span class="mi-label">댓글</span></button>
+        <button class="mob-menu-item" data-sec="users" onclick="mobNav('users')"><span class="mi-icon">👥</span><span class="mi-label">사용자</span></button>
+        <button class="mob-menu-item" data-sec="managers" onclick="mobNav('managers')"><span class="mi-icon">🛡️</span><span class="mi-label">매니저</span></button>
+        <button class="mob-menu-item" data-sec="reports" onclick="mobNav('reports')"><span class="mi-icon">🚩</span><span class="mi-label">신고</span></button>
+        <button class="mob-menu-item" data-sec="payments" onclick="mobNav('payments')"><span class="mi-icon">👤</span><span class="mi-label">회원</span></button>
       </div>
-      <div class="snav-item on" data-sec="dashboard" onclick="mobNav('dashboard')"><span class="snav-icon">📊</span>대시보드</div>
-      <div class="snav-item" data-sec="tracks" onclick="mobNav('tracks')"><span class="snav-icon">🎵</span>음악 관리</div>
-      <div class="snav-item" data-sec="community" onclick="mobNav('community')"><span class="snav-icon">🌐</span>커뮤니티</div>
-      <div class="snav-item" data-sec="comments" onclick="mobNav('comments')"><span class="snav-icon">💬</span>댓글 관리</div>
-      <div class="snav-item" data-sec="users" onclick="mobNav('users')"><span class="snav-icon">👥</span>사용자</div>
-      <div class="snav-item" data-sec="managers" onclick="mobNav('managers')"><span class="snav-icon">🛡️</span>매니저</div>
-      <div class="snav-item" data-sec="reports" onclick="mobNav('reports')"><span class="snav-icon">🚩</span>신고 관리</div>
-      <div class="snav-item" data-sec="payments" onclick="mobNav('payments')"><span class="snav-icon">👤</span>회원 관리</div>
-      <div class="snav-divider"></div>
-      <div class="snav-item" data-sec="live" onclick="mobNav('live')"><span class="snav-icon">⚡</span>실시간 알림</div>
-      <div class="snav-item" data-sec="push" onclick="mobNav('push')"><span class="snav-icon">🔔</span>푸시 알림</div>
-      <div class="snav-item" data-sec="attendance" onclick="mobNav('attendance')"><span class="snav-icon">📅</span>출석 관리</div>
-      <div class="snav-item" data-sec="challenges" onclick="mobNav('challenges')"><span class="snav-icon">🔥</span>챌린지</div>
-      <div class="snav-divider"></div>
-      <div class="snav-item" data-sec="revenue" onclick="mobNav('revenue')"><span class="snav-icon">💎</span>수익 분석</div>
-      <div class="snav-item" data-sec="usage" onclick="mobNav('usage')"><span class="snav-icon">📈</span>사용량·비용</div>
-      <div class="snav-item" data-sec="errors" onclick="mobNav('errors')"><span class="snav-icon">🚨</span>에러 모니터</div>
-      <div class="snav-item" data-sec="sentry" onclick="mobNav('sentry')"><span class="snav-icon">🛡️</span>Sentry</div>
-      <div class="snav-divider"></div>
-      <div class="snav-item" data-sec="database" onclick="mobNav('database')"><span class="snav-icon">🗄️</span>DB 관리</div>
-      <div class="snav-item" data-sec="logs" onclick="mobNav('logs')"><span class="snav-icon">📋</span>로그</div>
-      <div class="snav-item" data-sec="settings" onclick="mobNav('settings')"><span class="snav-icon">⚙️</span>설정</div>
-      <div style="padding:16px 14px;border-top:1px solid var(--border);margin-top:8px;">
-        <button class="btn btn-red" onclick="adminLogout()" style="width:100%;">🔓 로그아웃</button>
+      <div class="mob-menu-title">운영</div>
+      <div class="mob-menu-grid">
+        <button class="mob-menu-item" data-sec="live" onclick="mobNav('live')"><span class="mi-icon">⚡</span><span class="mi-label">실시간</span></button>
+        <button class="mob-menu-item" data-sec="push" onclick="mobNav('push')"><span class="mi-icon">🔔</span><span class="mi-label">푸시</span></button>
+        <button class="mob-menu-item" data-sec="attendance" onclick="mobNav('attendance')"><span class="mi-icon">📅</span><span class="mi-label">출석</span></button>
+        <button class="mob-menu-item" data-sec="challenges" onclick="mobNav('challenges')"><span class="mi-icon">🔥</span><span class="mi-label">챌린지</span></button>
+      </div>
+      <div class="mob-menu-title">분석</div>
+      <div class="mob-menu-grid">
+        <button class="mob-menu-item" data-sec="revenue" onclick="mobNav('revenue')"><span class="mi-icon">💎</span><span class="mi-label">수익</span></button>
+        <button class="mob-menu-item" data-sec="usage" onclick="mobNav('usage')"><span class="mi-icon">📈</span><span class="mi-label">사용량</span></button>
+        <button class="mob-menu-item" data-sec="errors" onclick="mobNav('errors')"><span class="mi-icon">🚨</span><span class="mi-label">에러</span></button>
+        <button class="mob-menu-item" data-sec="sentry" onclick="mobNav('sentry')"><span class="mi-icon">🛡️</span><span class="mi-label">Sentry</span></button>
+      </div>
+      <div class="mob-menu-title">시스템</div>
+      <div class="mob-menu-grid">
+        <button class="mob-menu-item" data-sec="database" onclick="mobNav('database')"><span class="mi-icon">🗄️</span><span class="mi-label">DB</span></button>
+        <button class="mob-menu-item" data-sec="logs" onclick="mobNav('logs')"><span class="mi-icon">📋</span><span class="mi-label">로그</span></button>
+        <button class="mob-menu-item" data-sec="settings" onclick="mobNav('settings')"><span class="mi-icon">⚙️</span><span class="mi-label">설정</span></button>
+        <button class="mob-menu-item" onclick="adminLogout()" style="color:var(--red);"><span class="mi-icon">🔓</span><span class="mi-label">로그아웃</span></button>
       </div>
     </div>
   </div>
-  <!-- 사이드바 -->
+  <!-- 사이드바 (PC) -->
   <div class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-title">Kenny's Music Studio</div>
@@ -2615,22 +2619,24 @@ if(localStorage.getItem('kms_admin_auth')==='1'){
 }
 
 // ── 섹션 전환 ──
-/* 모바일 드로어 */
-function toggleMobDrawer(){
-  const d=document.getElementById('mob-drawer');
-  const fab=document.getElementById('mob-fab');
-  d.classList.toggle('on');
-  if(fab){
-    fab.classList.toggle('open',d.classList.contains('on'));
-    fab.textContent=d.classList.contains('on')?'✕':'☰';
-  }
+/* 모바일 바텀시트 메뉴 */
+function toggleMobMenu(){
+  var sheet=$('mob-menu-sheet');if(!sheet)return;
+  var fab=$('mob-fab');
+  if(sheet.classList.contains('on')){closeMobMenu();}
+  else{sheet.classList.add('on');if(fab){fab.classList.add('open');fab.textContent='✕';}}
 }
-function closeMobDrawer(){
-  document.getElementById('mob-drawer').classList.remove('on');
-  const fab=document.getElementById('mob-fab');
-  if(fab){fab.classList.remove('open');fab.textContent='☰';}
+function closeMobMenu(){
+  var sheet=$('mob-menu-sheet');if(sheet)sheet.classList.remove('on');
+  var fab=$('mob-fab');if(fab){fab.classList.remove('open');fab.textContent='☰';}
 }
-function mobNav(id){ closeMobDrawer(); switchSec(id); window.scrollTo(0,0); }
+function mobNav(id){
+  closeMobMenu();switchSec(id);window.scrollTo(0,0);
+  document.querySelectorAll('.mob-menu-item[data-sec]').forEach(function(b){b.classList.toggle('on',b.dataset.sec===id);});
+}
+/* 하위호환 */
+function toggleMobDrawer(){toggleMobMenu();}
+function closeMobDrawer(){closeMobMenu();}
 
 /* FAB 스크롤 시 축소/복원 */
 ;(function(){
