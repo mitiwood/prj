@@ -10741,7 +10741,7 @@ function renderHistoryView(){
       </div>
       <div class="hist-full-actions">
         <button class="hist-full-act" data-fullplay-idx="${idx}"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg> 재생</button>
-        ${hasLyrics?`<button class="hist-full-act act-karaoke" data-fullkaraoke-idx="${idx}" data-kp-audio="${esc(h.audio_url||'')}" data-kp-title="${esc(h.title||'')}" data-kp-tags="${esc(_normTags(h.tags))}" data-kp-image="${esc(h.image_url||'')}" data-kp-task="${esc(h.taskId||'')}" data-kp-audio-id="${esc(h.id||'')}">🎤 노래방</button>`:''}
+        ${hasLyrics?`<button class="hist-full-act act-karaoke" onclick="event.stopPropagation();event.preventDefault();_openFullKaraoke(${idx})">🎤 노래방</button>`:''}
         <button class="hist-full-act${h._liked?' liked':''}" data-fulllike-idx="${idx}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"${h._liked?' fill="currentColor"':''}/></svg>${h._liked?' 좋아요 취소':' 좋아요'}</button>
         <button class="hist-full-act act-share" data-fullshare-idx="${idx}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> 공유</button>
       </div>
@@ -10767,17 +10767,8 @@ function renderHistoryView(){
       toast(hd._liked?'좋아요!':'좋아요 취소','',1200);
       return;
     }
-    /* 전체모드 노래방 모드 버튼 */
-    const karaokeBtn=e.target.closest('[data-fullkaraoke-idx]');
-    if(karaokeBtn){
-      e.stopPropagation();
-      const d = karaokeBtn.dataset;
-      const track = historyData[parseInt(d.fullkaraokeIdx)];
-      if(!track) return;
-      const plain = track._inputLyrics || track.lyric || track.lyrics || track.lrc || '';
-      openKaraokePlayer(d.kpAudio||'', d.kpTitle||'', d.kpTags||'', d.kpImage||'', d.kpTask||'', d.kpAudioId||'', plain);
-      return;
-    }
+    /* 전체모드 노래방 — onclick으로 처리, 여기서는 안전 차단만 */
+    if(e.target.closest('.act-karaoke')){e.stopPropagation();return;}
     /* 전체모드 공유 버튼 → 확인 모달 */
     const shareBtn=e.target.closest('[data-fullshare-idx]');
     if(shareBtn){e.stopPropagation();openShareConfirm(parseInt(shareBtn.dataset.fullshareIdx));return;}
@@ -14946,6 +14937,14 @@ function getPlayingInfo(){
 }
 
 let kpAudio=null,kpVizTimer=null,kpLines=[];
+
+/* 전체모드 노래방 버튼 → onclick에서 직접 호출 */
+function _openFullKaraoke(idx){
+  const h=historyData[idx];
+  if(!h)return;
+  const plain=h._inputLyrics||h.lyric||h.lyrics||h.lrc||'';
+  openKaraokePlayer(h.audio_url||'',h.title||'',_normTags(h.tags),h.image_url||'',h.taskId||'',h.id||'',plain);
+}
 
 function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyrics){
   const player=$('karaoke-player');
