@@ -96,6 +96,35 @@ jobs:
           except: pass
           PYEOF
 
+      - name: Refresh OAuth token
+        id: refresh_token
+        env:
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          REFRESH_TOKEN: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, json, os
+
+          oauth = os.environ.get('OAUTH_TOKEN', '')
+          refresh = os.environ.get('REFRESH_TOKEN', '')
+
+          # Write credentials file so CLI can auto-refresh
+          creds = {
+            "claudeAiOauth": {
+              "accessToken": oauth,
+              "refreshToken": refresh,
+              "expiresAt": 0,
+              "scopes": ["user:inference","user:profile","user:sessions:claude_code"],
+              "subscriptionType": "max"
+            }
+          }
+          cred_dir = os.path.expanduser('~/.claude')
+          os.makedirs(cred_dir, exist_ok=True)
+          with open(os.path.join(cred_dir, '.credentials.json'), 'w') as f:
+            json.dump(creds, f)
+          print('Credentials file written with refresh token')
+          PYEOF
+
       - uses: anthropics/claude-code-action@beta
         id: claude
         with:
@@ -130,6 +159,7 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
+          git config pull.rebase false
           echo "=== Looking for branch for issue #${ISSUE_NUM} ==="
           git ls-remote --heads origin | grep "issue-${ISSUE_NUM}" || echo "(no remote branches found)"
 
