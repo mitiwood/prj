@@ -22,7 +22,7 @@ $('hes-vocal-remove-btn').addEventListener('click', () => {
     ? '<img src="' + esc(h.image_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
     : '🎵';
   $('vr-title').textContent = h.title || '무제';
-  $('vr-tags').textContent = (h.tags || '').split(',').slice(0, 2).join(', ') || '';
+  $('vr-tags').textContent = (typeof _normTags==='function'?_normTags(h.tags):(Array.isArray(h.tags)?h.tags.join(', '):(h.tags||''))).split(',').slice(0, 2).join(', ') || '';
   _vrMode = 'separate_vocal';
   document.querySelectorAll('.vr-mode-btn').forEach(x => {
     const v = x.dataset.vrmode === 'separate_vocal';
