@@ -284,3 +284,37 @@ CREATE POLICY notifications_public_read ON public.notifications FOR SELECT USING
 CREATE POLICY notifications_service_write ON public.notifications FOR ALL USING (auth.role() = 'service_role');
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_name, user_provider, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at DESC);
+
+-- ============================================================
+-- 15. collabs (콜라보 요청/워크스페이스)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.collabs (
+  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  from_name         TEXT NOT NULL,
+  from_provider     TEXT NOT NULL,
+  from_avatar       TEXT DEFAULT '',
+  to_name           TEXT NOT NULL,
+  to_provider       TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'pending',  -- pending, accepted, declined, cancelled, completed
+  message           TEXT DEFAULT '',
+  collab_data       JSONB DEFAULT '{}',
+  track_id          TEXT DEFAULT NULL,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.collabs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY collabs_public_read ON public.collabs FOR SELECT USING (true);
+CREATE POLICY collabs_service_write ON public.collabs FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_collabs_from ON public.collabs(from_name, from_provider);
+CREATE INDEX IF NOT EXISTS idx_collabs_to ON public.collabs(to_name, to_provider);
+CREATE INDEX IF NOT EXISTS idx_collabs_status ON public.collabs(status);
+
+-- tracks 테이블에 콜라보 컬럼 추가
+ALTER TABLE public.tracks
+  ADD COLUMN IF NOT EXISTS collab_id         UUID DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS co_owner_name     TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS co_owner_avatar   TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS co_owner_provider TEXT DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tracks_co_owner ON public.tracks(co_owner_name, co_owner_provider);

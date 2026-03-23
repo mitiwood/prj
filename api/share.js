@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 레거시 쿼리 파라미터 폴백
+  // 쿼리 파라미터 폴백 (Supabase 조회 실패 또는 trackId 없는 경우)
   if (!title) title = decodeURIComponent(t).slice(0, 120);
   if (!audioUrl && play) audioUrl = decodeURIComponent(play);
   if (!imgUrl && img) imgUrl = decodeURIComponent(img);
@@ -86,15 +86,21 @@ export default async function handler(req, res) {
     ? `${descParts.join(' · ')} — AI로 만든 음악을 들어보세요!`
     : 'AI로 만든 음악을 들어보세요! Kenny\'s Music Studio에서 생성됐어요 🎵';
 
-  // 앱 URL
-  const appUrl = trackId
-    ? `${appBase}/?trackId=${encodeURIComponent(trackId)}`
-    : `${appBase}/?play=${encodeURIComponent(audioUrl)}&img=${encodeURIComponent(imgUrl)}&t=${encodeURIComponent(title)}`;
+  // 앱 URL — trackId + play/img 폴백 모두 포함 (Supabase 조회 실패 대비)
+  const appParams = new URLSearchParams();
+  appParams.set('t', title);
+  if (trackId) appParams.set('trackId', trackId);
+  if (audioUrl) appParams.set('play', audioUrl);
+  if (imgUrl) appParams.set('img', imgUrl);
+  const appUrl = `${appBase}/?${appParams.toString()}`;
 
   // 현재 공유 페이지 URL
-  const shareUrl = trackId
-    ? `${appBase}/api/share?trackId=${encodeURIComponent(trackId)}`
-    : `${appBase}/api/share?t=${encodeURIComponent(title)}&play=${encodeURIComponent(audioUrl)}&img=${encodeURIComponent(imgUrl)}`;
+  const shareParams = new URLSearchParams();
+  shareParams.set('t', title);
+  if (trackId) shareParams.set('trackId', trackId);
+  if (audioUrl) shareParams.set('play', audioUrl);
+  if (imgUrl) shareParams.set('img', imgUrl);
+  const shareUrl = `${appBase}/api/share?${shareParams.toString()}`;
 
   // JSON-LD 구조화된 데이터 (MusicRecording)
   const jsonLd = {

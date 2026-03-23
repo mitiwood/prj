@@ -55,17 +55,94 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const userName = req.query?.userName || req.body?.userName;
-  const userProvider = req.query?.userProvider || req.body?.userProvider;
-
-  if (!userName || !userProvider) {
-    return res.status(400).json({ ok: false, reason: 'missing_user' });
-  }
-
   const today = todayKST();
   const monthStart = getMonthStartKST();
 
   try {
+    /* ── 관리자 통계 조회 ── */
+    if (req.method === 'GET' && req.query?.admin === 'true') {
+      /* 오늘 출석자 목록 */
+      const todayRecords = await sbFetch('GET',
+        `/attendance?check_date=eq.${today}&order=created_at.desc&limit=500`
+      );
+      /* 이번 달 전체 기록 */
+      const monthRecords = await sbFetch('GET',
+        `/attendance?check_date=gte.${monthStart}&order=check_date.desc&limit=5000`
+      );
+      /* 스트릭 분포 계산 */
+      const streakDist = {};
+      const userMap = {};
+      monthRecords.forEach(r => {
+        const key = `${r.user_name}__${r.user_provider}`;
+        if (!userMap[key] || r.streak > userMap[key].streak) {
+          userMap[key] = r;
+        }
+      });
+      Object.values(userMap).forEach(r => {
+        const bucket = r.streak >= 30 ? '30+' : r.streak >= 14 ? '14-29' : r.streak >= 7 ? '7-13' : r.streak >= 3 ? '3-6' : '1-2';
+        streakDist[bucket] = (streakDist[bucket] || 0) + 1;
+      });
+      /* 일별 출석 수 (최근 30일) */
+      const dailyCounts = {};
+      monthRecords.forEach(r => {
+        dailyCounts[r.check_date] = (dailyCounts[r.check_date] || 0) + 1;
+      });
+      /* 총 지급 보너스 */
+      const totalBonus = monthRecords.reduce((s, r) => s + (r.bonus_credits || 0), 0);
+
+      return res.status(200).json({
+        ok: true,
+        todayCount: todayRecords.length,
+        todayUsers: todayRecords.map(r => ({
+          name: r.user_name,
+          provider: r.user_provider,
+          streak: r.streak,
+          bonus: r.bonus_credits,
+          time: r.created_at,
+        })),
+        monthTotal: monthRecords.length,
+        uniqueUsers: Object.keys(userMap).length,
+        streakDist,
+        dailyCounts,
+        totalBonus,
+        streakBonusRules: STREAK_BONUS,
+      });
+    }
+
+    /* ── 관리자: 특정 유저 출석 초기화/보너스 수동 지급 ── */
+    if (req.method === 'POST' && req.body?.admin === true) {
+      const { action, targetName, targetProvider, credits } = req.body;
+      if (action === 'reset_streak') {
+        /* 해당 유저의 모든 출석 기록 삭제 */
+        await sbFetch('DELETE',
+          `/attendance?user_name=ilike.${encodeURIComponent(targetName)}&user_provider=ilike.${encodeURIComponent(targetProvider)}`
+        );
+        return res.status(200).json({ ok: true, message: `${targetName} 출석 기록 초기화` });
+      }
+      if (action === 'grant_bonus') {
+        /* 유저 크레딧에 보너스 수동 지급 */
+        const users = await sbFetch('GET',
+          `/users?name=ilike.${encodeURIComponent(targetName)}&provider=ilike.${encodeURIComponent(targetProvider)}&select=credits_song&limit=1`
+        );
+        if (users[0]) {
+          const newCredits = (users[0].credits_song || 0) + (credits || 0);
+          await sbFetch('PATCH',
+            `/users?name=ilike.${encodeURIComponent(targetName)}&provider=ilike.${encodeURIComponent(targetProvider)}`,
+            { credits_song: newCredits }
+          );
+        }
+        return res.status(200).json({ ok: true, message: `${targetName}에게 ${credits}곡 보너스 지급` });
+      }
+      return res.status(400).json({ ok: false, reason: 'unknown_action' });
+    }
+
+    const userName = req.query?.userName || req.body?.userName;
+    const userProvider = req.query?.userProvider || req.body?.userProvider;
+
+    if (!userName || !userProvider) {
+      return res.status(400).json({ ok: false, reason: 'missing_user' });
+    }
+
     /* GET — 출석 현황 조회 */
     if (req.method === 'GET') {
       const records = await sbFetch('GET',

@@ -585,30 +585,58 @@ function _initCreateEnhance(){
 }
 
 /* -- 5. 결과 카드 - 공유 기능 -- */
-function commShareTrack(audioUrl,title){
-  /* 커뮤니티에 공유 → 트랙이 이미 서버에 저장되어 있으므로 커뮤니티 탭으로 이동 */
-  if(typeof switchTab==='function') switchTab('community-view');
-  if(typeof toast==='function') toast('🌐 커뮤니티에서 공유된 곡을 확인하세요!','ok',2500);
+function _buildShareUrl(audioUrl,title,imgUrl){
+  const base=window.location.origin+'/api/share';
+  const params=new URLSearchParams({t:title||'AI Music'});
+  if(audioUrl)params.set('play',audioUrl);
+  if(imgUrl)params.set('img',imgUrl);
+  return base+'?'+params.toString();
 }
-function _copyShareLink(audioUrl,title){
-  const text=title+' - AI Music Studio\n'+audioUrl;
+function commShareTrack(audioUrl,title){
+  /* 커뮤니티에 실제 저장 후 탭 이동 */
+  if(typeof currentUser!=='undefined'&&currentUser&&currentUser.provider!=='guest'){
+    try{
+      fetch('/api/tracks',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          id:'t_'+Date.now(),
+          title:title||'무제',
+          audio_url:audioUrl,
+          video_url:'',image_url:'',tags:'',lyrics:'',
+          owner_name:currentUser.name||'익명',
+          owner_provider:currentUser.provider||'guest',
+          owner_avatar:currentUser.avatar||'',
+          is_public:true
+        })
+      });
+    }catch(e){}
+  }
+  if(typeof switchTab==='function') switchTab('community-view');
+  if(typeof toast==='function') toast('🌐 커뮤니티에 공유되었어요!','ok',2500);
+}
+function _copyShareLink(audioUrl,title,imgUrl){
+  const url=_buildShareUrl(audioUrl,title,imgUrl);
   if(navigator.clipboard){
-    navigator.clipboard.writeText(text).then(()=>{
+    navigator.clipboard.writeText(url).then(()=>{
       if(typeof toast==='function') toast('🔗 공유 링크 복사 완료!','ok',1500);
+    }).catch(()=>{
+      if(typeof toast==='function') toast('복사 실패','err');
     });
   }
 }
-function _shareKakao(title,audioUrl){
+function _shareKakao(title,audioUrl,imgUrl){
+  const shareUrl=_buildShareUrl(audioUrl,title,imgUrl);
   if(typeof Kakao!=='undefined'&&Kakao.isInitialized&&Kakao.isInitialized()){
     try{
       Kakao.Share.sendDefault({
         objectType:'feed',
-        content:{title:title||'AI Music Studio',description:'AI로 만든 음악을 들어보세요!',imageUrl:'https://ai-music-studio-bice.vercel.app/icons/icon-512.png',link:{mobileWebUrl:audioUrl,webUrl:audioUrl}},
-        buttons:[{title:'듣기',link:{mobileWebUrl:audioUrl,webUrl:audioUrl}}]
+        content:{title:title||'AI Music Studio',description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/icons/icon-512.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},
+        buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]
       });
-    }catch(e){_copyShareLink(audioUrl,title);}
+    }catch(e){_copyShareLink(audioUrl,title,imgUrl);}
   } else {
-    _copyShareLink(audioUrl,title);
+    _copyShareLink(audioUrl,title,imgUrl);
   }
 }
 
@@ -633,6 +661,7 @@ window._getMixingTags=_getMixingTags;
 window._renderSimpleSuggestions=_renderSimpleSuggestions;
 window._parseNaturalLanguage=_parseNaturalLanguage;
 window.PRESETS_V2=PRESETS_V2;
+window._buildShareUrl=_buildShareUrl;
 window.commShareTrack=commShareTrack;
 window._copyShareLink=_copyShareLink;
 window._shareKakao=_shareKakao;
