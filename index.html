@@ -6552,6 +6552,8 @@ function switchTab(viewId){
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
   if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
+  /* 음악만들기 탭 진입 시 NEW 배지 클리어 */
+  if(viewId==='create-view'&&typeof _clearCreateBadge==='function') _clearCreateBadge();
   /* 탭 전환 후 다국어 재적용 */
   if(typeof _applyLang==='function') setTimeout(_applyLang,50);
 }
@@ -12442,7 +12444,28 @@ function _notifyMusicCreated(tracks, mode, tags){
   var count = tracks.length;
   var extra = count > 1 ? ' \uC678 ' + (count-1) + '\uACE1' : '';
   _notifyBot('\uD83C\uDFB5 \uC74C\uC545 \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+userName+'\n\uD83C\uDFB6 '+trackTitle+extra+'\n\uD83C\uDFB8 \uBAA8\uB4DC: '+(mode||'custom')+'\n\uD83C\uDFF7\uFE0F \uD0DC\uADF8: '+(tags||'-'));
+  _showCreateBadge();
 }
+
+/* ── 음악만들기 탭 NEW 배지 ── */
+var _createBadgeShown=false;
+function _showCreateBadge(){
+  var b=$('bnav-create-badge');
+  if(b){b.style.display='inline';b.textContent='NEW';}
+  sessionStorage.setItem('kms_new_track','1');
+}
+function _clearCreateBadge(){
+  var b=$('bnav-create-badge');
+  if(b)b.style.display='none';
+  _createBadgeShown=true;
+  sessionStorage.removeItem('kms_new_track');
+}
+/* 접속 시 세션에 새 곡 플래그 있으면 배지 1회 표시 */
+;(function(){
+  if(sessionStorage.getItem('kms_new_track')==='1'){
+    setTimeout(function(){_showCreateBadge();},500);
+  }
+})();
 
 /* ════════════════════════════════════
    전역 생성 락 (동시 생성 방지)
