@@ -1317,14 +1317,21 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .onboard-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s ease;}
 .onboard-demo{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:16px;transition:all .2s;}
 .onboard-demo:hover{background:rgba(168,85,247,.15);}
-/* 기능 팁 (코치마크) */
-.feature-tip{position:absolute;z-index:99998;padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:600;max-width:220px;box-shadow:0 8px 24px rgba(124,58,237,.4);animation:tipBounce .5s ease;}
-.feature-tip::after{content:'';position:absolute;width:10px;height:10px;background:#7c3aed;transform:rotate(45deg);}
-.feature-tip.tip-bottom::after{top:-5px;left:50%;margin-left:-5px;}
-.feature-tip.tip-top::after{bottom:-5px;left:50%;margin-left:-5px;}
-.feature-tip .tip-close{position:absolute;top:4px;right:8px;background:none;border:none;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;}
-.feature-tip .tip-step{font-size:9px;opacity:.6;margin-bottom:2px;}
-@keyframes tipBounce{0%{opacity:0;transform:scale(.8) translateY(10px)}60%{transform:scale(1.02) translateY(-2px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+/* 퀵 가이드 카드 */
+.quick-guide-backdrop{position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.45);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;}
+.quick-guide-backdrop.on{opacity:1;}
+.quick-guide{width:calc(100% - 40px);max-width:360px;background:var(--card);border-radius:20px;padding:28px 24px 20px;box-shadow:0 16px 48px rgba(0,0,0,.25);transform:translateY(30px) scale(.95);opacity:0;transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .3s;}
+.quick-guide-backdrop.on .quick-guide{transform:translateY(0) scale(1);opacity:1;}
+.quick-guide h3{font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px;text-align:center;}
+.quick-guide .qg-sub{font-size:12px;color:var(--t3);text-align:center;margin-bottom:18px;}
+.quick-guide .qg-items{display:flex;flex-direction:column;gap:12px;}
+.quick-guide .qg-item{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;background:var(--bg);border:1px solid rgba(168,85,247,.12);}
+.quick-guide .qg-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(168,85,247,.08));}
+.quick-guide .qg-text{flex:1;}
+.quick-guide .qg-text strong{display:block;font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px;}
+.quick-guide .qg-text span{font-size:11px;color:var(--t3);line-height:1.4;}
+.quick-guide .qg-btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s;}
+.quick-guide .qg-btn:active{transform:scale(.97);}
 /* 접근성: skip link */
 .skip-link{position:absolute;top:-40px;left:0;padding:8px 16px;background:var(--acc);color:#fff;z-index:100000;font-size:13px;font-weight:700;border-radius:0 0 8px 0;transition:top .2s;}
 .skip-link:focus{top:0;}
@@ -6495,7 +6502,7 @@ function switchTab(viewId){
     if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
   }
   if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
+  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_restoreCommCache();_startCommPoll();_updateCommBadge();try{renderCommunity(false);}catch(e){console.error(e);}}
   if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);}
   /* 탭 전환 후 다국어 재적용 */
   if(typeof _applyLang==='function') setTimeout(_applyLang,50);
@@ -6695,13 +6702,16 @@ function _countTrackPlay(trackId){
   _playedTrackIds.add(trackId);
   fetch('/api/tracks?id=' + encodeURIComponent(trackId) + '&action=play', { method: 'PATCH' }).catch(function(){});
 }
-/* localStorage에서 캐시 즉시 복원 */
-try{
-  const _cc=JSON.parse(localStorage.getItem('kms_comm_cache')||'null');
-  if(_cc?.tracks?.length && (Date.now()-_cc.at)<300000){ /* 5분 이내 캐시 유효 */
-    _sbTracks=_cc.tracks; _sbLoaded=true; _sbLoadedAt=_cc.at;
-  }
-}catch(e){}
+/* localStorage 캐시 복원은 커뮤니티 탭 진입 시 수행 (페이지 로드 시 X) */
+function _restoreCommCache(){
+  if(_sbLoaded) return;
+  try{
+    const _cc=JSON.parse(localStorage.getItem('kms_comm_cache')||'null');
+    if(_cc?.tracks?.length && (Date.now()-_cc.at)<300000){
+      _sbTracks=_cc.tracks; _sbLoaded=true; _sbLoadedAt=_cc.at;
+    }
+  }catch(e){}
+}
 
 /* ── 커뮤니티 주기적 자동 갱신 (30초, Visibility API 연동) ── */
 let _commPollTimer = null;
@@ -6729,10 +6739,7 @@ document.addEventListener('visibilitychange',function(){
     }
   }
 });
-/* 페이지 로드 시 폴링 시작 + 프리로드 */
-_startCommPoll();
-/* 캐시 없으면 백그라운드 프리로드 */
-if(!_sbLoaded) setTimeout(()=>_loadSbTracks(false), 500);
+/* 폴링은 커뮤니티 탭 진입 시 시작 (페이지 로드 시 X — 깜빡임 방지) */
 
 /* 내 트랙 로드 (로그인한 경우) */
 async function _loadMyTracks(force=false){
@@ -20131,9 +20138,8 @@ window.addEventListener('load', ()=>{
   }catch(e){}
   /* 알림 권한이 이미 있으면 바로 등록 */
   if(typeof Notification !== 'undefined' && Notification.permission === 'granted') registerPushSW();
-  /* Supabase: 커뮤니티 트랙 백그라운드 로드 */
+  /* Supabase: 내 트랙만 로드 (커뮤니티는 탭 진입 시 로드) */
   setTimeout(()=>{
-    if(typeof _loadSbTracks==='function') _loadSbTracks();
     /* 로그인 사용자면 내 트랙도 로드 */
     if(typeof currentUser!=='undefined' && currentUser && currentUser.provider!=='guest'){
       if(typeof _loadMyTracks==='function') _loadMyTracks();
@@ -20317,40 +20323,46 @@ function _skipOnboarding() {
 
 /* 초기화 후 온보딩 표시 */
 
-/* ═══ 기능 팁 (코치마크) 시스템 ═══ */
-var _featureTips=[
-  {id:'tip_create',target:'[data-view="create-view"]',text:'여기서 AI 음악을 만들어보세요!',pos:'top'},
-  {id:'tip_community',target:'[data-view="community-view"]',text:'다른 크리에이터의 음악을 감상하세요',pos:'top'},
-  {id:'tip_library',target:'[data-view="history-view"]',text:'만든 곡은 여기에 저장돼요',pos:'top'},
-];
-var _tipIdx=0;
-function _showFeatureTips(){
+/* ═══ 퀵 가이드 카드 시스템 ═══ */
+function _showQuickGuide(){
   if(localStorage.getItem('kms_tips_done'))return;
   if(localStorage.getItem('kms_onboarded')!=='1')return;
-  _tipIdx=0;_showNextTip();
+  var backdrop=document.createElement('div');
+  backdrop.className='quick-guide-backdrop';
+  backdrop.id='quick-guide-backdrop';
+  backdrop.innerHTML='<div class="quick-guide">'+
+    '<h3>시작 가이드</h3>'+
+    '<div class="qg-sub">핵심 기능을 빠르게 알아보세요</div>'+
+    '<div class="qg-items">'+
+      '<div class="qg-item" onclick="_qgNavigate(\'create-view\')" style="cursor:pointer">'+
+        '<div class="qg-icon">&#x1F3B5;</div>'+
+        '<div class="qg-text"><strong>음악 만들기</strong><span>텍스트 한 줄로 AI 음악을 생성하세요</span></div>'+
+      '</div>'+
+      '<div class="qg-item" onclick="_qgNavigate(\'community-view\')" style="cursor:pointer">'+
+        '<div class="qg-icon">&#x1F30D;</div>'+
+        '<div class="qg-text"><strong>커뮤니티</strong><span>다른 크리에이터의 음악을 감상하세요</span></div>'+
+      '</div>'+
+      '<div class="qg-item" onclick="_qgNavigate(\'history-view\')" style="cursor:pointer">'+
+        '<div class="qg-icon">&#x1F4C2;</div>'+
+        '<div class="qg-text"><strong>내 라이브러리</strong><span>만든 곡을 저장하고 관리하세요</span></div>'+
+      '</div>'+
+    '</div>'+
+    '<button class="qg-btn" onclick="_dismissQuickGuide()">확인했어요!</button>'+
+  '</div>';
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){backdrop.classList.add('on');});});
+  backdrop.addEventListener('click',function(e){if(e.target===backdrop)_dismissQuickGuide();});
 }
-function _showNextTip(){
-  document.querySelectorAll('.feature-tip').forEach(function(e){e.remove();});
-  if(_tipIdx>=_featureTips.length){localStorage.setItem('kms_tips_done','1');return;}
-  var tip=_featureTips[_tipIdx];
-  var target=document.querySelector(tip.target);if(!target)return;
-  var rect=target.getBoundingClientRect();
-  var el=document.createElement('div');
-  el.className='feature-tip tip-'+tip.pos;
-  el.innerHTML='<div class="tip-step">'+(_tipIdx+1)+'/'+_featureTips.length+'</div>'+tip.text+'<button class="tip-close" onclick="_dismissTip()">✕</button>';
-  if(tip.pos==='top'){el.style.top=(rect.top-el.offsetHeight-14)+'px';el.style.left=(rect.left+rect.width/2)+'px';el.style.transform='translateX(-50%)';}
-  else{el.style.top=(rect.bottom+10)+'px';el.style.left=(rect.left+rect.width/2)+'px';el.style.transform='translateX(-50%)';}
-  document.body.appendChild(el);
-  /* 위치 재계산 */
-  setTimeout(function(){
-    var r2=target.getBoundingClientRect();
-    if(tip.pos==='top'){el.style.top=(r2.top-el.offsetHeight-14)+'px';}
-    else{el.style.top=(r2.bottom+10)+'px';}
-    el.style.left=(r2.left+r2.width/2)+'px';
-  },50);
+function _dismissQuickGuide(){
+  localStorage.setItem('kms_tips_done','1');
+  var bd=document.getElementById('quick-guide-backdrop');
+  if(bd){bd.classList.remove('on');setTimeout(function(){bd.remove();},350);}
 }
-function _dismissTip(){_tipIdx++;_showNextTip();}
-setTimeout(function(){_showFeatureTips();},3000);
+function _qgNavigate(viewId){
+  _dismissQuickGuide();
+  setTimeout(function(){if(typeof switchTab==='function')switchTab(viewId);},400);
+}
+setTimeout(function(){_showQuickGuide();},2000);
 
 /* ═══ 접근성 개선 ═══ */
 /* 키보드 내비게이션: 좌우 화살표로 탭 전환 */
@@ -20375,9 +20387,9 @@ document.addEventListener('keydown',function(e){
   /* 로그인 시트 */
   var ls=document.getElementById('login-sheet');
   if(ls&&ls.style.opacity==='1'){if(typeof closeLoginSheet==='function')closeLoginSheet();return;}
-  /* 기능 팁 */
-  var tips=document.querySelectorAll('.feature-tip');
-  if(tips.length){_dismissTip();return;}
+  /* 퀵 가이드 */
+  var qg=document.getElementById('quick-guide-backdrop');
+  if(qg){_dismissQuickGuide();return;}
 });
 /* 고대비 모드 토글 */
 function toggleHighContrast(){
