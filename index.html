@@ -16191,11 +16191,8 @@ function _renderCreatorList(){
     groupMap[key].totalLikes+=(t.likes||0);
   });
 
-  /* 정렬: 실제 로그인 사용자 우선 → 곡 수 많은 순 → 좋아요 순 */
+  /* 정렬: 곡 수 많은 순 → 좋아요 순 */
   groupOrder.sort((a,b)=>{
-    const aReal=groupMap[a].tracks.some(t=>!String(t._sbId||'').startsWith('dummy_'))?1:0;
-    const bReal=groupMap[b].tracks.some(t=>!String(t._sbId||'').startsWith('dummy_'))?1:0;
-    if(bReal!==aReal) return bReal-aReal;
     return (groupMap[b].tracks.length-groupMap[a].tracks.length)||(groupMap[b].totalLikes-groupMap[a].totalLikes);
   });
 
