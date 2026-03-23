@@ -12280,11 +12280,48 @@ function mpToggleLike(){
   const h=historyData[fpCurrentIdx];if(!h) return;
   h._liked=!h._liked;if(h._liked)h._disliked=false;
   saveHistory();
-  _syncMpLikeBtn();
+  _syncAllLikeStates(h);
   toast(h._liked?'❤️ 좋아요!':'좋아요 취소','',1000);
   /* 커뮤니티 좋아요 동기화 */
   if(h.id||h._sbId){
     fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(h._liked?'like':'unlike'),{method:'PATCH'}).catch(()=>{});
+  }
+}
+
+/* 모든 좋아요 UI 동기화 — 미니플레이어, 풀플레이어, 커뮤니티, 히스토리 */
+function _syncAllLikeStates(h){
+  if(!h) return;
+  var sbId=h.id||h._sbId||'';
+  var liked=!!(h._liked||h._commLiked);
+
+  /* _sbTracks 동기화 */
+  if(sbId){
+    var st=_sbTracks.find(function(x){return x._sbId===sbId;});
+    if(st){st.liked=liked;st.disliked=false;}
+  }
+
+  /* 미니플레이어 */
+  _syncMpLikeBtn();
+
+  /* 풀플레이어 */
+  if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]===h){
+    fpLiked=liked;fpDisliked=false;
+    if(typeof fpUpdateLikeUI==='function') fpUpdateLikeUI();
+  }
+
+  /* 커뮤니티 리스트 버튼 */
+  if(sbId){
+    document.querySelectorAll('#comm-like-btn-'+CSS.escape?'[id^="comm-like-btn-"]':'').forEach(function(){});
+    /* 커뮤니티 퀵 렌더 */
+    if(typeof _commQuickRender==='function') _commQuickRender();
+  }
+
+  /* 히스토리 카드 */
+  if(typeof renderHistoryView==='function'){
+    try{
+      var cv=document.getElementById('history-view');
+      if(cv&&cv.classList.contains('on')) renderHistoryView();
+    }catch(e){}
   }
 }
 function _syncMpLikeBtn(){
@@ -13092,8 +13129,10 @@ function fpUpdateLikeUI(){
 }
 function fpToggleLike(){
   fpLiked=!fpLiked;if(fpLiked)fpDisliked=false;
-  if(fpCurrentIdx>=0){historyData[fpCurrentIdx]._liked=fpLiked;historyData[fpCurrentIdx]._disliked=fpDisliked;saveHistory();}
+  var h=fpCurrentIdx>=0?historyData[fpCurrentIdx]:null;
+  if(h){h._liked=fpLiked;h._disliked=fpDisliked;saveHistory();_syncAllLikeStates(h);}
   fpUpdateLikeUI();toast(fpLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
+  if(h&&(h.id||h._sbId)){fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpLiked?'like':'unlike'),{method:'PATCH'}).catch(()=>{});}
 }
 function fpToggleDislike(){
   fpDisliked=!fpDisliked;if(fpDisliked)fpLiked=false;
@@ -17097,7 +17136,7 @@ function commLikeSb(sbId){
   _sbReact(sbId,newLiked?'like':'unlike');
   t.liked=newLiked;t.likes=Math.max(0,(t.likes||0)+(newLiked?1:-1));t.disliked=false;
   const h=historyData.find(h=>h.id===sbId);
-  if(h){h._commLiked=newLiked;h._commDisliked=false;h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));saveHistory();}
+  if(h){h._commLiked=newLiked;h._liked=newLiked;h._commDisliked=false;h._commLikes=Math.max(0,(h._commLikes||0)+(newLiked?1:-1));saveHistory();_syncAllLikeStates(h);}
   toast(newLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
   _commQuickRender();
 }
@@ -17465,7 +17504,7 @@ function commHeroLike(){
   _sbReact(hero._sbId, newLiked?'like':'unlike');
   /* 캐시 */
   if(_sbLoaded){const t=_sbTracks.find(t=>t._sbId===hero._sbId);if(t){t.liked=newLiked;t.likes=newLikes;t.disliked=false;}}
-  if(hero._hIdx>=0){const h=historyData[hero._hIdx];if(h){h._commLiked=newLiked;h._commLikes=newLikes;h._commDisliked=false;saveHistory();}}
+  if(hero._hIdx>=0){const h=historyData[hero._hIdx];if(h){h._commLiked=newLiked;h._liked=newLiked;h._commLikes=newLikes;h._commDisliked=false;saveHistory();_syncAllLikeStates(h);}}
   const btn=$('comm-hero-like');
   if(btn){btn.classList.toggle('liked',newLiked);btn.innerHTML=(newLiked?'❤️':'🤍')+' 좋아요 <span id="comm-hero-like-cnt">'+newLikes+'</span>';}
   /* 커버 위 좋아요 뱃지도 업데이트 */
