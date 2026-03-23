@@ -4714,7 +4714,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
-      <button class="comm-ftag" data-cf="creators">👤 크리에이터</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
@@ -7680,11 +7679,15 @@ function _saveLoginUser(user){
     setTimeout(()=>{
       /* 트랙 ID로 서버 조회 후 재생 */
       if(sharedTrackId){
-        fetch('/api/tracks?public=true&limit=200').then(r=>r.json()).then(d=>{
-          var tracks=d.tracks||d.data||[];
-          var found=tracks.find(function(t){return t.id===sharedTrackId;});
-          if(found&&found.audio_url){
-            _showSharedPlayer(found.title||sharedTitle||'공유된 노래', found.audio_url, found.image_url||sharedImg||'');
+        fetch('/api/tracks?id='+encodeURIComponent(sharedTrackId)).then(r=>r.json()).then(d=>{
+          var track=d.track||(Array.isArray(d.tracks)&&d.tracks[0])||(Array.isArray(d.data)&&d.data[0])||null;
+          if(!track){
+            /* id가 숫자/문자 불일치 대비: 전체에서 느슨 비교 */
+            var tracks=d.tracks||d.data||[];
+            track=tracks.find(function(t){return String(t.id)===String(sharedTrackId);});
+          }
+          if(track&&track.audio_url){
+            _showSharedPlayer(track.title||sharedTitle||'공유된 노래', track.audio_url, track.image_url||sharedImg||'');
           } else if(sharedAudio){
             _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
           } else {
@@ -17769,6 +17772,7 @@ function cancelLyricsEdit(idx){
     <!-- 액션 버튼 -->
     <div style="display:flex;gap:8px;margin-bottom:16px;">
       <button id="pf-follow-btn" onclick="_toggleFollow()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">팔로우</button>
+      <button id="pf-collab-btn" onclick="_openCollabRequest()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.1);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🤝 콜라보</button>
       <button onclick="_reportUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚩</button>
       <button onclick="_blockUser()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">🚫</button>
     </div>
@@ -17786,6 +17790,66 @@ function cancelLyricsEdit(idx){
     </div>
     <div id="pf-panel-following" style="display:none;">
       <div id="pf-following-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 콜라보 요청 시트 ── -->
+<div id="collab-request-sheet" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);" onclick="if(event.target===this)this.style.display='none'">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 32px;">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
+    <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:16px;">🤝 콜라보 요청</div>
+    <div id="collab-req-target" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border-radius:12px;margin-bottom:16px;">
+      <div id="collab-req-avatar" style="width:40px;height:40px;border-radius:50%;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
+      <div><div id="collab-req-name" style="font-size:14px;font-weight:700;color:var(--t1);"></div><div id="collab-req-prov" style="font-size:11px;color:var(--t3);"></div></div>
+    </div>
+    <textarea id="collab-req-msg" placeholder="함께 만들고 싶은 음악을 설명해주세요 (선택)" style="width:100%;min-height:80px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+    <button id="collab-req-send" onclick="_sendCollabRequest()" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">콜라보 요청 보내기</button>
+  </div>
+</div>
+
+<!-- ── 콜라보 워크스페이스 시트 ── -->
+<div id="collab-workspace-sheet" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);" onclick="if(event.target===this)_closeCollabWs()">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;padding:20px 16px 32px;">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:17px;font-weight:800;color:var(--t1);">🎵 콜라보 스튜디오</div>
+      <button onclick="_closeCollabWs()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <!-- 파트너 정보 -->
+    <div id="cws-partner" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border-radius:12px;margin-bottom:12px;">
+      <div id="cws-partner-avatar" style="width:36px;height:36px;border-radius:50%;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+      <div style="flex:1;"><div id="cws-partner-name" style="font-size:13px;font-weight:700;color:var(--t1);"></div><div id="cws-status" style="font-size:11px;color:var(--acc);margin-top:2px;"></div></div>
+    </div>
+    <!-- 내 기여 -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🎤 내 아이디어</div>
+      <textarea id="cws-my-prompt" placeholder="가사나 프롬프트를 입력하세요" style="width:100%;min-height:60px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:8px;"></textarea>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <select id="cws-my-genre" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;">
+          <option value="">장르 선택</option>
+          <option>K-Pop</option><option>Hip-Hop</option><option>Electronic</option><option>Rock</option>
+          <option>Lo-Fi</option><option>Jazz</option><option>R&B</option><option>Ballad</option>
+        </select>
+        <select id="cws-my-mood" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;">
+          <option value="">분위기 선택</option>
+          <option>신나는</option><option>잔잔한</option><option>슬픈</option><option>몽환적</option>
+          <option>파워풀</option><option>로맨틱</option><option>긴장감</option><option>편안한</option>
+        </select>
+      </div>
+      <input id="cws-my-style" placeholder="추가 스타일 태그 (예: female vocal, acoustic)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;" />
+      <button onclick="_submitCollabIdea()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">아이디어 제출하기</button>
+    </div>
+    <!-- 파트너 기여 (읽기 전용) -->
+    <div id="cws-partner-section" style="margin-bottom:16px;display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🎧 파트너 아이디어</div>
+      <div id="cws-partner-idea" style="padding:12px;background:var(--card);border-radius:10px;border:1px solid var(--border);font-size:12px;color:var(--t2);line-height:1.6;"></div>
+    </div>
+    <!-- 머지 결과 -->
+    <div id="cws-merged-section" style="display:none;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--grn,#00dda0);margin-bottom:8px;">✨ 합쳐진 프롬프트</div>
+      <div id="cws-merged-prompt" style="padding:12px;background:rgba(0,221,160,.08);border-radius:10px;border:1px solid rgba(0,221,160,.2);font-size:12px;color:var(--t1);line-height:1.6;white-space:pre-line;"></div>
+      <button id="cws-generate-btn" onclick="_generateCollabTrack()" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">🎵 콜라보 곡 생성하기</button>
     </div>
   </div>
 </div>
@@ -17810,6 +17874,7 @@ function cancelLyricsEdit(idx){
         <button class="notif-ftab" data-nf="comment" onclick="_filterNotifs('comment')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">💬 댓글</button>
         <button class="notif-ftab" data-nf="follow" onclick="_filterNotifs('follow')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">👤 팔로우</button>
         <button class="notif-ftab" data-nf="system" onclick="_filterNotifs('system')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">📢 시스템</button>
+        <button class="notif-ftab" data-nf="collab" onclick="_filterNotifs('collab')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">🤝 콜라보</button>
       </div>
     </div>
     <div id="notif-list" style="flex:1;overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
@@ -18577,9 +18642,10 @@ function openProfileSheet(name, provider){
   $('pf-provider').textContent = provider;
   $('pf-track-list').innerHTML = Array(3).fill(_skeleton('track')).join('');
 
-  /* 내 프로필이면 팔로우 버튼 숨김 */
+  /* 내 프로필이면 팔로우/콜라보 버튼 숨김 */
   const isMe = currentUser && currentUser.name === name && currentUser.provider === provider;
   $('pf-follow-btn').style.display = isMe ? 'none' : '';
+  $('pf-collab-btn').style.display = isMe ? 'none' : '';
 
   /* API 조회 */
   const viewerQ = currentUser ? `&viewerName=${encodeURIComponent(currentUser.name)}&viewerProvider=${encodeURIComponent(currentUser.provider)}` : '';
@@ -18976,10 +19042,30 @@ async function _loadNotifications(){
     }
   } catch {}
 
+  /* 6. 콜라보 요청/알림 */
+  if(currentUser?.name && currentUser.provider !== 'guest'){
+    try {
+      const cr = await fetch(`/api/collabs?action=inbox&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
+      const cd = await cr.json();
+      (cd.collabs||[]).forEach(c => {
+        allNotifs.push({ type:'collab', title:'🤝 '+c.from_name+'님의 콜라보 요청', body: c.message||'함께 음악을 만들어요!', ts: new Date(c.created_at||0).getTime(), is_read: false, _collabId: c.id, _collabAction: 'pending' });
+      });
+      const ar = await fetch(`/api/collabs?action=active&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
+      const ad = await ar.json();
+      (ad.collabs||[]).forEach(c => {
+        const isFrom = c.from_name.toLowerCase() === currentUser.name.toLowerCase() && c.from_provider === currentUser.provider;
+        const partnerName = isFrom ? c.to_name : c.from_name;
+        allNotifs.push({ type:'collab', title:'🎵 '+partnerName+'님과 콜라보 진행 중', body: (c.collab_data?.ready ? '양쪽 아이디어 준비 완료! 곡을 생성하세요.' : '아이디어를 제출해주세요.'), ts: new Date(c.updated_at||0).getTime(), is_read: true, _collabId: c.id, _collabAction: 'accepted' });
+      });
+    } catch(e){ console.warn('[notif] collabs:', e.message); }
+  }
+
   /* 같은 유형 알림 그룹핑 (1시간 이내 같은 type+같은 곡) */
   var grouped=[];var seen={};
   allNotifs.sort((a,b)=>(b.ts||0)-(a.ts||0));
   allNotifs.forEach(function(n){
+    /* 콜라보 알림은 개별 표시 (그룹핑 제외) */
+    if(n.type==='collab'){ n._count=1; grouped.push(n); return; }
     var key=(n.type||'')+'_'+(n.title||'').replace(/\d+/g,'#');
     var recent=seen[key];
     if(recent&&Math.abs((recent.ts||0)-(n.ts||0))<3600000){
@@ -19019,9 +19105,9 @@ function _renderNotifList(notifs){
     list.innerHTML='<div style="text-align:center;padding:40px 16px;"><div style="font-size:32px;margin-bottom:12px;">🔔</div><div style="font-size:13px;color:var(--t3);">'+(emptyMsg[_notifActiveFilter]||'알림이 없어요')+'</div></div>';
     return;
   }
-  var icons={like:'❤️',comment:'💬',follow:'👤',system:'🔔'};
-  var bgColors={like:'rgba(239,68,68,.06)',comment:'rgba(59,130,246,.06)',follow:'rgba(16,185,129,.06)',system:'rgba(245,158,11,.06)'};
-  var borderColors={like:'rgba(239,68,68,.12)',comment:'rgba(59,130,246,.12)',follow:'rgba(16,185,129,.12)',system:'rgba(245,158,11,.12)'};
+  var icons={like:'❤️',comment:'💬',follow:'👤',system:'🔔',collab:'🤝'};
+  var bgColors={like:'rgba(239,68,68,.06)',comment:'rgba(59,130,246,.06)',follow:'rgba(16,185,129,.06)',system:'rgba(245,158,11,.06)',collab:'rgba(168,85,247,.06)'};
+  var borderColors={like:'rgba(239,68,68,.12)',comment:'rgba(59,130,246,.12)',follow:'rgba(16,185,129,.12)',system:'rgba(245,158,11,.12)',collab:'rgba(168,85,247,.15)'};
   /* 날짜 그룹핑 */
   var groups={};
   notifs.forEach(function(n){
@@ -19048,6 +19134,17 @@ function _renderNotifList(notifs){
       html+='<div style="flex:1;min-width:0;">';
       html+='<div style="font-size:13px;font-weight:'+(n.is_read?'500':'700')+';color:var(--t1);line-height:1.4;">'+esc(n.title||'')+countBadge+'</div>';
       if(n.body)html+='<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.4;">'+esc(n.body)+'</div>';
+      /* 콜라보 요청 → 수락/거절 버튼 */
+      if(n.type==='collab'&&n._collabId&&n._collabAction==='pending'){
+        html+='<div style="display:flex;gap:6px;margin-top:8px;">';
+        html+='<button onclick="event.stopPropagation();_acceptCollab(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">수락</button>';
+        html+='<button onclick="event.stopPropagation();_declineCollab(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">거절</button>';
+        html+='</div>';
+      }
+      /* 수락된 콜라보 → 스튜디오 열기 버튼 */
+      if(n.type==='collab'&&n._collabId&&n._collabAction==='accepted'){
+        html+='<div style="margin-top:8px;"><button onclick="event.stopPropagation();_openCollabWorkspace(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🎵 콜라보 스튜디오 열기</button></div>';
+      }
       html+='<div style="font-size:10px;color:var(--t3);margin-top:4px;">'+ago+'</div>';
       html+='</div>';
       if(!n.is_read)html+='<div style="width:8px;height:8px;border-radius:50%;background:var(--acc);flex-shrink:0;margin-top:4px;"></div>';

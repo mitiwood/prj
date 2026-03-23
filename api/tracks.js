@@ -79,6 +79,19 @@ async function _handler(req, res) {
 
   /* ─── GET ─── */
   if (req.method === "GET") {
+    /* 단건 조회: ?id=xxx (공유 링크 재생용) */
+    const singleId = req.query?.id;
+    if (singleId && !req.query?.action) {
+      try {
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(singleId)}&select=*&limit=1`);
+        const track = rows?.[0] || null;
+        if (track) track.created = track.created_at ? new Date(track.created_at).getTime() : 0;
+        return res.status(200).json({ ok: true, track });
+      } catch (e) {
+        return res.status(200).json({ ok: false, track: null, error: e.message });
+      }
+    }
+
     if (!isPublic && !ownerName && !isAdmin)
       return res.status(401).json({ error: "Unauthorized" });
 
@@ -91,7 +104,7 @@ async function _handler(req, res) {
       if (isAdmin) {
         filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
+        filter = `/tracks?or=(and(owner_name.ilike.${encodeURIComponent(ownerName)},owner_provider.eq.${encodeURIComponent(ownerProv)}),and(co_owner_name.ilike.${encodeURIComponent(ownerName)},co_owner_provider.eq.${encodeURIComponent(ownerProv)}))&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
         filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
@@ -153,6 +166,10 @@ async function _handler(req, res) {
         owner_name,
         owner_avatar,
         owner_provider,
+        collab_id,
+        co_owner_name,
+        co_owner_avatar,
+        co_owner_provider,
       } = b;
       if (!id || !audio_url)
         return res.status(400).json({ error: "id and audio_url required" });
@@ -176,6 +193,8 @@ async function _handler(req, res) {
         comm_dislikes: 0,
         comm_plays: 0,
         created_at: new Date(now).toISOString(),
+        ...(collab_id ? { collab_id } : {}),
+        ...(co_owner_name ? { co_owner_name, co_owner_avatar: co_owner_avatar || '', co_owner_provider: co_owner_provider || 'guest' } : {}),
       };
       try {
         await sb("/tracks?on_conflict=id", {
