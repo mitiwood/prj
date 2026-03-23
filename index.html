@@ -3801,22 +3801,35 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .profile-header-top{display:flex;align-items:center;gap:14px;}
 .pv-section-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px;padding:0 2px;}
 .pv-track-item{
-  display:flex;align-items:center;gap:10px;padding:10px;
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  cursor:pointer;transition:background .15s;margin-bottom:6px;
+  display:flex;align-items:center;gap:12px;padding:12px;position:relative;
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  cursor:pointer;transition:all .2s;margin-bottom:8px;overflow:hidden;
 }
-.pv-track-item:hover{background:rgba(124,58,237,.06);}
-.pv-track-item.playing{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.3);}
-.pv-track-item.playing .pv-track-play{color:var(--acc);}
+.pv-track-item:hover{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.15);}
+.pv-track-item:active{transform:scale(.985);}
+.pv-track-item.playing{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(59,130,246,.05));border-color:rgba(124,58,237,.3);}
+.pv-track-item.playing .pv-track-play-btn{background:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4);}
+.pv-track-item .pv-track-idx{width:18px;font-size:11px;font-weight:700;color:var(--t3);text-align:center;flex-shrink:0;}
+.pv-track-item.playing .pv-track-idx{color:var(--acc);}
 .pv-track-thumb{
-  width:44px;height:44px;border-radius:8px;background:var(--bg);
-  overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;
+  width:48px;height:48px;border-radius:10px;background:var(--bg);
+  overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;
+  position:relative;box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 .pv-track-thumb img{width:100%;height:100%;object-fit:cover;}
 .pv-track-info{flex:1;min-width:0;}
-.pv-track-title{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-track-meta{font-size:11px;color:var(--t3);margin-top:2px;display:flex;align-items:center;gap:6px;}
-.pv-track-play{font-size:18px;color:var(--acc3);flex-shrink:0;}
+.pv-track-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pv-track-date{font-size:10px;color:var(--t3);margin-top:1px;}
+.pv-track-stats{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:10px;color:var(--t3);}
+.pv-track-stats span{display:flex;align-items:center;gap:2px;}
+.pv-track-tag{display:inline-block;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(124,58,237,.08);color:var(--acc3);margin-right:4px;}
+.pv-track-play-btn{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(124,58,237,.1);color:var(--acc3);border:none;cursor:pointer;
+  font-size:14px;transition:all .2s;
+}
+.pv-track-play-btn:hover{background:rgba(124,58,237,.2);}
 .pv-empty{text-align:center;padding:40px 16px;color:var(--t3);font-size:13px;}
 </style>
 </head>
@@ -5148,7 +5161,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <button id="pv-collab-btn" onclick="_sendCollabRequest()" class="collab-btn" style="padding:10px 14px;border-radius:10px;">🤝 콜라보</button>
       </div>
     </div>
-    <div class="pv-section-title">🎵 곡 목록</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;">
+      <div class="pv-section-title" style="margin-bottom:0;">🎵 곡 목록</div>
+      <div id="pv-track-count" style="font-size:11px;color:var(--t3);font-weight:600;"></div>
+    </div>
     <div id="pv-tracks-list"></div>
   </div>
 
@@ -14292,26 +14308,25 @@ function fpOpenKaraoke(){
   if(fpCurrentIdx<0)return;
   const h=historyData[fpCurrentIdx];
   if(!h)return;
-  
-  // 가사가 없으면 노래방 모드를 열 수 없음
-  if(!h.lyrics || h.lyrics.trim().length === 0){
+
+  const plain=h._inputLyrics||h.lyric||h.lyrics||h.lrc||'';
+  if(!plain.trim()){
     toast('가사가 없어 노래방 모드를 사용할 수 없어요','err',2000);
     return;
   }
-  
+
   // 풀플레이어 닫고 노래방 모드로 전환
   $('fullplayer').classList.remove('on');
-  document.body.style.overflow = '';
-  
-  // 노래방 플레이어 열기
+  document.body.style.overflow='';
+
   openKaraokePlayer(
-    h.audio_url || '', 
-    h.title || '', 
-    h.tags || '', 
-    h.image_url || '', 
-    h.task_id || '', 
-    h.id || '', 
-    h.lyrics || ''
+    h.audio_url||'',
+    h.title||'',
+    _normTags(h.tags),
+    h.image_url||'',
+    h.taskId||'',
+    h.id||'',
+    plain
   );
 }
 
@@ -18615,31 +18630,39 @@ function openCreatorProfile(name, provider){
 
       const tracks = d.tracks || [];
       if(!tracks.length){
-        $('pv-tracks-list').innerHTML = '<div class="pv-empty">공개된 곡이 없어요</div>';
+        $('pv-tracks-list').innerHTML = '<div class="pv-empty"><div style="font-size:32px;margin-bottom:8px;">🎵</div>아직 공유된 곡이 없어요</div>';
+        const tcEl=$('pv-track-count');if(tcEl) tcEl.textContent='';
         return;
       }
       let totalLikes = 0;
-      $('pv-tracks-list').innerHTML = tracks.map(t => {
+      $('pv-tracks-list').innerHTML = tracks.map((t,idx) => {
         totalLikes += (t.comm_likes||0);
-        const tags = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,2).join(' · ');
+        const tagArr = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
         const _pvPlaying = historyData[fpCurrentIdx]?.id===t.id && fpAudio && !fpAudio.paused;
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '';
+        const likes = t.comm_likes||0;
+        const plays = t.comm_plays||t.plays||0;
+        const durStr = t.duration ? formatTime(t.duration) : '';
         return `<div class="pv-track-item${_pvPlaying?' playing':''}" data-sbid="${esc(t.id)}" onclick="commPlaySb('${esc(t.id)}')">
+          <div class="pv-track-idx">${idx+1}</div>
           <div class="pv-track-thumb">
             ${t.image_url ? `<img src="${esc(t.image_url)}" alt="">` : '🎵'}
           </div>
           <div class="pv-track-info">
             <div class="pv-track-title">${esc(t.title||'무제')}</div>
-            <div class="pv-track-meta">
-              ${tags ? `<span>${esc(tags)}</span>` : ''}
-              ${t.comm_likes>0 ? `<span>❤️ ${t.comm_likes}</span>` : ''}
-              ${t.plays>0 ? `<span>▶ ${t.plays}</span>` : ''}
+            <div class="pv-track-date">${dateStr}${durStr?' · '+durStr:''}</div>
+            <div class="pv-track-stats">
+              ${tagArr.slice(0,2).map(tg=>`<span class="pv-track-tag">${esc(tg)}</span>`).join('')}
+              ${likes>0 ? `<span>❤️ ${likes}</span>` : ''}
+              ${plays>0 ? `<span>▶ ${plays}</span>` : ''}
             </div>
           </div>
-          <div class="pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
+          <div class="pv-track-play-btn pv-track-play">${_pvPlaying?'⏸':'▶'}</div>
         </div>`;
       }).join('');
       $('pv-likes').textContent = totalLikes;
       $('pv-tracks').textContent = tracks.length;
+      const tcEl=$('pv-track-count');if(tcEl) tcEl.textContent=tracks.length+'곡';
     }).catch(()=>{
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
