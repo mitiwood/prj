@@ -22302,17 +22302,21 @@ function _renderWeeklyChart(){
   listEl.innerHTML=top10.map(function(t,i){
     var rank=i+1;
     var rc=rank<=3?'r'+rank:'';
-    var img=t.image_url||t.cover||'';
+    var owner=t._owner||{};
+    var artistName=(owner.name||t.user_name||'익명').replace(/</g,'&lt;');
+    var artistAvatar=owner.avatar||'';
+    var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[owner.provider||'']||'';
+    var avatarHtml=artistAvatar?'<img src="'+artistAvatar.replace(/"/g,'&quot;')+'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<span style="font-size:12px;">👤</span>';
+    var img=t.image_url||t.img||t.cover||'';
     var imgTag=img?'<img class="chart-thumb" src="'+img.replace(/"/g,'&quot;')+'" alt="" loading="lazy">':'<div class="chart-thumb"></div>';
     var title=(t.title||'무제').replace(/</g,'&lt;');
-    var artist=(t.user_name||'익명').replace(/</g,'&lt;');
     var likes=t.comm_likes||t.likes||0;
     var plays=t.comm_plays||t.plays||0;
     var sid=t._sbId||'';
     return '<div class="chart-item" onclick="commPlaySb(\''+sid+'\')">'+
       '<div class="chart-rank '+rc+'">'+rank+'</div>'+
       imgTag+
-      '<div class="chart-info"><div class="chart-info-title">'+title+'</div><div class="chart-info-artist">'+artist+'</div></div>'+
+      '<div class="chart-info"><div class="chart-info-title">'+title+'</div><div class="chart-info-artist" style="display:flex;align-items:center;gap:3px;">'+avatarHtml+'<span>'+provIcon+' '+artistName+'</span></div></div>'+
       '<div class="chart-stats"><span>❤️'+likes+'</span><span>▶'+plays+'</span></div>'+
       '<button class="chart-play-btn" onclick="event.stopPropagation();commPlaySb(\''+sid+'\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>'+
     '</div>';
