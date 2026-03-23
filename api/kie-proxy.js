@@ -7,6 +7,7 @@
  */
 
 import { PLANS } from './toss-config.js';
+import { withSentry } from './lib/sentry.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -111,7 +112,7 @@ async function checkServerCredit(userName, userProvider, creditType) {
   }
 }
 
-export default async function handler(req, res) {
+async function _handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -207,3 +208,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
+
+export default withSentry(_handler);

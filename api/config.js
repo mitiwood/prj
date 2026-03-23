@@ -16,6 +16,11 @@ export default function handler(req, res) {
     return res.status(200).json({ kakaoJsKey: process.env.KAKAO_JS_KEY || '' });
   }
 
+  /* Sentry DSN (프론트엔드용) */
+  if (type === 'sentry') {
+    return res.status(200).json({ sentryDsn: process.env.SENTRY_DSN_FRONTEND || '' });
+  }
+
   /* API 키는 서버 프록시(/api/kie-proxy)에서만 사용 — 클라이언트에 실제 키 노출하지 않음 */
   const hasKey = !!process.env.KIE_API_KEY;
 

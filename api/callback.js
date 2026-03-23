@@ -5,6 +5,7 @@
  * 봇 생성 요청이 Vercel 타임아웃(60초) 내 완료되지 않은 경우,
  * 이 콜백으로 결과를 받아 Supabase 저장 + 텔레그램 알림 전송.
  */
+import { withSentry } from './lib/sentry.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID   = (process.env.TELEGRAM_CHAT_ID || '').trim();
@@ -48,7 +49,7 @@ async function sbDelete(path) {
   });
 }
 
-export default async function handler(req, res) {
+async function _handler(req, res) {
   if (req.method === 'POST') {
     const body = req.body;
     const taskId = body?.taskId || body?.data?.taskId || '';
@@ -116,3 +117,5 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+
+export default withSentry(_handler);

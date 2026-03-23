@@ -10,6 +10,7 @@
  */
 
 import { verifyJWT } from './_jwt.js';
+import { withSentry } from './lib/sentry.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -45,7 +46,7 @@ async function sb(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-export default async function handler(req, res) {
+async function _handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -399,3 +400,5 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: "Method not allowed" });
 }
+
+export default withSentry(_handler);

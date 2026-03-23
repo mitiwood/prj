@@ -4,6 +4,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Sentry Browser SDK -->
+<script src="https://browser.sentry-cdn.com/8.50.0/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+(async()=>{
+  try{
+    const r=await fetch('/api/config?type=sentry');
+    const d=await r.json();
+    if(d.sentryDsn && window.Sentry){
+      window.Sentry.init({
+        dsn:d.sentryDsn,
+        environment:location.hostname.includes('vercel.app')?'production':'development',
+        tracesSampleRate:0.2,
+        ignoreErrors:['ResizeObserver loop','Non-Error promise rejection'],
+      });
+    }
+  }catch(e){/* Sentry 초기화 실패 — 무시 */}
+})();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Kenny's Music Studio — AI 음악 생성기">
 <meta property="og:description" content="AI로 나만의 음악을 만들어보세요. 커스텀 가사, 심플 모드, YouTube 커버, 뮤직비디오까지!">
@@ -1324,6 +1342,113 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .view.on{will-change:contents;}
 #fullplayer{will-change:transform;}
 .hist-card,.comm-list-item{contain:content;}
+
+/* ══════════════════════════════
+   CLAUDE AI CHAT
+══════════════════════════════ */
+#claude-chat-fab{
+  position:fixed;bottom:76px;right:max(calc((100vw - 480px)/2 + 12px), 12px);
+  width:52px;height:52px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  color:#fff;cursor:pointer;z-index:10004;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(124,58,237,.4);
+  transition:all .25s;font-family:inherit;
+}
+#claude-chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(124,58,237,.5);}
+#claude-chat-fab svg{width:26px;height:26px;}
+#claude-chat-fab .fab-badge{
+  position:absolute;top:-2px;right:-2px;width:14px;height:14px;
+  border-radius:50%;background:#10b981;border:2px solid var(--bg);display:none;
+}
+body.mp-on #claude-chat-fab{bottom:130px;}
+
+#claude-chat-panel{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
+  width:100%;max-width:480px;height:70vh;max-height:600px;
+  background:var(--bg);border-radius:20px 20px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  z-index:100005;display:flex;flex-direction:column;
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  box-shadow:0 -8px 40px rgba(0,0,0,.4);
+}
+#claude-chat-panel.on{transform:translateX(-50%) translateY(0);}
+#claude-chat-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:100004;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+#claude-chat-overlay.on{opacity:1;pointer-events:auto;}
+
+.cc-header{
+  display:flex;align-items:center;gap:10px;
+  padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.cc-header-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;
+}
+.cc-header-info{flex:1;}
+.cc-header-name{font-size:15px;font-weight:700;color:var(--t1);}
+.cc-header-status{font-size:11px;color:#10b981;}
+.cc-close{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:var(--card);color:var(--t2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+
+.cc-messages{
+  flex:1;overflow-y:auto;padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+  overscroll-behavior:contain;
+}
+.cc-msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.55;word-break:break-word;}
+.cc-msg.user{
+  align-self:flex-end;background:var(--acc);color:#fff;border-bottom-right-radius:4px;
+}
+.cc-msg.ai{
+  align-self:flex-start;background:var(--card);color:var(--t1);border-bottom-left-radius:4px;
+  border:1px solid var(--border);
+}
+.cc-msg.ai .cc-typing{display:inline-flex;gap:4px;padding:2px 0;}
+.cc-msg.ai .cc-typing span{
+  width:6px;height:6px;border-radius:50%;background:var(--t3);
+  animation:ccBounce .6s ease infinite;
+}
+.cc-msg.ai .cc-typing span:nth-child(2){animation-delay:.15s;}
+.cc-msg.ai .cc-typing span:nth-child(3){animation-delay:.3s;}
+@keyframes ccBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.cc-msg.system{
+  align-self:center;background:transparent;color:var(--t3);
+  font-size:12px;padding:4px 8px;
+}
+
+.cc-input-area{
+  display:flex;gap:8px;padding:12px 14px;
+  border-top:1px solid var(--border);flex-shrink:0;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+}
+.cc-input{
+  flex:1;border:1px solid var(--border);border-radius:20px;
+  padding:10px 16px;font-size:14px;color:var(--t1);
+  background:var(--card);outline:none;font-family:inherit;
+  resize:none;max-height:80px;line-height:1.4;
+}
+.cc-input::placeholder{color:var(--t3);}
+.cc-input:focus{border-color:var(--acc);}
+.cc-send{
+  width:40px;height:40px;border-radius:50%;border:none;
+  background:var(--acc);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0;align-self:flex-end;
+}
+.cc-send:disabled{opacity:.4;cursor:default;}
+.cc-send svg{width:18px;height:18px;}
+
+/* 데이모드 보정 */
+[data-theme="light"] #claude-chat-panel{box-shadow:0 -8px 40px rgba(0,0,0,.15);}
+[data-theme="light"] .cc-msg.ai{background:#f8f7fc;border-color:rgba(124,58,237,.1);}
+
 /* 로딩 스켈레톤 개선 */
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .skeleton-shimmer{background:linear-gradient(90deg,var(--border) 25%,rgba(255,255,255,.05) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}
@@ -5099,6 +5224,32 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   </div>
 </div>
 
+<!-- ── Claude AI Chat ── -->
+<button id="claude-chat-fab" onclick="ccToggle()" aria-label="AI 채팅">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  <div class="fab-badge"></div>
+</button>
+<div id="claude-chat-overlay" onclick="ccToggle()"></div>
+<div id="claude-chat-panel">
+  <div class="cc-header">
+    <div class="cc-header-avatar">C</div>
+    <div class="cc-header-info">
+      <div class="cc-header-name">Claude 음악 어시스턴트</div>
+      <div class="cc-header-status">온라인</div>
+    </div>
+    <button class="cc-close" onclick="ccToggle()">&times;</button>
+  </div>
+  <div class="cc-messages" id="cc-messages">
+    <div class="cc-msg ai">안녕하세요! 음악에 대해 무엇이든 물어보세요. 작곡, 가사, 장르 추천 등 도와드릴게요 🎵</div>
+  </div>
+  <div class="cc-input-area">
+    <textarea class="cc-input" id="cc-input" placeholder="메시지를 입력하세요..." rows="1" maxlength="2000"></textarea>
+    <button class="cc-send" id="cc-send" onclick="ccSend()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
 <nav id="bottom-nav">
   <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')" style="position:relative;">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -6619,13 +6770,16 @@ async function _loadMyTracks(force=false){
 }
 
 /* Supabase row → 커뮤니티 트랙 포맷 변환 */
+/* tags 정규화 — API 응답이 배열일 수 있어 항상 문자열로 변환 */
+function _normTags(v){return Array.isArray(v)?v.join(', '):typeof v==='string'?v:String(v||'');}
+
 function _rowToTrack(t){
   return {
     _sbId:   t.id,
     taskId:  t.task_id || '',
     title:   t.title   || '무제',
-    tags:    (t.tags||'').split(',')[0]?.trim()||'',
-    allTags: (t.tags||'').toLowerCase(),
+    tags:    _normTags(t.tags).split(',')[0]?.trim()||'',
+    allTags: _normTags(t.tags).toLowerCase(),
     img:     t.image_url  || '',
     dur:     '—',
     audioUrl:t.audio_url  || '',
@@ -9392,12 +9546,13 @@ async function generate(overrideParams){
       const isRealLyric = apiLyric && (apiLyric.includes('\n') || /\[.+?\]/.test(apiLyric) || apiLyric.length > 120);
       /* 우선순위: 사용자 입력가사 > API 응답 실제가사 > 심플모드프롬프트 */
       const savedLyrics = lastLyricsInput || (isRealLyric ? apiLyric : '') || (isSimple?$('simple-prompt')?.value:'') || $('prompt').value.trim() || '';
+      const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
-        id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,t.tags||styleStr,currentMode),
+        id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
         audio_url:t.audioUrl||t.audio_url||'',
         video_url:'',
         image_url:t.imageUrl||t.image_url||'',
-        tags:t.tags||styleStr,
+        tags:_tTags,
         lyrics:savedLyrics,
         created:Date.now(),
         type:'audio',
@@ -10581,7 +10736,7 @@ function renderHistoryView(){
       </div>
       <div class="hist-full-actions">
         <button class="hist-full-act" data-fullplay-idx="${idx}"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg> 재생</button>
-        ${hasLyrics?`<button class="hist-full-act act-karaoke" data-fullkaraoke-idx="${idx}" data-kp-audio="${esc(h.audioUrl||'')}" data-kp-title="${esc(h.title||'')}" data-kp-tags="${esc((h.tags||[]).join(','))}" data-kp-image="${esc(h.imageUrl||'')}" data-kp-task="${esc(h._taskId||'')}" data-kp-audio-id="${esc(h.id||'')}">🎤 노래방</button>`:''}
+        ${hasLyrics?`<button class="hist-full-act act-karaoke" data-fullkaraoke-idx="${idx}" data-kp-audio="${esc(h.audioUrl||'')}" data-kp-title="${esc(h.title||'')}" data-kp-tags="${esc(Array.isArray(h.tags)?h.tags.join(','):(h.tags||''))}" data-kp-image="${esc(h.imageUrl||'')}" data-kp-task="${esc(h._taskId||'')}" data-kp-audio-id="${esc(h.id||'')}">🎤 노래방</button>`:''}
         <button class="hist-full-act${h._liked?' liked':''}" data-fulllike-idx="${idx}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"${h._liked?' fill="currentColor"':''}/></svg>${h._liked?' 좋아요 취소':' 좋아요'}</button>
         <button class="hist-full-act act-share" data-fullshare-idx="${idx}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> 공유</button>
       </div>
@@ -21596,6 +21751,158 @@ async function _doAttendance(){
 }
 setTimeout(_initAttendance, 2000);
 setTimeout(_showOnboarding, 1500);
+
+/* ══════════════════════════════
+   CLAUDE AI CHAT
+══════════════════════════════ */
+(function(){
+  var _ccOpen = false;
+  var _ccBusy = false;
+  var _ccHistory = []; /* {role, content} */
+
+  window.ccToggle = function(){
+    _ccOpen = !_ccOpen;
+    var panel = $('claude-chat-panel');
+    var overlay = $('claude-chat-overlay');
+    if(_ccOpen){
+      panel.classList.add('on');
+      overlay.classList.add('on');
+      setTimeout(function(){ $('cc-input').focus(); }, 350);
+    } else {
+      panel.classList.remove('on');
+      overlay.classList.remove('on');
+    }
+  };
+
+  /* 자동 textarea 높이 조절 */
+  var ccInput = $('cc-input');
+  if(ccInput){
+    ccInput.addEventListener('input', function(){
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+    });
+    ccInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        ccSend();
+      }
+    });
+  }
+
+  function _ccAddMsg(role, content){
+    var box = $('cc-messages');
+    var div = document.createElement('div');
+    div.className = 'cc-msg ' + (role === 'user' ? 'user' : 'ai');
+    div.textContent = content;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function _ccAddTyping(){
+    var box = $('cc-messages');
+    var div = document.createElement('div');
+    div.className = 'cc-msg ai';
+    div.id = 'cc-typing';
+    div.innerHTML = '<div class="cc-typing"><span></span><span></span><span></span></div>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  window.ccSend = async function(){
+    if(_ccBusy) return;
+    var input = $('cc-input');
+    var text = (input.value || '').trim();
+    if(!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    $('cc-send').disabled = true;
+    _ccBusy = true;
+
+    /* 유저 메시지 표시 */
+    _ccAddMsg('user', text);
+    _ccHistory.push({ role: 'user', content: text });
+
+    /* 히스토리 20개 제한 */
+    if(_ccHistory.length > 20) _ccHistory = _ccHistory.slice(-20);
+
+    /* 타이핑 표시 */
+    var typingEl = _ccAddTyping();
+
+    /* 유저 정보 */
+    var u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+    var userName = u ? u.name : 'guest';
+    var userProvider = u ? u.provider : 'guest';
+
+    try {
+      var res = await fetch('/api/claude-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: _ccHistory,
+          userName: userName,
+          userProvider: userProvider
+        })
+      });
+
+      /* 타이핑 제거 → AI 메시지로 교체 */
+      if(typingEl && typingEl.parentNode) typingEl.remove();
+
+      if(!res.ok){
+        var err = await res.json().catch(function(){ return { error: '서버 오류' }; });
+        _ccAddMsg('ai', err.error || '오류가 발생했어요. 다시 시도해주세요.');
+        _ccBusy = false;
+        $('cc-send').disabled = false;
+        return;
+      }
+
+      /* SSE 스트리밍 읽기 */
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var aiDiv = _ccAddMsg('ai', '');
+      var fullText = '';
+      var buffer = '';
+
+      while(true){
+        var chunk = await reader.read();
+        if(chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+        var lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for(var i = 0; i < lines.length; i++){
+          var line = lines[i];
+          if(!line.startsWith('data: ')) continue;
+          var data = line.slice(6);
+          if(data === '[DONE]') continue;
+          try {
+            var parsed = JSON.parse(data);
+            if(parsed.text){
+              fullText += parsed.text;
+              aiDiv.textContent = fullText;
+              $('cc-messages').scrollTop = $('cc-messages').scrollHeight;
+            }
+            if(parsed.error){
+              aiDiv.textContent = parsed.error;
+            }
+          } catch(e){}
+        }
+      }
+
+      if(fullText){
+        _ccHistory.push({ role: 'assistant', content: fullText });
+      }
+    } catch(e){
+      if(typingEl && typingEl.parentNode) typingEl.remove();
+      _ccAddMsg('ai', '네트워크 오류가 발생했어요. 다시 시도해주세요.');
+    }
+
+    _ccBusy = false;
+    $('cc-send').disabled = false;
+  };
+})();
 </script>
 <script src="js/create-enhance.js"></script>
 

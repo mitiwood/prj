@@ -4388,8 +4388,8 @@ function updatePushPreview(){
 }
 
 /* 구독 현황 로드 */
-async function loadPushStats(){
-  await fetchPushHistory();
+async function loadPushStats(skipFetch){
+  if(!skipFetch) await fetchPushHistory();
   const subs = getPushSubscriptions();
   const hist = getPushHistory();
   if(document.getElementById('push-sub-count'))  document.getElementById('push-sub-count').textContent  = subs.length + '명';
@@ -4543,7 +4543,7 @@ async function deletePushHist(idx){
   hist.splice(idx,1);
   _pushHistoryCache=hist;
   localStorage.setItem(PUSH_HISTORY_KEY,JSON.stringify(hist));
-  renderPushHistory();loadPushStats();
+  renderPushHistory();loadPushStats(true);
   adminToast('🗑 삭제됨');
 }
 
@@ -4554,7 +4554,7 @@ async function clearPushHistory(){
   localStorage.removeItem(PUSH_HISTORY_KEY);
   _pushHistoryCache=[];
   _pushHistPage=0;
-  renderPushHistory();loadPushStats();
+  renderPushHistory();loadPushStats(true);
   adminToast('🗑 전체 히스토리 삭제됨');
 }
 
@@ -4746,11 +4746,14 @@ async function sendPush(){
   const recipients = target === 'select' ? [..._pushSelectedUsers] : loginUsers.map(u=>u.name||u.email||'익명');
   const histEntry = { title, body, url, target, sentAt: Date.now(), sent, failed, total,
     loginCount: loginUsers.length, subCount: subs.length, recipients };
-  savePushHistoryToDB(histEntry);
-  const hist = getPushHistory();
-  hist.unshift(histEntry);
-  _pushHistoryCache = hist;
-  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,100)));
+  await savePushHistoryToDB(histEntry);
+  /* DB 저장 완료 후 다시 가져와서 캐시 갱신 */
+  await fetchPushHistory();
+  /* DB에서 못 가져온 경우 로컬 캐시에 직접 추가 */
+  if(!_pushHistoryCache.find(h=>h.title===title && Math.abs((h.sentAt||0)-histEntry.sentAt)<5000)){
+    _pushHistoryCache.unshift({...histEntry, id:Date.now()});
+  }
+  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(_pushHistoryCache.slice(0,100)));
 
   if(result){
     if(sent > 0){
@@ -4764,7 +4767,7 @@ async function sendPush(){
   adminToast(sent > 0 ? `✅ 총 ${sent}명에게 발송됨` : '⚠️ 발송 대상 없음');
 
   renderPushHistory();
-  loadPushStats();
+  loadPushStats(true);
   btn.disabled = false;
   btn.textContent = '🔔 푸시 알림 발송';
 }
@@ -4805,11 +4808,12 @@ async function testLocalPush(){
   /* 히스토리 (DB + localStorage) */
   const testEntry = { title, body, url, target: 'test', sentAt: Date.now(), sent: 1, failed: 0, total: 1,
     loginCount: loginUsers.length, subCount: 0, isLocalTest: true };
-  savePushHistoryToDB(testEntry);
-  const hist = getPushHistory();
-  hist.unshift(testEntry);
-  _pushHistoryCache = hist;
-  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(hist.slice(0,50)));
+  await savePushHistoryToDB(testEntry);
+  await fetchPushHistory();
+  if(!_pushHistoryCache.find(h=>h.title===title && Math.abs((h.sentAt||0)-testEntry.sentAt)<5000)){
+    _pushHistoryCache.unshift({...testEntry, id:Date.now()});
+  }
+  localStorage.setItem(PUSH_HISTORY_KEY, JSON.stringify(_pushHistoryCache.slice(0,50)));
 
   if(result){
     const mobileCount = loginUsers.filter(u=>u.ua&&/iPhone|iPad|Android|Mobile/i.test(u.ua)).length;
@@ -4819,7 +4823,7 @@ async function testLocalPush(){
 
   adminToast('✅ 로컬 테스트 알림 발송됨');
   renderPushHistory();
-  loadPushStats();
+  loadPushStats(true);
 }
 
 /* 입력 이벤트 바인딩 */
