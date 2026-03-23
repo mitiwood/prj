@@ -15864,7 +15864,18 @@ async function _loadChatMessages(){
         <div class="chat-actions" style="position:relative;">${reactBtn}<button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button>${pinBtn}${deleteBtn}</div>
       </div>`;
     }).join('');
-    if(_chatLastTs) cl.innerHTML+=frag; else cl.innerHTML=frag;
+    if(_chatLastTs){
+      /* 중복 메시지 제거 — 이미 DOM에 있는 msgId는 스킵 */
+      var existingIds=new Set();
+      cl.querySelectorAll('[data-msg-id]').forEach(function(el){existingIds.add(el.dataset.msgId);});
+      var temp=document.createElement('div');temp.innerHTML=frag;
+      var newEls=temp.querySelectorAll('[data-msg-id]');
+      var deduped='';
+      newEls.forEach(function(el){if(!existingIds.has(el.dataset.msgId))deduped+=el.outerHTML;});
+      if(deduped) cl.innerHTML+=deduped;
+    } else {
+      cl.innerHTML=frag;
+    }
     if(msgs.length) _chatLastTs=new Date(msgs[msgs.length-1].created_at).getTime();
     if(_chatAutoScroll) cl.scrollTop=cl.scrollHeight;
   }catch(e){console.warn('[chat]',e.message);}
