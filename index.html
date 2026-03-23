@@ -6787,10 +6787,12 @@ function _startCommPoll(){
     if(_commPollPaused || document.hidden) return;
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
+    /* 채팅/팔로잉/리더보드 모드면 트랙 폴링 스킵 */
+    if(_commActiveGenre==='chat'||_commActiveGenre==='following'||_commActiveGenre==='leaderboard') return;
     var changed = await _pollRefreshSbTracks();
     if(changed){
       if(_commActiveGenre==='creators'){try{_renderCreatorList();}catch(e){}}
-      else if(_commActiveGenre==='all'||!_commActiveGenre){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));}catch(e){}}
+      else if(_commActiveGenre==='all'||!_commActiveGenre){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));_renderCreatorsInline();}catch(e){}}
     }
   }, 60000);
 }
@@ -6801,7 +6803,9 @@ document.addEventListener('visibilitychange',function(){
     if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
       var cv=document.getElementById('community-view');
       if(cv&&cv.classList.contains('on')){
-        _pollRefreshSbTracks().then(function(changed){if(changed){if(_commActiveGenre==='creators'){try{_renderCreatorList();}catch(e){}}else if(_commActiveGenre==='all'||!_commActiveGenre){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));}catch(e){}}}});
+        if(_commActiveGenre!=='chat'&&_commActiveGenre!=='following'&&_commActiveGenre!=='leaderboard'){
+          _pollRefreshSbTracks().then(function(changed){if(changed){if(_commActiveGenre==='creators'){try{_renderCreatorList();}catch(e){}}else if(_commActiveGenre==='all'||!_commActiveGenre){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));_renderCreatorsInline();}catch(e){}}}});
+        }
       }
     }
   }
