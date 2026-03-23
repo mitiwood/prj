@@ -2134,6 +2134,9 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-loading-dots span:nth-child(2){animation-delay:-.16s;}
 .comm-loading-dots span:nth-child(3){animation-delay:0s;}
 .comm-loading-text{font-size:13px;color:var(--t3);font-weight:500;}
+.comm-loading-sm{display:flex;align-items:center;justify-content:center;gap:10px;padding:24px 16px;}
+.comm-loading-sm .comm-loading-dots span{width:6px;height:6px;}
+.comm-loading-sm .comm-loading-text{font-size:12px;}
 /* 활동 피드 (Feature 9) */
 .comm-activity{padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;}
 .comm-activity-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
@@ -13451,7 +13454,7 @@ function _renderMyFeedView(grid,countEl){
   }
   if(!_myFeedCreators&&!_myFeedLoading){
     _loadMyFeedCreators();
-    html+='<div style="padding:40px 0;text-align:center;color:var(--t3);font-size:13px;"><div class="mf-spinner"></div>크리에이터 불러오는 중...</div>';
+    html+=_commLoadingHtml('크리에이터 불러오는 중...',true);
     grid.innerHTML=html;
     return;
   }
@@ -13700,7 +13703,7 @@ function _renderCreatorDetailView(grid,countEl){
 
   /* 로딩 */
   if(_myFeedDetailLoading&&(!d.tracks||!d.tracks.length)){
-    html+='<div style="padding:40px 0;text-align:center;color:var(--t3);font-size:13px;"><div class="mf-spinner"></div>곡 불러오는 중...</div>';
+    html+=_commLoadingHtml('곡 불러오는 중...',true);
     grid.innerHTML=html; return;
   }
   if(!d.tracks||!d.tracks.length){
@@ -15612,7 +15615,7 @@ async function _renderFollowingFeed(heroWrap,list){
     return;
   }
   if(_followFeedCache&&Date.now()-_followFeedAt<30000){_renderFollowFeedUI(list);return;}
-  list.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3);">불러오는 중...</div>';
+  list.innerHTML=_commLoadingHtml('팔로잉 피드 불러오는 중...');
   try{
     const r=await fetch('/api/my-feed?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
     const d=await r.json();
@@ -15703,7 +15706,7 @@ function _renderChatUI(){
       <div id="chat-pinned" style="display:none;padding:8px 12px;background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.15);font-size:12px;cursor:pointer;" onclick="_chatScrollToPinned()">
         <span style="font-weight:700;color:#f59e0b;">📌 고정</span> <span id="chat-pinned-text" style="color:var(--t2);"></span>
       </div>
-      <div class="comm-chat-list" id="comm-chat-list"><div style="text-align:center;padding:30px;color:var(--t3);">메시지 불러오는 중...</div></div>
+      <div class="comm-chat-list" id="comm-chat-list"><div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">메시지 불러오는 중...</div></div></div>
       <div id="chat-typing-bar" style="display:none;padding:4px 14px;font-size:11px;color:var(--t3);"><span id="chat-typing-text"></span></div>
       <div id="chat-new-badge" class="chat-new-badge" style="display:none;" onclick="_chatScrollBottom()"></div>
       <div id="chat-reply-bar" class="chat-reply-bar" style="display:none;">
@@ -16189,7 +16192,7 @@ async function _renderCommunityInner(force){
     var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
     var hw0=$('comm-hero-wrap');var ls0=$('comm-list');
     if(hw0)hw0.innerHTML='';
-    if(ls0)ls0.innerHTML='<div class="comm-loading-overlay"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">팔로잉 피드 불러오는 중...</div></div>';
+    if(ls0)ls0.innerHTML=_commLoadingHtml('팔로잉 피드 불러오는 중...');
     if(ls0) await _renderFollowingFeed(hw0,ls0);
     /* 페이드인 */
     if(ls0)ls0.querySelectorAll('.comm-feed-item').forEach(function(el,i){el.style.animation='commFadeUp .4s cubic-bezier(.16,1,.3,1) '+(i*0.04)+'s both';});
@@ -16279,7 +16282,7 @@ async function _renderCommunityInner(force){
 
   /* 첫 로드 — 로딩 인디케이터 + 서버 대기 */
   heroWrap.innerHTML='';
-  list.innerHTML='<div class="comm-loading-overlay"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">음악을 불러오는 중...</div></div>';
+  list.innerHTML=_commLoadingHtml('음악을 불러오는 중...');
   var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
   await _loadSbTracks(true);
   if(crSec){crSec.style.opacity='';crSec.style.transition='opacity .3s';}
@@ -16619,6 +16622,12 @@ function _renderCommContent(heroWrap, list){
 
 /* 커뮤니티 하단 크리에이터 섹션 — DB 전체 사용자 표시 */
 var _creatorsCache=null;var _creatorsCacheAt=0;
+/* 통일 로딩 인디케이터 헬퍼 */
+function _commLoadingHtml(msg,small){
+  if(small) return '<div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">'+(msg||'불러오는 중...')+'</div></div>';
+  return '<div class="comm-loading-overlay"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">'+(msg||'불러오는 중...')+'</div></div>';
+}
+
 function _renderCreatorsInline(){
   var wrap=$('comm-creators-inline');
   if(!wrap)return;
@@ -20985,7 +20994,7 @@ function openCommentSheet(trackId){
         <div class="comment-header-sub">${esc(t?.title||'트랙')}</div>
         <button class="comment-close" onclick="closeCommentSheet()">✕</button>
       </div>
-      <div class="comment-list" id="_comment_list"><div style="text-align:center;padding:30px;color:var(--t3);font-size:13px;">댓글 불러오는 중...</div></div>
+      <div class="comment-list" id="_comment_list"><div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">댓글 불러오는 중...</div></div></div>
       <div class="comment-reply-bar" id="_comment_reply_bar" style="display:none;"><span id="_comment_reply_label"></span><button onclick="_cancelReply()">✕</button></div>
       <div class="comment-input-wrap">
         <img class="comment-input-avatar" src="${esc(currentUser?.avatar||'')}" onerror="this.style.display='none'" alt="">
