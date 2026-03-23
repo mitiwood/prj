@@ -6631,10 +6631,15 @@ let _sbIntersectionObserver = null;
 const _playedTrackIds = new Set(); /* 세션당 재생 카운팅 중복 방지 */
 
 /* 커뮤니티 공개 트랙 로드 — 페이지네이션 지원 */
+let _sbLoadPromise=null;
 async function _loadSbTracks(force=false){
-  if(_sbLoading) return;
+  if(_sbLoading) return _sbLoadPromise; /* 진행 중이면 기존 Promise 대기 */
   if(!force && _sbLoaded && (Date.now() - _sbLoadedAt) < _SB_CACHE_TTL) return;
   _sbLoading = true;
+  _sbLoadPromise = _doLoadSbTracks();
+  try{ await _sbLoadPromise; }finally{ _sbLoadPromise=null; }
+}
+async function _doLoadSbTracks(){
   _sbOffset = 0;
   _sbHasMore = true;
   try{
