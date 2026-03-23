@@ -162,10 +162,10 @@ textarea.form-input{line-height:1.5;}
 .ch-detail-actions{display:flex;gap:8px;margin-top:16px;}
 .ch-detail-actions .btn{flex:1;text-align:center;}
 /* 모바일 — 상단 바 (현재 섹션 표시) */
-.mob-header{display:none;position:sticky;top:0;z-index:20;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;padding-right:64px;align-items:center;justify-content:space-between;}
+.mob-header{display:none;position:sticky;top:0;z-index:20;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;padding-left:64px;align-items:center;justify-content:space-between;}
 .mob-header h1{font-size:14px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 /* 플로팅 FAB */
-.mob-fab{display:none;position:fixed;top:10px;right:12px;z-index:90;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,.5);transition:transform .2s;-webkit-tap-highlight-color:transparent;}
+.mob-fab{display:none;position:fixed;top:12px;left:12px;z-index:90;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,.5);transition:transform .2s;-webkit-tap-highlight-color:transparent;}
 .mob-fab:active{transform:scale(.9);}
 .mob-fab.open{transform:rotate(45deg);}
 /* 드로어 (모바일 메뉴) */
@@ -189,9 +189,18 @@ textarea.form-input{line-height:1.5;}
 .mob-menu-item.on{background:rgba(168,85,247,.15);color:var(--acc);}
 .mob-menu-item .mi-icon{font-size:20px;}
 .mob-menu-item .mi-label{font-size:10px;font-weight:600;}
+/* 터치 기기 (아이폰/안드로이드) — 사이드바 강제 숨김 */
+@media(pointer:coarse){
+  .sidebar{display:none!important;width:0!important;min-width:0!important;overflow:hidden!important;}
+  .admin-header{display:none!important;}
+  .mob-header{display:flex;}
+  .mob-fab{display:flex;align-items:center;justify-content:center;}
+  .admin-main{width:100%;}
+  .admin-content{padding-bottom:90px;}
+}
 /* 반응형 — 모바일 최적화 */
 @media(max-width:768px){
-  .sidebar{display:none!important;}
+  .sidebar{display:none!important;width:0!important;}
   .admin-header{display:none!important;}
   .mob-header{display:flex;}
   .mob-fab{display:flex;align-items:center;justify-content:center;}
