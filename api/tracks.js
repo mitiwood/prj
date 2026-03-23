@@ -230,8 +230,8 @@ async function _handler(req, res) {
               user_name: owner_name,
               user_provider: owner_provider,
               type: "system",
-              title: "트랙 저장 실패",
-              body: `"${(title || "무제").slice(0, 40)}" 저장 실패 (메모리 폴백) — ${e.message.slice(0, 60)}`,
+              title: "앗, 저장이 좀 밀렸어요",
+              body: `"${(title || "무제").slice(0, 40)}" 곡이 임시 저장됐어요! 잠시 후 자동으로 복구돼요~`,
               data: JSON.stringify({ trackId: id, error: e.message.slice(0, 100) }),
             }),
           }).catch(() => {});
