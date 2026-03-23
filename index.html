@@ -1991,7 +1991,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 }
 
 /* 커뮤니티 리스트 */
-.comm-section-label{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px;}
 .comm-list{display:flex;flex-direction:column;gap:8px;}
 .comm-item{
   background:var(--card);border:1px solid var(--border);
@@ -4765,7 +4764,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:8px;">🏷 장르 탐색</div>
       <div id="comm-genre-grid" class="genre-grid"></div>
     </div>
-    <div class="comm-section-label" id="comm-section-lbl">전체 트랙</div>
     <div class="comm-list" id="comm-list"></div>
     <!-- 크리에이터 섹션 (항상 표시) -->
     <div id="comm-creators-section" style="margin-top:20px;">
@@ -15593,7 +15591,6 @@ function _updateCommBadge(){
 let _followFeedCache=null,_followFeedAt=0;
 async function _renderFollowingFeed(heroWrap,list){
   heroWrap.innerHTML='';
-  const lbl=$('comm-section-lbl');if(lbl) lbl.textContent='팔로잉';
   if(!currentUser||currentUser.provider==='guest'){
     list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">👥</div><div class="comm-no-title">로그인이 필요해요</div><div class="comm-no-desc">팔로우한 아티스트의 새 곡을 확인하세요</div></div>';
     return;
@@ -15609,7 +15606,6 @@ async function _renderFollowingFeed(heroWrap,list){
 }
 function _renderFollowFeedUI(list){
   let tracks=_followFeedCache||[];
-  const lbl=$('comm-section-lbl');if(lbl) lbl.textContent='팔로잉 ('+tracks.length+'곡)';
   if(!tracks.length){
     /* 팔로잉 곡이 없으면 전체 최신곡 표시 */
     if(lbl) lbl.textContent='팔로잉 · 추천 곡';
@@ -16022,7 +16018,6 @@ async function _renderCommunityInner(force){
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
     var hw1=$('comm-hero-wrap');if(hw1)hw1.innerHTML='';
-    var lbl1=$('comm-section-lbl');if(lbl1)lbl1.textContent='💬 커뮤니티 채팅';
     _renderChatUI();
     return;
   }
@@ -16033,7 +16028,6 @@ async function _renderCommunityInner(force){
     ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
-    var lbl3=$('comm-section-lbl');if(lbl3)lbl3.textContent='🏆 리더보드';
     if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
     _renderLeaderboard();
     return;
@@ -16396,7 +16390,6 @@ function _renderCommContent(heroWrap, list){
       const la=ga.tracks.reduce((s,t)=>s+(t.likes||0),0),lb=gb.tracks.reduce((s,t)=>s+(t.likes||0),0);
       return (gb.tracks.length-ga.tracks.length)||(lb-la);
     });
-    $('comm-section-lbl').textContent=otherLabel+' ('+otherTracks.length+'곡)';
 
     /* 트랙 리스트만 렌더 (크리에이터는 하단 인라인 섹션에서 표시) */
     _ogOrder.forEach(k=>{_ogMap[k].tracks.forEach(t=>allListTracks.push(t));});
@@ -16617,13 +16610,13 @@ function _applyAvatarCache(container){
 function _renderCreatorList(){
   const heroWrap=$('comm-hero-wrap');
   const list=$('comm-list');
-  const sectionLbl=$('comm-section-lbl');
+  const sectionLbl=null; /* comm-section-label 제거됨 */
   if(!list)return;
   heroWrap.innerHTML='';
 
   const all=_sbTracks||[];
   if(!all.length){
-    sectionLbl.textContent='크리에이터';
+    if(sectionLbl)sectionLbl.textContent='크리에이터';
     list.innerHTML='<div style="text-align:center;padding:48px 20px;color:var(--t3);"><div style="font-size:40px;margin-bottom:12px;">👤</div><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;">아직 크리에이터가 없어요</div></div>';
     return;
   }
@@ -16651,7 +16644,7 @@ function _renderCreatorList(){
   const q=_commSearchQuery;
   const filteredKeys=q?groupOrder.filter(k=>groupMap[k].name.toLowerCase().includes(q)):groupOrder;
 
-  sectionLbl.textContent='크리에이터 ('+filteredKeys.length+'명)';
+  if(sectionLbl)sectionLbl.textContent='크리에이터 ('+filteredKeys.length+'명)';
 
   if(!filteredKeys.length){
     list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">🔍</div><div class="comm-no-title">검색 결과가 없습니다</div></div>';
