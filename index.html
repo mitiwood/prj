@@ -2150,8 +2150,8 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-chat-bubble:active{background:rgba(124,58,237,.06);}
 .comm-chat-msg.mine .comm-chat-bubble{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.2);}
 .comm-chat-msg.mine .comm-chat-bubble:active{background:rgba(124,58,237,.2);}
-.comm-chat-name{font-size:10px;font-weight:700;color:var(--acc3);margin-bottom:2px;}
-.comm-chat-time{font-size:9px;color:var(--t3);margin-top:2px;}
+.comm-chat-name{font-size:10px;font-weight:700;color:var(--acc3);display:inline;margin-right:6px;}
+.comm-chat-time{font-size:9px;color:var(--t3);margin-left:6px;display:inline;}
 /* ── 답장 ── */
 .chat-reply-preview{font-size:11px;color:var(--t3);padding:4px 8px;margin-bottom:3px;border-left:2px solid var(--acc);background:rgba(124,58,237,.04);border-radius:0 6px 6px 0;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .chat-reply-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(124,58,237,.05);border-top:1px solid var(--border);font-size:12px;color:var(--t2);}
@@ -15838,12 +15838,10 @@ async function _loadChatMessages(){
       const reactBtn=`<button class="chat-action-btn" onclick="this.nextElementSibling.classList.toggle('show')" title="리액션">😀</button><div class="chat-react-picker">${_CHAT_REACT_QUICK.map(e=>`<span class="chat-react-opt" onclick="_chatToggleReact('${msgId}','${e}');this.parentNode.classList.remove('show')">${e}</span>`).join('')}</div>`;
       return dateSep+`<div class="comm-chat-msg${mine?' mine':''}" data-msg-id="${msgId}">
         <div class="comm-chat-avatar"${avatarClick}>${_safeAvatarHtml(m.author_avatar,m.author_name)}</div>
-        <div style="min-width:0;">
-          ${!mine?'<div class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</div>':''}
+        <div style="min-width:0;flex:1;">
           ${replyHtml}
-          <div class="comm-chat-bubble" onclick="_chatSetReply('${safeName}','${safeContent}')">${_chatFormatContent(m.content)}</div>
+          <div class="comm-chat-bubble" onclick="_chatSetReply('${safeName}','${safeContent}')">${!mine?'<span class="comm-chat-name">'+provIcon+' '+esc(m.author_name||'익명')+'</span>':''}${_chatFormatContent(m.content)}<span class="comm-chat-time">${msgTime||t}</span></div>
           <div class="chat-reactions" data-react-id="${msgId}">${_buildReactionsHtml(msgId)}</div>
-          <div class="comm-chat-time">${msgTime||t}</div>
         </div>
         <div class="chat-actions" style="position:relative;">${reactBtn}<button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button>${pinBtn}${deleteBtn}</div>
       </div>`;
