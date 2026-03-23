@@ -2123,6 +2123,23 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .skeleton-line{height:10px;border-radius:4px;background:var(--border);}
 .skeleton-pulse{animation:skeletonPulse 1.5s ease-in-out infinite;}
 @keyframes skeletonPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+@keyframes commFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.comm-fade-in{animation:commFadeIn .3s ease-out both;}
+.comm-fade-in:nth-child(2){animation-delay:.05s;}
+.comm-fade-in:nth-child(3){animation-delay:.1s;}
+.comm-fade-in:nth-child(4){animation-delay:.15s;}
+.comm-fade-in:nth-child(5){animation-delay:.2s;}
+.comm-stagger>*{animation:commFadeIn .3s ease-out both;}
+.comm-stagger>:nth-child(1){animation-delay:0s;}
+.comm-stagger>:nth-child(2){animation-delay:.04s;}
+.comm-stagger>:nth-child(3){animation-delay:.08s;}
+.comm-stagger>:nth-child(4){animation-delay:.12s;}
+.comm-stagger>:nth-child(5){animation-delay:.16s;}
+.comm-stagger>:nth-child(6){animation-delay:.2s;}
+.comm-stagger>:nth-child(7){animation-delay:.24s;}
+.comm-stagger>:nth-child(8){animation-delay:.28s;}
+.comm-stagger>:nth-child(9){animation-delay:.32s;}
+.comm-stagger>:nth-child(10){animation-delay:.36s;}
 /* 활동 피드 (Feature 9) */
 .comm-activity{padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;}
 .comm-activity-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
@@ -16161,10 +16178,14 @@ async function _renderCommunityInner(force){
   }
 
   /* 첫 로드 — 스켈레톤 + 서버 대기 */
-  list.innerHTML=Array(4).fill(_skeleton('creator')).join('');
-  heroWrap.innerHTML='';
+  heroWrap.innerHTML='<div style="height:180px;border-radius:16px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div>';
+  list.innerHTML=Array(5).fill(_skeleton('track')).join('');
+  var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
   await _loadSbTracks(true);
+  if(crSec)crSec.style.opacity='';
+  list.classList.add('comm-stagger');
   _renderCommContent(heroWrap, list);
+  setTimeout(function(){list.classList.remove('comm-stagger');},600);
   _renderCreatorsInline();
   _renderWeeklyChart();
   _renderCommBottom();
@@ -16352,7 +16373,7 @@ function _renderCommContent(heroWrap, list){
 
     /* ── Featured Hero ── */
     heroWrap.innerHTML=`
-    <div class="comm-featured" id="comm-hero">
+    <div class="comm-featured comm-fade-in" id="comm-hero">
       <div class="comm-featured-cover">
         ${(hero.img&&!_isBlockedImgHost(hero.img))
           ?`<img src="${esc(hero.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.onerror=null;this.style.display='none'">`
@@ -16476,6 +16497,10 @@ function _renderCommContent(heroWrap, list){
 
     if(!allListTracks.length){list.innerHTML='';return;}
     list.innerHTML=html;
+    /* 트랙 아이템 페이드인 */
+    list.querySelectorAll('.comm-list-item,.chart-item').forEach(function(el,i){
+      el.style.animation='commFadeIn .3s ease-out '+(i*0.03)+'s both';
+    });
 
     /* 댓글 카운트 비동기 로드 */
     _loadCommentCounts([hero._sbId, ...allListTracks.map(t=>t._sbId)].filter(Boolean));
@@ -16517,7 +16542,7 @@ function _drawCreatorCards(wrap,list){
   var isLoggedIn=currentUser&&currentUser.provider!=='guest';
   var headerEl=$('comm-creators-section')?.querySelector('div:first-child');
   if(headerEl)headerEl.textContent='👤 크리에이터 ('+list.length+'명)';
-  wrap.innerHTML='<div style="display:flex;gap:10px;overflow-x:auto;padding:4px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">'
+  wrap.innerHTML='<div class="comm-stagger" style="display:flex;gap:10px;overflow-x:auto;padding:4px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">'
     +'<style>.cr-swipe::-webkit-scrollbar{display:none;}</style>'.replace('cr-swipe','')
     +list.map(function(c){
     var av=c.avatar&&c.avatar!=='👤'?'<img src="'+esc(c.avatar)+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.innerHTML=\'👤\'">':'<div style="width:48px;height:48px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>';
@@ -22424,6 +22449,10 @@ function _renderWeeklyChart(){
       '<button class="chart-play-btn" data-chart-sid="'+sid+'" onclick="event.stopPropagation();commPlaySb(\''+sid+'\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>'+
     '</div>';
   }).join('');
+  /* 차트 아이템 순차 페이드인 */
+  listEl.querySelectorAll('.chart-item').forEach(function(el,i){
+    el.style.animation='commFadeIn .3s ease-out '+(i*0.04)+'s both';
+  });
 }
 
 /* ── 무드 플레이리스트 ── */
