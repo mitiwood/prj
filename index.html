@@ -6600,6 +6600,7 @@ async function _loadSbTracks(force=false){
       _sbTracks = d.tracks.map(_rowToTrack);
       _sbOffset = _sbTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
+      _sbFingerprint = _calcFingerprint(_sbTracks);
       _sbLoaded = true;
       _sbLoadedAt = Date.now();
       if(!_followingNames) _loadFollowingNames(); else _updateCommBadge();
@@ -6616,22 +6617,35 @@ async function _loadSbTracks(force=false){
 }
 
 /* 폴링 갱신 — 현재 로드된 만큼만 새로고침 (무한 스크롤 상태 유지) */
+/* 변경 감지용 핑거프린트 */
+let _sbFingerprint = '';
+function _calcFingerprint(tracks){
+  return tracks.map(function(t){return (t._sbId||t.id)+'_'+(t.likes||0)+'_'+(t.plays||0);}).join('|');
+}
 async function _pollRefreshSbTracks(){
-  if(_sbLoading) return;
+  if(_sbLoading) return false;
   _sbLoading = true;
+  var changed = false;
   var currentCount = Math.max(_sbOffset, _SB_PAGE_SIZE);
   try{
     var r = await fetch('/api/tracks?public=true&limit='+currentCount+'&offset=0');
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      _sbTracks = d.tracks.map(_rowToTrack);
-      _sbOffset = _sbTracks.length;
+      var newTracks = d.tracks.map(_rowToTrack);
+      var newFp = _calcFingerprint(newTracks);
+      if(newFp !== _sbFingerprint){
+        _sbTracks = newTracks;
+        _sbOffset = _sbTracks.length;
+        _sbFingerprint = newFp;
+        changed = true;
+      }
       _sbLoadedAt = Date.now();
       _updateCommBadge();
     }
   }catch(e){ console.warn('[SB] 폴링 갱신 실패:', e.message); }
   _sbLoading = false;
+  return changed;
 }
 
 /* 커뮤니티 추가 페이지 로드 (무한 스크롤) */
@@ -6736,8 +6750,8 @@ function _startCommPoll(){
     if(_commPollPaused || document.hidden) return;
     const commView = document.getElementById('community-view');
     if(!commView || !commView.classList.contains('on')) return;
-    await _pollRefreshSbTracks();
-    try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
+    var changed = await _pollRefreshSbTracks();
+    if(changed) try{ _renderCommContent($('comm-hero-wrap'), $('comm-list')); }catch(e){}
   }, 30000);
 }
 /* 브라우저 탭 전환 시 폴링 일시정지/재개 */
@@ -6747,7 +6761,7 @@ document.addEventListener('visibilitychange',function(){
     if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
       var cv=document.getElementById('community-view');
       if(cv&&cv.classList.contains('on')){
-        _pollRefreshSbTracks().then(function(){try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));}catch(e){}});
+        _pollRefreshSbTracks().then(function(changed){if(changed)try{_renderCommContent($('comm-hero-wrap'),$('comm-list'));}catch(e){}});
       }
     }
   }
@@ -15683,6 +15697,12 @@ function getCommTracks(){
 var _commRenderTimer=null;
 var _commRendering=false;
 async function renderCommunity(force=false){
+  /* 커뮤니티 뷰가 열려 있지 않으면 서버 요청 스킵 (불필요한 API 호출 방지) */
+  var cv=document.getElementById('community-view');
+  if(!cv||!cv.classList.contains('on')){
+    /* 캐시가 있으면 그냥 리턴, 없어도 서버 호출하지 않음 */
+    return;
+  }
   /* 디바운스 — 100ms 내 연속 호출 병합 (깜빡임 방지) */
   if(!force&&_commRenderTimer){return;}
   if(!force&&!_commRendering){
@@ -15756,27 +15776,35 @@ async function _renderCommunityInner(force){
   }
 
   /* 캐시 있으면 즉시 렌더 (깜빡임 방지) → 백그라운드에서 갱신 */
-  if(_sbLoaded && _sbTracks.length){
+  var hadCache = _sbLoaded && _sbTracks.length;
+  if(hadCache){
     _renderCommContent(heroWrap, list);
+    _renderWeeklyChart();
+    _renderCommBottom();
+    _setupCommInfiniteScroll();
   } else {
     list.innerHTML=Array(4).fill(_skeleton('creator')).join('');
     heroWrap.innerHTML='';
   }
 
   /* 서버에서 최신 데이터 로드 */
+  var _prevFp = _sbFingerprint;
   var _prevSnap=(_sbTracks||[]).map(t=>({_sbId:t._sbId,likes:t.likes,plays:t.plays}));
   await _loadSbTracks(true);
-  /* 활동 피드: 변화 감지 */
-  if(_prevSnap.length) _detectActivityChanges(_prevSnap,_sbTracks||[]);
-  _renderActivityFeed();
+
+  /* 변경 없으면 리렌더 스킵 (깜빡임 방지) */
+  var dataChanged = _sbFingerprint !== _prevFp;
+  if(dataChanged || !hadCache){
+    /* 활동 피드: 변화 감지 */
+    if(_prevSnap.length) _detectActivityChanges(_prevSnap,_sbTracks||[]);
+    _renderActivityFeed();
+    _renderCommContent(heroWrap, list);
+    _renderWeeklyChart();
+    _renderCommBottom();
+    _setupCommInfiniteScroll();
+  }
   /* 챌린지 배너 */
   _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
-  _renderCommContent(heroWrap, list);
-  _renderWeeklyChart();
-  _renderCommBottom();
-
-  /* 무한 스크롤 설정 */
-  _setupCommInfiniteScroll();
   /* 팔로우 제안 */
   try{_renderFollowSuggestions();}catch(e){}
 }
@@ -15804,7 +15832,7 @@ function _buildCommItem(t,i,isMine){
         <!-- 2열: 사용자 + 팔로우 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
-          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}</span>${(typeof _getCreatorLevelHtml==='function'&&t._ownerSongs)?_getCreatorLevelHtml(t._ownerSongs,t._ownerLikes):''}
+          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}${t._coOwner?' <span style="color:var(--t3);">×</span> <span style="color:#ec4899;">'+esc(t._coOwner.name)+'</span>':''}</span>${t._collabId?'<span style="display:inline-block;padding:1px 6px;border-radius:6px;background:rgba(236,72,153,.12);color:#ec4899;font-size:9px;font-weight:700;margin-left:4px;">COLLAB</span>':''}${(typeof _getCreatorLevelHtml==='function'&&t._ownerSongs)?_getCreatorLevelHtml(t._ownerSongs,t._ownerLikes):''}
           ${!isMine?(function(){var ck=ownerName+'__'+(t._owner?.provider||'');var isF=_followStateCache[ck]===true;return '<button class="comm-item-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(ownerName)+'" data-cprov="'+esc(t._owner?.provider||'')+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
