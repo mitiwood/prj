@@ -2023,10 +2023,13 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
   margin-left:4px;vertical-align:middle;
 }
 /* 크리에이터 카드 (독립) */
-.comm-creator-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all .2s;}
-.comm-creator-item:hover{background:rgba(124,58,237,.06);}
-.comm-creator-item:active{opacity:.8;}
-[data-theme="light"] .comm-creator-item{background:#fff;border:1px solid rgba(0,0,0,.04);}
+/* 크리에이터 카드 — 가로 스와이프 */
+.comm-creator-scroll{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 0 12px;scrollbar-width:none;}
+.comm-creator-scroll::-webkit-scrollbar{display:none;}
+.comm-creator-item{flex:0 0 140px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;background:var(--card);border-radius:16px;cursor:pointer;transition:all .2s;border:1px solid var(--border);text-align:center;}
+.comm-creator-item:hover{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.2);}
+.comm-creator-item:active{transform:scale(.97);}
+[data-theme="light"] .comm-creator-item{background:#fff;border:1px solid rgba(0,0,0,.06);}
 [data-theme="light"] .comm-creator-item:hover{background:rgba(124,58,237,.04);}
 /* 크리에이터 그룹 */
 .comm-creator-group{margin-bottom:16px;}
@@ -2045,7 +2048,7 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-creator-info{flex:1;min-width:0;}
 .comm-creator-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .comm-creator-meta{font-size:11px;color:var(--t3);margin-top:2px;display:flex;gap:8px;}
-.comm-creator-follow-btn{padding:6px 16px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .2s;}
+.comm-creator-follow-btn{padding:5px 14px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .2s;white-space:nowrap;}
 .comm-creator-follow-btn.following{background:var(--card);color:var(--t2);border:1px solid var(--border);}
 [data-theme="light"] .comm-creator-header{background:#fff;border:1px solid rgba(0,0,0,.04);}
 [data-theme="light"] .comm-creator-group.open .comm-creator-header{border-bottom:1px solid rgba(0,0,0,.06);}
@@ -16323,6 +16326,7 @@ function _renderCommContent(heroWrap, list){
     });
     $('comm-section-lbl').textContent=otherLabel+' ('+_ogOrder.length+'명 · '+otherTracks.length+'곡)';
 
+    html+='<div class="comm-creator-scroll">';
     _ogOrder.forEach((k,gi)=>{
       const g=_ogMap[k];
       const pI={'google':'🔵','kakao':'💬','naver':'🟢'}[g.provider]||'';
@@ -16332,15 +16336,15 @@ function _renderCommContent(heroWrap, list){
       const topTrack=g.tracks[0];
       const topSid=topTrack?esc(topTrack._sbId||''):'';
       html+=`<div class="comm-creator-item" data-creator-key="${gi}" onclick="_playCreatorTop('${topSid}','${esc(g.name)}','${esc(g.provider)}')">
-        <div class="comm-creator-avatar">${_safeAvatarHtml(g.avatar,g.name)}</div>
-        <div class="comm-creator-info">
-          <div class="comm-creator-name">${pI} ${esc(g.name)}</div>
-          <div class="comm-creator-meta"><span>🎵 ${g.tracks.length}곡</span><span>❤️ ${tl}</span></div>
+        <div class="comm-creator-avatar" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,85,247,.2);">${_safeAvatarHtml(g.avatar,g.name)}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${pI} ${esc(g.name)}</div>
+        <div style="font-size:10px;color:var(--t3);">🎵 ${g.tracks.length}곡 · ❤️ ${tl}</div>
         </div>
         <button class="comm-creator-follow-btn${_followStateCache[g.name+'__'+g.provider]===true?' following':''}" data-cname="${esc(g.name)}" data-cprov="${esc(g.provider)}" data-following="${_followStateCache[g.name+'__'+g.provider]===true?'1':'0'}" onclick="event.stopPropagation();_creatorFollowToggle(this)">${_followStateCache[g.name+'__'+g.provider]===true?'팔로잉':'팔로우'}</button>
       </div>`;
       g.tracks.forEach(t=>allListTracks.push(t));
     });
+    html+='</div>'; /* /comm-creator-scroll */
 
     if(!allListTracks.length){list.innerHTML='';return;}
     list.innerHTML=html;
@@ -18944,6 +18948,7 @@ function openProfileSheet(name, provider){
   if(!name || !provider) return;
   _pfTarget = {name, provider};
   const sheet = $('profile-sheet');
+  if(!sheet) return;
   sheet.style.display = 'block';
   sheet.onclick = e => { if(e.target === sheet) closeProfileSheet(); };
   $('pf-name').textContent = name;
