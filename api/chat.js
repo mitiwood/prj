@@ -35,6 +35,12 @@ function _getOnlineList() {
 }
 
 let _mem = [];
+/* 타이핑 인디케이터 (인메모리, 4초 TTL) */
+const _typingUsers = {};
+function _setTyping(name) { if (name) _typingUsers[name] = Date.now(); }
+function _getTyping() { const now = Date.now(); return Object.entries(_typingUsers).filter(([, ts]) => now - ts < 4000).map(([n]) => n); }
+/* 고정 메시지 (인메모리) */
+let _pinnedMsg = null;
 
 async function sb(method, path, body = null) {
   const headers = {
@@ -105,19 +111,42 @@ export default async function handler(req, res) {
           } catch {}
         }
 
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday) });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday), typing: _getTyping(), pinned: _pinnedMsg });
       } catch (e) {
         const msgs = _mem.filter(m => m.room === room).slice(-lim);
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs) });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: _getTyping(), pinned: _pinnedMsg });
       }
     }
     const msgs = _mem.filter(m => m.room === room).slice(-lim);
-    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs) });
+    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: _getTyping(), pinned: _pinnedMsg });
   }
 
   /* POST — 메시지 전송 / 삭제 */
   if (req.method === 'POST') {
     const { action, msgId, room = 'general', content, author_name, author_avatar = '', author_provider = '', reply_to = null } = req.body || {};
+
+    /* 타이핑 */
+    if (action === 'typing') {
+      _setTyping(author_name);
+      return res.status(200).json({ ok: true });
+    }
+
+    /* 고정 */
+    if (action === 'pin' && msgId) {
+      if (SB_URL && SB_KEY) {
+        try {
+          const { data } = await sb('GET', `/chat_messages?id=eq.${msgId}&limit=1`);
+          if (Array.isArray(data) && data[0]) _pinnedMsg = data[0];
+        } catch {}
+      }
+      return res.status(200).json({ ok: true, pinned: _pinnedMsg });
+    }
+
+    /* 고정 해제 */
+    if (action === 'unpin') {
+      _pinnedMsg = null;
+      return res.status(200).json({ ok: true, pinned: null });
+    }
 
     /* 삭제 */
     if (action === 'delete' && msgId) {

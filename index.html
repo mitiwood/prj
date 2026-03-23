@@ -15645,8 +15645,11 @@ function _renderActivityFeed(){
   </div>`;
 }
 
-/* ── 커뮤니티 채팅 (고도화 v2) ── */
+/* ── 커뮤니티 채팅 (고도화 v3) ── */
 let _chatPollTimer=null,_chatLastTs=0,_chatReplyTo=null,_chatInsight=null,_chatNewCount=0,_chatAutoScroll=true;
+let _chatLastContent='',_chatLastSentAt=0; /* 반복 메시지 방지 */
+let _chatTypingTimer=null,_chatTypingSent=false; /* 타이핑 인디케이터 */
+let _chatPinnedMsg=null; /* 고정 메시지 */
 const _chatReactions={}; /* msgId -> {emoji: Set(userName)} — 로컬 리액션 저장 */
 const _CHAT_EMOJIS=['😀','😂','🥹','😍','🤩','😎','🥳','😤','😭','🤔','👍','👎','❤️','🔥','💯','🎵','🎶','🎤','🎧','🎸','✨','💜','👏','🙌'];
 const _CHAT_REACT_QUICK=['👍','❤️','😂','🔥','💯','🎵'];
@@ -15664,7 +15667,11 @@ function _renderChatUI(){
       <div class="chat-insight-item"><div class="chat-insight-num" id="ci-top">-</div><div class="chat-insight-label">MVP</div></div>
     </div>
     <div class="comm-chat-wrap" style="position:relative;">
+      <div id="chat-pinned" style="display:none;padding:8px 12px;background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.15);font-size:12px;cursor:pointer;" onclick="_chatScrollToPinned()">
+        <span style="font-weight:700;color:#f59e0b;">📌 고정</span> <span id="chat-pinned-text" style="color:var(--t2);"></span>
+      </div>
       <div class="comm-chat-list" id="comm-chat-list"><div style="text-align:center;padding:30px;color:var(--t3);">메시지 불러오는 중...</div></div>
+      <div id="chat-typing-bar" style="display:none;padding:4px 14px;font-size:11px;color:var(--t3);"><span id="chat-typing-text"></span></div>
       <div id="chat-new-badge" class="chat-new-badge" style="display:none;" onclick="_chatScrollBottom()"></div>
       <div id="chat-reply-bar" class="chat-reply-bar" style="display:none;">
         <span id="chat-reply-text"></span>
@@ -15672,7 +15679,7 @@ function _renderChatUI(){
       </div>
       <div class="comm-chat-input-wrap" style="position:relative;">
         <button onclick="_chatToggleEmoji()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">😀</button>
-        <input class="comm-chat-input" id="comm-chat-input" type="text" placeholder="메시지를 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_sendChat()">
+        <input class="comm-chat-input" id="comm-chat-input" type="text" placeholder="메시지를 입력하세요..." maxlength="500" onkeydown="if(event.key==='Enter')_sendChat()" oninput="_chatOnTyping()">
         <button class="comm-chat-send" onclick="_sendChat()">전송</button>
       </div>
       <div class="chat-emoji-picker" id="chat-emoji-picker">
@@ -15783,6 +15790,15 @@ async function _loadChatMessages(){
     const url='/api/chat?room=general&limit=80'+(_chatLastTs?'&since='+_chatLastTs:'')+userQ;
     const r=await fetch(url);const d=await r.json();
     if(d.insight) _updateChatInsight(d.insight);
+    /* 타이핑 인디케이터 */
+    var typingBar=$('chat-typing-bar'),typingText=$('chat-typing-text');
+    if(d.typing&&d.typing.length&&typingBar&&typingText){
+      var others=d.typing.filter(function(n){return !currentUser||n!==currentUser.name;});
+      if(others.length){typingText.textContent=others.join(', ')+'님이 입력 중...';typingBar.style.display='block';}
+      else typingBar.style.display='none';
+    } else if(typingBar) typingBar.style.display='none';
+    /* 고정 메시지 */
+    if(d.pinned) _chatUpdatePinned(d.pinned); else if(!_chatLastTs) _chatUpdatePinned(null);
     const msgs=d.messages||[];
     if(!msgs.length&&!_chatLastTs){$('comm-chat-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px;">아직 메시지가 없어요. 첫 메시지를 남겨보세요!</div>';return;}
     if(!msgs.length) return;
@@ -15814,6 +15830,7 @@ async function _loadChatMessages(){
       const msgId=m.id||('m_'+Date.parse(m.created_at));
       const avatarClick=!mine?` onclick="openCreatorProfile('${safeName}','${esc(m.author_provider||'')}')"`:' ';
       const deleteBtn=mine?`<button class="chat-action-btn" onclick="_chatDeleteMsg('${msgId}')" title="삭제">🗑</button>`:'';
+      const pinBtn=`<button class="chat-action-btn" onclick="_chatPinMsg('${msgId}')" title="고정">📌</button>`;
       const reactBtn=`<button class="chat-action-btn" onclick="this.nextElementSibling.classList.toggle('show')" title="리액션">😀</button><div class="chat-react-picker">${_CHAT_REACT_QUICK.map(e=>`<span class="chat-react-opt" onclick="_chatToggleReact('${msgId}','${e}');this.parentNode.classList.remove('show')">${e}</span>`).join('')}</div>`;
       return dateSep+`<div class="comm-chat-msg${mine?' mine':''}" data-msg-id="${msgId}">
         <div class="comm-chat-avatar"${avatarClick}>${_safeAvatarHtml(m.author_avatar,m.author_name)}</div>
@@ -15824,7 +15841,7 @@ async function _loadChatMessages(){
           <div class="chat-reactions" data-react-id="${msgId}">${_buildReactionsHtml(msgId)}</div>
           <div class="comm-chat-time">${msgTime||t}</div>
         </div>
-        <div class="chat-actions" style="position:relative;">${reactBtn}<button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button>${deleteBtn}</div>
+        <div class="chat-actions" style="position:relative;">${reactBtn}<button class="chat-action-btn" onclick="_chatSetReply('${safeName}','${safeContent}')" title="답장">↩</button>${pinBtn}${deleteBtn}</div>
       </div>`;
     }).join('');
     if(_chatLastTs) cl.innerHTML+=frag; else cl.innerHTML=frag;
@@ -15846,7 +15863,10 @@ async function _sendChat(){
   const inp=$('comm-chat-input');const content=(inp?.value||'').trim();
   if(!content){toast('메시지를 입력해주세요','err');return;}
   if(!currentUser||currentUser.provider==='guest'){toast('로그인이 필요해요','err');return;}
-  inp.value='';_chatCloseEmoji();
+  /* 반복 메시지 방지 — 같은 내용 3초 내 재전송 차단 */
+  if(content===_chatLastContent&&Date.now()-_chatLastSentAt<3000){toast('같은 메시지를 연속 전송할 수 없어요','',1500);return;}
+  _chatLastContent=content;_chatLastSentAt=Date.now();
+  inp.value='';_chatCloseEmoji();_chatTypingSent=false;
   try{
     const body={room:'general',content,author_name:currentUser.name,author_avatar:currentUser.avatar||'',author_provider:currentUser.provider};
     if(_chatReplyTo) body.reply_to=_chatReplyTo;
@@ -15855,11 +15875,51 @@ async function _sendChat(){
     _chatLastTs=0;await _loadChatMessages();
   }catch(e){toast('전송 실패','err');}
 }
+
+/* 타이핑 인디케이터 — 입력 중 서버에 알림 */
+function _chatOnTyping(){
+  if(_chatTypingSent) return;
+  _chatTypingSent=true;
+  if(currentUser&&currentUser.name){
+    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'typing',author_name:currentUser.name})}).catch(()=>{});
+  }
+  clearTimeout(_chatTypingTimer);
+  _chatTypingTimer=setTimeout(function(){_chatTypingSent=false;},4000);
+}
+
+/* 고정 메시지 */
+function _chatUpdatePinned(msg){
+  var el=$('chat-pinned'),txt=$('chat-pinned-text');
+  if(!el||!txt) return;
+  if(msg&&msg.content){
+    _chatPinnedMsg=msg;
+    txt.textContent=esc(msg.author_name||'')+': '+esc(msg.content).slice(0,80);
+    el.style.display='block';
+  } else {
+    _chatPinnedMsg=null;
+    el.style.display='none';
+  }
+}
+function _chatScrollToPinned(){
+  if(!_chatPinnedMsg) return;
+  var el=document.querySelector('[data-msg-id="'+_chatPinnedMsg.id+'"]');
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.background='rgba(245,158,11,.1)';setTimeout(function(){el.style.background='';},2000);}
+}
+function _chatPinMsg(msgId){
+  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pin',msgId,author_name:currentUser?.name||''})}).catch(()=>{});
+  toast('📌 메시지가 고정되었어요','ok',1500);
+}
+function _chatUnpin(){
+  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'unpin',author_name:currentUser?.name||''})}).catch(()=>{});
+  _chatUpdatePinned(null);
+  toast('고정 해제됨','',1200);
+}
 window._sendChat=typeof _sendChat!=="undefined"?_sendChat:window._sendChat||function(){};
 window._chatSetReply=_chatSetReply;window._chatCancelReply=_chatCancelReply;
 window._chatToggleReact=_chatToggleReact;window._chatDeleteMsg=_chatDeleteMsg;
 window._chatInsertEmoji=_chatInsertEmoji;window._chatToggleEmoji=_chatToggleEmoji;
 window._chatScrollBottom=_chatScrollBottom;
+window._chatPinMsg=_chatPinMsg;window._chatUnpin=_chatUnpin;window._chatOnTyping=_chatOnTyping;
 
 /* ── 리더보드 ── */
 let _lbPeriod='all';
