@@ -1733,6 +1733,9 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .hist-card:hover{background:var(--card2);transform:translateX(2px);}
 .hist-card:last-child{border-bottom:none;}
 .hist-card:hover{background:var(--card2);}
+.hist-card-disabled{opacity:.5;}
+.hist-card-disabled .hist-thumb{filter:grayscale(1);}
+.hist-no-audio-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,69,96,.85);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;z-index:2;white-space:nowrap;}
 .hist-thumb{
   width:52px;height:52px;border-radius:10px;
   overflow:hidden;background:var(--card2);flex-shrink:0;
@@ -7718,8 +7721,9 @@ function _saveLoginUser(user){
     _notifyBot('\uD83D\uDD13 \uB85C\uADF8\uC778\n\n\uD83D\uDC64 '+(user.name||'\uC775\uBA85')+'\n\uD83D\uDD17 '+pName+'\n\u23F0 '+new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}));
     /* 로그인 사용자 목록에 추가 (관리자 통계용) */
     _saveLoginUser(user);
-    /* DB에서 플랜 정보 즉시 조회 → 로컬 동기화 */
+    /* DB에서 사용자 전체 데이터 최신화 (플랜+크레딧+트랙+출석) */
     setTimeout(()=>{ _syncPlanFromServer(); }, 300);
+    setTimeout(()=>{ _userSyncDone=false; _syncUserDataFromServer(); }, 600);
     /* Supabase에서 내 트랙 로드 */
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
     /* 푸시 구독 요청 */
@@ -10954,14 +10958,16 @@ function renderHistoryView(){
     const remixLabel=h._extendedFrom?'연장':h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
     const hasLyrics = !!(h._inputLyrics || h.lyric || h.lyrics || h.lrc) && (h._inputLyrics || h.lyric || h.lyrics || h.lrc).trim().length > 0;
     const durId='hdur-'+idx;
+    const noAudio = !h.audio_url;
     return`
-    <div class="hist-card" data-hist-idx="${idx}" role="button" tabindex="0">
+    <div class="hist-card${noAudio?' hist-card-disabled':''}" data-hist-idx="${idx}" role="button" tabindex="0"${noAudio?' title="재생 불가 — 오디오 없음"':''}>
       <div class="hist-thumb">
         ${thumbContent}
         ${typeBadge}
         ${remixBadge}
+        ${noAudio?'<div class="hist-no-audio-badge">재생 불가</div>':''}
         <span class="hist-duration" id="${durId}"></span>
-        <div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>
+        <div class="hist-play-overlay"><div class="hist-play-icon">${noAudio?'✕':'▶'}</div></div>
       </div>
       <div class="hist-info">
         <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;margin-left:4px;font-weight:700;">🤝</span>':''}</div>
@@ -11016,6 +11022,10 @@ function renderHistoryView(){
     const card=e.target.closest('[data-hist-idx]');
     if(card){
       const hi=parseInt(card.dataset.histIdx);
+      if(historyData[hi] && !historyData[hi].audio_url){
+        toast('⚠️ 이 곡은 현재 재생할 수 없어요\n오디오가 만료되었거나 생성 중이에요','err',3000);
+        return;
+      }
       showMiniPlayer(hi);
     }
   });
@@ -11024,7 +11034,12 @@ function renderHistoryView(){
     card.addEventListener('keydown',e=>{
       if(e.key==='Enter'||e.key===' '){
         e.preventDefault();
-        showMiniPlayer(parseInt(card.dataset.histIdx));
+        const _ki=parseInt(card.dataset.histIdx);
+        if(historyData[_ki] && !historyData[_ki].audio_url){
+          toast('⚠️ 이 곡은 현재 재생할 수 없어요','err',3000);
+          return;
+        }
+        showMiniPlayer(_ki);
       }
     });
   });
@@ -11847,6 +11862,9 @@ function _destroyFpAudio(){
   if(typeof _stopBpmDetection==='function') _stopBpmDetection();
   if(_bpmSource){try{_bpmSource.disconnect();}catch(e){}_bpmSource=null;}
   fpAudio._bpmConnected=false;
+  /* EQ 소스 해제 — 새 오디오에서 다시 연결할 수 있도록 */
+  if(_eqSource){try{_eqSource.disconnect();}catch(e){}_eqSource=null;}
+  _eqConnected=false;
   fpAudio.pause();
   fpAudio.src='about:blank';
   fpAudio=null;
@@ -11899,10 +11917,10 @@ function showMiniPlayer(idx){
   _syncMpThumbSpin();
   var mpTimeEl=$('mp-time');if(mpTimeEl) mpTimeEl.textContent='0:00 / 0:00';
 
-  if(!h.audio_url){ toast('오디오 URL 없음','err'); return; }
+  if(!h.audio_url){ toast('⚠️ 이 곡은 오디오가 없어 재생할 수 없어요','err',3000); return; }
   /* URL 유효성 체크 */
   let _safeAudioUrl = h.audio_url;
-  try{ new URL(_safeAudioUrl); }catch(e){ toast('잘못된 오디오 URL','err'); return; }
+  try{ new URL(_safeAudioUrl); }catch(e){ toast('⚠️ 잘못된 오디오 URL이에요','err',3000); return; }
 
   /* ── 새 오디오 생성 ── */
   const genId = ++_fpAudioGenId;
@@ -13032,7 +13050,7 @@ function fpToggleLyricsPanel(){var sec=$('fp-lyrics-section');if(!sec)return;var
 var _eqCtx=null,_eqSource=null,_eqFilters=[],_eqConnected=false;
 var _eqPresets={flat:[0,0,0,0,0],bass:[6,4,0,0,0],vocal:[-2,0,4,3,0],treble:[0,0,0,3,6],rock:[4,2,-1,3,4],night:[3,2,0,-2,-4]};
 var _eqFreqs=[60,230,910,4000,14000];
-function _initEQ(){if(_eqConnected||!fpAudio)return;try{if(!_eqCtx)_eqCtx=new(window.AudioContext||window.webkitAudioContext)();if(_eqCtx.state==='suspended')_eqCtx.resume();_eqSource=_eqCtx.createMediaElementSource(fpAudio);_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;}catch(e){console.warn('[EQ]',e.message);}}
+function _initEQ(){if(_eqConnected||!fpAudio)return;try{if(!_eqCtx)_eqCtx=new(window.AudioContext||window.webkitAudioContext)();if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
 function fpToggleEQ(){var p=$('fp-eq-panel');if(!p)return;p.classList.toggle('on');var b=$('fp-eq-toggle');if(b)b.classList.toggle('on',p.classList.contains('on'));if(p.classList.contains('on')&&!_eqConnected)_initEQ();}
 function fpSetEqPreset(name){var vals=_eqPresets[name]||_eqPresets.flat;if(!_eqConnected)_initEQ();document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.toggle('on',b.dataset.eq===name);});var pn=$('fp-eq-preset-name');if(pn)pn.textContent=document.querySelector('.fp-eq-preset[data-eq="'+name+'"]')?.textContent||name;vals.forEach(function(v,i){if(_eqFilters[i])_eqFilters[i].gain.value=v;var s=document.querySelector('[data-eq-band="'+i+'"]');if(s)s.value=v;var ve=$('eq-val-'+i);if(ve)ve.textContent=(v>0?'+':'')+v;});}
 function fpEqBandChange(band,val){val=parseFloat(val);if(_eqFilters[band])_eqFilters[band].gain.value=val;var ve=$('eq-val-'+band);if(ve)ve.textContent=(val>0?'+':'')+Math.round(val);document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.remove('on');});var pn=$('fp-eq-preset-name');if(pn)pn.textContent='커스텀';}
@@ -13078,16 +13096,35 @@ var _bpmBeats=[],_bpmLastEnergy=0,_bpmValue=0,_bpmSmoothed=0;
 function _initBpmAnalyser(){
   if(!fpAudio)return;
   try{
-    if(!_bpmCtx) _bpmCtx=new (window.AudioContext||window.webkitAudioContext)();
+    /* EQ 컨텍스트가 있으면 공유, 없으면 새로 생성 */
+    if(!_bpmCtx){
+      if(_eqCtx) _bpmCtx=_eqCtx;
+      else _bpmCtx=new (window.AudioContext||window.webkitAudioContext)();
+    }
     if(_bpmCtx.state==='suspended') _bpmCtx.resume();
-    /* 이전 소스 해제 */
-    if(_bpmSource){try{_bpmSource.disconnect();}catch(e){}_bpmSource=null;}
+    /* 이전 분석기 해제 */
+    if(_bpmSource&&!_eqConnected){try{_bpmSource.disconnect();}catch(e){}_bpmSource=null;}
     _bpmAnalyser=_bpmCtx.createAnalyser();
     _bpmAnalyser.fftSize=1024;
     _bpmAnalyser.smoothingTimeConstant=0.4;
-    _bpmSource=_bpmCtx.createMediaElementSource(fpAudio);
-    _bpmSource.connect(_bpmAnalyser);
-    _bpmAnalyser.connect(_bpmCtx.destination);
+    /* EQ 소스가 이미 있으면 재사용 (같은 Audio에 createMediaElementSource 2회 호출 방지) */
+    if(_eqSource&&_eqConnected){
+      /* EQ 체인 끝에 분석기를 분기 연결 */
+      _bpmSource=_eqSource;
+      var lastFilter=_eqFilters[_eqFilters.length-1];
+      if(lastFilter){lastFilter.connect(_bpmAnalyser);}
+      else{_eqSource.connect(_bpmAnalyser);}
+    } else if(!fpAudio._mediaSourceCreated){
+      _bpmSource=_bpmCtx.createMediaElementSource(fpAudio);
+      fpAudio._mediaSourceCreated=true;
+      fpAudio._sharedSource=_bpmSource;
+      _bpmSource.connect(_bpmAnalyser);
+      _bpmAnalyser.connect(_bpmCtx.destination);
+    } else if(fpAudio._sharedSource){
+      _bpmSource=fpAudio._sharedSource;
+      _bpmSource.connect(_bpmAnalyser);
+      _bpmAnalyser.connect(_bpmCtx.destination);
+    }
     _bpmBeats=[];_bpmLastEnergy=0;_bpmValue=0;_bpmSmoothed=0;
     fpAudio._bpmConnected=true;
   }catch(e){console.warn('[BPM] init error',e.message);}
@@ -13322,12 +13359,14 @@ function _renderPlaylistView(grid,countEl){
   pl.forEach(function(item,i){
     var thumb=item.image_url?'<img src="'+esc(item.image_url)+'" alt="" style="width:100%;height:100%;object-fit:cover;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg3);">🎵</div>';
     var tag=(item.tags||'').split(',')[0]||'';
-    html+='<div class="hist-card" style="cursor:pointer;" onclick="_plPlay('+i+')">'
+    var _noAud=!item.audio_url;
+    html+='<div class="hist-card'+(_noAud?' hist-card-disabled':'')+'" style="cursor:pointer;" onclick="_plPlay('+i+')">'
       +'<div class="hist-thumb" style="position:relative;">'+thumb
+      +(_noAud?'<div class="hist-no-audio-badge">재생 불가</div>':'')
       +'<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.7);border-radius:6px;padding:2px 6px;font-size:10px;color:#fff;">'+(i+1)+'</div>'
       +'</div>'
       +'<div class="hist-info">'
-      +'<div class="hist-title">'+esc(item.title||'무제')+'</div>'
+      +'<div class="hist-title">'+esc(item.title||'무제')+(_noAud?' <span style="font-size:10px;color:var(--red);">⚠️</span>':'')+'</div>'
       +'<div class="hist-tags">'+(tag?esc(tag):'')+'</div>'
       +'</div>'
       +'<button onclick="event.stopPropagation();_plRemove('+i+')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>'
@@ -13336,9 +13375,19 @@ function _renderPlaylistView(grid,countEl){
   html+='</div>';
   grid.innerHTML=html;
 }
-function _plPlay(i){
+async function _plPlay(i){
   var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
-  if(!pl[i]||!pl[i].audio_url){toast('오디오 URL이 없어요','err');return;}
+  if(!pl[i]){toast('트랙 정보를 찾을 수 없어요','err');return;}
+  if(!pl[i].audio_url){
+    toast('⚠️ 이 곡은 오디오 URL이 없어 재생할 수 없어요','err',3000);
+    return;
+  }
+  /* 재생 가능 여부 사전 검증 */
+  var playable = await _checkAudioPlayable(pl[i].audio_url);
+  if(!playable){
+    toast('⚠️ 이 곡은 현재 재생할 수 없어요\n(만료되었거나 접근 불가)','err',3000);
+    return;
+  }
   /* 히스토리에서 찾거나 임시 추가 */
   var hIdx=historyData.findIndex(function(h){return h.id===pl[i].id;});
   if(hIdx<0){
@@ -18532,11 +18581,16 @@ function cancelLyricsEdit(idx){
     <!-- 프로필 탭 -->
     <div style="display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px;">
       <button class="btn btn-acc" onclick="_pfTab('tracks')" data-pftab="tracks">🎵 곡</button>
+      <button class="btn" onclick="_pfTab('collabs')" data-pftab="collabs">🤝 콜라보</button>
       <button class="btn" onclick="_pfTab('followers')" data-pftab="followers">🫂 팔로워</button>
       <button class="btn" onclick="_pfTab('following')" data-pftab="following">👥 팔로잉</button>
     </div>
     <div id="pf-panel-tracks">
       <div id="pf-track-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div id="pf-panel-collabs" style="display:none;">
+      <div id="pf-collab-stats" style="display:flex;gap:8px;margin-bottom:12px;"></div>
+      <div id="pf-collab-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div id="pf-panel-followers" style="display:none;">
       <div id="pf-follower-list" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -18567,7 +18621,10 @@ function cancelLyricsEdit(idx){
     <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:17px;font-weight:800;color:var(--t1);">🎵 콜라보 스튜디오</div>
-      <button onclick="_closeCollabWs()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="_startCollabSession(_activeCollabId)" style="background:none;border:1px solid var(--border);color:var(--t2);font-size:11px;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit;">🔗 링크 공유</button>
+        <button onclick="_closeCollabWs()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">✕</button>
+      </div>
     </div>
     <!-- 파트너 정보 -->
     <div id="cws-partner" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border-radius:12px;margin-bottom:12px;">
@@ -19333,15 +19390,128 @@ async function _syncPlanFromServer(){
   } catch(e){ console.warn('[PlanSync]', e.message); }
 }
 
+/* ── 로그인 시 사용자 DB 전체 최신화 ── */
+let _userSyncDone = false;
+async function _syncUserDataFromServer(){
+  if(!currentUser) return;
+  if(_userSyncDone) return;
+  _userSyncDone = true;
+  try {
+    const name = encodeURIComponent(currentUser.name);
+    const prov = encodeURIComponent(currentUser.provider);
+    /* 프로필 + 트랙 + 출석 병렬 조회 */
+    const [profRes, trRes, attRes] = await Promise.allSettled([
+      fetch('/api/profile?name='+name+'&provider='+prov).then(r=>r.json()),
+      fetch('/api/tracks?owner='+name+'&provider='+prov+'&limit=200').then(r=>r.json()),
+      fetch('/api/attendance?userName='+decodeURIComponent(name)+'&userProvider='+decodeURIComponent(prov)).then(r=>r.json()),
+    ]);
+
+    /* 1) 프로필 정보 동기화 — 플랜, 크레딧, 아바타, 이메일 */
+    if(profRes.status==='fulfilled' && profRes.value?.ok && profRes.value.profile){
+      const p = profRes.value.profile;
+      /* 플랜 동기화 */
+      const serverPlan = p.plan || 'free';
+      const localPlan = getPlan();
+      if(localPlan.type !== serverPlan){
+        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
+        localStorage.setItem('kms_plan', JSON.stringify({type:serverPlan, startDate:new Date().toISOString(), endDate}));
+        if(serverPlan !== 'free' && localPlan.type === 'free'){
+          localStorage.setItem('kms_usage', JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
+        }
+      }
+      /* 크레딧 동기화 */
+      if(p.credits_song != null || p.credits_mv != null || p.credits_lyrics != null){
+        currentUser.credits_song = p.credits_song || 0;
+        currentUser.credits_mv = p.credits_mv || 0;
+        currentUser.credits_lyrics = p.credits_lyrics || 0;
+      }
+      /* 아바타/이메일 최신화 */
+      if(p.avatar && p.avatar !== currentUser.avatar){
+        currentUser.avatar = p.avatar;
+      }
+      if(p.email && !currentUser.email){
+        currentUser.email = p.email;
+      }
+      /* 활동 통계 캐시 */
+      currentUser._trackCount = p.trackCount || 0;
+      currentUser._totalLikes = p.totalLikes || 0;
+      currentUser._totalPlays = p.totalPlays || 0;
+      currentUser._followerCount = p.followerCount || 0;
+      currentUser._followingCount = p.followingCount || 0;
+
+      localStorage.setItem('kms_user', JSON.stringify(currentUser));
+    }
+
+    /* 2) 트랙 최신화 — 서버 데이터를 로컬 히스토리에 병합 */
+    if(trRes.status==='fulfilled' && Array.isArray(trRes.value?.tracks)){
+      const serverTracks = trRes.value.tracks;
+      let updated = false;
+      serverTracks.forEach(st => {
+        const hIdx = historyData.findIndex(h => h.id===st.id || h.taskId===st.task_id);
+        if(hIdx >= 0){
+          /* 기존 로컬 트랙 메타데이터 최신화 */
+          const h = historyData[hIdx];
+          if(st.audio_url && st.audio_url !== h.audio_url){ h.audio_url = st.audio_url; updated = true; }
+          if(st.image_url && st.image_url !== h.image_url){ h.image_url = st.image_url; updated = true; }
+          if(st.title && st.title !== h.title){ h.title = st.title; updated = true; }
+          if(st.tags){ h.tags = _normTags(st.tags); updated = true; }
+          if(st.lyrics && !h.lyrics){ h.lyrics = st.lyrics; updated = true; }
+          if(st.video_url && !h.video_url){ h.video_url = st.video_url; updated = true; }
+          h._fromSb = true;
+        } else if(st.audio_url) {
+          /* 서버에만 있는 트랙 → 로컬에 추가 */
+          historyData.unshift({
+            id: st.id, taskId: st.task_id || '',
+            title: st.title || '무제', audio_url: st.audio_url,
+            video_url: st.video_url || '', image_url: st.image_url || '',
+            tags: _normTags(st.tags), lyrics: st.lyrics || '',
+            created: st.created || Date.now(), type: 'audio',
+            genMode: st.gen_mode || 'custom',
+            _owner: st.owner_name ? { name: st.owner_name, avatar: st.owner_avatar||'', provider: st.owner_provider||'' } : null,
+            _fromSb: true,
+          });
+          updated = true;
+        }
+      });
+      if(updated){
+        historyData = historyData.sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,200);
+        saveHistory(); updateHistBadge();
+      }
+    }
+
+    /* 3) 출석 정보 캐시 */
+    if(attRes.status==='fulfilled' && attRes.value?.ok){
+      currentUser._attendance = {
+        todayChecked: attRes.value.todayChecked,
+        currentStreak: attRes.value.currentStreak || 0,
+        monthCount: attRes.value.monthCount || 0,
+      };
+      localStorage.setItem('kms_user', JSON.stringify(currentUser));
+    }
+
+    /* UI 갱신 */
+    if(typeof renderPlanUI === 'function') renderPlanUI();
+    if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
+    if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
+    if(typeof _updateCreditWarn === 'function') _updateCreditWarn();
+    if(typeof updateLoginUI === 'function') updateLoginUI();
+    const hv = document.getElementById('history-view');
+    if(hv && hv.classList.contains('on')) try{ renderHistoryView(); }catch(e){}
+    console.log('[UserSync] 사용자 데이터 최신화 완료');
+  } catch(e){ console.warn('[UserSync]', e.message); }
+}
+
 /* 앱 시작 시 */
 document.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _renderSettingsExtended==='function') _renderSettingsExtended();
   checkAnnouncement();
   setTimeout(_syncPlanFromServer, 1000);
   setTimeout(_checkAttendance, 1500);
+  /* 로그인 상태면 전체 데이터 최신화 */
+  if(currentUser) setTimeout(_syncUserDataFromServer, 1200);
 });
 /* 탭 복귀 시 즉시 동기화 */
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); } });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); _userSyncDone=false; _syncUserDataFromServer(); } });
 
 /* ══════════════════════════════
    Realtime 통합 폴링 (30초) — 플랜/좋아요/댓글/알림 통합
@@ -19459,6 +19629,7 @@ function closeProfileSheet(){ $('profile-sheet').style.display = 'none'; _pfTarg
 
 /* ═══ 콜라보 시스템 ═══ */
 var _activeCollabId = null;
+var _collabRealtimeCh = null;
 
 function _openCollabRequest(){
   if(!currentUser){ openLoginSheet(); return; }
@@ -19575,10 +19746,14 @@ async function _openCollabWorkspace(collabId){
     var theirSide = isFrom ? 'b' : 'a';
 
     /* 내 기존 제출 복원 */
+    var _mySubmitted = !!data['prompt_'+mySide];
     if(data['prompt_'+mySide]) $('cws-my-prompt').value = data['prompt_'+mySide];
     if(data['genre_'+mySide]) $('cws-my-genre').value = data['genre_'+mySide];
     if(data['mood_'+mySide]) $('cws-my-mood').value = data['mood_'+mySide];
     if(data['style_'+mySide]) $('cws-my-style').value = data['style_'+mySide];
+    /* 제출 버튼 텍스트: 이미 제출 → 수정하기 */
+    var _cwsBtn = document.querySelector('#collab-workspace-sheet [onclick="_submitCollabIdea()"]');
+    if(_cwsBtn) _cwsBtn.textContent = _mySubmitted ? '아이디어 수정하기' : '아이디어 제출하기';
 
     /* 상대 제출 표시 */
     if(data['prompt_'+theirSide]){
@@ -19608,9 +19783,26 @@ async function _openCollabWorkspace(collabId){
       $('cws-status').style.color = 'var(--t3)';
     }
   } catch(e){ console.warn('[collab ws]', e); toast('로드 실패','',2000); }
+
+  /* Realtime 구독 — 파트너 제출 시 자동 새로고침 */
+  _collabUnsubscribe();
+  if(typeof _sbClient!=='undefined' && _sbClient){
+    _collabRealtimeCh = _sbClient.channel('collab-'+collabId)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'collabs',filter:'id=eq.'+collabId},function(){
+        if(_activeCollabId===collabId) _openCollabWorkspace(collabId);
+      })
+      .subscribe();
+  }
 }
 
-function _closeCollabWs(){ $('collab-workspace-sheet').style.display = 'none'; _activeCollabId = null; }
+function _collabUnsubscribe(){
+  if(_collabRealtimeCh){
+    try{ _collabRealtimeCh.unsubscribe(); }catch(e){}
+    _collabRealtimeCh=null;
+  }
+}
+
+function _closeCollabWs(){ _collabUnsubscribe(); $('collab-workspace-sheet').style.display = 'none'; _activeCollabId = null; }
 
 async function _submitCollabIdea(){
   if(!currentUser || !_activeCollabId) return;
@@ -19630,7 +19822,7 @@ async function _submitCollabIdea(){
     });
     var d = await r.json();
     if(d.ok){
-      toast('✅ 아이디어를 제출했어요!','ok',2500);
+      toast(d.collab_data?.ready ? '✅ 양쪽 아이디어 준비 완료!' : '✅ 아이디어를 제출했어요!','ok',2500);
       /* 새로고침 */
       await _openCollabWorkspace(_activeCollabId);
     } else { toast(d.error||'제출 실패','',2000); }
@@ -19841,12 +20033,58 @@ function _pvDislike(sbId,btn){
 }
 
 function _pfTab(tab){
-  ['tracks','followers','following'].forEach(t=>{
+  ['tracks','collabs','followers','following'].forEach(t=>{
     const p=$('pf-panel-'+t); if(p) p.style.display=t===tab?'':'none';
   });
   document.querySelectorAll('[data-pftab]').forEach(b=>b.className=b.dataset.pftab===tab?'btn btn-acc':'btn');
   if(tab==='followers' && _pfTarget) _loadFollowerList();
   if(tab==='following' && _pfTarget) _loadFollowingList();
+  if(tab==='collabs' && _pfTarget) _loadCollabHistory();
+}
+
+async function _loadCollabHistory(){
+  var list=$('pf-collab-list'), stats=$('pf-collab-stats');
+  if(!list||!_pfTarget) return;
+  list.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">로딩 중...</div>';
+  try {
+    var r = await fetch('/api/collabs?action=&name='+encodeURIComponent(_pfTarget.name)+'&provider='+encodeURIComponent(_pfTarget.provider));
+    var d = await r.json();
+    var collabs = d.collabs || [];
+    /* 통계 */
+    var completed=0, accepted=0, pending=0, declined=0;
+    collabs.forEach(function(c){
+      if(c.status==='completed') completed++;
+      else if(c.status==='accepted') accepted++;
+      else if(c.status==='pending') pending++;
+      else if(c.status==='declined'||c.status==='expired') declined++;
+    });
+    if(stats){
+      var _st=function(label,val,color){return '<div style="flex:1;text-align:center;padding:8px;border-radius:10px;background:'+color+';"><div style="font-size:16px;font-weight:800;color:var(--t1);">'+val+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px;">'+label+'</div></div>';};
+      stats.innerHTML=_st('완료',completed,'rgba(0,221,160,.08)')+_st('진행중',accepted,'rgba(124,58,237,.08)')+_st('대기',pending,'rgba(245,158,11,.08)')+_st('거절',declined,'rgba(239,68,68,.06)');
+    }
+    if(!collabs.length){ list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">콜라보 이력이 없어요</div>'; return; }
+    /* 목록 렌더 */
+    var html='';
+    collabs.forEach(function(c){
+      var isFrom=c.from_name.toLowerCase()===_pfTarget.name.toLowerCase()&&c.from_provider===_pfTarget.provider;
+      var partner=isFrom?c.to_name:c.from_name;
+      var statusLabel={'pending':'⏳ 대기','accepted':'🎵 진행중','completed':'✅ 완료','declined':'❌ 거절','cancelled':'🚫 취소','expired':'⏰ 만료'}[c.status]||c.status;
+      var statusColor={'completed':'var(--grn,#00dda0)','accepted':'var(--acc)','pending':'#f59e0b','declined':'#ef4444','cancelled':'var(--t3)','expired':'var(--t3)'}[c.status]||'var(--t3)';
+      var ago=_timeAgo(new Date(c.updated_at||c.created_at).getTime());
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--border);">';
+      html+='<div style="width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;">🤝</div>';
+      html+='<div style="flex:1;min-width:0;">';
+      html+='<div style="font-size:12px;font-weight:600;color:var(--t1);">'+(isFrom?'→ ':'← ')+esc(partner)+'</div>';
+      html+='<div style="font-size:10px;color:var(--t3);margin-top:2px;">'+ago+'</div>';
+      html+='</div>';
+      html+='<span style="font-size:10px;font-weight:700;color:'+statusColor+';white-space:nowrap;">'+statusLabel+'</span>';
+      if(c.status==='accepted'){
+        html+='<button onclick="_openCollabWorkspace(\''+esc(c.id)+'\')" style="padding:4px 10px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">열기</button>';
+      }
+      html+='</div>';
+    });
+    list.innerHTML=html;
+  } catch(e){ list.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px;">로드 실패</div>'; }
 }
 
 async function _loadFollowingList(){
@@ -20076,8 +20314,11 @@ async function _loadNotifications(){
       const sr = await fetch(`/api/collabs?action=sent&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
       const sd = await sr.json();
       (sd.collabs||[]).forEach(c => {
-        if(c.status!=='pending') return;
-        allNotifs.push({ type:'collab', title:'📤 '+c.to_name+'님에게 콜라보 요청함', body: c.message||'응답 대기 중...', ts: new Date(c.created_at||0).getTime(), is_read: true, _collabId: c.id, _collabAction: 'sent' });
+        if(c.status==='pending'){
+          allNotifs.push({ type:'collab', title:'📤 '+c.to_name+'님에게 콜라보 요청함', body: c.message||'응답 대기 중...', ts: new Date(c.created_at||0).getTime(), is_read: true, _collabId: c.id, _collabAction: 'sent' });
+        } else if(c.status==='expired'){
+          allNotifs.push({ type:'collab', title:'⏰ '+c.to_name+'님 콜라보 요청 만료', body: '30일 이내 응답이 없어 만료되었어요.', ts: new Date(c.updated_at||0).getTime(), is_read: true, _collabId: c.id, _collabAction: 'expired' });
+        }
       });
       /* 진행 중 콜라보 */
       const ar = await fetch(`/api/collabs?action=active&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
@@ -22600,8 +22841,25 @@ function _updateLiveSession(){
 setInterval(_updateLiveSession,30000);setTimeout(_updateLiveSession,2000);
 
 /* ═══ 협업 세션 ═══ */
-function _startCollabSession(trackId){if(!currentUser){toast('로그인 필요','err');return;}var url=window.location.origin+'/?collab='+trackId+'&host='+encodeURIComponent(currentUser.name);navigator.clipboard.writeText(url).then(function(){toast('🎵 협업 링크 복사됨!','ok',2500);}).catch(function(){});}
-function _joinCollabSession(){var p=new URLSearchParams(window.location.search);var c=p.get('collab'),h=p.get('host');if(!c||!h)return;toast('🎵 '+decodeURIComponent(h)+'님의 협업 세션에 참여!','ok',3000);window.history.replaceState({},'',window.location.pathname);}
+function _startCollabSession(collabId){
+  if(!currentUser){toast('로그인 필요','err');return;}
+  if(!collabId){toast('콜라보 ID 없음','err');return;}
+  var url=window.location.origin+'/?collabWs='+encodeURIComponent(collabId);
+  navigator.clipboard.writeText(url).then(function(){toast('🎵 콜라보 스튜디오 링크 복사됨!','ok',2500);}).catch(function(){});
+}
+function _joinCollabSession(){
+  var p=new URLSearchParams(window.location.search);
+  var cwsId=p.get('collabWs');
+  if(!cwsId)return;
+  window.history.replaceState({},'',window.location.pathname);
+  /* 로그인 후 워크스페이스 열기 */
+  var _tryOpen=function(){
+    if(!currentUser){toast('로그인 후 콜라보 스튜디오가 열립니다','',3000);return;}
+    _openCollabWorkspace(cwsId);
+  };
+  if(currentUser) _tryOpen();
+  else setTimeout(_tryOpen,3000);
+}
 setTimeout(_joinCollabSession,1500);
 
 /* ═══ 검색 히스토리 + 고급 필터 ═══ */
