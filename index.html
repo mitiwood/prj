@@ -6374,6 +6374,15 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <script>
 'use strict';
 var fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
+
+/* ── 플레이리스트 컨텍스트 추적 ── */
+var _currentPlaylistContext = {
+  type: 'history', // 'history', 'community', 'search'
+  data: [], // 현재 재생 중인 플레이리스트 데이터
+  currentIndex: -1, // 플레이리스트 내에서의 현재 인덱스
+  filter: null, // 커뮤니티 필터 ('all', 'kpop', 등) 또는 검색어
+  view: 'history-view' // 어떤 뷰에서 재생이 시작되었는지
+};
 /* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇(한국어)으로 전송 */
 const _errKo = (m) => {
   const map = [
@@ -11884,10 +11893,41 @@ function _isMyTrack(h){
   return true;
 }
 
-function showMiniPlayer(idx){
+function showMiniPlayer(idx, contextOverride = null){
   const h = historyData[idx];
   if(!h) return;
   fpCurrentIdx = idx;
+  
+  // 컨텍스트가 지정되지 않았으면 현재 뷰에 따라 설정
+  if (!contextOverride) {
+    const currentView = document.querySelector('.view.on')?.id || 'history-view';
+    if (currentView === 'history-view') {
+      const historyTracks = historyData.filter(h => h.audio_url);
+      const contextIndex = historyTracks.findIndex(track => track === h);
+      _setPlaylistContext(
+        'history',
+        historyTracks,
+        contextIndex >= 0 ? contextIndex : 0,
+        null,
+        'history-view'
+      );
+    } else if (currentView === 'community-view' && !_currentPlaylistContext.type) {
+      // 커뮤니티에서 호출되었지만 컨텍스트가 없는 경우만 설정
+      const communityTracks = _getFilteredCommunityTracks();
+      const sbId = h.id || h._sbId;
+      const contextIndex = communityTracks.findIndex(track => (track._sbId || track.id) === sbId);
+      const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
+      const searchQuery = document.querySelector('#comm-search-input')?.value?.trim() || '';
+      
+      _setPlaylistContext(
+        'community', 
+        communityTracks, 
+        contextIndex >= 0 ? contextIndex : 0,
+        { filter: activeFilter, search: searchQuery },
+        'community-view'
+      );
+    }
+  }
 
   /* 재생수 카운팅 — 커뮤니티 트랙인 경우 (세션당 1회) */
   if(h.id && h._fromSb) _countTrackPlay(h.id);
@@ -11961,14 +12001,32 @@ function showMiniPlayer(idx){
         toast('크리에이터 재생 완료','',2000);
       }
     } else {
-      /* 일반 히스토리에서 다음 곡 */
-      let next = fpCurrentIdx + 1;
-      while(next < historyData.length && !historyData[next]?.audio_url) next++;
-      if(next < historyData.length){
-        setTimeout(()=> showMiniPlayer(next), 600);
-      } else {
-        toast('마지막 곡이에요','',2000);
+      /* 플레이리스트 컨텍스트 기반 다음 곡 자동 재생 */
+      const nextTrack = _getCurrentPlaylistTrack(1);
+      if (nextTrack) {
+        _updatePlaylistContextIndex(nextTrack.index);
+        
+        if (_currentPlaylistContext.type === 'community') {
+          // 커뮤니티에서 다음 곡 재생
+          const track = nextTrack.track;
+          const sbId = track._sbId || track.id;
+          if (sbId) {
+            setTimeout(() => commPlaySb(sbId), 600);
+            return;
+          }
+        }
+        
+        // 히스토리에서 다음 곡 재생
+        const track = nextTrack.track;
+        const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
+        if (hIdx >= 0) {
+          setTimeout(() => showMiniPlayer(hIdx, true), 600);
+          return;
+        }
       }
+      
+      // 플레이리스트 끝에 도달
+      toast('마지막 곡이에요','',2000);
     }
   });
 
@@ -12331,17 +12389,39 @@ $('mp-next-btn').addEventListener('click', e=>{
       return;
     } else { _mfPlayQueue=[];_mfPlayQueueIdx=-1; }
   }
-  /* audio_url 없는 곡 건너뛰기 */
-  let next = fpCurrentIdx + 1;
-  while(next < historyData.length && !historyData[next]?.audio_url) next++;
-  if(next < historyData.length){
-    setTimeout(()=>{
-      showMiniPlayer(next);
-      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-    }, 50);
-  } else {
-    toast('마지막 곡이에요','',1500);
+  
+  /* 플레이리스트 컨텍스트 기반 다음 곡 */
+  const nextTrack = _getCurrentPlaylistTrack(1);
+  if (nextTrack) {
+    _updatePlaylistContextIndex(nextTrack.index);
+    
+    if (_currentPlaylistContext.type === 'community') {
+      // 커뮤니티에서 다음 곡 재생
+      const track = nextTrack.track;
+      const sbId = track._sbId || track.id;
+      if (sbId) {
+        setTimeout(() => {
+          commPlaySb(sbId);
+          if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+        }, 50);
+        return;
+      }
+    }
+    
+    // 히스토리에서 다음 곡 재생
+    const track = nextTrack.track;
+    const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
+    if (hIdx >= 0) {
+      setTimeout(()=>{
+        showMiniPlayer(hIdx, true); // contextOverride = true로 컨텍스트 재설정 방지
+        if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+      }, 50);
+      return;
+    }
   }
+  
+  // 플레이리스트 끝에 도달
+  toast('마지막 곡이에요','',1500);
 });
 
 /* 닫기 */
@@ -12360,15 +12440,39 @@ $('mp-prev-btn').addEventListener('click', e=>{
     if($('fullplayer').classList.contains('on')) expandToFullPlayer();
     return;
   }
-  /* audio_url 없는 곡 건너뛰기 */
-  let prev = fpCurrentIdx - 1;
-  while(prev >= 0 && !historyData[prev]?.audio_url) prev--;
-  if(prev>=0){
-    setTimeout(()=>{
-      showMiniPlayer(prev);
-      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-    }, 50);
-  } else { toast('첫 번째 곡이에요','',1500); }
+  
+  /* 플레이리스트 컨텍스트 기반 이전 곡 */
+  const prevTrack = _getCurrentPlaylistTrack(-1);
+  if (prevTrack) {
+    _updatePlaylistContextIndex(prevTrack.index);
+    
+    if (_currentPlaylistContext.type === 'community') {
+      // 커뮤니티에서 이전 곡 재생
+      const track = prevTrack.track;
+      const sbId = track._sbId || track.id;
+      if (sbId) {
+        setTimeout(() => {
+          commPlaySb(sbId);
+          if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+        }, 50);
+        return;
+      }
+    }
+    
+    // 히스토리에서 이전 곡 재생
+    const track = prevTrack.track;
+    const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
+    if (hIdx >= 0) {
+      setTimeout(()=>{
+        showMiniPlayer(hIdx, true); // contextOverride = true로 컨텍스트 재설정 방지
+        if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+      }, 50);
+      return;
+    }
+  }
+  
+  // 플레이리스트 시작에 도달
+  toast('첫 번째 곡이에요','',1500);
 });
 
 /* 좋아요 토글 */
@@ -17434,6 +17538,89 @@ function commPlayByHIdx(hIdx){
 }
 
 /* Supabase sbId로 커뮤니티 트랙 재생 */
+/* ── 플레이리스트 컨텍스트 관리 함수들 ── */
+function _setPlaylistContext(type, data, currentIndex, filter = null, view = null) {
+  _currentPlaylistContext = {
+    type: type, // 'history', 'community', 'search'
+    data: data || [], // 전체 플레이리스트 데이터
+    currentIndex: currentIndex, // 현재 재생 중인 곡의 인덱스
+    filter: filter, // 현재 필터 (커뮤니티/검색어 등)
+    view: view || document.querySelector('.view.on')?.id || 'history-view'
+  };
+}
+
+function _getCurrentPlaylistTrack(direction = 0) {
+  if (!_currentPlaylistContext.data.length) return null;
+  
+  const newIndex = _currentPlaylistContext.currentIndex + direction;
+  if (newIndex < 0 || newIndex >= _currentPlaylistContext.data.length) {
+    return null;
+  }
+  
+  return {
+    track: _currentPlaylistContext.data[newIndex],
+    index: newIndex
+  };
+}
+
+function _updatePlaylistContextIndex(newIndex) {
+  _currentPlaylistContext.currentIndex = newIndex;
+}
+
+function _getCurrentContextPlaylist() {
+  // 현재 탭/필터에 따른 플레이리스트 반환
+  const currentView = document.querySelector('.view.on')?.id;
+  
+  if (currentView === 'community-view') {
+    // 커뮤니티 뷰: 현재 필터링된 트랙 목록
+    return _getFilteredCommunityTracks();
+  } else if (currentView === 'history-view') {
+    // 히스토리 뷰: historyData 기반
+    return historyData.filter(h => h.audio_url);
+  }
+  
+  // 기본적으로 historyData 반환
+  return historyData.filter(h => h.audio_url);
+}
+
+function _getFilteredCommunityTracks() {
+  // 커뮤니티 현재 필터 상태에 따른 트랙 목록 반환
+  let tracks = _sbTracks || [];
+  
+  // 현재 필터 확인
+  const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
+  
+  if (activeFilter !== 'all') {
+    if (activeFilter === 'following') {
+      // 팔로잉 필터 로직 (기존 코드에서 참조)
+      tracks = tracks.filter(t => {
+        const ownerKey = (t._owner?.name || '') + '|' + (t._owner?.provider || '');
+        return _followingSet.has(ownerKey);
+      });
+    } else {
+      // 장르 필터
+      tracks = tracks.filter(t => {
+        const tags = (t.allTags || '').toLowerCase();
+        return tags.includes(activeFilter.toLowerCase());
+      });
+    }
+  }
+  
+  // 검색어 필터링
+  const searchInput = document.querySelector('#comm-search-input');
+  if (searchInput && searchInput.value.trim()) {
+    const query = searchInput.value.trim().toLowerCase();
+    tracks = tracks.filter(t => {
+      const title = (t.title || '').toLowerCase();
+      const tags = (t.allTags || '').toLowerCase();
+      const owner = (t._owner?.name || '').toLowerCase();
+      return title.includes(query) || tags.includes(query) || owner.includes(query);
+    });
+  }
+  
+  return tracks.filter(t => t.audioUrl); // 오디오가 있는 것만
+}
+
 function commPlaySb(sbId){
   if(!sbId){toast('트랙 ID 없음','err');return;}
   const t=_sbTracks.find(x=>x._sbId===sbId);
@@ -17472,6 +17659,21 @@ function commPlaySb(sbId){
   const activeEl=document.querySelector(`.comm-list-item[data-sbid="${sbId}"]`);
   if(activeEl) activeEl.classList.add('playing');
   stopAllAudio();
+  
+  /* 플레이리스트 컨텍스트 설정 (커뮤니티에서 재생 시작) */
+  const communityTracks = _getFilteredCommunityTracks();
+  const contextIndex = communityTracks.findIndex(track => (track._sbId || track.id) === sbId);
+  const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
+  const searchQuery = document.querySelector('#comm-search-input')?.value?.trim() || '';
+  
+  _setPlaylistContext(
+    'community', 
+    communityTracks, 
+    contextIndex >= 0 ? contextIndex : 0,
+    { filter: activeFilter, search: searchQuery },
+    'community-view'
+  );
+  
   /* 재생수 카운팅 (세션당 1회) */
   _countTrackPlay(sbId);
   showMiniPlayer(hIdx);
