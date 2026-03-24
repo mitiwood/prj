@@ -176,6 +176,7 @@ async function handleWebhookCommand(text, chatId) {
       '/status — 시스템 상태 확인',
       '/health — 헬스체크 (= /status)',
       '/site — 사이트 링크',
+      '/ping — 봇 응답 테스트',
       '/help — 명령어 목록',
     ].join('\n');
 
@@ -193,6 +194,14 @@ async function handleWebhookCommand(text, chatId) {
       text: `🌐 <b>AI Music Studio</b>\n\n${escapeHtml(SITE_URL)}`,
       parse_mode: 'HTML',
       reply_markup: defaultDeployKeyboard(),
+    });
+    return true;
+  }
+
+  if (cmd === '/ping') {
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: 'pong!',
     });
     return true;
   }
