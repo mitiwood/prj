@@ -502,6 +502,7 @@ async function ghApi(method, path, body = null) {
       Authorization: `Bearer ${GH_TOKEN}`,
       Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json',
+      'User-Agent': 'kenny-music-bot',
     },
   };
   if (body) opts.body = JSON.stringify(body);
