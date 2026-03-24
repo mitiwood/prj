@@ -10965,7 +10965,7 @@ function renderHistoryView(){
       </div>
       <div class="hist-info">
         <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;margin-left:4px;font-weight:700;">🤝</span>':''}</div>
-        <div class="hist-sub">${h._collabCoOwner?'<span style="color:#f59e0b;">with '+esc(h._collabCoOwner)+'</span> · ':''}${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
+        <div class="hist-sub">${h._coOwner?.name?'<span style="color:#f59e0b;">with '+esc(h._coOwner.name)+'</span> · ':''}${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
         <div class="hist-full-stats">
           ${h._commPlays?'<span class="hist-full-stat">▶ '+h._commPlays+'</span>':''}
           ${h._commLikes?'<span class="hist-full-stat">❤️ '+h._commLikes+'</span>':''}
@@ -12215,7 +12215,7 @@ function expandToFullPlayer(){
 
     /* 정보 */
     const titleEl=$('fp-title'); if(titleEl) titleEl.textContent = h.title || '무제';
-    const tagsEl=$('fp-tags');   if(tagsEl)  tagsEl.textContent  = _normTags(h.tags).split(',')[0]?.trim() || '';
+    const tagsEl=$('fp-tags');   if(tagsEl)  tagsEl.textContent  = (h._coOwner?.name ? 'with ' + h._coOwner.name + ' · ' : '') + (_normTags(h.tags).split(',')[0]?.trim() || '');
 
     /* 좋아요 상태 (null-safe) */
     fpLiked    = h._liked    || false;
