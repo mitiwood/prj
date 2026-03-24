@@ -96,40 +96,10 @@ jobs:
           except: pass
           PYEOF
 
-      - name: Refresh OAuth token
-        id: refresh_token
-        env:
-          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          REFRESH_TOKEN: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
-        run: |
-          python3 << 'PYEOF'
-          import urllib.request, json, os
-
-          oauth = os.environ.get('OAUTH_TOKEN', '')
-          refresh = os.environ.get('REFRESH_TOKEN', '')
-
-          # Write credentials file so CLI can auto-refresh
-          creds = {
-            "claudeAiOauth": {
-              "accessToken": oauth,
-              "refreshToken": refresh,
-              "expiresAt": 0,
-              "scopes": ["user:file_upload","user:inference","user:mcp_servers","user:profile","user:sessions:claude_code"],
-              "subscriptionType": "max",
-              "rateLimitTier": "default_claude_max_20x"
-            }
-          }
-          cred_dir = os.path.expanduser('~/.claude')
-          os.makedirs(cred_dir, exist_ok=True)
-          with open(os.path.join(cred_dir, '.credentials.json'), 'w') as f:
-            json.dump(creds, f)
-          print('Credentials file written with refresh token')
-          PYEOF
-
       - uses: anthropics/claude-code-action@beta
         id: claude
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
           direct_prompt: |
             다음 수정 요청을 처리해주세요 (최고 권한 — 모든 파일 수정 가능):
