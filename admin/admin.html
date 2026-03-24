@@ -699,7 +699,6 @@ textarea.form-input{line-height:1.5;}
             <select class="table-search" id="track-user-filter" onchange="filterTracks()" style="width:110px;">
               <option value="">전체 사용자</option>
               <option value="loggedin">로그인 사용자</option>
-              <option value="guest">게스트</option>
             </select>
             <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄</button>
             <button class="btn btn-red" onclick="deleteSelected()">🗑 선택 삭제</button>
@@ -710,7 +709,6 @@ textarea.form-input{line-height:1.5;}
         <div class="stats-grid" style="margin-bottom:16px;">
           <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="tstat-total">0</div><div class="stat-label">전체 곡</div></div>
           <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="tstat-loggedin">0</div><div class="stat-label">로그인 생성</div></div>
-          <div class="stat-card"><div class="stat-icon">🕵️</div><div class="stat-val" id="tstat-guest">0</div><div class="stat-label">게스트 생성</div></div>
           <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="tstat-mv">0</div><div class="stat-label">MV 포함</div></div>
           <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="tstat-likes">0</div><div class="stat-label">총 좋아요</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="tstat-today">0</div><div class="stat-label">오늘 생성</div></div>
@@ -855,7 +853,6 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card" style="border-left:3px solid var(--grn);"><div class="stat-icon">🟢</div><div class="stat-val" id="ustat-online" style="color:var(--grn);">0</div><div class="stat-label">현재 온라인</div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div></div>
           <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
-          <div class="stat-card" style="border-left:3px solid #888;"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-guest">0</div><div class="stat-label">게스트 접속</div></div>
           <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-val" id="ustat-mobile">0%</div><div class="stat-label">모바일 비율</div></div>
           <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
         </div>
@@ -883,7 +880,6 @@ textarea.form-input{line-height:1.5;}
                   <option value="google">🔵 Google</option>
                   <option value="kakao">💬 카카오</option>
                   <option value="naver">🟢 네이버</option>
-                  <option value="guest">👤 게스트</option>
                 </select>
                 <select class="table-search" id="user-plan-filter" onchange="filterUsers()" style="width:80px;">
                   <option value="">전체 플랜</option>
@@ -3371,14 +3367,12 @@ async function renderTracksAdmin(){
   _filteredTracks=h;
   /* 통계 업데이트 */
   const loggedIn = h.filter(t => t._owner && t._owner.provider !== 'guest').length;
-  const guest = h.filter(t => !t._owner || t._owner.provider === 'guest').length;
   const mv = h.filter(t => t.video_url).length;
   const totalLikes = h.reduce((s,t)=>s+(t._commLikes||0),0);
   const todayDate = new Date(); todayDate.setHours(0,0,0,0);
   const todayTracks = h.filter(t=>t.created&&new Date(t.created)>=todayDate).length;
   const ts = document.getElementById('tstat-total');    if(ts) ts.textContent = h.length;
   const tl = document.getElementById('tstat-loggedin'); if(tl) tl.textContent = loggedIn;
-  const tg = document.getElementById('tstat-guest');    if(tg) tg.textContent = guest;
   const tm = document.getElementById('tstat-mv');       if(tm) tm.textContent = mv;
   const tlk = document.getElementById('tstat-likes');   if(tlk) tlk.textContent = totalLikes;
   const ttd = document.getElementById('tstat-today');   if(ttd) ttd.textContent = todayTracks;
@@ -4478,19 +4472,17 @@ async function renderUsersAdmin(showToast=false){
 
   /* 통계 카드 */
   const _s=id=>document.getElementById(id);
-  const guestCount=loginUsers.filter(u=>u.provider==='guest').length;
   if(_s('ustat-total')) _s('ustat-total').textContent=loginUsers.length;
   if(_s('ustat-online')) _s('ustat-online').textContent=onlineCount;
   if(_s('ustat-today')) _s('ustat-today').textContent=todayLogins;
   if(_s('ustat-creator')) _s('ustat-creator').textContent=creators.length;
-  if(_s('ustat-guest')) _s('ustat-guest').textContent=guestCount;
   if(_s('ustat-mobile')) _s('ustat-mobile').textContent=mobilePct+'%';
   if(_s('ustat-push')) _s('ustat-push').textContent=pushSubs;
 
   /* 소셜 분포 바 */
-  const provCnt={google:0,kakao:0,naver:0,guest:0,other:0};
-  const provColor2={google:'#4285f4',kakao:'#fee500',naver:'#03c75a',guest:'#888',other:'#555'};
-  const provLabel2={google:'Google',kakao:'카카오',naver:'네이버',guest:'게스트',other:'기타'};
+  const provCnt={google:0,kakao:0,naver:0,other:0};
+  const provColor2={google:'#4285f4',kakao:'#fee500',naver:'#03c75a',other:'#555'};
+  const provLabel2={google:'Google',kakao:'카카오',naver:'네이버',other:'기타'};
   loginUsers.forEach(u=>{const p=u.provider||'';if(provCnt[p]!==undefined)provCnt[p]++;else provCnt.other++;});
   const barEl=_s('ustat-provider-bar');
   if(barEl&&loginUsers.length) barEl.innerHTML=Object.entries(provCnt).filter(e=>e[1]>0).map(([p,c])=>'<div style="flex:'+c+';background:'+provColor2[p]+';'+(p==='kakao'?'opacity:.7;':'')+'"></div>').join('');

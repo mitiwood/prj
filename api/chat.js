@@ -178,7 +178,7 @@ export default async function handler(req, res) {
 
     if (!content || !author_name) return res.status(400).json({ error: 'content and author_name required' });
     if (content.length > 500) return res.status(400).json({ error: 'message too long (max 500)' });
-    if (author_provider === 'guest') return res.status(401).json({ error: 'login required' });
+    if (!author_provider) return res.status(401).json({ error: 'login required' });
 
     const rateKey = `chat_${author_name}_${author_provider}`;
     if (!_checkRate(rateKey, 5)) return res.status(429).json({ error: '메시지를 너무 빠르게 보내고 있어요' });

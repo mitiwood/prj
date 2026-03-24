@@ -519,32 +519,21 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
   try {
-    /* GitHub API로 Issue 생성 */
-    const ghUrl = `https://api.github.com/repos/${GH_REPO}/issues`;
-    const ghBody = JSON.stringify({
-      title: `[텔레그램] ${arg.slice(0, 60)}`,
-      body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
-      labels: ['claude-fix'],
-    });
-    const ghReq = await fetch(ghUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GH_TOKEN}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'kenny-music-bot',
-      },
-      body: ghBody,
-    });
-    const ghTxt = await ghReq.text();
-
-    if (!ghReq.ok) {
-      const safeErr = ghTxt.slice(0, 200).replace(/[*_`\[\]]/g, '');
-      await tgSend(chatId, `❌ Issue 생성 실패\n\nHTTP ${ghReq.status}\n${safeErr}`, { parse_mode: '' });
-      return;
+    /* GitHub API로 Issue 생성 (라벨 실패 시 라벨 없이 재시도) */
+    let issue;
+    try {
+      issue = await ghApi('POST', '/issues', {
+        title: `[텔레그램] ${arg.slice(0, 60)}`,
+        body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
+        labels: ['claude-fix'],
+      });
+    } catch (labelErr) {
+      /* 라벨이 없어서 422 실패 시 라벨 없이 재시도 */
+      issue = await ghApi('POST', '/issues', {
+        title: `[텔레그램] ${arg.slice(0, 60)}`,
+        body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
+      });
     }
-
-    const issue = JSON.parse(ghTxt);
     const safeArg = arg.replace(/[*_`\[]/g, '');
     await tgSend(chatId, [
       `✅ 수정 요청 등록 완료!`,
@@ -994,11 +983,19 @@ COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
   await tgSend(chatId, '🔍 QA 전체 점검을 시작합니다...\n\nClaude Code가 코드를 분석하고 결과를 리포트합니다.', { parse_mode: '' });
 
   try {
-    const issue = await ghApi('POST', '/issues', {
-      title: `[QA] 전체 점검 · ${ts()}`,
-      body: QA_BODY + `\n---\n> ${arg ? arg + ' · ' : ''}${chatId === CHAT_ID ? '텔레그램' : '카카오'} 봇에서 요청됨 · ${ts()}`,
-      labels: ['claude-fix'],
-    });
+    let issue;
+    try {
+      issue = await ghApi('POST', '/issues', {
+        title: `[QA] 전체 점검 · ${ts()}`,
+        body: QA_BODY + `\n---\n> ${arg ? arg + ' · ' : ''}${chatId === CHAT_ID ? '텔레그램' : '카카오'} 봇에서 요청됨 · ${ts()}`,
+        labels: ['claude-fix'],
+      });
+    } catch (labelErr) {
+      issue = await ghApi('POST', '/issues', {
+        title: `[QA] 전체 점검 · ${ts()}`,
+        body: QA_BODY + `\n---\n> ${arg ? arg + ' · ' : ''}${chatId === CHAT_ID ? '텔레그램' : '카카오'} 봇에서 요청됨 · ${ts()}`,
+      });
+    }
 
     await tgSend(chatId, [
       '✅ QA 점검 요청 등록!',
@@ -1077,11 +1074,19 @@ COMMANDS['디자인'] = COMMANDS['design'] = async (chatId, arg) => {
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 디자인 <지시사항>\n\n예시:\n디자인 버튼 둥글게 + 그림자 추가\n디자인 다크모드 색상 변경', { parse_mode: '' });
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
   try {
-    const issue = await ghApi('POST', '/issues', {
-      title: `[디자인] ${arg.slice(0, 60)}`,
-      body: `## 디자인 수정 요청\n\n${arg}\n\n### 규칙\n- CSS/UI만 수정할 것\n- 기능 로직 변경 금지\n- 모바일 반응형 유지\n\n---\n> 텔레그램 봇 · ${ts()}`,
-      labels: ['claude-fix', 'design'],
-    });
+    let issue;
+    try {
+      issue = await ghApi('POST', '/issues', {
+        title: `[디자인] ${arg.slice(0, 60)}`,
+        body: `## 디자인 수정 요청\n\n${arg}\n\n### 규칙\n- CSS/UI만 수정할 것\n- 기능 로직 변경 금지\n- 모바일 반응형 유지\n\n---\n> 텔레그램 봇 · ${ts()}`,
+        labels: ['claude-fix', 'design'],
+      });
+    } catch (labelErr) {
+      issue = await ghApi('POST', '/issues', {
+        title: `[디자인] ${arg.slice(0, 60)}`,
+        body: `## 디자인 수정 요청\n\n${arg}\n\n### 규칙\n- CSS/UI만 수정할 것\n- 기능 로직 변경 금지\n- 모바일 반응형 유지\n\n---\n> 텔레그램 봇 · ${ts()}`,
+      });
+    }
     await tgSend(chatId, `🎨 디자인 요청 등록!\n\n📋 Issue #${issue.number}\n📝 ${arg}\n\n🤖 Claude가 CSS/UI를 수정합니다.\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
   } catch (e) {
     await tgSend(chatId, `❌ 디자인 요청 실패: ${e.message}`, { parse_mode: '' });
@@ -1496,22 +1501,19 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
     if (!GH_TOKEN) { await tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' }); return; }
     await tgSend(chatId, `🚀 고도화 요청 처리 중...\n\n📝 "${instruction}"`, { parse_mode: '' });
     try {
-      const ghBody = JSON.stringify({
-        title: `[고도화] ${instruction.slice(0, 60)}`,
-        body: `## 고도화 요청\n\n${instruction}\n\n---\n> 텔레그램 봇 고도화 명령 · ${ts()}`,
-        labels: ['claude-fix'],
-      });
-      const ghReq = await fetch(`https://api.github.com/repos/${GH_REPO}/issues`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'kenny-music-bot' },
-        body: ghBody,
-      });
-      const ghTxt = await ghReq.text();
-      if (!ghReq.ok) {
-        await tgSend(chatId, `❌ Issue 생성 실패\n${ghTxt.slice(0,150)}`, { parse_mode: '' });
-        return;
+      let issue;
+      try {
+        issue = await ghApi('POST', '/issues', {
+          title: `[고도화] ${instruction.slice(0, 60)}`,
+          body: `## 고도화 요청\n\n${instruction}\n\n---\n> 텔레그램 봇 고도화 명령 · ${ts()}`,
+          labels: ['claude-fix'],
+        });
+      } catch (labelErr) {
+        issue = await ghApi('POST', '/issues', {
+          title: `[고도화] ${instruction.slice(0, 60)}`,
+          body: `## 고도화 요청\n\n${instruction}\n\n---\n> 텔레그램 봇 고도화 명령 · ${ts()}`,
+        });
       }
-      const issue = JSON.parse(ghTxt);
       await tgSend(chatId, [
         `✅ 고도화 요청 등록!`,
         ``,

@@ -41,10 +41,6 @@ $('vr-backdrop').addEventListener('click', _closeVR);
 $('vr-submit-btn').addEventListener('click', async () => {
   if (_vrSourceIdx < 0) return;
   const h = historyData[_vrSourceIdx]; if (!h) return;
-  if (currentUser?.provider === 'guest') {
-    toast('보컬 제거는 로그인 후 이용할 수 있어요', 'err', 3000);
-    _closeVR(); openLoginSheet(); return;
-  }
   const apiKey = kieApiKey;
   if (!apiKey) { toast('API 키 로딩 중...', 'err'); return; }
   const tId = h.taskId || h.id, aId = h.id;

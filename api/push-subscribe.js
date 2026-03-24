@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const provider = userInfo?.provider || '';
 
     /* Supabase에 구독 정보 upsert */
-    if (SB_URL && SB_KEY && name && provider !== 'guest') {
+    if (SB_URL && SB_KEY && name && provider) {
       try {
         await fetch(`${SB_URL}/rest/v1/push_subscriptions?on_conflict=user_name,user_provider`, {
           method: 'POST',

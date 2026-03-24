@@ -592,11 +592,11 @@ function _buildShareUrl(audioUrl,title,imgUrl){
   if(imgUrl)params.set('img',imgUrl);
   return base+'?'+params.toString();
 }
-function commShareTrack(audioUrl,title){
+async function commShareTrack(audioUrl,title){
   /* 커뮤니티에 실제 저장 후 탭 이동 */
-  if(typeof currentUser!=='undefined'&&currentUser&&currentUser.provider!=='guest'){
+  if(typeof currentUser!=='undefined'&&currentUser){
     try{
-      fetch('/api/tracks',{
+      await fetch('/api/tracks',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({

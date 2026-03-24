@@ -239,8 +239,8 @@ export default async function handler(req, res) {
     const { track_id, parent_id, content, author_name, author_avatar, author_provider } = b;
     if (!track_id || !content) return res.status(400).json({ error: "track_id and content required" });
 
-    /* 로그인 필수 — 게스트/미인증 차단 */
-    if (!author_name || author_provider === 'guest') {
+    /* 로그인 필수 */
+    if (!author_name || !author_provider) {
       return res.status(401).json({ error: "댓글은 로그인 후 작성할 수 있어요" });
     }
 

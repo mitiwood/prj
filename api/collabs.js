@@ -105,8 +105,8 @@ export default async function handler(req, res) {
       const { fromName, fromProvider, fromAvatar, toName, toProvider, message } = b;
       if (!fromName || !fromProvider || !toName || !toProvider)
         return res.status(400).json({ error: '필수 필드 누락' });
-      if (fromProvider === 'guest')
-        return res.status(400).json({ error: '게스트는 콜라보를 요청할 수 없습니다' });
+      if (!fromProvider)
+        return res.status(400).json({ error: '로그인이 필요합니다' });
       if (fromName === toName && fromProvider === toProvider)
         return res.status(400).json({ error: '자기 자신에게 요청할 수 없습니다' });
 
