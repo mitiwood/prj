@@ -12320,6 +12320,7 @@ $('mp-play-btn').addEventListener('click', e=>{
 /* 다음 곡 */
 $('mp-next-btn').addEventListener('click', e=>{
   e.stopPropagation();
+  e.preventDefault();
   /* 크리에이터 큐 우선 */
   if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
     var nqi=_mfPlayQueueIdx+1;
@@ -12330,10 +12331,14 @@ $('mp-next-btn').addEventListener('click', e=>{
       return;
     } else { _mfPlayQueue=[];_mfPlayQueueIdx=-1; }
   }
-  const next = fpCurrentIdx + 1;
+  /* audio_url 없는 곡 건너뛰기 */
+  let next = fpCurrentIdx + 1;
+  while(next < historyData.length && !historyData[next]?.audio_url) next++;
   if(next < historyData.length){
-    showMiniPlayer(next);
-    if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    setTimeout(()=>{
+      showMiniPlayer(next);
+      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    }, 50);
   } else {
     toast('마지막 곡이에요','',1500);
   }
@@ -12348,16 +12353,21 @@ $('mp-close-btn').addEventListener('click', e=>{
 /* 이전 곡 */
 $('mp-prev-btn').addEventListener('click', e=>{
   e.stopPropagation();
+  e.preventDefault();
   if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>0){
     _mfPlayQueueIdx--;
     _mfQueuePlay(_mfPlayQueueIdx);
     if($('fullplayer').classList.contains('on')) expandToFullPlayer();
     return;
   }
-  const prev=fpCurrentIdx-1;
+  /* audio_url 없는 곡 건너뛰기 */
+  let prev = fpCurrentIdx - 1;
+  while(prev >= 0 && !historyData[prev]?.audio_url) prev--;
   if(prev>=0){
-    showMiniPlayer(prev);
-    if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    setTimeout(()=>{
+      showMiniPlayer(prev);
+      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    }, 50);
   } else { toast('첫 번째 곡이에요','',1500); }
 });
 
