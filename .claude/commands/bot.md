@@ -28,12 +28,14 @@ fetch('https://ai-music-studio-bice.vercel.app/api/kakao-webhook', POST, payload
 - 공개/비공개 <트랙ID> — 공개 전환
 - 댓글삭제 <댓글ID> — 댓글 삭제
 - 알림 <메시지> — 전체 푸시 발송
-- 수정 <지시사항> — Claude AI 코드 수정 → PR 생성
+- 수정 <지시사항> — Claude AI 코드 수정 (GitHub Issue 생성 → 자동 머지)
 - PR — 열린 PR 목록
 - 머지 <PR번호> — PR 머지
 - QA — 전체 코드 점검 + 리포트
 - 진행상황 — 현재 진행 중인 작업 추적
 - 도움 — 명령어 목록
+
+> 💡 `/fix <지시사항>` 명령으로도 수정 요청 가능 (= `수정` 명령과 동일)
 
 **예시:**
 - `/bot 상태` → 양쪽 봇에 상태 명령 실행
