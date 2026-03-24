@@ -32,11 +32,17 @@ jobs:
           title = os.environ.get('ISSUE_TITLE', '')
           num = os.environ.get('ISSUE_NUM', '?')
 
-          msg = f'\U0001f916 Claude Code 작업 시작\n\nIssue #{num}: {title}\n\n\u23f3 코드 체크아웃 중...'
+          import html as html_mod
+          def esc(s): return html_mod.escape(str(s))
 
-          # Telegram via site API
+          msg = f'\U0001f916 <b>Claude Code 작업 시작</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}\n\n\u23f3 코드 체크아웃 중...'
+          keyboard = {'inline_keyboard': [
+            [{'text': '\U0001f517 이슈 확인', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}]
+          ]}
+
+          # Telegram via site API (HTML + 키보드)
           try:
-            tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+            tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             resp = json.loads(urllib.request.urlopen(urllib.request.Request(
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
@@ -246,8 +252,11 @@ jobs:
           status = os.environ.get('MERGE_STATUS', '').strip()
           run_url = os.environ.get('RUN_URL', '')
 
+          import html as html_mod
+          def esc(s): return html_mod.escape(str(s))
+
           if status == 'merged':
-            pr_line = f'\u2705 main 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)\n\n\U0001f517 {site}'
+            pr_line = f'\u2705 main 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)'
           elif status == 'merge_failed':
             pr_line = '\u26a0 머지 충돌 발생 — 수동 머지 필요'
           elif status == 'no_branch':
@@ -255,23 +264,26 @@ jobs:
           else:
             pr_line = '\u26a0 머지 미완료'
 
-          msg = f'\u2705 Claude Code 작업 완료!\n\nIssue #{num}: {title}\n\n{pr_line}\n\n{run_url}'
+          msg = f'\u2705 <b>Claude Code 작업 완료!</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}\n\n{pr_line}'
+          keyboard = {'inline_keyboard': [
+            [{'text': '\U0001f310 사이트', 'url': site}, {'text': '\U0001f4cb 로그', 'url': run_url}],
+            [{'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
+          ]}
 
-          # Telegram edit or send via site API
+          # Telegram edit or send (HTML + 키보드)
           try:
             if msg_id:
-              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             else:
-              tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
             ))
           except Exception as e:
             print(f'TG error: {e}')
-            # fallback: new message
             try:
-              tg2 = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
               urllib.request.urlopen(urllib.request.Request(
                 f'{site}/api/telegram', data=tg2,
                 headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
@@ -307,28 +319,35 @@ jobs:
           num = os.environ.get('ISSUE_NUM', '?')
           run_url = os.environ.get('RUN_URL', '')
 
-          msg = f'\u274c Claude Code 작업 실패\n\nIssue #{num}: {title}\n\n로그: {run_url}'
+          import html as html_mod
+          def esc(s): return html_mod.escape(str(s))
+
+          msg = f'\u274c <b>Claude Code 작업 실패</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}'
+          keyboard = {'inline_keyboard': [
+            [{'text': '\U0001f4cb 로그 확인', 'url': run_url}, {'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
+          ]}
 
           try:
             if msg_id:
-              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             else:
-              tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
             ))
           except:
             try:
-              tg2 = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
               urllib.request.urlopen(urllib.request.Request(
                 f'{site}/api/telegram', data=tg2,
                 headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
               ))
             except: pass
 
+          msg_plain = f'\u274c Claude Code 작업 실패\n\nIssue #{num}: {title}\n\n로그: {run_url}'
           try:
-            kp = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
+            kp = json.dumps({'text': msg_plain}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
           except: pass
           PYEOF

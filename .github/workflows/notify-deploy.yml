@@ -63,6 +63,29 @@ jobs:
 
           health = '\u2705 사이트 정상' if status == '200' else f'\u26a0 응답: {status}'
 
+          # 이벤트 기반 발송 (HTML 포맷 + 인라인 키보드 자동)
+          tg_payload = {
+            'event': 'deploy',
+            'data': {
+              'commit': f'{h} {msg_text}',
+              'author': author,
+              'files': files,
+              'count': count,
+              'health': status,
+            },
+          }
+
+          # Telegram (이벤트 방식)
+          try:
+            tg = json.dumps(tg_payload, ensure_ascii=False).encode('utf-8')
+            urllib.request.urlopen(urllib.request.Request(
+              f'{site}/api/telegram', data=tg,
+              headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
+            ))
+          except Exception as e:
+            print(f'TG error: {e}')
+
+          # 카카오용 plain text
           text = (
             f'\U0001f680 배포 완료\n\n'
             f'{h} {msg_text}\n'
@@ -70,16 +93,6 @@ jobs:
             f'{files}\n\n'
             f'{health}'
           )
-
-          # Telegram
-          try:
-            tg = json.dumps({'text': text, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(
-              f'{site}/api/telegram', data=tg,
-              headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-            ))
-          except Exception as e:
-            print(f'TG error: {e}')
 
           # Kakao
           try:

@@ -27,10 +27,17 @@ jobs:
           site = os.environ.get('SITE_URL', '')
           secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
 
-          # Telegram — 사이트 API 경유 (확실히 동작)
+          import html as html_mod
+
+          def esc(s): return html_mod.escape(str(s))
+
+          # Telegram — HTML + 인라인 키보드
           try:
-            tg_msg = f'🔀 새 PR #{num} 생성\n\n{title}\n작성자: {author}\n\n머지하려면: 머지\n\n{url}'
-            tg = json.dumps({'text': tg_msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
+            tg_msg = f'\U0001f500 <b>새 PR #{esc(num)} 생성</b>\n\n\U0001f4dd {esc(title)}\n\U0001f464 작성자: {esc(author)}'
+            keyboard = {'inline_keyboard': [
+              [{'text': '\U0001f517 PR 보기', 'url': url}, {'text': '\U0001f310 사이트', 'url': site}]
+            ]}
+            tg = json.dumps({'text': tg_msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
             req = urllib.request.Request(f'{site}/api/telegram', data=tg, headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'})
             urllib.request.urlopen(req)
             print('Telegram OK')
@@ -39,7 +46,7 @@ jobs:
 
           # Kakao
           try:
-            kakao_msg = f'🔀 새 PR #{num}\n\n{title}\n작성자: {author}\n\n머지하려면: 머지\n\n{url}'
+            kakao_msg = f'\U0001f500 새 PR #{num}\n\n{title}\n작성자: {author}\n\n{url}'
             kp = json.dumps({'text': kakao_msg}, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
             print('Kakao OK')
