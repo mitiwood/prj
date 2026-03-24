@@ -6974,7 +6974,14 @@ function _getGenSession() {
 window.addEventListener('beforeunload', function(e) {
   if (_globalGenerating) {
     e.preventDefault();
-    e.returnValue = '';
+    e.returnValue = '음악 생성 중입니다. 페이지를 나가면 생성이 취소됩니다.';
+  }
+});
+/* 뒤로가기(popstate) 시 생성 중이면 안내 */
+window.addEventListener('popstate', function(e) {
+  if (_globalGenerating) {
+    history.pushState(null, '', location.href);
+    _showGeneratingPopup();
   }
 });
 
@@ -10957,8 +10964,8 @@ function renderHistoryView(){
         <div class="hist-play-overlay"><div class="hist-play-icon">▶</div></div>
       </div>
       <div class="hist-info">
-        <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}</div>
-        <div class="hist-sub">${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
+        <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;margin-left:4px;font-weight:700;">🤝</span>':''}</div>
+        <div class="hist-sub">${h._collabCoOwner?'<span style="color:#f59e0b;">with '+esc(h._collabCoOwner)+'</span> · ':''}${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
         <div class="hist-full-stats">
           ${h._commPlays?'<span class="hist-full-stat">▶ '+h._commPlays+'</span>':''}
           ${h._commLikes?'<span class="hist-full-stat">❤️ '+h._commLikes+'</span>':''}
@@ -11969,39 +11976,58 @@ function showMiniPlayer(idx){
     const msgs = {1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg = msgs[code] || '재생 오류';
     const src = e.target?.src||'';
-    if(code === 4){
-      if(src.includes(window.location.hostname) && !src.includes('/cdn') && !src.includes('audio')){
-        console.warn('[Audio] 유효하지 않은 오디오 URL:', src.slice(0,80));
-      } else {
-        console.warn('[Audio Error]', msg, src.slice(0,80));
-        toast('오디오를 재생할 수 없어요','err',3000);
-      }
+    console.warn('[Audio Error]', msg, 'code:'+code, src.slice(0,80));
+    /* CORS 실패(code 2/4) — crossOrigin 제거 후 재시도 */
+    if(!audio._corsRetried && audio.crossOrigin && (code===2||code===4)){
+      audio._corsRetried=true;
+      audio.removeAttribute('crossorigin');
+      audio.crossOrigin=null;
+      audio.src=_safeAudioUrl;
+      audio.load();
+      audio.play().catch(()=>{});
+      toast('오디오 재연결 중...','',2000);
       return;
     }
-    console.warn('[Audio Error]', msg, src.slice(0,60));
-    if(!audio._retried && code === 2){
-      audio._retried = true;
-      setTimeout(()=>{ if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});} }, 1500);
+    if(!audio._retried && code===2){
+      audio._retried=true;
+      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
       toast('오디오 재연결 중...','',2000);
+    } else if(code===4){
+      toast('오디오를 재생할 수 없어요','err',3000);
     } else {
       toast(msg,'err',3000);
     }
   });
 
-  /* BPM 분석기 연결 (AudioContext는 play 전에 초기화) */
-  if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
-  /* 오디오 스펙트럼 시작 */
-  setTimeout(function(){if(typeof _initSpectrum==='function')_initSpectrum();},300);
   /* BPM 뱃지 초기화 */
   var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
   audio.play().then(()=>{
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
     _syncAllPlayBtns(true);
+    /* BPM 분석기 — play() 성공 후 연결 (AudioContext suspended 방지) */
+    try{
+      if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
+      setTimeout(function(){if(typeof _initSpectrum==='function')_initSpectrum();},300);
+    }catch(e){console.warn('[BPM/Spectrum]',e.message);}
   }).catch(err=>{
     if(err.name !== 'AbortError'){
       console.warn('[play() failed]', err.message);
-      toast('재생 실패: '+err.message,'err',3000);
+      /* CORS 실패 시 crossOrigin 제거 후 재시도 */
+      if(!audio._corsRetried){
+        audio._corsRetried=true;
+        console.warn('[play] CORS fallback — crossOrigin 제거 후 재시도');
+        audio.removeAttribute('crossorigin');
+        audio.crossOrigin=null;
+        audio.src=_safeAudioUrl;
+        audio.load();
+        audio.play().then(()=>{
+          if(genId!==_fpAudioGenId) return;
+          _syncAllPlayBtns(true);
+        }).catch(e2=>{toast('재생 실패: '+e2.message,'err',3000);});
+      } else {
+        toast('재생 실패: '+err.message,'err',3000);
+      }
     }
   });
 }
@@ -14407,14 +14433,19 @@ function _mfTrkAction(action,idx){
   if(action==='play'){
     _mfDetailPlay(idx);
   } else if(action==='playlist'){
-    var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
-    var id=t.id||'';
-    if(pl.some(function(p){return p.id===id;})){toast('이미 플레이리스트에 있어요','',1500);return;}
-    pl.unshift({id:id,title:t.title||'무제',audio_url:t.audio_url||'',image_url:t.image_url||'',tags:t.tags||'',added:Date.now()});
-    if(pl.length>50) pl=pl.slice(0,50);
-    if(pls[_currentPlIdx])pls[_currentPlIdx].tracks=pl;
-    _savePlaylists(pls);
-    toast('플레이리스트에 추가했어요','ok',1500);
+    var _plAudioUrl=t.audio_url||'';
+    if(!_plAudioUrl){toast('오디오 URL이 없어요','err',2000);return;}
+    _checkAudioPlayable(_plAudioUrl).then(function(ok){
+      if(!ok){toast('재생할 수 없는 곡이라 추가하지 않았어요','err',3000);return;}
+      var pls=_getPlaylists();var pl=pls[_currentPlIdx]?pls[_currentPlIdx].tracks:[];
+      var id=t.id||'';
+      if(pl.some(function(p){return p.id===id;})){toast('이미 플레이리스트에 있어요','',1500);return;}
+      pl.unshift({id:id,title:t.title||'무제',audio_url:_plAudioUrl,image_url:t.image_url||'',tags:t.tags||'',added:Date.now()});
+      if(pl.length>50) pl=pl.slice(0,50);
+      if(pls[_currentPlIdx])pls[_currentPlIdx].tracks=pl;
+      _savePlaylists(pls);
+      toast('플레이리스트에 추가했어요','ok',1500);
+    });
   } else if(action==='share'){
     var shareUrl=location.origin+'/?play='+encodeURIComponent(t.id);
     if(navigator.share){navigator.share({title:t.title||'AI Music',url:shareUrl}).catch(function(){});}
@@ -19479,6 +19510,22 @@ async function _acceptCollab(id){
   } catch(e){ toast('오류','',2000); }
 }
 
+async function _cancelCollab(id){
+  if(!currentUser) return;
+  if(!confirm('콜라보 요청을 취소할까요?')) return;
+  try {
+    var r = await fetch('/api/collabs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'cancel', id:id })
+    });
+    var d = await r.json();
+    if(d.ok){
+      toast('요청을 취소했어요','',2000);
+      await _loadNotifications();
+    } else { toast(d.error||'취소 실패','',2000); }
+  } catch(e){ toast('오류','',2000); }
+}
+
 async function _declineCollab(id){
   if(!currentUser) return;
   if(!confirm('콜라보 요청을 거절할까요?')) return;
@@ -20024,6 +20071,14 @@ async function _loadNotifications(){
       (cd.collabs||[]).forEach(c => {
         allNotifs.push({ type:'collab', title:'🤝 '+c.from_name+'님의 콜라보 요청', body: c.message||'함께 음악을 만들어요!', ts: new Date(c.created_at||0).getTime(), is_read: false, _collabId: c.id, _collabAction: 'pending' });
       });
+      /* 보낸 요청 (pending) → 취소 가능 */
+      const sr = await fetch(`/api/collabs?action=sent&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
+      const sd = await sr.json();
+      (sd.collabs||[]).forEach(c => {
+        if(c.status!=='pending') return;
+        allNotifs.push({ type:'collab', title:'📤 '+c.to_name+'님에게 콜라보 요청함', body: c.message||'응답 대기 중...', ts: new Date(c.created_at||0).getTime(), is_read: true, _collabId: c.id, _collabAction: 'sent' });
+      });
+      /* 진행 중 콜라보 */
       const ar = await fetch(`/api/collabs?action=active&name=${encodeURIComponent(currentUser.name)}&provider=${encodeURIComponent(currentUser.provider)}`);
       const ad = await ar.json();
       (ad.collabs||[]).forEach(c => {
@@ -20114,6 +20169,10 @@ function _renderNotifList(notifs){
         html+='<button onclick="event.stopPropagation();_acceptCollab(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">수락</button>';
         html+='<button onclick="event.stopPropagation();_declineCollab(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">거절</button>';
         html+='</div>';
+      }
+      /* 보낸 콜라보 요청 → 취소 버튼 */
+      if(n.type==='collab'&&n._collabId&&n._collabAction==='sent'){
+        html+='<div style="margin-top:8px;"><button onclick="event.stopPropagation();_cancelCollab(\''+esc(n._collabId)+'\')" style="padding:6px 14px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">요청 취소</button></div>';
       }
       /* 수락된 콜라보 → 스튜디오 열기 버튼 */
       if(n.type==='collab'&&n._collabId&&n._collabAction==='accepted'){
