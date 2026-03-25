@@ -2,7 +2,7 @@ name: Claude Code Auto-Fix
 
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled]
 
 jobs:
   claude-fix:
@@ -108,12 +108,13 @@ jobs:
           except: pass
           PYEOF
 
-      - uses: anthropics/claude-code-action@beta
+      - uses: anthropics/claude-code-action@v1
         id: claude
+        timeout-minutes: 60
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
-          direct_prompt: |
+          prompt: |
             다음 수정 요청을 처리해주세요 (최고 권한 — 모든 파일 수정 가능):
 
             ${{ github.event.issue.body }}
@@ -126,13 +127,13 @@ jobs:
             - 수정이 완료되면 변경 내용을 한국어로 요약해주세요
 
             중요 — 반드시 아래 순서대로 실행하세요:
-            1. git add <수정한 파일들>
-            2. git commit -m "fix: <설명>"
-            3. git push origin ${{ format('claude/issue-{0}', github.event.issue.number) }}* (현재 브랜치를 반드시 push)
+            1. git checkout -b claude/issue-${{ github.event.issue.number }}
+            2. git add <수정한 파일들>
+            3. git commit -m "fix: [#${{ github.event.issue.number }}] <설명>"
+            4. git push origin claude/issue-${{ github.event.issue.number }}
 
             push를 하지 않으면 머지가 실패합니다. 반드시 push까지 완료하세요.
-          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash"
-          timeout_minutes: 60
+          claude_args: "--allowedTools Edit,Read,Glob,Grep,Write,Bash"
 
       - name: Merge to main
         if: always() && steps.claude.outcome != 'cancelled'
