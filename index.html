@@ -275,14 +275,6 @@ function _ensureKakaoSDK(){
 [data-theme="light"] .fp-sleep-opt{border-color:rgba(0,0,0,.12);color:#48484a;}
 [data-theme="light"] .fp-sleep-opt:hover{background:rgba(0,0,0,.06);}
 [data-theme="light"] .fp-sleep-opt.on{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.3);color:#7c3aed;}
-/* 오디오 장치 선택 팝업 */
-.adp-modal{background:var(--card);border-radius:16px;padding:20px;max-width:320px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,.3);}
-.adp-header{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px;text-align:center;}
-.adp-devices{max-height:200px;overflow-y:auto;margin-bottom:16px;}
-.audio-device-option{padding:12px 16px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s;color:var(--t2);font-size:14px;}
-.audio-device-option:hover{background:var(--hover);}
-.audio-device-option.selected{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:#a855f7;}
-.adp-close{width:100%;padding:12px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
 [data-theme="light"] .fp-extra-btn{color:#8e8e93;}
 [data-theme="light"] .fp-extra-btn:hover,[data-theme="light"] .fp-extra-btn.on{color:#7c3aed;}
 [data-theme="light"] .fp-lyrics-mode-btn{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:#48484a;}
@@ -5475,10 +5467,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span class="fp-extra-label">가사</span>
         </button>
-        <button class="fp-extra-btn" id="fp-output-toggle" onclick="fpToggleOutputDevice()" title="오디오 출력">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          <span class="fp-extra-label" id="fp-output-label">출력</span>
-        </button>
       </div>
       <!-- 이퀄라이저 패널 -->
       <div class="fp-eq-panel" id="fp-eq-panel">
@@ -6386,15 +6374,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <script>
 'use strict';
 var fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
-
-/* ── 플레이리스트 컨텍스트 추적 ── */
-var _currentPlaylistContext = {
-  type: 'history', // 'history', 'community', 'search'
-  data: [], // 현재 재생 중인 플레이리스트 데이터
-  currentIndex: -1, // 플레이리스트 내에서의 현재 인덱스
-  filter: null, // 커뮤니티 필터 ('all', 'kpop', 등) 또는 검색어
-  view: 'history-view' // 어떤 뷰에서 재생이 시작되었는지
-};
 /* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇(한국어)으로 전송 */
 const _errKo = (m) => {
   const map = [
@@ -6650,17 +6629,14 @@ let _sbTracks    = [];   /* Supabase에서 받아온 전체 커뮤니티 트랙 
 let _sbMyTracks  = [];   /* 현재 로그인 사용자의 트랙 */
 /* 실제 가입 사용자 이름 캐시 — 이 목록에 없는 owner의 트랙은 커뮤니티에 표시하지 않음 */
 let _realUserNames = null;
-let _realUsersLoadedAt = 0;
-const _REAL_USERS_CACHE_TTL = 86400000; /* 24시간 캐시 */
 async function _loadRealUsers(){
-  if(_realUserNames && (Date.now() - _realUsersLoadedAt) < _REAL_USERS_CACHE_TTL) return;
+  if(_realUserNames) return;
   try{
     var r=await fetch('/api/users',{headers:{'Authorization':'Bearer '+(typeof getAdminPw==='function'?getAdminPw():'')}});
     if(!r.ok) return;
     var d=await r.json();
     if(Array.isArray(d.users)){
       _realUserNames=new Set(d.users.map(function(u){return u.name;}));
-      _realUsersLoadedAt=Date.now();
     }
   }catch(e){}
 }
@@ -6675,7 +6651,7 @@ let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
 const _SB_CACHE_TTL = 300000; /* 5분 메모리 캐시 */
 
 /* ── 무한 스크롤 페이지네이션 상태 ── */
-const _SB_PAGE_SIZE = 50;
+const _SB_PAGE_SIZE = 20;
 let _sbOffset = 0;
 let _sbHasMore = true;
 let _sbLoadingMore = false;
@@ -6699,11 +6675,8 @@ async function _doLoadSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
-      // 실제 가입 사용자 필터링 (서버 서브쿼리 제거로 인해 클라이언트에서 처리)
       await _loadRealUsers();
-      _sbTracks = d.tracks
-        .filter(t => _isRealUser(t.owner_name || t.user_name || ''))
-        .map(_rowToTrack);
+      _sbTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
       _sbOffset = _sbTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbFingerprint = _calcFingerprint(_sbTracks);
@@ -6738,7 +6711,7 @@ async function _pollRefreshSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack);
+      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
       var newFp = _calcFingerprint(newTracks);
       if(newFp !== _sbFingerprint){
         _sbTracks = newTracks;
@@ -6764,9 +6737,7 @@ async function _loadSbTracksMore(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks
-        .filter(t => _isRealUser(t.owner_name || t.user_name || ''))
-        .map(_rowToTrack);
+      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
       _sbTracks = _sbTracks.concat(newTracks);
       _sbOffset += newTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
@@ -6854,26 +6825,6 @@ function _startCommPoll(){
 /* 브라우저 탭 전환 시 폴링 일시정지/재개 */
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden && _sbLoaded){
-    /* 탭 복귀 시 오디오 컨텍스트 재개 (Bluetooth 연결 대응) */
-    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().then(() => {
-        console.log('[Visibility Change] Audio context resumed');
-        /* 현재 재생 중인 오디오가 있으면 재시작 시도 */
-        if(fpAudio && fpAudio.paused && fpCurrentIdx >= 0) {
-          fpAudio.play().catch(e => console.warn('[Visibility Resume] Play failed:', e));
-        }
-      }).catch(e => console.warn('[Visibility Change] Context resume failed:', e));
-    }
-    
-    /* 블루투스 오디오 연결 상태 체크 및 복구 */
-    if(fpAudio && !fpAudio.paused) {
-      // 블루투스 연결이 끊어진 경우 재연결 시도
-      if(typeof fpAudio.setSinkId === 'function') {
-        fpAudio.setSinkId('').then(() => {
-          console.log('[Visibility Change] Audio sink restored');
-        }).catch(e => console.warn('[Visibility Change] Audio sink restore failed:', e));
-      }
-    }
     /* 탭 복귀 시 30초 넘었으면 즉시 갱신 */
     if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
       var cv=document.getElementById('community-view');
@@ -10723,10 +10674,7 @@ function togglePlay(btn){
     const _apTitle=btn.closest('.result-card')?.querySelector('.rc-title')?.textContent||url.slice(-20)||'트랙';
     showAudioSwitchPopup(_tpSrc,_apTitle,()=>{
       if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);if(old)old.textContent='▶';}
-      const a2=new Audio(url);a2._idx=idx;
-      /* 블루투스 오디오 출력 개선 */
-      try{if(typeof a2.setSinkId === 'function'){a2.setSinkId('').catch(function(){});}}catch(e){}
-      activeAudio=a2;
+      const a2=new Audio(url);a2._idx=idx;activeAudio=a2;
       a2.addEventListener('timeupdate',()=>{const pct=a2.duration?(a2.currentTime/a2.duration)*100:0;const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';const t=document.getElementById(`ap-time-${idx}`);if(t)t.textContent=`${formatTime(a2.currentTime)} / ${formatTime(a2.duration||0)}`;updateKaraokeSync(idx,a2.currentTime);});
       a2.addEventListener('ended',()=>{btn.textContent='▶';stopViz(idx);const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width='0%';});
       a2.addEventListener('error',()=>toast('오디오 재생 오류','err'));
@@ -10741,10 +10689,7 @@ function togglePlay(btn){
     const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);
     if(old)old.textContent='▶';
   }
-  const audio=new Audio(url);audio._idx=idx;
-  /* 블루투스 오디오 출력 개선 */
-  try{if(typeof audio.setSinkId === 'function'){audio.setSinkId('').catch(function(){});}}catch(e){}
-  activeAudio=audio;
+  const audio=new Audio(url);audio._idx=idx;activeAudio=audio;
   audio.addEventListener('timeupdate',()=>{
     const pct=audio.duration?(audio.currentTime/audio.duration)*100:0;
     const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';
@@ -11920,26 +11865,8 @@ function _destroyFpAudio(){
   /* EQ 소스 해제 — 새 오디오에서 다시 연결할 수 있도록 */
   if(_eqSource){try{_eqSource.disconnect();}catch(e){}_eqSource=null;}
   _eqConnected=false;
-  
-  /* 블루투스 연결 정리 - 오디오 소스 해제 전에 진행 */
-  try {
-    fpAudio.pause();
-    // 블루투스 장치 연결 정리
-    if(typeof fpAudio.setSinkId === 'function') {
-      fpAudio.setSinkId('').catch(function(){});
-    }
-    // 오디오 이벤트 리스너 정리 (메모리 누수 방지)
-    fpAudio.removeEventListener('timeupdate', arguments.callee);
-    fpAudio.removeEventListener('ended', arguments.callee);
-    fpAudio.removeEventListener('error', arguments.callee);
-    fpAudio.removeEventListener('play', arguments.callee);
-    fpAudio.removeEventListener('pause', arguments.callee);
-    fpAudio.src='about:blank';
-    fpAudio.load(); // 블루투스 메모리 정리
-  } catch(e) {
-    console.warn('[_destroyFpAudio] Cleanup error:', e);
-  }
-  
+  fpAudio.pause();
+  fpAudio.src='about:blank';
   fpAudio=null;
   clearInterval(fpVizTimer);
   mpStopViz(); fpStopViz();
@@ -11957,41 +11884,10 @@ function _isMyTrack(h){
   return true;
 }
 
-function showMiniPlayer(idx, contextOverride = null){
+function showMiniPlayer(idx){
   const h = historyData[idx];
   if(!h) return;
   fpCurrentIdx = idx;
-  
-  // 컨텍스트가 지정되지 않았으면 현재 뷰에 따라 설정
-  if (!contextOverride) {
-    const currentView = document.querySelector('.view.on')?.id || 'history-view';
-    if (currentView === 'history-view') {
-      const historyTracks = historyData.filter(h => h.audio_url);
-      const contextIndex = historyTracks.findIndex(track => track === h);
-      _setPlaylistContext(
-        'history',
-        historyTracks,
-        contextIndex >= 0 ? contextIndex : 0,
-        null,
-        'history-view'
-      );
-    } else if (currentView === 'community-view' && !_currentPlaylistContext.type) {
-      // 커뮤니티에서 호출되었지만 컨텍스트가 없는 경우만 설정
-      const communityTracks = _getFilteredCommunityTracks();
-      const sbId = h.id || h._sbId;
-      const contextIndex = communityTracks.findIndex(track => (track._sbId || track.id) === sbId);
-      const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
-      const searchQuery = document.querySelector('#comm-search-input')?.value?.trim() || '';
-      
-      _setPlaylistContext(
-        'community', 
-        communityTracks, 
-        contextIndex >= 0 ? contextIndex : 0,
-        { filter: activeFilter, search: searchQuery },
-        'community-view'
-      );
-    }
-  }
 
   /* 재생수 카운팅 — 커뮤니티 트랙인 경우 (세션당 1회) */
   if(h.id && h._fromSb) _countTrackPlay(h.id);
@@ -12029,45 +11925,8 @@ function showMiniPlayer(idx, contextOverride = null){
   /* ── 새 오디오 생성 ── */
   const genId = ++_fpAudioGenId;
   const audio = new Audio();
-  
-  /* 블루투스 및 외부 오디오 장치 지원 개선 */
-  try {
-    // 크로스오리진은 EQ/분석이 필요할 때만 설정
-    if (typeof _eqConnected !== 'undefined' || typeof _bpmConnected !== 'undefined') {
-      audio.crossOrigin = 'anonymous';
-    }
-    
-    // 오디오 컨텍스트 상태 확인 및 재개 (블루투스 끊김 방지)
-    if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().catch(e => console.warn('[Audio Context Resume]', e));
-    }
-    
-    // setSinkId 지원 확인 및 기본 출력 장치로 설정 (블루투스 안정성 향상)
-    if (typeof audio.setSinkId === 'function') {
-      audio.setSinkId('').catch(e => {
-        console.warn('[Audio setSinkId]', e);
-        // 블루투스 장치로의 라우팅 실패시 자동 재시도
-        if (e.name === 'NotAllowedError') {
-          toast('오디오 장치 변경 권한이 필요해요', '', 2000);
-          // 권한 실패 시 2초 후 재시도
-          setTimeout(() => {
-            if (typeof audio.setSinkId === 'function') {
-              audio.setSinkId('').catch(() => {});
-            }
-          }, 2000);
-        }
-      });
-    }
-    
-    // 블루투스 연결 안정성을 위한 추가 설정
-    audio.preservesPitch = false; // 블루투스 지연 보상
-    audio.volume = Math.min(1.0, audio.volume || 0.8); // 안전한 볼륨 설정
-  } catch (e) {
-    console.warn('[Audio Init]', e);
-  }
-  
+  audio.crossOrigin='anonymous';
   audio.preload='auto';
-  audio.src = _safeAudioUrl;
   fpAudio = audio;
 
   audio.addEventListener('timeupdate',()=>{
@@ -12101,32 +11960,14 @@ function showMiniPlayer(idx, contextOverride = null){
         toast('크리에이터 재생 완료','',2000);
       }
     } else {
-      /* 플레이리스트 컨텍스트 기반 다음 곡 자동 재생 */
-      const nextTrack = _getCurrentPlaylistTrack(1);
-      if (nextTrack) {
-        _updatePlaylistContextIndex(nextTrack.index);
-        
-        if (_currentPlaylistContext.type === 'community') {
-          // 커뮤니티에서 다음 곡 재생
-          const track = nextTrack.track;
-          const sbId = track._sbId || track.id;
-          if (sbId) {
-            setTimeout(() => commPlaySb(sbId), 600);
-            return;
-          }
-        }
-        
-        // 히스토리에서 다음 곡 재생
-        const track = nextTrack.track;
-        const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
-        if (hIdx >= 0) {
-          setTimeout(() => showMiniPlayer(hIdx, true), 600);
-          return;
-        }
+      /* 일반 히스토리에서 다음 곡 */
+      let next = fpCurrentIdx + 1;
+      while(next < historyData.length && !historyData[next]?.audio_url) next++;
+      if(next < historyData.length){
+        setTimeout(()=> showMiniPlayer(next), 600);
+      } else {
+        toast('마지막 곡이에요','',2000);
       }
-      
-      // 플레이리스트 끝에 도달
-      toast('마지막 곡이에요','',2000);
     }
   });
 
@@ -12153,18 +11994,6 @@ function showMiniPlayer(idx, contextOverride = null){
     const msg = msgs[code] || '재생 오류';
     const src = e.target?.src||'';
     console.warn('[Audio Error]', msg, 'code:'+code, src.slice(0,80));
-    
-    /* 오디오 컨텍스트 재개 시도 */
-    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().then(() => {
-        console.log('[Audio Error Recovery] Audio context resumed');
-        if(genId===_fpAudioGenId) {
-          audio.load();
-          audio.play().catch(()=>{});
-        }
-      }).catch(e => console.warn('[Audio Error Recovery] Context resume failed:', e));
-    }
-    
     /* CORS 실패(code 2/4) — crossOrigin 제거 후 재시도 */
     if(!audio._corsRetried && audio.crossOrigin && (code===2||code===4)){
       audio._corsRetried=true;
@@ -12176,41 +12005,10 @@ function showMiniPlayer(idx, contextOverride = null){
       toast('오디오 재연결 중...','',2000);
       return;
     }
-    
-    /* 네트워크 오류 재시도 강화 (블루투스 끊김 개선) */
-    if(!audio._retried && (code===2||code===1)){
+    if(!audio._retried && code===2){
       audio._retried=true;
-      setTimeout(()=>{
-        if(genId===_fpAudioGenId){
-          /* 블루투스 장치 재설정 및 오디오 컨텍스트 재개 */
-          if(typeof audio.setSinkId === 'function') {
-            audio.setSinkId('').catch(()=>{});
-          }
-          
-          // AudioContext 상태 재확인 및 재개
-          if (typeof _eqCtx !== 'undefined' && _eqCtx) {
-            if (_eqCtx.state === 'suspended') {
-              _eqCtx.resume().catch(e => console.warn('[Retry Audio Context Resume]', e));
-            }
-          }
-          
-          audio.load();
-          audio.play().catch(()=>{});
-        }
-      },1000); // 재시도 대기 시간 단축 (1.5초 → 1초)
-      toast('블루투스 오디오 재연결 중...','',2000);
-    } else if(!audio._retried2 && code===2) {
-      // 2차 재시도 추가 (블루투스 연결 불안정 시)
-      audio._retried2=true;
-      setTimeout(()=>{
-        if(genId===_fpAudioGenId){
-          console.log('[Audio] 2차 재시도 시작');
-          audio.src = _safeAudioUrl;
-          audio.load();
-          audio.play().catch(()=>{});
-        }
-      }, 3000);
-      toast('재연결 재시도 중...','',2000);
+      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
+      toast('오디오 재연결 중...','',2000);
     } else if(code===4){
       toast('오디오를 재생할 수 없어요','err',3000);
     } else {
@@ -12221,43 +12019,52 @@ function showMiniPlayer(idx, contextOverride = null){
   /* BPM 뱃지 초기화 */
   var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
-  /* 오디오 컨텍스트 상태 확인 및 재개 (재생 시작 전) */
-  if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-    _eqCtx.resume().then(() => {
-      console.log('[Audio Play] Audio context resumed before play');
-    }).catch(e => console.warn('[Audio Play] Context resume failed:', e));
-  }
-  
-  audio.play().then(()=>{
+  /* canplay 대기 후 재생 (즉시 play() 호출 시 간헐적 실패 방지) */
+  audio.addEventListener('canplay', function _onCanPlay(){
+    audio.removeEventListener('canplay', _onCanPlay);
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
-    _syncAllPlayBtns(true);
-    /* 블루투스 모니터링 시작 */
-    _startBluetoothMonitor();
-    /* BPM 분석기 — play() 성공 후 연결 (AudioContext suspended 방지) */
-    try{
-      if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
-      setTimeout(function(){if(typeof _initSpectrum==='function')_initSpectrum();},300);
-    }catch(e){console.warn('[BPM/Spectrum]',e.message);}
-  }).catch(err=>{
-    if(err.name !== 'AbortError'){
-      console.warn('[play() failed]', err.message);
-      /* CORS 실패 시 crossOrigin 제거 후 재시도 */
-      if(!audio._corsRetried){
-        audio._corsRetried=true;
-        console.warn('[play] CORS fallback — crossOrigin 제거 후 재시도');
-        audio.removeAttribute('crossorigin');
-        audio.crossOrigin=null;
-        audio.src=_safeAudioUrl;
-        audio.load();
-        audio.play().then(()=>{
-          if(genId!==_fpAudioGenId) return;
-          _syncAllPlayBtns(true);
-        }).catch(e2=>{toast('재생 실패: '+e2.message,'err',3000);});
-      } else {
-        toast('재생 실패: '+err.message,'err',3000);
+    audio.play().then(()=>{
+      if(genId!==_fpAudioGenId) return;
+      _syncAllPlayBtns(true);
+      /* BPM 분석기 — play() 성공 후 연결 (AudioContext suspended 방지) */
+      try{
+        if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
+        setTimeout(function(){if(typeof _initSpectrum==='function')_initSpectrum();},300);
+      }catch(e){console.warn('[BPM/Spectrum]',e.message);}
+    }).catch(err=>{
+      if(err.name !== 'AbortError'){
+        console.warn('[play() failed]', err.message);
+        /* CORS 실패 시 crossOrigin 제거 후 재시도 */
+        if(!audio._corsRetried){
+          audio._corsRetried=true;
+          console.warn('[play] CORS fallback — crossOrigin 제거 후 재시도');
+          audio.removeAttribute('crossorigin');
+          audio.crossOrigin=null;
+          audio.src=_safeAudioUrl;
+          audio.load();
+          audio.play().then(()=>{
+            if(genId!==_fpAudioGenId) return;
+            _syncAllPlayBtns(true);
+          }).catch(e2=>{toast('재생 실패: '+e2.message,'err',3000);});
+        } else {
+          toast('재생 실패: '+err.message,'err',3000);
+        }
       }
-    }
+    });
   });
+  /* canplay 10초 타임아웃 — 로딩 실패 시 사용자 알림 */
+  var _canplayTimer = setTimeout(function(){
+    if(genId!==_fpAudioGenId) return;
+    if(audio.readyState < 3){
+      console.warn('[showMiniPlayer] canplay timeout, readyState:', audio.readyState);
+      toast('오디오 로딩이 느려요. 잠시 기다려주세요...','',3000);
+    }
+  }, 10000);
+  audio.addEventListener('canplay', function(){ clearTimeout(_canplayTimer); }, {once:true});
+
+  /* src 설정 + load() 명시 호출로 안정적 로딩 시작 */
+  audio.src = _safeAudioUrl;
+  audio.load();
 }
 
 function hideMiniPlayer(){
@@ -12541,39 +12348,17 @@ $('mp-next-btn').addEventListener('click', e=>{
       return;
     } else { _mfPlayQueue=[];_mfPlayQueueIdx=-1; }
   }
-  
-  /* 플레이리스트 컨텍스트 기반 다음 곡 */
-  const nextTrack = _getCurrentPlaylistTrack(1);
-  if (nextTrack) {
-    _updatePlaylistContextIndex(nextTrack.index);
-    
-    if (_currentPlaylistContext.type === 'community') {
-      // 커뮤니티에서 다음 곡 재생
-      const track = nextTrack.track;
-      const sbId = track._sbId || track.id;
-      if (sbId) {
-        setTimeout(() => {
-          commPlaySb(sbId);
-          if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-        }, 50);
-        return;
-      }
-    }
-    
-    // 히스토리에서 다음 곡 재생
-    const track = nextTrack.track;
-    const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
-    if (hIdx >= 0) {
-      setTimeout(()=>{
-        showMiniPlayer(hIdx, true); // contextOverride = true로 컨텍스트 재설정 방지
-        if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-      }, 50);
-      return;
-    }
+  /* audio_url 없는 곡 건너뛰기 */
+  let next = fpCurrentIdx + 1;
+  while(next < historyData.length && !historyData[next]?.audio_url) next++;
+  if(next < historyData.length){
+    setTimeout(()=>{
+      showMiniPlayer(next);
+      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    }, 50);
+  } else {
+    toast('마지막 곡이에요','',1500);
   }
-  
-  // 플레이리스트 끝에 도달
-  toast('마지막 곡이에요','',1500);
 });
 
 /* 닫기 */
@@ -12592,39 +12377,15 @@ $('mp-prev-btn').addEventListener('click', e=>{
     if($('fullplayer').classList.contains('on')) expandToFullPlayer();
     return;
   }
-  
-  /* 플레이리스트 컨텍스트 기반 이전 곡 */
-  const prevTrack = _getCurrentPlaylistTrack(-1);
-  if (prevTrack) {
-    _updatePlaylistContextIndex(prevTrack.index);
-    
-    if (_currentPlaylistContext.type === 'community') {
-      // 커뮤니티에서 이전 곡 재생
-      const track = prevTrack.track;
-      const sbId = track._sbId || track.id;
-      if (sbId) {
-        setTimeout(() => {
-          commPlaySb(sbId);
-          if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-        }, 50);
-        return;
-      }
-    }
-    
-    // 히스토리에서 이전 곡 재생
-    const track = prevTrack.track;
-    const hIdx = historyData.findIndex(h => h === track || h.id === track.id);
-    if (hIdx >= 0) {
-      setTimeout(()=>{
-        showMiniPlayer(hIdx, true); // contextOverride = true로 컨텍스트 재설정 방지
-        if($('fullplayer').classList.contains('on')) expandToFullPlayer();
-      }, 50);
-      return;
-    }
-  }
-  
-  // 플레이리스트 시작에 도달
-  toast('첫 번째 곡이에요','',1500);
+  /* audio_url 없는 곡 건너뛰기 */
+  let prev = fpCurrentIdx - 1;
+  while(prev >= 0 && !historyData[prev]?.audio_url) prev--;
+  if(prev>=0){
+    setTimeout(()=>{
+      showMiniPlayer(prev);
+      if($('fullplayer').classList.contains('on')) expandToFullPlayer();
+    }, 50);
+  } else { toast('첫 번째 곡이에요','',1500); }
 });
 
 /* 좋아요 토글 */
@@ -13154,27 +12915,7 @@ function _doOpenFullPlayer(idx){
   const genId = ++_fpAudioGenId;
   const audio=new Audio();
   audio.preload='auto';
-  
-  /* 블루투스 오디오 출력 개선 */
-  try {
-    // crossOrigin은 Web Audio API 연결 시에만 필요
-    if (typeof _eqConnected !== 'undefined' && _eqConnected) {
-      audio.crossOrigin='anonymous';
-    }
-    
-    // 오디오 컨텍스트 재개 (모바일 정책 준수)
-    if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().catch(e => console.warn('[FP Audio Context]', e));
-    }
-    
-    // 기본 오디오 출력 장치로 라우팅
-    if (typeof audio.setSinkId === 'function') {
-      audio.setSinkId('').catch(e => console.warn('[FP setSinkId]', e));
-    }
-  } catch (e) {
-    console.warn('[FP Audio Init]', e);
-  }
-  
+  audio.crossOrigin='anonymous';
   fpAudio=audio;
 
   /* debug removed */
@@ -13218,38 +12959,15 @@ function _doOpenFullPlayer(idx){
     const code=ev.target?.error?.code;
     const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg=msgs[code]||'재생 오류';
-    
-    /* 오디오 컨텍스트 재개 시도 */
-    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().then(() => {
-        console.log('[FP Audio Error Recovery] Audio context resumed');
-        if(genId===_fpAudioGenId) {
-          audio.load();
-          audio.play().catch(()=>{});
-        }
-      }).catch(e => console.warn('[FP Audio Error Recovery] Context resume failed:', e));
-    }
-    
     if(code===4){
       console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
       toast('오디오를 재생할 수 없어요','err',3000);
       return;
     }
     console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
-    
-    /* 네트워크 오류 재시도 강화 */
-    if(!audio._fpRetried&&(code===2||code===1)){
+    if(!audio._fpRetried&&code===2){
       audio._fpRetried=true;
-      setTimeout(()=>{
-        if(genId===_fpAudioGenId){
-          /* 블루투스 장치 재설정 */
-          if(typeof audio.setSinkId === 'function') {
-            audio.setSinkId('').catch(()=>{});
-          }
-          audio.load();
-          audio.play().catch(()=>{});
-        }
-      },1500);
+      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
       toast('오디오 재연결 중...','',2000);
     } else {
       toast(msg,'err',4000);
@@ -13260,13 +12978,6 @@ function _doOpenFullPlayer(idx){
     audio.removeEventListener('canplay',_onCanPlay);
     if(genId!==_fpAudioGenId)return;
     if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
-    /* 오디오 컨텍스트 상태 확인 및 재개 (재생 시작 전) */
-    if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().then(() => {
-        console.log('[FP Audio Play] Audio context resumed before play');
-      }).catch(e => console.warn('[FP Audio Play] Context resume failed:', e));
-    }
-    
     audio.play().then(()=>{
       if(genId!==_fpAudioGenId)return;
       /* debug removed */
@@ -13362,104 +13073,11 @@ function fpPlayPrev(){
 /* ═══ 1. 가사 패널 토글 ═══ */
 function fpToggleLyricsPanel(){var sec=$('fp-lyrics-section');if(!sec)return;var isOn=sec.style.display!=='none';sec.style.display=isOn?'none':'block';var btn=$('fp-lyrics-toggle2');if(btn)btn.classList.toggle('on',!isOn);}
 
-/* ═══ 1.5. 오디오 출력 장치 선택 (블루투스 지원) ═══ */
-var _audioOutputDevices = [];
-var _currentOutputDevice = 'default';
-
-function fpToggleOutputDevice() {
-  /* 출력 장치 선택 기능 지원 확인 */
-  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-    toast('이 브라우저는 오디오 장치 선택을 지원하지 않아요', 'warn', 3000);
-    return;
-  }
-  
-  /* 오디오 출력 장치 목록 가져오기 */
-  navigator.mediaDevices.enumerateDevices()
-    .then(function(devices) {
-      _audioOutputDevices = devices.filter(function(device) {
-        return device.kind === 'audiooutput';
-      });
-      
-      if (_audioOutputDevices.length <= 1) {
-        toast('사용 가능한 오디오 출력 장치가 없어요', '', 2000);
-        return;
-      }
-      
-      /* 장치 선택 옵션 보여주기 */
-      var optionsHtml = '';
-      _audioOutputDevices.forEach(function(device, idx) {
-        var deviceName = device.label || ('Audio Device ' + (idx + 1));
-        var deviceId = device.deviceId;
-        var isSelected = deviceId === _currentOutputDevice || (!deviceId && _currentOutputDevice === 'default');
-        optionsHtml += '<div class="audio-device-option' + (isSelected ? ' selected' : '') + '" data-device="' + deviceId + '">' + deviceName + '</div>';
-      });
-      
-      /* 팝업맀 커스터 화면 */
-      var popup = document.createElement('div');
-      popup.id = 'audio-device-popup';
-      popup.innerHTML = '<div class="adp-modal"><div class="adp-header">오디오 출력 장치</div><div class="adp-devices">' + optionsHtml + '</div><button class="adp-close" onclick="document.getElementById(\'audio-device-popup\').remove()">닫기</button></div>';
-      popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-      document.body.appendChild(popup);
-      
-      /* 장치 선택 이벤트 */
-      popup.querySelectorAll('.audio-device-option').forEach(function(option) {
-        option.addEventListener('click', function() {
-          var deviceId = this.dataset.device;
-          fpSetOutputDevice(deviceId);
-          popup.remove();
-        });
-      });
-      
-    })
-    .catch(function(err) {
-      console.warn('[Audio Devices]', err);
-      toast('오디오 장치 목록을 가져올 수 없어요', 'err', 3000);
-    });
-}
-
-function fpSetOutputDevice(deviceId) {
-  if (!fpAudio || typeof fpAudio.setSinkId !== 'function') {
-    toast('이 브라우저는 오디오 출력 선택을 지원하지 않아요', 'warn', 3000);
-    return;
-  }
-  
-  var targetDeviceId = deviceId || '';
-  
-  fpAudio.setSinkId(targetDeviceId)
-    .then(function() {
-      _currentOutputDevice = targetDeviceId;
-      var deviceName = 'Default';
-      
-      if (targetDeviceId && _audioOutputDevices.length) {
-        var device = _audioOutputDevices.find(function(d) { return d.deviceId === targetDeviceId; });
-        if (device) {
-          deviceName = device.label || 'Audio Device';
-        }
-      }
-      
-      var label = $('fp-output-label');
-      if (label) label.textContent = deviceName.length > 6 ? deviceName.substring(0, 6) : deviceName;
-      
-      toast('오디오 출력: ' + deviceName, '', 2000);
-      console.log('[Audio Output] Switched to:', deviceName);
-    })
-    .catch(function(err) {
-      console.warn('[Audio Output]', err);
-      if (err.name === 'NotAllowedError') {
-        toast('오디오 장치 접근 권한이 거부되었어요', 'err', 3000);
-      } else if (err.name === 'NotFoundError') {
-        toast('오디오 장치를 찾을 수 없어요', 'err', 3000);
-      } else {
-        toast('오디오 출력 변경 실패', 'err', 3000);
-      }
-    });
-}
-
 /* ═══ 2. 이퀄라이저 (Web Audio API 5밴드) ═══ */
 var _eqCtx=null,_eqSource=null,_eqFilters=[],_eqConnected=false;
 var _eqPresets={flat:[0,0,0,0,0],bass:[6,4,0,0,0],vocal:[-2,0,4,3,0],treble:[0,0,0,3,6],rock:[4,2,-1,3,4],night:[3,2,0,-2,-4]};
 var _eqFreqs=[60,230,910,4000,14000];
-function _initEQ(){if(_eqConnected||!fpAudio)return;try{if(!_eqCtx)_eqCtx=new(window.AudioContext||window.webkitAudioContext)();/* 오디오 컨텍스트 재개 (블루투스 장치 연결 대응) */if(_eqCtx.state==='suspended'){_eqCtx.resume().then(function(){console.log('[EQ] Audio context resumed');}).catch(function(e){console.warn('[EQ] Resume failed:',e);});}/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{/* crossOrigin 설정 후 MediaElementSource 생성 */if(!fpAudio.crossOrigin){fpAudio.crossOrigin='anonymous';}/* CORS 오류 방지를 위한 재연결 시도 */try{_eqSource=_eqCtx.createMediaElementSource(fpAudio);}catch(corsErr){console.warn('[EQ] CORS error, retrying without crossOrigin:',corsErr);fpAudio.crossOrigin=null;fpAudio.load();_eqSource=_eqCtx.createMediaElementSource(fpAudio);}fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BMP 컨텍스트도 공유 */if(!_bmpCtx)_bmpCtx=_eqCtx;console.log('[EQ] Initialized successfully');}catch(e){console.warn('[EQ] Init failed:',e.message);/* EQ 실패시 기본 오디오 재생은 유지 */}}
+function _initEQ(){if(_eqConnected||!fpAudio)return;try{if(!_eqCtx)_eqCtx=new(window.AudioContext||window.webkitAudioContext)();if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
 function fpToggleEQ(){var p=$('fp-eq-panel');if(!p)return;p.classList.toggle('on');var b=$('fp-eq-toggle');if(b)b.classList.toggle('on',p.classList.contains('on'));if(p.classList.contains('on')&&!_eqConnected)_initEQ();}
 function fpSetEqPreset(name){var vals=_eqPresets[name]||_eqPresets.flat;if(!_eqConnected)_initEQ();document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.toggle('on',b.dataset.eq===name);});var pn=$('fp-eq-preset-name');if(pn)pn.textContent=document.querySelector('.fp-eq-preset[data-eq="'+name+'"]')?.textContent||name;vals.forEach(function(v,i){if(_eqFilters[i])_eqFilters[i].gain.value=v;var s=document.querySelector('[data-eq-band="'+i+'"]');if(s)s.value=v;var ve=$('eq-val-'+i);if(ve)ve.textContent=(v>0?'+':'')+v;});}
 function fpEqBandChange(band,val){val=parseFloat(val);if(_eqFilters[band])_eqFilters[band].gain.value=val;var ve=$('eq-val-'+band);if(ve)ve.textContent=(val>0?'+':'')+Math.round(val);document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.remove('on');});var pn=$('fp-eq-preset-name');if(pn)pn.textContent='커스텀';}
@@ -13471,60 +13089,10 @@ function fpSetSleep(min){fpCancelSleep();if(min===0){_sleepMode='endoftrack';doc
 function fpCancelSleep(){clearInterval(_sleepTick);_sleepTick=null;_sleepEnd=0;_sleepMode='time';document.querySelectorAll('.fp-sleep-opt').forEach(function(b){b.classList.remove('on');});$('fp-sleep-active')?.classList.remove('on');var l=$('fp-sleep-label');if(l)l.textContent='타이머';$('fp-sleep-toggle')?.classList.remove('on');}
 function _checkSleepOnEnd(){if(_sleepMode==='endoftrack'){fpCancelSleep();if(fpAudio){fpAudio.pause();_syncAllPlayBtns(false);}toast('슬립 타이머 — 음악이 정지되었어요','',3000);return true;}return false;}
 
-/* ═══ 블루투스 연결 모니터링 및 복구 ═══ */
-var _bluetoothMonitorInterval=null;
-function _startBluetoothMonitor() {
-  if(_bluetoothMonitorInterval) return;
-  
-  _bluetoothMonitorInterval = setInterval(function(){
-    if(!fpAudio || fpAudio.paused) return;
-    
-    // 오디오가 재생 중인데 currentTime이 진행되지 않으면 연결 문제로 판단
-    if(fpAudio._lastCurrentTime !== undefined) {
-      var timeDiff = fpAudio.currentTime - fpAudio._lastCurrentTime;
-      
-      // 2초간 currentTime 변화가 없으면 블루투스 연결 문제로 간주
-      if(timeDiff < 0.1 && !fpAudio.paused) {
-        console.warn('[Bluetooth Monitor] Audio playback stuck, attempting recovery');
-        
-        // 블루투스 재연결 시도
-        if(typeof fpAudio.setSinkId === 'function') {
-          fpAudio.setSinkId('').then(function(){
-            console.log('[Bluetooth Monitor] Audio sink reset successful');
-          }).catch(function(e){
-            console.warn('[Bluetooth Monitor] Audio sink reset failed:', e);
-            // setSinkId 실패시 오디오 재시작 시도
-            var currentTime = fpAudio.currentTime;
-            fpAudio.load();
-            fpAudio.currentTime = currentTime;
-            fpAudio.play().catch(function(){});
-          });
-        }
-        
-        // 오디오 컨텍스트 재개
-        if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-          _eqCtx.resume().catch(function(e){
-            console.warn('[Bluetooth Monitor] Audio context resume failed:', e);
-          });
-        }
-      }
-    }
-    
-    fpAudio._lastCurrentTime = fpAudio.currentTime;
-  }, 2000); // 2초마다 체크
-}
-
-function _stopBluetoothMonitor() {
-  if(_bluetoothMonitorInterval) {
-    clearInterval(_bluetoothMonitorInterval);
-    _bluetoothMonitorInterval = null;
-  }
-}
-
 /* ═══ 4. 크로스페이드 ═══ */
 var _fpXfadeEnabled=false,_fpXfadeDur=3;
 function fpToggleCrossfade(){_fpXfadeEnabled=!_fpXfadeEnabled;var b=$('fp-crossfade-toggle');if(b)b.classList.toggle('on',_fpXfadeEnabled);var l=$('fp-xfade-label');if(l)l.textContent=_fpXfadeEnabled?'ON':'크로스';toast(_fpXfadeEnabled?'크로스페이드 ON ('+_fpXfadeDur+'초)':'크로스페이드 OFF','',1500);}
-function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();/* 블루투스 오디오 개선: crossOrigin은 필요시에만 */if(typeof _eqConnected !== 'undefined' && _eqConnected){nA.crossOrigin='anonymous';}/* 블루투스 안정성을 위한 추가 설정 */try{nA.preservesPitch=false;nA.volume=0;}catch(e){}/* 오디오 컨텍스트 상태 확인 및 재개 */if(typeof _eqCtx!=='undefined'&&_eqCtx&&_eqCtx.state==='suspended'){_eqCtx.resume().catch(function(e){console.warn('[Crossfade Audio Context Resume]',e);});}/* 기본 오디오 장치로 라우팅 (블루투스 끊김 방지) */if(typeof nA.setSinkId === 'function'){nA.setSinkId('').catch(function(e){console.warn('[Crossfade setSinkId]',e);if(e.name==='NotAllowedError'){setTimeout(function(){if(typeof nA.setSinkId==='function'){nA.setSinkId('').catch(function(){});}},1000);}});}nA.preload='auto';nA.src=h.audio_url;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId)return;if(!fpAudio||!fpAudio.duration)return;var p=(fpAudio.currentTime/fpAudio.duration)*100;var pf=$('fp-prog-fill');if(pf)pf.style.width=p+'%';var pt=$('fp-prog-thumb');if(pt)pt.style.left=p+'%';var fc=$('fp-cur');if(fc)fc.textContent=formatTime(fpAudio.currentTime);var fd=$('fp-dur');if(fd)fd.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function')fpSyncLyrics();var mpf=$('mp-prog-fill');if(mpf)mpf.style.width=p+'%';});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
+function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.crossOrigin='anonymous';nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId)return;if(!fpAudio||!fpAudio.duration)return;var p=(fpAudio.currentTime/fpAudio.duration)*100;var pf=$('fp-prog-fill');if(pf)pf.style.width=p+'%';var pt=$('fp-prog-thumb');if(pt)pt.style.left=p+'%';var fc=$('fp-cur');if(fc)fc.textContent=formatTime(fpAudio.currentTime);var fd=$('fp-dur');if(fd)fd.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function')fpSyncLyrics();var mpf=$('mp-prog-fill');if(mpf)mpf.style.width=p+'%';});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
 function _updateFpUI(idx){var h=historyData[idx];if(!h)return;var t=$('fp-title');if(t)t.textContent=h.title||'무제';var tg=$('fp-tags');if(tg)tg.textContent=h.tags?.split(',')[0]?.trim()||'';var cv=$('fp-cover');if(cv)cv.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;">🎵</div>';var bg=$('fp-bg');if(bg&&h.image_url)bg.style.backgroundImage='url('+h.image_url+')';var mt=$('mp-title');if(mt)mt.textContent=h.title||'무제';var ms=$('mp-sub');if(ms)ms.textContent=h.tags?.split(',')[0]?.trim()||'';var mth=$('mp-thumb');if(mth)mth.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'🎵';if(typeof fpRenderLyrics==='function')fpRenderLyrics();if(typeof fpUpdateLikeUI==='function')fpUpdateLikeUI();}
 
 /* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
@@ -15821,11 +15389,6 @@ function _syncCommListPlaying(h){
   }
 }
 function stopAllAudio(){
-  /* 블루투스 연결 안정성을 위해 오디오 정지 전 컨텍스트 상태 확인 */
-  if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-    _eqCtx.resume().catch(function(e){console.warn('[stopAllAudio] Context resume failed:', e);});
-  }
-  
   if(fpAudio){fpAudio.pause();}
   if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);const ob=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);if(ob)ob.textContent='▶';}
   if(commHeroAudio){commHeroAudio.pause();const pb=$('comm-hero-play-btn');if(pb){pb.textContent='▶';pb.classList.remove('playing');}commHeroPlaying=false;}
@@ -17345,6 +16908,8 @@ async function _preloadFollowStates(){
     var r=await fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider));
     var d=await r.json();
     if(d.ok&&d.followingSet){
+      /* 기존 캐시의 true 값을 모두 false로 초기화 후 새 데이터 적용 */
+      Object.keys(_followStateCache).forEach(function(k){_followStateCache[k]=false;});
       Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
       _followBatchLoaded=true;
       _followBatchLoadedAt=Date.now();
@@ -17371,10 +16936,8 @@ function _loadCommFollowStates(container){
   fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
     .then(function(r){return r.json();}).then(function(d){
       if(d.ok&&d.followingSet){
-        allBtns.forEach(function(btn){
-          var k=btn.dataset.cname+'__'+btn.dataset.cprov;
-          _followStateCache[k]=!!d.followingSet[k];
-        });
+        /* 기존 캐시의 true 값을 모두 false로 초기화 후 새 데이터 적용 */
+        Object.keys(_followStateCache).forEach(function(k){_followStateCache[k]=false;});
         Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
         _followBatchLoaded=true;
         _followBatchLoadedAt=Date.now();
@@ -17795,19 +17358,6 @@ function setupHeroAudio(hero){
   }
   const audio=new Audio();
   audio.crossOrigin='anonymous';
-  
-  /* 블루투스 오디오 개선 */
-  try {
-    audio.preservesPitch = false; // 블루투스 지연 보상
-    if (typeof audio.setSinkId === 'function') {
-      audio.setSinkId('').catch(function(e){
-        console.warn('[Hero Audio setSinkId]', e);
-      });
-    }
-  } catch(e) {
-    console.warn('[Hero Audio Init]', e);
-  }
-  
   audio.preload='auto';
   audio.src=hero.audioUrl;
   commHeroAudio=audio;
@@ -17901,89 +17451,6 @@ function commPlayByHIdx(hIdx){
 }
 
 /* Supabase sbId로 커뮤니티 트랙 재생 */
-/* ── 플레이리스트 컨텍스트 관리 함수들 ── */
-function _setPlaylistContext(type, data, currentIndex, filter = null, view = null) {
-  _currentPlaylistContext = {
-    type: type, // 'history', 'community', 'search'
-    data: data || [], // 전체 플레이리스트 데이터
-    currentIndex: currentIndex, // 현재 재생 중인 곡의 인덱스
-    filter: filter, // 현재 필터 (커뮤니티/검색어 등)
-    view: view || document.querySelector('.view.on')?.id || 'history-view'
-  };
-}
-
-function _getCurrentPlaylistTrack(direction = 0) {
-  if (!_currentPlaylistContext.data.length) return null;
-  
-  const newIndex = _currentPlaylistContext.currentIndex + direction;
-  if (newIndex < 0 || newIndex >= _currentPlaylistContext.data.length) {
-    return null;
-  }
-  
-  return {
-    track: _currentPlaylistContext.data[newIndex],
-    index: newIndex
-  };
-}
-
-function _updatePlaylistContextIndex(newIndex) {
-  _currentPlaylistContext.currentIndex = newIndex;
-}
-
-function _getCurrentContextPlaylist() {
-  // 현재 탭/필터에 따른 플레이리스트 반환
-  const currentView = document.querySelector('.view.on')?.id;
-  
-  if (currentView === 'community-view') {
-    // 커뮤니티 뷰: 현재 필터링된 트랙 목록
-    return _getFilteredCommunityTracks();
-  } else if (currentView === 'history-view') {
-    // 히스토리 뷰: historyData 기반
-    return historyData.filter(h => h.audio_url);
-  }
-  
-  // 기본적으로 historyData 반환
-  return historyData.filter(h => h.audio_url);
-}
-
-function _getFilteredCommunityTracks() {
-  // 커뮤니티 현재 필터 상태에 따른 트랙 목록 반환
-  let tracks = _sbTracks || [];
-  
-  // 현재 필터 확인
-  const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
-  
-  if (activeFilter !== 'all') {
-    if (activeFilter === 'following') {
-      // 팔로잉 필터 로직 (기존 코드에서 참조)
-      tracks = tracks.filter(t => {
-        const ownerKey = (t._owner?.name || '') + '|' + (t._owner?.provider || '');
-        return _followingSet.has(ownerKey);
-      });
-    } else {
-      // 장르 필터
-      tracks = tracks.filter(t => {
-        const tags = (t.allTags || '').toLowerCase();
-        return tags.includes(activeFilter.toLowerCase());
-      });
-    }
-  }
-  
-  // 검색어 필터링
-  const searchInput = document.querySelector('#comm-search-input');
-  if (searchInput && searchInput.value.trim()) {
-    const query = searchInput.value.trim().toLowerCase();
-    tracks = tracks.filter(t => {
-      const title = (t.title || '').toLowerCase();
-      const tags = (t.allTags || '').toLowerCase();
-      const owner = (t._owner?.name || '').toLowerCase();
-      return title.includes(query) || tags.includes(query) || owner.includes(query);
-    });
-  }
-  
-  return tracks.filter(t => t.audioUrl); // 오디오가 있는 것만
-}
-
 function commPlaySb(sbId){
   if(!sbId){toast('트랙 ID 없음','err');return;}
   const t=_sbTracks.find(x=>x._sbId===sbId);
@@ -18022,21 +17489,6 @@ function commPlaySb(sbId){
   const activeEl=document.querySelector(`.comm-list-item[data-sbid="${sbId}"]`);
   if(activeEl) activeEl.classList.add('playing');
   stopAllAudio();
-  
-  /* 플레이리스트 컨텍스트 설정 (커뮤니티에서 재생 시작) */
-  const communityTracks = _getFilteredCommunityTracks();
-  const contextIndex = communityTracks.findIndex(track => (track._sbId || track.id) === sbId);
-  const activeFilter = document.querySelector('.comm-ftag.on')?.dataset?.cf || 'all';
-  const searchQuery = document.querySelector('#comm-search-input')?.value?.trim() || '';
-  
-  _setPlaylistContext(
-    'community', 
-    communityTracks, 
-    contextIndex >= 0 ? contextIndex : 0,
-    { filter: activeFilter, search: searchQuery },
-    'community-view'
-  );
-  
   /* 재생수 카운팅 (세션당 1회) */
   _countTrackPlay(sbId);
   showMiniPlayer(hIdx);
@@ -18418,10 +17870,7 @@ function commPlay(i){
   if(_cSrc2){
     showAudioSwitchPopup(_cSrc2,t.title||'커뮤니티 곡',()=>{
       if(commPlayingIdx>=0){const old2=document.getElementById(`comm-play-${commPlayingIdx}`);if(old2)old2.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
-      const a2=new Audio(t.audioUrl);
-      /* 블루투스 오디오 출력 개선 */
-      try{if(typeof a2.setSinkId === 'function'){a2.setSinkId('').catch(function(){});}}catch(e){}
-      commAudio=a2;commPlayingIdx=i;
+      const a2=new Audio(t.audioUrl);commAudio=a2;commPlayingIdx=i;
       a2.addEventListener('timeupdate',()=>{if(!a2.duration)return;commSyncLyrics(i,a2.currentTime,a2.duration);const h2=historyData[t._hIdx];if(h2&&!a2._counted&&a2.currentTime>5){a2._counted=true;h2._commPlays=(h2._commPlays||0)+1;saveHistory();}});
       a2.addEventListener('ended',()=>{const pb2=document.getElementById(`comm-play-${i}`);if(pb2)pb2.textContent='▶';commPlayingIdx=-1;document.getElementById(`comm-item-${i}`)?.classList.remove('playing');});
       a2.play();document.getElementById(`comm-play-${i}`).textContent='⏸';document.getElementById(`comm-item-${i}`)?.classList.add('playing');
@@ -18431,30 +17880,7 @@ function commPlay(i){
   if(commPlayingIdx>=0){const old=document.getElementById(`comm-play-${commPlayingIdx}`);if(old)old.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
   /* 모든 오디오 정지 후 새 재생 */
   stopAllAudio();
-  const audio=new Audio(t.audioUrl);
-  /* 블루투스 오디오 출력 개선 */
-  try{
-    audio.preservesPitch = false; // 블루투스 지연 보상
-    if(typeof audio.setSinkId === 'function'){
-      audio.setSinkId('').catch(function(e){
-        console.warn('[Comm Audio setSinkId]', e);
-        if(e.name === 'NotAllowedError') {
-          setTimeout(function(){
-            if(typeof audio.setSinkId === 'function'){
-              audio.setSinkId('').catch(function(){});
-            }
-          }, 1000);
-        }
-      });
-    }
-    // 오디오 컨텍스트 재개
-    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
-      _eqCtx.resume().catch(function(e){console.warn('[Comm Audio Context Resume]', e);});
-    }
-  }catch(e){
-    console.warn('[Comm Audio Init]', e);
-  }
-  commAudio=audio;commPlayingIdx=i;
+  const audio=new Audio(t.audioUrl);commAudio=audio;commPlayingIdx=i;
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
     commSyncLyrics(i,audio.currentTime,audio.duration);
