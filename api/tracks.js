@@ -430,17 +430,58 @@ async function _handler(req, res) {
     }
   }
 
-  /* ─── DELETE: 관리자 삭제 ─── */
+  /* ─── DELETE: 삭제 (관리자 또는 본인 트랙) ─── */
   if (req.method === "DELETE") {
-    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const id = req.query?.id;
-    if (!id) return res.status(400).json({ error: "id required" });
+    const delOwner = req.query?.owner || "";
+    const delProvider = req.query?.provider || "";
+    const bulkAll = req.query?.all === "true";
+
+    /* 관리자 단건 삭제 */
+    if (isAdmin && id) {
+      try {
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          prefer: "return=minimal",
+        });
+        return res.status(200).json({ success: true });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
+    /* 본인 트랙 삭제 — owner+provider 필수 */
+    if (!delOwner || !delProvider)
+      return res.status(400).json({ error: "owner and provider required" });
+
+    /* JWT 검증 (있으면 대조, 없으면 owner 파라미터 신뢰) */
+    const jwtUser = verifyJWT(req);
+    if (jwtUser && (jwtUser.name !== delOwner || jwtUser.provider !== delProvider))
+      return res.status(403).json({ error: "Forbidden: owner mismatch" });
+
     try {
-      await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        prefer: "return=minimal",
-      });
-      return res.status(200).json({ success: true });
+      if (bulkAll) {
+        /* 전체 삭제: 사용자의 모든 트랙 */
+        await sb(`/tracks?owner_name=ilike.${encodeURIComponent(delOwner)}&owner_provider=eq.${encodeURIComponent(delProvider)}`, {
+          method: "DELETE",
+          prefer: "return=minimal",
+        });
+        return res.status(200).json({ success: true, bulk: true });
+      } else if (id) {
+        /* 단건 삭제: 소유자 확인 후 삭제 */
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=owner_name,owner_provider`);
+        const track = rows?.[0];
+        if (!track) return res.status(404).json({ error: "track not found" });
+        if (track.owner_name?.toLowerCase() !== delOwner.toLowerCase() || track.owner_provider !== delProvider)
+          return res.status(403).json({ error: "Forbidden: not your track" });
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          prefer: "return=minimal",
+        });
+        return res.status(200).json({ success: true });
+      } else {
+        return res.status(400).json({ error: "id or all=true required" });
+      }
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }

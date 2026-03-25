@@ -5142,7 +5142,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
           <div class="settings-item-right">›</div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="_showSettingsConfirm(_t('clearHistoryTitle'),_t('clearHistoryMsg'),_t('delete'),()=>{historyData=[];saveHistory();updateHistBadge();renderHistoryView();renderSettings();toast(_t('historyDeleted'),'ok',2000);})">
+        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="_showSettingsConfirm(_t('clearHistoryTitle'),_t('clearHistoryMsg'),_t('delete'),()=>{historyData=[];saveHistory();updateHistBadge();renderHistoryView();renderSettings();toast(_t('historyDeleted'),'ok',2000);_deleteAllTracksFromServer();})">
           <div class="settings-item-left">
             <div class="settings-item-icon">🗑</div>
             <div>
@@ -12659,6 +12659,17 @@ async function _autoFillLyrics(track, apiKey){
 
 function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(historyData));}
 
+/* 서버에서 단건 트랙 삭제 (본인 소유) */
+function _deleteTrackFromServer(trackId){
+  if(!trackId||!currentUser?.name) return;
+  fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||'guest'),{method:'DELETE'}).catch(function(){});
+}
+/* 서버에서 본인 트랙 전체 삭제 */
+function _deleteAllTracksFromServer(){
+  if(!currentUser?.name) return;
+  fetch('/api/tracks?all=true&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||'guest'),{method:'DELETE'}).catch(function(){});
+}
+
 /* 오디오 URL 재생 가능 여부 검증 */
 function _checkAudioPlayable(url){
   return new Promise(function(resolve){
@@ -13128,7 +13139,7 @@ function fpToggleLyricsPanel(){var sec=$('fp-lyrics-section');if(!sec)return;var
 var _eqCtx=null,_eqSource=null,_eqFilters=[],_eqConnected=false;
 var _eqPresets={flat:[0,0,0,0,0],bass:[6,4,0,0,0],vocal:[-2,0,4,3,0],treble:[0,0,0,3,6],rock:[4,2,-1,3,4],night:[3,2,0,-2,-4]};
 var _eqFreqs=[60,230,910,4000,14000];
-function _initEQ(){if(_eqConnected||!fpAudio)return;try{if(!_eqCtx)_eqCtx=new(window.AudioContext||window.webkitAudioContext)();if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
+function _initEQ(){if(_eqConnected||!fpAudio)return;try{/* AudioContext 공유: BPM이 먼저 생성한 컨텍스트가 있으면 재사용 (cross-context 연결 방지) */if(!_eqCtx){if(_bpmCtx)_eqCtx=_bpmCtx;else _eqCtx=new(window.AudioContext||window.webkitAudioContext)();}if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
 function fpToggleEQ(){var p=$('fp-eq-panel');if(!p)return;p.classList.toggle('on');var b=$('fp-eq-toggle');if(b)b.classList.toggle('on',p.classList.contains('on'));if(p.classList.contains('on')&&!_eqConnected)_initEQ();}
 function fpSetEqPreset(name){var vals=_eqPresets[name]||_eqPresets.flat;if(!_eqConnected)_initEQ();document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.toggle('on',b.dataset.eq===name);});var pn=$('fp-eq-preset-name');if(pn)pn.textContent=document.querySelector('.fp-eq-preset[data-eq="'+name+'"]')?.textContent||name;vals.forEach(function(v,i){if(_eqFilters[i])_eqFilters[i].gain.value=v;var s=document.querySelector('[data-eq-band="'+i+'"]');if(s)s.value=v;var ve=$('eq-val-'+i);if(ve)ve.textContent=(v>0?'+':'')+v;});}
 function fpEqBandChange(band,val){val=parseFloat(val);if(_eqFilters[band])_eqFilters[band].gain.value=val;var ve=$('eq-val-'+band);if(ve)ve.textContent=(val>0?'+':'')+Math.round(val);document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.remove('on');});var pn=$('fp-eq-preset-name');if(pn)pn.textContent='커스텀';}
