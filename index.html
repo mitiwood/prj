@@ -1294,6 +1294,22 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .pl-share-link{display:flex;gap:6px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);margin-top:8px;}
 .pl-share-link input{flex:1;background:none;border:none;color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
 .pl-share-link button{padding:4px 10px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;}
+/* 퀵 프리셋 카드 (심플 모드) */
+.qp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.qp-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px 10px;border-radius:14px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;}
+.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;opacity:0;transition:opacity .2s;}
+.qp-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+.qp-card:active{transform:scale(.96);}
+.qp-card.on{border-color:var(--acc);background:rgba(124,58,237,.06);}
+.qp-card.on::before{opacity:1;background:linear-gradient(90deg,var(--acc),var(--acc2));}
+.qp-emoji{font-size:24px;line-height:1;}
+.qp-title{font-size:11px;font-weight:700;color:var(--t1);}
+.qp-sub{font-size:9px;color:var(--t3);}
+[data-theme="light"] .qp-card{background:#fff;}
+[data-theme="light"] .qp-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.04);}
+/* 포스트 프로덕션 도구 버튼 */
+.rc-tools-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.rc-tools-btn:hover{border-color:var(--acc);color:var(--acc);}
 /* 프롬프트 템플릿 */
 .prompt-templates{margin-bottom:12px;}
 .pt-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0;-webkit-overflow-scrolling:touch;}
@@ -1940,6 +1956,36 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 /* 재생수 배지 */
 .comm-plays-badge{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:2px;}
 
+
+/* 오늘의 발견 */
+.dd-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;}
+.dd-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a855f7,#ec4899);border-radius:var(--r) var(--r) 0 0;}
+.dd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.dd-title{font-size:15px;font-weight:800;color:var(--t1);}
+.dd-streak{font-size:11px;color:var(--t3);background:var(--bg);padding:3px 8px;border-radius:10px;}
+.dd-streak b{color:#f59e0b;}
+.dd-progress{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
+.dd-progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.dd-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:3px;transition:width .5s ease;}
+.dd-progress-text{font-size:11px;color:var(--t3);white-space:nowrap;}
+.dd-cards{display:flex;flex-direction:column;gap:10px;}
+.dd-card{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 24px;border-radius:12px;background:var(--bg);border:1px solid var(--border);position:relative;cursor:pointer;transition:transform .15s;}
+.dd-card:active{transform:scale(.98);}
+.dd-card.discovered{opacity:.65;}
+.dd-card.discovered::after{content:'';position:absolute;right:10px;top:50%;transform:translateY(-50%);width:24px;height:24px;background:#22c55e url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center/16px no-repeat;border-radius:50%;}
+.dd-card-img{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--border);flex-shrink:0;}
+.dd-card-info{flex:1;min-width:0;}
+.dd-card-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dd-card-meta{font-size:11px;color:var(--t3);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dd-card-tag{background:var(--card);padding:1px 6px;border-radius:6px;font-size:10px;color:var(--t2);}
+.dd-card-num{position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:0 8px 8px 0;}
+.dd-reward{margin-top:12px;text-align:center;}
+.dd-reward-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 28px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s;}
+.dd-reward-btn.ready{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;animation:dd-pulse 2s infinite;}
+.dd-reward-btn.locked{background:var(--border);color:var(--t3);cursor:default;}
+.dd-reward-btn.claimed{background:#22c55e;color:#fff;cursor:default;}
+@keyframes dd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.4);}50%{box-shadow:0 0 0 8px rgba(124,58,237,0);}}
+.dd-reward-sub{font-size:10px;color:var(--t3);margin-top:6px;}
 
 /* 커뮤니티 히어로 */
 .comm-hero{
@@ -3968,6 +4014,20 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <!-- ━━━ 커스텀 패널 ━━━ -->
       <div class="mode-panel on" id="panel-custom">
 
+        <!-- 커스텀 모드 AI 퀵 어시스턴트 -->
+        <div style="margin-bottom:12px;padding:10px 12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.15);border-radius:12px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:13px;">🤖</span><span style="font-size:11px;font-weight:700;color:var(--t1);">AI 퀵 스타일</span></div>
+          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none;" class="pt-scroll">
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('감성적인 피아노 발라드, 여성 보컬')">🎤 발라드</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 K-Pop 댄스, 밝은 신스')">🎵 K-Pop</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('다크한 트랩 비트, 808 베이스')">🔥 트랩</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('칠한 Lo-Fi 비트, 재즈 코드')">☕ Lo-Fi</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('시네마틱 오케스트라, 웅장한 스트링스')">🎬 OST</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('레트로 시티팝, 80년대 신스')">🌆 시티팝</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('어쿠스틱 포크, 따뜻한 기타')">🪕 포크</button>
+          </div>
+        </div>
+
         <!-- 장르 -->
         <div class="form-grp" id="genre-row">
           <div class="form-label">
@@ -4338,6 +4398,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
       <!-- ━━━ 심플 패널 ━━━ -->
       <div class="mode-panel" id="panel-simple">
+        <!-- 퀵 프리셋 카드 -->
+        <div style="margin-bottom:4px;font-size:12px;font-weight:700;color:var(--t2);">빠른 시작</div>
+        <div class="qp-grid">
+          <div class="qp-card" onclick="_applyQuickPreset('kpop')"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
+          <div class="qp-card" onclick="_applyQuickPreset('ballad')"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
+          <div class="qp-card" onclick="_applyQuickPreset('lofi')"><div class="qp-emoji">☕</div><div class="qp-title">Lo-Fi</div><div class="qp-sub">칠 비트</div></div>
+          <div class="qp-card" onclick="_applyQuickPreset('hiphop')"><div class="qp-emoji">🔥</div><div class="qp-title">힙합</div><div class="qp-sub">트랩 비트</div></div>
+          <div class="qp-card" onclick="_applyQuickPreset('cinematic')"><div class="qp-emoji">🎬</div><div class="qp-title">OST</div><div class="qp-sub">시네마틱</div></div>
+          <div class="qp-card" onclick="_applyQuickPreset('acoustic')"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
+        </div>
         <!-- AI 작곡 어시스턴트 -->
         <div id="ai-assistant-wrap" style="margin-bottom:14px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.2);border-radius:14px;">
           <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🤖 AI 작곡 어시스턴트</div>
@@ -4354,6 +4424,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">🧘 집중</button>
             <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">🚗 드라이브</button>
             <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">💕 고백</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">🎶 트로트</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">🌊 여름</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">📚 공부</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">💪 운동</button>
           </div>
           <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
           <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
@@ -4402,6 +4476,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="mood-chip" data-mood="energetic, hype" onclick="_setSimpleMood(this)"><span class="mood-ico">🔥</span>에너지</button>
             <button class="mood-chip" data-mood="nostalgic, retro" onclick="_setSimpleMood(this)"><span class="mood-ico">📼</span>레트로</button>
             <button class="mood-chip" data-mood="chill, lofi" onclick="_setSimpleMood(this)"><span class="mood-ico">☕</span>로파이</button>
+            <button class="mood-chip" data-mood="epic, cinematic" onclick="_setSimpleMood(this)"><span class="mood-ico">🎬</span>시네마틱</button>
+            <button class="mood-chip" data-mood="hopeful, inspiring" onclick="_setSimpleMood(this)"><span class="mood-ico">🌅</span>영감</button>
+            <button class="mood-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)"><span class="mood-ico">💪</span>파워풀</button>
+            <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)"><span class="mood-ico">🔮</span>신비</button>
           </div>
         </div>
         <div class="options-row" style="margin-bottom:12px;">
@@ -4773,6 +4851,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:10px;">👤 크리에이터</div>
       <div id="comm-creators-inline"></div>
     </div>
+    <!-- 오늘의 발견 + 일일 미션 -->
+    <div id="comm-daily-discover" style="display:none;margin-bottom:16px;"></div>
     <!-- 챌린지 배너 -->
     <div id="comm-challenge-wrap"></div>
     <!-- 활동 피드 -->
@@ -5527,10 +5607,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <!-- 가사 편집 도구 -->
       <div id="fp-lyrics-tools" style="display:none;padding:0 8px;">
         <div class="lyrics-edit-toolbar">
+          <button class="lyrics-edit-btn" onclick="_lyricsExtractFromAudio()">🎤 가사 추출</button>
           <button class="lyrics-edit-btn" onclick="_lyricsAnalyze()">📊 운율 분석</button>
-          <button class="lyrics-edit-btn" onclick="_lyricsSuggestSection()">💡 섹션 제안</button>
           <button class="lyrics-edit-btn" onclick="_lyricsTranslate('en')">🌐 영→한</button>
           <button class="lyrics-edit-btn" onclick="_lyricsTranslate('ko')">🌐 한→영</button>
+          <button class="lyrics-edit-btn" onclick="_lyricsVerify()">✅ 정확도 검증</button>
         </div>
         <div class="lyrics-analysis" id="lyrics-analysis" style="display:none;"></div>
       </div>
@@ -10474,11 +10555,12 @@ function renderTracks(tracks,prompt,tags,mode){
             <button class="dl-btn lnk" data-rc-share="${i}" style="color:var(--acc3);border-color:rgba(168,85,247,.25);">↗ 공유</button>
           </div>
           <div class="dl-row" style="margin-top:6px;">
-            <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 이 곡으로 다시 작곡</button>
+            <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
+            <button class="rc-tools-btn" onclick="_showPostTools('${esc(audioUrl)}','${esc(audioId)}','${esc(title)}','${esc(trackTaskId)}')">🛠 도구</button>
           </div>
           ${!_isAB ? `<div class="rc-share-row">
-            <button class="rc-share-btn" onclick="commShareTrack('${esc(audioUrl)}','${esc(title)}')">🌐 커뮤니티 공유</button>
-            <button class="rc-share-btn" onclick="_copyShareLink('${esc(audioUrl)}','${esc(title)}','${esc(imageUrl)}')">🔗 링크 공유</button>
+            <button class="rc-share-btn" onclick="commShareTrack('${esc(audioUrl)}','${esc(title)}')">🌐 커뮤니티</button>
+            <button class="rc-share-btn" onclick="_copyShareLink('${esc(audioUrl)}','${esc(title)}','${esc(imageUrl)}')">🔗 링크</button>
             <button class="rc-share-btn" onclick="_shareKakao('${esc(title)}','${esc(audioUrl)}','${esc(imageUrl)}')">💬 카카오</button>
           </div>` : ''}
           ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
@@ -14637,7 +14719,7 @@ function fpRenderLyrics(h){
   _fpPrevActiveIdx=-1;
 
   if(!plain.trim()){
-    if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵</div>';
+    if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
     return;
   }
 
@@ -16519,6 +16601,7 @@ async function _renderCommunityInner(force){
   if(cacheValid&&!force){
     _renderCommContent(heroWrap, list);
     _renderCreatorsInline();
+    _renderDailyDiscover();
     _renderWeeklyChart();
     _renderCommBottom();
     _renderActivityFeed();
@@ -16537,6 +16620,7 @@ async function _renderCommunityInner(force){
       el.style.animation='commFadeUp .4s cubic-bezier(.16,1,.3,1) '+(i*0.03)+'s both';
     });
     _renderCreatorsInline();
+    _renderDailyDiscover();
     _renderWeeklyChart();
     _renderCommBottom();
     _renderActivityFeed();
@@ -16552,6 +16636,7 @@ async function _renderCommunityInner(force){
         if(_commActiveGenre==='following'||_commActiveGenre==='chat'||_commActiveGenre==='leaderboard')return;
         _renderCommContent(heroWrap, list);
         _renderCreatorsInline();
+        _renderDailyDiscover();
         _renderWeeklyChart();
         _renderCommBottom();
         _renderActivityFeed();
@@ -16574,6 +16659,7 @@ async function _renderCommunityInner(force){
     el.style.animation='commFadeUp .45s cubic-bezier(.16,1,.3,1) '+(i*0.04)+'s both';
   });
   _renderCreatorsInline();
+  _renderDailyDiscover();
   _renderWeeklyChart();
   _renderCommBottom();
   _renderActivityFeed();
@@ -23012,7 +23098,43 @@ function _sendCollabRequest(){if(!currentUser){if(typeof openLoginSheet==='funct
 function _plGenerateShareLink(){var pls=typeof _getPlaylists==='function'?_getPlaylists():[];var pl=pls[typeof _currentPlIdx!=='undefined'?_currentPlIdx:0];if(!pl||!pl.tracks||!pl.tracks.length){toast('공유할 곡이 없어요','err');return;}fetch('/api/playlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:pl.name||'플레이리스트',tracks:pl.tracks.slice(0,20),ownerName:currentUser?.name||'익명',ownerProvider:currentUser?.provider||''})}).then(function(r){return r.json();}).then(function(d){if(d.ok){var url=d.shareUrl||(window.location.origin+'/?playlist='+(d.id||''));navigator.clipboard.writeText(url).then(function(){toast('🔗 링크 복사됨!','ok',2500);}).catch(function(){toast(url,'',5000);});}else toast('실패','err');}).catch(function(){toast('서버 오류','err');});}
 
 /* ═══ 프롬프트 템플릿 ═══ */
-var _promptTemplates=[{emoji:'🎵',title:'K-Pop 댄스',tags:'catchy, dance, energetic',lyrics:'[Verse]\n에너지 넘치는 댄스곡\n[Chorus]\n모두 함께 춤을 춰요',bpm:128},{emoji:'🎤',title:'감성 발라드',tags:'emotional, piano, ballad',lyrics:'[Verse]\n그리운 너에게\n[Chorus]\n사랑했던 시간들',bpm:72},{emoji:'🎧',title:'Lo-Fi 힐링',tags:'chill, lofi, relax',lyrics:'',bpm:85},{emoji:'⚡',title:'힙합 비트',tags:'trap, 808, bass',lyrics:'[Verse]\n거리 위의 리듬\n[Hook]\n멈추지 마',bpm:140},{emoji:'🎸',title:'인디 록',tags:'indie rock, guitar',lyrics:'[Verse]\n자유로운 영혼\n[Chorus]\n소리쳐',bpm:120},{emoji:'🌙',title:'수면 앰비언트',tags:'ambient, sleep, calm',lyrics:'',bpm:60},{emoji:'🎬',title:'영화 OST',tags:'cinematic, orchestral',lyrics:'',bpm:90},{emoji:'🎹',title:'재즈 카페',tags:'jazz, piano, smooth',lyrics:'',bpm:110}];
+var _promptTemplates=[{emoji:'🎵',title:'K-Pop 댄스',tags:'catchy, dance, energetic',lyrics:'[Verse]\n에너지 넘치는 댄스곡\n[Chorus]\n모두 함께 춤을 춰요',bpm:128},{emoji:'🎤',title:'감성 발라드',tags:'emotional, piano, ballad',lyrics:'[Verse]\n그리운 너에게\n[Chorus]\n사랑했던 시간들',bpm:72},{emoji:'🎧',title:'Lo-Fi 힐링',tags:'chill, lofi, relax',lyrics:'',bpm:85},{emoji:'⚡',title:'힙합 비트',tags:'trap, 808, bass',lyrics:'[Verse]\n거리 위의 리듬\n[Hook]\n멈추지 마',bpm:140},{emoji:'🎸',title:'인디 록',tags:'indie rock, guitar',lyrics:'[Verse]\n자유로운 영혼\n[Chorus]\n소리쳐',bpm:120},{emoji:'🌙',title:'수면 앰비언트',tags:'ambient, sleep, calm',lyrics:'',bpm:60},{emoji:'🎬',title:'영화 OST',tags:'cinematic, orchestral',lyrics:'',bpm:90},{emoji:'🎹',title:'재즈 카페',tags:'jazz, piano, smooth',lyrics:'',bpm:110},{emoji:'💜',title:'R&B 소울',tags:'r&b, soulful, groove',lyrics:'[Verse]\n느린 밤의 그루브\n[Chorus]\n너를 느껴',bpm:90},{emoji:'🎆',title:'EDM 페스티벌',tags:'edm, festival, drop, bass',lyrics:'',bpm:150},{emoji:'🎶',title:'트로트',tags:'trot, upbeat, korean traditional pop',lyrics:'[Verse]\n신나는 뽕짝 리듬\n[Chorus]\n얼쑤 좋다',bpm:120},{emoji:'🌿',title:'뉴에이지',tags:'new age, piano, healing, meditation',lyrics:'',bpm:70},{emoji:'🌆',title:'시티팝',tags:'city pop, retro, 80s synth, japanese',lyrics:'[Verse]\n네온 빛 거리\n[Chorus]\n도시의 밤',bpm:108},{emoji:'💃',title:'라틴 팝',tags:'latin pop, reggaeton, tropical',lyrics:'[Verse]\n뜨거운 리듬\n[Chorus]\n함께 춤을',bpm:100}];
+/* ── 퀵 프리셋 (심플 모드) ── */
+var _quickPresets={
+  kpop:{desc:'catchy K-pop dance, bright synth, female vocal',mood:'happy, uplifting',bpm:128},
+  ballad:{desc:'emotional Korean ballad, piano-driven, heartfelt vocal',mood:'sad, emotional',bpm:72},
+  lofi:{desc:'lo-fi chill beats, vinyl crackle, jazzy piano',mood:'chill, lofi',bpm:85},
+  hiphop:{desc:'trap beat, hard 808 bass, dark atmosphere',mood:'dark, intense',bpm:140},
+  cinematic:{desc:'cinematic orchestral, epic strings, dramatic build',mood:'epic, cinematic',bpm:100},
+  acoustic:{desc:'acoustic folk pop, warm guitar fingerpicking, gentle vocal',mood:'calm, relaxing',bpm:100}
+};
+function _applyQuickPreset(key){
+  var p=_quickPresets[key];if(!p)return;
+  var pr=$('simple-prompt');if(pr)pr.value=p.desc;
+  var sm=$('simple-mood');if(sm)sm.value=p.mood;
+  /* 분위기 칩 시각 동기화 */
+  document.querySelectorAll('#simple-mood-grid .mood-chip').forEach(function(b){
+    b.classList.toggle('on',b.dataset.mood===p.mood);
+  });
+  var bs=$('simple-bpm-slider');if(bs){bs.value=p.bpm;var bd=$('s-bpm-display');if(bd)bd.textContent=p.bpm;var bb=$('s-bpm-badge');if(bb)bb.textContent=p.bpm+' BPM';}
+  /* 카드 시각 선택 */
+  document.querySelectorAll('.qp-card').forEach(function(c){c.classList.remove('on');});
+  event.currentTarget.classList.add('on');
+  toast('✦ '+key.toUpperCase()+' 프리셋 적용!','ok',1500);
+}
+/* ── 포스트 프로덕션 도구 바텀시트 ── */
+function _showPostTools(audioUrl,audioId,title,taskId){
+  var html='<div style="padding:20px 16px 24px;">'
+    +'<div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px;">🛠 포스트 프로덕션 도구</div>'
+    +'<div style="font-size:11px;color:var(--t3);margin-bottom:16px;">'+title+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'
+    +'<button onclick="closeBottomSheet();setTimeout(function(){if(typeof openVocalRemoval===\'function\')openVocalRemoval(\''+esc(audioUrl)+'\',\''+esc(audioId)+'\',\''+esc(taskId)+'\');else toast(\'보컬 제거 모듈 로딩 중...\',\'\',1500);},300);" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;"><span style="font-size:20px;">🎙</span><div><div style="font-weight:700;">보컬 제거</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">보컬/MR 분리 또는 14개 스템 추출</div></div></button>'
+    +'<button onclick="closeBottomSheet();setTimeout(function(){if(typeof _openCoverModal===\'function\')_openCoverModal(\''+esc(audioUrl)+'\',\''+esc(audioId)+'\',\''+esc(title)+'\');else toast(\'커버 기능 준비 중\',\'\',1500);},300);" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;"><span style="font-size:20px;">🎤</span><div><div style="font-weight:700;">AI 커버</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">다른 스타일의 보컬로 커버 생성</div></div></button>'
+    +'<button onclick="closeBottomSheet();setTimeout(function(){if(typeof _openVocalAddModal===\'function\')_openVocalAddModal(\''+esc(audioUrl)+'\',\''+esc(audioId)+'\',\''+esc(title)+'\');else toast(\'보컬 추가 기능 준비 중\',\'\',1500);},300);" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;"><span style="font-size:20px;">🎵</span><div><div style="font-weight:700;">보컬 추가</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">인스트루멘탈에 AI 보컬 입히기</div></div></button>'
+    +'<button onclick="closeBottomSheet();setTimeout(function(){if(typeof _remasterV5===\'function\')_remasterV5(\''+esc(audioUrl)+'\',\''+esc(audioId)+'\',\''+esc(title)+'\');else toast(\'리마스터 기능 준비 중\',\'\',1500);},300);" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;"><span style="font-size:20px;">✨</span><div><div style="font-weight:700;">리마스터 V5</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">최신 V5 엔진으로 음질 업그레이드</div></div></button>'
+    +'</div></div>';
+  if(typeof openBottomSheet==='function')openBottomSheet(html);
+}
 function _renderPromptTemplates(){var s=$('pt-scroll');if(!s)return;s.innerHTML=_promptTemplates.map(function(t,i){return '<div class="pt-card" onclick="_applyTemplate('+i+')"><div class="pt-card-emoji">'+t.emoji+'</div><div class="pt-card-title">'+t.title+'</div><div class="pt-card-desc">'+t.tags+'</div></div>';}).join('');}
 function _applyTemplate(idx){var t=_promptTemplates[idx];if(!t)return;if(typeof currentMode!=='undefined'&&currentMode!=='custom'){var mt=document.querySelector('.mtab[data-mode="custom"]');if(mt)mt.click();}var p=$('prompt');if(p&&t.lyrics)p.value=t.lyrics;var d=$('song-desc');if(d&&t.tags)d.value=t.tags;var b=$('bpm-slider');if(b&&t.bpm){b.value=t.bpm;var bv=$('bpm-val');if(bv)bv.textContent=t.bpm;}toast(t.emoji+' "'+t.title+'" 적용!','ok',1500);_addGenHistory(t.title,t.tags);}
 setTimeout(_renderPromptTemplates,500);
@@ -23231,6 +23353,166 @@ function _filterGenre(genreId){
   if(clearBtn)clearBtn.style.display='block';
   renderCommunity();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── 오늘의 발견 + 일일 미션 ── */
+var _ddCache=null,_ddCacheAt=0,_ddListenTimers={};
+
+async function _renderDailyDiscover(){
+  var wrap=$('comm-daily-discover');
+  if(!wrap) return;
+  if(!currentUser){wrap.style.display='none';return;}
+
+  /* 캐시 3분 */
+  if(_ddCache&&(Date.now()-_ddCacheAt)<180000){
+    _ddRenderHTML(wrap,_ddCache);return;
+  }
+
+  try{
+    var r=await fetch('/api/daily-discover?userName='+encodeURIComponent(currentUser.name)+'&userProvider='+encodeURIComponent(currentUser.provider));
+    var d=await r.json();
+    if(!d.ok||!d.tracks||!d.tracks.length){wrap.style.display='none';return;}
+    _ddCache=d;_ddCacheAt=Date.now();
+    _ddRenderHTML(wrap,d);
+  }catch(e){
+    console.warn('[DailyDiscover]',e.message);
+    wrap.style.display='none';
+  }
+}
+
+function _ddRenderHTML(wrap,d){
+  var tracks=d.tracks||[];
+  var mission=d.mission||{};
+  var discovered=mission.discoveredIds||[];
+  var total=mission.totalCount||3;
+  var done=mission.completedCount||0;
+  var claimed=mission.rewardClaimed||false;
+  var streak=mission.streak||0;
+  var pct=Math.round((done/total)*100);
+
+  var streakHtml=streak>0?'<div class="dd-streak">연속 <b>'+streak+'일</b></div>':'';
+
+  var cardsHtml='';
+  for(var i=0;i<tracks.length;i++){
+    var t=tracks[i];
+    var isDone=discovered.indexOf(t.id)>=0;
+    var tag=(t.tags||'').split(',')[0]?.trim()||'';
+    var img=t.image_url
+      ?'<img class="dd-card-img" src="'+t.image_url+'" alt="" onerror="this.style.display=\'none\'">'
+      :'<div class="dd-card-img" style="display:flex;align-items:center;justify-content:center;font-size:20px;">&#127925;</div>';
+    cardsHtml+='<div class="dd-card'+(isDone?' discovered':'')+'" data-dd-id="'+t.id+'" onclick="_ddPlayTrack(\''+t.id+'\')">'
+      +'<div class="dd-card-num">'+(i+1)+'</div>'
+      +img
+      +'<div class="dd-card-info">'
+        +'<div class="dd-card-title">'+esc(t.title||'Untitled')+'</div>'
+        +'<div class="dd-card-meta">'
+          +(tag?'<span class="dd-card-tag">'+esc(tag)+'</span>':'')
+          +'<span>'+esc(t.user_name||'')+'</span>'
+          +(t.likes?'<span>&#10084;&#65039; '+t.likes+'</span>':'')
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  }
+
+  var btnClass=claimed?'claimed':done>=total?'ready':'locked';
+  var btnText=claimed?'\u2714 +'+(d.reward?.base||1)+'\uACE1 \uBC1B\uC558\uC5B4\uC694'
+    :done>=total?'\uD83C\uDF81 \uBCF4\uC0C1 \uBC1B\uAE30 (+'+(d.reward?.base||1)+'\uACE1)'
+    :'\uD83D\uDD12 '+done+'/'+total+' \uBC1C\uACAC \uC644\uB8CC \uD544\uC694';
+  var subText='';
+  if(!claimed&&streak>0){
+    var nextBonus=0;
+    var rules=d.reward?.streakBonus||{};
+    for(var days in rules){if(streak+1>=Number(days))nextBonus=rules[days];}
+    if(nextBonus)subText='\uD83D\uDD25 '+(streak+1)+'\uC77C \uC5F0\uC18D \uC2DC \uCD94\uAC00 +'+nextBonus+'\uACE1 \uBCF4\uB108\uC2A4!';
+  }
+
+  wrap.style.display='block';
+  wrap.innerHTML='<div class="dd-wrap">'
+    +'<div class="dd-header">'
+      +'<div class="dd-title">\u2728 \uC624\uB298\uC758 \uBC1C\uACAC</div>'
+      +streakHtml
+    +'</div>'
+    +'<div class="dd-progress">'
+      +'<div class="dd-progress-bar"><div class="dd-progress-fill" style="width:'+pct+'%"></div></div>'
+      +'<div class="dd-progress-text">'+done+'/'+total+'</div>'
+    +'</div>'
+    +'<div class="dd-cards">'+cardsHtml+'</div>'
+    +'<div class="dd-reward">'
+      +'<button class="dd-reward-btn '+btnClass+'" onclick="_ddClaimReward()"'+(btnClass!=='ready'?' disabled':'')+'>'+btnText+'</button>'
+      +(subText?'<div class="dd-reward-sub">'+subText+'</div>':'')
+    +'</div>'
+  +'</div>';
+}
+
+/* 발견 곡 재생 — 미니플레이어에 로드 + 30초 타이머 */
+function _ddPlayTrack(trackId){
+  if(!trackId) return;
+  var d=_ddCache;if(!d||!d.tracks) return;
+  var t=d.tracks.find(function(x){return x.id===trackId;});
+  if(!t||!t.audio_url) return;
+
+  /* historyData에 임시 추가 후 미니플레이어 재생 */
+  var existing=historyData.findIndex(function(h){return h.id===trackId;});
+  if(existing<0){
+    historyData.unshift({
+      id:t.id,title:t.title,tags:t.tags,audio_url:t.audio_url,image_url:t.image_url,
+      _fromSb:true,_owner:{name:t.user_name,provider:t.user_provider}
+    });
+    existing=0;
+  }
+  showMiniPlayer(existing);
+
+  /* 30초 재생 감지 → 발견 완료 */
+  if(_ddListenTimers[trackId]){clearTimeout(_ddListenTimers[trackId]);}
+  var discovered=(d.mission?.discoveredIds||[]);
+  if(discovered.indexOf(trackId)>=0) return; /* 이미 발견됨 */
+
+  _ddListenTimers[trackId]=setTimeout(function(){
+    /* 실제로 이 곡이 재생 중인지 확인 */
+    var h=historyData[fpCurrentIdx];
+    if(h&&h.id===trackId&&fpAudio&&!fpAudio.paused&&fpAudio.currentTime>=25){
+      _ddMarkDiscovered(trackId);
+    }
+  },30000);
+}
+
+async function _ddMarkDiscovered(trackId){
+  if(!currentUser) return;
+  try{
+    var r=await fetch('/api/daily-discover',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userName:currentUser.name,userProvider:currentUser.provider,trackId:trackId})
+    });
+    var d=await r.json();
+    if(d.ok){
+      toast(d.message||'\uBC1C\uACAC \uC644\uB8CC!','ok',2000);
+      _ddCache=null;
+      _renderDailyDiscover();
+    }
+  }catch(e){console.warn('[DD]',e.message);}
+}
+
+async function _ddClaimReward(){
+  if(!currentUser) return;
+  try{
+    var r=await fetch('/api/daily-discover',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userName:currentUser.name,userProvider:currentUser.provider,action:'claim'})
+    });
+    var d=await r.json();
+    if(d.ok&&!d.already){
+      toast(d.message||'\uBCF4\uC0C1 \uC9C0\uAE09!','ok',3000);
+      if(currentUser&&d.reward) currentUser.credits_song=(currentUser.credits_song||0)+d.reward;
+      _ddCache=null;
+      _renderDailyDiscover();
+    } else if(d.already){
+      toast('\uC774\uBBF8 \uBCF4\uC0C1\uC744 \uBC1B\uC558\uC5B4\uC694','',2000);
+    } else {
+      toast(d.reason||'\uBCF4\uC0C1 \uC2E4\uD328','err',2000);
+    }
+  }catch(e){toast('\uBCF4\uC0C1 \uC2E4\uD328','err',2000);}
 }
 
 /* ── 커뮤니티 하단 3종 통합 렌더 ── */
