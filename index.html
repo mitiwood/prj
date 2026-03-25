@@ -4760,12 +4760,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
+      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
-      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
     </div>
     <!-- 크리에이터 섹션 (최상위 — 인스타 스타일) -->
@@ -16478,18 +16478,18 @@ async function _renderCommunityInner(force){
     if(ls0)ls0.querySelectorAll('.comm-feed-item').forEach(function(el,i){el.style.animation='commFadeUp .4s cubic-bezier(.16,1,.3,1) '+(i*0.04)+'s both';});
     return;
   }
-  /* 채팅 모드 — 채팅 + 크리에이터만. 다른 콘텐츠 절대 로드 안 함 */
+  /* 채팅 모드 — 채팅 UI만 표시. 크리에이터·다른 콘텐츠 모두 숨김 */
   if(_commActiveGenre==='chat'){
     ['comm-dj-row','comm-chart-wrap','comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-suggest-wrap'].forEach(function(id){
       var e=$(id);if(e){e.style.display='none';e.innerHTML='';}
     });
+    var crSec1=$('comm-creators-section');if(crSec1)crSec1.style.display='none';
     var af1=$('comm-activity-feed');if(af1)af1.innerHTML='';
     var hw1=$('comm-hero-wrap');if(hw1)hw1.innerHTML='';
     var ls1=$('comm-list');if(ls1)ls1.innerHTML='';
     /* 무한 스크롤 해제 */
     if(_sbIntersectionObserver){_sbIntersectionObserver.disconnect();_sbIntersectionObserver=null;}
     _renderChatUI();
-    _renderCreatorsInline();
     return;
   }
   /* 리더보드 모드 */
