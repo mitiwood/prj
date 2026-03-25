@@ -6699,8 +6699,11 @@ async function _doLoadSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
-      // 서버에서 이미 실제 사용자 필터링을 처리하므로 클라이언트 필터링 불필요
-      _sbTracks = d.tracks.map(_rowToTrack);
+      // 실제 가입 사용자 필터링 (서버 서브쿼리 제거로 인해 클라이언트에서 처리)
+      await _loadRealUsers();
+      _sbTracks = d.tracks
+        .filter(t => _isRealUser(t.owner_name || t.user_name || ''))
+        .map(_rowToTrack);
       _sbOffset = _sbTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbFingerprint = _calcFingerprint(_sbTracks);
@@ -6761,7 +6764,9 @@ async function _loadSbTracksMore(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack);
+      var newTracks = d.tracks
+        .filter(t => _isRealUser(t.owner_name || t.user_name || ''))
+        .map(_rowToTrack);
       _sbTracks = _sbTracks.concat(newTracks);
       _sbOffset += newTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
