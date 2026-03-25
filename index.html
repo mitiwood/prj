@@ -12113,15 +12113,29 @@ function showMiniPlayer(idx){
     } else {
       toast(msg,'err',3000);
     }
+    /* 크리에이터 큐 재생 중 에러 → 재생불가 표시 + 다음 곡 스킵 */
+    _mfHandlePlayError();
   });
 
   /* ── 블루투스/자동차 연결 끊김 대응 ── */
+  var _waitingTimer=null;
   audio.addEventListener('waiting',function(){
     if(genId!==_fpAudioGenId) return;
     console.warn('[Audio] waiting — 버퍼 부족');
     if(typeof _stopBpmDetection==='function') _stopBpmDetection();
     if(typeof _stopSpectrum==='function') _stopSpectrum();
+    /* 10초 이상 버퍼링 지속 시 재생불가 처리 */
+    clearTimeout(_waitingTimer);
+    _waitingTimer=setTimeout(function(){
+      if(genId!==_fpAudioGenId) return;
+      if(audio.readyState<3){
+        console.warn('[Audio] 10초 이상 버퍼링 — 재생불가 처리');
+        toast('버퍼링 실패 — 다음 곡으로 넘어갑니다','err',3000);
+        _mfHandlePlayError();
+      }
+    },10000);
   });
+  audio.addEventListener('playing',function(){clearTimeout(_waitingTimer);});
   audio.addEventListener('playing',function(){
     if(genId!==_fpAudioGenId) return;
     if($('fullplayer')&&$('fullplayer').classList.contains('on')){
@@ -13695,6 +13709,39 @@ window._switchPlaylist=typeof _switchPlaylist!=="undefined"?_switchPlaylist:wind
 /* ── MY 피드: 커뮤니티 크리에이터 음악 (고도화) ── */
 var _mfPlayQueue=[]; /* 크리에이터 상세에서 재생 시 연속재생 큐 [{id,title,audio_url,...}] */
 var _mfPlayQueueIdx=-1;
+var _mfUnplayableIds=new Set(); /* 재생불가 트랙 ID 캐시 */
+
+/* 크리에이터 큐 재생 중 에러 → 재생불가 표시 + 다음 곡 스킵 */
+function _mfHandlePlayError(){
+  if(_mfPlayQueue.length===0||_mfPlayQueueIdx<0) return;
+  var failedTrack=_mfPlayQueue[_mfPlayQueueIdx];
+  if(failedTrack&&failedTrack.id){
+    _mfUnplayableIds.add(failedTrack.id);
+    /* 리스트에서 재생불가 표시 업데이트 */
+    document.querySelectorAll('.mf-trk-card[data-sbid="'+failedTrack.id+'"]').forEach(function(card){
+      if(!card.classList.contains('unplayable')){
+        card.classList.add('unplayable');
+        var numEl=card.querySelector('.mf-trk-num');
+        if(numEl) numEl.innerHTML='<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>';
+        var playBtn=card.querySelector('.mf-trk-play-btn');
+        if(playBtn) playBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+      }
+    });
+  }
+  /* 다음 곡으로 스킵 */
+  var nqi=_mfPlayQueueIdx+1;
+  /* 연속 재생불가 스킵 (최대 5곡) */
+  var skipped=0;
+  while(nqi<_mfPlayQueue.length&&_mfUnplayableIds.has(_mfPlayQueue[nqi].id)&&skipped<5){nqi++;skipped++;}
+  if(nqi<_mfPlayQueue.length){
+    _mfPlayQueueIdx=nqi;
+    toast('다음 곡으로 넘어갑니다','',2000);
+    setTimeout(function(){_mfQueuePlay(nqi);},800);
+  } else {
+    _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+    toast('재생 가능한 곡이 없어요','err',2000);
+  }
+}
 var _myFeedCreators=null;
 var _myFeedLoading=false;
 var _myFeedDetail=null;
@@ -14067,18 +14114,20 @@ function _renderCreatorDetailView(grid,countEl){
     var dateStr='';
     if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
     var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
-    html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+'" data-sbid="'+esc(t.id)+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
-      +'<div class="mf-trk-num">'+(i+1)+'</div>'
+    var isUnplayable=_mfUnplayableIds.has(t.id);
+    html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
+      +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
       +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
       +'<div class="mf-trk-info">'
-      +'<div class="mf-trk-title">'+esc(t.title||'무제')+'</div>'
+      +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+'</div>'
       +'<div class="mf-trk-meta">'
+      +(isUnplayable?'<span style="color:var(--err,#e74c3c);">재생불가</span>':'')
       +(likes>0?'<span>❤️ '+likes+'</span>':'')
       +(plays>0?'<span>▶ '+plays+'</span>':'')
       +(tag1?'<span>'+esc(tag1)+'</span>':'')
       +(dateStr?'<span>'+dateStr+'</span>':'')
       +'</div></div>'
-      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'+(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>')+'</div>'
+      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'+(isUnplayable?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>':(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>'))+'</div>'
       +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
       +'</div>';
   });
@@ -14574,6 +14623,7 @@ async function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
   if(!t||!t.audio_url){toast('오디오를 재생할 수 없어요','err');return;}
+  if(_mfUnplayableIds.has(t.id)){toast('재생할 수 없는 곡이에요','err',2000);return;}
 
   /* 같은 곡이면 재생/일시정지 토글 */
   var currentH=historyData[fpCurrentIdx];
@@ -16574,20 +16624,23 @@ async function _renderCommunityInner(force){
     _renderChatUI();
     return;
   }
-  /* 리더보드 모드 */
+  /* 리더보드 모드 — 리더보드만 표시, 나머지 모두 숨김 */
   if(_commActiveGenre==='leaderboard'){
-    var cw3=$('comm-chart-wrap');if(cw3)cw3.style.display='none';
-    ['comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap'].forEach(function(id){var e=$(id);if(e)e.style.display='none';});
+    ['comm-chart-wrap','comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-daily-discover','comm-suggest-wrap'].forEach(function(id){var e=$(id);if(e){e.style.display='none';e.innerHTML='';}});
+    var crSec3=$('comm-creators-section');if(crSec3)crSec3.style.display='none';
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
+    var ls3=$('comm-list');if(ls3)ls3.innerHTML='';
+    if(_sbIntersectionObserver){_sbIntersectionObserver.disconnect();_sbIntersectionObserver=null;}
     if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
     _renderLeaderboard();
     return;
   }
   /* 일반 모드 — 이전 모드에서 숨긴 UI 모두 복원 */
-  ['comm-dj-row','comm-chart-wrap','comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-suggest-wrap'].forEach(function(id){
+  ['comm-dj-row','comm-chart-wrap','comm-mood-wrap','comm-spotlight-wrap','comm-genre-wrap','comm-challenge-wrap','comm-suggest-wrap','comm-daily-discover'].forEach(function(id){
     var e=$(id);if(e)e.style.display='';
   });
+  var crSecRestore=$('comm-creators-section');if(crSecRestore)crSecRestore.style.display='';
   /* 채팅 UI 제거 (채팅→다른 탭 전환 시) */
   var chatWrap=$('comm-list');
   if(chatWrap&&chatWrap.querySelector('.comm-chat-container')) chatWrap.innerHTML='';
@@ -22160,9 +22213,139 @@ function _lyricsSuggestSection(){
   prompt.value=cur+pick;
   toast('💡 섹션 추가됨','ok',1200);
 }
-function _lyricsTranslate(targetLang){
-  toast('🌐 번역 기능은 AI API 연동 후 사용 가능해요','',2500);
+/* ── 가사 번역 (AI) ── */
+async function _lyricsTranslate(targetLang){
+  var lyrics=$('prompt')?.value||$('fp-lyrics-box')?.textContent||'';
+  if(!lyrics.trim()||lyrics==='가사 없음'){toast('번역할 가사가 없어요','err');return;}
+  var langName=targetLang==='en'?'영어':'한국어';
+  var fromLang=targetLang==='en'?'한국어':'영어';
+  toast('🌐 '+langName+'로 번역 중...','',3000);
+  try{
+    var result=await callClaudeStream(
+      '당신은 전문 노래 가사 번역가입니다. 원곡의 운율과 감정을 최대한 살려 번역하세요. 섹션 태그([Verse], [Chorus] 등)는 그대로 유지하세요. 번역문만 출력하세요.',
+      fromLang+' 가사를 '+langName+'로 번역해줘:\n\n'+lyrics, null
+    );
+    if(!result||result.length<5){toast('번역 실패','err');return;}
+    var el=$('lyrics-analysis');
+    if(el){
+      el.innerHTML='<div style="font-weight:700;margin-bottom:6px;">🌐 '+langName+' 번역</div><pre style="white-space:pre-wrap;font-size:12px;line-height:1.6;margin:0;color:var(--t1);">'+esc(result)+'</pre>'
+        +'<div style="margin-top:8px;display:flex;gap:6px;">'
+        +'<button onclick="_applyTranslatedLyrics()" class="lyrics-edit-btn" style="font-size:11px;">적용하기</button>'
+        +'<button onclick="navigator.clipboard.writeText(document.querySelector(\'#lyrics-analysis pre\').textContent);toast(\'복사됨\',\'ok\',1000);" class="lyrics-edit-btn" style="font-size:11px;">복사</button></div>';
+      el.style.display='block';el._translatedText=result;
+    }
+    toast('🌐 번역 완료','ok',1500);
+  }catch(e){toast('번역 실패: '+e.message,'err',2500);}
 }
+function _applyTranslatedLyrics(){
+  var el=$('lyrics-analysis');if(!el||!el._translatedText)return;
+  var promptEl=$('prompt');
+  if(promptEl&&promptEl.offsetParent!==null){promptEl.value=el._translatedText;toast('번역 가사가 적용되었어요','ok',1500);}
+  else if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]){
+    historyData[fpCurrentIdx].lyrics=el._translatedText;
+    historyData[fpCurrentIdx]._inputLyrics=el._translatedText;
+    saveHistory();fpRenderLyrics(historyData[fpCurrentIdx]);
+    toast('번역 가사가 적용되었어요','ok',1500);
+  }
+}
+
+/* ── 오디오→가사 추출 (AI 기반) ── */
+async function _lyricsExtractFromAudio(){
+  if(fpCurrentIdx<0){toast('재생 중인 곡이 없어요','err');return;}
+  var h=historyData[fpCurrentIdx];
+  if(!h){toast('곡 정보 없음','err');return;}
+  var existing=h.lyrics||h.lyric||h._inputLyrics||'';
+  if(existing.trim()&&existing.trim().length>20){if(!confirm('이미 가사가 있어요. 새로 추출하시겠어요?'))return;}
+  toast('🎤 AI 가사 추출 중...','',5000);
+  var mainBox=$('fp-lyrics-main');
+  if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty" style="text-align:center;padding:20px;"><div style="font-size:24px;margin-bottom:8px;">🎤</div><div style="color:var(--t2);font-size:12px;">AI가 가사를 추출하고 있어요...</div><div style="margin-top:8px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;"><div id="lyric-ext-bar" style="width:10%;height:100%;background:var(--accent);border-radius:2px;transition:width .5s;"></div></div></div>';
+  var bar=$('lyric-ext-bar');
+  var barTimer=setInterval(function(){if(bar){var w=parseFloat(bar.style.width)||10;if(w<85)bar.style.width=(w+3)+'%';}},500);
+  try{
+    var taskId=h.taskId||h.task_id||'';var audioId=h.id||'';var extractedLyrics=null;
+    /* 1단계: kie.ai 타임스탬프 가사 시도 */
+    if(taskId){
+      try{
+        var tsRes=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:taskId,audioId:audioId});
+        var words=tsRes?.data?.alignedWords||[];
+        if(words.length>3){extractedLyrics=_wordsToLrc(words);if(bar)bar.style.width='90%';}
+      }catch(e){console.warn('[LyricExtract] timestamp API',e.message);}
+    }
+    /* 2단계: AI 추론 가사 생성 */
+    if(!extractedLyrics){
+      if(bar)bar.style.width='40%';
+      var title=h.title||'무제';var tags=h.tags||'';var genMode=h.genMode||h.gen_mode||'';
+      var duration=fpAudio?.duration?Math.round(fpAudio.duration)+'초':'알 수 없음';
+      var aiPrompt='아래 정보를 바탕으로 이 노래의 가사를 추출/추정해줘.\n제목: '+title+'\n장르/태그: '+tags+'\n모드: '+genMode+'\n길이: '+duration+'\n\n규칙:\n- 섹션 태그 포함: [Verse 1], [Chorus], [Verse 2], [Bridge], [Outro] 등\n- 한국어 곡이면 한국어, 영어 곡이면 영어\n- 제목 키워드를 코러스에 포함\n- 가사만 출력 (설명 없이)';
+      if(bar)bar.style.width='60%';
+      extractedLyrics=await callClaudeStream('당신은 음악 가사 전문가입니다. 곡 정보를 분석하여 가장 적절한 가사를 작성합니다.',aiPrompt,null);
+      if(bar)bar.style.width='90%';
+    }
+    clearInterval(barTimer);
+    if(!extractedLyrics||extractedLyrics.length<10){toast('가사 추출 실패','err',2000);fpRenderLyrics(h);return;}
+    historyData[fpCurrentIdx].lyrics=extractedLyrics;
+    historyData[fpCurrentIdx]._inputLyrics=extractedLyrics;
+    saveHistory();fpRenderLyrics(historyData[fpCurrentIdx]);
+    if(h.id&&currentUser?.name){
+      fetch('/api/tracks?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:h.id,audio_url:h.audio_url,title:h.title,tags:h.tags,lyrics:extractedLyrics,owner_name:currentUser.name,owner_provider:currentUser.provider||'guest'})
+      }).catch(function(){});
+    }
+    toast('🎤 가사 추출 완료!','ok',2000);
+  }catch(e){clearInterval(barTimer);toast('가사 추출 실패: '+e.message,'err',2500);fpRenderLyrics(h);}
+}
+/* 타임스탬프 단어 배열 → LRC 포맷 변환 */
+function _wordsToLrc(words){
+  if(!words||!words.length)return'';
+  var lines=[],curLine='',curStart=null;
+  words.forEach(function(w,wi){
+    var text=(w.word||w.text||'').trim();if(!text)return;
+    if(curStart===null)curStart=w.startS||w.start||0;
+    if(/^\[.+\]$/.test(text)){
+      if(curLine.trim()){var m=Math.floor(curStart/60),s=Math.floor(curStart%60),ms=Math.round((curStart%1)*100);lines.push('['+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(ms).padStart(2,'0')+'] '+curLine.trim());}
+      lines.push('');lines.push(text);curLine='';curStart=null;return;
+    }
+    curLine+=text+' ';
+    var nextWord=words[wi+1];var gap=nextWord?((nextWord.startS||nextWord.start||0)-(w.endS||w.end||0)):9;
+    if(!nextWord||gap>0.8||/[.!?。]$/.test(text)){
+      var m2=Math.floor(curStart/60),s2=Math.floor(curStart%60),ms2=Math.round((curStart%1)*100);
+      lines.push('['+String(m2).padStart(2,'0')+':'+String(s2).padStart(2,'0')+'.'+String(ms2).padStart(2,'0')+'] '+curLine.trim());
+      curLine='';curStart=null;
+    }
+  });
+  if(curLine.trim()&&curStart!==null){var m3=Math.floor(curStart/60),s3=Math.floor(curStart%60),ms3=Math.round((curStart%1)*100);lines.push('['+String(m3).padStart(2,'0')+':'+String(s3).padStart(2,'0')+'.'+String(ms3).padStart(2,'0')+'] '+curLine.trim());}
+  return lines.join('\n');
+}
+
+/* ── 가사 정확도 검증 (AI) ── */
+async function _lyricsVerify(){
+  if(fpCurrentIdx<0){toast('재생 중인 곡이 없어요','err');return;}
+  var h=historyData[fpCurrentIdx];
+  var lyrics=h?.lyrics||h?.lyric||h?._inputLyrics||'';
+  if(!lyrics.trim()||lyrics.length<10){toast('검증할 가사가 없어요. 먼저 가사를 추출해주세요.','err');return;}
+  toast('✅ AI가 가사 품질을 검증 중...','',4000);
+  try{
+    var title=h.title||'무제';var tags=h.tags||'';
+    var duration=fpAudio?.duration?Math.round(fpAudio.duration)+'초':'알 수 없음';
+    var result=await callClaudeStream(
+      '당신은 노래 가사 품질 검증 전문가입니다. 아래 기준으로 가사를 분석하고 100점 만점으로 평가하세요.',
+      '노래 정보:\n- 제목: '+title+'\n- 장르/태그: '+tags+'\n- 길이: '+duration+'\n\n가사:\n'+lyrics+'\n\n'
+      +'다음 기준으로 평가 (각 20점):\n1. 구조 완성도: 섹션 태그 유무, 곡 구성의 논리성\n2. 제목 일치도: 제목 키워드가 가사에 녹아있는지\n3. 장르 적합성: 태그/장르와 가사 톤이 맞는지\n4. 언어 일관성: 한/영 혼용 없이 일관적인지\n5. 길이 적절성: 곡 길이 대비 가사 분량\n\n'
+      +'출력 형식:\n총점: NN/100\n━━━━━━━━━━━━\n1. 구조 완성도: NN/20 — 한줄평\n2. 제목 일치도: NN/20 — 한줄평\n3. 장르 적합성: NN/20 — 한줄평\n4. 언어 일관성: NN/20 — 한줄평\n5. 길이 적절성: NN/20 — 한줄평\n━━━━━━━━━━━━\n개선 제안: (1~2줄)',
+      null
+    );
+    if(!result||result.length<20){toast('검증 실패','err');return;}
+    var scoreMatch=result.match(/총점[:\s]*(\d+)/);var score=scoreMatch?parseInt(scoreMatch[1]):0;
+    var emoji=score>=80?'🟢':score>=60?'🟡':'🔴';
+    var el=$('lyrics-analysis');
+    if(el){
+      el.innerHTML='<div style="font-weight:700;margin-bottom:8px;">'+emoji+' 가사 정확도 검증</div><pre style="white-space:pre-wrap;font-size:12px;line-height:1.6;margin:0;color:var(--t1);">'+esc(result)+'</pre>';
+      el.style.display='block';
+    }
+    toast(emoji+' 검증 완료: '+score+'/100','ok',2000);
+  }catch(e){toast('검증 실패: '+e.message,'err',2500);}
+}
+
 
 /* ═══ 5. 공유 카드 커스터마이징 ═══ */
 var _shareCardStyle='default';
