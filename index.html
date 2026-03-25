@@ -14882,6 +14882,7 @@ function _fpCloseDelSheet(){
 
 function _fpDoDelete(){
   if(fpCurrentIdx<0)return;
+  var h=historyData[fpCurrentIdx];
   // 실제 삭제 수행
   historyData.splice(fpCurrentIdx,1);
   saveHistory();updateHistBadge();renderHistoryView();
@@ -14889,6 +14890,8 @@ function _fpDoDelete(){
   else{closeFullPlayer();hideMiniPlayer();}
   toast('삭제되었어요','ok',1500);
   _fpCloseDelSheet();
+  /* 서버에서도 삭제 */
+  if(h&&h.id) _deleteTrackFromServer(h.id);
 }
 
 /* 노래방 모드 전환 */
@@ -15225,15 +15228,20 @@ function playFromHistory(audioUrl,videoUrl,title){
 
 function deleteHistory(idx,e){
   e.stopPropagation();
+  var h=historyData[idx];
   historyData.splice(idx,1);
   saveHistory();updateHistBadge();renderHistoryView();
   toast('🗑 삭제되었습니다');
+  /* 서버에서도 삭제 */
+  if(h&&h.id) _deleteTrackFromServer(h.id);
 }
 
 $('clear-all-btn').addEventListener('click',()=>{
   _showSettingsConfirm('히스토리 초기화','저장된 생성 내역을 모두 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.','전체 삭제',()=>{
     historyData=[];saveHistory();updateHistBadge();renderHistoryView();
     toast('히스토리가 삭제되었어요','ok',2000);
+    /* 서버에서도 전체 삭제 */
+    _deleteAllTracksFromServer();
   });
 });
 
