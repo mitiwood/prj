@@ -2339,6 +2339,7 @@ textarea.form-input{line-height:1.5;}
           <button class="btn" onclick="_opsTab('automation')" data-opstab="automation">⚡ 자동화 규칙</button>
           <button class="btn" onclick="_opsTab('abtest')" data-opstab="abtest">🧪 A/B 테스트</button>
           <button class="btn" onclick="_opsTab('musicgen')" data-opstab="musicgen">🎵 음악 생성</button>
+          <button class="btn" onclick="_opsTab('cleanup')" data-opstab="cleanup">🧹 DB 정리</button>
         </div>
 
         <!-- 예약 공지 -->
@@ -8960,6 +8961,257 @@ function _simpleMarkdown(md){
 }
 
 function _escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ═══ 관리자 미니플레이어 + 풀플레이어 (멜론/Apple Music 스타일) ═══ */
+var _apQueue=[];     /* 재생 큐 [{url,title,artist,image,id}] */
+var _apIdx=-1;       /* 현재 인덱스 */
+var _apAudio=null;   /* 오디오 엘리먼트 */
+var _apShuffle=false;
+var _apRepeat=0;     /* 0:off 1:all 2:one */
+
+function _apInit(){
+  if(document.getElementById('adm-mini-player'))return;
+  /* CSS */
+  var css=document.createElement('style');
+  css.textContent=`
+    #adm-mini-player{position:fixed;bottom:0;left:0;right:0;z-index:99999;background:linear-gradient(180deg,rgba(22,22,31,.97),rgba(10,10,15,.99));border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);font-family:inherit;}
+    #adm-mini-player.on{transform:translateY(0);}
+    .amp-body{display:flex;align-items:center;gap:12px;padding:8px 16px;max-width:1200px;margin:0 auto;cursor:pointer;}
+    .amp-thumb{width:44px;height:44px;border-radius:10px;background:var(--bg3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .amp-thumb img{width:100%;height:100%;object-fit:cover;}
+    .amp-info{flex:1;min-width:0;}
+    .amp-title{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .amp-sub{font-size:11px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .amp-ctrls{display:flex;align-items:center;gap:4px;}
+    .amp-ctrls button{background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:6px;line-height:1;}
+    .amp-ctrls button:hover{color:var(--acc);}
+    .amp-prog{height:2px;background:rgba(255,255,255,.06);}
+    .amp-prog-fill{height:100%;background:var(--acc);width:0%;transition:width .3s linear;}
+    /* 풀플레이어 */
+    #adm-full-player{position:fixed;inset:0;z-index:100000;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;}
+    #adm-full-player.on{display:flex;}
+    .afp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.3);transform:scale(1.2);}
+    .afp-inner{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;max-width:480px;margin:0 auto;width:100%;padding:20px 16px env(safe-area-inset-bottom,16px);}
+    .afp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+    .afp-header button{background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:8px;}
+    .afp-cover{width:100%;aspect-ratio:1;border-radius:20px;overflow:hidden;background:var(--bg3);margin-bottom:24px;display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+    .afp-cover img{width:100%;height:100%;object-fit:cover;}
+    .afp-title{font-size:20px;font-weight:800;color:var(--t1);text-align:center;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .afp-artist{font-size:13px;color:var(--t3);text-align:center;margin-bottom:20px;}
+    .afp-prog-wrap{margin-bottom:4px;}
+    .afp-prog-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;cursor:pointer;position:relative;}
+    .afp-prog-fill{height:100%;background:var(--acc);border-radius:2px;width:0%;position:relative;}
+    .afp-prog-thumb{width:12px;height:12px;border-radius:50%;background:#fff;position:absolute;right:-6px;top:-4px;box-shadow:0 0 6px rgba(0,0,0,.4);}
+    .afp-times{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px;}
+    .afp-controls{display:flex;align-items:center;justify-content:center;gap:20px;margin:20px 0;}
+    .afp-controls button{background:none;border:none;color:var(--t2);cursor:pointer;padding:8px;}
+    .afp-controls .afp-play{width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;color:#000;}
+    .afp-controls .afp-sm{font-size:20px;opacity:.7;}
+    .afp-controls .afp-md{font-size:26px;}
+    .afp-extra{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px;}
+    .afp-extra button{background:none;border:none;color:var(--t3);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;}
+    .afp-extra button.on{color:var(--acc);}
+    /* 큐 리스트 */
+    .afp-queue{margin-top:16px;border-top:1px solid var(--border);padding-top:12px;}
+    .afp-queue-title{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;}
+    .afp-queue-list{max-height:200px;overflow-y:auto;}
+    .afp-q-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition:background .15s;}
+    .afp-q-item:hover{background:rgba(255,255,255,.04);}
+    .afp-q-item.on{background:rgba(168,85,247,.12);}
+    .afp-q-item .q-num{font-size:11px;color:var(--t3);width:20px;text-align:center;flex-shrink:0;}
+    .afp-q-item .q-thumb{width:36px;height:36px;border-radius:8px;background:var(--bg3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;}
+    .afp-q-item .q-thumb img{width:100%;height:100%;object-fit:cover;}
+    .afp-q-item .q-info{flex:1;min-width:0;}
+    .afp-q-item .q-title{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .afp-q-item .q-sub{font-size:10px;color:var(--t3);}
+  `;
+  document.head.appendChild(css);
+
+  /* 미니플레이어 HTML */
+  var mp=document.createElement('div');mp.id='adm-mini-player';
+  mp.innerHTML=`<div class="amp-prog"><div class="amp-prog-fill" id="amp-prog-fill"></div></div>
+    <div class="amp-body" onclick="_apExpand()">
+      <div class="amp-thumb" id="amp-thumb">🎵</div>
+      <div class="amp-info"><div class="amp-title" id="amp-title">재생 대기</div><div class="amp-sub" id="amp-sub"></div></div>
+      <div class="amp-ctrls" onclick="event.stopPropagation()">
+        <button onclick="_apPrev()" title="이전">⏮</button>
+        <button onclick="_apToggle()" id="amp-play-btn" title="재생">▶</button>
+        <button onclick="_apNext()" title="다음">⏭</button>
+        <button onclick="_apClose()" title="닫기" style="font-size:14px;opacity:.5;">✕</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mp);
+
+  /* 풀플레이어 HTML */
+  var fp=document.createElement('div');fp.id='adm-full-player';
+  fp.innerHTML=`<div class="afp-bg" id="afp-bg"></div>
+    <div class="afp-inner">
+      <div class="afp-header">
+        <button onclick="_apCollapse()">↓</button>
+        <div style="font-size:12px;font-weight:700;color:var(--t2);">NOW PLAYING</div>
+        <button onclick="_apToggleQueue()" id="afp-queue-btn">☰</button>
+      </div>
+      <div class="afp-cover" id="afp-cover">🎵</div>
+      <div class="afp-title" id="afp-title">-</div>
+      <div class="afp-artist" id="afp-artist">-</div>
+      <div class="afp-prog-wrap">
+        <div class="afp-prog-bar" id="afp-prog-bar" onclick="_apSeek(event)">
+          <div class="afp-prog-fill" id="afp-prog-fill"><div class="afp-prog-thumb"></div></div>
+        </div>
+        <div class="afp-times"><span id="afp-cur">0:00</span><span id="afp-dur">0:00</span></div>
+      </div>
+      <div class="afp-controls">
+        <button class="afp-sm" onclick="_apToggleShuffle()" id="afp-shuffle">🔀</button>
+        <button class="afp-md" onclick="_apPrev()">⏮</button>
+        <button class="afp-play" onclick="_apToggle()" id="afp-play-btn">▶</button>
+        <button class="afp-md" onclick="_apNext()">⏭</button>
+        <button class="afp-sm" onclick="_apToggleRepeat()" id="afp-repeat">🔁</button>
+      </div>
+      <div class="afp-extra">
+        <button onclick="_apSpeed()"><span id="afp-speed">1x</span> 속도</button>
+      </div>
+      <div class="afp-queue" id="afp-queue-section" style="display:none;">
+        <div class="afp-queue-title">재생 목록 (<span id="afp-q-count">0</span>곡)</div>
+        <div class="afp-queue-list" id="afp-queue-list"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(fp);
+
+  /* 오디오 생성 */
+  _apAudio=new Audio();
+  _apAudio.addEventListener('timeupdate',_apOnTime);
+  _apAudio.addEventListener('ended',_apOnEnd);
+  _apAudio.addEventListener('play',function(){_apSyncBtns(true);});
+  _apAudio.addEventListener('pause',function(){_apSyncBtns(false);});
+  _apAudio.addEventListener('error',function(){adminToast('오디오 재생 실패');_apSyncBtns(false);});
+}
+
+/* 큐에 트랙 목록 로드 */
+function _apLoadQueue(tracks, startIdx){
+  _apInit();
+  _apQueue=tracks.map(function(t){
+    return {url:t.audio_url||'',title:t.title||'무제',artist:t.owner_name||t.tags?.split(',')[0]||'',image:t.image_url||'',id:t.id||''};
+  }).filter(function(t){return t.url;});
+  if(!_apQueue.length){adminToast('재생할 트랙이 없습니다');return;}
+  _apIdx=Math.min(startIdx||0,_apQueue.length-1);
+  _apPlay(_apIdx);
+  document.getElementById('adm-mini-player').classList.add('on');
+}
+
+/* 재생 */
+function _apPlay(idx){
+  if(idx<0||idx>=_apQueue.length)return;
+  _apIdx=idx;
+  var t=_apQueue[idx];
+  _apAudio.src=t.url;
+  _apAudio.load();
+  _apAudio.play().catch(function(){});
+  /* UI 업데이트 */
+  var ti=document.getElementById('amp-title');if(ti)ti.textContent=t.title;
+  var su=document.getElementById('amp-sub');if(su)su.textContent=t.artist;
+  var th=document.getElementById('amp-thumb');if(th)th.innerHTML=t.image?'<img src="'+_escHtml(t.image)+'" alt="">':'🎵';
+  /* 풀플레이어 */
+  var ft=document.getElementById('afp-title');if(ft)ft.textContent=t.title;
+  var fa=document.getElementById('afp-artist');if(fa)fa.textContent=t.artist;
+  var fc=document.getElementById('afp-cover');if(fc)fc.innerHTML=t.image?'<img src="'+_escHtml(t.image)+'" alt="">':'🎵';
+  var bg=document.getElementById('afp-bg');if(bg&&t.image)bg.style.backgroundImage='url('+t.image+')';
+  _apRenderQueue();
+}
+
+function _apToggle(){
+  if(!_apAudio)return;
+  if(_apAudio.paused)_apAudio.play().catch(function(){});
+  else _apAudio.pause();
+}
+function _apNext(){
+  if(!_apQueue.length)return;
+  var next=_apShuffle?Math.floor(Math.random()*_apQueue.length):_apIdx+1;
+  if(next>=_apQueue.length)next=0;
+  _apPlay(next);
+}
+function _apPrev(){
+  if(!_apQueue.length)return;
+  if(_apAudio&&_apAudio.currentTime>3){_apAudio.currentTime=0;return;}
+  var prev=_apIdx-1;if(prev<0)prev=_apQueue.length-1;
+  _apPlay(prev);
+}
+function _apClose(){
+  if(_apAudio){_apAudio.pause();_apAudio.src='';}
+  document.getElementById('adm-mini-player').classList.remove('on');
+  document.getElementById('adm-full-player').classList.remove('on');
+  /* 기존 admin 플레이어 상태 리셋 */
+  if(_adminCurrentAudio){_adminCurrentAudio.pause();_adminCurrentAudio=null;_adminCurrentIdx=-1;}
+  if(_commAdminAudio){_commAdminAudio.pause();_commAdminAudio=null;_commAdminPlayingIdx=-1;}
+}
+function _apExpand(){
+  document.getElementById('adm-full-player').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function _apCollapse(){
+  document.getElementById('adm-full-player').classList.remove('on');
+  document.body.style.overflow='';
+}
+function _apOnTime(){
+  if(!_apAudio||!_apAudio.duration)return;
+  var pct=(_apAudio.currentTime/_apAudio.duration)*100;
+  var mf=document.getElementById('amp-prog-fill');if(mf)mf.style.width=pct+'%';
+  var ff=document.getElementById('afp-prog-fill');if(ff)ff.style.width=pct+'%';
+  var cur=document.getElementById('afp-cur');if(cur)cur.textContent=_apFmt(_apAudio.currentTime);
+  var dur=document.getElementById('afp-dur');if(dur)dur.textContent=_apFmt(_apAudio.duration);
+}
+function _apOnEnd(){
+  if(_apRepeat===2){_apAudio.currentTime=0;_apAudio.play().catch(function(){});return;}
+  if(_apRepeat===1||_apIdx<_apQueue.length-1)_apNext();
+  else _apSyncBtns(false);
+}
+function _apSyncBtns(playing){
+  var icon=playing?'⏸':'▶';
+  var mb=document.getElementById('amp-play-btn');if(mb)mb.textContent=icon;
+  var fb=document.getElementById('afp-play-btn');if(fb)fb.textContent=icon;
+}
+function _apSeek(e){
+  if(!_apAudio||!_apAudio.duration)return;
+  var bar=document.getElementById('afp-prog-bar');
+  var rect=bar.getBoundingClientRect();
+  var pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  _apAudio.currentTime=pct*_apAudio.duration;
+}
+function _apToggleShuffle(){_apShuffle=!_apShuffle;var b=document.getElementById('afp-shuffle');if(b)b.style.color=_apShuffle?'var(--acc)':'var(--t3)';adminToast(_apShuffle?'셔플 ON':'셔플 OFF');}
+function _apToggleRepeat(){_apRepeat=(_apRepeat+1)%3;var b=document.getElementById('afp-repeat');var labels=['🔁','🔁','🔂'];if(b){b.textContent=labels[_apRepeat];b.style.color=_apRepeat?'var(--acc)':'var(--t3)';}adminToast(['반복 OFF','전체 반복','한곡 반복'][_apRepeat]);}
+var _apSpeedIdx=0;var _apSpeeds=[1,1.25,1.5,0.75];
+function _apSpeed(){_apSpeedIdx=(_apSpeedIdx+1)%_apSpeeds.length;if(_apAudio)_apAudio.playbackRate=_apSpeeds[_apSpeedIdx];var s=document.getElementById('afp-speed');if(s)s.textContent=_apSpeeds[_apSpeedIdx]+'x';}
+function _apToggleQueue(){var s=document.getElementById('afp-queue-section');if(s)s.style.display=s.style.display==='none'?'block':'none';}
+function _apRenderQueue(){
+  var list=document.getElementById('afp-queue-list');var cnt=document.getElementById('afp-q-count');
+  if(cnt)cnt.textContent=_apQueue.length;
+  if(!list)return;
+  list.innerHTML=_apQueue.map(function(t,i){
+    return '<div class="afp-q-item'+(i===_apIdx?' on':'')+'" onclick="_apPlay('+i+')">'
+      +'<div class="q-num">'+(i===_apIdx?'♪':(i+1))+'</div>'
+      +'<div class="q-thumb">'+(t.image?'<img src="'+_escHtml(t.image)+'" alt="">':'🎵')+'</div>'
+      +'<div class="q-info"><div class="q-title">'+_escHtml(t.title)+'</div><div class="q-sub">'+_escHtml(t.artist)+'</div></div>'
+      +'</div>';
+  }).join('');
+}
+function _apFmt(sec){if(!sec||isNaN(sec))return'0:00';var m=Math.floor(sec/60),s=Math.floor(sec%60);return m+':'+(s<10?'0':'')+s;}
+
+/* 기존 adminPlayTrack/adminPlayComm 을 미니플레이어로 연결 */
+var _origAdminPlayTrack=adminPlayTrack;
+adminPlayTrack=function(url,title,btn,idx){
+  /* 기존 인라인 플레이어 정지 */
+  if(_adminCurrentAudio){_adminCurrentAudio.pause();_adminCurrentAudio=null;}
+  if(_commAdminAudio){_commAdminAudio.pause();_commAdminAudio=null;}
+  /* 현재 탭의 트랙 리스트를 큐로 로드 */
+  var h=getHistory().filter(function(t){return t.audio_url;});
+  _apLoadQueue(h,idx);
+};
+var _origAdminPlayComm=typeof adminPlayComm==='function'?adminPlayComm:null;
+adminPlayComm=function(url,title,idx){
+  if(_adminCurrentAudio){_adminCurrentAudio.pause();_adminCurrentAudio=null;}
+  if(_commAdminAudio){_commAdminAudio.pause();_commAdminAudio=null;}
+  var tracks=(_serverTracks||[]).filter(function(t){return t.audio_url;});
+  _apLoadQueue(tracks,idx);
+};
 </script>
 </body>
 </html>
