@@ -16891,7 +16891,7 @@ function _buildCommItem(t,i,isMine){
         <!-- 2열: 사용자 + 팔로우 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
-          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}${t._coOwner?' <span style="color:var(--t3);">×</span> <span style="color:#ec4899;">'+esc(t._coOwner.name)+'</span>':''}</span>${t._collabId?'<span style="display:inline-block;padding:1px 6px;border-radius:6px;background:rgba(236,72,153,.12);color:#ec4899;font-size:9px;font-weight:700;margin-left:4px;">COLLAB</span>':''}${(typeof _getCreatorLevelHtml==='function'&&t._ownerSongs)?_getCreatorLevelHtml(t._ownerSongs,t._ownerLikes):''}
+          <span onclick="event.stopPropagation();openCreatorProfile('${esc(ownerName)}','${esc(t._owner?.provider||'')}')" style="color:var(--acc3);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;">${provIcon} ${esc(ownerName)}${t._coOwner?' <span style="color:var(--t3);">×</span> <span style="color:#ec4899;">'+esc(t._coOwner.name)+'</span>':''}</span>${_planBadgeHtml(_getCreatorPlan(ownerName,t._owner?.provider||''),'inline')}${t._collabId?'<span style="display:inline-block;padding:1px 6px;border-radius:6px;background:rgba(236,72,153,.12);color:#ec4899;font-size:9px;font-weight:700;margin-left:4px;">COLLAB</span>':''}${(typeof _getCreatorLevelHtml==='function'&&t._ownerSongs)?_getCreatorLevelHtml(t._ownerSongs,t._ownerLikes):''}
           ${!isMine?(function(){var ck=ownerName+'__'+(t._owner?.provider||'');var isF=_followStateCache[ck]===true;return '<button class="comm-item-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(ownerName)+'" data-cprov="'+esc(t._owner?.provider||'')+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button>';})():''}
           <span style="color:var(--t3);font-size:10px;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">${t.plays>0?`<span>▶ ${t.plays}</span>`:''}${t.likes>0?`<span>❤️ ${t.likes}</span>`:''}</span>
         </div>
@@ -17469,7 +17469,7 @@ function _renderCreatorList(){
       <div class="comm-creator-header" onclick="_toggleCreatorAccordion(this)">
         <div class="comm-creator-avatar" onclick="event.stopPropagation();openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">${_safeAvatarHtml(g.avatar,g.name)}</div>
         <div class="comm-creator-info" onclick="event.stopPropagation();openCreatorProfile('${esc(g.name)}','${esc(g.provider)}')">
-          <div class="comm-creator-name">${provIcon} ${esc(g.name)}${isMe?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
+          <div class="comm-creator-name">${provIcon} ${esc(g.name)}${_planBadgeHtml(_getCreatorPlan(g.name,g.provider),'inline')}${isMe?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}</div>
           <div class="comm-creator-meta">
             <span>🎵 ${g.tracks.length}곡</span>
             <span>❤️ ${g.totalLikes}좋아요</span>
@@ -20009,7 +20009,8 @@ function openProfileSheet(name, provider){
       if(!d.ok) return;
       const p = d.profile;
       $('pf-avatar').innerHTML = p.avatar ? `<img src="${esc(p.avatar)}" style="width:100%;height:100%;object-fit:cover;">` : '👤';
-      $('pf-plan').textContent = (p.plan||'free').toUpperCase();
+      var _pfPlanEl=$('pf-plan');
+      if(_pfPlanEl){var _pp=p.plan||'free';var _pcfg={free:{icon:'🆓',label:'FREE',bg:'rgba(255,255,255,.15)'},pro:{icon:'💜',label:'Pro',bg:'linear-gradient(135deg,#7c3aed,#a855f7)'},creator:{icon:'👑',label:'Creator',bg:'linear-gradient(135deg,#f59e0b,#ef4444)'}};var _pc=_pcfg[_pp]||_pcfg.free;_pfPlanEl.textContent=_pc.icon+' '+_pc.label;_pfPlanEl.style.background=_pc.bg;_pfPlanEl.style.color='#fff';}
       $('pf-tracks').textContent = p.trackCount || 0;
       $('pf-likes').textContent = p.totalLikes || 0;
       $('pf-followers').textContent = p.followerCount || 0;

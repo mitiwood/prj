@@ -133,6 +133,14 @@ export default async function handler(req, res) {
         `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
         { plan: setPlan, credits_song: setLimits.songs, credits_mv: setLimits.mv, credits_lyrics: setLimits.lyrics, plan_expires: expires }
       );
+      /* plan_changed 이벤트 브로드캐스트 → 클라이언트 배지 즉시 갱신 */
+      try {
+        await fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ai-music-studio-bice.vercel.app'}/api/realtime`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+          body: JSON.stringify({ event: 'plan_changed', data: { user: userName, provider: userProvider, plan: setPlan } }),
+        });
+      } catch (e) { console.warn('[realtime]', e.message); }
       return res.status(200).json({ ok: true, plan: setPlan });
     }
 

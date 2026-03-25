@@ -222,14 +222,21 @@ export default async function handler(req, res) {
         body: JSON.stringify(update),
       });
 
-      /* 플랜 변경 시 알림 */
+      /* 플랜 변경 시 알림 + realtime 이벤트 */
       if (plan) {
         const planNames = { free: 'Free', pro: 'Pro 💜', creator: 'Creator 👑' };
         const planLabel = planNames[plan] || plan;
         const msg = `🎫 플랜 변경\n\n👤 ${name}\n📋 ${planLabel}\n⏰ ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`;
+        const ADMIN_SECRET = process.env.ADMIN_SECRET;
         await Promise.allSettled([
           _tgNotify('plan_change', { name, provider, plan }),
           _kakaoNotify('plan_change', { name, provider, plan }),
+          /* plan_changed 이벤트 브로드캐스트 → 클라이언트 배지 즉시 갱신 */
+          fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ai-music-studio-bice.vercel.app'}/api/realtime`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+            body: JSON.stringify({ event: 'plan_changed', data: { user: name, provider, plan } }),
+          }).catch(() => {}),
         ]);
 
         /* 해당 사용자에게 푸시 알림 */
