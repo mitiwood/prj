@@ -352,6 +352,9 @@ textarea.form-input{line-height:1.5;}
       <div class="snav-item" data-sec="database" onclick="mobNav('database')"><span class="snav-icon">🗄️</span>DB 관리</div>
       <div class="snav-item" data-sec="logs" onclick="mobNav('logs')"><span class="snav-icon">📋</span>로그</div>
       <div class="snav-item" data-sec="settings" onclick="mobNav('settings')"><span class="snav-icon">⚙️</span>설정</div>
+      <div class="snav-divider"></div>
+      <div class="snav-item" data-sec="changelog" onclick="mobNav('changelog')"><span class="snav-icon">📜</span>수정 이력</div>
+      <div class="snav-item" data-sec="docs" onclick="mobNav('docs')"><span class="snav-icon">📚</span>프로젝트 문서</div>
       <div style="padding:16px 14px;border-top:1px solid var(--border);margin-top:8px;">
         <button class="btn btn-red" onclick="adminLogout()" style="width:100%;">🔓 로그아웃</button>
       </div>
@@ -389,6 +392,9 @@ textarea.form-input{line-height:1.5;}
       <div class="snav-item" data-sec="errors" onclick="switchSec('errors')"><span class="snav-icon">🚨</span>에러 모니터</div>
       <div class="snav-item" data-sec="sentry" onclick="switchSec('sentry')"><span class="snav-icon">🛡️</span>Sentry</div>
       <div class="snav-item" data-sec="settings" onclick="switchSec('settings')"><span class="snav-icon">⚙️</span>설정</div>
+      <div class="snav-item snav-divider"></div>
+      <div class="snav-item" data-sec="changelog" onclick="switchSec('changelog')"><span class="snav-icon">📜</span>수정 이력</div>
+      <div class="snav-item" data-sec="docs" onclick="switchSec('docs')"><span class="snav-icon">📚</span>프로젝트 문서</div>
     </div>
     <div class="sidebar-footer">
       <div>마지막 접속: <span id="last-login-time"></span></div>
@@ -2018,6 +2024,43 @@ textarea.form-input{line-height:1.5;}
         </div>
       </div>
 
+      <!-- 수정 이력 (Git Changelog) -->
+      <div class="admin-section" id="sec-changelog">
+        <div class="sec-hdr">
+          <h2>📜 수정 이력</h2>
+          <div style="display:flex;gap:8px;">
+            <select id="cl-filter" class="settings-input" style="width:auto;padding:5px 8px;" onchange="renderChangelog()">
+              <option value="all">전체</option>
+              <option value="feat">기능 추가</option>
+              <option value="fix">버그 수정</option>
+              <option value="refactor">리팩토링</option>
+            </select>
+            <button class="btn btn-acc" onclick="loadChangelog()" style="font-size:11px;padding:5px 12px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <div id="cl-loading" style="text-align:center;padding:40px;color:var(--t3);display:none;">불러오는 중...</div>
+        <div id="cl-list" style="display:flex;flex-direction:column;gap:2px;"></div>
+        <div style="text-align:center;margin-top:16px;">
+          <button class="btn" id="cl-more-btn" onclick="loadChangelog(true)" style="display:none;">더 보기</button>
+        </div>
+      </div>
+
+      <!-- 프로젝트 문서 -->
+      <div class="admin-section" id="sec-docs">
+        <div class="sec-hdr">
+          <h2>📚 프로젝트 문서</h2>
+          <input class="table-search" id="docs-search" placeholder="문서 검색..." oninput="filterDocs()">
+        </div>
+        <div id="docs-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:16px;"></div>
+        <div id="docs-viewer" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <button class="btn" onclick="closeDocs()">← 목록으로</button>
+            <span id="docs-viewer-title" style="font-size:14px;font-weight:700;color:var(--t1);"></span>
+          </div>
+          <div id="docs-content" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;font-size:13px;line-height:1.8;color:var(--t2);white-space:pre-wrap;word-break:break-word;overflow-x:auto;"></div>
+        </div>
+      </div>
+
       <!-- 로그 보기 -->
       <div class="admin-section" id="sec-logs">
         <div class="sec-hdr"><h2>📋 로그 보기</h2></div>
@@ -2729,7 +2772,7 @@ function switchSec(id){
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
   const sec=document.getElementById('sec-'+id);
   if(sec)sec.classList.add('on');
-  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',attendance:'📅 출석 관리',errors:'🚨 에러 모니터',sentry:'🛡️ Sentry'};
+  const titles={dashboard:'대시보드',tracks:'음악 관리',community:'커뮤니티',comments:'💬 댓글 관리',users:'사용자',managers:'매니저 관리',reports:'신고 관리',payments:'👤 회원 관리',revenue:'💎 수익 분석',usage:'사용량·비용',claude:'🤖 Claude 사용량',live:'⚡ 실시간 알림',push:'푸시 알림',database:'🗄️ DB 관리',settings:'설정',logs:'📋 로그 보기',kielogs:'🔗 kie.ai 로그',audit:'📝 감사 로그',ops:'🛠 운영 도구',challenges:'🔥 챌린지',attendance:'📅 출석 관리',errors:'🚨 에러 모니터',sentry:'🛡️ Sentry',changelog:'📜 수정 이력',docs:'📚 프로젝트 문서'};
   var _secTitle=document.getElementById('sec-title'); if(_secTitle) _secTitle.textContent=titles[id]||id;
   var _mobTitle=document.getElementById('mob-sec-title'); if(_mobTitle) _mobTitle.textContent=titles[id]||id;
   if(id==='tracks'){renderTracksAdmin();_startTracksPoll();}
@@ -2748,6 +2791,8 @@ function switchSec(id){
   if(id==='settings') _updateSysInfo();
   if(id==='attendance') loadAttendanceAdmin();
   if(id==='sentry') loadSentryDashboard();
+  if(id==='changelog') loadChangelog();
+  if(id==='docs') loadDocsList();
 }
 
 /* ══════════════════════════════════════════════
@@ -8746,6 +8791,175 @@ async function _resetAttStreak(){
     else adminToast('실패: '+(d.reason||''),'err');
   }catch(e){adminToast('오류: '+e.message,'err');}
 }
+
+/* ══════════════════════════════════════════════
+   수정 이력 (Git Changelog via GitHub API)
+══════════════════════════════════════════════ */
+let _clCommits=[];
+let _clPage=1;
+const _CL_PER_PAGE=30;
+const _CL_REPO='mitiwood/ai-music-studio';
+
+async function loadChangelog(more){
+  const loading=document.getElementById('cl-loading');
+  const list=document.getElementById('cl-list');
+  if(!more){_clCommits=[];_clPage=1;list.innerHTML='';loading.style.display='block';}
+  else{_clPage++;}
+  try{
+    const r=await fetch('https://api.github.com/repos/'+_CL_REPO+'/commits?per_page='+_CL_PER_PAGE+'&page='+_clPage);
+    if(!r.ok) throw new Error('GitHub API '+r.status);
+    const data=await r.json();
+    _clCommits=_clCommits.concat(data);
+    renderChangelog();
+    document.getElementById('cl-more-btn').style.display=data.length>=_CL_PER_PAGE?'inline-block':'none';
+  }catch(e){
+    adminToast('커밋 로드 실패: '+e.message,'err');
+  }
+  loading.style.display='none';
+}
+
+function renderChangelog(){
+  const list=document.getElementById('cl-list');
+  const filter=document.getElementById('cl-filter').value;
+  let commits=_clCommits;
+  if(filter!=='all'){
+    commits=commits.filter(c=>{
+      const msg=(c.commit?.message||'').toLowerCase();
+      if(filter==='feat') return msg.startsWith('feat');
+      if(filter==='fix') return msg.startsWith('fix');
+      if(filter==='refactor') return msg.startsWith('refactor')||msg.startsWith('chore');
+      return true;
+    });
+  }
+  list.innerHTML=commits.map(c=>{
+    const msg=c.commit?.message||'';
+    const firstLine=msg.split('\n')[0];
+    const date=c.commit?.author?.date;
+    const dStr=date?new Date(date).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    const author=c.commit?.author?.name||'';
+    const sha=(c.sha||'').slice(0,7);
+    const url=c.html_url||'#';
+    /* 타입 뱃지 */
+    let badge='';
+    if(/^feat/i.test(firstLine)) badge='<span class="badge badge-grn">feat</span>';
+    else if(/^fix/i.test(firstLine)) badge='<span class="badge badge-ylw">fix</span>';
+    else if(/^refactor|^chore/i.test(firstLine)) badge='<span class="badge badge-acc">refactor</span>';
+    else if(/^docs/i.test(firstLine)) badge='<span class="badge badge-acc">docs</span>';
+    else badge='<span class="badge" style="background:rgba(255,255,255,.06);color:var(--t3);border:1px solid var(--border);">other</span>';
+    /* 파일 변경 수 */
+    return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;">'
+      +'<div style="flex-shrink:0;margin-top:2px;">'+badge+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--t1);word-break:break-word;">'+_escHtml(firstLine)+'</div>'
+      +'<div style="font-size:11px;color:var(--t3);margin-top:4px;">'+_escHtml(author)+' · '+dStr+' · <a href="'+url+'" target="_blank" style="color:var(--acc);text-decoration:none;">'+sha+'</a></div>'
+      +'</div></div>';
+  }).join('');
+  if(!commits.length) list.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);">해당하는 커밋이 없습니다</div>';
+}
+
+/* ══════════════════════════════════════════════
+   프로젝트 문서 뷰어
+══════════════════════════════════════════════ */
+let _docsFiles=[];
+const _DOCS_ICONS={'ROADMAP':'🗺️','POLICY':'📋','WORK_PLAN':'📝','CI_CD':'🔄','FLUTTER':'📱','TELEGRAM':'📲','ANTHROPIC':'🤖','ADMIN':'🖥️','COMMUNITY':'🌐','CHAT':'💬','SEQUENCE':'🔀','API':'🔌','STORYBOARD':'🎬','changelog':'📜','tab-structure':'📑','z-index':'📐'};
+
+async function loadDocsList(){
+  const list=document.getElementById('docs-list');
+  const viewer=document.getElementById('docs-viewer');
+  viewer.style.display='none';
+  list.style.display='grid';
+  try{
+    const r=await fetch('https://api.github.com/repos/'+_CL_REPO+'/contents/docs');
+    if(!r.ok) throw new Error('GitHub API '+r.status);
+    _docsFiles=await r.json();
+    renderDocsList();
+  }catch(e){
+    /* 폴백: 하드코딩된 목록 */
+    _docsFiles=[
+      'ROADMAP.md','POLICY.md','WORK_PLAN.md','CI_CD_PIPELINE.md','FLUTTER_APP.md',
+      'TELEGRAM_BOT.md','ANTHROPIC_API.md','ADMIN_RESPONSIVE.md','COMMUNITY_DATA_POLICY.md',
+      'CHAT_SYSTEM.md','chat-feature.md','SEQUENCE_DIAGRAM.md','API_ARCHITECTURE.md',
+      'STORYBOARD.md','tab-structure.md','z-index-layers.md','changelog-20260322.md','changelog-20260324.md','community-layout.md'
+    ].map(n=>({name:n,path:'docs/'+n,download_url:'https://raw.githubusercontent.com/'+_CL_REPO+'/main/docs/'+n}));
+    renderDocsList();
+  }
+}
+
+function renderDocsList(){
+  const list=document.getElementById('docs-list');
+  const search=(document.getElementById('docs-search')?.value||'').toLowerCase();
+  const files=_docsFiles.filter(f=>f.name.endsWith('.md')&&(!search||f.name.toLowerCase().includes(search)));
+  list.innerHTML=files.map(f=>{
+    const name=f.name.replace('.md','');
+    const displayName=name.replace(/_/g,' ').replace(/-/g,' ');
+    let icon='📄';
+    for(const [k,v] of Object.entries(_DOCS_ICONS)){if(name.toUpperCase().includes(k.toUpperCase())){icon=v;break;}}
+    return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s;" onclick="openDoc(\''+_escHtml(f.name)+'\')" onmouseover="this.style.borderColor=\'rgba(168,85,247,.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      +'<div style="font-size:28px;margin-bottom:8px;">'+icon+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px;">'+_escHtml(displayName)+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);">'+_escHtml(f.name)+'</div>'
+      +'</div>';
+  }).join('');
+  if(!files.length) list.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t3);">문서가 없습니다</div>';
+}
+
+function filterDocs(){renderDocsList();}
+
+async function openDoc(name){
+  const list=document.getElementById('docs-list');
+  const viewer=document.getElementById('docs-viewer');
+  const title=document.getElementById('docs-viewer-title');
+  const content=document.getElementById('docs-content');
+  list.style.display='none';
+  viewer.style.display='block';
+  title.textContent=name.replace('.md','').replace(/_/g,' ');
+  content.textContent='불러오는 중...';
+  try{
+    const url='https://raw.githubusercontent.com/'+_CL_REPO+'/main/docs/'+encodeURIComponent(name);
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    let text=await r.text();
+    /* 간단한 마크다운 → HTML 변환 */
+    text=_simpleMarkdown(text);
+    content.innerHTML=text;
+    content.style.whiteSpace='normal';
+  }catch(e){
+    content.textContent='문서를 불러올 수 없습니다: '+e.message;
+  }
+}
+
+function closeDocs(){
+  document.getElementById('docs-list').style.display='grid';
+  document.getElementById('docs-viewer').style.display='none';
+}
+
+/* 간단한 마크다운 렌더러 */
+function _simpleMarkdown(md){
+  let html=_escHtml(md);
+  /* 헤더 */
+  html=html.replace(/^### (.+)$/gm,'<h4 style="margin:16px 0 8px;color:var(--t1);font-size:14px;">$1</h4>');
+  html=html.replace(/^## (.+)$/gm,'<h3 style="margin:20px 0 10px;color:var(--t1);font-size:16px;border-bottom:1px solid var(--border);padding-bottom:6px;">$1</h3>');
+  html=html.replace(/^# (.+)$/gm,'<h2 style="margin:24px 0 12px;color:var(--t1);font-size:18px;">$1</h2>');
+  /* 코드 블록 */
+  html=html.replace(/```[\s\S]*?```/g,m=>'<pre style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;font-size:12px;margin:8px 0;">'+m.replace(/```\w*\n?/g,'').replace(/```/g,'')+'</pre>');
+  /* 인라인 코드 */
+  html=html.replace(/`([^`]+)`/g,'<code style="background:var(--bg2);padding:1px 5px;border-radius:4px;font-size:12px;">$1</code>');
+  /* 볼드/이탤릭 */
+  html=html.replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--t1);">$1</strong>');
+  html=html.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  /* 리스트 */
+  html=html.replace(/^- (.+)$/gm,'<div style="padding-left:16px;margin:2px 0;">• $1</div>');
+  html=html.replace(/^\d+\. (.+)$/gm,function(m,p1){return '<div style="padding-left:16px;margin:2px 0;">'+m.match(/^\d+/)[0]+'. '+p1+'</div>';});
+  /* 링크 */
+  html=html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" style="color:var(--acc);text-decoration:underline;">$1</a>');
+  /* 수평선 */
+  html=html.replace(/^---$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">');
+  /* 줄바꿈 */
+  html=html.replace(/\n/g,'<br>');
+  return html;
+}
+
+function _escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 </body>
 </html>
