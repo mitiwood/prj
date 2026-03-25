@@ -6864,6 +6864,16 @@ document.addEventListener('visibilitychange',function(){
         }
       }).catch(e => console.warn('[Visibility Change] Context resume failed:', e));
     }
+    
+    /* 블루투스 오디오 연결 상태 체크 및 복구 */
+    if(fpAudio && !fpAudio.paused) {
+      // 블루투스 연결이 끊어진 경우 재연결 시도
+      if(typeof fpAudio.setSinkId === 'function') {
+        fpAudio.setSinkId('').then(() => {
+          console.log('[Visibility Change] Audio sink restored');
+        }).catch(e => console.warn('[Visibility Change] Audio sink restore failed:', e));
+      }
+    }
     /* 탭 복귀 시 30초 넘었으면 즉시 갱신 */
     if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
       var cv=document.getElementById('community-view');
@@ -11918,6 +11928,12 @@ function _destroyFpAudio(){
     if(typeof fpAudio.setSinkId === 'function') {
       fpAudio.setSinkId('').catch(function(){});
     }
+    // 오디오 이벤트 리스너 정리 (메모리 누수 방지)
+    fpAudio.removeEventListener('timeupdate', arguments.callee);
+    fpAudio.removeEventListener('ended', arguments.callee);
+    fpAudio.removeEventListener('error', arguments.callee);
+    fpAudio.removeEventListener('play', arguments.callee);
+    fpAudio.removeEventListener('pause', arguments.callee);
     fpAudio.src='about:blank';
     fpAudio.load(); // 블루투스 메모리 정리
   } catch(e) {
@@ -12215,6 +12231,8 @@ function showMiniPlayer(idx, contextOverride = null){
   audio.play().then(()=>{
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
     _syncAllPlayBtns(true);
+    /* 블루투스 모니터링 시작 */
+    _startBluetoothMonitor();
     /* BPM 분석기 — play() 성공 후 연결 (AudioContext suspended 방지) */
     try{
       if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
@@ -13452,6 +13470,56 @@ function fpToggleSleep(){var p=$('fp-sleep-panel');if(!p)return;p.classList.togg
 function fpSetSleep(min){fpCancelSleep();if(min===0){_sleepMode='endoftrack';document.querySelectorAll('.fp-sleep-opt').forEach(function(b){b.classList.toggle('on',b.textContent.includes('끝나면'));});$('fp-sleep-active')?.classList.add('on');var cd=$('fp-sleep-countdown');if(cd)cd.textContent='곡 끝';var lb=$('fp-sleep-label');if(lb)lb.textContent='ON';$('fp-sleep-toggle')?.classList.add('on');return;}_sleepMode='time';_sleepEnd=Date.now()+min*60000;document.querySelectorAll('.fp-sleep-opt').forEach(function(b){b.classList.toggle('on',b.textContent.includes(min+'분')||(min===60&&b.textContent.includes('1시간')));});$('fp-sleep-active')?.classList.add('on');$('fp-sleep-toggle')?.classList.add('on');_sleepTick=setInterval(function(){var remain=Math.max(0,_sleepEnd-Date.now());var m=Math.floor(remain/60000),s=Math.floor((remain%60000)/1000);var c=$('fp-sleep-countdown');if(c)c.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');var l=$('fp-sleep-label');if(l)l.textContent=m+'분';if(remain<=0){fpCancelSleep();if(fpAudio&&!fpAudio.paused){var vol=fpAudio.volume;var fo=setInterval(function(){vol=Math.max(0,vol-0.05);fpAudio.volume=vol;if(vol<=0){clearInterval(fo);fpAudio.pause();fpAudio.volume=1;_syncAllPlayBtns(false);toast('슬립 타이머 — 음악이 정지되었어요','',3000);}},100);}}},1000);}
 function fpCancelSleep(){clearInterval(_sleepTick);_sleepTick=null;_sleepEnd=0;_sleepMode='time';document.querySelectorAll('.fp-sleep-opt').forEach(function(b){b.classList.remove('on');});$('fp-sleep-active')?.classList.remove('on');var l=$('fp-sleep-label');if(l)l.textContent='타이머';$('fp-sleep-toggle')?.classList.remove('on');}
 function _checkSleepOnEnd(){if(_sleepMode==='endoftrack'){fpCancelSleep();if(fpAudio){fpAudio.pause();_syncAllPlayBtns(false);}toast('슬립 타이머 — 음악이 정지되었어요','',3000);return true;}return false;}
+
+/* ═══ 블루투스 연결 모니터링 및 복구 ═══ */
+var _bluetoothMonitorInterval=null;
+function _startBluetoothMonitor() {
+  if(_bluetoothMonitorInterval) return;
+  
+  _bluetoothMonitorInterval = setInterval(function(){
+    if(!fpAudio || fpAudio.paused) return;
+    
+    // 오디오가 재생 중인데 currentTime이 진행되지 않으면 연결 문제로 판단
+    if(fpAudio._lastCurrentTime !== undefined) {
+      var timeDiff = fpAudio.currentTime - fpAudio._lastCurrentTime;
+      
+      // 2초간 currentTime 변화가 없으면 블루투스 연결 문제로 간주
+      if(timeDiff < 0.1 && !fpAudio.paused) {
+        console.warn('[Bluetooth Monitor] Audio playback stuck, attempting recovery');
+        
+        // 블루투스 재연결 시도
+        if(typeof fpAudio.setSinkId === 'function') {
+          fpAudio.setSinkId('').then(function(){
+            console.log('[Bluetooth Monitor] Audio sink reset successful');
+          }).catch(function(e){
+            console.warn('[Bluetooth Monitor] Audio sink reset failed:', e);
+            // setSinkId 실패시 오디오 재시작 시도
+            var currentTime = fpAudio.currentTime;
+            fpAudio.load();
+            fpAudio.currentTime = currentTime;
+            fpAudio.play().catch(function(){});
+          });
+        }
+        
+        // 오디오 컨텍스트 재개
+        if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+          _eqCtx.resume().catch(function(e){
+            console.warn('[Bluetooth Monitor] Audio context resume failed:', e);
+          });
+        }
+      }
+    }
+    
+    fpAudio._lastCurrentTime = fpAudio.currentTime;
+  }, 2000); // 2초마다 체크
+}
+
+function _stopBluetoothMonitor() {
+  if(_bluetoothMonitorInterval) {
+    clearInterval(_bluetoothMonitorInterval);
+    _bluetoothMonitorInterval = null;
+  }
+}
 
 /* ═══ 4. 크로스페이드 ═══ */
 var _fpXfadeEnabled=false,_fpXfadeDur=3;
