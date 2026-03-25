@@ -12988,12 +12988,12 @@ function _saveTrackToServer(track){
         renderCommunity(true);
       }
     }
-    /* 콜라보 트랙이면 완료 처리 (await 필수) */
+    /* 콜라보 트랙이면 완료 처리 */
     if(window._collabPending && d.success){
-      try{ await fetch('/api/collabs',{
+      fetch('/api/collabs',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ action:'complete', id: window._collabPending.collabId, trackId: payload.id, creatorName: currentUser?.name||'', creatorProvider: currentUser?.provider||'' })
-      }); }catch(e){}
+      }).catch(function(){});
       window._collabPending = null;
     }
   }).catch(e=>{
