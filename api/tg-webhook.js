@@ -520,7 +520,14 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
   try {
-    /* GitHub API로 Issue 생성 (라벨 실패 시 라벨 없이 재시도) */
+    /* 1) 라벨이 없으면 먼저 생성 (409 = 이미 존재 → 무시) */
+    try {
+      await ghApi('POST', '/labels', { name: 'claude-fix', color: '7c3aed', description: 'Claude Code 자동 수정' });
+    } catch (e) {
+      if (!e.message.includes('422') && !e.message.includes('already_exists')) console.warn('[label]', e.message);
+    }
+
+    /* 2) Issue 생성 (라벨 포함) */
     let issue;
     try {
       issue = await ghApi('POST', '/issues', {
@@ -529,11 +536,15 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
         labels: ['claude-fix'],
       });
     } catch (labelErr) {
-      /* 라벨이 없어서 422 실패 시 라벨 없이 재시도 */
+      /* 라벨 첨부 실패 시 이슈만 먼저 생성 후 라벨 별도 추가 */
       issue = await ghApi('POST', '/issues', {
         title: `[텔레그램] ${arg.slice(0, 60)}`,
         body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
       });
+      /* 이슈에 라벨 추가 (워크플로우 트리거 필수) */
+      try {
+        await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix'] });
+      } catch (e2) { console.warn('[label-add]', e2.message); }
     }
     const safeArg = arg.replace(/[*_`\[]/g, '');
     await tgSend(chatId, [
@@ -984,6 +995,7 @@ COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
   await tgSend(chatId, '🔍 QA 전체 점검을 시작합니다...\n\nClaude Code가 코드를 분석하고 결과를 리포트합니다.', { parse_mode: '' });
 
   try {
+    try { await ghApi('POST', '/labels', { name: 'claude-fix', color: '7c3aed' }); } catch (e) {}
     let issue;
     try {
       issue = await ghApi('POST', '/issues', {
@@ -996,6 +1008,7 @@ COMMANDS['qa'] = COMMANDS['QA'] = async (chatId, arg) => {
         title: `[QA] 전체 점검 · ${ts()}`,
         body: QA_BODY + `\n---\n> ${arg ? arg + ' · ' : ''}${chatId === CHAT_ID ? '텔레그램' : '카카오'} 봇에서 요청됨 · ${ts()}`,
       });
+      try { await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix'] }); } catch (e2) {}
     }
 
     await tgSend(chatId, [
@@ -1075,6 +1088,10 @@ COMMANDS['디자인'] = COMMANDS['design'] = async (chatId, arg) => {
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 디자인 <지시사항>\n\n예시:\n디자인 버튼 둥글게 + 그림자 추가\n디자인 다크모드 색상 변경', { parse_mode: '' });
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' });
   try {
+    /* 라벨 사전 생성 (없으면) */
+    try { await ghApi('POST', '/labels', { name: 'claude-fix', color: '7c3aed' }); } catch (e) {}
+    try { await ghApi('POST', '/labels', { name: 'design', color: '1d76db' }); } catch (e) {}
+
     let issue;
     try {
       issue = await ghApi('POST', '/issues', {
@@ -1087,6 +1104,7 @@ COMMANDS['디자인'] = COMMANDS['design'] = async (chatId, arg) => {
         title: `[디자인] ${arg.slice(0, 60)}`,
         body: `## 디자인 수정 요청\n\n${arg}\n\n### 규칙\n- CSS/UI만 수정할 것\n- 기능 로직 변경 금지\n- 모바일 반응형 유지\n\n---\n> 텔레그램 봇 · ${ts()}`,
       });
+      try { await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix', 'design'] }); } catch (e2) {}
     }
     await tgSend(chatId, `🎨 디자인 요청 등록!\n\n📋 Issue #${issue.number}\n📝 ${arg}\n\n🤖 Claude가 CSS/UI를 수정합니다.\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
   } catch (e) {
@@ -1502,6 +1520,7 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
     if (!GH_TOKEN) { await tgSend(chatId, '⚠️ GITHUB_TOKEN 미설정', { parse_mode: '' }); return; }
     await tgSend(chatId, `🚀 고도화 요청 처리 중...\n\n📝 "${instruction}"`, { parse_mode: '' });
     try {
+      try { await ghApi('POST', '/labels', { name: 'claude-fix', color: '7c3aed' }); } catch (e) {}
       let issue;
       try {
         issue = await ghApi('POST', '/issues', {
@@ -1514,6 +1533,7 @@ COMMANDS['고도화'] = COMMANDS['upgrade'] = COMMANDS['phase'] = async (chatId,
           title: `[고도화] ${instruction.slice(0, 60)}`,
           body: `## 고도화 요청\n\n${instruction}\n\n---\n> 텔레그램 봇 고도화 명령 · ${ts()}`,
         });
+        try { await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix'] }); } catch (e2) {}
       }
       await tgSend(chatId, [
         `✅ 고도화 요청 등록!`,
