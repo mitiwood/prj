@@ -107,7 +107,8 @@ async function _handler(req, res) {
         filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
-        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
+        // 실제 사용자 필터링을 서버에서 처리: users 테이블과 조인하여 가입한 사용자의 트랙만 반환
+        filter = `/tracks?is_public=eq.true&owner_name=in.(select name from users)&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
       const mapped = (rows || []).map((r) => ({

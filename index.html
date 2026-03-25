@@ -6638,14 +6638,17 @@ let _sbTracks    = [];   /* Supabase에서 받아온 전체 커뮤니티 트랙 
 let _sbMyTracks  = [];   /* 현재 로그인 사용자의 트랙 */
 /* 실제 가입 사용자 이름 캐시 — 이 목록에 없는 owner의 트랙은 커뮤니티에 표시하지 않음 */
 let _realUserNames = null;
+let _realUsersLoadedAt = 0;
+const _REAL_USERS_CACHE_TTL = 86400000; /* 24시간 캐시 */
 async function _loadRealUsers(){
-  if(_realUserNames) return;
+  if(_realUserNames && (Date.now() - _realUsersLoadedAt) < _REAL_USERS_CACHE_TTL) return;
   try{
     var r=await fetch('/api/users',{headers:{'Authorization':'Bearer '+(typeof getAdminPw==='function'?getAdminPw():'')}});
     if(!r.ok) return;
     var d=await r.json();
     if(Array.isArray(d.users)){
       _realUserNames=new Set(d.users.map(function(u){return u.name;}));
+      _realUsersLoadedAt=Date.now();
     }
   }catch(e){}
 }
@@ -6660,7 +6663,7 @@ let _sbLoadedAt  = 0; /* 마지막 로드 시각 */
 const _SB_CACHE_TTL = 300000; /* 5분 메모리 캐시 */
 
 /* ── 무한 스크롤 페이지네이션 상태 ── */
-const _SB_PAGE_SIZE = 20;
+const _SB_PAGE_SIZE = 50;
 let _sbOffset = 0;
 let _sbHasMore = true;
 let _sbLoadingMore = false;
@@ -6684,8 +6687,8 @@ async function _doLoadSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
-      await _loadRealUsers();
-      _sbTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      // 서버에서 이미 실제 사용자 필터링을 처리하므로 클라이언트 필터링 불필요
+      _sbTracks = d.tracks.map(_rowToTrack);
       _sbOffset = _sbTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbFingerprint = _calcFingerprint(_sbTracks);
@@ -6720,7 +6723,7 @@ async function _pollRefreshSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      var newTracks = d.tracks.map(_rowToTrack);
       var newFp = _calcFingerprint(newTracks);
       if(newFp !== _sbFingerprint){
         _sbTracks = newTracks;
@@ -6746,7 +6749,7 @@ async function _loadSbTracksMore(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      var newTracks = d.tracks.map(_rowToTrack);
       _sbTracks = _sbTracks.concat(newTracks);
       _sbOffset += newTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
