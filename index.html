@@ -91,6 +91,11 @@ window.toggleTutorialReplay=window.toggleTutorialReplay||function(){localStorage
 window._resetLyrics=window._resetLyrics||function(){};
 window.hesTabPlaylist=window.hesTabPlaylist||function(){};
 window.buyPack=window.buyPack||function(){};
+window._getCreditHistory=window._getCreditHistory||function(){try{return JSON.parse(localStorage.getItem('kms_credit_history')||'[]');}catch{return[];}};
+window._saveCreditHistory=window._saveCreditHistory||function(){};
+window._addCreditHistory=window._addCreditHistory||function(){};
+window._updateCreditBadge=window._updateCreditBadge||function(){};
+window._updateCreditWarn=window._updateCreditWarn||function(){};
 /* Kakao SDK 동적 로드 + 초기화 (공유 시 최초 1회만) */
 let _kakaoLoading=false;
 function _ensureKakaoSDK(){
@@ -1047,7 +1052,8 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* Suno 그리드 뷰 */
 .hist-view-grid{transition:all .3s ease;}
 .hist-view-grid.grid-mode{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-.hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 12px rgba(0,0,0,.15);position:relative;}
+.hist-view-grid.grid-mode .hist-card-wrap{min-width:0;}
+.hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 12px rgba(0,0,0,.15);position:relative;min-width:0;width:100%;}
 .hist-view-grid.grid-mode .hist-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.25);}
 .hist-view-grid.grid-mode .hist-thumb{width:100%;height:0;padding-bottom:100%;border-radius:0;font-size:32px;position:relative;background:linear-gradient(135deg,#1a0537,#2d1a5a,#0f2a4a);}
 .hist-view-grid.grid-mode .hist-thumb img,.hist-view-grid.grid-mode .hist-thumb video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
@@ -1371,7 +1377,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .view{will-change:auto;}
 .view.on{will-change:contents;}
 #fullplayer{will-change:transform;}
-.hist-card,.comm-list-item{contain:content;}
+.hist-card,.comm-list-item{contain:paint style;}
 
 /* ══════════════════════════════
    CLAUDE AI CHAT
@@ -18972,6 +18978,13 @@ function cancelLyricsEdit(idx){
   if(karaoke)karaoke.style.display='';
   if(btn)btn.textContent='✏️ 가사 편집';
 }
+/* ── cross-block 참조 보장: 전역 window 노출 ── */
+window.currentUser=currentUser;
+window._getCreditHistory=_getCreditHistory;
+window._saveCreditHistory=_saveCreditHistory;
+window._addCreditHistory=_addCreditHistory;
+window._updateCreditBadge=_updateCreditBadge;
+window._updateCreditWarn=_updateCreditWarn;
 
 </script>
 
@@ -19436,7 +19449,7 @@ function renderPlanUI(){
   /* 크레딧 사용 내역 렌더링 */
   var chList=$('credit-history-list');
   if(chList){
-    var hist=_getCreditHistory();
+    var hist=(typeof _getCreditHistory==='function'?_getCreditHistory:window._getCreditHistory||function(){return[];})();
     if(!hist.length){chList.innerHTML='<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px;">아직 사용 내역이 없어요</div>';}
     else{chList.innerHTML=hist.slice(0,20).map(function(h){
       var typeLabel={song:'음악 생성',mv:'뮤비 생성',lyrics:'가사 생성',share:'공유',vr:'보컬분리'}[h.type]||h.type;
@@ -19549,16 +19562,6 @@ async function _initToss(){
         const s = document.createElement('script');
         s.src = 'https://js.tosspayments.com/v1/payment';
         s.onload = resolve;
-/* 크레딧 팩 구매 */
-const _CREDIT_PACKS={pack10:{price:1900,credits:10,label:"10곡 팩"},pack30:{price:4900,credits:30,label:"30곡 팩"},pack100:{price:12900,credits:100,label:"100곡 팩"}};
-async function buyPack(packId){
-  const pack=_CREDIT_PACKS[packId]; if(!pack){toast("잘못된 팩","",2000);return;}
-  if(!currentUser||!currentUser.name){openLoginSheet();return;}
-  const toss=await _initToss(); if(!toss) return;
-  const orderId="KMS-PACK-"+packId.toUpperCase()+"-"+Date.now();
-  try{await toss.requestPayment("카드",{amount:pack.price,orderId:orderId,orderName:"KMS "+pack.label,customerName:currentUser.name,successUrl:location.origin+"/api/payments/success?plan=credit_pack&credits="+pack.credits+"&userName="+encodeURIComponent(currentUser.name)+"&userProvider="+encodeURIComponent(currentUser.provider||""),failUrl:location.origin+"/?payment=fail&plan=credit_pack"});}catch(e){if(e.code==="USER_CANCEL")toast("결제 취소","",2000);else toast("결제 오류","",3000);}
-}
-
         s.onerror = reject;
         document.head.appendChild(s);
       });
@@ -19570,6 +19573,16 @@ async function buyPack(packId){
     toast('결제 초기화 실패','',3000);
     return null;
   }
+}
+
+/* 크레딧 팩 구매 */
+const _CREDIT_PACKS={pack10:{price:1900,credits:10,label:"10곡 팩"},pack30:{price:4900,credits:30,label:"30곡 팩"},pack100:{price:12900,credits:100,label:"100곡 팩"}};
+async function buyPack(packId){
+  const pack=_CREDIT_PACKS[packId]; if(!pack){toast("잘못된 팩","",2000);return;}
+  if(!currentUser||!currentUser.name){openLoginSheet();return;}
+  const toss=await _initToss(); if(!toss) return;
+  const orderId="KMS-PACK-"+packId.toUpperCase()+"-"+Date.now();
+  try{await toss.requestPayment("카드",{amount:pack.price,orderId:orderId,orderName:"KMS "+pack.label,customerName:currentUser.name,successUrl:location.origin+"/api/payments/success?plan=credit_pack&credits="+pack.credits+"&userName="+encodeURIComponent(currentUser.name)+"&userProvider="+encodeURIComponent(currentUser.provider||""),failUrl:location.origin+"/?payment=fail&plan=credit_pack"});}catch(e){if(e.code==="USER_CANCEL")toast("결제 취소","",2000);else toast("결제 오류","",3000);}
 }
 
 async function upgradePlan(type){
@@ -21057,6 +21070,7 @@ window._createAlbum=typeof _createAlbum!=="undefined"?_createAlbum:window._creat
 window._downloadLicense=typeof _downloadLicense!=="undefined"?_downloadLicense:window._downloadLicense||function(){};
 window._checkAttendance=typeof _checkAttendance!=="undefined"?_checkAttendance:window._checkAttendance||function(){};
 window.renderPlanUI=typeof renderPlanUI!=="undefined"?renderPlanUI:window.renderPlanUI||function(){};
+window.buyPack=typeof buyPack!=="undefined"?buyPack:window.buyPack||function(){};
 </script>
 
 <!-- ── 인앱 공지 수신 ── -->
