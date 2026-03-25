@@ -104,7 +104,7 @@ async function _handler(req, res) {
       if (isAdmin) {
         filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&order=created_at.desc&limit=${limit}&select=*`;
+        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
         // 공개된 모든 트랙을 가져옴 (사용자 필터링은 클라이언트에서 처리)

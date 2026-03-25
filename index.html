@@ -4410,6 +4410,15 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <span style="font-size:10px;color:var(--t3);">음악 완성 후 자동 · ~20 credits</span>
         </div>
 
+        <!-- 곡 수 선택 -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:12px;font-weight:700;color:var(--t2);">생성 곡 수</span>
+          <div id="gen-count-toggle" style="display:flex;background:var(--card2);border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+            <button class="gen-count-btn active" data-count="1" onclick="_setGenCount(1)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">⚡ 1곡 <span style="font-size:9px;opacity:.7;">빠름</span></button>
+            <button class="gen-count-btn" data-count="2" onclick="_setGenCount(2)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">🎧 2곡 <span style="font-size:9px;opacity:.7;">A/B비교</span></button>
+          </div>
+        </div>
+
         <!-- 생성 버튼 -->
         <button class="gen-btn" id="gen-btn" aria-label="음악 생성하기">
           <span class="gen-spinner" id="gen-spinner"></span>
@@ -7687,8 +7696,11 @@ async function _ytDoGenerate(){
     if($('ld-task')) $('ld-task').textContent='';
     $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
-    const tracks = await pollResult(apiKey, taskId);
-    if(!tracks?.length) throw new Error('트랙을 받지 못했어요');
+    const _rawYtTracks = await pollResult(apiKey, taskId);
+    if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
+    /* ✅ FIX: 생성 실패 트랙 필터링 */
+    const tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+    if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
 
     $('loading-card').classList.remove('on');
     clearInterval(_tipTimer);
@@ -7699,13 +7711,15 @@ async function _ytDoGenerate(){
     showFeedbackCard();
 
     tracks.forEach(t=>{
+      const _tAudioUrl=t.audioUrl||t.audio_url||t.song_path||'';
+      if(!_tAudioUrl) return;
       const _ytTags=_normTags(t.tags)||ytStyle;
       const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
       historyData.unshift({
         id:t.id, taskId,
         title: _autoGenerateTitle(t.title||songTitle,ytLyrics,_ytTags,'youtube'),
-        audio_url: t.audioUrl||t.audio_url||t.song_path||'',
+        audio_url: _tAudioUrl,
         video_url: '',
         image_url: t.imageUrl||t.image_url||'',
         tags: _ytTags,
@@ -9772,9 +9786,13 @@ async function generate(overrideParams){
     $('ld-task').textContent='';
     $('ld-sub').innerHTML='멜로디, 리듬, 편곡 다 넣는 중~<br>곧 들려드릴게요 🎧';
 
-    const tracks=await pollResult(apiKey,taskId);
+    const _rawTracks=await pollResult(apiKey,taskId);
     _clearGenSession();
-    if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
+    if(!_rawTracks?.length)throw new Error('트랙을 받지 못했어요');
+    /* ✅ FIX: 생성 실패 트랙(audio_url 없음) 필터링 — A/B 중 한쪽 실패 방어 */
+    const tracks=_rawTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+    if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
+    if(tracks.length<_rawTracks.length) console.warn('[generate] A/B 중 '+ (_rawTracks.length-tracks.length)+'곡 실패 제외');
     if(typeof _stopGenProgress==='function') _stopGenProgress();
     $('loading-card').classList.remove('on');
 
@@ -9783,6 +9801,9 @@ async function generate(overrideParams){
     showFeedbackCard();
 
     tracks.forEach(t=>{
+      /* ✅ 생성 실패 트랙 스킵 (이중 방어) */
+      const _tAudioUrl=t.audioUrl||t.audio_url||t.song_path||'';
+      if(!_tAudioUrl){console.warn('[generate] skip failed track:',t.id);return;}
       /* 심플모드: lastLyricsInput 없음 → API 응답 lyric 사용
          커스텀모드: 입력 가사 우선, 없으면 API lyric */
       const apiLyric=t.lyric||t.lyrics||t.lrc||'';
@@ -9793,7 +9814,7 @@ async function generate(overrideParams){
       const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
         id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
-        audio_url:t.audioUrl||t.audio_url||t.song_path||'',
+        audio_url:_tAudioUrl,
         video_url:'',
         image_url:t.imageUrl||t.image_url||'',
         tags:_tTags,
@@ -10616,10 +10637,9 @@ function renderTracks(tracks,prompt,tags,mode){
             <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
             <button class="rc-tools-btn" onclick="_showPostTools('${esc(audioUrl)}','${esc(audioId)}','${esc(title)}','${esc(trackTaskId)}')">🛠 도구</button>
           </div>
-          ${!_isAB ? `<div class="rc-share-row">
-            <button class="rc-share-btn" onclick="commShareTrack('${esc(audioUrl)}','${esc(title)}')">🌐 커뮤니티</button>
-            <button class="rc-share-btn" onclick="_openUnifiedShare('${esc(audioUrl)}','${esc(title)}','${esc(imageUrl)}')">↗ 공유</button>
-          </div>` : ''}
+          <div class="rc-share-row">
+            <button class="rc-share-btn" data-rc-open-share="${i}">↗ 공유</button>
+          </div>
           ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
         </div>
         <div class="rc-tab-panel" id="ly-${i}">
@@ -10694,28 +10714,38 @@ function renderTracks(tracks,prompt,tags,mode){
       if(panel)panel.classList.add('on');
     });
   });
-  container.querySelectorAll('.ap-play-btn').forEach(btn=>btn.addEventListener('click',()=>togglePlay(btn)));
-  container.querySelectorAll('.ap-prog-wrap').forEach(wrap=>wrap.addEventListener('click',e=>seekAudio(e,wrap)));
-  container.querySelectorAll('[data-extend-id]').forEach(btn=>btn.addEventListener('click',function(){_showExtendOptions(this.dataset.extendId, 0);}));
-  container.querySelectorAll('[data-dl-audio]').forEach(btn=>btn.addEventListener('click',function(){downloadFile(this.dataset.dlAudio,this.dataset.dlName);}));
-  /* 공유 버튼 — 전체보기 공유 모달과 동일 */
-  container.querySelectorAll('[data-rc-share]').forEach(btn=>{
-    btn.addEventListener('click',function(){
-      const ti=parseInt(this.dataset.rcShare);
-      const tr=tracks[ti];if(!tr)return;
-      const audioUrl=tr.audioUrl||tr.audio_url||'';
-      const imgUrl=tr.imageUrl||tr.image_url||'';
-      /* historyData에 추가 후 openShareConfirm */
-      let hIdx=historyData.findIndex(h=>(h.id||'')===(tr.id||''));
-      if(hIdx<0){
-        historyData.unshift({id:tr.id||'',title:tr.title||'무제',audio_url:audioUrl,image_url:imgUrl,tags:tr.tags||'',created:Date.now(),type:'audio'});
-        hIdx=0;
-      }
-      openShareConfirm(hIdx);
-    });
+  /* ✅ FIX: batchWrap 스코프로 이벤트 바인딩 — 이전 배치 중복 리스너 방지 */
+  batchWrap.querySelectorAll('.ap-play-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    /* A/B 카드에서 재생 시 다른 오디오 자동 중지 → 팝업 없이 바로 재생 */
+    if(getPlayingInfo()&&(!activeAudio||activeAudio.paused||activeAudio._url!==btn.dataset.url)){
+      stopAllAudio();
+      if(activeAudio){activeAudio=null;}
+    }
+    togglePlay(btn);
+  }));
+  batchWrap.querySelectorAll('.ap-prog-wrap').forEach(wrap=>wrap.addEventListener('click',e=>seekAudio(e,wrap)));
+  batchWrap.querySelectorAll('[data-extend-id]').forEach(btn=>btn.addEventListener('click',function(){_showExtendOptions(this.dataset.extendId, 0);}));
+  batchWrap.querySelectorAll('[data-dl-audio]').forEach(btn=>btn.addEventListener('click',function(){downloadFile(this.dataset.dlAudio,this.dataset.dlName);}));
+  /* ✅ 공유 버튼 — 전체모드 openShareConfirm 모달로 통일 */
+  function _rcOpenShare(ti){
+    const tr=tracks[ti];if(!tr)return;
+    const audioUrl=tr.audioUrl||tr.audio_url||'';
+    const imgUrl=tr.imageUrl||tr.image_url||'';
+    let hIdx=historyData.findIndex(h=>(h.id||'')===(tr.id||''));
+    if(hIdx<0){
+      historyData.unshift({id:tr.id||'',title:tr.title||'무제',audio_url:audioUrl,image_url:imgUrl,tags:tr.tags||'',created:Date.now(),type:'audio'});
+      hIdx=0;
+    }
+    openShareConfirm(hIdx);
+  }
+  batchWrap.querySelectorAll('[data-rc-share]').forEach(btn=>{
+    btn.addEventListener('click',function(){ _rcOpenShare(parseInt(this.dataset.rcShare)); });
+  });
+  batchWrap.querySelectorAll('[data-rc-open-share]').forEach(btn=>{
+    btn.addEventListener('click',function(){ _rcOpenShare(parseInt(this.dataset.rcOpenShare)); });
   });
   /* 다시 작곡 버튼 */
-  container.querySelectorAll('[data-recompose-idx]').forEach(btn=>{
+  batchWrap.querySelectorAll('[data-recompose-idx]').forEach(btn=>{
     btn.addEventListener('click',function(){
       const ti=parseInt(this.dataset.recomposeIdx);
       const tr=tracks[ti];
@@ -10742,13 +10772,13 @@ function renderTracks(tracks,prompt,tags,mode){
     const plain=track?._inputLyrics||track?.lyric||track?.lyrics||track?.lrc||'';
     openKaraokePlayer(d.kpAudio||'',d.kpTitle||'',d.kpTags||'',d.kpImage||'',d.kpTask||'',audioId,plain);
   }
-  container.querySelectorAll('.rc-cover[data-kp-audio]').forEach(el=>el.addEventListener('click',()=>openKpFromEl(el)));
-  container.querySelectorAll('[data-kp-audio][data-kp-audio-id]').forEach(btn=>{
+  batchWrap.querySelectorAll('.rc-cover[data-kp-audio]').forEach(el=>el.addEventListener('click',()=>openKpFromEl(el)));
+  batchWrap.querySelectorAll('[data-kp-audio][data-kp-audio-id]').forEach(btn=>{
     if(btn.classList.contains('rc-cover'))return; /* 이미 위에서 처리 */
     btn.addEventListener('click',()=>openKpFromEl(btn));
   });
   /* ✅ FIX: 가사 복사 — 실제 입력 가사 사용 */
-  container.querySelectorAll('[data-copy-lyrics-idx]').forEach(btn=>{
+  batchWrap.querySelectorAll('[data-copy-lyrics-idx]').forEach(btn=>{
     btn.addEventListener('click',function(){
       const idx=parseInt(this.dataset.copyLyricsIdx);
       const track=tracks[idx];
@@ -10818,8 +10848,8 @@ function updateKaraokeSync(idx,currentTime){
 function togglePlay(btn){
   const idx=+btn.dataset.idx,url=btn.dataset.url;
   if(!url){toast('오디오 URL이 없어요','err');return;}
-  /* 같은 트랙: 토글 */
-  if(activeAudio&&activeAudio._idx===idx){
+  /* 같은 트랙: 토글 (idx + URL 모두 일치해야 동일 트랙) */
+  if(activeAudio&&activeAudio._idx===idx&&activeAudio._url===url){
     if(activeAudio.paused){stopAllAudio();activeAudio.play();btn.textContent='⏸';startViz(idx);}
     else{activeAudio.pause();btn.textContent='▶';stopViz(idx);}
     return;
@@ -10830,7 +10860,7 @@ function togglePlay(btn){
     const _apTitle=btn.closest('.result-card')?.querySelector('.rc-title')?.textContent||url.slice(-20)||'트랙';
     showAudioSwitchPopup(_tpSrc,_apTitle,()=>{
       if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);if(old)old.textContent='▶';}
-      const a2=new Audio(url);a2._idx=idx;activeAudio=a2;
+      const a2=new Audio(url);a2._idx=idx;a2._url=url;activeAudio=a2;
       a2.addEventListener('timeupdate',()=>{const pct=a2.duration?(a2.currentTime/a2.duration)*100:0;const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';const t=document.getElementById(`ap-time-${idx}`);if(t)t.textContent=`${formatTime(a2.currentTime)} / ${formatTime(a2.duration||0)}`;updateKaraokeSync(idx,a2.currentTime);});
       a2.addEventListener('ended',()=>{btn.textContent='▶';stopViz(idx);const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width='0%';});
       a2.addEventListener('error',()=>toast('오디오 재생 오류','err'));
@@ -10845,7 +10875,7 @@ function togglePlay(btn){
     const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);
     if(old)old.textContent='▶';
   }
-  const audio=new Audio(url);audio._idx=idx;activeAudio=audio;
+  const audio=new Audio(url);audio._idx=idx;audio._url=url;activeAudio=audio;
   audio.addEventListener('timeupdate',()=>{
     const pct=audio.duration?(audio.currentTime/audio.duration)*100:0;
     const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';
@@ -14280,8 +14310,12 @@ function _renderCreatorDetailView(grid,countEl){
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='newest'?' on':'')+'" onclick="_myFeedTrkSort=\'newest\';renderHistoryView();">최신순</button>'
     +'</div>';
 
-  /* 트랙 정렬 적용 */
-  var sortedTracks=d.tracks.slice();
+  /* 트랙 정렬 적용 — 생성 실패(audio_url 없음 또는 duration 0) 곡 제외 */
+  var sortedTracks=d.tracks.filter(function(t){
+    if(!t.audio_url) return false;
+    if(t.duration!==undefined && t.duration!==null && Number(t.duration)===0) return false;
+    return true;
+  }).slice();
   if(_myFeedTrkSort==='likes') sortedTracks.sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
   else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
   else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
