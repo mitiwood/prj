@@ -32,9 +32,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* 인증 */
+  /* 인증 — Vercel Cron 헤더 또는 ADMIN_SECRET */
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
-  if (auth !== ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  const isVercelCron = req.headers['x-vercel-cron'] === '1' || req.headers['user-agent']?.includes('vercel-cron');
+  if (auth !== ADMIN_SECRET && !isVercelCron) return res.status(401).json({ error: 'Unauthorized' });
 
   const action = req.query?.action || 'issues';
 
@@ -84,6 +85,49 @@ export default async function handler(req, res) {
         })),
       };
       return res.status(200).json(summary);
+    }
+
+    /* 크리티컬 에러 체크 + 봇 알림 (Vercel Cron 또는 외부 호출용) */
+    if (action === 'check-critical') {
+      const BASE = 'https://ai-music-studio-bice.vercel.app';
+      const since = new Date(Date.now() - 30 * 60 * 1000).toISOString(); /* 최근 30분 */
+      const issues = await sentryFetch(
+        `/projects/${SENTRY_ORG}/${SENTRY_PROJ}/issues/?query=is:unresolved+level:error+lastSeen:>${since}&sort=freq&limit=10`
+      );
+      if (issues.error) return res.status(200).json({ ok: false, error: issues.error });
+      if (!Array.isArray(issues) || !issues.length) return res.status(200).json({ ok: true, critical: 0, message: '크리티컬 에러 없음' });
+
+      /* fatal/error + 발생 5회 이상인 것만 필터 */
+      const critical = issues.filter(i => {
+        const lvl = (i.level || '').toLowerCase();
+        return (lvl === 'fatal' || lvl === 'error') && (parseInt(i.count) >= 5 || lvl === 'fatal');
+      });
+
+      if (!critical.length) return res.status(200).json({ ok: true, critical: 0, message: '임계치 미달' });
+
+      /* 텔레그램 알림 */
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const lines = critical.slice(0, 5).map((i, idx) => {
+        const emoji = i.level === 'fatal' ? '🔴' : '🟡';
+        return `${emoji} <b>${idx + 1}. ${esc((i.title || '').slice(0, 60))}</b>\n   ${esc((i.culprit || '').slice(0, 50))} · ${i.count}회`;
+      });
+      const tgText = `🚨 <b>Sentry 크리티컬 에러 ${critical.length}건</b>\n\n${lines.join('\n\n')}`;
+      const kakaoText = `🚨 Sentry 크리티컬 에러 ${critical.length}건\n\n${critical.slice(0, 3).map((i, idx) => `${idx + 1}. ${(i.title || '').slice(0, 50)} (${i.count}회)`).join('\n')}`.slice(0, 300);
+
+      await Promise.allSettled([
+        fetch(`${BASE}/api/telegram`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+          body: JSON.stringify({ text: tgText, parse_mode: 'HTML' }),
+        }),
+        fetch(`${BASE}/api/kakao-notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: kakaoText }),
+        }),
+      ]);
+
+      return res.status(200).json({ ok: true, critical: critical.length, notified: true });
     }
 
     return res.status(400).json({ error: `알 수 없는 action: ${action}` });
