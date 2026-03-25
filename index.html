@@ -6849,6 +6849,16 @@ function _startCommPoll(){
 /* 브라우저 탭 전환 시 폴링 일시정지/재개 */
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden && _sbLoaded){
+    /* 탭 복귀 시 오디오 컨텍스트 재개 (Bluetooth 연결 대응) */
+    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+      _eqCtx.resume().then(() => {
+        console.log('[Visibility Change] Audio context resumed');
+        /* 현재 재생 중인 오디오가 있으면 재시작 시도 */
+        if(fpAudio && fpAudio.paused && fpCurrentIdx >= 0) {
+          fpAudio.play().catch(e => console.warn('[Visibility Resume] Play failed:', e));
+        }
+      }).catch(e => console.warn('[Visibility Change] Context resume failed:', e));
+    }
     /* 탭 복귀 시 30초 넘었으면 즉시 갱신 */
     if(Date.now()-_sbLoadedAt>_SB_CACHE_TTL){
       var cv=document.getElementById('community-view');
@@ -12100,6 +12110,18 @@ function showMiniPlayer(idx, contextOverride = null){
     const msg = msgs[code] || '재생 오류';
     const src = e.target?.src||'';
     console.warn('[Audio Error]', msg, 'code:'+code, src.slice(0,80));
+    
+    /* 오디오 컨텍스트 재개 시도 */
+    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+      _eqCtx.resume().then(() => {
+        console.log('[Audio Error Recovery] Audio context resumed');
+        if(genId===_fpAudioGenId) {
+          audio.load();
+          audio.play().catch(()=>{});
+        }
+      }).catch(e => console.warn('[Audio Error Recovery] Context resume failed:', e));
+    }
+    
     /* CORS 실패(code 2/4) — crossOrigin 제거 후 재시도 */
     if(!audio._corsRetried && audio.crossOrigin && (code===2||code===4)){
       audio._corsRetried=true;
@@ -12111,9 +12133,20 @@ function showMiniPlayer(idx, contextOverride = null){
       toast('오디오 재연결 중...','',2000);
       return;
     }
-    if(!audio._retried && code===2){
+    
+    /* 네트워크 오류 재시도 강화 */
+    if(!audio._retried && (code===2||code===1)){
       audio._retried=true;
-      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
+      setTimeout(()=>{
+        if(genId===_fpAudioGenId){
+          /* 블루투스 장치 재설정 */
+          if(typeof audio.setSinkId === 'function') {
+            audio.setSinkId('').catch(()=>{});
+          }
+          audio.load();
+          audio.play().catch(()=>{});
+        }
+      },1500);
       toast('오디오 재연결 중...','',2000);
     } else if(code===4){
       toast('오디오를 재생할 수 없어요','err',3000);
@@ -12125,6 +12158,13 @@ function showMiniPlayer(idx, contextOverride = null){
   /* BPM 뱃지 초기화 */
   var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
+  /* 오디오 컨텍스트 상태 확인 및 재개 (재생 시작 전) */
+  if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+    _eqCtx.resume().then(() => {
+      console.log('[Audio Play] Audio context resumed before play');
+    }).catch(e => console.warn('[Audio Play] Context resume failed:', e));
+  }
+  
   audio.play().then(()=>{
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
     _syncAllPlayBtns(true);
@@ -13113,15 +13153,38 @@ function _doOpenFullPlayer(idx){
     const code=ev.target?.error?.code;
     const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg=msgs[code]||'재생 오류';
+    
+    /* 오디오 컨텍스트 재개 시도 */
+    if(typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+      _eqCtx.resume().then(() => {
+        console.log('[FP Audio Error Recovery] Audio context resumed');
+        if(genId===_fpAudioGenId) {
+          audio.load();
+          audio.play().catch(()=>{});
+        }
+      }).catch(e => console.warn('[FP Audio Error Recovery] Context resume failed:', e));
+    }
+    
     if(code===4){
       console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
       toast('오디오를 재생할 수 없어요','err',3000);
       return;
     }
     console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
-    if(!audio._fpRetried&&code===2){
+    
+    /* 네트워크 오류 재시도 강화 */
+    if(!audio._fpRetried&&(code===2||code===1)){
       audio._fpRetried=true;
-      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
+      setTimeout(()=>{
+        if(genId===_fpAudioGenId){
+          /* 블루투스 장치 재설정 */
+          if(typeof audio.setSinkId === 'function') {
+            audio.setSinkId('').catch(()=>{});
+          }
+          audio.load();
+          audio.play().catch(()=>{});
+        }
+      },1500);
       toast('오디오 재연결 중...','',2000);
     } else {
       toast(msg,'err',4000);
@@ -13132,6 +13195,13 @@ function _doOpenFullPlayer(idx){
     audio.removeEventListener('canplay',_onCanPlay);
     if(genId!==_fpAudioGenId)return;
     if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
+    /* 오디오 컨텍스트 상태 확인 및 재개 (재생 시작 전) */
+    if (typeof _eqCtx !== 'undefined' && _eqCtx && _eqCtx.state === 'suspended') {
+      _eqCtx.resume().then(() => {
+        console.log('[FP Audio Play] Audio context resumed before play');
+      }).catch(e => console.warn('[FP Audio Play] Context resume failed:', e));
+    }
+    
     audio.play().then(()=>{
       if(genId!==_fpAudioGenId)return;
       /* debug removed */
