@@ -43,6 +43,7 @@
 /* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
 window.$=window.$||function(id){return document.getElementById(id);};
 /* 전역 변수 stub — 다른 script 블록에서 참조 방어 */
+if(typeof currentUser==='undefined')window.currentUser=null;
 if(typeof fpCurrentIdx==='undefined')window.fpCurrentIdx=-1;
 if(typeof fpAudio==='undefined')window.fpAudio=null;
 if(typeof historyData==='undefined')window.historyData=[];
@@ -6649,60 +6650,65 @@ const KIE_BASE = 'https://api.kie.ai';
 
 /* ── 탭 전환 ── */
 function switchTab(viewId){
-  /* 열려있는 바텀시트/팝업/오버레이 전부 닫기 */
-  document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
-  document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
-  document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>{el.classList.remove('on');el.style.display='';});
-  document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
-  document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal,#hes-tools-sheet').forEach(el=>el.classList.remove('on'));
-  document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
-  /* 동적 오버레이 (position:fixed) 제거 */
-  document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
-  /* 전체모드(fullplayer) 재생 중이면 미니플레이어로 전환 */
-  const fp = $('fullplayer');
-  if(fp && fp.classList.contains('on')){
-    fp.classList.remove('on');
-    document.body.style.overflow = '';
-    fpStopViz();
-    /* 재생 중이면 미니플레이어 복원 */
-    if(fpCurrentIdx >= 0 && historyData[fpCurrentIdx]?.audio_url){
-      const mp = $('mini-player');
-      mp.classList.remove('mp-hide');
-      mp.style.transition='';
-      mp.classList.add('on');
-      document.body.classList.add('mp-on');
+  /* ── 1단계: 탭 전환 (UI) — 에러와 무관하게 반드시 실행 ── */
+  try{
+    document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
+    document.querySelectorAll('#login-sheet').forEach(el=>{el.style.opacity='0';el.style.pointerEvents='none';});
+    document.querySelectorAll('#gen-lock-popup,#audio-switch-popup').forEach(el=>{el.classList.remove('on');el.style.display='';});
+    document.querySelectorAll('#vocal-modal').forEach(el=>el.style.display='none');
+    document.querySelectorAll('#extend-modal,#remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal,#hes-tools-sheet').forEach(el=>el.classList.remove('on'));
+    document.querySelectorAll('#ann-overlay,#mv-merge-overlay').forEach(el=>el.style.display='none');
+    document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
+  }catch(e){console.error('[switchTab] overlay cleanup',e);}
+  try{
+    var fp = $('fullplayer');
+    if(fp && fp.classList.contains('on')){
+      fp.classList.remove('on');
+      document.body.style.overflow = '';
+      if(typeof fpStopViz==='function') fpStopViz();
+      if(fpCurrentIdx >= 0 && historyData[fpCurrentIdx]?.audio_url){
+        var mp = $('mini-player');
+        mp.classList.remove('mp-hide');
+        mp.style.transition='';
+        mp.classList.add('on');
+        document.body.classList.add('mp-on');
+      }
+      if(fpAudio && !fpAudio.paused){
+        if(typeof mpStartViz==='function') mpStartViz();
+        var mpBtn = $('mp-play-btn');
+        if(mpBtn) _setPlayIcon(mpBtn, true, false);
+      }
     }
-    if(fpAudio && !fpAudio.paused){
-      mpStartViz?.();
-      const mpBtn = $('mp-play-btn');
-      if(mpBtn) _setPlayIcon(mpBtn, true, false);
-    }
-  }
-  document.querySelectorAll('#bottom-nav .bnav-item').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-  const btn=document.querySelector('#bottom-nav .bnav-item[data-view="'+viewId+'"]');
+  }catch(e){console.error('[switchTab] fullplayer',e);}
+
+  /* 탭/뷰 활성화 — 이 부분은 반드시 실행 */
+  document.querySelectorAll('#bottom-nav .bnav-item').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
+  var btn=document.querySelector('#bottom-nav .bnav-item[data-view="'+viewId+'"]');
   if(btn)btn.classList.add('on');
-  const view=document.getElementById(viewId);
+  var view=document.getElementById(viewId);
   if(view)view.classList.add('on');
-  const _mpOn=document.body.classList.contains('mp-on');
-  if(!fp?.classList.contains('on')){document.body.className='';if(_mpOn)document.body.classList.add('mp-on');}
+  var _mpOn=document.body.classList.contains('mp-on');
+  if(!fp||!fp.classList.contains('on')){document.body.className='';if(_mpOn)document.body.classList.add('mp-on');}
   if(viewId==='history-view'||viewId==='community-view'||viewId==='profile-view')document.body.classList.add('tab-library');
   if(viewId==='settings-view'){document.body.classList.add('tab-settings');try{var t=JSON.parse(localStorage.getItem('kms_custom_theme')||'{}');_updateCustomThemeInputs(t);}catch(e){}}
-  if(viewId==='profile-view'){const cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
+  if(viewId==='profile-view'){var cb=document.querySelector('#bottom-nav .bnav-item[data-view="community-view"]');if(cb)cb.classList.add('on');}
   window.scrollTo({top:0,behavior:'smooth'});
-  /* 커뮤니티 뷰 떠날 때 오디오 + 폴링 정리 */
-  if(viewId!=='community-view'){
-    if(typeof commHeroAudio!=='undefined'&&commHeroAudio){try{commHeroAudio.pause();}catch(e){}}
-    if(typeof commAudio!=='undefined'&&commAudio){try{commAudio.pause();}catch(e){}}
-    if(typeof _commPollPaused!=='undefined') _commPollPaused=true;
-  } else {
-    if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
-  }
-  if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
-  if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));_startCommPoll();_updateCommBadge();if(typeof _preloadFollowStates==='function')_preloadFollowStates();try{renderCommunity(false);}catch(e){console.error(e);}}
-  if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();}
-  /* 탭 전환 후 다국어 재적용 */
-  if(typeof _applyLang==='function') setTimeout(_applyLang,50);
+
+  /* ── 2단계: 뷰별 후속 로직 — 에러 발생해도 탭 전환은 이미 완료 ── */
+  try{
+    if(viewId!=='community-view'){
+      if(typeof commHeroAudio!=='undefined'&&commHeroAudio){try{commHeroAudio.pause();}catch(e){}}
+      if(typeof commAudio!=='undefined'&&commAudio){try{commAudio.pause();}catch(e){}}
+      if(typeof _commPollPaused!=='undefined') _commPollPaused=true;
+    } else {
+      if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
+    }
+    if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
+    if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));try{_startCommPoll();}catch(e){console.error(e);}try{_updateCommBadge();}catch(e){console.error(e);}if(typeof _preloadFollowStates==='function')try{_preloadFollowStates();}catch(e){console.error(e);}try{renderCommunity(false);}catch(e){console.error(e);}}
+    if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();}
+    if(typeof _applyLang==='function') setTimeout(_applyLang,50);
+  }catch(e){console.error('[switchTab] post-switch',e);}
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
 window.switchTab=typeof switchTab!=="undefined"?switchTab:window.switchTab||function(){};
@@ -7049,7 +7055,7 @@ let activeAudio=null,activeVizTimer=null;
 let instOn=false,vocalGender='',currentMode='custom';
 let extendAudioId=null,toastTmr=null;
 let selectedEmotions=new Set(),makeMV=false;
-let currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
+var currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
 /* 관리자 판별 */
 const _ADMIN_NAMES=['Kenny Lee','이승호'];
 function _isAdmin(){return !!(currentUser&&_ADMIN_NAMES.indexOf(currentUser.name)>=0);}
@@ -11111,7 +11117,7 @@ function renderHistoryView(){
           ${thumbContent}
           ${typeBadge}
           ${remixBadge}
-          ${noAudio?'<div class="hist-no-audio-badge">재생 불가</div>':''}
+          ${noAudio?'<div class="hist-no-audio-badge">생성 실패</div>':''}
           <span class="hist-duration" id="${durId}"></span>
           <div class="hist-play-overlay"><div class="hist-play-icon">${noAudio?'✕':'▶'}</div></div>
         </div>
@@ -11172,7 +11178,7 @@ function renderHistoryView(){
     if(card){
       const hi=parseInt(card.dataset.histIdx);
       if(historyData[hi] && !historyData[hi].audio_url){
-        toast('⚠️ 이 곡은 현재 재생할 수 없어요\n오디오가 만료되었거나 생성 중이에요','err',3000);
+        _showFailedTrackDialog(hi);
         return;
       }
       showMiniPlayer(hi);
@@ -11185,7 +11191,7 @@ function renderHistoryView(){
         e.preventDefault();
         const _ki=parseInt(card.dataset.histIdx);
         if(historyData[_ki] && !historyData[_ki].audio_url){
-          toast('⚠️ 이 곡은 현재 재생할 수 없어요','err',3000);
+          _showFailedTrackDialog(_ki);
           return;
         }
         showMiniPlayer(_ki);
@@ -11295,6 +11301,30 @@ function _histDeleteTrack(idx){
     else if(wasPlaying) hideMiniPlayer();
     toast('삭제되었어요','ok',1500);
   });
+}
+
+/* 생성 실패 트랙 클릭 → 안내 다이얼로그 */
+function _showFailedTrackDialog(idx){
+  var h=historyData[idx];
+  if(!h) return;
+  var title=h.title||'무제';
+  var tags=h.tags||'';
+  _showSettingsConfirm(
+    '생성 실패',
+    '<div style="text-align:left;font-size:13px;line-height:1.6;">'
+    +'<div style="font-weight:700;margin-bottom:6px;">'+((typeof esc==='function')?esc(title):title)+'</div>'
+    +'<div style="color:var(--t3);font-size:12px;margin-bottom:12px;">이 곡은 음악 생성에 실패했어요.<br>서버 오류 또는 가사 문제일 수 있습니다.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'
+    +'<div style="font-size:12px;color:var(--t2);">같은 설정으로 다시 생성하거나,<br>라이브러리에서 삭제할 수 있어요.</div>'
+    +'</div></div>',
+    '삭제',
+    function(){
+      if(h.id&&typeof _deleteTrackFromServer==='function') _deleteTrackFromServer(h.id);
+      historyData.splice(idx,1);
+      saveHistory();updateHistBadge();renderHistoryView();
+      toast('삭제되었어요','ok',1500);
+    }
+  );
 }
 
 /* ── 히스토리 편집 바텀시트 (Suno 스타일) ── */

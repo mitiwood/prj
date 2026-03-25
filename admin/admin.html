@@ -2515,6 +2515,30 @@ textarea.form-input{line-height:1.5;}
             </table>
           </div>
         </div>
+
+        <!-- 🧹 DB 정리 -->
+        <div id="ops-panel-cleanup" style="display:none;">
+          <div class="settings-group" style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🧹 재생 불가 트랙 정리</div>
+            <div style="font-size:12px;color:var(--t3);margin-bottom:12px;">audio_url이 없거나 만료된 트랙을 DB에서 삭제합니다.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--t2);cursor:pointer;">
+                <input type="checkbox" id="cleanup-check-expired"> 만료 URL도 체크 (느림, ~30초)
+              </label>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-acc" onclick="_cleanupDryRun()">검사 (미리보기)</button>
+              <button class="btn btn-red" id="cleanup-exec-btn" onclick="_cleanupExec()" style="display:none;">삭제 실행</button>
+            </div>
+          </div>
+          <div id="cleanup-result" style="display:none;">
+            <div class="admin-table-wrap">
+              <div class="admin-table-header"><h3 id="cleanup-result-title">검사 결과</h3></div>
+              <div id="cleanup-result-body" style="padding:16px;max-height:400px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -8232,7 +8256,7 @@ var _autoRules=JSON.parse(localStorage.getItem('kms_auto_rules')||'[]');
 var _abTests=JSON.parse(localStorage.getItem('kms_ab_tests')||'[]');
 
 function _opsTab(tab){
-  ['scheduled','automation','abtest','musicgen'].forEach(function(t){
+  ['scheduled','automation','abtest','musicgen','cleanup'].forEach(function(t){
     var panel=document.getElementById('ops-panel-'+t);
     if(panel) panel.style.display=t===tab?'':'none';
   });
@@ -8807,7 +8831,7 @@ async function loadChangelog(more){
   if(!more){_clCommits=[];_clPage=1;list.innerHTML='';loading.style.display='block';}
   else{_clPage++;}
   try{
-    const r=await fetch('https://api.github.com/repos/'+_CL_REPO+'/commits?per_page='+_CL_PER_PAGE+'&page='+_clPage);
+    const r=await fetch('/api/github-proxy?path=/repos/'+_CL_REPO+'/commits&per_page='+_CL_PER_PAGE+'&page='+_clPage);
     if(!r.ok) throw new Error('GitHub API '+r.status);
     const data=await r.json();
     _clCommits=_clCommits.concat(data);
@@ -8870,7 +8894,7 @@ async function loadDocsList(){
   viewer.style.display='none';
   list.style.display='grid';
   try{
-    const r=await fetch('https://api.github.com/repos/'+_CL_REPO+'/contents/docs');
+    const r=await fetch('/api/github-proxy?path=/repos/'+_CL_REPO+'/contents/docs');
     if(!r.ok) throw new Error('GitHub API '+r.status);
     _docsFiles=await r.json();
     renderDocsList();
@@ -8881,7 +8905,7 @@ async function loadDocsList(){
       'TELEGRAM_BOT.md','ANTHROPIC_API.md','ADMIN_RESPONSIVE.md','COMMUNITY_DATA_POLICY.md',
       'CHAT_SYSTEM.md','chat-feature.md','SEQUENCE_DIAGRAM.md','API_ARCHITECTURE.md',
       'STORYBOARD.md','tab-structure.md','z-index-layers.md','changelog-20260322.md','changelog-20260324.md','community-layout.md'
-    ].map(n=>({name:n,path:'docs/'+n,download_url:'https://raw.githubusercontent.com/'+_CL_REPO+'/main/docs/'+n}));
+    ].map(n=>({name:n,path:'docs/'+n,download_url:'/api/github-proxy?path=/repos/'+_CL_REPO+'/contents/docs/'+n}));
     renderDocsList();
   }
 }
@@ -8916,10 +8940,11 @@ async function openDoc(name){
   title.textContent=name.replace('.md','').replace(/_/g,' ');
   content.textContent='불러오는 중...';
   try{
-    const url='https://raw.githubusercontent.com/'+_CL_REPO+'/main/docs/'+encodeURIComponent(name);
+    const url='/api/github-proxy?path=/repos/'+_CL_REPO+'/contents/docs/'+encodeURIComponent(name);
     const r=await fetch(url);
     if(!r.ok) throw new Error('HTTP '+r.status);
-    let text=await r.text();
+    const json=await r.json();
+    let text=json.content?atob(json.content.replace(/\n/g,'')):json.toString();
     /* 간단한 마크다운 → HTML 변환 */
     text=_simpleMarkdown(text);
     content.innerHTML=text;
@@ -8961,6 +8986,35 @@ function _simpleMarkdown(md){
 }
 
 function _escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ══ DB 정리 (재생 불가 트랙 삭제) ══ */
+var _cleanupTargets=[];
+async function _cleanupDryRun(){
+  var resultEl=document.getElementById('cleanup-result'),body=document.getElementById('cleanup-result-body'),titleEl=document.getElementById('cleanup-result-title'),execBtn=document.getElementById('cleanup-exec-btn');
+  var checkExpired=document.getElementById('cleanup-check-expired')?.checked||false;
+  resultEl.style.display='block';body.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);">검사 중...</div>';execBtn.style.display='none';
+  try{
+    var r=await fetch('/api/cleanup-tracks',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(localStorage.getItem('kms_admin_token')||'')},body:JSON.stringify({dryRun:true,checkExpired:checkExpired})});
+    var d=await r.json();if(!d.ok)throw new Error(d.error||'API 오류');
+    _cleanupTargets=d.targets||[];
+    titleEl.textContent='삭제 대상 '+d.totalTargets+'건 (audio_url 없음: '+d.noAudioCount+', 만료: '+d.expiredCount+')';
+    if(!_cleanupTargets.length){body.innerHTML='<div style="text-align:center;padding:20px;color:var(--grn);font-weight:700;">재생 불가 트랙 없음</div>';}
+    else{body.innerHTML='<table style="width:100%;"><thead><tr><th>ID</th><th>제목</th><th>소유자</th><th>생성일</th></tr></thead><tbody>'+_cleanupTargets.map(function(t){return '<tr><td style="font-size:11px;color:var(--t3);">'+_escHtml((t.id||'').slice(0,8))+'</td><td class="td-title">'+_escHtml(t.title||'무제')+'</td><td>'+_escHtml(t.owner||'')+'</td><td>'+(t.created?new Date(t.created).toLocaleDateString('ko'):'—')+'</td></tr>';}).join('')+'</tbody></table>';execBtn.style.display='inline-block';}
+  }catch(e){body.innerHTML='<div style="color:var(--red);padding:16px;">오류: '+_escHtml(e.message)+'</div>';}
+}
+async function _cleanupExec(){
+  if(!_cleanupTargets.length){adminToast('삭제 대상 없음');return;}
+  if(!confirm(_cleanupTargets.length+'건 삭제합니다. 되돌릴 수 없습니다.'))return;
+  var body=document.getElementById('cleanup-result-body'),execBtn=document.getElementById('cleanup-exec-btn');
+  var checkExpired=document.getElementById('cleanup-check-expired')?.checked||false;
+  body.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);">삭제 중...</div>';execBtn.style.display='none';
+  try{
+    var r=await fetch('/api/cleanup-tracks',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(localStorage.getItem('kms_admin_token')||'')},body:JSON.stringify({dryRun:false,checkExpired:checkExpired})});
+    var d=await r.json();if(!d.ok)throw new Error(d.error||'API 오류');
+    body.innerHTML='<div style="text-align:center;padding:20px;"><div style="font-size:28px;margin-bottom:8px;">✅</div><div style="font-size:14px;font-weight:700;color:var(--grn);">'+d.deleted+'건 삭제 완료</div></div>';
+    _cleanupTargets=[];adminToast(d.deleted+'건 삭제 완료','ok');
+  }catch(e){body.innerHTML='<div style="color:var(--red);padding:16px;">삭제 실패: '+_escHtml(e.message)+'</div>';}
+}
 
 /* ═══ 관리자 미니플레이어 + 풀플레이어 (멜론/Apple Music 스타일) ═══ */
 var _apQueue=[];     /* 재생 큐 [{url,title,artist,image,id}] */
