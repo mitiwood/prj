@@ -1,8 +1,10 @@
 /**
- * /api/sentry-proxy — Sentry API 프록시
+ * /api/sentry-proxy — Sentry API 프록시 (v2)
  *
- * GET ?action=issues      → 최근 미해결 이슈 목록
- * GET ?action=stats       → 24시간 이벤트 통계
+ * GET ?action=issues            → 최근 미해결 이슈 목록
+ * GET ?action=stats             → 24시간 이벤트 통계
+ * GET ?action=register-webhook  → 웹훅 등록
+ * GET ?action=check-critical    → 크리티컬 에러 체크 + 봇 알림
  * GET ?action=issue&id=XX → 특정 이슈 상세
  *
  * 인증: Authorization: Bearer ADMIN_SECRET
