@@ -129,13 +129,13 @@ jobs:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PAT_KEY: ${{ secrets.PAT_TOKEN }}
 
-      - uses: anthropics/claude-code-action@beta
+      - uses: anthropics/claude-code-action@v1
         id: claude
+        timeout-minutes: 30
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
-          timeout_minutes: 30
-          direct_prompt: |
+          prompt: |
             다음 수정 요청을 처리해주세요:
 
             ${{ github.event.issue.body }}
@@ -145,7 +145,7 @@ jobs:
             - 기존 기능, 함수, CSS를 절대 제거하지 마세요
             - node_modules/, .env 파일은 수정하지 마세요
             - 수정이 완료되면 변경 내용을 한국어로 요약해주세요
-          allowed_tools: "Edit,Read,Glob,Grep,Write,Bash"
+          claude_args: "--allowedTools Edit,Read,Glob,Grep,Write,Bash"
 
       - name: Commit and push
         id: push
