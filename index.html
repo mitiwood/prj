@@ -23410,6 +23410,47 @@ function _applyQuickPreset(key){
   event.currentTarget.classList.add('on');
   toast('✦ '+key.toUpperCase()+' 프리셋 적용!','ok',1500);
 }
+/* ── 통합 공유 바텀시트 ── */
+function _openUnifiedShare(audioUrl,title,imageUrl){
+  var shareUrl=window.location.origin+'/api/share?t='+encodeURIComponent(title||'AI Music')+(audioUrl?'&play='+encodeURIComponent(audioUrl):'')+(imageUrl?'&img='+encodeURIComponent(imageUrl):'');
+  var tweetText=encodeURIComponent('🎵 AI로 만든 노래: "'+(title||'')+'" #AI음악');
+  var waText=encodeURIComponent('🎵 "'+(title||'')+'" '+shareUrl);
+  var safeT=(title||'').replace(/'/g,"\\'");
+  var safeA=(audioUrl||'').replace(/'/g,"\\'");
+  var safeI=(imageUrl||'').replace(/'/g,"\\'");
+  var safeU=shareUrl.replace(/'/g,"\\'");
+  var html='<div style="padding:20px 16px 24px;">'
+    +'<div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px;">↗ 공유하기</div>'
+    +'<div style="font-size:11px;color:var(--t3);margin-bottom:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(title||'')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();setTimeout(function(){if(typeof _shareKakao===\'function\')_shareKakao(\''+safeT+'\',\''+safeA+'\',\''+safeI+'\');},300)"><div style="width:48px;height:48px;border-radius:50%;background:#FEE500;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">💬</div><div style="font-size:10px;color:var(--t2);font-weight:600;">카카오톡</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();navigator.clipboard.writeText(\''+safeU+'\');toast(\'📸 링크 복사됨! 인스타에 붙여넣기\',\'ok\',3000)"><div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;color:#fff;">📷</div><div style="font-size:10px;color:var(--t2);font-weight:600;">인스타</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();window.open(\'https://twitter.com/intent/tweet?text='+tweetText+'&url='+encodeURIComponent(shareUrl)+'\',\'_blank\',\'width=600,height=400\')"><div style="width:48px;height:48px;border-radius:50%;background:#000;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:18px;color:#fff;font-weight:800;">𝕏</div><div style="font-size:10px;color:var(--t2);font-weight:600;">X</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();window.open(\'https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(shareUrl)+'\',\'_blank\',\'width=600,height=400\')"><div style="width:48px;height:48px;border-radius:50%;background:#1877F2;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;color:#fff;font-weight:800;">f</div><div style="font-size:10px;color:var(--t2);font-weight:600;">페이스북</div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();window.open(\'https://wa.me/?text='+waText+'\',\'_blank\')"><div style="width:48px;height:48px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;color:#fff;">📱</div><div style="font-size:10px;color:var(--t2);font-weight:600;">WhatsApp</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="closeBottomSheet();location.href=\'mailto:?subject='+encodeURIComponent('🎵 '+(title||''))+'&body='+encodeURIComponent('AI로 만든 노래를 들어봐!\\n\\n'+shareUrl)+'\'"><div style="width:48px;height:48px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">📧</div><div style="font-size:10px;color:var(--t2);font-weight:600;">이메일</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="_usCopyUrl()"><div style="width:48px;height:48px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🔗</div><div style="font-size:10px;color:var(--t2);font-weight:600;">링크 복사</div></div>'
+    +'<div style="text-align:center;cursor:pointer;" onclick="_usNativeShare()"><div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;color:#fff;">📤</div><div style="font-size:10px;color:var(--t2);font-weight:600;">더보기</div></div>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:10px;"><input id="_us_url" readonly value="'+shareUrl+'" style="flex:1;background:transparent;border:none;color:var(--t1);font-size:11px;font-family:inherit;outline:none;overflow:hidden;text-overflow:ellipsis;"><button onclick="_usCopyUrl()" style="flex-shrink:0;padding:6px 14px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">복사</button></div>'
+    +'</div>';
+  window._usShareData={url:shareUrl,title:title||''};
+  if(typeof openBottomSheet==='function')openBottomSheet(html);
+}
+function _usCopyUrl(){
+  var u=document.getElementById('_us_url');
+  var url=u?u.value:(window._usShareData?window._usShareData.url:'');
+  navigator.clipboard.writeText(url).then(function(){toast('🔗 링크 복사됨!','ok',2000);closeBottomSheet();});
+}
+function _usNativeShare(){
+  var d=window._usShareData||{};
+  if(navigator.share){
+    navigator.share({title:d.title||'AI Music',text:'AI로 만든 음악을 들어보세요!',url:d.url||window.location.href}).catch(function(){});
+    closeBottomSheet();
+  } else { _usCopyUrl(); }
+}
 /* ── 포스트 프로덕션 도구 바텀시트 ── */
 function _showPostTools(audioUrl,audioId,title,taskId){
   var html='<div style="padding:20px 16px 24px;">'
