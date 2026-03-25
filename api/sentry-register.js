@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       }
       const hook = await sentryFetch(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/hooks/`, {
         method: 'POST',
-        body: { url: webhookUrl, events: ['issue.created'] },
+        body: { url: webhookUrl, events: ['event.alert', 'event.created'] },
       });
       if (hook.error) return res.status(200).json({ ok: false, error: hook.error });
       return res.status(200).json({ ok: true, message: '웹훅 등록 완료', hook: { id: hook.id, url: hook.url, events: hook.events } });
