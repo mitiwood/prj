@@ -14,9 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       issues: write
-      id-token: write
 
     steps:
       - name: Notify start
@@ -29,42 +27,32 @@ jobs:
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
         run: |
           python3 << 'PYEOF'
-          import urllib.request, json, os
-
+          import urllib.request, json, os, html as html_mod
           site = os.environ.get('SITE_URL', '')
-          secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
-          title = os.environ.get('ISSUE_TITLE', '')
+          secret = os.environ.get('ADMIN_SECRET', '')
+          title = html_mod.escape(os.environ.get('ISSUE_TITLE', ''))
           num = os.environ.get('ISSUE_NUM', '?')
-
-          import html as html_mod
-          def esc(s): return html_mod.escape(str(s))
-
-          msg = f'\U0001f916 <b>Claude Code 작업 시작</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}\n\n\u23f3 코드 체크아웃 중...'
-          keyboard = {'inline_keyboard': [
-            [{'text': '\U0001f517 이슈 확인', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}]
-          ]}
-
+          msg = f'\U0001f916 <b>Claude Code 작업 시작</b>\n\n\U0001f4cc Issue #{num}: {title}\n\n\u23f3 코드 분석 및 수정 중...'
+          kb = {'inline_keyboard': [[{'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}]]}
           try:
-            tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
+            tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb}, ensure_ascii=False).encode('utf-8')
             resp = json.loads(urllib.request.urlopen(urllib.request.Request(
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
             )).read().decode('utf-8'))
-            msg_id = resp.get('message_id', '')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'msg_id={msg_id}\n')
-          except Exception as e:
-            print(f'TG error: {e}')
-
+              f.write(f"msg_id={resp.get('message_id','')}\n")
+          except Exception as e: print(f'TG: {e}')
           try:
-            kp = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
+            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify',
+              data=json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8'),
+              headers={'Content-Type': 'application/json; charset=utf-8'}))
           except: pass
           PYEOF
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Configure git
@@ -72,154 +60,89 @@ jobs:
           git config user.name "claude-bot"
           git config user.email "claude-bot@users.noreply.github.com"
 
-      - name: Create branch
-        id: branch
-        env:
-          ISSUE_NUM: ${{ github.event.issue.number }}
-        run: |
-          BRANCH="claude/issue-${ISSUE_NUM}"
-          # 기존 브랜치 정리 (이전 실패 런에서 남은 것)
-          git push origin --delete "$BRANCH" 2>/dev/null || true
-          git checkout -b "$BRANCH"
-          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Update progress
-        continue-on-error: true
-        env:
-          MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_NUM: ${{ github.event.issue.number }}
-          SITE_URL: https://ai-music-studio-bice.vercel.app
-          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
-        run: |
-          python3 << 'PYEOF'
-          import urllib.request, json, os
-
-          site = os.environ.get('SITE_URL', '')
-          secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
-          msg_id = os.environ.get('MSG_ID', '').strip()
-          title = os.environ.get('ISSUE_TITLE', '')
-          num = os.environ.get('ISSUE_NUM', '?')
-
-          msg = f'\U0001f916 Claude Code 진행 중\n\nIssue #{num}: {title}\n\n\u2705 체크아웃 완료\n\u23f3 코드 분석 및 수정 중... (최대 30분)'
-
-          if msg_id:
-            try:
-              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
-              urllib.request.urlopen(urllib.request.Request(
-                f'{site}/api/telegram', data=tg,
-                headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-              ))
-            except Exception as e:
-              print(f'TG edit error: {e}')
-
-          try:
-            kp = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
-          except: pass
-          PYEOF
-
-      - name: Verify secrets
-        run: |
-          if [ -z "$ANTHROPIC_KEY" ]; then echo "::error::ANTHROPIC_API_KEY is empty!"; exit 1; fi
-          if [ -z "$PAT_KEY" ]; then echo "::error::PAT_TOKEN is empty!"; exit 1; fi
-          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_KEY}"
-          echo "ANTHROPIC_API_KEY prefix: ${ANTHROPIC_KEY:0:10}..."
-          echo "PAT_TOKEN length: ${#PAT_KEY}"
-        env:
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          PAT_KEY: ${{ secrets.PAT_TOKEN }}
-
-      - name: Test Anthropic API
-        run: |
-          RESP=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "x-api-key: $ANTHROPIC_KEY" \
-            -H "content-type: application/json" \
-            -H "anthropic-version: 2023-06-01" \
-            -d '{"model":"claude-sonnet-4-20250514","max_tokens":10,"messages":[{"role":"user","content":"hi"}]}' \
-            https://api.anthropic.com/v1/messages)
-          echo "Anthropic API response: $RESP"
-          if [ "$RESP" = "401" ]; then echo "::error::ANTHROPIC_API_KEY is invalid (401)!"; exit 1; fi
-          if [ "$RESP" = "403" ]; then echo "::error::ANTHROPIC_API_KEY forbidden (403)!"; exit 1; fi
-        env:
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - uses: anthropics/claude-code-action@v1
+      - name: Run Claude Code
         id: claude
         timeout-minutes: 30
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.PAT_TOKEN }}
-          trigger_phrase: ""
-          label_trigger: ""
-          prompt: |
-            다음 수정 요청을 처리해주세요:
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+        run: |
+          # Claude Code CLI 설치
+          npm install -g @anthropic-ai/claude-code 2>/dev/null || {
+            echo "Trying npx directly..."
+          }
 
-            ${{ github.event.issue.body }}
+          # 프롬프트 작성
+          cat > /tmp/claude-prompt.txt << 'PROMPT_EOF'
+          다음 수정 요청을 처리해주세요:
 
-            규칙:
-            - CLAUDE.md 파일을 읽고 프로젝트 규칙을 따르세요
-            - 기존 기능, 함수, CSS를 절대 제거하지 마세요
-            - node_modules/, .env 파일은 수정하지 마세요
-            - 수정이 완료되면 변경 내용을 한국어로 요약해주세요
-          claude_args: "--allowedTools Edit,Read,Glob,Grep,Write,Bash"
+          PROMPT_EOF
+          echo "$ISSUE_BODY" >> /tmp/claude-prompt.txt
+          cat >> /tmp/claude-prompt.txt << 'PROMPT_EOF'
 
-      - name: Commit and push
+          규칙:
+          - CLAUDE.md 파일을 읽고 프로젝트 규칙을 따르세요
+          - 기존 기능, 함수, CSS를 절대 제거하지 마세요
+          - node_modules/, .env 파일은 수정하지 마세요
+          - 수정 완료 후 git add + git commit을 직접 실행하세요
+          - 커밋 메시지: "fix: [#ISSUE_NUM] <설명>"
+          PROMPT_EOF
+
+          sed -i "s/ISSUE_NUM/${ISSUE_NUM}/g" /tmp/claude-prompt.txt
+
+          echo "=== Prompt ==="
+          cat /tmp/claude-prompt.txt
+          echo "=== Running Claude Code ==="
+
+          # Claude Code 실행 (--print 모드 = 비대화형)
+          npx -y @anthropic-ai/claude-code --print \
+            --allowedTools "Edit,Read,Glob,Grep,Write,Bash" \
+            "$(cat /tmp/claude-prompt.txt)" || {
+            echo "::warning::Claude Code exited with non-zero status"
+          }
+
+          echo "=== Done ==="
+
+      - name: Push changes
         id: push
         env:
-          BRANCH: ${{ steps.branch.outputs.name }}
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          echo "=== Checking for changes ==="
-          git status
-
+          # Claude가 이미 커밋했을 수 있음
+          HAS_COMMITTED=$(git log --oneline -1 --format="%s" | grep -c "fix:" || true)
           HAS_CHANGES=$(git diff --name-only)
+          HAS_STAGED=$(git diff --cached --name-only)
           HAS_UNTRACKED=$(git ls-files --others --exclude-standard)
 
-          if [ -z "$HAS_CHANGES" ] && [ -z "$HAS_UNTRACKED" ]; then
-            echo "No changes detected"
+          if [ "$HAS_COMMITTED" = "0" ] && [ -n "$HAS_CHANGES$HAS_STAGED$HAS_UNTRACKED" ]; then
+            echo "Claude didn't commit — committing now"
+            git add -A
+            git commit -m "fix: [#${ISSUE_NUM}] ${ISSUE_TITLE}" \
+              --author="claude-bot <claude-bot@users.noreply.github.com>" || true
+          fi
+
+          # 변경사항 확인
+          DIFF=$(git diff origin/main --name-only)
+          if [ -z "$DIFF" ]; then
             echo "status=no_changes" >> "$GITHUB_OUTPUT"
+            echo "No changes to push"
             exit 0
           fi
 
-          echo "Changes found:"
-          echo "$HAS_CHANGES"
-          echo "$HAS_UNTRACKED"
-
-          git add -A
-          git commit -m "fix: [#${ISSUE_NUM}] ${ISSUE_TITLE}" \
-            --author="claude-bot <claude-bot@users.noreply.github.com>"
-          git push origin "$BRANCH"
-          echo "status=pushed" >> "$GITHUB_OUTPUT"
-
-      - name: Merge to main
-        if: steps.push.outputs.status == 'pushed'
-        id: merge_main
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-          ISSUE_NUM: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          BRANCH: ${{ steps.branch.outputs.name }}
-        run: |
-          git checkout main
-          git pull origin main --no-edit
-
-          if git merge --squash "origin/$BRANCH"; then
-            git commit -m "fix: ${ISSUE_TITLE}" -m "Closes #${ISSUE_NUM}" \
-              --author="claude-bot <claude-bot@users.noreply.github.com>"
-            git push origin main
-            echo "status=merged" >> "$GITHUB_OUTPUT"
-
-            git push origin --delete "$BRANCH" 2>/dev/null || true
-          else
-            git merge --abort 2>/dev/null || true
-            echo "status=merge_failed" >> "$GITHUB_OUTPUT"
-          fi
+          echo "Pushing to main..."
+          git push origin HEAD:main
+          echo "status=merged" >> "$GITHUB_OUTPUT"
 
       - name: Close issue
-        if: steps.merge_main.outputs.status == 'merged'
+        if: steps.push.outputs.status == 'merged'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -232,130 +155,70 @@ jobs:
             -d '{"state":"closed","state_reason":"completed"}'
 
       - name: Notify result
-        if: always() && steps.push.outcome == 'success'
+        if: always()
         continue-on-error: true
         env:
           MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUM: ${{ github.event.issue.number }}
-          MERGE_STATUS: ${{ steps.merge_main.outputs.status }}
           PUSH_STATUS: ${{ steps.push.outputs.status }}
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SITE_URL: https://ai-music-studio-bice.vercel.app
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
         run: |
           python3 << 'PYEOF'
-          import urllib.request, json, os
+          import urllib.request, json, os, html as html_mod
 
           site = os.environ.get('SITE_URL', '')
-          secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
+          secret = os.environ.get('ADMIN_SECRET', '')
           msg_id = os.environ.get('MSG_ID', '').strip()
-          title = os.environ.get('ISSUE_TITLE', '')
+          title = html_mod.escape(os.environ.get('ISSUE_TITLE', ''))
           num = os.environ.get('ISSUE_NUM', '?')
-          merge_status = os.environ.get('MERGE_STATUS', '').strip()
           push_status = os.environ.get('PUSH_STATUS', '').strip()
+          claude_out = os.environ.get('CLAUDE_OUTCOME', '?')
           run_url = os.environ.get('RUN_URL', '')
 
-          import html as html_mod
-          def esc(s): return html_mod.escape(str(s))
-
-          if merge_status == 'merged':
-            pr_line = '\u2705 main 자동 머지 완료!\n\n\U0001f680 Vercel 배포 시작됨 (약 30초 후 반영)'
-          elif merge_status == 'merge_failed':
-            pr_line = '\u26a0 머지 충돌 발생 — 수동 머지 필요'
+          if push_status == 'merged':
+            icon = '\u2705'
+            status_line = '\u2705 main 푸시 완료! Vercel 배포 시작됨'
           elif push_status == 'no_changes':
-            pr_line = '\u26a0 변경사항 없음'
+            icon = '\u26a0'
+            status_line = '\u26a0 변경사항 없음'
+          elif claude_out == 'failure':
+            icon = '\u274c'
+            status_line = f'\u274c Claude Code 실행 실패 (outcome: {claude_out})'
           else:
-            pr_line = '\u26a0 머지 미완료'
+            icon = '\u26a0'
+            status_line = f'\u26a0 완료 (Claude: {claude_out}, Push: {push_status or "skipped"})'
 
-          msg = f'\u2705 <b>Claude Code 작업 완료!</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}\n\n{pr_line}'
-          keyboard = {'inline_keyboard': [
+          msg = f'{icon} <b>Claude Code 작업 완료</b>\n\n\U0001f4cc Issue #{num}: {title}\n\n{status_line}'
+          kb = {'inline_keyboard': [
             [{'text': '\U0001f310 사이트', 'url': site}, {'text': '\U0001f4cb 로그', 'url': run_url}],
             [{'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
           ]}
 
           try:
+            payload = {'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb}
             if msg_id:
-              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
-            else:
-              tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
+              payload['action'] = 'edit'
+              payload['message_id'] = int(msg_id)
+            tg = json.dumps(payload, ensure_ascii=False).encode('utf-8')
             urllib.request.urlopen(urllib.request.Request(
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
             ))
           except Exception as e:
-            print(f'TG error: {e}')
+            print(f'TG: {e}')
             try:
-              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
-              urllib.request.urlopen(urllib.request.Request(
-                f'{site}/api/telegram', data=tg2,
-                headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-              ))
+              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb}, ensure_ascii=False).encode('utf-8')
+              urllib.request.urlopen(urllib.request.Request(f'{site}/api/telegram', data=tg2,
+                headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}))
             except: pass
 
           try:
-            kp = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
-          except: pass
-          PYEOF
-
-      - name: Notify failure
-        if: failure()
-        continue-on-error: true
-        env:
-          MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_NUM: ${{ github.event.issue.number }}
-          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
-          PUSH_OUTCOME: ${{ steps.push.outcome }}
-          MERGE_OUTCOME: ${{ steps.merge_main.outcome }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SITE_URL: https://ai-music-studio-bice.vercel.app
-          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
-        run: |
-          python3 << 'PYEOF'
-          import urllib.request, json, os
-
-          site = os.environ.get('SITE_URL', '')
-          secret = os.environ.get('ADMIN_SECRET', 'kenny2024!')
-          msg_id = os.environ.get('MSG_ID', '').strip()
-          title = os.environ.get('ISSUE_TITLE', '')
-          num = os.environ.get('ISSUE_NUM', '?')
-          run_url = os.environ.get('RUN_URL', '')
-          claude_out = os.environ.get('CLAUDE_OUTCOME', '?')
-          push_out = os.environ.get('PUSH_OUTCOME', '?')
-          merge_out = os.environ.get('MERGE_OUTCOME', '?')
-
-          import html as html_mod
-          def esc(s): return html_mod.escape(str(s))
-
-          detail = f'Claude: {claude_out} / Push: {push_out} / Merge: {merge_out}'
-          msg = f'\u274c <b>Claude Code 작업 실패</b>\n\n\U0001f4cc Issue #{esc(num)}: {esc(title)}\n\n{esc(detail)}'
-          keyboard = {'inline_keyboard': [
-            [{'text': '\U0001f4cb 로그 확인', 'url': run_url}, {'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
-          ]}
-
-          try:
-            if msg_id:
-              tg = json.dumps({'action': 'edit', 'message_id': int(msg_id), 'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
-            else:
-              tg = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(
-              f'{site}/api/telegram', data=tg,
-              headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-            ))
-          except:
-            try:
-              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': keyboard}, ensure_ascii=False).encode('utf-8')
-              urllib.request.urlopen(urllib.request.Request(
-                f'{site}/api/telegram', data=tg2,
-                headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-              ))
-            except: pass
-
-          msg_plain = f'\u274c Claude Code 작업 실패\n\nIssue #{num}: {title}\n\n{detail}\n\n로그: {run_url}'
-          try:
-            kp = json.dumps({'text': msg_plain}, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify', data=kp, headers={'Content-Type': 'application/json; charset=utf-8'}))
+            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify',
+              data=json.dumps({'text': msg[:300]}, ensure_ascii=False).encode('utf-8'),
+              headers={'Content-Type': 'application/json; charset=utf-8'}))
           except: pass
           PYEOF
