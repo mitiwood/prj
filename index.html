@@ -1228,8 +1228,9 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .album-track-item .ati-num{width:20px;text-align:center;font-weight:700;color:var(--t3);}
 .album-track-item .ati-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .album-track-item .ati-remove{background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;}
-.ai-suggest-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.ai-suggest-chip{padding:5px 12px;border-radius:16px;border:1px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.05);color:var(--acc);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.ai-suggest-chips{display:flex;gap:6px;flex-wrap:nowrap;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;}
+.ai-suggest-chips::-webkit-scrollbar{display:none;}
+.ai-suggest-chip{padding:5px 12px;border-radius:16px;border:1px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.05);color:var(--acc);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;flex-shrink:0;}
 .ai-suggest-chip:hover{background:rgba(168,85,247,.12);border-style:solid;}
 .lang-toggle{display:flex;gap:4px;padding:2px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);}
 .lang-btn{padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
@@ -4025,7 +4026,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <!-- 커스텀 모드 AI 퀵 어시스턴트 -->
         <div style="margin-bottom:12px;padding:10px 12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.15);border-radius:12px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:13px;">🤖</span><span style="font-size:11px;font-weight:700;color:var(--t1);">AI 퀵 스타일</span></div>
-          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none;" class="pt-scroll">
+          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;" class="pt-scroll">
             <button class="ai-suggest-chip" onclick="_quickAiSuggest('감성적인 피아노 발라드, 여성 보컬')">🎤 발라드</button>
             <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 K-Pop 댄스, 밝은 신스')">🎵 K-Pop</button>
             <button class="ai-suggest-chip" onclick="_quickAiSuggest('다크한 트랩 비트, 808 베이스')">🔥 트랩</button>
@@ -7937,7 +7938,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
       <button onclick="_sharedToMiniAndCreate()" style="flex:1;padding:14px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.02em;">✦ 나도 만들기</button>
       <button onclick="document.getElementById('shared-player-wrap').remove()" style="padding:14px 20px;background:rgba(255,255,255,.06);color:#a09ab8;border:1px solid rgba(255,255,255,.1);border-radius:14px;font-size:14px;cursor:pointer;">닫기</button>
     </div>
-    <audio id="ssp-audio" src="${audioUrl}" crossOrigin="anonymous" preload="auto" style="display:none;"></audio>
+    <audio id="ssp-audio" src="${audioUrl}" preload="auto" style="display:none;"></audio>
   </div>`;
   document.body.appendChild(wrap);
 
@@ -12129,7 +12130,7 @@ function showMiniPlayer(idx){
   /* ── 새 오디오 생성 ── */
   const genId = ++_fpAudioGenId;
   const audio = new Audio();
-  audio.crossOrigin='anonymous';
+  /* crossOrigin은 Web Audio API(EQ/BPM) 연결 시에만 설정 — 불필요 시 Cloudflare __cf_bm 쿠키 경고 방지 */
   audio.preload='auto';
   fpAudio = audio;
 
@@ -13339,7 +13340,7 @@ function fpToggleLyricsPanel(){var sec=$('fp-lyrics-section');if(!sec)return;var
 var _eqCtx=null,_eqSource=null,_eqFilters=[],_eqConnected=false;
 var _eqPresets={flat:[0,0,0,0,0],bass:[6,4,0,0,0],vocal:[-2,0,4,3,0],treble:[0,0,0,3,6],rock:[4,2,-1,3,4],night:[3,2,0,-2,-4]};
 var _eqFreqs=[60,230,910,4000,14000];
-function _initEQ(){if(_eqConnected||!fpAudio)return;try{/* AudioContext 공유: BPM이 먼저 생성한 컨텍스트가 있으면 재사용 (cross-context 연결 방지) */if(!_eqCtx){if(_bpmCtx)_eqCtx=_bpmCtx;else _eqCtx=new(window.AudioContext||window.webkitAudioContext)();}if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
+function _initEQ(){if(_eqConnected||!fpAudio)return;/* Web Audio API에 crossOrigin 필요 */if(!fpAudio.crossOrigin&&!fpAudio._mediaSourceCreated){fpAudio.crossOrigin='anonymous';var ct=fpAudio.currentTime,wp=!fpAudio.paused;fpAudio.load();fpAudio.currentTime=ct;if(wp)fpAudio.play().catch(function(){});}try{/* AudioContext 공유: BPM이 먼저 생성한 컨텍스트가 있으면 재사용 (cross-context 연결 방지) */if(!_eqCtx){if(_bpmCtx)_eqCtx=_bpmCtx;else _eqCtx=new(window.AudioContext||window.webkitAudioContext)();}if(_eqCtx.state==='suspended')_eqCtx.resume();/* 이미 생성된 MediaElementSource 재사용 */if(fpAudio._sharedSource){_eqSource=fpAudio._sharedSource;try{_eqSource.disconnect();}catch(e){}}else{_eqSource=_eqCtx.createMediaElementSource(fpAudio);fpAudio._mediaSourceCreated=true;fpAudio._sharedSource=_eqSource;}_eqFilters=_eqFreqs.map(function(f,i){var fi=_eqCtx.createBiquadFilter();fi.type=i===0?'lowshelf':i===_eqFreqs.length-1?'highshelf':'peaking';fi.frequency.value=f;fi.gain.value=0;fi.Q.value=1;return fi;});_eqSource.connect(_eqFilters[0]);for(var i=0;i<_eqFilters.length-1;i++)_eqFilters[i].connect(_eqFilters[i+1]);_eqFilters[_eqFilters.length-1].connect(_eqCtx.destination);_eqConnected=true;/* BPM 컨텍스트도 공유 */if(!_bpmCtx)_bpmCtx=_eqCtx;}catch(e){console.warn('[EQ]',e.message);}}
 function fpToggleEQ(){var p=$('fp-eq-panel');if(!p)return;p.classList.toggle('on');var b=$('fp-eq-toggle');if(b)b.classList.toggle('on',p.classList.contains('on'));if(p.classList.contains('on')&&!_eqConnected)_initEQ();}
 function fpSetEqPreset(name){var vals=_eqPresets[name]||_eqPresets.flat;if(!_eqConnected)_initEQ();document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.toggle('on',b.dataset.eq===name);});var pn=$('fp-eq-preset-name');if(pn)pn.textContent=document.querySelector('.fp-eq-preset[data-eq="'+name+'"]')?.textContent||name;vals.forEach(function(v,i){if(_eqFilters[i])_eqFilters[i].gain.value=v;var s=document.querySelector('[data-eq-band="'+i+'"]');if(s)s.value=v;var ve=$('eq-val-'+i);if(ve)ve.textContent=(v>0?'+':'')+v;});}
 function fpEqBandChange(band,val){val=parseFloat(val);if(_eqFilters[band])_eqFilters[band].gain.value=val;var ve=$('eq-val-'+band);if(ve)ve.textContent=(val>0?'+':'')+Math.round(val);document.querySelectorAll('.fp-eq-preset').forEach(function(b){b.classList.remove('on');});var pn=$('fp-eq-preset-name');if(pn)pn.textContent='커스텀';}
@@ -13384,6 +13385,14 @@ var _bpmBeats=[],_bpmLastEnergy=0,_bpmValue=0,_bpmSmoothed=0;
 
 function _initBpmAnalyser(){
   if(!fpAudio)return;
+  /* Web Audio API에 crossOrigin 필요 — 아직 없으면 설정 + 리로드 */
+  if(!fpAudio.crossOrigin&&!fpAudio._mediaSourceCreated){
+    fpAudio.crossOrigin='anonymous';
+    var ct=fpAudio.currentTime,wasPlaying=!fpAudio.paused;
+    fpAudio.load();
+    fpAudio.currentTime=ct;
+    if(wasPlaying)fpAudio.play().catch(function(){});
+  }
   try{
     /* EQ 컨텍스트가 있으면 공유, 없으면 새로 생성 */
     if(!_bpmCtx){
@@ -17684,7 +17693,6 @@ function setupHeroAudio(hero){
     return;
   }
   const audio=new Audio();
-  audio.crossOrigin='anonymous';
   audio.preload='auto';
   audio.src=hero.audioUrl;
   commHeroAudio=audio;
