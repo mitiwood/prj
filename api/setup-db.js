@@ -83,6 +83,8 @@ const ALL_TABLE_SQL = {
   playlists: `CREATE TABLE IF NOT EXISTS public.playlists (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, name TEXT NOT NULL DEFAULT '내 플레이리스트', description TEXT DEFAULT '', track_ids JSONB DEFAULT '[]', is_public BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
   attendance: `CREATE TABLE IF NOT EXISTS public.attendance (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, check_date DATE NOT NULL DEFAULT CURRENT_DATE, streak INTEGER DEFAULT 1, bonus_credits INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_name, user_provider, check_date))`,
   error_logs: `CREATE TABLE IF NOT EXISTS public.error_logs (id BIGSERIAL PRIMARY KEY, endpoint TEXT NOT NULL, method TEXT DEFAULT 'GET', status INTEGER DEFAULT 500, error_message TEXT DEFAULT '', user_agent TEXT DEFAULT '', ip TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`,
+  daily_missions: `CREATE TABLE IF NOT EXISTS public.daily_missions (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, mission_date DATE NOT NULL DEFAULT CURRENT_DATE, track_ids JSONB DEFAULT '[]', discovered_ids JSONB DEFAULT '[]', completed_count INTEGER DEFAULT 0, reward_claimed BOOLEAN DEFAULT FALSE, streak INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_name, user_provider, mission_date))`,
+  collabs: `CREATE TABLE IF NOT EXISTS public.collabs (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, from_name TEXT NOT NULL, from_provider TEXT NOT NULL, from_avatar TEXT DEFAULT '', to_name TEXT NOT NULL, to_provider TEXT NOT NULL, status TEXT DEFAULT 'pending', message TEXT DEFAULT '', collab_data JSONB DEFAULT '{}', track_id TEXT DEFAULT NULL, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
 };
 
 export default async function handler(req, res) {
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
   if (auth !== ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
 
-  const tables = { tracks:false, users:false, comments:false, announcements:false, managers:false, payments:false, likes:false, follows:false, reports:false, notifications:false, live_notifications:false, settings:false, chat_messages:false, challenges:false, playlists:false, attendance:false, error_logs:false };
+  const tables = { tracks:false, users:false, comments:false, announcements:false, managers:false, payments:false, likes:false, follows:false, reports:false, notifications:false, live_notifications:false, settings:false, chat_messages:false, challenges:false, playlists:false, attendance:false, error_logs:false, daily_missions:false, collabs:false };
   for (const t of Object.keys(tables)) {
     tables[t] = await tableExists(t);
   }

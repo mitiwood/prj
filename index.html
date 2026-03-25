@@ -2092,7 +2092,12 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .ig-avatar-inner img{width:100%;height:100%;object-fit:cover;}
 .ig-creator-name{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px;line-height:1.3;}
 .ig-creator-meta{font-size:9px;color:var(--t3);margin-top:1px;}
-.ig-creator-badge{position:absolute;top:6px;right:6px;font-size:7px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;padding:1px 5px;border-radius:4px;font-weight:800;}
+.ig-creator-badge{position:absolute;top:4px;right:4px;font-size:7px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;padding:1px 5px;border-radius:4px;font-weight:800;}
+.ig-creator-badge.plan-pro{background:linear-gradient(135deg,#7c3aed,#a855f7);}
+.ig-creator-badge.plan-creator{background:linear-gradient(135deg,#f59e0b,#ef4444);}
+.plan-badge-inline{display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:800;padding:1px 6px;border-radius:4px;color:#fff;vertical-align:middle;margin-left:4px;}
+.plan-badge-inline.plan-pro{background:linear-gradient(135deg,#7c3aed,#a855f7);}
+.plan-badge-inline.plan-creator{background:linear-gradient(135deg,#f59e0b,#ef4444);}
 .ig-follow-btn{margin-top:5px;padding:3px 0;width:64px;border-radius:6px;border:none;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;}
 .ig-follow-btn:hover{filter:brightness(1.1);}
 .ig-follow-btn.following{background:var(--card);color:var(--t2);border:1px solid var(--border);}
@@ -7084,20 +7089,51 @@ function _getGenSession() {
   } catch(e) { return null; }
 }
 
-/* 생성 중 탭 닫기 경고 */
+/* ── 생성 중 이탈 방지 (커스텀 팝업 우선, 브라우저 팝업 최소화) ── */
+var _leaveAllowed=false;
 window.addEventListener('beforeunload', function(e) {
-  if (_globalGenerating) {
+  if (_globalGenerating && !_leaveAllowed) {
     e.preventDefault();
-    e.returnValue = '음악 생성 중입니다. 페이지를 나가면 생성이 취소됩니다.';
+    e.returnValue = '';
   }
 });
-/* 뒤로가기(popstate) 시 생성 중이면 안내 */
+/* 뒤로가기(popstate) 시 생성 중이면 커스텀 팝업 */
 window.addEventListener('popstate', function(e) {
   if (_globalGenerating) {
     history.pushState(null, '', location.href);
-    _showGeneratingPopup();
+    _showLeaveConfirmPopup('back');
   }
 });
+document.addEventListener('keydown',function(e){if(!_globalGenerating)return;if(e.key==='F5'||((e.ctrlKey||e.metaKey)&&e.key==='r')){e.preventDefault();_showLeaveConfirmPopup('refresh');}});
+
+function _showLeaveConfirmPopup(trigger){
+  if(document.getElementById('_leave_confirm_overlay')) return;
+  var overlay=document.createElement('div');
+  overlay.id='_leave_confirm_overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease;';
+  overlay.innerHTML='<div style="background:var(--card,#1e1e2a);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;border:1px solid rgba(124,58,237,.3);box-shadow:0 20px 60px rgba(0,0,0,.4);">'
+    +'<div style="font-size:36px;margin-bottom:12px;">\u26A0\uFE0F</div>'
+    +'<div style="font-size:17px;font-weight:800;color:var(--t1,#f1f0f5);margin-bottom:8px;">\uD398\uC774\uC9C0\uB97C \uB5A0\uB098\uC2DC\uACA0\uC5B4\uC694?</div>'
+    +'<div style="font-size:13px;color:var(--t3,#a09ab8);margin-bottom:20px;line-height:1.6;">\uC9C0\uAE08 \uC74C\uC545\uC744 \uC0DD\uC131\uD558\uACE0 \uC788\uC5B4\uC694.<br>\uD398\uC774\uC9C0\uB97C \uB5A0\uB098\uBA74 \uC9C4\uD589 \uC911\uC778 \uC0DD\uC131\uC774<br>\uCDE8\uC18C\uB420 \uC218 \uC788\uC5B4\uC694.</div>'
+    +'<button id="_leave_stay_btn" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">\uACC4\uC18D \uAE30\uB2E4\uB9AC\uAE30</button>'
+    +'<button id="_leave_go_btn" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#f87171;font-size:13px;cursor:pointer;font-family:inherit;">\uB5A0\uB098\uAE30</button>'
+  +'</div>';
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+
+  document.getElementById('_leave_stay_btn').addEventListener('click',function(){overlay.remove();});
+  document.getElementById('_leave_go_btn').addEventListener('click',function(){
+    overlay.remove();
+    _globalGenerating=false;_syncGenButtons();
+    var lc=document.getElementById('loading-card');if(lc)lc.classList.remove('on');
+    if(trigger==='back'){
+      history.back();
+    } else {
+      /* unload/새로고침 — 사용자가 직접 다시 시도 */
+      toast('\uC0DD\uC131\uC774 \uCDE8\uC18C\uB418\uC5C8\uC5B4\uC694','',2000);
+    }
+  });
+}
 
 const $=id=>document.getElementById(id);
 
@@ -8415,7 +8451,7 @@ async function generateMV(){
   }catch(e){
     console.error('[MV Grok]',e);
     let msg='❌ '+e.message;
-    if(/credit|Credit|insufficient/i.test(e.message))msg='❌ kie.ai 크레딧 부족';
+    if(/credit|Credit|insufficient|balance.*too low/i.test(e.message))msg='❌ '+_t('errCreditKie');
     else if(/403|permission|plan/i.test(e.message))msg='❌ 유료 플랜에서 지원됩니다';
     resultArea.innerHTML=`<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">${esc(msg)}</div></div>`;
   }finally{
@@ -10165,7 +10201,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
     console.error('[MV Kling] error:', e);
     const p=document.getElementById(mvPanelId);
     let msg='❌ '+esc(e.message);
-    if(/credit|Credit|insufficient/i.test(e.message))msg='❌ kie.ai 크레딧 부족 — 충전 후 다시 시도해주세요';
+    if(/credit|Credit|insufficient|balance.*too low/i.test(e.message))msg='❌ '+_t('errCreditKie');
     else if(/404|Not Found/i.test(e.message))msg='❌ Kling API 엔드포인트 오류 (404)';
     else if(/403|permission|plan/i.test(e.message))msg='❌ 뮤직비디오는 kie.ai 유료 플랜에서 지원됩니다';
     if(p)p.innerHTML=`<div style="font-size:12px;color:var(--red);padding:12px;line-height:1.6;">${msg}</div>`;
@@ -12925,12 +12961,12 @@ function _saveTrackToServer(track){
         renderCommunity(true);
       }
     }
-    /* 콜라보 트랙이면 완료 처리 */
+    /* 콜라보 트랙이면 완료 처리 (await 필수) */
     if(window._collabPending && d.success){
-      fetch('/api/collabs',{
+      try{ await fetch('/api/collabs',{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'complete', id: window._collabPending.collabId, trackId: payload.id })
-      }).catch(function(){});
+        body:JSON.stringify({ action:'complete', id: window._collabPending.collabId, trackId: payload.id, creatorName: currentUser?.name||'', creatorProvider: currentUser?.provider||'' })
+      }); }catch(e){}
       window._collabPending = null;
     }
   }).catch(e=>{
@@ -17155,6 +17191,7 @@ function _renderCommContent(heroWrap, list){
 
 /* 커뮤니티 하단 크리에이터 섹션 — DB 전체 사용자 표시 */
 var _creatorsCache=null;var _creatorsCacheAt=0;
+function _getCreatorPlan(n,p){if(!_creatorsCache)return '';var c=_creatorsCache.find(function(x){return x.name===n&&x.provider===p;});return c?c.plan||'free':'';}
 /* 통일 로딩 인디케이터 헬퍼 */
 function _commLoadingHtml(msg,small){
   var txt=msg?'<div class="comm-loading-text">'+msg+'</div>':'';
@@ -17184,6 +17221,14 @@ function _renderCreatorsInline(){
       }
     }).catch(function(){});
 }
+/* 플랜 배지 헬퍼 — 실제 플랜에 맞는 배지 HTML 반환 */
+function _planBadgeHtml(plan, style){
+  if(!plan || plan==='free') return '';
+  var cfg={pro:{icon:'💜',label:'Pro',cls:'plan-pro'},creator:{icon:'👑',label:'Creator',cls:'plan-creator'}};
+  var p=cfg[plan]; if(!p) return '';
+  if(style==='card') return '<div class="ig-creator-badge '+p.cls+'">'+p.icon+' '+p.label+'</div>';
+  return '<span class="plan-badge-inline '+p.cls+'">'+p.icon+' '+p.label+'</span>';
+}
 function _drawCreatorCards(wrap,list){
   if(!list.length){wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">아직 가입한 사용자가 없어요</div>';return;}
   var isLoggedIn=currentUser;
@@ -17197,7 +17242,7 @@ function _drawCreatorCards(wrap,list){
     var isF=_followStateCache[c.name+'__'+c.provider]===true;
     var isMe=isLoggedIn&&currentUser.name===c.name&&currentUser.provider===c.provider;
     return '<div class="ig-creator-card" onclick="openCreatorProfile(\''+esc(c.name)+'\',\''+esc(c.provider)+'\')">'
-      +(c.plan==='creator'?'<div class="ig-creator-badge">PRO</div>':'')
+      +_planBadgeHtml(c.plan,'card')
       +'<div class="ig-avatar-ring'+(hasStory?'':' no-story')+'"><div class="ig-avatar-inner">'+avImg+'</div></div>'
       +'<div class="ig-creator-name">'+provIcon+' '+esc(c.name)+'</div>'
       +'<div class="ig-creator-meta">'+c.tracks+'곡</div>'
@@ -19009,6 +19054,11 @@ function cancelLyricsEdit(idx){
           <option>파워풀</option><option>로맨틱</option><option>긴장감</option><option>편안한</option>
         </select>
       </div>
+      <select id="cws-my-role" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;margin-bottom:8px;">
+          <option value="">역할 선택 (선택)</option>
+          <option value="vocalist">🎤 보컬리스트</option><option value="composer">🎹 작곡가</option><option value="lyricist">✍️ 작사가</option>
+          <option value="producer">🎧 프로듀서</option><option value="rapper">🎤 래퍼</option><option value="all">🎵 올라운더</option>
+        </select>
       <input id="cws-my-style" placeholder="추가 스타일 태그 (예: female vocal, acoustic)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;" />
       <button onclick="_submitCollabIdea()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">아이디어 제출하기</button>
     </div>
@@ -19022,6 +19072,20 @@ function cancelLyricsEdit(idx){
       <div style="font-size:12px;font-weight:700;color:var(--grn,#00dda0);margin-bottom:8px;">✨ 합쳐진 프롬프트</div>
       <div id="cws-merged-prompt" style="padding:12px;background:rgba(0,221,160,.08);border-radius:10px;border:1px solid rgba(0,221,160,.2);font-size:12px;color:var(--t1);line-height:1.6;white-space:pre-line;"></div>
       <button id="cws-generate-btn" onclick="_generateCollabTrack()" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">🎵 콜라보 곡 생성하기</button>
+    </div>
+    <!-- 실시간 채팅 -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);">💬 실시간 채팅</div>
+        <button onclick="_toggleCollabChat()" id="cws-chat-toggle" style="background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;">펼치기</button>
+      </div>
+      <div id="cws-chat-area" style="display:none;">
+        <div id="cws-chat-messages" style="height:160px;overflow-y:auto;padding:8px;background:var(--card);border-radius:10px;border:1px solid var(--border);margin-bottom:6px;font-size:12px;"></div>
+        <div style="display:flex;gap:6px;">
+          <input id="cws-chat-input" placeholder="메시지 입력..." style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;" onkeydown="if(event.key==='Enter')_sendCollabChat()" />
+          <button onclick="_sendCollabChat()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">전송</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -19890,6 +19954,8 @@ async function _pollRealtime(){
       switch(e.event){
         case 'plan_changed':
           _syncPlanFromServer();
+          /* 크리에이터 카드 배지 즉시 갱신 */
+          _creatorsCacheAt=0; if(typeof _renderCreatorsInline==='function') _renderCreatorsInline();
           break;
         case 'new_like':
           if(e.data?.trackTitle) _addLocalNotif('like', '❤️ 좋아요!', e.data.fromUser + '님이 "' + e.data.trackTitle + '"에 좋아요');
@@ -20179,7 +20245,9 @@ async function _submitCollabIdea(){
         prompt: prompt,
         genre: $('cws-my-genre').value,
         mood: $('cws-my-mood').value,
-        style: $('cws-my-style').value
+        style: $('cws-my-style').value,
+        role: $('cws-my-role')?.value||'',
+        avatar: currentUser.avatar||''
       })
     });
     var d = await r.json();
@@ -20190,6 +20258,52 @@ async function _submitCollabIdea(){
     } else { toast(d.error||'제출 실패','',2000); }
   } catch(e){ toast('오류','',2000); }
 }
+
+/* ── 콜라보 실시간 채팅 ── */
+var _collabChatTimer=null;
+function _toggleCollabChat(){
+  var area=$('cws-chat-area');var btn=$('cws-chat-toggle');
+  if(!area)return;
+  if(area.style.display==='none'){area.style.display='block';btn.textContent='접기';_loadCollabChat();_startCollabChatPoll();}
+  else{area.style.display='none';btn.textContent='펼치기';_stopCollabChatPoll();}
+}
+async function _loadCollabChat(){
+  if(!_activeCollabId)return;
+  try{
+    var r=await fetch('/api/collabs?action=detail&id='+encodeURIComponent(_activeCollabId)+'&name='+encodeURIComponent(currentUser?.name||'')+'&provider='+encodeURIComponent(currentUser?.provider||''));
+    var d=await r.json();
+    var chat=(d.collab?.collab_data?.chat)||[];
+    var box=$('cws-chat-messages');if(!box)return;
+    if(!chat.length){box.innerHTML='<div style="color:var(--t3);text-align:center;padding:20px;font-size:11px;">아직 메시지가 없어요</div>';return;}
+    box.innerHTML=chat.map(function(m){
+      var isMe=m.name===currentUser?.name;
+      return '<div style="margin-bottom:6px;text-align:'+(isMe?'right':'left')+';">'
+        +'<span style="display:inline-block;max-width:80%;padding:6px 10px;border-radius:10px;background:'+(isMe?'var(--acc)':'rgba(255,255,255,.06)')+';color:'+(isMe?'#fff':'var(--t1)')+';font-size:12px;word-break:break-word;">'+esc(m.text)+'</span>'
+        +'<div style="font-size:9px;color:var(--t3);margin-top:2px;">'+(isMe?'나':esc(m.name))+' · '+_timeAgo(m.ts)+'</div></div>';
+    }).join('');
+    box.scrollTop=box.scrollHeight;
+  }catch(e){}
+}
+async function _sendCollabChat(){
+  var input=$('cws-chat-input');if(!input||!input.value.trim()||!_activeCollabId)return;
+  var text=input.value.trim();input.value='';
+  try{
+    var r=await fetch('/api/collabs?action=detail&id='+encodeURIComponent(_activeCollabId)+'&name='+encodeURIComponent(currentUser?.name||'')+'&provider='+encodeURIComponent(currentUser?.provider||''));
+    var d=await r.json();
+    var data=d.collab?.collab_data||{};
+    if(!data.chat)data.chat=[];
+    data.chat.push({name:currentUser?.name||'',text:text,ts:Date.now()});
+    if(data.chat.length>100)data.chat=data.chat.slice(-100);
+    var isFrom=d.collab?.from_name?.toLowerCase()===currentUser.name.toLowerCase();
+    var side=isFrom?'a':'b';
+    await fetch('/api/collabs',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'submit',id:_activeCollabId,name:currentUser.name,provider:currentUser.provider,prompt:data['prompt_'+side]||'_chat',genre:data['genre_'+side]||'',mood:data['mood_'+side]||'',style:data['style_'+side]||'',role:data['role_'+side]||'',avatar:currentUser.avatar||''})
+    });
+    _loadCollabChat();
+  }catch(e){toast('전송 실패','',1500);}
+}
+function _startCollabChatPoll(){_stopCollabChatPoll();_collabChatTimer=setInterval(_loadCollabChat,5000);}
+function _stopCollabChatPoll(){if(_collabChatTimer){clearInterval(_collabChatTimer);_collabChatTimer=null;}}
 
 async function _generateCollabTrack(){
   if(!currentUser || !_activeCollabId) return;
@@ -20260,6 +20374,8 @@ function openCreatorProfile(name, provider){
       if(!d.ok) throw new Error('profile load fail');
       const p = d.profile || {};
       if(p.avatar) $('pv-avatar').innerHTML = `<img src="${esc(p.avatar)}" alt="">`;
+      /* 플랜 배지 표시 */
+      $('pv-provider').innerHTML = provIcon + ' ' + provLabel + _planBadgeHtml(p.plan,'inline');
       $('pv-tracks').textContent = p.trackCount||0;
       $('pv-likes').textContent = p.totalLikes||0;
       $('pv-plays').textContent = p.totalPlays||0;
@@ -22728,6 +22844,12 @@ var _i18n={
     untitled:'무제',
     login:'로그인',
     anonymous:'익명',
+    errCreditLow:'크레딧 잔액이 부족합니다. 플랜 및 결제에서 업그레이드하거나 크레딧을 구매하세요.',
+    errCreditKie:'kie.ai 크레딧 부족 — 충전 후 다시 시도해주세요',
+    errApiError:'API 오류가 발생했습니다',
+    errLoginRequired:'로그인이 필요합니다',
+    errGenFail:'음악 생성에 실패했습니다. 다시 시도해주세요.',
+    errNetworkFail:'네트워크 연결을 확인해주세요',
     
     // 플레이어 컨트롤
     loopMode:'루프 모드',
@@ -22931,7 +23053,13 @@ var _i18n={
     untitled:'Untitled',
     login:'Login',
     anonymous:'Anonymous',
-    
+    errCreditLow:'Your credit balance is too low. Please go to Plans & Billing to upgrade or purchase credits.',
+    errCreditKie:'kie.ai credits insufficient — please recharge and try again',
+    errApiError:'An API error occurred',
+    errLoginRequired:'Login is required',
+    errGenFail:'Music generation failed. Please try again.',
+    errNetworkFail:'Please check your network connection',
+
     // Player Controls
     loopMode:'Loop Mode',
     
@@ -23134,7 +23262,13 @@ var _i18n={
     untitled:'無題',
     login:'ログイン',
     anonymous:'匿名',
-    
+    errCreditLow:'クレジット残高が不足しています。プラン＆請求でアップグレードまたはクレジットを購入してください。',
+    errCreditKie:'kie.ai クレジット不足 — チャージ後に再試行してください',
+    errApiError:'APIエラーが発生しました',
+    errLoginRequired:'ログインが必要です',
+    errGenFail:'音楽生成に失敗しました。もう一度お試しください。',
+    errNetworkFail:'ネットワーク接続を確認してください',
+
     // Player Controls
     loopMode:'ループモード',
     
@@ -24114,8 +24248,11 @@ setTimeout(_showOnboarding, 1500);
       if(typingEl && typingEl.parentNode) typingEl.remove();
 
       if(!res.ok){
-        var err = await res.json().catch(function(){ return { error: '서버 오류' }; });
-        _ccAddMsg('ai', err.error || '오류가 발생했어요. 다시 시도해주세요.');
+        var err = await res.json().catch(function(){ return { error: _t('errApiError') }; });
+        var errText=err.error||'';
+        if(/credit|balance.*too low/i.test(errText)) errText=_t('errCreditLow');
+        else if(!errText) errText=_t('errApiError');
+        _ccAddMsg('ai', errText);
         _ccBusy = false;
         $('cc-send').disabled = false;
         return;
@@ -24159,7 +24296,7 @@ setTimeout(_showOnboarding, 1500);
       }
     } catch(e){
       if(typingEl && typingEl.parentNode) typingEl.remove();
-      _ccAddMsg('ai', '네트워크 오류가 발생했어요. 다시 시도해주세요.');
+      _ccAddMsg('ai', _t('errNetworkFail'));
     }
 
     _ccBusy = false;

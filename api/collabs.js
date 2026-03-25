@@ -207,7 +207,7 @@ export default async function handler(req, res) {
 
     /* ── submit: 프롬프트/스타일 제출 ── */
     if (action === 'submit') {
-      const { id, name, provider, prompt, style, genre, mood } = b;
+      const { id, name, provider, prompt, style, genre, mood, role, avatar } = b;
       if (!id || !name) return res.status(400).json({ error: 'id, name required' });
       try {
         const rows = await sb('GET', `/collabs?id=eq.${encodeURIComponent(id)}&limit=1`);
@@ -223,6 +223,8 @@ export default async function handler(req, res) {
         data[`style_${side}`] = (style || '').slice(0, 200);
         data[`genre_${side}`] = (genre || '').slice(0, 100);
         data[`mood_${side}`] = (mood || '').slice(0, 100);
+        data[`role_${side}`] = (role || '').slice(0, 50);
+        data[`avatar_${side}`] = (avatar || '').slice(0, 500);
 
         /* 양쪽 다 제출했으면 자동 머지 */
         if (data.prompt_a && data.prompt_b) {
@@ -253,7 +255,7 @@ export default async function handler(req, res) {
 
     /* ── complete: 트랙 생성 완료 → 콜라보 완료 ── */
     if (action === 'complete') {
-      const { id, trackId } = b;
+      const { id, trackId, creatorName, creatorProvider } = b;
       if (!id || !trackId) return res.status(400).json({ error: 'id, trackId required' });
       try {
         const rows = await sb('GET', `/collabs?id=eq.${encodeURIComponent(id)}&limit=1`);
@@ -264,13 +266,18 @@ export default async function handler(req, res) {
           status: 'completed', track_id: trackId, updated_at: new Date().toISOString(),
         });
 
-        /* 트랙에 co-owner 정보 추가 */
+        /* 트랙에 co-owner 정보 추가 — 생성자의 상대방을 co-owner로 설정 */
+        const isFromCreator = creatorName && collab.from_name.toLowerCase() === creatorName.toLowerCase()
+          && collab.from_provider === (creatorProvider || '');
+        const coName = isFromCreator ? collab.to_name : collab.from_name;
+        const coProv = isFromCreator ? collab.to_provider : collab.from_provider;
+        const coAvatar = isFromCreator ? (collab.collab_data?.avatar_b || '') : (collab.collab_data?.avatar_a || collab.from_avatar || '');
         try {
           await sb('PATCH', `/tracks?id=eq.${encodeURIComponent(trackId)}`, {
             collab_id: id,
-            co_owner_name: collab.to_name,
-            co_owner_avatar: '',
-            co_owner_provider: collab.to_provider,
+            co_owner_name: coName,
+            co_owner_avatar: coAvatar,
+            co_owner_provider: coProv,
           });
         } catch (e) { console.warn('[collab complete] track patch:', e.message); }
 
