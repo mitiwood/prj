@@ -7124,14 +7124,11 @@ function _showLeaveConfirmPopup(trigger){
   document.getElementById('_leave_stay_btn').addEventListener('click',function(){overlay.remove();});
   document.getElementById('_leave_go_btn').addEventListener('click',function(){
     overlay.remove();
-    _globalGenerating=false;_syncGenButtons();
+    _globalGenerating=false;_syncGenButtons();_leaveAllowed=true;
     var lc=document.getElementById('loading-card');if(lc)lc.classList.remove('on');
-    if(trigger==='back'){
-      history.back();
-    } else {
-      /* unload/새로고침 — 사용자가 직접 다시 시도 */
-      toast('\uC0DD\uC131\uC774 \uCDE8\uC18C\uB418\uC5C8\uC5B4\uC694','',2000);
-    }
+    if(trigger==="back") history.back();
+    else if(trigger==="refresh") location.reload();
+    else toast('\uC0DD\uC131\uC774 \uCDE8\uC18C\uB418\uC5C8\uC5B4\uC694','',2000);
   });
 }
 
@@ -13214,7 +13211,7 @@ function _doOpenFullPlayer(idx){
   const genId = ++_fpAudioGenId;
   const audio=new Audio();
   audio.preload='auto';
-  audio.crossOrigin='anonymous';
+  /* crossOrigin은 Web Audio API(EQ/BPM) 연결 시에만 설정 — 불필요 시 Cloudflare __cf_bm 쿠키 경고 방지 */
   fpAudio=audio;
 
   /* debug removed */
@@ -13391,7 +13388,7 @@ function _checkSleepOnEnd(){if(_sleepMode==='endoftrack'){fpCancelSleep();if(fpA
 /* ═══ 4. 크로스페이드 ═══ */
 var _fpXfadeEnabled=false,_fpXfadeDur=3;
 function fpToggleCrossfade(){_fpXfadeEnabled=!_fpXfadeEnabled;var b=$('fp-crossfade-toggle');if(b)b.classList.toggle('on',_fpXfadeEnabled);var l=$('fp-xfade-label');if(l)l.textContent=_fpXfadeEnabled?'ON':'크로스';toast(_fpXfadeEnabled?'크로스페이드 ON ('+_fpXfadeDur+'초)':'크로스페이드 OFF','',1500);}
-function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.crossOrigin='anonymous';nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId)return;if(!fpAudio||!fpAudio.duration)return;var p=(fpAudio.currentTime/fpAudio.duration)*100;var pf=$('fp-prog-fill');if(pf)pf.style.width=p+'%';var pt=$('fp-prog-thumb');if(pt)pt.style.left=p+'%';var fc=$('fp-cur');if(fc)fc.textContent=formatTime(fpAudio.currentTime);var fd=$('fp-dur');if(fd)fd.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function')fpSyncLyrics();var mpf=$('mp-prog-fill');if(mpf)mpf.style.width=p+'%';});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
+function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId)return;if(!fpAudio||!fpAudio.duration)return;var p=(fpAudio.currentTime/fpAudio.duration)*100;var pf=$('fp-prog-fill');if(pf)pf.style.width=p+'%';var pt=$('fp-prog-thumb');if(pt)pt.style.left=p+'%';var fc=$('fp-cur');if(fc)fc.textContent=formatTime(fpAudio.currentTime);var fd=$('fp-dur');if(fd)fd.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function')fpSyncLyrics();var mpf=$('mp-prog-fill');if(mpf)mpf.style.width=p+'%';});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
 function _updateFpUI(idx){var h=historyData[idx];if(!h)return;var t=$('fp-title');if(t)t.textContent=h.title||'무제';var tg=$('fp-tags');if(tg)tg.textContent=h.tags?.split(',')[0]?.trim()||'';var cv=$('fp-cover');if(cv)cv.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;">🎵</div>';var bg=$('fp-bg');if(bg&&h.image_url)bg.style.backgroundImage='url('+h.image_url+')';var mt=$('mp-title');if(mt)mt.textContent=h.title||'무제';var ms=$('mp-sub');if(ms)ms.textContent=h.tags?.split(',')[0]?.trim()||'';var mth=$('mp-thumb');if(mth)mth.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'🎵';if(typeof fpRenderLyrics==='function')fpRenderLyrics();if(typeof fpUpdateLikeUI==='function')fpUpdateLikeUI();}
 
 /* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
@@ -21164,7 +21161,7 @@ async function callClaudeStream(systemPrompt, userPrompt, onChunk){
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ path: KIE_LLM_PATH, method: 'POST', body: { messages: msgs, stream: false } })
     });
-    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||e?.msg||'AI API 오류 '+res.status); }
+    if(!res.ok){ const e=await res.json().catch(()=>({})); var _em=e?.error?.message||e?.msg||''; if(/credit|balance.*too low/i.test(_em))_em=_t('errCreditLow'); throw new Error(_em||_t('errApiError')+' '+res.status); }
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content || '';
     if(content && onChunk) onChunk(content);
@@ -21494,7 +21491,7 @@ async function aiImageToStyle(input){
         }
       })
     });
-    if(!res.ok){ const errJ=await res.json().catch(()=>({})); throw new Error(errJ?.error||errJ?.msg||'AI API 오류 '+res.status); }
+    if(!res.ok){ const errJ=await res.json().catch(()=>({})); var _em2=errJ?.error||errJ?.msg||''; if(/credit|balance.*too low/i.test(_em2))_em2=_t('errCreditLow'); throw new Error(_em2||_t('errApiError')+' '+res.status); }
     _imgP(90, '4/4 단계', '분석 완료!', '결과를 정리하고 있어요');
     const data = await res.json();
     await new Promise(r=>setTimeout(r,400));
@@ -24285,7 +24282,9 @@ setTimeout(_showOnboarding, 1500);
               $('cc-messages').scrollTop = $('cc-messages').scrollHeight;
             }
             if(parsed.error){
-              aiDiv.textContent = parsed.error;
+              var eMsg=parsed.error;
+              if(/credit|balance.*too low/i.test(eMsg)) eMsg=_t('errCreditLow');
+              aiDiv.textContent = eMsg;
             }
           } catch(e){}
         }
