@@ -14,11 +14,14 @@ const SENTRY_PROJ  = process.env.SENTRY_PROJECT || 'javascript';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const SENTRY_API   = 'https://sentry.io/api/0';
 
-async function sentryFetch(path) {
+async function sentryFetch(path, opts = {}) {
   if (!SENTRY_TOKEN) return { error: 'SENTRY_AUTH_TOKEN 미설정' };
-  const r = await fetch(`${SENTRY_API}${path}`, {
-    headers: { Authorization: `Bearer ${SENTRY_TOKEN}` },
-  });
+  const fetchOpts = {
+    method: opts.method || 'GET',
+    headers: { Authorization: `Bearer ${SENTRY_TOKEN}`, 'Content-Type': 'application/json' },
+  };
+  if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
+  const r = await fetch(`${SENTRY_API}${path}`, fetchOpts);
   if (!r.ok) {
     const txt = await r.text().catch(() => '');
     return { error: `Sentry ${r.status}: ${txt.slice(0, 200)}` };
@@ -85,6 +88,30 @@ export default async function handler(req, res) {
         })),
       };
       return res.status(200).json(summary);
+    }
+
+    /* 웹훅 등록 */
+    if (action === 'register-webhook') {
+      const webhookUrl = 'https://ai-music-studio-bice.vercel.app/api/sentry-webhook';
+      /* 기존 훅 조회 */
+      const existing = await sentryFetch(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/hooks/`);
+      if (Array.isArray(existing)) {
+        const already = existing.find(h => h.url === webhookUrl);
+        if (already) return res.status(200).json({ ok: true, message: '이미 등록됨', hook: { id: already.id, url: already.url, events: already.events } });
+      }
+      /* Service Hook 등록 */
+      const hook = await sentryFetch(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/hooks/`, {
+        method: 'POST',
+        body: { url: webhookUrl, events: ['issue.created'] },
+      });
+      if (hook.error) return res.status(200).json({ ok: false, error: hook.error });
+      return res.status(200).json({ ok: true, message: '웹훅 등록 완료', hook: { id: hook.id, url: hook.url, events: hook.events } });
+    }
+
+    /* 웹훅 목록 조회 */
+    if (action === 'list-webhooks') {
+      const hooks = await sentryFetch(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/hooks/`);
+      return res.status(200).json(hooks);
     }
 
     /* 크리티컬 에러 체크 + 봇 알림 (Vercel Cron 또는 외부 호출용) */
