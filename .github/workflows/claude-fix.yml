@@ -119,6 +119,16 @@ jobs:
           except: pass
           PYEOF
 
+      - name: Verify secrets
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then echo "::error::ANTHROPIC_API_KEY is empty!"; fi
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then echo "::error::PAT_TOKEN is empty!"; fi
+          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_KEY}"
+          echo "PAT_TOKEN length: ${#PAT_KEY}"
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PAT_KEY: ${{ secrets.PAT_TOKEN }}
+
       - uses: anthropics/claude-code-action@beta
         id: claude
         with:
