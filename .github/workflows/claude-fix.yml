@@ -104,46 +104,136 @@ jobs:
 
           # 화면별 파일/줄 범위 매핑 (토큰 절약용)
           SCREEN_MAP = {
-              # HTML 뷰 영역
-              '생성':     {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW (음악 생성 폼)'},
-              '만들기':   {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
-              'create':   {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
-              '히스토리': {'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW (라이브러리)'},
-              '라이브러리':{'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW'},
-              'history':  {'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW'},
-              '커뮤니티': {'files': ['index.html:4868-4930'], 'desc': 'COMMUNITY VIEW'},
-              'community':{'files': ['index.html:4868-4930'], 'desc': 'COMMUNITY VIEW'},
-              '설정':     {'files': ['index.html:4931-5368'], 'desc': 'SETTINGS VIEW'},
-              'settings': {'files': ['index.html:4931-5368'], 'desc': 'SETTINGS VIEW'},
-              '플레이어': {'files': ['index.html:5416-5760'], 'desc': '미니플레이어 + 풀플레이어'},
-              'player':   {'files': ['index.html:5416-5760'], 'desc': '미니/풀 플레이어'},
-              '플레이어편집':{'files': ['index.html:5761-5830'], 'desc': '풀플레이어 편집 바텀시트'},
-              '공유':     {'files': ['index.html:5948-6053'], 'desc': '공유 시트 + DM'},
-              'share':    {'files': ['index.html:5948-6053'], 'desc': '공유 시트'},
-              '로그인':   {'files': ['index.html:6479-6552'], 'desc': '로그인 모달'},
-              'login':    {'files': ['index.html:6479-6552'], 'desc': '로그인 모달'},
-              '리믹스':   {'files': ['index.html:5894-6420'], 'desc': '리믹스/도구 바텀시트들'},
-              'remix':    {'files': ['index.html:5894-6420'], 'desc': '리믹스 바텀시트'},
-              '노래방':   {'files': ['index.html:6418-6478', 'js/vocal-removal.js'], 'desc': '노래방 + 보컬 제거'},
-              '보컬':     {'files': ['index.html:6054-6112', 'js/vocal-removal.js'], 'desc': '보컬 변경/제거'},
-              '공지':     {'files': ['index.html:6455-6478'], 'desc': '인앱 공지 팝업'},
-              '알림':     {'files': ['index.html:19545-19576'], 'desc': '알림 인박스'},
-              '프로필':   {'files': ['index.html:5381-5414', 'index.html:19403-19476'], 'desc': '프로필 뷰 + 시트'},
-              'profile':  {'files': ['index.html:5381-5414', 'index.html:19403-19476'], 'desc': '프로필'},
-              '채팅':     {'files': ['index.html:5499-5546'], 'desc': 'AI 채팅'},
-              'chat':     {'files': ['index.html:5499-5546'], 'desc': 'AI 채팅'},
-              '플랜':     {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜'},
-              'plan':     {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜'},
-              # CSS
-              'css':      {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
-              '스타일':   {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
-              'style':    {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
-              # JS 메인
-              'js':       {'files': ['index.html:6553-19401'], 'desc': '메인 JS 로직'},
-              # API
-              'api':      {'files': ['api/'], 'desc': 'API 엔드포인트'},
-              '봇':       {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '텔레그램/카카오 봇'},
-              'bot':      {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '봇'},
+              # ━━ 메인 뷰 (HTML) ━━
+              '생성':       {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW (음악 생성 폼)'},
+              '만들기':     {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
+              'create':     {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
+              '히스토리':   {'files': ['index.html:4823-4867', 'index.html:11133-11440'], 'desc': 'HISTORY VIEW (HTML + JS렌더)'},
+              '라이브러리': {'files': ['index.html:4823-4867', 'index.html:11133-11440'], 'desc': 'HISTORY VIEW'},
+              'history':    {'files': ['index.html:4823-4867', 'index.html:11133-11440'], 'desc': 'HISTORY VIEW'},
+              '커뮤니티':   {'files': ['index.html:4868-4930', 'index.html:16265-16420'], 'desc': 'COMMUNITY VIEW (HTML + JS상태)'},
+              'community':  {'files': ['index.html:4868-4930', 'index.html:16265-16420'], 'desc': 'COMMUNITY VIEW'},
+              '설정':       {'files': ['index.html:4931-5368', 'index.html:18734-18860'], 'desc': 'SETTINGS VIEW (HTML + 렌더JS)'},
+              'settings':   {'files': ['index.html:4931-5368', 'index.html:18734-18860'], 'desc': 'SETTINGS VIEW'},
+
+              # ━━ 설정 세부 ━━
+              '테마':       {'files': ['index.html:4971-5015', 'index.html:2537-2600'], 'desc': '테마 설정 (HTML + CSS)'},
+              'theme':      {'files': ['index.html:4971-5015', 'index.html:2537-2600'], 'desc': '테마 설정'},
+              '언어':       {'files': ['index.html:4958-4970'], 'desc': '언어 설정'},
+              '출석':       {'files': ['index.html:5016-5032', 'index.html:5103-5111'], 'desc': '출석 체크'},
+              '접근성':     {'files': ['index.html:5050-5066'], 'desc': '접근성 설정'},
+              '푸시':       {'files': ['index.html:5067-5102', 'index.html:22437-22615'], 'desc': '푸시 알림 설정 + SW'},
+              '약관':       {'files': ['index.html:5335-5368', 'index.html:18856-18940'], 'desc': '법적 고지 (이용약관/개인정보)'},
+
+              # ━━ 플레이어 ━━
+              '미니플레이어': {'files': ['index.html:5416-5443', 'index.html:10899-10979'], 'desc': '미니 플로팅 플레이어'},
+              '풀플레이어':   {'files': ['index.html:5547-5709', 'index.html:13205-13556'], 'desc': '풀스크린 플레이어'},
+              '플레이어':     {'files': ['index.html:5416-5760', 'index.html:10899-10979', 'index.html:13205-13556'], 'desc': '미니+풀 플레이어'},
+              'player':       {'files': ['index.html:5416-5760', 'index.html:10899-10979', 'index.html:13205-13556'], 'desc': '플레이어 전체'},
+              '큐':           {'files': ['index.html:5444-5454'], 'desc': '재생 큐 시트'},
+              'queue':        {'files': ['index.html:5444-5454'], 'desc': '재생 큐 시트'},
+              '가사':         {'files': ['index.html:5563-5700', 'index.html:10562-10579'], 'desc': '가사 오버레이 + 파싱'},
+              'lyrics':       {'files': ['index.html:5563-5700', 'index.html:10562-10579'], 'desc': '가사'},
+
+              # ━━ 바텀시트/모달 ━━
+              '트랙상세':     {'files': ['index.html:5455-5498', 'index.html:12505-12651'], 'desc': '트랙 상세 바텀시트'},
+              '편집':         {'files': ['index.html:5761-5830', 'index.html:5831-5893', 'index.html:11441-11592'], 'desc': '편집 바텀시트 (풀플+히스토리)'},
+              '공유':         {'files': ['index.html:5948-6035', 'index.html:15469-15562'], 'desc': '공유 시트 + 확인 모달'},
+              'share':        {'files': ['index.html:5948-6035', 'index.html:15469-15562'], 'desc': '공유'},
+              'DM':           {'files': ['index.html:6036-6053'], 'desc': 'DM (1:1 메시지) 시트'},
+              'dm':           {'files': ['index.html:6036-6053'], 'desc': 'DM 시트'},
+              '로그인':       {'files': ['index.html:6479-6552', 'index.html:7217-7318'], 'desc': '로그인 모달 + 소셜로그인 JS'},
+              'login':        {'files': ['index.html:6479-6552', 'index.html:7217-7318'], 'desc': '로그인'},
+              '신고':         {'files': ['index.html:2443-2457', 'index.html:18356-18571'], 'desc': '신고 바텀시트 (CSS + JS)'},
+
+              # ━━ 리믹스/도구 ━━
+              '리믹스':       {'files': ['index.html:5894-5947', 'index.html:12144-12253'], 'desc': '리믹스 도구 시트'},
+              'remix':        {'files': ['index.html:5894-5947', 'index.html:12144-12253'], 'desc': '리믹스 도구'},
+              '연장':         {'files': ['index.html:6113-6182', 'index.html:10453-10561'], 'desc': 'EXTEND 모달 + 연장 JS'},
+              'extend':       {'files': ['index.html:6113-6182', 'index.html:10453-10561'], 'desc': '곡 연장'},
+              '커버':         {'files': ['index.html:6183-6254', 'index.html:11603-11709'], 'desc': '리믹스 Cover 바텀시트'},
+              'cover':        {'files': ['index.html:6183-6254', 'index.html:11603-11709'], 'desc': '커버'},
+              '스타일리믹스': {'files': ['index.html:6255-6317', 'index.html:11710-11788'], 'desc': '스타일 재사용 바텀시트'},
+              '리마스터':     {'files': ['index.html:6318-6361', 'index.html:11789-11873'], 'desc': '리마스터 모달'},
+              'remaster':     {'files': ['index.html:6318-6361', 'index.html:11789-11873'], 'desc': '리마스터'},
+              '보컬':         {'files': ['index.html:6054-6112', 'index.html:10312-10385', 'js/vocal-removal.js'], 'desc': '보컬 변경 모달 + JS'},
+              '보컬제거':     {'files': ['index.html:6362-6417', 'index.html:11874-12089', 'js/vocal-removal.js'], 'desc': '보컬 제거/스템 분리'},
+              '노래방':       {'files': ['index.html:6418-6454', 'index.html:15990-16264'], 'desc': '노래방 풀스크린 플레이어'},
+              '스템':         {'files': ['index.html:12076-12143'], 'desc': '스템 믹서 + 녹음'},
+
+              # ━━ 커뮤니티 세부 ━━
+              '피드':         {'files': ['index.html:16265-16427', 'index.html:17261-17541'], 'desc': '커뮤니티 피드 렌더링'},
+              'feed':         {'files': ['index.html:16265-16427', 'index.html:17261-17541'], 'desc': '커뮤니티 피드'},
+              '채팅':         {'files': ['index.html:5499-5546', 'index.html:16428-16838'], 'desc': 'AI 채팅 + 커뮤니티 채팅'},
+              'chat':         {'files': ['index.html:5499-5546', 'index.html:16428-16838'], 'desc': '채팅 전체'},
+              '커뮤채팅':     {'files': ['index.html:16428-16838'], 'desc': '커뮤니티 채팅 (Realtime)'},
+              '리더보드':     {'files': ['index.html:16839-16875'], 'desc': '리더보드'},
+              '챌린지':       {'files': ['index.html:16876-17260'], 'desc': '챌린지 배너'},
+              '크리에이터':   {'files': ['index.html:14328-14582', 'index.html:17619-17841'], 'desc': '크리에이터 상세 + 리스트'},
+              '팔로우':       {'files': ['index.html:15614-15750'], 'desc': '팔로우 제안'},
+              '추천':         {'files': ['index.html:14583-14810', 'index.html:16298-16319'], 'desc': '맞춤 추천 인사이트'},
+              '별점':         {'files': ['index.html:17842-18151'], 'desc': '별점 시스템'},
+              '댓글':         {'files': ['index.html:2458-2536', 'index.html:18572-18733'], 'desc': '댓글 바텀시트 (CSS + 좋아요/싫어요)'},
+              '검색':         {'files': ['index.html:15772-15913'], 'desc': '커뮤니티 검색 + 자동완성'},
+
+              # ━━ 프로필/콜라보 ━━
+              '프로필':       {'files': ['index.html:5381-5414', 'index.html:19403-19462'], 'desc': '프로필 뷰 + 시트'},
+              'profile':      {'files': ['index.html:5381-5414', 'index.html:19403-19462'], 'desc': '프로필'},
+              '콜라보':       {'files': ['index.html:19463-19544'], 'desc': '콜라보 요청 + 워크스페이스'},
+              'collab':       {'files': ['index.html:19463-19544'], 'desc': '콜라보'},
+              '알림':         {'files': ['index.html:19545-19576'], 'desc': '알림 인박스'},
+              '다시작곡':     {'files': ['index.html:19577-19633'], 'desc': '이걸로 다시 작곡하기 시트'},
+
+              # ━━ 생성 세부 ━━
+              '장르':         {'files': ['index.html:7410-7451', 'index.html:6782-6803'], 'desc': '장르 버튼 + 장르 데이터'},
+              'genre':        {'files': ['index.html:7410-7451', 'index.html:6782-6803'], 'desc': '장르'},
+              '프리셋':       {'files': ['index.html:7506-7524', 'index.html:9589-9803'], 'desc': '튜닝 프리셋'},
+              '작사':         {'files': ['index.html:7570-7606', 'index.html:8959-9067', 'index.html:12975-13009'], 'desc': 'AI 자동 작사'},
+              'MV':           {'files': ['index.html:5710-5760', 'index.html:10159-10311'], 'desc': '뮤직비디오 생성'},
+              'mv':           {'files': ['index.html:5710-5760', 'index.html:10159-10311'], 'desc': '뮤직비디오'},
+              '유튜브':       {'files': ['index.html:7676-7853', 'index.html:8724-8934'], 'desc': '유튜브 분석 + 생성'},
+              'youtube':      {'files': ['index.html:7676-7853', 'index.html:8724-8934'], 'desc': '유튜브 모드'},
+              '다운로드':     {'files': ['index.html:8935-8958'], 'desc': '다운로드 (CORS blob)'},
+
+              # ━━ 플랜/결제 ━━
+              '플랜':         {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜 (HTML + JS)'},
+              'plan':         {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜'},
+              '크레딧':       {'files': ['index.html:15563-15595'], 'desc': '크레딧 사용내역 + 뱃지'},
+              '결제':         {'files': ['index.html:5122-5240', 'api/toss-config.js'], 'desc': '결제/플랜 HTML + Toss 설정'},
+
+              # ━━ 기타 UI ━━
+              '공지':         {'files': ['index.html:6455-6478', 'index.html:21490-21606'], 'desc': '인앱 공지 (팝업 + 수신 JS)'},
+              '온보딩':       {'files': ['index.html:22618-24764'], 'desc': '온보딩 오버레이'},
+              '헤더':         {'files': ['index.html:3960-3968', 'index.html:318-342'], 'desc': '헤더 (HTML + CSS)'},
+              '탭바':         {'files': ['index.html:5415-5416', 'index.html:7461-7463'], 'desc': '하단 탭바'},
+              '플레이리스트': {'files': ['index.html:13817-13997'], 'desc': '플레이리스트 관리'},
+              'playlist':     {'files': ['index.html:13817-13997'], 'desc': '플레이리스트'},
+
+              # ━━ CSS 세부 ━━
+              'css':          {'files': ['index.html:126-3953'], 'desc': 'CSS 전체'},
+              '스타일':       {'files': ['index.html:126-3953'], 'desc': 'CSS 전체'},
+              'css레이아웃':  {'files': ['index.html:315-342'], 'desc': 'CSS 레이아웃+헤더'},
+              'css플레이어':  {'files': ['index.html:3200-3427'], 'desc': 'CSS 풀플레이어+가사+상세시트'},
+              'css커뮤니티':  {'files': ['index.html:2237-2536', 'index.html:3542-3571'], 'desc': 'CSS 채팅+댓글+커뮤니티'},
+              'css생성':      {'files': ['index.html:3428-3473', 'index.html:3687-3752'], 'desc': 'CSS 생성팝업+작사+프리셋'},
+              'css설정':      {'files': ['index.html:3108-3130', 'index.html:3621-3686'], 'desc': 'CSS 고급설정+플랜'},
+
+              # ━━ JS 전체/세부 ━━
+              'js':           {'files': ['index.html:6553-19401'], 'desc': 'JS 전체 (큼)'},
+              'js생성':       {'files': ['index.html:7410-9588', 'js/create-enhance.js'], 'desc': 'JS 생성 로직'},
+              'js재생':       {'files': ['index.html:10899-10979', 'index.html:12277-12504'], 'desc': 'JS 오디오 재생'},
+              'js히스토리':   {'files': ['index.html:11133-11592'], 'desc': 'JS 히스토리 렌더+편집'},
+              'js커뮤니티':   {'files': ['index.html:14068-14237', 'index.html:16265-17260'], 'desc': 'JS 커뮤니티 로직'},
+              'js인증':       {'files': ['index.html:7217-7318', 'index.html:7887-7966'], 'desc': 'JS 로그인+OAuth'},
+
+              # ━━ API ━━
+              'api':          {'files': ['api/'], 'desc': 'API 엔드포인트 전체'},
+              '봇':           {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '텔레그램/카카오 봇'},
+              'bot':          {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '봇'},
+              '텔레봇':       {'files': ['api/tg-webhook.js'], 'desc': '텔레그램 봇'},
+              '카카오봇':     {'files': ['api/kakao-webhook.js'], 'desc': '카카오 봇'},
+              '텔레그램':     {'files': ['api/telegram.js', 'api/tg-webhook.js'], 'desc': '텔레그램 API + 봇'},
+              '카카오':       {'files': ['api/kakao-webhook.js', 'api/kakao-notify.js'], 'desc': '카카오 봇 + 알림'},
           }
 
           screen_lower = screen.lower() if screen else ''
