@@ -8935,14 +8935,15 @@ async function pollResult(apiKey,taskId){
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
         throw new Error('가사에 부적절한 단어가 포함되어 있어요 — 가사를 수정 후 다시 시도해주세요');
       }
-      /* audioUrl이 있는 유효 트랙만 필터 */
+      /* audioUrl 또는 streamAudioUrl이 있는 유효 트랙만 필터 */
+      tracks.forEach(function(t){if(!t.audioUrl&&t.streamAudioUrl)t.audioUrl=t.streamAudioUrl;});
       var _validTracks=tracks.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
-      /* 1곡 모드: FIRST_SUCCESS에서 유효 트랙 있으면 즉시 반환 */
-      if(status==='FIRST_SUCCESS'&&_validTracks.length&&_genCount===1){
+      /* 1곡 모드: FIRST_SUCCESS/TEXT_SUCCESS에서 유효 트랙 있으면 즉시 반환 */
+      if((status==='FIRST_SUCCESS'||status==='TEXT_SUCCESS')&&_validTracks.length&&_genCount===1){
         return _validTracks.slice(0,1);
       }
       /* 2곡 모드 또는 완전 완료 */
-      if(status==='SUCCESS'||status==='FIRST_SUCCESS'||status==='COMPLETE'){
+      if(status==='SUCCESS'||status==='FIRST_SUCCESS'||status==='COMPLETE'||status==='TEXT_SUCCESS'){
         if(_validTracks.length){
           return _genCount===1?_validTracks.slice(0,1):_validTracks;
         }

@@ -59,14 +59,14 @@ async function _handler(req, res) {
     console.log('[callback]', taskId?.slice(0, 12), status, tracks?.length || 0);
 
     /* 생성 완료된 경우 — 트랙 저장 + 알림 */
-    if (taskId && (status === 'SUCCESS' || status === 'FIRST_SUCCESS') && tracks.length > 0) {
+    if (taskId && (status === 'SUCCESS' || status === 'FIRST_SUCCESS' || status === 'TEXT_SUCCESS') && tracks.length > 0) {
       const saved = [];
       for (const t of tracks) {
         const trackData = {
           id: t.id || t.audioId || `cb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           task_id: taskId,
           title: t.title || '봇 생성곡',
-          audio_url: t.audioUrl || t.audio_url || t.song_path || '',
+          audio_url: t.audioUrl || t.streamAudioUrl || t.audio_url || t.song_path || '',
           image_url: t.imageUrl || t.image_url || '',
           tags: t.tags || 'bot-generated',
           lyrics: t.lyrics || t.lyric || '',
