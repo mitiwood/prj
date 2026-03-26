@@ -99,7 +99,8 @@ jobs:
           echo "Claude Code version: $(claude --version 2>/dev/null || echo 'unknown')"
 
           echo "=== Building prompt ==="
-          PROMPT="다음 수정 요청을 처리해주세요:
+          cat > /tmp/claude-prompt.txt << PROMPT_EOF
+          다음 수정 요청을 처리해주세요:
 
           ${ISSUE_BODY}
 
@@ -108,15 +109,18 @@ jobs:
           - 기존 기능, 함수, CSS를 절대 제거하지 마세요
           - node_modules/, .env 파일은 수정하지 마세요
           - 수정 완료 후 git add + git commit을 직접 실행하세요
-          - 커밋 메시지: \"fix: [#${ISSUE_NUM}] <간결한 설명>\""
+          - 커밋 메시지: "fix: [#${ISSUE_NUM}] <간결한 설명>"
+          PROMPT_EOF
 
+          echo "=== Prompt content ==="
+          cat /tmp/claude-prompt.txt
           echo "=== Running Claude Code ==="
-          # 출력을 로그 파일에도 저장
-          claude --print \
+          # stdin으로 프롬프트 전달 (인자 전달 시 특수문자/줄바꿈 깨짐 방지)
+          cat /tmp/claude-prompt.txt | claude --print \
             --allowedTools "Edit,Read,Glob,Grep,Write,Bash" \
-            "$PROMPT" 2>&1 | tee /tmp/claude-output.txt
+            2>&1 | tee /tmp/claude-output.txt
 
-          EXIT_CODE=${PIPESTATUS[0]}
+          EXIT_CODE=${PIPESTATUS[1]}
           echo "claude_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
           if [ "$EXIT_CODE" -ne 0 ]; then
