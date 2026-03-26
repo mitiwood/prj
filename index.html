@@ -6991,9 +6991,9 @@ function switchTab(viewId){
   /* ── 2단계: 뷰별 후속 로직 — 에러 발생해도 탭 전환은 이미 완료 ── */
   try{
     if(viewId!=='community-view'){
-      if(typeof commHeroAudio!=='undefined'&&commHeroAudio){try{commHeroAudio.pause();}catch(e){}}
-      if(typeof commAudio!=='undefined'&&commAudio){try{commAudio.pause();}catch(e){}}
-      if(typeof _commPollPaused!=='undefined') _commPollPaused=true;
+      try{if(commHeroAudio){commHeroAudio.pause();}}catch(e){}
+      try{if(commAudio){commAudio.pause();}}catch(e){}
+      try{if(typeof _commPollPaused!=='undefined') _commPollPaused=true;}catch(e){}
     } else {
       if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
     }
@@ -8054,7 +8054,7 @@ async function _ytDoGenerate(){
         var _extId=_extTrack.id||_extTrack.audioId||'';
         if(!_extId)break;
         $('ld-sub').innerHTML='\uD83D\uDD04 곡 연장 중... ('+(_er+1)+'/'+_extRounds+')<br>더 긴 곡을 만들고 있어요';
-        if(_pctEl)_pctEl.textContent='연장 중';
+        var _pe=$('ld-percent');if(_pe)_pe.textContent='연장 중';
         try{
           var _extBody={audioId:_extId,model:model,callBackUrl:CALLBACK,defaultParamFlag:false};
           var _extData=await kieRequest(apiKey,'POST','/api/v1/generate/extend',_extBody);
