@@ -18721,8 +18721,9 @@ function _editProfile() {
       if(d.ok){
         currentUser.name=newName;currentUser.bio=newBio;
         localStorage.setItem('kms_user',JSON.stringify(currentUser));
-        if($('settings-user-name'))$('settings-user-name').textContent=newName;
-        if($('settings-avatar'))$('settings-avatar').textContent=newName[0]||'👤';
+        /* 모든 UI 즉시 갱신 */
+        renderSettings();
+        updateLoginUI();
         toast('프로필이 업데이트되었어요','ok',2000);
         overlay.remove();
       } else {toast(d.error||'업데이트 실패','err');this.disabled=false;this.textContent='저장';}

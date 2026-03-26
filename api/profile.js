@@ -334,7 +334,15 @@ export default async function handler(req, res) {
       if (!trimmed) return res.status(400).json({ error: '이름이 비어있어요' });
       try {
         const updateData = { name: trimmed };
-        if (typeof bio === 'string') updateData.ua = JSON.stringify({ ...(JSON.parse('{}') || {}), bio: bio.trim().slice(0, 100) });
+        if (typeof bio === 'string') {
+          /* 기존 ua 데이터 보존하며 bio 업데이트 */
+          let existingUa = {};
+          try {
+            const rows = await sb('GET', `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}&select=ua`);
+            if (rows && rows[0] && rows[0].ua) existingUa = typeof rows[0].ua === 'string' ? JSON.parse(rows[0].ua) : rows[0].ua;
+          } catch (_) {}
+          updateData.ua = JSON.stringify({ ...existingUa, bio: bio.trim().slice(0, 100) });
+        }
         await sb('PATCH',
           `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}`,
           updateData);
