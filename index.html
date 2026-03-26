@@ -7170,6 +7170,8 @@ async function _doLoadSbTracks(){
     if(Array.isArray(d.tracks)){
       await _loadRealUsers();
       _sbTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      /* DB에 duration이 있는 트랙은 _durCache에 즉시 반영 */
+      _sbTracks.forEach(function(t){if(t.dur&&t.dur!=='—'&&t._sbId) _durCache[t._sbId]=t.dur;});
       _sbOffset = _sbTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
       _sbFingerprint = _calcFingerprint(_sbTracks);
@@ -7439,7 +7441,7 @@ function _rowToTrack(t){
     tags:    _normTags(t.tags).split(',')[0]?.trim()||'',
     allTags: _normTags(t.tags).toLowerCase(),
     img:     t.image_url  || '',
-    dur:     '—',
+    dur:     (t.duration>0) ? formatTime(t.duration) : '—',
     audioUrl:t.audio_url  || '',
     videoUrl:t.video_url  || '',
     lyrics:  t.lyrics     || '',
@@ -11805,7 +11807,23 @@ function renderTracks(tracks,prompt,tags,mode){
   });
   /* ✅ FIX: batchWrap 스코프로 이벤트 바인딩 — 이전 배치 중복 리스너 방지 */
   batchWrap.querySelectorAll('.ap-play-btn').forEach(btn=>btn.addEventListener('click',()=>{
-    /* A/B 카드에서 재생 시 다른 오디오 자동 중지 → 팝업 없이 바로 재생 */
+    /* 결과 카드 재생 버튼 → 미니플레이어 오픈 */
+    const _ti=parseInt(btn.dataset.idx);
+    const _tr=tracks[_ti];
+    if(_tr){
+      const _tId=_tr.id||'';
+      let _hIdx=_tId?historyData.findIndex(h=>h.id===_tId):-1;
+      if(_hIdx<0){
+        /* 아직 historyData에 없으면 추가 (생성 직후 등) */
+        const _tAudioUrl=_tr.audioUrl||_tr.audio_url||btn.dataset.url||'';
+        historyData.unshift({id:_tId||('rc_'+Date.now()),title:_tr.title||'무제',audio_url:_tAudioUrl,image_url:_tr.imageUrl||_tr.image_url||'',tags:_tr.tags||'',lyrics:_tr.lyrics||_tr.lyric||'',duration:_tr.duration||0,created:Date.now(),type:'audio',genMode:_tr.genMode||_tr.gen_mode||''});
+        saveHistory();
+        _hIdx=0;
+      }
+      showMiniPlayer(_hIdx);
+      return;
+    }
+    /* fallback: 트랙 정보 없으면 인라인 재생 */
     if(getPlayingInfo()&&(!activeAudio||activeAudio.paused||activeAudio._url!==btn.dataset.url)){
       stopAllAudio();
       if(activeAudio){activeAudio=null;}
@@ -13571,6 +13589,19 @@ function showMiniPlayer(idx){
   /* src 설정 + load() */
   audio.src = _safeAudioUrl;
   audio.load();
+  /* 메타데이터 로드 시 총 재생시간 즉시 표시 + durCache/historyData 업데이트 */
+  audio.addEventListener('loadedmetadata',function(){
+    if(genId!==_fpAudioGenId||!audio.duration||!isFinite(audio.duration)) return;
+    var d=_ensureMpDom();
+    if(d.time) d.time.textContent='0:00 / '+formatTime(audio.duration);
+    var _hEntry=historyData[fpCurrentIdx];
+    var _hId=_hEntry?.id||_hEntry?.taskId||'';
+    if(typeof _durCache!=='undefined'&&_hId) _durCache[_hId]=formatTime(audio.duration);
+    if(_hEntry&&!(_hEntry.duration>0)){
+      _hEntry.duration=Math.round(audio.duration);
+      saveHistory();
+    }
+  },{once:true,signal:_fpAbort.signal});
   /* 즉시 play() 시도 — 브라우저가 충분한 데이터를 이미 가지고 있을 수 있음 */
   setTimeout(function(){
     if(genId!==_fpAudioGenId||_playStarted) return;

@@ -321,3 +321,9 @@ ALTER TABLE public.tracks
   ADD COLUMN IF NOT EXISTS co_owner_provider TEXT DEFAULT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_tracks_co_owner ON public.tracks(co_owner_name, co_owner_provider);
+
+-- ============================================================
+-- 16. tracks duration 컬럼 추가 (재생시간 초 단위)
+-- ============================================================
+ALTER TABLE public.tracks
+  ADD COLUMN IF NOT EXISTS duration INTEGER DEFAULT 0;
