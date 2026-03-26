@@ -1591,6 +1591,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .hist-tabs::after{content:'';flex:0 0 16px;}
 .hist-tab{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s ease;white-space:nowrap;flex-shrink:0;scroll-snap-align:start;}
 .hist-tab.on{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 2px 10px rgba(124,58,237,.35);}
+.yt-dur-tab.on{background:var(--acc);color:#fff;border-color:var(--acc)!important;}
 .hist-tab:hover:not(.on){color:var(--t1);border-color:var(--t3);}
 /* MY 피드 — 크리에이터 (고도화) */
 .myfeed-section{margin-bottom:8px;}
@@ -4867,9 +4868,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="opt-group" style="flex:1;">
             <div class="opt-label">곡 길이</div>
             <div style="display:flex;gap:6px;" id="yt-duration-btns">
-              <button class="hist-tab on" data-ytdur="short" onclick="_setYtDuration('short')" style="flex:1;padding:7px 0;font-size:11px;">짧게 ~1분</button>
-              <button class="hist-tab" data-ytdur="normal" onclick="_setYtDuration('normal')" style="flex:1;padding:7px 0;font-size:11px;">보통 ~2분</button>
-              <button class="hist-tab" data-ytdur="long" onclick="_setYtDuration('long')" style="flex:1;padding:7px 0;font-size:11px;">길게 ~4분</button>
+              <button class="yt-dur-tab on" data-ytdur="short" onclick="_setYtDuration('short')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">짧게 ~1분</button>
+              <button class="yt-dur-tab" data-ytdur="normal" onclick="_setYtDuration('normal')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">보통 ~2분</button>
+              <button class="yt-dur-tab" data-ytdur="long" onclick="_setYtDuration('long')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">길게 ~4분</button>
             </div>
             <div style="font-size:10px;color:var(--t3);margin-top:4px;" id="yt-dur-hint">기본 생성 (~1분). 보통/길게는 자동 연장됩니다.</div>
           </div>
@@ -12074,7 +12075,7 @@ var _histViewMode = localStorage.getItem('kms_hist_view') || 'grid';
 function _switchHistTab(tab){
   _histTabFilter = tab;
   if(tab!=='myfeed') _myFeedDetail=null; /* 다른 탭 이동 시 상세뷰 초기화 */
-  document.querySelectorAll('.hist-tab').forEach(function(t){
+  document.querySelectorAll('#hist-tabs .hist-tab[data-htab]').forEach(function(t){
     t.classList.toggle('on',t.dataset.htab===tab);
     if(t.dataset.htab===tab) t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   });
@@ -12104,9 +12105,15 @@ function _switchHistView(mode){
   renderHistoryView();
 }
 function renderHistoryView(){
-  const grid=$('history-view-grid');
-  const count=$('hist-view-count');
+  var grid=$('history-view-grid');
+  var count=$('hist-view-count');
   if(!grid)return;
+
+  /* 서버 데이터 로딩 중 + 로컬 데이터 없음 → 스켈레톤 */
+  if(currentUser&&!_sbMyLoaded&&!historyData.length){
+    grid.innerHTML=_skeleton('track',5);
+    return;
+  }
 
   /* 플레이리스트 탭 — 별도 데이터 소스 */
   if(_histTabFilter==='playlist'){
@@ -18358,7 +18365,10 @@ async function _renderCommunityInner(force){
     var mw=$('comm-mood-wrap');if(mw)mw.style.display='none';
     var sw=$('comm-spotlight-wrap');if(sw)sw.style.display='none';
     var gw=$('comm-genre-wrap');if(gw)gw.style.display='none';
-    if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
+    if(!_sbLoaded || !_sbTracks.length){
+      var _clList=$('comm-list');if(_clList)_clList.innerHTML=_skeleton('creator',5);
+      await _loadSbTracks(true);
+    }
     _renderCreatorList();
     return;
   }
@@ -18369,7 +18379,7 @@ async function _renderCommunityInner(force){
     var af0=$('comm-activity-feed');if(af0)af0.innerHTML='';
     var hw0=$('comm-hero-wrap');var ls0=$('comm-list');
     if(hw0)hw0.innerHTML='';
-    if(ls0)ls0.innerHTML=_commLoadingHtml('팔로잉 피드 불러오는 중...');
+    if(ls0)ls0.innerHTML=_skeleton('track',4);
     if(ls0) await _renderFollowingFeed(hw0,ls0);
     /* 페이드인 */
     if(ls0)ls0.querySelectorAll('.comm-feed-item').forEach(function(el,i){el.style.animation='commFadeUp .4s cubic-bezier(.16,1,.3,1) '+(i*0.04)+'s both';});
@@ -18395,7 +18405,7 @@ async function _renderCommunityInner(force){
     var crSec3=$('comm-creators-section');if(crSec3)crSec3.style.display='none';
     var af3=$('comm-activity-feed');if(af3)af3.innerHTML='';
     var hw3=$('comm-hero-wrap');if(hw3)hw3.innerHTML='';
-    var ls3=$('comm-list');if(ls3)ls3.innerHTML='';
+    var ls3=$('comm-list');if(ls3)ls3.innerHTML=_skeleton('leaderboard',6);
     if(_sbIntersectionObserver){_sbIntersectionObserver.disconnect();_sbIntersectionObserver=null;}
     if(!_sbLoaded || !_sbTracks.length) await _loadSbTracks(true);
     _renderLeaderboard();
@@ -18474,9 +18484,9 @@ async function _renderCommunityInner(force){
     return;
   }
 
-  /* 첫 로드 — 로딩 인디케이터 + 서버 대기 */
-  heroWrap.innerHTML='';
-  list.innerHTML=_commLoadingHtml('');
+  /* 첫 로드 — 스켈레톤 + 서버 대기 */
+  heroWrap.innerHTML=_skeleton('hero',1);
+  list.innerHTML=_skeleton('track',5);
   var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
   await _loadSbTracks(true);
   if(crSec){crSec.style.opacity='';crSec.style.transition='opacity .3s';}
@@ -18546,12 +18556,22 @@ function _buildCommItem(t,i,isMine){
 /* 이전 렌더 데이터 스냅샷 (변경 감지용) */
 var _commPrevSnapshot='';
 
-function _skeleton(type){
-  if(type==='track') return '<div style="display:flex;gap:10px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;"><div style="width:48px;height:48px;border-radius:8px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:60%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
-  if(type==='creator') return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;"><div style="width:38px;height:38px;border-radius:50%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:50%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:30%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
-  if(type==='grid') return '<div style="background:var(--card);border-radius:12px;overflow:hidden;"><div style="width:100%;padding-top:100%;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="padding:10px;display:flex;flex-direction:column;gap:6px;"><div style="height:12px;width:70%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
-  return '';
+function _skeleton(type,count){
+  var _b='var(--border)';var _a='animation:skeletonPulse 1.5s infinite';var _r='border-radius:';
+  var tpl='';
+  if(type==='track') tpl='<div style="display:flex;gap:10px;padding:12px 14px;background:var(--card);'+_r+'14px;margin-bottom:8px;"><div style="width:48px;height:48px;'+_r+'8px;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;justify-content:center;"><div style="height:14px;width:60%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:40%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div></div>';
+  else if(type==='creator') tpl='<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);'+_r+'14px;margin-bottom:8px;"><div style="width:38px;height:38px;'+_r+'50%;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:50%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:30%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div></div>';
+  else if(type==='grid') tpl='<div style="background:var(--card);'+_r+'12px;overflow:hidden;"><div style="width:100%;padding-top:100%;background:'+_b+';'+_a+';"></div><div style="padding:10px;display:flex;flex-direction:column;gap:6px;"><div style="height:12px;width:70%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:40%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div></div>';
+  else if(type==='comment') tpl='<div style="display:flex;gap:10px;padding:10px 0;"><div style="width:32px;height:32px;'+_r+'50%;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="height:12px;width:35%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:80%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:55%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div></div>';
+  else if(type==='hero') tpl='<div style="'+_r+'16px;overflow:hidden;margin-bottom:12px;"><div style="width:100%;padding-top:56%;background:'+_b+';'+_a+';"></div><div style="padding:14px;display:flex;flex-direction:column;gap:8px;"><div style="height:18px;width:55%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:12px;width:80%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="display:flex;gap:8px;"><div style="height:28px;width:70px;'+_r+'14px;background:'+_b+';'+_a+';"></div><div style="height:28px;width:50px;'+_r+'14px;background:'+_b+';'+_a+';"></div></div></div></div>';
+  else if(type==='leaderboard') tpl='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);'+_r+'12px;margin-bottom:6px;"><div style="width:24px;height:24px;'+_r+'50%;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="width:36px;height:36px;'+_r+'50%;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="height:13px;width:45%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:25%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div><div style="height:14px;width:40px;'+_r+'4px;background:'+_b+';'+_a+';"></div></div>';
+  else if(type==='notif') tpl='<div style="display:flex;gap:10px;padding:10px 14px;'+_r+'12px;margin-bottom:6px;"><div style="width:36px;height:36px;'+_r+'50%;background:'+_b+';'+_a+';flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="height:12px;width:70%;'+_r+'4px;background:'+_b+';'+_a+';"></div><div style="height:10px;width:45%;'+_r+'4px;background:'+_b+';'+_a+';"></div></div></div>';
+  if(!tpl) return '';
+  var n=count||1;var out='';for(var i=0;i<n;i++) out+=tpl;
+  return out;
 }
+/* n개 스켈레톤을 컨테이너에 세팅 — 데이터 도착 시 innerHTML 교체로 자동 제거 */
+function _showSkel(el,type,count){if(!el)return;el.innerHTML=_skeleton(type,count||4);}
 
 /* 로컬 데이터 변경 후 서버 재요청 없이 부분 DOM 갱신 */
 function _commQuickRender(){
@@ -23860,7 +23880,7 @@ function openCommentSheet(trackId){
         <div class="comment-header-sub">${esc(t?.title||'트랙')}</div>
         <button class="comment-close" onclick="closeCommentSheet()">✕</button>
       </div>
-      <div class="comment-list" id="_comment_list"><div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">댓글 불러오는 중...</div></div></div>
+      <div class="comment-list" id="_comment_list">${_skeleton('comment',3)}</div>
       <div class="comment-reply-bar" id="_comment_reply_bar" style="display:none;"><span id="_comment_reply_label"></span><button onclick="_cancelReply()">✕</button></div>
       <div class="comment-input-wrap">
         <img class="comment-input-avatar" src="${esc(currentUser?.avatar||'')}" onerror="this.style.display='none'" alt="">
