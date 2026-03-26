@@ -1001,18 +1001,6 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .pp-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
 .pp-bar-fill{height:100%;border-radius:2px;transition:width .4s,background .4s;}
 
-/* 생성 진행 단계 */
-#gen-progress-steps{display:none;margin-top:10px;}
-.gp-steps{display:flex;flex-direction:column;gap:0;}
-.gp-step{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;color:var(--t3);border-left:2px solid var(--border);margin-left:8px;transition:all .3s;}
-.gp-step.active{color:var(--t1);border-left-color:var(--acc);background:rgba(124,58,237,.04);border-radius:0 8px 8px 0;}
-.gp-step.active .gp-step-icon{animation:gpPulse 1s infinite;}
-.gp-step.done{color:var(--green);border-left-color:var(--green);}
-.gp-step-icon{font-size:14px;width:20px;text-align:center;}
-.gp-step-label{flex:1;font-weight:600;}
-.gp-step-status{font-size:10px;font-weight:700;}
-.gp-eta{font-size:11px;color:var(--t3);text-align:center;margin-top:8px;font-weight:600;}
-@keyframes gpPulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* 무드 그리드 (셀렉트 → 버튼 그리드) */
 .mood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
@@ -5058,7 +5046,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ld-tip-dots" id="ld-tip-dots"></div>
       </div>
 
-      <div id="gen-progress-steps"></div>
       <div class="ld-task" id="ld-task"></div>
 
       <!-- 취소 버튼 -->
@@ -10698,7 +10685,7 @@ async function generate(overrideParams){
   $('loading-card').classList.add('on');
   $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   $('results').innerHTML='';
-  if(typeof _startGenProgress==='function') _startGenProgress();
+  /* gp-steps 제거됨 */
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}
   var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
@@ -10763,7 +10750,7 @@ async function generate(overrideParams){
       }
     }
 
-    if(typeof _stopGenProgress==='function') _stopGenProgress();
+    /* gp-steps 제거됨 */
     $('loading-card').classList.remove('on');
 
     /* 취소된 경우 결과 저장하지 않음 */
@@ -10845,7 +10832,7 @@ async function generate(overrideParams){
     }
   }catch(e){
     _clearGenSession();
-    if(typeof _stopGenProgress==='function') _stopGenProgress();
+    /* gp-steps 제거됨 */
     if(typeof _stopLdTips==='function') _stopLdTips();
     $('loading-card').classList.remove('on');
     let errMsg = e.message;
@@ -10935,13 +10922,13 @@ function _resumePendingGenSession() {
     _setLoadingMode(params?.mode||'custom');
     if ($('loading-card')) { $('loading-card').classList.add('on'); }
     if ($('ld-sub')) { $('ld-sub').innerHTML = '이전 생성 결과를 가져오는 중... 🎧'; }
-    if (typeof _startGenProgress === 'function') _startGenProgress();
+    /* gp-steps 제거됨 */
 
     try {
       const tracks = await pollResult(apiKey, taskId);
       _clearGenSession();
       if (!tracks?.length) throw new Error('트랙을 받지 못했어요');
-      if (typeof _stopGenProgress === 'function') _stopGenProgress();
+      /* gp-steps 제거됨 */
       $('loading-card').classList.remove('on');
 
       lastTracks = tracks.map(t => ({ ...t, _taskId: taskId }));
@@ -10989,7 +10976,7 @@ function _resumePendingGenSession() {
       toast('✅ 음악 생성 완료! 이전 세션에서 이어받았어요', 'ok', 3000);
     } catch (e) {
       _clearGenSession();
-      if (typeof _stopGenProgress === 'function') _stopGenProgress();
+      /* gp-steps 제거됨 */
       $('loading-card').classList.remove('on');
       toast('❌ 이전 생성을 이어받지 못했어요: ' + e.message, 'err', 4000);
     } finally {
