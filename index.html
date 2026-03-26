@@ -12595,26 +12595,43 @@ function showMiniPlayer(idx){
     _mfHandlePlayError();
   });
 
-  /* ── 블루투스/자동차 연결 끊김 대응 ── */
+  /* ── 네트워크 정체/버퍼 부족 강화 대응 ── */
   var _waitingTimer=null;
+  var _stallRetryCount=0;
+  var _maxStallRetries=3;
+
+  function _audioReconnect(reason){
+    if(genId!==_fpAudioGenId) return;
+    if(audio.readyState>=3) return; /* 이미 재생 가능 */
+    _stallRetryCount++;
+    if(_stallRetryCount>_maxStallRetries){
+      console.warn('[Audio] 재시도 '+_maxStallRetries+'회 초과 — 다음 곡');
+      toast('네트워크 불안정 — 다음 곡으로 넘어갑니다','err',3000);
+      _mfHandlePlayError();
+      return;
+    }
+    console.warn('[Audio] '+reason+' — 재연결 시도 '+_stallRetryCount+'/'+_maxStallRetries);
+    toast('오디오 재연결 중... ('+_stallRetryCount+'/'+_maxStallRetries+')','',2000);
+    var ct=audio.currentTime||0;
+    audio.load();
+    audio.currentTime=ct;
+    audio.play().catch(function(){});
+  }
+
   audio.addEventListener('waiting',function(){
     if(genId!==_fpAudioGenId) return;
-    console.warn('[Audio] waiting — 버퍼 부족');
     if(typeof _stopBpmDetection==='function') _stopBpmDetection();
     if(typeof _stopSpectrum==='function') _stopSpectrum();
-    /* 10초 이상 버퍼링 지속 시 재생불가 처리 */
     clearTimeout(_waitingTimer);
+    /* 5초 버퍼링 지속 시 재연결 시도 */
     _waitingTimer=setTimeout(function(){
       if(genId!==_fpAudioGenId) return;
-      if(audio.readyState<3){
-        console.warn('[Audio] 10초 이상 버퍼링 — 재생불가 처리');
-        toast('버퍼링 실패 — 다음 곡으로 넘어갑니다','err',3000);
-        _mfHandlePlayError();
-      }
-    },10000);
+      if(audio.readyState<3) _audioReconnect('버퍼 부족');
+    },5000);
   });
-  audio.addEventListener('playing',function(){clearTimeout(_waitingTimer);});
   audio.addEventListener('playing',function(){
+    clearTimeout(_waitingTimer);
+    _stallRetryCount=0; /* 재생 성공 시 카운터 리셋 */
     if(genId!==_fpAudioGenId) return;
     if($('fullplayer')&&$('fullplayer').classList.contains('on')){
       if(typeof _startBpmDetection==='function') _startBpmDetection();
@@ -12623,19 +12640,11 @@ function showMiniPlayer(idx){
   });
   audio.addEventListener('stalled',function(){
     if(genId!==_fpAudioGenId) return;
-    console.warn('[Audio] stalled — 네트워크 정체');
-    if(!audio._stallRetried){
-      setTimeout(function(){
-        if(genId!==_fpAudioGenId) return;
-        if(!audio.paused&&audio.readyState<3){
-          audio._stallRetried=true;
-          var ct=audio.currentTime;
-          audio.load();
-          audio.currentTime=ct;
-          audio.play().catch(function(){});
-        }
-      },3000);
-    }
+    /* 2초 후에도 정체 지속 시 재연결 */
+    setTimeout(function(){
+      if(genId!==_fpAudioGenId) return;
+      if(!audio.paused&&audio.readyState<3) _audioReconnect('네트워크 정체');
+    },2000);
   });
 
   /* BPM 뱃지 초기화 */
@@ -12676,12 +12685,12 @@ function showMiniPlayer(idx){
       }
     });
   });
-  /* canplay 10초 타임아웃 — 로딩 실패 시 사용자 알림 */
+  /* canplay 8초 타임아웃 — 로딩 실패 시 재연결 시도 */
   var _canplayTimer = setTimeout(function(){
     if(genId!==_fpAudioGenId) return;
     if(audio.readyState < 3){
-      console.warn('[showMiniPlayer] canplay timeout, readyState:', audio.readyState);
-      toast('오디오 로딩이 느려요. 잠시 기다려주세요...','',3000);
+      console.warn('[showMiniPlayer] canplay timeout — 재연결 시도');
+      _audioReconnect('초기 로딩 타임아웃');
     }
   }, 10000);
   audio.addEventListener('canplay', function(){ clearTimeout(_canplayTimer); }, {once:true});
