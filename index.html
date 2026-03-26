@@ -4996,32 +4996,60 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div><!-- /mode-panel-wrap -->
     </div><!-- /prompt-card -->
 
-    <!-- 로딩 카드 -->
+    <!-- 로딩 카드 (풀스크린 통합 로딩) -->
     <div class="loading-card" id="loading-card">
-      <div class="ld-waveform">
-        <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
-        <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
-        <div class="ld-bar"></div>
+      <!-- 모드 뱃지 -->
+      <div class="ld-mode-badge" id="ld-mode-badge">✦ 커스텀</div>
+
+      <!-- 원형 프로그레스 + 파형 -->
+      <div class="ld-ring-wrap">
+        <svg class="ld-ring" viewBox="0 0 120 120">
+          <circle class="ld-ring-bg" cx="60" cy="60" r="54"/>
+          <circle class="ld-ring-fill" id="ld-ring-fill" cx="60" cy="60" r="54"/>
+        </svg>
+        <div class="ld-ring-inner">
+          <div class="ld-waveform">
+            <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
+            <div class="ld-bar"></div><div class="ld-bar"></div><div class="ld-bar"></div>
+            <div class="ld-bar"></div>
+          </div>
+          <div id="ld-percent" class="ld-pct-text">0%</div>
+        </div>
       </div>
-      <div class="ld-title">AI가 곡 만드는 중 ✦</div>
-      <div class="ld-sub" id="ld-sub">잠깐만요~ 금방 들려드릴게요 🎧</div>
-      <!-- 단계별 진행률 -->
-      <div id="ld-steps" style="display:flex;justify-content:center;align-items:center;gap:8px;margin:10px 0 8px;">
+
+      <!-- 타이틀 + 단계 텍스트 -->
+      <div class="ld-title" id="ld-title">AI가 곡 만드는 중 ✦</div>
+      <div class="ld-sub" id="ld-sub">잠깐만요~ 금방 들려드릴게요</div>
+
+      <!-- 스텝 인디케이터 -->
+      <div id="ld-steps" class="ld-steps">
         <div class="ld-step active" id="ld-step-1"><span class="ld-step-icon">📝</span><span class="ld-step-label">요청</span></div>
-        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="ld-step-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-2"><span class="ld-step-icon">🎹</span><span class="ld-step-label">작곡</span></div>
-        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="ld-step-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-3"><span class="ld-step-icon">🎚</span><span class="ld-step-label">믹싱</span></div>
-        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="ld-step-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-4"><span class="ld-step-icon">✅</span><span class="ld-step-label">완료</span></div>
       </div>
-      <div id="ld-percent" class="ld-pct-text">0%</div>
+
+      <!-- ETA -->
       <div id="ld-eta" class="ld-eta-text"></div>
+
+      <!-- 프로그레스 바 -->
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
+
+      <!-- 팁 카드 슬라이드 -->
+      <div class="ld-tip-card" id="ld-tip-card">
+        <div class="ld-tip-icon">💡</div>
+        <div class="ld-tip-body" id="ld-tip-body">AI가 최적의 사운드를 찾고 있어요</div>
+        <div class="ld-tip-dots" id="ld-tip-dots"></div>
+      </div>
+
       <div id="gen-progress-steps"></div>
       <div class="ld-task" id="ld-task"></div>
+
       <!-- 취소 버튼 -->
-      <button id="ld-cancel-btn" onclick="_cancelGeneration()" style="margin-top:12px;padding:10px 28px;border-radius:12px;border:none;background:rgba(239,68,68,.12);color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.3px;">생성 취소</button>
+      <button id="ld-cancel-btn" class="ld-cancel-btn" onclick="_cancelGeneration()">생성 취소</button>
     </div>
 
     <!-- 모드별 결과 영역 -->
@@ -7047,6 +7075,7 @@ function switchTab(viewId){
       if(typeof _commPollPaused!=='undefined') _commPollPaused=false;
     }
     if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
+    if(viewId==='create-view'){try{_loadCommConfig().then(function(){_applyGenModeConfig();});}catch(e){}}
     if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));try{_startCommPoll();}catch(e){console.error(e);}try{_updateCommBadge();}catch(e){console.error(e);}if(typeof _preloadFollowStates==='function')try{_preloadFollowStates();}catch(e){console.error(e);}try{renderCommunity(false);}catch(e){console.error(e);}}
     if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();}
     if(typeof _applyLang==='function') setTimeout(_applyLang,50);
