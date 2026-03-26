@@ -5118,6 +5118,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="top-rated">⭐ 별점순</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
@@ -7093,11 +7094,12 @@ async function _loadSbTracks(force=false){
   _sbLoadPromise = _doLoadSbTracks();
   try{ await _sbLoadPromise; }finally{ _sbLoadPromise=null; }
 }
+var _commSortMode='default'; /* default|rating|latest|likes */
 async function _doLoadSbTracks(){
   _sbOffset = 0;
   _sbHasMore = true;
   try{
-    const r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0');
+    const r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
@@ -7258,7 +7260,15 @@ function _setupCommInfiniteScroll(){
 function _countTrackPlay(trackId){
   if(!trackId || _playedTrackIds.has(trackId)) return;
   _playedTrackIds.add(trackId);
-  fetch('/api/tracks?id=' + encodeURIComponent(trackId) + '&action=play', { method: 'PATCH' }).catch(function(){});
+  fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&action=play',{method:'PATCH'})
+  .then(function(r){return r.json();}).then(function(d){
+    if(d.comm_plays===undefined) return;
+    /* 로컬 historyData/sbTracks에 재생수 반영 */
+    var h=historyData.find(function(x){return x.id===trackId||x._sbId===trackId;});
+    if(h){h._commPlays=d.comm_plays;saveHistory();}
+    var st=_sbTracks.find(function(x){return x._sbId===trackId||x.id===trackId;});
+    if(st) st.plays=d.comm_plays;
+  }).catch(function(){});
 }
 /* 커뮤니티 캐시는 메모리(_sbTracks)만 사용 — localStorage 제거 */
 
@@ -7376,6 +7386,8 @@ function _rowToTrack(t){
     isNew:   (Date.now()-(t.created||0)) < 86400000,
     plays:   t.comm_plays || 0,
     rating:  t.comm_rating || 0,
+    avgRating: t.comm_rating || 0,
+    ratingCount: t.comm_rating_count || 0,
     _owner:  t.owner_name ? {
       name:     t.owner_name,
       avatar:   t.owner_avatar   || '',
@@ -12925,6 +12937,8 @@ $('hes-save-btn').addEventListener('click',()=>{
   saveHistory();renderHistoryView();
   toast('저장 완료','ok',1500);
   closeHistEditSheet();
+  /* 서버 즉시 동기화 — 제목/태그/가사 */
+  _syncTrackEditToServer(h);
 });
 
 /* 다운로드 */
@@ -13594,22 +13608,47 @@ function mpToggleLike(){
   }
 }
 
-/* 좋아요/싫어요 서버 즉시 동기화 헬퍼 */
+/* 좋아요 서버 동기화 — 응답으로 로컬 카운트 갱신 */
 function _syncLikeToServer(h){
   var id=h.id||h._sbId||'';if(!id)return;
   var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
   var body=u?JSON.stringify({userName:u.name||'',userProvider:u.provider||''}):'{}';
   fetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+(h._liked?'like':'unlike'),{
     method:'PATCH',headers:{'Content-Type':'application/json'},body:body
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.comm_likes!==undefined){h._commLikes=d.comm_likes;saveHistory();}
   }).catch(function(e){console.warn('[like sync]',e.message);});
 }
+/* 싫어요 서버 동기화 — 응답으로 로컬 카운트 갱신 */
 function _syncDislikeToServer(h){
   var id=h.id||h._sbId||'';if(!id)return;
   var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
   var body=u?JSON.stringify({userName:u.name||'',userProvider:u.provider||''}):'{}';
   fetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+(h._disliked?'dislike':'undislike'),{
     method:'PATCH',headers:{'Content-Type':'application/json'},body:body
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.comm_dislikes!==undefined){h._commDislikes=d.comm_dislikes;saveHistory();}
   }).catch(function(e){console.warn('[dislike sync]',e.message);});
+}
+/* 트랙 편집(제목/태그/가사) 서버 동기화 */
+function _syncTrackEditToServer(h){
+  var id=h.id||h._sbId||'';if(!id)return;
+  var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
+  if(!u)return;
+  fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=edit',{
+    method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({userName:u.name||'',userProvider:u.provider||'',title:h.title||'',tags:h.tags||'',lyrics:h.lyrics||''})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.success) console.log('[edit sync] OK');
+  }).catch(function(e){console.warn('[edit sync]',e.message);});
+}
+/* 공유 카운트 서버 기록 */
+function _syncShareToServer(h){
+  var id=h.id||h._sbId||'';if(!id)return;
+  fetch('/api/tracks?id='+encodeURIComponent(id)+'&action=share',{method:'PATCH'})
+  .then(function(r){return r.json();}).then(function(d){
+    if(d.comm_shares!==undefined){h._shared=d.comm_shares;saveHistory();}
+  }).catch(function(e){console.warn('[share sync]',e.message);});
 }
 
 /* 모든 좋아요 UI 동기화 — 미니플레이어, 풀플레이어, 커뮤니티, 히스토리 */
@@ -16656,6 +16695,8 @@ function _logShare(idx){
   saveHistory();
   /* 크레딧 사용 내역에도 기록 */
   _addCreditHistory('share',h.title||'무제');
+  /* 서버 공유 카운트 동기화 */
+  _syncShareToServer(h);
 }
 /* 커뮤니티에 공유 */
 async function _shareToComm(h){
@@ -16879,6 +16920,9 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
     document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
     this.classList.add('on');
     _commActiveGenre=this.dataset.cf||'all';
+    /* 정렬 모드 변경 */
+    if(_commActiveGenre==='top-rated'){_commSortMode='rating';_commActiveGenre='all';}
+    else{_commSortMode='default';}
     /* 크리에이터 모드일 때 정렬/DJ 숨김, 아닐 때 복원 */
     var isCreatorMode=_commActiveGenre==='creators';
     _commCreatorShowCount=10;
@@ -16886,6 +16930,7 @@ document.querySelectorAll('.comm-ftag').forEach(btn=>{
       if(!_sbTracks||!_sbTracks.length){_loadSbTracks(true).then(()=>_renderCreatorList());}
       else _renderCreatorList();
     } else {
+      _sbLoaded=false; /* 강제 리로드 */
       renderCommunity(true);
     }
   });
@@ -18254,7 +18299,7 @@ function _buildCommItem(t,i,isMine){
       <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">💔</button>
       <span class="star-rating star-rating-sm" data-rating-id="${sid}" onclick="event.stopPropagation()">
         ${[1,2,3,4,5].map(n=>`<span class="star${n<=t.rating?' on':''}" data-star="${n}" onclick="commRateSb('${sid}',${n})">★</span>`).join('')}
-      </span>
+      </span>${t.avgRating?`<span style="font-size:10px;color:var(--acc);font-weight:700;margin-left:2px;">${t.avgRating}${t.ratingCount?' <span style="font-size:9px;color:var(--t3);font-weight:400;">(${t.ratingCount})</span>':''}</span>`:''}
       <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span></button>
       <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
       ${!isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openReportSheet('${sid}')" title="신고" style="color:rgba(255,160,80,.5);">🚩</button>`:''}

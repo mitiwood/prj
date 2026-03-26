@@ -120,8 +120,15 @@ async function _handler(req, res) {
         filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
-        // 공개된 모든 트랙을 가져옴 (사용자 필터링은 클라이언트에서 처리)
-        filter = `/tracks?audio_url=neq.&audio_url=not.is.null&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
+        const sortParam = req.query?.sort || 'default';
+        const orderMap = {
+          'rating': 'comm_rating.desc.nullslast,comm_rating_count.desc,created_at.desc',
+          'latest': 'created_at.desc',
+          'likes': 'comm_likes.desc,created_at.desc',
+          'default': 'comm_rating.desc.nullslast,comm_likes.desc,created_at.desc',
+        };
+        const order = orderMap[sortParam] || orderMap['default'];
+        filter = `/tracks?audio_url=neq.&audio_url=not.is.null&order=${order}&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
       const mapped = (rows || []).map((r) => ({
@@ -302,18 +309,78 @@ async function _handler(req, res) {
       }
     }
 
-    /* 별점 */
+    /* 별점 (개인별 저장 + 평균 계산) */
     if (action === "rate") {
       let b = req.body || {};
       if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-      const rating = Math.max(0, Math.min(5, parseInt(b.rating) || 0));
+      const rating = Math.max(1, Math.min(5, parseInt(b.rating) || 0));
+      const userName = b.userName || '';
+      const userProvider = b.userProvider || '';
+      if (!rating) return res.status(400).json({ error: "rating 1-5 required" });
       try {
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ comm_rating: rating }) });
-        return res.status(200).json({ success: true, comm_rating: rating });
+        /* 개인 별점 저장 (upsert) */
+        if (userName) {
+          await sb(`/likes?on_conflict=user_name,user_provider,track_id,type`, {
+            method: "POST", prefer: "resolution=merge-duplicates",
+            body: JSON.stringify({ user_name: userName, user_provider: userProvider, track_id: id, type: 'rating', value: rating }),
+          });
+        }
+        /* 평균 별점 계산 */
+        const allRatings = await sb(`/likes?track_id=eq.${encodeURIComponent(id)}&type=eq.rating&select=value`);
+        const ratings = Array.isArray(allRatings) ? allRatings : [];
+        const avg = ratings.length ? Math.round(ratings.reduce((s, r) => s + (r.value || 0), 0) / ratings.length * 10) / 10 : 0;
+        const count = ratings.length;
+        /* tracks 테이블 업데이트 */
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH", prefer: "return=minimal",
+          body: JSON.stringify({ comm_rating: avg, comm_rating_count: count }),
+        });
+        return res.status(200).json({ success: true, comm_rating: avg, comm_rating_count: count, myRating: rating });
       } catch (e) {
-        const idx = _mem.findIndex((t) => t.id === id);
-        if (idx >= 0) { _mem[idx].comm_rating = rating; }
-        return res.status(200).json({ success: true, comm_rating: rating, source: "memory" });
+        return res.status(200).json({ success: true, comm_rating: rating, source: "fallback", error: e.message });
+      }
+    }
+
+    /* 트랙 편집 (제목/태그/가사) — 소유자만 */
+    if (action === "edit") {
+      let b = req.body || {};
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const userName = b.userName || "";
+      const userProvider = b.userProvider || "";
+      const updates = {};
+      if (b.title) updates.title = String(b.title).slice(0, 100);
+      if (b.tags) updates.tags = String(b.tags).slice(0, 500);
+      if (b.lyrics !== undefined) updates.lyrics = String(b.lyrics).slice(0, 5000);
+      if (!Object.keys(updates).length) return res.status(400).json({ error: "nothing to update" });
+      try {
+        /* 소유자 확인 */
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=owner_name,owner_provider`);
+        const track = rows?.[0];
+        if (track && track.owner_name && track.owner_name.toLowerCase() !== userName.toLowerCase()) {
+          return res.status(403).json({ error: "not owner" });
+        }
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH", prefer: "return=minimal",
+          body: JSON.stringify(updates),
+        });
+        return res.status(200).json({ success: true, updated: Object.keys(updates) });
+      } catch (e) {
+        return res.status(200).json({ success: false, error: e.message });
+      }
+    }
+
+    /* 공유 카운트 */
+    if (action === "share") {
+      try {
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=comm_shares`);
+        const cur = Math.max(0, (rows?.[0]?.comm_shares || 0) + 1);
+        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, {
+          method: "PATCH", prefer: "return=minimal",
+          body: JSON.stringify({ comm_shares: cur }),
+        });
+        return res.status(200).json({ success: true, comm_shares: cur });
+      } catch (e) {
+        return res.status(200).json({ success: true, comm_shares: 1 });
       }
     }
 
