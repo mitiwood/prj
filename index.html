@@ -4956,6 +4956,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ld-step-arrow">→</div>
         <div class="ld-step" id="ld-step-4"><span class="ld-step-icon">✅</span><span class="ld-step-label">완료</span></div>
       </div>
+      <div id="ld-percent" style="font-size:28px;font-weight:900;color:var(--acc);margin:4px 0 2px;font-variant-numeric:tabular-nums;">0%</div>
       <div id="ld-eta" style="font-size:11px;color:var(--t3);margin-bottom:6px;">예상 ~1분</div>
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
       <div id="gen-progress-steps"></div>
@@ -7916,8 +7917,12 @@ async function _ytDoGenerate(){
   const ytInstruments = (_lastYtAnalysis.instruments||'').trim();
   const ytVocalStyle = (_lastYtAnalysis.vocal_style||'').trim();
   const ytRefSound = (_lastYtAnalysis.reference_sound||'').trim();
-  /* style: 장르 + 분위기 + 상세 스타일 + 악기 + 보컬 스타일 + 무드태그 (최대 1200자) */
-  const ytStyle = [ytGenre, ytMood, ytStylePrompt, ytInstruments, ytVocalStyle, ytMoodTags].filter(Boolean).join(', ').slice(0,1200);
+  /* style: style_prompt 우선 (가장 상세) + 장르 + 분위기 (최대 999자, kie.ai 제한 1000) */
+  var _ytParts=[ytStylePrompt,ytGenre,ytMood,ytInstruments,ytVocalStyle,ytMoodTags].filter(Boolean);
+  /* 중복 태그 제거 */
+  var _seen=new Set();var _dedup=[];
+  _ytParts.join(', ').split(',').forEach(function(t){var k=t.trim().toLowerCase();if(k&&!_seen.has(k)){_seen.add(k);_dedup.push(t.trim());}});
+  const ytStyle = _dedup.join(', ').slice(0,999);
   const model   = ($('model-sel')?.value) || 'V4_5';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
