@@ -8130,6 +8130,7 @@ async function _ytDoGenerate(){
   switchTab('create-view');
   _setLoadingMode('youtube');
   $('loading-card').classList.add('on');
+  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   $('results').innerHTML='';
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
@@ -10692,15 +10693,16 @@ async function generate(overrideParams){
   if(activeSpinner){activeSpinner.style.display='block';}
   if(activeTxt){activeTxt.textContent='생성 중...';}
   if(currentMode!=='custom') switchTab('create-view');
+  /* loading-card 통일 (YouTube 모드와 동일 패턴) */
   _setLoadingMode(isSimple?'simple':isYT?'youtube':'custom');
-  $('loading-card').classList.add('on');$('results').innerHTML='';
+  $('loading-card').classList.add('on');
+  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
+  $('results').innerHTML='';
   if(typeof _startGenProgress==='function') _startGenProgress();
   $('feedback-card').style.display='none';
-  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
-  /* 로딩 팁 순환 */
-  const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
-  let _tipIdx=0;
-  const _tipTimer=setInterval(()=>{ if(!$('loading-card')?.classList.contains('on')){clearInterval(_tipTimer);return;} $('ld-sub').innerHTML=_tips[_tipIdx%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">조금만 기다려주세요~</span>'; _tipIdx++; },8000);
+  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}
+  var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
+  var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent=_genCount===1?'예상 ~40초':'예상 ~1분 30초';
   $('ld-sub').innerHTML=_genCount===1?'⚡ 1곡 빠른 생성 중~<br>금방 들려드릴게요!':'🎧 A/B 2곡 생성 중~<br>잠깐만 기다려주세요 ☕';
 
   try{
@@ -10844,8 +10846,8 @@ async function generate(overrideParams){
   }catch(e){
     _clearGenSession();
     if(typeof _stopGenProgress==='function') _stopGenProgress();
+    if(typeof _stopLdTips==='function') _stopLdTips();
     $('loading-card').classList.remove('on');
-    clearInterval(typeof _tipTimer!=='undefined'?_tipTimer:null);
     let errMsg = e.message;
     const isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
     const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
@@ -17861,7 +17863,7 @@ function _renderChatUI(){
       <div id="chat-pinned" style="display:none;padding:8px 12px;background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.15);font-size:12px;cursor:pointer;" onclick="_chatScrollToPinned()">
         <span style="font-weight:700;color:#f59e0b;">📌 고정</span> <span id="chat-pinned-text" style="color:var(--t2);"></span>
       </div>
-      <div class="comm-chat-list" id="comm-chat-list"><div class="comm-loading-sm"><div class="comm-loading-dots"><span></span><span></span><span></span></div><div class="comm-loading-text">메시지 불러오는 중...</div></div></div>
+      <div class="comm-chat-list" id="comm-chat-list">${_skeleton('comment',4)}</div>
       <div id="chat-typing-bar" style="display:none;padding:4px 14px;font-size:11px;color:var(--t3);"><span id="chat-typing-text"></span></div>
       <div id="chat-new-badge" class="chat-new-badge" style="display:none;" onclick="_chatScrollBottom()"></div>
       <div id="chat-reply-bar" class="chat-reply-bar" style="display:none;">
@@ -22720,7 +22722,7 @@ function openNotifSheet(){
 async function _loadNotifications(){
   const list = $('notif-list');
   if(!list) return;
-  list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로딩 중...</div>';
+  list.innerHTML = _skeleton('notif',4);
 
   const allNotifs = [];
 
