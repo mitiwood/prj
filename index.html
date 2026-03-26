@@ -10821,7 +10821,7 @@ async function generate(overrideParams){
     _genLog('ERROR',e.message,{elapsed:(Date.now()-_genT0)+'ms'});
     var errMsg = e.message;
     var isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
-    var isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
+    var isRetryable = !isSensitive && !_genCancelled && !errMsg.includes('취소') && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
 
     /* 자동 재시도 (최대 2회, 지수 백오프) */
     if(isRetryable){
@@ -11778,11 +11778,12 @@ function renderTracks(tracks,prompt,tags,mode){
 
   /* 섹션 카드 수 표시 업데이트 */
   var totalCards=container.querySelectorAll('.result-card').length;
-  const countEl=$(countId);
-  if(countEl)countEl.textContent=`${totalCards}곡`;
+  var countEl=$(countId);
+  if(countEl)countEl.textContent=totalCards+'\uACE1';
 
   /* 해당 섹션으로 부드럽게 스크롤 */
-  if(section)section.scrollIntoView({behavior:'smooth',block:'start'});
+  console.log('[renderTracks] 완료: '+totalCards+'카드, section.display='+section.style.display+', playBtn='+(batchWrap.querySelectorAll('.ap-play-btn').length)+'개');
+  if(section) setTimeout(function(){section.scrollIntoView({behavior:'smooth',block:'start'});},100);
 }
 
 /* 배치 전체 재생 */
