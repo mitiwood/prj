@@ -1745,6 +1745,41 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-recent-info{padding:0 2px;}
 .mf-recent-trk-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mf-recent-artist{font-size:10px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* 장르 필터 탭 */
+.mf-genre-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;}
+.mf-genre-row::-webkit-scrollbar{display:none;}
+.mf-genre-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.mf-genre-btn.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(124,58,237,.2);}
+.mf-genre-btn:hover:not(.on){color:var(--t1);border-color:var(--acc);}
+/* HOT 1위 shimmer */
+.mf-trend-card.first{position:relative;overflow:hidden;}
+.mf-trend-card.first::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(60deg,transparent 40%,rgba(255,255,255,.12) 50%,transparent 60%);animation:mfShimmer 3s ease-in-out infinite;}
+@keyframes mfShimmer{0%{transform:translateX(-100%) rotate(25deg);}100%{transform:translateX(100%) rotate(25deg);}}
+[data-theme="light"] .mf-trend-card.first::after{background:linear-gradient(60deg,transparent 40%,rgba(124,58,237,.08) 50%,transparent 60%);}
+/* 상세뷰 슬라이드 전환 */
+.mf-slide-enter{animation:mfSlideIn .3s ease-out both;}
+.mf-slide-exit{animation:mfSlideOut .2s ease-in both;}
+@keyframes mfSlideIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes mfSlideOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(-30px);opacity:0;}}
+/* sticky 축소 헤더 */
+.mf-sticky-header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;transform:translateY(-100%);opacity:0;transition:transform .25s ease,opacity .25s ease;pointer-events:none;}
+.mf-sticky-header.visible{transform:translateY(0);opacity:1;pointer-events:auto;}
+.mf-sticky-header .mf-sticky-avatar{width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;}
+.mf-sticky-header .mf-sticky-avatar img{width:100%;height:100%;object-fit:cover;}
+.mf-sticky-header .mf-sticky-name{font-size:14px;font-weight:700;color:var(--t1);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-sticky-header .mf-sticky-back{width:30px;height:30px;border-radius:50%;border:none;background:transparent;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* 유사 크리에이터 추천 */
+.mf-similar-section{margin:16px 18px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.05),rgba(236,72,153,.03));border:1px solid rgba(124,58,237,.1);}
+.mf-similar-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px;}
+.mf-similar-row{display:flex;gap:10px;}
+.mf-similar-card{flex:1;text-align:center;padding:10px 6px;border-radius:12px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.mf-similar-card:hover{transform:translateY(-2px);border-color:var(--acc);}
+.mf-similar-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;background:var(--bg2);}
+.mf-similar-avatar img{width:100%;height:100%;object-fit:cover;}
+.mf-similar-name{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-similar-meta{font-size:9px;color:var(--t3);margin-top:2px;}
+.mf-similar-match{font-size:10px;color:var(--acc);font-weight:700;margin-top:3px;}
+[data-theme="light"] .mf-similar-section{background:linear-gradient(135deg,rgba(124,58,237,.03),rgba(236,72,153,.02));border-color:rgba(124,58,237,.06);}
 [data-theme="light"] .mf-recent-thumb{background:#f0f0f0;}
 [data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
@@ -14090,6 +14125,7 @@ var _myFeedLoading=false;
 var _myFeedDetail=null;
 var _myFeedDetailLoading=false;
 var _myFeedSort='popular'; /* popular | newest | tracks */
+var _myFeedGenre='all'; /* all | pop | hiphop | electronic | rock | rnb | jazz | classical | etc */
 var _myFeedSearch='';
 var _myFeedRawTracks=null;
 var _myFeedLoadError=false;
@@ -14136,6 +14172,14 @@ function _renderMyFeedView(grid,countEl){
     +'<button class="mf-sort-btn'+(_myFeedSort==='tracks'?' on':'')+'" onclick="_myFeedSetSort(\'tracks\')">곡 많은순</button>'
     +'</div>';
 
+  /* ── 장르 필터 탭 ── */
+  var _genres=[{k:'all',l:'전체'},{k:'pop',l:'Pop'},{k:'hiphop',l:'Hip-Hop'},{k:'electronic',l:'EDM'},{k:'rock',l:'Rock'},{k:'rnb',l:'R&B'},{k:'jazz',l:'Jazz'},{k:'classical',l:'Classical'},{k:'lofi',l:'Lo-fi'},{k:'folk',l:'Folk'}];
+  html+='<div class="mf-genre-row">';
+  _genres.forEach(function(g){
+    html+='<button class="mf-genre-btn'+(g.k===_myFeedGenre?' on':'')+'" onclick="_myFeedSetGenre(\''+g.k+'\')">'+g.l+'</button>';
+  });
+  html+='</div>';
+
   /* 로딩 — 스켈레톤 */
   if(_myFeedLoading&&!_myFeedCreators){
     html+='<div class="mf-creator-list">';
@@ -14164,6 +14208,22 @@ function _renderMyFeedView(grid,countEl){
     var q=_myFeedSearch.toLowerCase();
     creators=creators.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0;});
   }
+  /* 장르 필터 */
+  if(_myFeedGenre&&_myFeedGenre!=='all'){
+    var _gMap={'pop':'pop','hiphop':'hip-hop,hip hop,rap,trap','electronic':'edm,electronic,techno,house,trance,dubstep','rock':'rock,metal,punk,grunge','rnb':'r&b,rnb,soul,gospel','jazz':'jazz,swing,bebop','classical':'classical,orchestra,piano,symphony','lofi':'lo-fi,lofi,chill','folk':'folk,acoustic,country,indie folk'};
+    var _gKeys=(_gMap[_myFeedGenre]||_myFeedGenre).split(',');
+    creators=creators.filter(function(c){
+      if(!c._topGenre){
+        /* 크리에이터의 대표 장르 추출 (태그 빈도 기반, 1회만 계산) */
+        var sbAll=(typeof _sbTracks!=='undefined'&&_sbTracks)?_sbTracks:[];
+        var tags='';
+        sbAll.forEach(function(t){var o=t._owner||{};if(o.name===c.name&&o.provider===c.provider) tags+=(t.allTags||'')+',';});
+        c._topGenre=tags.toLowerCase();
+      }
+      for(var gi=0;gi<_gKeys.length;gi++){if(c._topGenre.indexOf(_gKeys[gi].trim())>=0)return true;}
+      return false;
+    });
+  }
   _sortMyFeedList(creators);
   _mfAllCreators=creators; /* 전체 목록 저장 */
   _mfRenderedCount=0; /* 렌더링 카운트 초기화 */
@@ -14180,7 +14240,7 @@ function _renderMyFeedView(grid,countEl){
     var medals=['🥇','🥈','🥉'];
     creators.slice(0,3).forEach(function(c,i){
       var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+esc(c.name.charAt(0).toUpperCase())+'</div>\'">';
-      html+='<div class="mf-trend-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
+      html+='<div class="mf-trend-card'+(i===0?' first':'')+'" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
         +'<div class="mf-trend-medal">'+medals[i]+'</div>'
         +'<div class="mf-trend-avatar">'+aH+'</div>'
         +'<div class="mf-trend-name">'+esc(c.name)+'</div>'
@@ -14324,6 +14384,7 @@ function _myFeedOnSearch(val){
   _mfSearchTimer=setTimeout(function(){ _myFeedSearch=val.trim(); renderHistoryView(); },250);
 }
 function _myFeedSetSort(s){ _myFeedSort=s; renderHistoryView(); }
+function _myFeedSetGenre(g){ _myFeedGenre=g; renderHistoryView(); }
 function _sortMyFeedList(list){
   if(_myFeedSort==='newest') list.sort(function(a,b){return (b._latestTs||0)-(a._latestTs||0);});
   else if(_myFeedSort==='tracks') list.sort(function(a,b){return b.trackCount-a.trackCount||(b.totalLikes-a.totalLikes);});
@@ -14511,7 +14572,56 @@ function _renderCreatorDetailView(grid,countEl){
   });
   html+='</div>';
 
+  /* ── 유사 크리에이터 추천 ── */
+  var sbAll=(typeof _sbTracks!=='undefined'&&_sbTracks)?_sbTracks:[];
+  if(sbAll.length>0&&d.tracks.length>0&&_myFeedCreators&&_myFeedCreators.length>1){
+    var _dtTagFreq={};
+    d.tracks.forEach(function(t){(t.tags||'').toLowerCase().split(',').forEach(function(tag){tag=tag.trim();if(tag)_dtTagFreq[tag]=(_dtTagFreq[tag]||0)+1;});});
+    var _dtCreatorMap={};
+    sbAll.forEach(function(t){
+      var o=t._owner||{};if(!o.name||o.name===d.name)return;
+      var ck=o.name+'::'+o.provider;
+      if(!_dtCreatorMap[ck])_dtCreatorMap[ck]={name:o.name,provider:o.provider,avatar:o.avatar||'',score:0,trackCount:0,totalLikes:0};
+      _dtCreatorMap[ck].trackCount++;
+      _dtCreatorMap[ck].totalLikes+=(t.likes||0);
+      (t.allTags||'').split(',').forEach(function(tag){tag=tag.trim().toLowerCase();if(tag&&_dtTagFreq[tag])_dtCreatorMap[ck].score+=_dtTagFreq[tag];});
+    });
+    var _simCreators=Object.values(_dtCreatorMap).filter(function(c){return c.score>0&&c.trackCount>0;}).sort(function(a,b){return b.score-a.score;}).slice(0,3);
+    if(_simCreators.length>0){
+      var _dtTotal=Object.values(_dtTagFreq).reduce(function(s,v){return s+v;},0)||1;
+      html+='<div class="mf-similar-section"><div class="mf-similar-title">🎵 비슷한 크리에이터</div><div class="mf-similar-row">';
+      _simCreators.forEach(function(sc){
+        var aH=(!sc.avatar||_mfIsBlocked(sc.avatar))?'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+esc(sc.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(sc.avatar)+'" alt="" onerror="this.style.display=\'none\'">';
+        var matchPct=Math.min(99,Math.round(sc.score/_dtTotal*100));
+        html+='<div class="mf-similar-card" data-mf-action="open-creator" data-mf-name="'+esc(sc.name)+'" data-mf-provider="'+esc(sc.provider)+'">'
+          +'<div class="mf-similar-avatar">'+aH+'</div>'
+          +'<div class="mf-similar-name">'+esc(sc.name)+'</div>'
+          +'<div class="mf-similar-meta">'+sc.trackCount+'곡 · ❤️'+sc.totalLikes+'</div>'
+          +'<div class="mf-similar-match">'+matchPct+'% 매칭</div>'
+          +'</div>';
+      });
+      html+='</div></div>';
+    }
+  }
+
+  /* sticky 축소 헤더 */
+  html='<div class="mf-sticky-header" id="mf-sticky-hdr">'
+    +'<button class="mf-sticky-back" onclick="_closeCreatorDetail()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>'
+    +'<div class="mf-sticky-avatar">'+_mfAvatar(p.avatar||'',d.name,false)+'</div>'
+    +'<div class="mf-sticky-name">'+esc(d.name)+'</div>'
+    +'</div>'+html;
+
   grid.innerHTML=html;
+
+  /* sticky 헤더 스크롤 옵저버 */
+  var _heroEl=grid.querySelector('.mf-detail-hero');
+  var _stickyEl=document.getElementById('mf-sticky-hdr');
+  if(_heroEl&&_stickyEl){
+    var _stickyObs=new IntersectionObserver(function(entries){
+      _stickyEl.classList.toggle('visible',!entries[0].isIntersecting);
+    },{threshold:0,rootMargin:'-40px 0px 0px 0px'});
+    _stickyObs.observe(_heroEl);
+  }
 
   grid.onclick=function(e){
     var card=e.target.closest('[data-mf-action]');
@@ -14523,6 +14633,8 @@ function _renderCreatorDetailView(grid,countEl){
       _mfOpenTrackMenu(parseInt(card.dataset.mfTrkIdx));
     } else if(action==='go-profile'){
       openCreatorProfile(card.dataset.mfName,card.dataset.mfProvider);
+    } else if(action==='open-creator'){
+      _openCreatorDetail(card.dataset.mfName,card.dataset.mfProvider);
     }
   };
 }
@@ -14985,7 +15097,10 @@ function _openCreatorDetail(name,provider){
   _myFeedDetail={name:name,provider:provider,tracks:[],profile:null};
   var hv=document.getElementById('history-view');
   if(hv) hv.scrollTop=0;
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0});
+  /* 슬라이드 전환 */
+  var grid=document.getElementById('history-view-grid');
+  if(grid){grid.classList.remove('mf-slide-enter');grid.classList.add('mf-slide-enter');}
   /* 캐시 확인 (5분) */
   var cKey=name+'::'+provider;
   var cached=_myFeedDetailCache[cKey];
@@ -15021,8 +15136,19 @@ function _openCreatorDetail(name,provider){
 }
 
 function _closeCreatorDetail(){
-  _myFeedDetail=null;
-  renderHistoryView();
+  var grid=document.getElementById('history-view-grid');
+  if(grid){
+    grid.classList.add('mf-slide-exit');
+    setTimeout(function(){
+      _myFeedDetail=null;
+      grid.classList.remove('mf-slide-exit');
+      grid.classList.add('mf-slide-enter');
+      renderHistoryView();
+    },200);
+  } else {
+    _myFeedDetail=null;
+    renderHistoryView();
+  }
 }
 
 /* 크리에이터 상세 — 트랙 재생 (큐 설정) */
