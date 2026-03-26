@@ -297,8 +297,8 @@ const GEN_STEPS=[
   {label:'편곡 & 믹싱',icon:'🎚',duration:20},
   {label:'마스터링',icon:'✨',duration:10},
 ];
-let _genStartTime=0;
-let _genStepTimer=null;
+if(typeof _genStartTime==='undefined') _genStartTime=0;
+var _genStepTimer=null;
 
 function _startGenProgress(){
   _genStartTime=Date.now();

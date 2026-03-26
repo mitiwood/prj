@@ -10237,8 +10237,8 @@ function _checkLyricsQuality(text){
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 let _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
-if(typeof _genQueue==='undefined'){_genQueue=[];}
-if(typeof _genCancelled==='undefined'){_genCancelled=false;}
+var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[];
+var _genCancelled=typeof _genCancelled!=='undefined'?_genCancelled:false;
 /* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
 if(typeof _cancelGeneration==='undefined'){
@@ -16739,8 +16739,8 @@ $('clear-all-btn').addEventListener('click',()=>{
 });
 
 /* ── 커뮤니티 필터 ── */
-let _commActiveGenre='all';
-let _commSearchQuery='';
+var _commActiveGenre='all';
+var _commSearchQuery='';
 var _commCreatorShowCount=10;
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
@@ -17267,11 +17267,11 @@ $('kp-close-btn').addEventListener('click',closeKaraokePlayer);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('karaoke-player').classList.contains('on'))closeKaraokePlayer();});
 
 /* ── 커뮤니티 전역 상태 ── */
-let commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
-let commHeroAudio=null,commHeroVizTimer=null;
+var commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
+var commHeroAudio=null,commHeroVizTimer=null;
 
 /* ── 정렬 (기본값: 인기순) ── */
-let _commSortMode='likes';
+var _commSortMode='likes';
 
 /* ── 장르 판별 (Feature 10) ── */
 function _detectGenre(allTags){
@@ -17322,7 +17322,7 @@ function _buildRecommendations(){
 }
 
 /* ── 팔로잉 피드 (Feature 3) ── */
-let _followingNames=null;
+var _followingNames=null;
 async function _loadFollowingNames(){
   if(!currentUser){_followingNames=new Set();return;}
   try{
@@ -18133,7 +18133,7 @@ function _buildCommItem(t,i,isMine){
 }
 
 /* 이전 렌더 데이터 스냅샷 (변경 감지용) */
-let _commPrevSnapshot='';
+var _commPrevSnapshot='';
 
 function _skeleton(type){
   if(type==='track') return '<div style="display:flex;gap:10px;padding:12px 14px;background:var(--card);border-radius:14px;margin-bottom:8px;"><div style="width:48px;height:48px;border-radius:8px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:14px;width:60%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';

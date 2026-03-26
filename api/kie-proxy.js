@@ -155,57 +155,69 @@ async function _handler(req, res) {
   const KIE_BASE = 'https://api.kie.ai';
   const url = `${KIE_BASE}${path}`;
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+  /* 경로별 타임아웃: 생성(POST)=55s, 폴링(GET)=15s, LLM=55s, 기본=30s */
+  const isLLM = path.includes('/chat/completions');
+  const isGenPost = method !== 'GET' && (path.startsWith('/api/v1/generate') || path.startsWith('/api/v1/vocal-removal') || path.startsWith('/api/v1/lyrics'));
+  const isPoll = method === 'GET';
+  const timeoutMs = isLLM ? 55000 : isGenPost ? 55000 : isPoll ? 15000 : 30000;
 
-    const fetchOpts = {
-      method,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
-    };
-    if (reqBody && method !== 'GET') fetchOpts.body = JSON.stringify(reqBody);
+  /* 재시도 횟수: 폴링=0(클라이언트가 재시도), 생성POST=2, 기타=1 */
+  const maxRetries = isPoll ? 0 : isGenPost ? 2 : 1;
 
-    /* LLM 호출은 stream:false 강제 + 타임아웃 60초 */
-    const isLLM = path.includes('/chat/completions');
-    if (isLLM) {
-      clearTimeout(timeout);
-      const llmTimeout = setTimeout(() => controller.abort(), 60000);
-      if (reqBody) reqBody.stream = false;
-      if (reqBody && method !== 'GET') fetchOpts.body = JSON.stringify(reqBody);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      const fetchOpts = {
+        method,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`,
+        },
+      };
+
+      let sendBody = reqBody;
+      if (isLLM && sendBody) sendBody = { ...sendBody, stream: false };
+      if (sendBody && method !== 'GET') fetchOpts.body = JSON.stringify(sendBody);
+
       const upstream = await fetch(url, fetchOpts);
-      clearTimeout(llmTimeout);
+      clearTimeout(timer);
       const text = await upstream.text();
+
+      /* HTML 응답 (게이트웨이 에러 등) → 재시도 대상 */
+      if (text.trimStart().startsWith('<')) {
+        if (attempt < maxRetries) { await new Promise(r => setTimeout(r, (attempt + 1) * 1500)); continue; }
+        return res.status(upstream.status).json({
+          error: 'kie.ai returned HTML (status ' + upstream.status + ')',
+          endpoint: path,
+        });
+      }
+
+      /* 502/503/429 → 재시도 대상 */
+      if ([502, 503, 429].includes(upstream.status) && attempt < maxRetries) {
+        const wait = upstream.status === 429 ? 3000 : (attempt + 1) * 1500;
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
       let data;
       try { data = JSON.parse(text); } catch(e) {
-        return res.status(500).json({ error: 'LLM parse failed', raw: text.slice(0,300) });
+        if (attempt < maxRetries) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        return res.status(500).json({ error: 'JSON parse failed: ' + e.message, raw: text.slice(0,200) });
       }
+
       return res.status(upstream.status).json(data);
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        if (attempt < maxRetries) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        return res.status(504).json({ error: 'kie.ai timeout (' + (timeoutMs/1000) + 's)' });
+      }
+      /* 네트워크 에러 → 재시도 */
+      if (attempt < maxRetries) { await new Promise(r => setTimeout(r, (attempt + 1) * 1500)); continue; }
+      return res.status(500).json({ error: e.message });
     }
-
-    const upstream = await fetch(url, fetchOpts);
-    clearTimeout(timeout);
-    const text = await upstream.text();
-
-    if (text.trimStart().startsWith('<')) {
-      return res.status(upstream.status).json({
-        error: 'kie.ai returned HTML (status ' + upstream.status + ')',
-        endpoint: path,
-      });
-    }
-
-    let data;
-    try { data = JSON.parse(text); } catch(e) {
-      return res.status(500).json({ error: 'JSON parse failed: ' + e.message, raw: text.slice(0,200) });
-    }
-
-    return res.status(upstream.status).json(data);
-  } catch (e) {
-    if (e.name === 'AbortError') return res.status(504).json({ error: 'kie.ai timeout (30s)' });
-    return res.status(500).json({ error: e.message });
   }
 }
 
