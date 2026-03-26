@@ -6790,7 +6790,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 'use strict';
 var fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
 /* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇(한국어)으로 전송 */
-const _errKo = (m) => {
+var _errKo = (m) => {
   const map = [
     [/is not defined/i, '정의되지 않음'],
     [/is not a function/i, '함수가 아님'],
@@ -6810,7 +6810,7 @@ const _errKo = (m) => {
   for (const [re, ko] of map) { if (re.test(m)) return ko; }
   return m;
 };
-const _errFile = (src) => {
+var _errFile = (src) => {
   if (!src) return '알 수 없는 파일';
   if (src.includes('index.html')) return 'index.html (메인)';
   const name = src.split('/').pop()?.split('?')[0] || src;
@@ -6910,9 +6910,9 @@ ${randomEnhancement}
 window.kakaoCommand = _processKakaoCommand;
 
 /* ── 치명적 에러 → 텔레그램 + 카카오 동시 알림 ── */
-const _ERR_IGNORE = /no supported sources|ResizeObserver|Script error|AbortError|The play\(\) request|NotAllowedError|Loading chunk|timeout|net::ERR/i;
+var _ERR_IGNORE = /no supported sources|ResizeObserver|Script error|AbortError|The play\(\) request|NotAllowedError|Loading chunk|timeout|net::ERR/i;
 var _errSendCooldown = 0; /* 도배 방지: 5초 쿨다운 */
-const _autoFixSent = {}; /* 자동수정 도배 방지: 같은 에러 24시간 1회 */
+var _autoFixSent = {}; /* 자동수정 도배 방지: 같은 에러 24시간 1회 */
 
 function _sendErrorAlert(info){
   if(Date.now() - _errSendCooldown < 5000) return;
@@ -6944,7 +6944,7 @@ window.addEventListener('unhandledrejection', e => {
   console.error('[비동기 에러]', reason);
   _sendErrorAlert(info);
 });
-const KIE_BASE = 'https://api.kie.ai';
+var KIE_BASE = 'https://api.kie.ai';
 
 /* ── 탭 전환 ── */
 function switchTab(viewId){
@@ -7011,14 +7011,14 @@ function switchTab(viewId){
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
 window.switchTab=typeof switchTab!=="undefined"?switchTab:window.switchTab||function(){};
-const CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
-const POLL_INTERVAL = 1500;  /* 1.5초 간격 */
-const MAX_POLLS = 160;        /* 최대 ~5분 대기 */
+var CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
+var POLL_INTERVAL = 1500;  /* 1.5초 간격 */
+var MAX_POLLS = 160;        /* 최대 ~5분 대기 */
 
 /* ── 장르 ── */
 /* 트랙 데이터 전역 저장 (노래방 플레이어에서 가사 접근용) */
-const trackDataMap=new Map();
-const GENRE_SUBS={
+var trackDataMap=new Map();
+var GENRE_SUBS={
   pop:['K-Pop Idol','K-Pop Ballad','Synth-pop','Dance-pop','J-Pop','Electropop'],
   hiphop:['Trap','R&B','Lo-fi Hip Hop','Neo-Soul','Old School Boom Bap','Soul'],
   electronic:['EDM','House','Ambient Electronic','Techno','Dubstep','Synthwave'],
@@ -7028,7 +7028,7 @@ const GENRE_SUBS={
   classical:['Orchestral','Modern Classical','Baroque','Minimalism','Romantic','Opera'],
   acoustic:['Folk','Singer-Songwriter','Fingerpicking','Country','Bluegrass','Celtic'],
 };
-const PRESET_MAP={
+var PRESET_MAP={
   '🌙 Lo-Fi 새벽':{cat:'lofi',sub:'Lo-fi Hip-hop',mood:'calm, relaxing',ph:'[Verse]\n창밖에 빗소리가 들려\n혼자 앉아 커피를 마셔\n\n[Chorus]\n이 새벽이 영원하길...'},
   '🎵 K-Pop 발라드':{cat:'pop',sub:'K-Pop Ballad',mood:'sad, emotional',ph:'[Verse]\n네가 떠난 자리에\n아직 네 향기가 남아\n\n[Chorus]\n사랑한다는 말 한마디...'},
   '⚡ EDM 드롭':{cat:'electronic',sub:'EDM',mood:'energetic, hype',ph:'[Verse]\nFeel the bass drop tonight\nWe are alive\n\n[Chorus]\nLet the music take control...'},
@@ -7043,7 +7043,7 @@ var historyData=JSON.parse(localStorage.getItem('kms_history')||'[]');
 /* ── Supabase 클라이언트 헬퍼 (서버리스 없이 직접 호출) ──
    index.html은 anon 키로 SELECT만, 쓰기는 /api/tracks 통해 서버에서
 */
-const KMS_SB_URL = ''; /* Vercel 환경변수로 /api/config에서 주입 */
+var KMS_SB_URL = ''; /* Vercel 환경변수로 /api/config에서 주입 */
 
 /* ── 트랙 캐시 ── */
 var _sbTracks    = [];   /* Supabase에서 받아온 전체 커뮤니티 트랙 */
@@ -7069,15 +7069,15 @@ var _sbLoaded    = false;
 var _sbMyLoaded  = false;
 var _sbLoading   = false;
 var _sbLoadedAt  = 0; /* 마지막 로드 시각 */
-const _SB_CACHE_TTL = 300000; /* 5분 메모리 캐시 */
+var _SB_CACHE_TTL = 300000; /* 5분 메모리 캐시 */
 
 /* ── 무한 스크롤 페이지네이션 상태 ── */
-const _SB_PAGE_SIZE = 20;
+var _SB_PAGE_SIZE = 20;
 var _sbOffset = 0;
 var _sbHasMore = true;
 var _sbLoadingMore = false;
 var _sbIntersectionObserver = null;
-const _playedTrackIds = new Set(); /* 세션당 재생 카운팅 중복 방지 */
+var _playedTrackIds = new Set(); /* 세션당 재생 카운팅 중복 방지 */
 
 /* 커뮤니티 공개 트랙 로드 — 페이지네이션 지원 */
 var _sbLoadPromise=null;
@@ -7358,7 +7358,7 @@ var extendAudioId=null,toastTmr=null;
 var selectedEmotions=new Set(),makeMV=false;
 var currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
 /* 관리자 판별 */
-const _ADMIN_NAMES=['Kenny Lee','이승호'];
+var _ADMIN_NAMES=['Kenny Lee','이승호'];
 function _isAdmin(){return !!(currentUser&&_ADMIN_NAMES.indexOf(currentUser.name)>=0);}
 var kieApiKey=''; /* /api/config 에서 로드됨 */
 var _commAutoPublish=true; /* 커뮤니티 자동공개 (관리자 설정) */
@@ -7374,7 +7374,7 @@ var lastLyricsInput='';
 var _lastYtAnalysis=null; /* YouTube 분석 결과 임시 저장 */
 
 /* ── 음악 생성 세션 저장/복원 ── */
-const _GEN_SESSION_KEY = '_pendingGenSession';
+var _GEN_SESSION_KEY = '_pendingGenSession';
 
 function _saveGenSession(taskId, params) {
   try {
@@ -7440,7 +7440,7 @@ function _showLeaveConfirmPopup(trigger){
   });
 }
 
-const $=id=>document.getElementById(id);
+var $=id=>document.getElementById(id);
 
 /* ── toast ── */
 function toast(msg,type='',dur=2800){
@@ -7698,8 +7698,8 @@ document.querySelectorAll('.etag').forEach(tag=>{
 /* 탭 전환은 switchTab() 전역함수 사용 (각 버튼 onclick에 직접 연결) */
 
 /* ── BPM ── */
-const bpmSlider=$('bpm-slider');
-const bpmAutoBtn=$('bpm-auto-btn');
+var bpmSlider=$('bpm-slider');
+var bpmAutoBtn=$('bpm-auto-btn');
 function updateBpmDisplay(){
   if($('bpm-val'))$('bpm-val').textContent=bpmAuto?'—':selectedBpm;
   if($('bpm-display'))$('bpm-display').textContent=bpmAuto?'AUTO':selectedBpm;
@@ -9676,7 +9676,7 @@ $('gen-btn').addEventListener('click',generate);
    AI 작곡 어시스턴트 — 로컬 랜덤 컨셉 생성
    형식: [시간/공간] + [감정/상태] + [질감/색채]
 ══════════════════════════════ */
-const _recPool = {
+var _recPool = {
   /* [시간/공간] */
   space: [
     {ko:'새벽 두 시의',       en:'2am late night',       icon:'🌙', col:'#818cf8'},
@@ -9748,7 +9748,7 @@ function _pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function _rBpm(range){ return range[0]+Math.floor(Math.random()*(range[1]-range[0]+1)); }
 
 /* 곡 제목 풀 — 공간 키워드별 시적인 제목 */
-const _titlePool = {
+var _titlePool = {
   '새벽':['새벽의 독백','밤이 지나면','잠 못 드는 밤','새벽 세 시의 너','아직 밤인 채로'],
   '비':['빗속의 고백','비가 오면 생각나','우산 없는 하루','빗물 위의 발자국','비 내리는 오후'],
   '안개':['안개 속 너에게','흐린 날의 기억','안개꽃','뿌연 새벽길','안개 편지'],
@@ -10065,7 +10065,7 @@ function _updateLyricsInfo(){
 /* ══════════════════════════════
    프리셋 시스템 — 원클릭 작곡 설정
 ══════════════════════════════ */
-const PRESETS = {
+var PRESETS = {
   kpop_girl:  { genre:'pop', sub:'K-Pop Dance',    mood:'energetic', bpm:128, instruments:['Synth','Bass'],       vocal:'female', desc:'K-Pop girl group, catchy hook, bright' },
   ballad:     { genre:'pop', sub:'Ballad',          mood:'emotional', bpm:72,  instruments:['Piano','Strings'],    vocal:'female', desc:'Korean ballad, emotional vocal, piano-driven' },
   hiphop:     { genre:'hiphop', sub:'Trap',          mood:'dark',     bpm:140, instruments:['808 Bass','Hi-Hat'],  vocal:'male',   desc:'trap beat, hard-hitting 808, dark atmosphere' },
@@ -10137,7 +10137,7 @@ function applyPreset(key){
 }
 
 /* ── 튜닝 프리셋 (파라미터 원클릭 세팅) ── */
-const TUNING_PRESETS=[
+var TUNING_PRESETS=[
   {id:'faithful',label:'🎯 충실 재현',sw:0.85,wc:0.2,neg:'experimental, avant-garde'},
   {id:'balanced',label:'⚖️ 균형',sw:0.65,wc:0.45,neg:''},
   {id:'creative',label:'✨ 창의적',sw:0.5,wc:0.7,neg:''},
@@ -10240,7 +10240,7 @@ function _checkLyricsQuality(text){
   return null;
 }
 
-const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
+var _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 var _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 var _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
 var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[];
@@ -13890,10 +13890,10 @@ function gotoHistoryTab(){
 
 /* ── 풀스크린 플레이어 ── */
 /* SVG 아이콘 — 재생/일시정지 */
-const _SVG_PLAY='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg>';
-const _SVG_PAUSE='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
-const _SVG_FP_PLAY='<svg viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21"/></svg>';
-const _SVG_FP_PAUSE='<svg viewBox="0 0 24 24" fill="#fff"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+var _SVG_PLAY='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><polygon points="6 3 20 12 6 21"/></svg>';
+var _SVG_PAUSE='<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+var _SVG_FP_PLAY='<svg viewBox="0 0 24 24" fill="#fff"><polygon points="6 3 20 12 6 21"/></svg>';
+var _SVG_FP_PAUSE='<svg viewBox="0 0 24 24" fill="#fff"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
 function _setPlayIcon(el, playing, isFp){
   if(!el) return;
   el.innerHTML = playing ? (isFp ? _SVG_FP_PAUSE : _SVG_PAUSE) : (isFp ? _SVG_FP_PLAY : _SVG_PLAY);
@@ -17450,9 +17450,9 @@ var _chatPollTimer=null,_chatLastTs=0,_chatReplyTo=null,_chatInsight=null,_chatN
 var _chatLastContent='',_chatLastSentAt=0; /* 반복 메시지 방지 */
 var _chatTypingTimer=null,_chatTypingSent=false; /* 타이핑 인디케이터 */
 var _chatPinnedMsg=null; /* 고정 메시지 */
-const _chatReactions={}; /* msgId -> {emoji: Set(userName)} — 로컬 리액션 저장 */
-const _CHAT_EMOJIS=['😀','😂','🥹','😍','🤩','😎','🥳','😤','😭','🤔','👍','👎','❤️','🔥','💯','🎵','🎶','🎤','🎧','🎸','✨','💜','👏','🙌'];
-const _CHAT_REACT_QUICK=['👍','❤️','😂','🔥','💯','🎵'];
+var _chatReactions={}; /* msgId -> {emoji: Set(userName)} — 로컬 리액션 저장 */
+var _CHAT_EMOJIS=['😀','😂','🥹','😍','🤩','😎','🥳','😤','😭','🤔','👍','👎','❤️','🔥','💯','🎵','🎶','🎤','🎧','🎸','✨','💜','👏','🙌'];
+var _CHAT_REACT_QUICK=['👍','❤️','😂','🔥','💯','🎵'];
 
 function _renderChatUI(){
   const list=$('comm-list');if(!list) return;
@@ -17932,7 +17932,7 @@ function _joinChallenge(theme){
 window._joinChallenge=typeof _joinChallenge!=="undefined"?_joinChallenge:window._joinChallenge||function(){};
 
 /* historyData를 커뮤니티 트랙 형태로 변환 */
-const _GENRE_KEYS={
+var _GENRE_KEYS={
   kpop:['k-pop','kpop','pop','korean','케이팝'],
   hiphop:['hip','hop','rap','r&b','힙합','랩'],
   lofi:['lofi','lo-fi','chill','study','로파이','칠'],
@@ -18484,10 +18484,10 @@ function _drawCreatorCards(wrap,list){
 }
 
 /* 커뮤니티 팔로우 버튼 상태 — DB 연동 */
-const _followStateCache={};
+var _followStateCache={};
 var _followBatchLoaded=false;
 var _followBatchLoadedAt=0;
-const _FOLLOW_CACHE_TTL=300000; /* 5분 */
+var _FOLLOW_CACHE_TTL=300000; /* 5분 */
 
 /* 페이지 로드 시 sessionStorage에서 캐시 복원 */
 ;(function(){
@@ -18798,7 +18798,7 @@ async function _creatorFollowToggle(btn){
 }
 
 /* 커뮤니티 리스트 재생시간 비동기 로드 */
-const _durCache={};
+var _durCache={};
 function _loadCommDurations(tracks){
   tracks.forEach(t=>{
     if(!t.audioUrl||!t._sbId)return;
@@ -18819,9 +18819,9 @@ function _loadCommDurations(tracks){
 }
 
 /* 댓글 카운트 배지 업데이트 — 배치 API + TTL 캐시 */
-const _commentCountCache={};
+var _commentCountCache={};
 var _commentCacheTTL=0; /* 마지막 서버 조회 시각 */
-const _COMMENT_CACHE_MS=60000; /* 60초 캐시 */
+var _COMMENT_CACHE_MS=60000; /* 60초 캐시 */
 async function _loadCommentCounts(trackIds){
   if(!trackIds.length) return;
   /* 캐시에서 즉시 표시 */
@@ -20764,7 +20764,7 @@ var _planSyncPromise = null;
 /* 플랜 동기화 — Promise로 래핑하여 생성 시 await 가능 */
 _planSyncPromise = new Promise(function(ok){ setTimeout(function(){ _syncPlansFromServer().then(function(){ _planSynced=true; ok(); }).catch(function(e){ _planSynced=true; ok(); }); }, 500); });
 /* kie.ai 예상 단가 (USD → KRW 1,300 환산) */
-const COST_PER = {
+var COST_PER = {
   song:   { usd:0.05, label:'음악 생성' },
   mv:     { usd:0.25, label:'뮤직비디오' },
   lyrics: { usd:0.005,label:'가사 생성' },
@@ -20773,7 +20773,7 @@ const COST_PER = {
   vr:     { usd:0.05, label:'보컬 제거' },
   stem:   { usd:0.25, label:'스템 분리' },
 };
-const USD_KRW = 1340;
+var USD_KRW = 1340;
 
 function getMonthKey(){ const d=new Date(); return d.getFullYear()+''+(d.getMonth()+1).toString().padStart(2,'0'); }
 function getUsage(){ try{ return JSON.parse(localStorage.getItem('kms_usage_'+getMonthKey())||'{"songs":0,"mv":0,"lyrics":0}'); }catch{ return {songs:0,mv:0,lyrics:0}; } }
@@ -21076,7 +21076,7 @@ async function _initToss(){
 }
 
 /* 크레딧 팩 구매 */
-const _CREDIT_PACKS={pack10:{price:1900,credits:10,label:"10곡 팩"},pack30:{price:4900,credits:30,label:"30곡 팩"},pack100:{price:12900,credits:100,label:"100곡 팩"}};
+var _CREDIT_PACKS={pack10:{price:1900,credits:10,label:"10곡 팩"},pack30:{price:4900,credits:30,label:"30곡 팩"},pack100:{price:12900,credits:100,label:"100곡 팩"}};
 async function buyPack(packId){
   const pack=_CREDIT_PACKS[packId]; if(!pack){toast("잘못된 팩","",2000);return;}
   if(!currentUser||!currentUser.name){openLoginSheet();return;}
@@ -22533,7 +22533,7 @@ setTimeout(_pollNotifBadge, 3000);
 
 var _liveNotifySince = Date.now();
 var _liveNotifyTimer = null;
-const _liveNotifySeen = new Set();
+var _liveNotifySeen = new Set();
 
 async function _pollLiveNotify(){
   try {
@@ -22598,7 +22598,7 @@ window.buyPack=typeof buyPack!=="undefined"?buyPack:window.buyPack||function(){}
 
 <!-- ── 인앱 공지 수신 ── -->
 <script>
-const _ANN_SEEN_KEY = 'kms_ann_seen';
+var _ANN_SEEN_KEY = 'kms_ann_seen';
 var _lastAnnId = null;
 var _annPollTimer = null;
 
@@ -22644,7 +22644,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-const _ANN_TYPE_MAP = {
+var _ANN_TYPE_MAP = {
   info:    { color: '#a855f7', bg: 'rgba(168,85,247,.2)', border: 'rgba(168,85,247,.35)', label: '📌 공지' },
   success: { color: '#00dda0', bg: 'rgba(0,221,160,.15)',  border: 'rgba(0,221,160,.3)',   label: '✅ 출시' },
   event:   { color: '#ffd000', bg: 'rgba(255,208,0,.15)',  border: 'rgba(255,208,0,.3)',   label: '🎉 이벤트' },
@@ -22716,7 +22716,7 @@ function goAnnouncement() {
 
 <!-- ── Claude Sonnet 4.5 AI Assist Features ── -->
 <script>
-const KIE_LLM_PATH = '/gemini-2.5-flash/v1/chat/completions';
+var KIE_LLM_PATH = '/gemini-2.5-flash/v1/chat/completions';
 
 /* kie.ai Gemini 2.5 Flash — 서버 프록시 경유 (API 키 보호) */
 async function callClaudeStream(systemPrompt, userPrompt, onChunk){
@@ -23545,7 +23545,7 @@ window.openCreatorProfile=typeof openCreatorProfile!=='undefined'?openCreatorPro
 
 <!-- ── Push Notification (Service Worker) ── -->
 <script>
-const KMS_SUB_KEY = 'kms_push_sub';
+var KMS_SUB_KEY = 'kms_push_sub';
 
 async function registerPushSW(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -23737,7 +23737,7 @@ window.kmsRequestPush = async function(){
 
 <script>
 /* ── 온보딩 플로우 ── */
-const _onboardSlides = [
+var _onboardSlides = [
   { emoji: '\u{1F3B5}', title: 'Kenny\'s Music Studio', desc: 'AI로 나만의 음악을 만들어보세요!\n텍스트 한 줄이면 곡이 완성됩니다.', demo: null },
   { emoji: '\u2728', title: '4가지 창작 모드', desc: '커스텀 — 세밀한 제어\n심플 — 원클릭 생성\nYouTube — 영상에서 음악 추출\nMV — 뮤직비디오 제작', demo: 'create-view' },
   { emoji: '\u{1F3A7}', title: '프로 플레이어', desc: '이퀄라이저 \xB7 슬립타이머 \xB7 크로스페이드\n가사 싱크까지 프로 기능을 경험하세요.', demo: null },
@@ -25119,6 +25119,28 @@ function _applyQuickPreset(key){
   event.currentTarget.classList.add('on');
   toast('✦ '+key.toUpperCase()+' 프리셋 적용!','ok',1500);
 }
+/* ── 범용 바텀시트 열기/닫기 ── */
+var _bsOverlayEl=null;
+function openBottomSheet(html){
+  closeBottomSheet();
+  var ov=document.createElement('div');
+  ov.id='_bs_overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10010;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
+  ov.innerHTML='<div style="width:100%;max-width:480px;background:var(--card,#1e1e2a);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto;"><div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;"></div>'+html+'</div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)closeBottomSheet();});
+  document.body.appendChild(ov);
+  _bsOverlayEl=ov;
+  requestAnimationFrame(function(){ov.style.opacity='1';ov.firstElementChild.style.transform='translateY(0)';});
+}
+function closeBottomSheet(){
+  var ov=_bsOverlayEl||document.getElementById('_bs_overlay');
+  if(!ov)return;
+  ov.firstElementChild.style.transform='translateY(100%)';
+  ov.style.opacity='0';
+  setTimeout(function(){if(ov.parentNode)ov.remove();},300);
+  _bsOverlayEl=null;
+}
+
 /* ── 통합 공유 바텀시트 ── */
 function _openUnifiedShare(audioUrl,title,imageUrl){
   var shareUrl=window.location.origin+'/api/share?t='+encodeURIComponent(title||'AI Music')+(audioUrl?'&play='+encodeURIComponent(audioUrl):'')+(imageUrl?'&img='+encodeURIComponent(imageUrl):'');
