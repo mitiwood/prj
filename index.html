@@ -7898,8 +7898,9 @@ async function _ytDoGenerate(){
   const model   = ($('model-sel')?.value) || 'V4_5';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
-  const songTitle = ($('yt-song-title')?.value||'').trim() || ($('song-title')?.value||'').trim() ||
-                    rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
+  const _userTitle = ($('yt-song-title')?.value||'').trim() || ($('song-title')?.value||'').trim();
+  let songTitle = _userTitle || rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
+  const _titleIsAuto = !_userTitle; /* 사용자가 직접 입력하지 않은 경우 */
   const ytVocalGender = _lastYtAnalysis.vocal_gender || '';
 
   /* UI 로딩 시작 */
@@ -7933,6 +7934,11 @@ async function _ytDoGenerate(){
         trackUsage('lyrics',{mode:'yt-auto-lyrics'});
       }
     }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
+  }
+
+  /* ── 제목 미입력 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
+  if(_titleIsAuto && ytLyrics && ytLyrics.length > 30){
+    songTitle = _extractTitleFromLyrics(ytLyrics, ytGenre, ytMood);
   }
 
   $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
@@ -9587,6 +9593,40 @@ function _autoGenerateTitle(apiTitle,lyrics,tags,mode){
   for(var g in _gm){if(c.includes(g))return _pick(_gm[g]);}var ft=tags.split(',')[0]?.trim();if(ft&&ft.length>=2&&ft.length<=15)return ft;}
   if(mode==='youtube')return 'YouTube Cover';if(mode==='mv')return 'Music Video';
   return _pick(['그날의 우리','기억의 조각','말하지 못한 이야기','끝나지 않은 노래','다시, 여기서','너에게 닿기를','그때 그 자리','흘러간 시간','아직, 여전히','어딘가에서']);
+}
+
+/* 가사 내용에서 의미있는 제목 추출 */
+function _extractTitleFromLyrics(lyrics,genre,mood){
+  if(!lyrics||typeof lyrics!=='string') return 'Untitled';
+  var lines=lyrics.split('\n').map(function(l){return l.trim();}).filter(function(l){
+    return l.length>=2&&!/^\[/.test(l)&&!/^[#\-=*()]/.test(l)&&l.length<=40;
+  });
+  if(!lines.length) return _autoGenerateTitle(null,lyrics,genre||'','youtube');
+  /* 1) 반복 가사 = 후렴 핵심 → 제목 최우선 후보 */
+  var freq={};
+  lines.forEach(function(l){var k=l.replace(/[~!?,.\u3002\uFF0C\uFF01\uFF1F]/g,'').trim().toLowerCase();if(k.length>=2)freq[k]=(freq[k]||0)+1;});
+  var repeated=Object.keys(freq).filter(function(k){return freq[k]>=2;}).sort(function(a,b){return freq[b]-freq[a];});
+  if(repeated.length){
+    var topKey=repeated[0];
+    var orig=lines.find(function(l){return l.replace(/[~!?,.\u3002\uFF0C\uFF01\uFF1F]/g,'').trim().toLowerCase()===topKey;});
+    if(orig&&orig.length>=2) return orig.slice(0,25);
+  }
+  /* 2) 짧고 임팩트 있는 줄 (4~15자) */
+  var short=lines.filter(function(l){return l.length>=4&&l.length<=15;});
+  if(short.length){
+    var emotional=short.find(function(l){return /사랑|그리움|눈물|꿈|별|밤|빛|하늘|바람|기억|마음|영원|love|dream|heart|night|star|light|forever/i.test(l);});
+    if(emotional) return emotional;
+    return short[0];
+  }
+  /* 3) Chorus 섹션 첫 가사 */
+  var all=lyrics.split('\n');
+  for(var i=0;i<all.length;i++){
+    if(/^\[(chorus|hook|후렴)/i.test(all[i].trim())){
+      for(var j=i+1;j<all.length;j++){var cl=all[j].trim();if(cl.length>=3&&!/^\[/.test(cl))return cl.slice(0,25);}
+    }
+  }
+  /* 4) 폴백: 첫 의미있는 줄 */
+  return lines[0].slice(0,25);
 }
 
 function _generateConcepts(hint){
@@ -18634,9 +18674,15 @@ function setupHeroAudio(hero){
     if(playBtn){playBtn.style.opacity='.4';playBtn.title='오디오 없음';playBtn.onclick=()=>toast('이 트랙은 오디오가 없어요','err',2000);}
     return;
   }
+  /* URL 유효성 체크 */
+  let _heroAudioUrl=hero.audioUrl;
+  try{new URL(_heroAudioUrl);}catch(e){
+    if(playBtn){playBtn.style.opacity='.4';playBtn.title='잘못된 URL';playBtn.onclick=()=>toast('잘못된 오디오 URL이에요','err',2000);}
+    return;
+  }
+
   const audio=new Audio();
   audio.preload='auto';
-  audio.src=hero.audioUrl;
   commHeroAudio=audio;
   const fill=$('comm-hero-prog-fill');
   const timeEl=$('comm-hero-time');
@@ -18644,6 +18690,25 @@ function setupHeroAudio(hero){
 
   const PLAY_SVG='<svg width="26" height="26" viewBox="0 0 24 24" fill="#7c3aed"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
   const PAUSE_SVG='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+  /* ── stalled/waiting 재연결 로직 ── */
+  let _heroRetryCount=0;
+  const _heroMaxRetries=3;
+  function _heroReconnect(reason){
+    if(_heroRetryCount>=_heroMaxRetries){
+      console.error('[HeroAudio] 재연결 한도 초과:', reason);
+      toast('오디오 로드 실패 — 다시 시도해주세요','err',3000);
+      if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');}
+      commHeroPlaying=false;
+      return;
+    }
+    _heroRetryCount++;
+    console.warn('[HeroAudio] 재연결 시도 '+_heroRetryCount+'/'+_heroMaxRetries+': '+reason);
+    toast('오디오 재연결 중...','',2000);
+    audio.src=_heroAudioUrl+((_heroAudioUrl.includes('?')?'&':'?')+'_r='+Date.now());
+    audio.load();
+  }
+  let _heroWaitTimer=null;
 
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
@@ -18657,27 +18722,65 @@ function setupHeroAudio(hero){
     commHeroPlaying=false;
   });
   audio.addEventListener('error',(e)=>{
-    console.error('[HeroAudio] 로드 실패:', audio.src, e);
+    const code=audio.error?audio.error.code:0;
+    console.error('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src, e);
+    /* 네트워크/디코딩 오류 시 재연결 시도 */
+    if(code>=2&&_heroRetryCount<_heroMaxRetries){
+      _heroReconnect('error code '+code);
+      return;
+    }
     if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');}
     commHeroPlaying=false;
   });
+  audio.addEventListener('waiting',()=>{
+    clearTimeout(_heroWaitTimer);
+    _heroWaitTimer=setTimeout(()=>{
+      if(audio.readyState<3) _heroReconnect('버퍼 부족');
+    },5000);
+  });
+  audio.addEventListener('playing',()=>{
+    clearTimeout(_heroWaitTimer);
+    _heroRetryCount=0;
+  });
+  audio.addEventListener('stalled',()=>{
+    setTimeout(()=>{
+      if(audio.readyState<3) _heroReconnect('stalled');
+    },2000);
+  });
 
-  function _doPlay(){
-    /* 다른 모든 오디오 정지 후 재생 */
-    stopAllAudio();
+  function _heroPlayAfterReady(){
     audio.play().then(()=>{
       playBtn.innerHTML=PAUSE_SVG;
       playBtn.classList.add('playing');
       commHeroPlaying=true;
     }).catch(e=>{
       console.error('[HeroAudio] play 실패:', e);
-      /* DOMException 등 자동재생 차단 시 사용자 인터랙션 후 재시도 */
       if(e.name==='NotAllowedError'){
         toast('재생 버튼을 한번 더 눌러주세요','',2000);
       } else {
         toast('재생 실패: '+e.message,'err',3000);
       }
     });
+  }
+
+  function _doPlay(){
+    /* 다른 모든 오디오 정지 후 재생 */
+    stopAllAudio();
+    /* 이미 충분히 로드된 경우 바로 재생 */
+    if(audio.readyState>=3){
+      _heroPlayAfterReady();
+      return;
+    }
+    /* canplay 대기 후 재생 */
+    audio.addEventListener('canplay',function _onCanPlay(){
+      audio.removeEventListener('canplay',_onCanPlay);
+      _heroPlayAfterReady();
+    });
+    /* src가 아직 없거나 에러 상태이면 다시 로드 */
+    if(!audio.src||audio.error){
+      audio.src=_heroAudioUrl;
+      audio.load();
+    }
   }
 
   playBtn.onclick=()=>{
@@ -18704,6 +18807,10 @@ function setupHeroAudio(hero){
     const r=prog.getBoundingClientRect();
     audio.currentTime=audio.duration*Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
   };
+
+  /* src 설정 + load() 명시 호출로 안정적 로딩 시작 */
+  audio.src=_heroAudioUrl;
+  audio.load();
 }
 
 /* 리스트 재생 */
