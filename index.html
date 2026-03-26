@@ -17505,12 +17505,13 @@ var commHeroAudio=null,commHeroVizTimer=null;
 
 /* ── 커뮤니티 관리자 설정 (서버에서 로드) ── */
 var _commConfig=null;
-var _commConfigLoaded=false;
+var _commConfigLoadedAt=0;
 function _loadCommConfig(){
-  if(_commConfigLoaded&&_commConfig) return Promise.resolve(_commConfig);
+  /* 60초 캐시 — 탭 진입마다 최신 설정 반영 */
+  if(_commConfig&&(Date.now()-_commConfigLoadedAt)<60000) return Promise.resolve(_commConfig);
   return fetch('/api/community-config').then(function(r){return r.json();}).then(function(d){
-    _commConfig=d;_commConfigLoaded=true;return d;
-  }).catch(function(){_commConfigLoaded=true;return null;});
+    _commConfig=d;_commConfigLoadedAt=Date.now();return d;
+  }).catch(function(){_commConfigLoadedAt=Date.now();return null;});
 }
 /* 섹션 표시 여부 확인 */
 function _isCommSectionEnabled(key){
@@ -18257,7 +18258,8 @@ async function _renderCommunityInner(force){
     return;
   }
   /* 관리자 설정 로드 (첫 1회만 서버 호출, 이후 캐시) */
-  if(!_commConfigLoaded) await _loadCommConfig();
+  /* 커뮤니티 탭 진입마다 설정 로드 (60초 캐시) */
+  await _loadCommConfig();
 
   /* 일반 모드 — 관리자 설정에 따라 섹션 표시/숨김 */
   var _secMap={
