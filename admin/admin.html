@@ -296,6 +296,7 @@ textarea.form-input{line-height:1.5;}
   table{min-width:400px;}
   th,td{padding:5px 6px;font-size:9px;}
 }
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
@@ -2787,6 +2788,35 @@ const DEFAULT_PW='kenny2024!'; /* 환경변수 ADMIN_SECRET과 동일한 값을 
 /* 관리자 비밀번호 — 세션 > 로컬 > 기본값 순으로 */
 function getAdminPw(){
   return sessionStorage.getItem('kms_admin_session')||localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW;
+}
+
+/* ── toast 알림 ── */
+function toast(msg,type,dur){
+  var el=document.createElement('div');
+  el.textContent=msg;
+  el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;animation:fadeInUp .3s ease;pointer-events:none;'
+    +(type==='err'?'background:#ef4444;color:#fff;':'background:var(--acc);color:#fff;');
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(function(){el.remove();},300);},dur||2000);
+}
+
+/* ── 확인 팝업 (적용 내용 + 취소/반영) ── */
+function _showConfirmPopup(title,details,onConfirm){
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInUp .2s ease;';
+  var box=document.createElement('div');
+  box.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);';
+  box.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:12px;">'+title+'</div>'
+    +'<div style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:20px;max-height:200px;overflow-y:auto;">'+details+'</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button id="_cp-cancel" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
+    +'<button id="_cp-confirm" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">반영</button>'
+    +'</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',function(e){if(e.target===overlay){overlay.remove();}});
+  box.querySelector('#_cp-cancel').addEventListener('click',function(){overlay.remove();});
+  box.querySelector('#_cp-confirm').addEventListener('click',function(){overlay.remove();onConfirm();});
 }
 
 /* 인증 헤더 포함 fetch — 401이면 DEFAULT_PW로 재시도 */
@@ -9501,6 +9531,7 @@ function _loadCommConfig(){
 }
 
 function _saveCommConfig(){
+  /* 설정 수집 */
   var list=document.getElementById('comm-sections-list');
   var sections={};
   if(list){
@@ -9511,7 +9542,7 @@ function _saveCommConfig(){
       sections[key]={enabled:tog?tog.classList.contains('on'):true,order:i+1};
     });
   }
-  function _lines(id){return document.getElementById(id).value.split('\n').map(function(s){return s.trim();}).filter(Boolean);}
+  function _lines(id){var el=document.getElementById(id);return el?el.value.split('\n').map(function(s){return s.trim();}).filter(Boolean):[];}
   var config={
     sections:sections,
     hero_track_id:(document.getElementById('cc-hero-track').value||'').trim(),
@@ -9521,7 +9552,6 @@ function _saveCommConfig(){
     creator_order:_lines('cc-creator-order'),
     featured_tracks:_lines('cc-featured'),
   };
-  /* 생성 모드 수집 */
   var gmWrap=document.getElementById('cc-gen-modes');
   if(gmWrap){
     var gmItems=gmWrap.querySelectorAll('[data-gmkey]');
@@ -9533,14 +9563,41 @@ function _saveCommConfig(){
     });
     config.gen_modes=gen_modes;
   }
-  fetch('/api/community-config',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},
-    body:JSON.stringify(config)
-  }).then(r=>r.json()).then(d=>{
-    if(d.ok)toast('✅ 커뮤니티 설정 저장 완료!','ok');
-    else toast('❌ 저장 실패: '+(d.error||''),'err');
-  }).catch(function(e){toast('❌ 저장 실패: '+e.message,'err');});
+
+  /* 변경 내역 요약 생성 */
+  var changes=[];
+  /* 커뮤니티 섹션 */
+  var _secLabels={creators:'크리에이터',daily_discover:'오늘의 발견',challenge:'챌린지',activity_feed:'활동 피드',hero:'대표곡',chart:'TOP10 차트',mood:'무드 플레이리스트',spotlight:'이번주 크리에이터',genre:'장르 탐색',main_list:'메인 곡 목록',suggest:'추천 크리에이터'};
+  Object.keys(sections).forEach(function(k){
+    var s=sections[k];
+    changes.push('<b>'+(_secLabels[k]||k)+'</b>: '+(s.enabled?'✅ 노출':'❌ 숨김')+' (순서 '+s.order+')');
+  });
+  /* 생성 모드 */
+  if(config.gen_modes){
+    var _gmLabels={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'};
+    Object.keys(config.gen_modes).forEach(function(k){
+      var g=config.gen_modes[k];
+      changes.push('<b>생성모드 '+(_gmLabels[k]||k)+'</b>: '+(g.enabled?'✅ 노출':'❌ 숨김'));
+    });
+  }
+  if(config.hero_track_id) changes.push('<b>대표곡</b>: '+config.hero_track_id.slice(0,12)+'...');
+  if(config.top10_override.length) changes.push('<b>TOP10</b>: '+config.top10_override.length+'곡 지정');
+  if(config.spotlight_creators.length) changes.push('<b>스포트라이트</b>: '+config.spotlight_creators.join(', '));
+  if(config.recommend_tracks.length) changes.push('<b>추천곡</b>: '+config.recommend_tracks.length+'곡 지정');
+  if(config.featured_tracks.length) changes.push('<b>대표노출곡</b>: '+config.featured_tracks.length+'곡 지정');
+
+  var detailHtml=changes.length?changes.join('<br>'):'변경사항 없음';
+
+  _showConfirmPopup('🎨 커뮤니티 설정 반영',detailHtml,function(){
+    fetch('/api/community-config',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},
+      body:JSON.stringify(config)
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.ok) toast('✅ 설정이 반영되었습니다!','ok',2500);
+      else toast('❌ 저장 실패: '+(d.error||''),'err',3000);
+    }).catch(function(e){toast('❌ 저장 실패: '+e.message,'err',3000);});
+  });
 }
 
 /* 드래그 정렬 헬퍼 */
