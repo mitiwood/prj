@@ -429,8 +429,12 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (arg) => {
   if (!arg) return card('🛠 코드 수정', '사용법: 수정 [화면] <지시사항>\n\n[화면] 태그로 빠르고 저렴하게!\n태그 사용: ~$0.05~0.15/건\n태그 없음: ~$0.50~1.00/건\n\n예시:\n수정 [설정] 이용약관 링크 수정\n수정 [풀플레이어] 볼륨 슬라이더 추가\n수정 [커뮤채팅] 메시지 삭제 기능\n수정 [css플레이어] 배경색 변경\n\n65개 태그: 생성/히스토리/커뮤니티/설정/테마/풀플레이어/미니플레이어/가사/리믹스/연장/커버/보컬/노래방/피드/채팅/크리에이터/댓글/프로필/플랜/css/js/api/봇 등\n\n태그 없이도 사용 가능 (전체 탐색)', [], ['상태', 'PR']);
   if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
 
+  /* [화면] 태그가 있으면 제목에 보존 */
+  const tagMatch = arg.match(/^\[([^\]]+)\]/);
+  const titleTag = tagMatch ? `${tagMatch[0]} ` : '';
+  const titleText = tagMatch ? arg.slice(tagMatch[0].length).trim().slice(0, 60) : arg.slice(0, 60);
   const issue = await ghApi('POST', '/issues', {
-    title: `[카카오] ${arg.slice(0, 60)}`,
+    title: `${titleTag}${titleText}`,
     body: `## 수정 요청\n\n${arg}\n\n---\n> 카카오톡 봇 · ${ts()}`,
     labels: ['claude-fix'],
   });

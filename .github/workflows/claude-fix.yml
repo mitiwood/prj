@@ -359,6 +359,8 @@ jobs:
           echo "$DIFF" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
+          echo "Pulling latest main (rebase)..."
+          git pull --rebase origin main || true
           echo "Pushing to main..."
           git push origin HEAD:main
           echo "status=merged" >> "$GITHUB_OUTPUT"

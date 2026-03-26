@@ -569,15 +569,22 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
     /* 2) Issue 생성 (라벨 포함) */
     let issue;
     try {
+      /* [화면] 태그가 있으면 제목에 보존, 없으면 태그 없이 생성 */
+      const tagMatch = arg.match(/^\[([^\]]+)\]/);
+      const titleTag = tagMatch ? `${tagMatch[0]} ` : '';
+      const titleText = tagMatch ? arg.slice(tagMatch[0].length).trim().slice(0, 60) : arg.slice(0, 60);
       issue = await ghApi('POST', '/issues', {
-        title: `[텔레그램] ${arg.slice(0, 60)}`,
+        title: `${titleTag}${titleText}`,
         body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
         labels: ['claude-fix'],
       });
     } catch (labelErr) {
       /* 라벨 첨부 실패 시 이슈만 먼저 생성 후 라벨 별도 추가 */
+      const tagMatch = arg.match(/^\[([^\]]+)\]/);
+      const titleTag = tagMatch ? `${tagMatch[0]} ` : '';
+      const titleText = tagMatch ? arg.slice(tagMatch[0].length).trim().slice(0, 60) : arg.slice(0, 60);
       issue = await ghApi('POST', '/issues', {
-        title: `[텔레그램] ${arg.slice(0, 60)}`,
+        title: `${titleTag}${titleText}`,
         body: `## 수정 요청\n\n${arg}\n\n---\n> 텔레그램 봇에서 요청됨 · ${ts()}`,
       });
       /* 이슈에 라벨 추가 (워크플로우 트리거 필수) */
