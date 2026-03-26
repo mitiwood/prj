@@ -14214,6 +14214,7 @@ var _myFeedRawTracks=null;
 var _myFeedLoadError=false;
 var _myFeedDetailCache={}; /* key: name::provider → {data,ts} */
 var _myFeedTrkSort='default'; /* default | likes | plays | newest */
+var _mfDetailGridView=false; /* 트랙 그리드 뷰 토글 */
 var _mfRenderChunkSize=20; /* 한번에 렌더링할 크리에이터 개수 */
 var _mfRenderedCount=0; /* 현재 렌더링된 크리에이터 개수 */
 var _mfAllCreators=[];
@@ -14227,6 +14228,23 @@ function _safeThumbHtml(url){if(!url||_isBlockedImgHost(url))return '<span>🎵<
 function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';if(!u||_isBlockedImgHost(u))return fb;return '<img src="'+esc(u)+'" alt=""'+(lazy?' loading="lazy"':'')+' style="width:100%;height:100%;object-fit:cover;border-radius:50%;" data-initial="'+ch+'" onerror="_mfImgFail(this)">';}
 function _mfImgFail(el){el.onerror=null;var ch=el.dataset.initial||'?';var p=el.parentNode;if(p){p.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';}}
 function _mfThumb(u){if(!u||_isBlockedImgHost(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
+
+/* 팔로우 컨페티 효과 */
+function _mfConfetti(btn){
+  var rect=btn.getBoundingClientRect();
+  var wrap=document.createElement('div');
+  wrap.className='mf-confetti';
+  wrap.style.cssText='left:'+(rect.left+rect.width/2)+'px;top:'+(rect.top)+'px;';
+  var colors=['#7c3aed','#ec4899','#f59e0b','#06b6d4','#10b981'];
+  for(var ci=0;ci<12;ci++){
+    var dot=document.createElement('div');
+    dot.className='mf-confetti-dot';
+    dot.style.cssText='background:'+colors[ci%colors.length]+';left:'+(Math.random()*30-15)+'px;--cx:'+(Math.random()*60-30)+'px;animation-delay:'+(Math.random()*.2)+'s;';
+    wrap.appendChild(dot);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(function(){wrap.remove();},1200);
+}
 
 /* 크리에이터 레벨 계산 */
 function _mfCreatorLevel(c){
@@ -14610,12 +14628,12 @@ function _renderCreatorDetailView(grid,countEl){
   if(p.totalPlays) html+=' · ▶ '+p.totalPlays;
   html+='</div></div></div>';
 
-  /* 통계 카드 */
+  /* 통계 카드 (카운터 애니메이션) */
   html+='<div class="mf-detail-stats">'
-    +'<div class="mf-stat-box"><div class="mf-stat-num">'+(p.trackCount||d.tracks.length||0)+'</div><div class="mf-stat-label">곡</div></div>'
-    +'<div class="mf-stat-box"><div class="mf-stat-num">'+(p.totalLikes||0)+'</div><div class="mf-stat-label">좋아요</div></div>'
-    +'<div class="mf-stat-box"><div class="mf-stat-num">'+(p.totalPlays||0)+'</div><div class="mf-stat-label">재생</div></div>'
-    +'<div class="mf-stat-box"><div class="mf-stat-num">'+(p.followerCount||0)+'</div><div class="mf-stat-label">팔로워</div></div>'
+    +'<div class="mf-stat-box"><div class="mf-stat-num"><span class="mf-stat-animate">'+(p.trackCount||d.tracks.length||0)+'</span></div><div class="mf-stat-label">곡</div></div>'
+    +'<div class="mf-stat-box"><div class="mf-stat-num"><span class="mf-stat-animate" style="animation-delay:.1s">'+(p.totalLikes||0)+'</span></div><div class="mf-stat-label">좋아요</div></div>'
+    +'<div class="mf-stat-box"><div class="mf-stat-num"><span class="mf-stat-animate" style="animation-delay:.2s">'+(p.totalPlays||0)+'</span></div><div class="mf-stat-label">재생</div></div>'
+    +'<div class="mf-stat-box"><div class="mf-stat-num"><span class="mf-stat-animate" style="animation-delay:.3s">'+(p.followerCount||0)+'</span></div><div class="mf-stat-label">팔로워</div></div>'
     +'</div>';
 
   /* 팔로우 + 프로필 버튼 */
@@ -14702,13 +14720,16 @@ function _renderCreatorDetailView(grid,countEl){
     +'<button onclick="_mfDetailShuffle()" style="padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🔀 셔플</button>'
     +'</div>';
 
-  /* ── 트랙 정렬 ── */
+  /* ── 트랙 정렬 + 뷰 토글 ── */
   html+='<div class="mf-trk-sort-row" style="padding:0 18px;">'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='default'?' on':'')+'" onclick="_myFeedTrkSort=\'default\';renderHistoryView();">기본</button>'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='likes'?' on':'')+'" onclick="_myFeedTrkSort=\'likes\';renderHistoryView();">인기순</button>'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='plays'?' on':'')+'" onclick="_myFeedTrkSort=\'plays\';renderHistoryView();">재생순</button>'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='newest'?' on':'')+'" onclick="_myFeedTrkSort=\'newest\';renderHistoryView();">최신순</button>'
-    +'</div>';
+    +'<div class="mf-view-toggle">'
+    +'<button class="'+(!_mfDetailGridView?'on':'')+'" onclick="_mfDetailGridView=false;renderHistoryView();" title="리스트"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>'
+    +'<button class="'+(_mfDetailGridView?'on':'')+'" onclick="_mfDetailGridView=true;renderHistoryView();" title="그리드"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'
+    +'</div></div>';
 
   /* 트랙 정렬 적용 — 생성 실패(audio_url 없음 또는 duration 0) 곡 제외 */
   var sortedTracks=d.tracks.filter(function(t){
@@ -14720,35 +14741,54 @@ function _renderCreatorDetailView(grid,countEl){
   else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
   else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
 
-  /* ── 트랙 리스트 (리치 카드) ── */
-  html+='<div class="mf-detail-tracklist">';
-  sortedTracks.forEach(function(t,i){
-    var origIdx=d.tracks.indexOf(t);
-    var thumb=(!t.image_url||_mfIsBlocked(t.image_url))?'<div class="mf-trk-thumb-ph">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trk-thumb-ph>🎵</div>\'">';
-    var tag1=(t.tags||'').split(',')[0]?.trim()||'';
-    var hasVideo=!!t.video_url;
-    var likes=t.comm_likes||0, plays=t.comm_plays||0;
-    var dateStr='';
-    if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
-    var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
-    var isUnplayable=_mfUnplayableIds.has(t.id);
-    html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
-      +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
-      +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
-      +'<div class="mf-trk-info">'
-      +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+(_mfIsPlaying?'<span class="mf-mini-eq"><span></span><span></span><span></span><span></span></span>':'')+'</div>'
-      +'<div class="mf-trk-meta">'
-      +(isUnplayable?'<span style="color:var(--err,#e74c3c);">재생불가</span>':'')
-      +(likes>0?'<span>❤️ '+likes+'</span>':'')
-      +(plays>0?'<span>▶ '+plays+'</span>':'')
-      +(tag1?'<span>'+esc(tag1)+'</span>':'')
-      +(dateStr?'<span>'+dateStr+'</span>':'')
-      +'</div></div>'
-      +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'+(isUnplayable?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>':(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>'))+'</div>'
-      +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
-      +'</div>';
-  });
-  html+='</div>';
+  /* ── 트랙 리스트 / 그리드 ── */
+  if(_mfDetailGridView){
+    /* 그리드 뷰 */
+    html+='<div class="mf-trk-grid">';
+    sortedTracks.forEach(function(t,i){
+      var origIdx=d.tracks.indexOf(t);
+      var imgHtml=(!t.image_url||_mfIsBlocked(t.image_url))?'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2);">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy">';
+      var likes=t.comm_likes||0;
+      var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
+      html+='<div class="mf-trk-grid-card'+(_mfIsPlaying?' playing':'')+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
+        +'<div class="mf-trk-grid-img">'+imgHtml
+        +'<div class="mf-trk-grid-play">'+(_mfIsPlaying?'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg>')+'</div>'
+        +'</div>'
+        +'<div class="mf-trk-grid-info"><div class="mf-trk-grid-title">'+esc(t.title||'무제')+'</div>'
+        +'<div class="mf-trk-grid-meta">'+(likes>0?'❤️ '+likes:'')+'</div></div></div>';
+    });
+    html+='</div>';
+  } else {
+    /* 리스트 뷰 */
+    html+='<div class="mf-detail-tracklist">';
+    sortedTracks.forEach(function(t,i){
+      var origIdx=d.tracks.indexOf(t);
+      var thumb=(!t.image_url||_mfIsBlocked(t.image_url))?'<div class="mf-trk-thumb-ph">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trk-thumb-ph>🎵</div>\'">';
+      var tag1=(t.tags||'').split(',')[0]?.trim()||'';
+      var hasVideo=!!t.video_url;
+      var likes=t.comm_likes||0, plays=t.comm_plays||0;
+      var dateStr='';
+      if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
+      var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
+      var isUnplayable=_mfUnplayableIds.has(t.id);
+      html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
+        +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
+        +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
+        +'<div class="mf-trk-info">'
+        +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+(_mfIsPlaying?'<span class="mf-mini-eq"><span></span><span></span><span></span><span></span></span>':'')+'</div>'
+        +'<div class="mf-trk-meta">'
+        +(isUnplayable?'<span style="color:var(--err,#e74c3c);">재생불가</span>':'')
+        +(likes>0?'<span>❤️ '+likes+'</span>':'')
+        +(plays>0?'<span>▶ '+plays+'</span>':'')
+        +(tag1?'<span>'+esc(tag1)+'</span>':'')
+        +(dateStr?'<span>'+dateStr+'</span>':'')
+        +'</div></div>'
+        +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'+(isUnplayable?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>':(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>'))+'</div>'
+        +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
 
   /* ── 유사 크리에이터 추천 ── */
   var sbAll=(typeof _sbTracks!=='undefined'&&_sbTracks)?_sbTracks:[];
@@ -14832,7 +14872,7 @@ async function _mfToggleFollow(btn){
     var d=await r.json();
     if(d.ok){
       if(isFollowing){btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');toast('팔로우 취소','',1500);}
-      else{btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');toast('팔로우!','ok',1500);}
+      else{btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');toast('팔로우!','ok',1500);_mfConfetti(btn);}
       /* 팔로우 캐시 동기화 */
       var fCacheKey=name+'__'+prov;
       _followStateCache[fCacheKey]=!isFollowing;
