@@ -7376,9 +7376,7 @@ function updateLoginUI(){
   const loginBtn=$('settings-login-btn');
   if(loginBtn){
     if(currentUser){
-      var _av=currentUser.avatar||'';
-      var _avDisplay=_isAvatarUrl(_av)?currentUser.name[0]||'👤':(_av||'👤');
-      loginBtn.textContent=`${_avDisplay} ${currentUser.name} (로그아웃)`;
+      loginBtn.textContent=currentUser.name+' (로그아웃)';
       loginBtn.onclick=logout;
     } else {
       loginBtn.textContent='로그인';
@@ -17986,8 +17984,38 @@ function commPlayByHIdx(hIdx){
 /* Supabase sbId로 커뮤니티 트랙 재생 */
 function commPlaySb(sbId){
   if(!sbId){toast('트랙 ID 없음','err');return;}
-  const t=_sbTracks.find(x=>x._sbId===sbId);
-  if(!t){toast('트랙을 찾을 수 없어요','err');return;}
+  var t=_sbTracks.find(x=>x._sbId===sbId);
+
+  /* _sbTracks에 없으면 프로필뷰/크리에이터 상세 데이터에서 폴백 조회 */
+  if(!t){
+    var _fallback=null;
+    /* 1) 프로필 뷰 트랙 (openCreatorProfile에서 저장) */
+    if(window._pvTracks){_fallback=(window._pvTracks||[]).find(function(x){return x.id===sbId;});}
+    /* 2) 크리에이터 상세 트랙 (_myFeedDetail) */
+    if(!_fallback&&_myFeedDetail&&_myFeedDetail.tracks){_fallback=_myFeedDetail.tracks.find(function(x){return x.id===sbId;});}
+    if(_fallback&&_fallback.audio_url){
+      /* 폴백 데이터로 직접 재생 */
+      _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+      var currentH=historyData[fpCurrentIdx];
+      if(currentH&&(currentH.id===sbId||currentH._sbId===sbId)&&fpAudio){
+        if(fpAudio.paused){if(fpAudio.ended)fpAudio.currentTime=0;fpAudio.play().then(function(){_syncAllPlayBtns(true);}).catch(function(){});} else {fpAudio.pause();_syncAllPlayBtns(false);}
+        return;
+      }
+      var hIdx=historyData.findIndex(function(h){return h.id===sbId||h._sbId===sbId;});
+      if(hIdx<0){
+        historyData.unshift({id:sbId,_sbId:sbId,title:_fallback.title||'무제',audio_url:_fallback.audio_url,image_url:_fallback.image_url||'',video_url:_fallback.video_url||'',tags:_fallback.tags||'',type:_fallback.video_url?'mv':'audio',created:_fallback.created_at,_fromSb:true,_owner:{name:window._pvTarget?.name||(_myFeedDetail?_myFeedDetail.name:''),provider:window._pvTarget?.provider||(_myFeedDetail?_myFeedDetail.provider:'')}});
+        hIdx=0;
+        updateHistBadge();
+      } else {
+        if(_fallback.audio_url) historyData[hIdx].audio_url=_fallback.audio_url;
+      }
+      stopAllAudio();
+      _countTrackPlay(sbId);
+      showMiniPlayer(hIdx);
+      return;
+    }
+    toast('트랙을 찾을 수 없어요','err');return;
+  }
   if(!t.audioUrl){toast('오디오가 없어요','err');return;}
 
   /* 커뮤니티 리스트에서 재생 시 크리에이터 상세 큐 초기화 */
@@ -20756,6 +20784,8 @@ function openCreatorProfile(name, provider){
       }
 
       const tracks = d.tracks || [];
+      /* 프로필 뷰 트랙 데이터를 저장 — commPlaySb에서 _sbTracks에 없을 때 폴백 */
+      window._pvTracks = tracks;
       if(!tracks.length){
         $('pv-tracks-list').innerHTML = '<div class="pv-empty"><div style="font-size:32px;margin-bottom:8px;">🎵</div>아직 공유된 곡이 없어요</div>';
         const tcEl=$('pv-track-count');if(tcEl) tcEl.textContent='';
