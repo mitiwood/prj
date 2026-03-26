@@ -10659,10 +10659,8 @@ async function generate(overrideParams){
       /* 심플모드: lastLyricsInput 없음 → API 응답 lyric 사용
          커스텀모드: 입력 가사 우선, 없으면 API lyric */
       const apiLyric=t.lyric||t.lyrics||t.lrc||'';
-      /* 가사 판별: [Verse] 등 섹션태그, 줄바꿈, 120자 초과이면 실제 가사 */
-      const isRealLyric = apiLyric && (apiLyric.includes('\n') || /\[.+?\]/.test(apiLyric) || apiLyric.length > 120);
-      /* 우선순위: 사용자 입력가사 > API 응답 실제가사 > 심플모드프롬프트 */
-      const savedLyrics = lastLyricsInput || (isRealLyric ? apiLyric : '') || (isSimple?$('simple-prompt')?.value:'') || $('prompt').value.trim() || '';
+      /* API 가사가 있으면 항상 사용 (보컬이 부르는 실제 가사) */
+      const savedLyrics = lastLyricsInput || apiLyric || (isSimple?$('simple-prompt')?.value:'') || $('prompt').value.trim() || '';
       const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
         id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
@@ -16375,7 +16373,8 @@ var _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */
 function fpRenderLyrics(h){
   const mainBox=$('fp-lyrics-main');
   const raw=h.lyrics||h.lyric||h._inputLyrics||'';
-  const isStyleStr = raw && !raw.includes('\n') && !/\[.+\]/.test(raw) && raw.length < 120;
+  /* 스타일 태그만 있는 경우만 제외 (영어 콤마 구분 짧은 문자열, 한글 없음) */
+  const isStyleStr = raw && !raw.includes('\n') && raw.length < 80 && !/[\uac00-\ud7a3]/.test(raw) && /^[a-zA-Z0-9,\s\-_&]+$/.test(raw);
   const plain = isStyleStr ? '' : raw;
 
   fpTimestampLines=[];
