@@ -7874,8 +7874,11 @@ async function _ytDoGenerate(){
   const ytGenre = _lastYtAnalysis.genre || '';
   const ytStylePrompt = (_lastYtAnalysis.style_prompt||'').trim().slice(0,800);
   const ytMoodTags = (_lastYtAnalysis.mood_tags||'').trim();
-  /* style: 장르 + 분위기 + 상세 스타일 프롬프트 + 무드태그 (최대 1000자) */
-  const ytStyle = [ytGenre, ytMood, ytStylePrompt, ytMoodTags].filter(Boolean).join(', ').slice(0,1000);
+  const ytInstruments = (_lastYtAnalysis.instruments||'').trim();
+  const ytVocalStyle = (_lastYtAnalysis.vocal_style||'').trim();
+  const ytRefSound = (_lastYtAnalysis.reference_sound||'').trim();
+  /* style: 장르 + 분위기 + 상세 스타일 + 악기 + 보컬 스타일 + 무드태그 (최대 1200자) */
+  const ytStyle = [ytGenre, ytMood, ytStylePrompt, ytInstruments, ytVocalStyle, ytMoodTags].filter(Boolean).join(', ').slice(0,1200);
   const model   = ($('model-sel')?.value) || 'V4_5';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
@@ -7905,8 +7908,9 @@ async function _ytDoGenerate(){
     $('ld-sub').innerHTML='🎤 원곡 느낌의 가사 생성 중...<br>잠시만 기다려주세요';
     try{
       const lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
-      const lyricsPrompt = lyricsTheme + ', ' + ytGenre + ', ' + ytMood;
-      const autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,200));
+      const lyricsStyle = _lastYtAnalysis.lyrics_style || '';
+      const lyricsPrompt = [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
+      const autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300));
       if(autoLyrics && autoLyrics.length > 30){
         ytLyrics = autoLyrics;
         if(_ytTa) _ytTa.value = autoLyrics;
@@ -8997,22 +9001,37 @@ $('yt-analyze-btn').addEventListener('click', async () => {
       updateBpmDisplay();
     }
 
-    /* 결과 UI 렌더 */
+    /* 결과 UI 렌더 — 고도화 분석 카드 */
     resultEl.style.display = 'block';
+    var _a = analysis;
+    var _dur = _a.duration ? ' · '+_a.duration : '';
+    var _key = _a.key_signature ? ' · Key: '+esc(_a.key_signature) : '';
+    var _energy = _a.energy ? ({'low':'\uD83D\uDD35','medium':'\uD83D\uDFE2','high':'\uD83D\uDFE0','very high':'\uD83D\uDD34'}[_a.energy]||'')+esc(_a.energy) : '';
+    var _instHtml = (_a.instruments||'').split(',').filter(Boolean).map(function(i){return '<span style="display:inline-block;padding:2px 7px;border-radius:6px;background:rgba(124,58,237,.1);font-size:10px;color:var(--acc);margin:2px;">'+esc(i.trim())+'</span>';}).join('');
+    var _moodHtml = (_a.mood_tags||'').split(',').filter(Boolean).map(function(t){return '<span style="display:inline-block;padding:2px 7px;border-radius:6px;background:rgba(59,130,246,.1);font-size:10px;color:#3b82f6;margin:2px;">'+esc(t.trim())+'</span>';}).join('');
     resultEl.innerHTML = `
-      <div style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:4px;">✅ ${esc(title)}</div>
-        <div style="font-size:11px;color:var(--t3);">
-          ${esc(author?author+' · ':'')}장르: <b>${esc(analysis.genre||'—')}</b> · BPM: ~${analysis.bpm_estimate||'?'} · 분위기: ${esc(analysis.mood||'—')}
+      <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:800;color:var(--acc);margin-bottom:6px;">\u2705 ${esc(title)}</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px;">${esc(author||'')}${_dur}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11px;margin-bottom:8px;">
+          <div>\uD83C\uDFB5 <b>${esc(_a.genre||'\u2014')}</b></div>
+          <div>\uD83C\uDFAF BPM: <b>${_a.bpm_estimate||'?'}</b>${_key}</div>
+          <div>\uD83D\uDCAB ${esc(_a.mood||'\u2014')} ${_energy?' ('+_energy+')':''}</div>
+          <div>\uD83C\uDFA4 ${esc(_a.vocal_style||_a.vocal_gender||'\u2014')}</div>
         </div>
-        <div style="font-size:10px;color:var(--t3);margin-top:3px;">${esc(analysis.description||'')}</div>
+        <div style="font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:8px;">${esc(_a.description||'')}</div>
+        ${_a.reference_sound?'<div style="font-size:10px;color:var(--t3);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:8px;line-height:1.5;">\uD83D\uDD0A '+esc(_a.reference_sound)+'</div>':''}
+        ${_instHtml?'<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--t3);">\uD83C\uDFB9 악기</span><br>'+_instHtml+'</div>':''}
+        ${_moodHtml?'<div><span style="font-size:10px;font-weight:700;color:var(--t3);">\uD83C\uDFA8 무드</span><br>'+_moodHtml+'</div>':''}
+        ${_a.song_structure?'<div style="font-size:10px;color:var(--t3);margin-top:6px;">\uD83D\uDCCB '+esc(_a.song_structure)+'</div>':''}
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">🎤 가사 (직접 입력하거나 AI 생성)</div>
+      ${_a.lyrics_theme?'<div style="font-size:11px;color:var(--t3);padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;line-height:1.5;">\uD83D\uDCDD <b>가사 테마:</b> '+esc(_a.lyrics_theme)+(_a.lyrics_style?' \u00B7 <i>'+esc(_a.lyrics_style)+'</i>':'')+'</div>':''}
+      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">\uD83C\uDFA4 가사 (직접 입력하거나 AI 생성)</div>
       <textarea id="yt-lyrics-ta" class="form-input" rows="5"
         placeholder="가사를 직접 입력하거나 아래 'AI 가사 생성' 버튼을 누르세요"
         style="font-size:12px;line-height:1.7;margin-bottom:8px;"></textarea>
       <button id="yt-lyrics-gen-btn" style="width:100%;padding:9px;border-radius:10px;border:1px solid rgba(124,58,237,.4);background:rgba(124,58,237,.15);color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
-        ✦ AI 가사 자동 생성 (선택사항)
+        \u2726 AI 가사 자동 생성 (선택사항)
       </button>`;
 
     /* AI 가사 생성 버튼 */
