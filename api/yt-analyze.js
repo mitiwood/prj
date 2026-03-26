@@ -108,8 +108,9 @@ export default async function handler(req, res) {
   }
 
   // ── Step 2: Claude Sonnet으로 정밀 분석 ──
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
   let analysis = null;
+  console.log('[yt-analyze] API key present:', !!apiKey, '| title:', title, '| author:', author, '| desc length:', description.length, '| tags:', tags.slice(0, 50));
 
   if (apiKey) {
     // 수집된 모든 메타데이터를 Claude에 전달
@@ -167,10 +168,25 @@ Answer in JSON ONLY:
           messages: [{ role: 'user', content: prompt }],
         }),
       });
-      const cd = await cr.json();
-      const text = cd.content?.find(c => c.type === 'text')?.text || '';
-      const clean = text.replace(/```json|```/g, '').trim();
-      analysis = JSON.parse(clean);
+      let cd = await cr.json();
+      /* Sonnet 실패 시 Haiku로 폴백 */
+      if (cd.error) {
+        console.warn('[yt-analyze] Sonnet error:', cd.error.type, cd.error.message, '→ trying Haiku');
+        const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+        });
+        cd = await cr2.json();
+      }
+      if (cd.error) {
+        console.error('[yt-analyze] Claude API error (final):', cd.error.type, cd.error.message);
+      } else {
+        const text = cd.content?.find(c => c.type === 'text')?.text || '';
+        const clean = text.replace(/```json|```/g, '').trim();
+        analysis = JSON.parse(clean);
+        console.log('[yt-analyze] Claude OK:', analysis.genre, analysis.bpm_estimate);
+      }
     } catch (e) {
       console.warn('[yt-analyze] Claude 분석 실패:', e.message);
     }
@@ -206,6 +222,7 @@ Answer in JSON ONLY:
     category,
     duration,
     videoId,
+    _analyzed: !!apiKey && analysis && analysis.genre !== 'Pop', /* Claude 분석 성공 여부 */
     ...analysis,
   });
 }
