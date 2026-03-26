@@ -47,19 +47,27 @@ export default async function handler(req, res) {
   let analysis = null;
 
   if (apiKey) {
-    const prompt = `YouTube 영상 정보를 분석해서 비슷한 음악을 만들기 위한 Suno AI 프롬프트를 생성하세요.
+    const prompt = `You are a professional music producer. Analyze this YouTube video and create a detailed music production specification to recreate a VERY SIMILAR sounding track.
 
-영상 제목: "${title}"
-채널명: "${author}"
+Video title: "${title}"
+Channel: "${author}"
 
-JSON 형식으로만 답하세요 (다른 텍스트 없이):
+IMPORTANT: Analyze the likely musical characteristics based on the title/artist. Be SPECIFIC about:
+- Exact sub-genre (not just "Pop" but "K-Pop Dance Pop with synth hooks")
+- Specific instruments and production techniques
+- Vocal style and arrangement
+- Song structure and tempo
+
+Answer in JSON ONLY (no other text):
 {
-  "genre": "장르(영어, 예: K-Pop, Lo-fi Hip-hop, EDM, Rock)",
-  "mood": "분위기(영어, 예: energetic, melancholic, uplifting, chill)",
-  "style_prompt": "Suno 스타일 프롬프트(영어, 콤마 구분, 15단어 이내, 아티스트명 제외)",
-  "description": "한 줄 분석(한국어, 30자 이내)",
+  "genre": "specific sub-genre in English (e.g., 'K-Pop Dance Pop', 'Acoustic Indie Folk', 'Trap Hip-Hop')",
+  "mood": "primary mood in English (e.g., 'energetic', 'melancholic', 'dreamy')",
+  "style_prompt": "detailed Suno style tags, comma-separated, 30-50 words, NO artist names. Include: genre, sub-genre, tempo feel, instruments, vocal style, production style, arrangement details",
+  "description": "한국어 한 줄 분석 (30자 이내)",
   "bpm_estimate": 120,
-  "mood_tags": "분위기 태그(영어, 콤마 구분)"
+  "mood_tags": "5-8 English mood/style tags, comma-separated",
+  "vocal_gender": "m or f (guess from title/artist)",
+  "lyrics_theme": "한국어로 이 노래의 가사 주제/테마 설명 (50자 이내, 예: '이별 후 그리움과 재회에 대한 희망')"
 }`;
 
     try {
@@ -91,10 +99,12 @@ JSON 형식으로만 답하세요 (다른 텍스트 없이):
     analysis = {
       genre:        'Pop',
       mood:         'uplifting',
-      style_prompt: `${cleanTitle} style, melodic, emotional`,
+      style_prompt: `${cleanTitle} style, melodic, emotional vocal, polished pop production, catchy hooks, modern arrangement`,
       description:  `${cleanTitle} 스타일의 음악`,
       bpm_estimate: 120,
-      mood_tags:    'uplifting, melodic',
+      mood_tags:    'uplifting, melodic, emotional, polished',
+      vocal_gender: '',
+      lyrics_theme: `${cleanTitle} 주제의 감성적인 노래`,
     };
   }
 
