@@ -1,10 +1,9 @@
 -- ============================================================
 -- 마이그레이션: 사용자 식별자를 name+provider → email+provider로 전환
--- Supabase SQL Editor에서 실행
+-- ✅ 실행 완료 (2026-03-26)
 -- ============================================================
 
 -- 1. 중복 사용자 병합 (같은 email+provider인데 name이 다른 레코드)
--- 가장 최근 로그인한 레코드만 남기고 나머지 삭제
 DELETE FROM public.users a
 USING public.users b
 WHERE a.email = b.email
@@ -15,14 +14,14 @@ WHERE a.email = b.email
 -- 2. 기존 UNIQUE 제약 제거
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_name_provider_key;
 
--- 3. 새 UNIQUE 제약 추가 (email+provider)
--- email이 빈 문자열인 경우를 위해 partial unique index 사용
-ALTER TABLE public.users ADD CONSTRAINT users_email_provider_key UNIQUE(email, provider);
+-- 3. partial unique index (email 있으면 email+provider 유니크, 없으면 name+provider)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_provider ON public.users(email, provider) WHERE email <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_name_provider_fallback ON public.users(name, provider) WHERE email = '';
 
 -- 4. tracks 테이블에 owner_email 컬럼 추가
 ALTER TABLE public.tracks ADD COLUMN IF NOT EXISTS owner_email TEXT DEFAULT '';
 
--- 5. 기존 tracks에 owner_email 채우기 (users 테이블에서 매칭)
+-- 5. 기존 tracks에 owner_email 채우기
 UPDATE public.tracks t
 SET owner_email = u.email
 FROM public.users u

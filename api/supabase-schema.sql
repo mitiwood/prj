@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   last_login      BIGINT      NOT NULL DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(email, provider)
+  -- email이 있으면 email+provider로 유니크, 없으면 name+provider로 유니크
+  -- CREATE UNIQUE INDEX idx_users_email_provider ON users(email, provider) WHERE email <> '';
+  -- CREATE UNIQUE INDEX idx_users_name_provider_fallback ON users(name, provider) WHERE email = '';
 );
 
 -- 3. announcements 테이블 (인앱 공지)
