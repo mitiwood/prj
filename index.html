@@ -7510,6 +7510,79 @@ function _getGenSession() {
   } catch(e) { return null; }
 }
 
+/* ══ 백그라운드 생성 유지 (Wake Lock + visibilitychange 복원) ══ */
+var _wakeLock = null;
+var _bgPollWorker = null;
+var _bgEnteredAt = 0; /* 백그라운드 진입 시각 */
+
+/* Wake Lock: 생성 중 화면 꺼짐 방지 (모바일) */
+async function _acquireWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try{ _wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+function _releaseWakeLock(){
+  if(_wakeLock){ try{_wakeLock.release();}catch(e){} _wakeLock=null; }
+}
+
+/* 생성 시작 시 Wake Lock 획득, 완료 시 해제 */
+var _origSyncGenButtons = typeof _syncGenButtons==='function' ? _syncGenButtons : null;
+/* _syncGenButtons 호출 시마다 Wake Lock 관리 */
+(function _hookWakeLock(){
+  var _syncIntv = setInterval(function(){
+    if(typeof _syncGenButtons!=='function') return;
+    clearInterval(_syncIntv);
+    var _origSync = _syncGenButtons;
+    _syncGenButtons = function(){
+      _origSync();
+      if(_globalGenerating) _acquireWakeLock();
+      else _releaseWakeLock();
+    };
+  },200);
+})();
+
+/* Web Worker 기반 백그라운드 타이머 (setTimeout 스로틀링 우회) */
+function _createBgTimerWorker(){
+  if(_bgPollWorker) return _bgPollWorker;
+  try{
+    var blob = new Blob([
+      'var t=null;onmessage=function(e){if(e.data.cmd==="start"){clearInterval(t);t=setInterval(function(){postMessage("tick")},e.data.interval||2000);}if(e.data.cmd==="stop"){clearInterval(t);t=null;}};'
+    ],{type:'application/javascript'});
+    _bgPollWorker = new Worker(URL.createObjectURL(blob));
+    return _bgPollWorker;
+  }catch(e){ return null; }
+}
+
+/* 백그라운드 진입/복귀 핸들러 */
+document.addEventListener('visibilitychange', function(){
+  if(!_globalGenerating) return;
+
+  if(document.hidden){
+    /* 백그라운드 진입 — 타이머 시작 (폴링 간격 유지용) */
+    _bgEnteredAt = Date.now();
+    console.log('[BG] 백그라운드 진입 — 생성 진행 중, Wake Lock 유지');
+    /* Worker 타이머: 메인 스레드 setTimeout이 스로틀링돼도 tick 발생 */
+    var w = _createBgTimerWorker();
+    if(w){
+      w.onmessage = function(){ /* Worker tick — 메인 스레드 wake 유지 용도 */ };
+      w.postMessage({cmd:'start', interval:3000});
+    }
+  } else {
+    /* 포그라운드 복귀 */
+    var away = Date.now() - _bgEnteredAt;
+    console.log('[BG] 포그라운드 복귀 — '+Math.round(away/1000)+'초 경과');
+    /* Worker 중지 */
+    if(_bgPollWorker){ _bgPollWorker.postMessage({cmd:'stop'}); }
+    /* Wake Lock 재획득 (visibility change 시 자동 해제되므로) */
+    _acquireWakeLock();
+    /* 오래 백그라운드에 있었으면 세션 복원 체크 */
+    if(away > 120000 && !_genCancelled){
+      /* 2분 이상 → 폴링이 지연됐을 수 있으므로 즉시 상태 확인 */
+      console.log('[BG] 장시간 백그라운드 — 생성 상태 즉시 확인');
+      toast('백그라운드에서 돌아왔어요. 생성 상태 확인 중...','',2000);
+    }
+  }
+});
+
 /* ── 생성 중 이탈 방지 (커스텀 팝업 우선, 브라우저 팝업 최소화) ── */
 var _leaveAllowed=false;
 window.addEventListener('beforeunload', function(e) {
@@ -8175,6 +8248,9 @@ async function _ytDoGenerate(){
     $('loading-card').classList.remove('on');
     _stopLdTips();
     console.log('%c[Generate] %cYT-DONE%c '+(Date.now()-_ytT0)+'ms','color:#a78bfa;font-weight:bold','color:#4ade80;font-weight:bold','color:inherit');
+    if(document.hidden && 'Notification' in window && Notification.permission==='granted'){
+      try{new Notification("Kenny's Music Studio",{body:'YouTube 음악 생성 완료! 🎵',icon:'/icon-192.png',tag:'gen-done'});}catch(e){}
+    }
 
     /* 취소된 경우 결과 저장하지 않음 */
     if(_genCancelled){ toast('생성이 취소되었어요','',2000); return; }
@@ -9541,7 +9617,19 @@ async function pollResult(apiKey,taskId){
   }
   throw new Error('시간 초과 — 다시 시도해주세요');
 }
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function sleep(ms){
+  /* 백그라운드 스로틀링 우회: Worker 타이머 + setTimeout 경쟁 */
+  return new Promise(function(resolve){
+    var done=false;
+    var finish=function(){if(!done){done=true;resolve();}};
+    setTimeout(finish, ms);
+    /* Worker가 있으면 더 정확한 타이밍 제공 */
+    if(_bgPollWorker && document.hidden){
+      var _wHandler=function(){_bgPollWorker.removeEventListener('message',_wHandler);finish();};
+      _bgPollWorker.addEventListener('message',_wHandler);
+    }
+  });
+}
 
 /* ── 다운로드 (CORS-safe blob) ── */
 async function downloadFile(url,filename){
@@ -10400,6 +10488,10 @@ var _cancelGeneration=function(){
   _genQueue=[]; /* 대기 큐 즉시 클리어 */
   /* 로딩 UI 완전 정리 */
   var _ldt=$('ld-task');if(_ldt){_ldt.style.display='none';_ldt.textContent='';}
+  /* 백그라운드 리소스 정리 */
+  _releaseWakeLock();
+  if(_bgPollWorker){_bgPollWorker.postMessage({cmd:'stop'});}
+  _clearGenSession();
   toast('생성이 취소되었어요','',2000);
 };
 /* ══════ 통합 로딩 컨트롤러 ══════ */
@@ -10751,6 +10843,10 @@ async function generate(overrideParams){
 
     $('loading-card').classList.remove('on');
     _genLog('DONE','총 '+(Date.now()-_genT0)+'ms, 유효 트랙 '+tracks.length+'개');
+    /* 백그라운드에서 완료 시 브라우저 알림 */
+    if(document.hidden && 'Notification' in window && Notification.permission==='granted'){
+      try{new Notification("Kenny's Music Studio",{body:'음악 생성이 완료됐어요! 🎵',icon:'/icon-192.png',tag:'gen-done'});}catch(e){}
+    }
 
     if(_genCancelled){ _genLog('CANCEL','사용자 취소'); toast('생성이 취소되었어요','',2000); return; }
 
@@ -10775,6 +10871,7 @@ async function generate(overrideParams){
         image_url:t.imageUrl||t.image_url||'',
         tags:_tTags,
         lyrics:savedLyrics,
+        duration:t.duration||0,
         created:Date.now(),
         type:'audio',
         genMode:currentMode,
@@ -14113,6 +14210,7 @@ function _saveTrackToServer(track){
     owner_email:    currentUser?.email     || '',
     owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
     owner_provider: track._owner?.provider || currentUser?.provider || '',
+    duration:       track.duration || 0,
     _is_public:     _commAutoPublish,
     ...(track._sync ? {_sync:true} : {}),
   };
