@@ -21951,6 +21951,8 @@ async function _syncUserDataFromServer(){
 
 /* 앱 시작 시 */
 document.addEventListener('DOMContentLoaded', ()=>{
+  /* 페이지 로드 시 생성 잠금 강제 해제 (이전 세션 잔여 잠금 방지) */
+  _globalGenerating=false;if(typeof _syncGenButtons==='function')_syncGenButtons();
   if(typeof _renderSettingsExtended==='function') _renderSettingsExtended();
   checkAnnouncement();
   setTimeout(_syncPlanFromServer, 1000);
