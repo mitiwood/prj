@@ -10375,12 +10375,15 @@ var _globalGenerating = false; /* 전역 생성 잠금 */
 var _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
 var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[];
 var _genCancelled=typeof _genCancelled!=='undefined'?_genCancelled:false;
+var _genRetryTimer=null; /* 재시도 타이머 */
 /* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
 var _cancelGeneration=function(){
   _genCancelled=true;
   _globalGenerating=false;
   if(typeof _ytGenerating!=='undefined') _ytGenerating=false;
+  /* 예약된 재시도 타이머 즉시 취소 */
+  if(_genRetryTimer){clearTimeout(_genRetryTimer);_genRetryTimer=null;}
   _syncGenButtons();
   _stopLdTips();
   $('loading-card').classList.remove('on');
@@ -10514,6 +10517,8 @@ async function generate(overrideParams){
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
   _genLog('START','mode='+_modeKey+', genCount='+_genCount);
+  /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
+  if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
@@ -10826,10 +10831,10 @@ async function generate(overrideParams){
     /* 자동 재시도 (최대 2회, 지수 백오프) */
     if(isRetryable){
       _retryCount++;
-      var retryDelay = _retryCount * 2000; /* 2초, 4초 */
+      var retryDelay = _retryCount * 2000;
       toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
       console.warn('[generate] auto-retry #'+_retryCount+':', errMsg);
-      setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, retryDelay);
+      _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, retryDelay);
       return;
     }
     _retryCount = 0;
