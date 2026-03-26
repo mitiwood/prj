@@ -8280,11 +8280,14 @@ async function _ytDoGenerate(){
     }
     toast('❌ '+ytErrMsg,'err',5000);
   }finally{
+    var _ytWasCancelled=_genCancelled;
     _ytGenerating     = false;
     _globalGenerating = false; _genCancelled=false; _syncGenButtons();
     if(ytBtn)  { ytBtn.disabled=false; ytBtn.style.opacity='1'; }
     if(ytSpin) ytSpin.style.display='none';
     if(ytTxt)  ytTxt.textContent='▶ YouTube 스타일로 생성';
+    $('loading-card').classList.remove('on');
+    if(_ytWasCancelled) _genQueue=[];
   }
 }
 
@@ -11481,12 +11484,13 @@ function parseLyrics(text){
 /* ── RENDER TRACKS ── */
 function renderTracks(tracks,prompt,tags,mode){
   /* 모드별 섹션 컨테이너 선택 */
-  const modeKey=mode||currentMode||'custom';
-  const sectionId=`results-${modeKey}`;
-  const innerId=`results-inner-${modeKey}`;
-  const countId=`rsec-count-${modeKey}`;
-  const section=$(sectionId);
-  const container=$(innerId);
+  var modeKey=mode||currentMode||'custom';
+  var sectionId='results-'+modeKey;
+  var innerId='results-inner-'+modeKey;
+  var countId='rsec-count-'+modeKey;
+  var section=$(sectionId);
+  var container=$(innerId);
+  console.log('[renderTracks] mode='+modeKey+', section='+(section?'OK':'MISSING')+', container='+(container?'OK':'MISSING')+', tracks='+tracks.length);
 
   if(!section||!container){
     /* fallback */
