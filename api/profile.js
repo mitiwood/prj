@@ -13,8 +13,21 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const BASE = 'https://ai-music-studio-bice.vercel.app';
 const _profileRateMap = {}; /* Rate limit for profile updates */
+const _activeSessionMap = {}; /* 활성화 알림 중복 방지 (10분 쿨다운) */
+
+async function _tgSend(text) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  const body = Buffer.from(JSON.stringify({ chat_id: TG_CHAT, text }), 'utf-8');
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': String(body.length) }, body
+    });
+  } catch (e) { console.warn('[profile tg]', e.message); }
+}
 
 async function sb(method, path, body = null) {
   if (!SB_URL || !SB_KEY) throw new Error('Supabase 미설정');
@@ -157,19 +170,29 @@ export default async function handler(req, res) {
       }
     }
 
-    /* ── heartbeat + 접속자 수 ── */
+    /* ── heartbeat + 접속자 수 + 활성화 알림 ── */
     if (action === 'heartbeat') {
       const hbName = req.query?.hbName;
       const hbProv = req.query?.hbProvider;
       try {
+        const now = Date.now();
         if (hbName && hbProv) {
           await sb('PATCH', `/users?name=eq.${encodeURIComponent(hbName)}&provider=eq.${encodeURIComponent(hbProv)}`,
-            { last_login: Date.now() });
+            { last_login: now, last_active: now });
+          /* 텔레그램 활성화 알림 (10분 쿨다운) */
+          const sessionKey = hbName + '::' + hbProv;
+          const lastNotified = _activeSessionMap[sessionKey] || 0;
+          if (now - lastNotified > 600000) {
+            _activeSessionMap[sessionKey] = now;
+            const provLabel = { google: 'Google', kakao: '카카오', naver: '네이버' }[hbProv] || hbProv;
+            const time = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+            _tgSend('🟢 앱 활성화\n\n👤 ' + hbName + '\n🔗 ' + provLabel + '\n⏰ ' + time);
+          }
         }
         /* 최근 5분 이내 활동 = 온라인 */
-        const cutoff = Date.now() - 300000;
+        const cutoff = now - 300000;
         const { data: online } = await sb('GET',
-          `/users?last_login=gt.${cutoff}&provider=neq.guest&provider=neq.mgr_manager&select=name,provider,avatar&limit=50`);
+          `/users?last_active=gt.${cutoff}&provider=neq.guest&provider=neq.mgr_manager&select=name,provider,avatar&limit=50`);
         return res.status(200).json({ ok: true, count: (online || []).length, users: online || [] });
       } catch (e) {
         return res.status(200).json({ ok: true, count: 0, users: [] });
