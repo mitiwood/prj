@@ -713,10 +713,25 @@ textarea.form-input{line-height:1.5;}
               <option value="simple">심플</option>
               <option value="youtube">YouTube</option>
               <option value="mv">MV</option>
+              <option value="cover">커버</option>
+              <option value="remaster">리마스터</option>
+              <option value="extend">연장</option>
+              <option value="style-reuse">스타일</option>
+            </select>
+            <select class="table-search" id="track-genre-filter" onchange="filterTracks()" style="width:120px;">
+              <option value="">전체 장르</option>
             </select>
             <select class="table-search" id="track-user-filter" onchange="filterTracks()" style="width:110px;">
               <option value="">전체 사용자</option>
               <option value="loggedin">로그인 사용자</option>
+            </select>
+            <select class="table-search" id="track-owner-filter" onchange="filterTracks()" style="width:130px;">
+              <option value="">전체 생성자</option>
+            </select>
+            <select class="table-search" id="track-playable-filter" onchange="filterTracks()" style="width:110px;">
+              <option value="">재생 여부</option>
+              <option value="playable">재생 가능</option>
+              <option value="broken">재생 불가</option>
             </select>
             <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄</button>
             <button class="btn btn-red" onclick="deleteSelected()">🗑 선택 삭제</button>
@@ -732,6 +747,24 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="tstat-today">0</div><div class="stat-label">오늘 생성</div></div>
           <div class="stat-card" style="border-color:rgba(168,85,247,.2);"><div class="stat-icon">📊</div><div class="stat-val" id="tstat-avg-likes" style="font-size:16px;">0</div><div class="stat-label">평균 좋아요율</div></div>
           <div class="stat-card" style="border-color:rgba(239,68,68,.2);"><div class="stat-icon">🗑</div><div class="stat-val" id="tstat-trash">0</div><div class="stat-label">휴지통</div></div>
+          <div class="stat-card" style="border-color:rgba(59,130,246,.2);"><div class="stat-icon">🎸</div><div class="stat-val" id="tstat-genres" style="font-size:16px;">0</div><div class="stat-label">장르 수</div></div>
+          <div class="stat-card" style="border-color:rgba(16,185,129,.2);"><div class="stat-icon">⚠️</div><div class="stat-val" id="tstat-broken" style="font-size:16px;">0</div><div class="stat-label">재생 불가</div></div>
+        </div>
+        <!-- 사용자별 생성현황 -->
+        <div id="track-user-stats" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);">👤 사용자별 생성현황</div>
+            <button class="btn" onclick="document.getElementById('track-user-stats').style.display='none'" style="font-size:11px;padding:2px 8px;">닫기</button>
+          </div>
+          <div id="track-user-stats-body" style="max-height:300px;overflow-y:auto;"></div>
+        </div>
+        <!-- 장르 분포 -->
+        <div id="track-genre-stats" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);">🎸 장르 분포</div>
+            <button class="btn" onclick="document.getElementById('track-genre-stats').style.display='none'" style="font-size:11px;padding:2px 8px;">닫기</button>
+          </div>
+          <div id="track-genre-stats-body" style="max-height:300px;overflow-y:auto;"></div>
         </div>
         <!-- 트랙 품질 분석 -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
@@ -3585,6 +3618,8 @@ async function renderTracksAdmin(){
   const tm = document.getElementById('tstat-mv');       if(tm) tm.textContent = mv;
   const tlk = document.getElementById('tstat-likes');   if(tlk) tlk.textContent = totalLikes;
   const ttd = document.getElementById('tstat-today');   if(ttd) ttd.textContent = todayTracks;
+  /* 장르/사용자/재생불가 통계 + 필터 옵션 빌드 */
+  _buildTrackMetaStats(h);
   renderTracksTable(h);
 }
 /* 음악관리 30초 자동 갱신 */
@@ -3765,21 +3800,131 @@ async function _toggleTrackPublic(id,pub,btn){
   }catch(e){adminToast('오류: '+e.message);}
 }
 function filterTracks(){
-  const q=(document.getElementById('track-search')?.value||'').toLowerCase();
-  const m=document.getElementById('track-mode-filter')?.value||'';
-  const u=document.getElementById('track-user-filter')?.value||'';
-  const h=_allAdminTracks.length?_allAdminTracks:getHistory();
-  const filtered=h.filter(t=>{
-    const titleMatch = (t.title||'').toLowerCase().includes(q) || (t._owner?.name||'').toLowerCase().includes(q);
-    const modeMatch  = !m || t.genMode===m;
-    const isGuest = !t._owner || t._owner.provider==='guest';
-    const userMatch  = !u || (u==='guest'?isGuest:!isGuest);
-    return titleMatch && modeMatch && userMatch;
+  var q=(document.getElementById('track-search')?.value||'').toLowerCase();
+  var m=document.getElementById('track-mode-filter')?.value||'';
+  var u=document.getElementById('track-user-filter')?.value||'';
+  var g=document.getElementById('track-genre-filter')?.value||'';
+  var ow=document.getElementById('track-owner-filter')?.value||'';
+  var pl=document.getElementById('track-playable-filter')?.value||'';
+  var h=_allAdminTracks.length?_allAdminTracks:getHistory();
+  var filtered=h.filter(function(t){
+    var titleMatch = (t.title||'').toLowerCase().includes(q) || (t._owner?.name||'').toLowerCase().includes(q) || (t.tags||'').toLowerCase().includes(q);
+    var modeMatch  = !m || t.genMode===m;
+    var isGuest = !t._owner || t._owner.provider==='guest';
+    var userMatch  = !u || (u==='guest'?isGuest:!isGuest);
+    var genreMatch = !g || (t.tags||'').toLowerCase().includes(g.toLowerCase());
+    var ownerMatch = !ow || (t._owner?.name||'')=== ow;
+    var playMatch  = true;
+    if(pl==='playable') playMatch=!!t.audio_url;
+    else if(pl==='broken') playMatch=!t.audio_url;
+    return titleMatch && modeMatch && userMatch && genreMatch && ownerMatch && playMatch;
   });
-  filtered.sort((a,b)=>(b.created||0)-(a.created||0));
+  filtered.sort(function(a,b){return (b.created||0)-(a.created||0);});
   _filteredTracks=filtered;
   renderTracksTable(filtered);
 }
+/* ── 장르/사용자/재생불가 통계 + 필터 옵션 빌드 ── */
+function _buildTrackMetaStats(tracks){
+  var genreMap={},ownerMap={},brokenCount=0;
+  tracks.forEach(function(t){
+    /* 장르 추출: tags의 첫 번째 태그를 장르로 사용 */
+    var tags=(t.tags||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean);
+    tags.forEach(function(tag){
+      if(!genreMap[tag]) genreMap[tag]=0;
+      genreMap[tag]++;
+    });
+    /* 생성자 집계 */
+    var oName=t._owner?.name||'게스트';
+    if(!ownerMap[oName]) ownerMap[oName]={count:0,provider:t._owner?.provider||'guest',likes:0,plays:0,broken:0,modes:{}};
+    ownerMap[oName].count++;
+    ownerMap[oName].likes+=(t._commLikes||0);
+    ownerMap[oName].plays+=(t._commPlays||0);
+    if(!t.audio_url){ownerMap[oName].broken++;brokenCount++;}
+    var gm=t.genMode||'custom';
+    if(!ownerMap[oName].modes[gm]) ownerMap[oName].modes[gm]=0;
+    ownerMap[oName].modes[gm]++;
+  });
+  /* 장르 필터 옵션 업데이트 */
+  var genreSel=document.getElementById('track-genre-filter');
+  if(genreSel){
+    var curVal=genreSel.value;
+    var sorted=Object.keys(genreMap).sort(function(a,b){return genreMap[b]-genreMap[a];});
+    genreSel.innerHTML='<option value="">전체 장르 ('+sorted.length+')</option>';
+    sorted.slice(0,50).forEach(function(g){
+      genreSel.innerHTML+='<option value="'+g+'">'+g+' ('+genreMap[g]+')</option>';
+    });
+    if(curVal) genreSel.value=curVal;
+  }
+  /* 생성자 필터 옵션 업데이트 */
+  var ownerSel=document.getElementById('track-owner-filter');
+  if(ownerSel){
+    var curOwner=ownerSel.value;
+    var ownerSorted=Object.keys(ownerMap).filter(function(n){return n!=='게스트';}).sort(function(a,b){return ownerMap[b].count-ownerMap[a].count;});
+    ownerSel.innerHTML='<option value="">전체 생성자 ('+ownerSorted.length+'명)</option>';
+    ownerSorted.forEach(function(n){
+      ownerSel.innerHTML+='<option value="'+n+'">'+n+' ('+ownerMap[n].count+'곡)</option>';
+    });
+    if(curOwner) ownerSel.value=curOwner;
+  }
+  /* 통계 카드 업데이트 */
+  var genresStat=document.getElementById('tstat-genres');
+  if(genresStat) genresStat.textContent=Object.keys(genreMap).length;
+  var brokenStat=document.getElementById('tstat-broken');
+  if(brokenStat) brokenStat.textContent=brokenCount;
+  /* 사용자별 생성현황 패널 */
+  _renderUserCreationStats(ownerMap);
+  /* 장르 분포 패널 */
+  _renderGenreStats(genreMap);
+}
+
+function _renderUserCreationStats(ownerMap){
+  var body=document.getElementById('track-user-stats-body');
+  var panel=document.getElementById('track-user-stats');
+  if(!body||!panel) return;
+  var owners=Object.keys(ownerMap).filter(function(n){return n!=='게스트';}).sort(function(a,b){return ownerMap[b].count-ownerMap[a].count;});
+  if(!owners.length){panel.style.display='none';return;}
+  panel.style.display='block';
+  var provBadge={google:'🔴',kakao:'🟡',naver:'🟢',guest:'⚪'};
+  var html='<table style="width:100%;font-size:12px;border-collapse:collapse;">';
+  html+='<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">사용자</th><th style="padding:6px 4px;">곡수</th><th style="padding:6px 4px;">모드별</th><th style="padding:6px 4px;">❤️</th><th style="padding:6px 4px;">▶</th><th style="padding:6px 4px;">⚠️</th></tr>';
+  owners.forEach(function(name){
+    var o=ownerMap[name];
+    var prov=provBadge[o.provider]||'⚪';
+    var modes=Object.keys(o.modes).map(function(m){return m+':'+o.modes[m];}).join(', ');
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;" onclick="document.getElementById(\'track-owner-filter\').value=\''+name+'\';filterTracks();">';
+    html+='<td style="padding:6px 4px;">'+prov+' '+name+'</td>';
+    html+='<td style="padding:6px 4px;text-align:center;font-weight:700;">'+o.count+'</td>';
+    html+='<td style="padding:6px 4px;font-size:10px;color:var(--t3);">'+modes+'</td>';
+    html+='<td style="padding:6px 4px;text-align:center;">'+o.likes+'</td>';
+    html+='<td style="padding:6px 4px;text-align:center;">'+o.plays+'</td>';
+    html+='<td style="padding:6px 4px;text-align:center;color:'+(o.broken>0?'#ef4444':'var(--t3)')+';">'+o.broken+'</td>';
+    html+='</tr>';
+  });
+  html+='</table>';
+  body.innerHTML=html;
+}
+
+function _renderGenreStats(genreMap){
+  var body=document.getElementById('track-genre-stats-body');
+  var panel=document.getElementById('track-genre-stats');
+  if(!body||!panel) return;
+  var sorted=Object.keys(genreMap).sort(function(a,b){return genreMap[b]-genreMap[a];});
+  if(!sorted.length){panel.style.display='none';return;}
+  panel.style.display='block';
+  var maxCount=genreMap[sorted[0]]||1;
+  var html='';
+  sorted.slice(0,30).forEach(function(g){
+    var pct=Math.round(genreMap[g]/maxCount*100);
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;cursor:pointer;" onclick="document.getElementById(\'track-genre-filter\').value=\''+g+'\';filterTracks();">';
+    html+='<div style="width:90px;font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+g+'</div>';
+    html+='<div style="flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">';
+    html+='<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:4px;transition:width .3s;"></div></div>';
+    html+='<div style="font-size:11px;font-weight:700;color:var(--t1);width:30px;text-align:right;">'+genreMap[g]+'</div>';
+    html+='</div>';
+  });
+  body.innerHTML=html;
+}
+
 function toggleAll(el){document.querySelectorAll('#tracks-tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);}
 function deleteSelected(){
   const selected=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
