@@ -10094,28 +10094,32 @@ function _checkLyricsQuality(text){
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 let _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
-if(typeof _genQueue==="undefined"){_genQueue=[];} /* 생성 큐 */
-if(typeof _genCancelled==="undefined"){_genCancelled=false;} /* 생성 취소 플래그 */
-if(typeof _genStartTime==="undefined"){_genStartTime=0;} /* 생성 시작 시간 */
+if(typeof _genQueue==='undefined'){_genQueue=[];}
+if(typeof _genCancelled==='undefined'){_genCancelled=false;}
+/* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
-function _cancelGeneration(){
-  _genCancelled=true;
-  _globalGenerating=false;_syncGenButtons();
-  $('loading-card').classList.remove('on');
-  _genQueue=[];
-  toast('생성이 취소되었어요','',2000);
+if(typeof _cancelGeneration==='undefined'){
+  _cancelGeneration=function(){
+    _genCancelled=true;
+    _globalGenerating=false;_syncGenButtons();
+    $('loading-card').classList.remove('on');
+    _genQueue=[];
+    toast('생성이 취소되었어요','',2000);
+  };
 }
-function _setGenStep(step){
-  for(var i=1;i<=4;i++){
-    var el=$('ld-step-'+i);
-    if(!el)continue;
-    el.classList.remove('active','done');
-    if(i<step)el.classList.add('done');
-    else if(i===step)el.classList.add('active');
-  }
+if(typeof _setGenStep==='undefined'){
+  _setGenStep=function(step){
+    for(var i=1;i<=4;i++){
+      var el=$('ld-step-'+i);
+      if(!el)continue;
+      el.classList.remove('active','done');
+      if(i<step)el.classList.add('done');
+      else if(i===step)el.classList.add('active');
+    }
+  };
 }
-function _updateGenEta(elapsed){
-  /* _updPct가 ld-eta를 관리하므로 여기서는 무시 */
+if(typeof _updateGenEta==='undefined'){
+  _updateGenEta=function(elapsed){};
 }
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
 let _genCount = 1;
