@@ -1,7 +1,7 @@
 /* ── KMS Service Worker v3 — Offline Cache + Push Handler ── */
 
-const STATIC_CACHE = 'kms-static-v3';
-const RUNTIME_CACHE = 'kms-runtime-v3';
+const STATIC_CACHE = 'kms-static-v4';
+const RUNTIME_CACHE = 'kms-runtime-v4';
 const VALID_CACHES = [STATIC_CACHE, RUNTIME_CACHE];
 
 const STATIC_ASSETS = [
@@ -87,27 +87,36 @@ self.addEventListener('fetch', e => {
           fetch(e.request).then(res => {
             if (res.ok) cache.put(e.request, res.clone());
             return res;
-          }).catch(() => cache.match(e.request))
+          }).catch(() =>
+            cache.match(e.request).then(cached =>
+              cached || new Response(JSON.stringify({error:'offline'}), {
+                status:503, headers:{'Content-Type':'application/json'}
+              })
+            )
+          )
         )
       );
     }
     return;
   }
 
-  /* 이미지 (kie.ai CDN): 캐시 우선 */
+  /* kie.ai CDN: 이미지만 캐시, 오디오 스트리밍은 통과 */
   if (url.hostname === 'musicfile.kie.ai' || url.hostname === 'tempfile.aiquickdraw.com') {
-    e.respondWith(
-      caches.open(RUNTIME_CACHE).then(cache =>
-        cache.match(e.request).then(cached => {
-          if (cached) return cached;
-          return fetch(e.request).then(res => {
-            if (res.ok) cache.put(e.request, res.clone());
-            return res;
-          }).catch(() => new Response('', { status: 404 }));
-        })
-      )
-    );
-    return;
+    /* 이미지(.jpeg/.png)만 캐시, 나머지(오디오 스트리밍)는 SW 개입 안 함 */
+    if (url.pathname.match(/\.(jpeg|jpg|png|webp)$/i)) {
+      e.respondWith(
+        caches.open(RUNTIME_CACHE).then(cache =>
+          cache.match(e.request).then(cached => {
+            if (cached) return cached;
+            return fetch(e.request).then(res => {
+              if (res.ok) cache.put(e.request, res.clone());
+              return res;
+            }).catch(() => new Response('', { status: 404 }));
+          })
+        )
+      );
+    }
+    return; /* 오디오 스트리밍 URL은 SW가 가로채지 않음 */
   }
 
   /* 정적 자산 (JS/CSS/HTML): 네트워크 우선 + 캐시 폴백 + 오프라인 폴백 */
