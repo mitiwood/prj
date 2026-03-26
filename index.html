@@ -8150,14 +8150,7 @@ async function _ytDoGenerate(){
     }
   }
 
-  $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
-  const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
-  let _ti=0;
-  const _tipTimer=setInterval(()=>{
-    if(!$('loading-card')?.classList.contains('on')){ clearInterval(_tipTimer); return; }
-    $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">조금만 기다려주세요~</span>';
-    _ti++;
-  }, 8000);
+  /* ld-sub/팁은 pollResult + 팁카드에서 자동 관리 */
 
   /* prompt: 가사가 있으면 가사, 없으면 스타일 설명 */
   const prompt = ytLyrics || ytStyle || 'YouTube cover music';
@@ -8225,7 +8218,7 @@ async function _ytDoGenerate(){
     }
 
     $('loading-card').classList.remove('on');
-    clearInterval(_tipTimer);
+    _stopLdTips();
 
     /* 취소된 경우 결과 저장하지 않음 */
     if(_genCancelled){ toast('생성이 취소되었어요','',2000); return; }
@@ -8285,7 +8278,7 @@ async function _ytDoGenerate(){
     _notifyMusicCreated(tracks, 'youtube', ytStyle);
 
   }catch(e){
-    clearInterval(_tipTimer);
+    _stopLdTips();
     $('loading-card').classList.remove('on');
     console.error('[YT Generate error]', e.message);
     let ytErrMsg = e.message;
@@ -10596,7 +10589,7 @@ async function generate(overrideParams){
   const songDesc=($('song-desc')?.value||'').trim();
   const mood=moodVal;
   const negTags=$('neg-tags').value.trim();
-  const model=isSimple?'V3_5':$('model-sel').value; /* 심플모드: V3.5(빠름) 강제 */
+  const model=$('model-sel').value; /* 모든 모드 동일 모델 (V4.5 기본) */
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
   /* 커스텀 모드 — 입력 데이터 충분성 체크 → 바텀시트 안내 */
@@ -10691,10 +10684,7 @@ async function generate(overrideParams){
   $('results').innerHTML='';
   /* gp-steps 제거됨 */
   $('feedback-card').style.display='none';
-  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';void fill.offsetWidth;fill.style.transition='';}
-  var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
-  var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent=_genCount===1?'예상 ~40초':'예상 ~1분 30초';
-  $('ld-sub').innerHTML=_genCount===1?'⚡ 1곡 빠른 생성 중~<br>금방 들려드릴게요!':'🎧 A/B 2곡 생성 중~<br>잠깐만 기다려주세요 ☕';
+  /* _setLoadingMode에서 프로그레스/퍼센트 이미 초기화됨 */
 
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
@@ -10722,7 +10712,6 @@ async function generate(overrideParams){
     lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
     _saveGenSession(taskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
     $('ld-task').textContent='';
-    $('ld-sub').innerHTML='멜로디, 리듬, 편곡 다 넣는 중~<br>곧 들려드릴게요 🎧';
 
     const _rawTracks=await pollResult(apiKey,taskId);
     _clearGenSession();
@@ -10877,6 +10866,7 @@ async function generate(overrideParams){
     setTimeout(()=>{if(_retryToast.parentNode)_retryToast.remove();},8000);
     console.error('[generateMusic error]',e.message);
   }finally{
+    _stopLdTips();
     _globalGenerating = false; _genCancelled=false; _syncGenButtons();
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
     if(activeSpinner){activeSpinner.style.display='none';}
