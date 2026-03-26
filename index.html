@@ -4787,6 +4787,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 분석
             </button>
           </div>
+          <div id="yt-url-warn" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:8px;">⚠️ YouTube URL만 분석 가능합니다. (youtube.com 또는 youtu.be)</div>
         </div>
         <div id="yt-result" style="display:none;"></div>
         <div class="options-row" style="margin-top:10px;">
@@ -9073,10 +9074,13 @@ document.querySelectorAll('.adv-inst-btn').forEach(btn=>{
 /* YouTube URL 입력 시 자동 활성화 + debounce 분석 */
 var _ytDebounce=null;
 function _ytUrlCheck(){
-  const val=($('yt-url').value||'').trim();
-  const btn=$('yt-analyze-btn');
-  const isValid=!!(val&&(val.includes('youtube.com')||val.includes('youtu.be')));
+  var val=($('yt-url').value||'').trim();
+  var btn=$('yt-analyze-btn');
+  var warn=$('yt-url-warn');
+  var isValid=!!(val&&(val.includes('youtube.com')||val.includes('youtu.be')));
+  var hasInput=val.length>5;
   if(btn){btn.disabled=!isValid;btn.style.opacity=isValid?'1':'0.4';}
+  if(warn){warn.style.display=(hasInput&&!isValid)?'block':'none';}
 }
 /* input / paste / keyup / change 모두 처리 */
 ['input','keyup','change'].forEach(ev=>$('yt-url').addEventListener(ev,_ytUrlCheck));
@@ -18986,27 +18990,28 @@ function setupHeroAudio(hero){
   const PAUSE_SVG='<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
 
   /* ── stalled/waiting 재연결 로직 ── */
-  let _heroRetryCount=0;
-  const _heroMaxRetries=3;
+  var _heroRetryCount=0;
+  var _heroMaxRetries=3;
   function _heroReconnect(reason){
     if(_heroRetryCount>=_heroMaxRetries){
-      console.error('[HeroAudio] 재연결 한도 초과:', reason);
-      toast('오디오를 재생할 수 없습니다. 네트워크 상태를 확인하거나 잠시 후 다시 시도해주세요.','err',4000);
-      if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');playBtn.style.opacity='.4';}
+      console.warn('[HeroAudio] 재연결 한도 초과:', reason);
+      if(playBtn){playBtn.innerHTML=PLAY_SVG;playBtn.classList.remove('playing');}
       commHeroPlaying=false;
       return;
     }
     _heroRetryCount++;
     console.warn('[HeroAudio] 재연결 시도 '+_heroRetryCount+'/'+_heroMaxRetries+': '+reason);
-    toast('오디오 재연결 중...','',2000);
-    audio.src=_heroAudioUrl+((_heroAudioUrl.includes('?')?'&':'?')+'_r='+Date.now());
+    /* URL은 변경하지 않음 — CDN 쿼리파라미터 비호환 방지 */
+    var ct=audio.currentTime||0;
     audio.load();
+    audio.currentTime=ct;
+    audio.play().catch(function(){});
   }
-  let _heroWaitTimer=null;
+  var _heroWaitTimer=null;
 
   audio.addEventListener('timeupdate',()=>{
     if(!audio.duration)return;
-    const pct=(audio.currentTime/audio.duration)*100;
+    var pct=(audio.currentTime/audio.duration)*100;
     if(fill)fill.style.width=pct+'%';
     if(timeEl)timeEl.textContent=formatTime(audio.currentTime);
     commSyncLyrics('hero',audio.currentTime,audio.duration);
@@ -19016,10 +19021,10 @@ function setupHeroAudio(hero){
     commHeroPlaying=false;
   });
   audio.addEventListener('error',(e)=>{
-    const code=audio.error?audio.error.code:0;
-    console.error('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src, e);
-    /* 네트워크/디코딩 오류 시 재연결 시도 */
-    if(code>=2&&_heroRetryCount<_heroMaxRetries){
+    var code=audio.error?audio.error.code:0;
+    console.warn('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src);
+    /* code 2(네트워크) 만 재연결 — code 4(미지원)는 URL 자체 문제이므로 재시도 무의미 */
+    if(code===2&&_heroRetryCount<_heroMaxRetries){
       _heroReconnect('error code '+code);
       return;
     }
@@ -19029,7 +19034,7 @@ function setupHeroAudio(hero){
   audio.addEventListener('waiting',()=>{
     clearTimeout(_heroWaitTimer);
     _heroWaitTimer=setTimeout(()=>{
-      if(audio.readyState<3) _heroReconnect('버퍼 부족');
+      if(!audio.paused&&audio.readyState<3) _heroReconnect('버퍼 부족');
     },5000);
   });
   audio.addEventListener('playing',()=>{
@@ -19038,8 +19043,9 @@ function setupHeroAudio(hero){
   });
   audio.addEventListener('stalled',()=>{
     setTimeout(()=>{
-      if(audio.readyState<3) _heroReconnect('stalled');
-    },2000);
+      /* 재생 중(paused=false)일 때만 stalled 처리 — 초기 로딩 stalled는 무시 */
+      if(!audio.paused&&audio.readyState<3) _heroReconnect('stalled');
+    },3000);
   });
 
   function _heroPlayAfterReady(){
@@ -19618,7 +19624,14 @@ function commPlay(i){
     const h=historyData[t._hIdx];if(h&&!audio._counted&&audio.currentTime>5){audio._counted=true;h._commPlays=(h._commPlays||0)+1;saveHistory();}
   });
   audio.addEventListener('ended',()=>{const pb=document.getElementById(`comm-play-${i}`);if(pb)pb.textContent='▶';commPlayingIdx=-1;document.getElementById(`comm-item-${i}`)?.classList.remove('playing');});
-  audio.play();
+  audio.addEventListener('error',()=>{
+    console.warn('[commPlay] 재생 실패:', t.audioUrl);
+    const pb=document.getElementById(`comm-play-${i}`);if(pb)pb.textContent='▶';
+    commPlayingIdx=-1;document.getElementById(`comm-item-${i}`)?.classList.remove('playing');
+  });
+  audio.play().catch(function(e){
+    if(e.name==='NotAllowedError'){toast('재생 버튼을 한번 더 눌러주세요','',2000);}
+  });
   document.getElementById(`comm-play-${i}`).textContent='⏸';
   document.getElementById(`comm-item-${i}`)?.classList.add('playing');
 }
