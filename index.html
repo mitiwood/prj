@@ -805,9 +805,8 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .ld-eta-text{font-size:11px;color:var(--t3);position:relative;z-index:1;margin:2px 0 4px;min-height:16px;}
 .ld-progress{height:4px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;
   margin:2px auto 8px;position:relative;z-index:1;width:100%;max-width:300px;}
-.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200% 100%;
-  border-radius:3px;width:0%;transition:width .6s ease;animation:ld-fill-shift 2s linear infinite;}
-@keyframes ld-fill-shift{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));
+  border-radius:3px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);}
 .ld-tip-card{
   position:relative;z-index:1;width:100%;max-width:300px;
   padding:14px 16px;border-radius:14px;
@@ -9481,7 +9480,7 @@ async function pollResult(apiKey,taskId){
     p=Math.max(p,_prevPct);
     _prevPct=p;
     if(_pctEl)_pctEl.textContent=p+'%';
-    if(_fillEl){_fillEl.style.transition='width .6s ease';_fillEl.style.width=p+'%';}
+    if(_fillEl)_fillEl.style.width=p+'%';
     /* 원형 프로그레스 링 동기화 */
     if(typeof _updateLdRing==='function') _updateLdRing(p);
     /* 남은 시간: 경과 시간 기반 추정 (절대 증가 안 함) */
@@ -10687,7 +10686,7 @@ async function generate(overrideParams){
   $('results').innerHTML='';
   /* gp-steps 제거됨 */
   $('feedback-card').style.display='none';
-  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}
+  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';void fill.offsetWidth;fill.style.transition='';}
   var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
   var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent=_genCount===1?'예상 ~40초':'예상 ~1분 30초';
   $('ld-sub').innerHTML=_genCount===1?'⚡ 1곡 빠른 생성 중~<br>금방 들려드릴게요!':'🎧 A/B 2곡 생성 중~<br>잠깐만 기다려주세요 ☕';
@@ -12701,7 +12700,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     toast('🎵 스타일 재사용 곡 생성을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
+    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';void fill.offsetWidth;fill.style.transition='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
     $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
@@ -25754,7 +25753,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
         _setLoadingMode('vocal');
         $('loading-card').classList.add('on');
         setTimeout(function(){$('loading-card').scrollIntoView({behavior:'smooth',block:'center'});},200);
-        var fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}
+        var fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';void fill.offsetWidth;fill.style.transition='';}
         var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
         $('ld-sub').innerHTML='AI 보컬 녹음 중~<br>멋진 목소리 입히고 있어요 🎤';
         $('ld-task').textContent='';
