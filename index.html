@@ -745,96 +745,103 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .gen-spinner.on{display:inline-block;}
 
 /* 로딩 카드 */
-.loading-card{
-  display:none;position:relative;overflow:hidden;text-align:center;
-}
-/* ── 활성 시: 풀스크린 오버레이 (불투명 — 뒤 콘텐츠 완전 차단) ── */
+/* ══════ 통합 로딩 오버레이 ══════ */
+.loading-card{display:none;position:relative;overflow:hidden;text-align:center;}
 .loading-card.on{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   position:fixed;inset:0;z-index:10001;
-  background:var(--bg, #0a0a1a);
-  padding:32px 24px;
-  animation:ld-fadein .35s ease-out;
-  /* 스켈레톤 배경 장식 */
-  overflow:hidden;
+  background:var(--bg,#0a0a1a);
+  padding:24px 20px env(safe-area-inset-bottom,20px);
+  animation:ld-fadein .35s ease-out;overflow:hidden;
 }
-/* 상단 스켈레톤 바 — 가상의 트랙 카드 형태 */
 .loading-card.on::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:100%;
-  background:
-    /* 상단 장식선 */
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 20%,transparent 40%) 0 60px / 100% 12px no-repeat,
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.03) 30%,transparent 55%) 0 90px / 100% 10px no-repeat,
-    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.03) 25%,transparent 45%) 0 115px / 80% 10px no-repeat,
-    /* 하단 스켈레톤 카드 모양 */
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.025) 20%,transparent 40%) 0 calc(100% - 120px) / 100% 14px no-repeat,
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.025) 35%,transparent 60%) 0 calc(100% - 90px) / 100% 12px no-repeat,
-    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.02) 25%,transparent 50%) 0 calc(100% - 60px) / 70% 10px no-repeat;
-  animation:ld-skel-shimmer 2s ease-in-out infinite;
-  pointer-events:none;z-index:0;
+  content:'';position:absolute;width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle,var(--ld-glow,rgba(124,58,237,.07)) 0%,transparent 70%);
+  animation:ld-glow 4s ease-in-out infinite alternate;pointer-events:none;z-index:0;
 }
-/* 스켈레톤 시머 애니메이션 */
-@keyframes ld-skel-shimmer{
-  0%{opacity:.3;transform:translateX(-5%);}
-  50%{opacity:.7;transform:translateX(5%);}
-  100%{opacity:.3;transform:translateX(-5%);}
+@keyframes ld-glow{0%{opacity:.3;transform:scale(.8);}100%{opacity:.8;transform:scale(1.3);}}
+@keyframes ld-fadein{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
+.ld-mode-badge{
+  position:relative;z-index:1;display:inline-flex;align-items:center;gap:5px;
+  padding:6px 16px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.5px;
+  background:var(--ld-badge-bg,rgba(124,58,237,.12));color:var(--ld-badge-c,#a78bfa);
+  border:1px solid var(--ld-badge-bd,rgba(124,58,237,.2));margin-bottom:16px;
 }
-/* 중앙 글로우 */
-.loading-card.on::after{
-  content:'';position:absolute;
-  width:300px;height:300px;border-radius:50%;
-  background:radial-gradient(circle,rgba(124,58,237,.08) 0%,transparent 70%);
-  animation:ld-glow 4s ease-in-out infinite alternate;
-  pointer-events:none;z-index:0;
-}
-@keyframes ld-glow{0%{opacity:.3;transform:scale(.8);}100%{opacity:.7;transform:scale(1.2);}}
-@keyframes ld-fadein{from{opacity:0;}to{opacity:1;}}
-.ld-waveform{display:flex;align-items:center;justify-content:center;gap:5px;height:40px;margin-bottom:14px;position:relative;z-index:1;}
-.ld-bar{
-  width:5px;border-radius:6px;
-  background:linear-gradient(180deg,var(--acc2),var(--acc));
-  animation:ldWave 1.2s ease-in-out infinite;
-}
-.ld-bar:nth-child(1){height:16px;animation-delay:0s;}
-.ld-bar:nth-child(2){height:24px;animation-delay:.1s;}
-.ld-bar:nth-child(3){height:32px;animation-delay:.2s;}
-.ld-bar:nth-child(4){height:28px;animation-delay:.3s;}
-.ld-bar:nth-child(5){height:36px;animation-delay:.2s;}
-.ld-bar:nth-child(6){height:24px;animation-delay:.1s;}
-.ld-bar:nth-child(7){height:16px;animation-delay:0s;}
+.ld-ring-wrap{position:relative;width:140px;height:140px;margin-bottom:12px;z-index:1;}
+.ld-ring{width:100%;height:100%;transform:rotate(-90deg);}
+.ld-ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:5;}
+.ld-ring-fill{fill:none;stroke:var(--acc,#7c3aed);stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:339.292;stroke-dashoffset:339.292;transition:stroke-dashoffset .6s ease;}
+.ld-ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ld-waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:28px;margin-bottom:4px;}
+.ld-bar{width:4px;border-radius:4px;background:linear-gradient(180deg,var(--acc2),var(--acc));animation:ldWave 1.2s ease-in-out infinite;}
+.ld-bar:nth-child(1){height:10px;animation-delay:0s;}
+.ld-bar:nth-child(2){height:16px;animation-delay:.1s;}
+.ld-bar:nth-child(3){height:22px;animation-delay:.2s;}
+.ld-bar:nth-child(4){height:18px;animation-delay:.3s;}
+.ld-bar:nth-child(5){height:24px;animation-delay:.2s;}
+.ld-bar:nth-child(6){height:16px;animation-delay:.1s;}
+.ld-bar:nth-child(7){height:10px;animation-delay:0s;}
 @keyframes ldWave{0%,100%{transform:scaleY(.5);opacity:.4}50%{transform:scaleY(1);opacity:1}}
-.ld-title{font-size:18px;font-weight:800;margin-bottom:6px;position:relative;z-index:1;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.ld-sub{font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:14px;position:relative;z-index:1;}
-.ld-pct-text{font-size:36px;font-weight:900;position:relative;z-index:1;margin-bottom:2px;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;}
-.ld-eta-text{font-size:12px;color:var(--t3);position:relative;z-index:1;margin-bottom:8px;}
-.ld-step{display:flex;flex-direction:column;align-items:center;gap:2px;opacity:.35;transition:all .4s cubic-bezier(.4,0,.2,1);transform:scale(.85);}
+.ld-pct-text{font-size:28px;font-weight:900;line-height:1;letter-spacing:-1px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ld-title{font-size:17px;font-weight:800;position:relative;z-index:1;
+  background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ld-sub{font-size:12px;color:var(--t3);line-height:1.5;margin-bottom:4px;position:relative;z-index:1;min-height:18px;max-width:320px;}
+.ld-steps{display:flex;justify-content:center;align-items:center;gap:6px;margin:6px 0;position:relative;z-index:1;}
+.ld-step{display:flex;flex-direction:column;align-items:center;gap:2px;opacity:.3;transition:all .4s cubic-bezier(.4,0,.2,1);transform:scale(.85);}
 .ld-step.active{opacity:1;transform:scale(1.1);}
 .ld-step.active .ld-step-icon{animation:ld-step-pulse 1.5s ease-in-out infinite;}
-.ld-step.done{opacity:.8;transform:scale(1);}
+.ld-step.done{opacity:.7;transform:scale(1);}
 .ld-step.done .ld-step-icon{animation:ld-step-pop .4s cubic-bezier(.175,.885,.32,1.275) both;}
-.ld-step-icon{font-size:20px;transition:transform .3s;}
-.ld-step-label{font-size:9px;font-weight:700;color:var(--t2);transition:color .3s,transform .3s;}
-.ld-step.active .ld-step-label{color:var(--acc);transform:translateY(1px);}
-.ld-step.done .ld-step-label{color:var(--t1);}
-.ld-step-arrow{color:var(--t3);font-size:12px;align-self:center;opacity:.2;transition:opacity .4s,color .4s,transform .3s;}
-.ld-step-arrow.passed{opacity:.8;color:var(--acc);transform:scale(1.1);}
-@keyframes ld-step-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+.ld-step-icon{font-size:18px;transition:transform .3s;}
+.ld-step-label{font-size:8px;font-weight:700;color:var(--t3);transition:color .3s;}
+.ld-step.active .ld-step-label{color:var(--acc);}
+.ld-step.done .ld-step-label{color:var(--t2);}
+.ld-step-arrow{color:var(--t3);align-self:center;opacity:.15;transition:opacity .4s,color .4s;}
+.ld-step-arrow.passed{opacity:.7;color:var(--acc);}
+@keyframes ld-step-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
 @keyframes ld-step-pop{0%{transform:scale(0);opacity:0;}60%{transform:scale(1.3);}100%{transform:scale(1);opacity:1;}}
-.ld-progress{height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin:14px auto 10px;position:relative;z-index:1;width:100%;max-width:360px;}
-.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200% 100%;border-radius:4px;width:0%;transition:width .5s;animation:ld-fill-shift 2s linear infinite;}
+.ld-eta-text{font-size:11px;color:var(--t3);position:relative;z-index:1;margin:2px 0 4px;min-height:16px;}
+.ld-progress{height:4px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;
+  margin:2px auto 8px;position:relative;z-index:1;width:100%;max-width:300px;}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200% 100%;
+  border-radius:3px;width:0%;transition:width .6s ease;animation:ld-fill-shift 2s linear infinite;}
 @keyframes ld-fill-shift{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
-.ld-task{display:none;position:relative;z-index:1;max-width:360px;width:100%;}
+.ld-tip-card{
+  position:relative;z-index:1;width:100%;max-width:300px;
+  padding:14px 16px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  margin:4px auto 0;display:flex;align-items:flex-start;gap:10px;min-height:56px;
+}
+.ld-tip-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.ld-tip-body{font-size:12px;color:var(--t2);line-height:1.5;text-align:left;flex:1;transition:opacity .2s,transform .2s;}
+.ld-tip-dots{position:absolute;bottom:6px;right:12px;display:flex;gap:4px;}
+.ld-tip-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .3s;}
+.ld-tip-dot.on{background:var(--acc);width:12px;border-radius:2px;}
+.ld-cancel-btn{
+  position:relative;z-index:1;margin-top:8px;padding:10px 28px;border-radius:12px;
+  border:none;background:rgba(255,255,255,.06);color:var(--t3);
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.ld-cancel-btn:active{transform:scale(.96);background:rgba(239,68,68,.15);color:#ef4444;}
+.ld-task{display:none;position:relative;z-index:1;max-width:320px;width:100%;}
+/* 모드별 색상 */
+.loading-card[data-mode="custom"]{--ld-glow:rgba(124,58,237,.08);--ld-badge-bg:rgba(124,58,237,.12);--ld-badge-c:#a78bfa;--ld-badge-bd:rgba(124,58,237,.2);}
+.loading-card[data-mode="simple"]{--ld-glow:rgba(59,130,246,.08);--ld-badge-bg:rgba(59,130,246,.12);--ld-badge-c:#60a5fa;--ld-badge-bd:rgba(59,130,246,.2);}
+.loading-card[data-mode="youtube"]{--ld-glow:rgba(239,68,68,.08);--ld-badge-bg:rgba(239,68,68,.12);--ld-badge-c:#f87171;--ld-badge-bd:rgba(239,68,68,.2);}
+.loading-card[data-mode="mv"]{--ld-glow:rgba(6,182,212,.08);--ld-badge-bg:rgba(6,182,212,.12);--ld-badge-c:#22d3ee;--ld-badge-bd:rgba(6,182,212,.2);}
+.loading-card[data-mode="extend"]{--ld-glow:rgba(34,197,94,.08);--ld-badge-bg:rgba(34,197,94,.12);--ld-badge-c:#4ade80;--ld-badge-bd:rgba(34,197,94,.2);}
+.loading-card[data-mode="cover"]{--ld-glow:rgba(236,72,153,.08);--ld-badge-bg:rgba(236,72,153,.12);--ld-badge-c:#f472b6;--ld-badge-bd:rgba(236,72,153,.2);}
+.loading-card[data-mode="remaster"]{--ld-glow:rgba(234,179,8,.08);--ld-badge-bg:rgba(234,179,8,.12);--ld-badge-c:#fbbf24;--ld-badge-bd:rgba(234,179,8,.2);}
+.loading-card[data-mode="vocal"]{--ld-glow:rgba(249,115,22,.08);--ld-badge-bg:rgba(249,115,22,.12);--ld-badge-c:#fb923c;--ld-badge-bd:rgba(249,115,22,.2);}
+/* 라이트모드 */
+[data-theme="light"] .loading-card.on{background:var(--bg,#fff);}
 [data-theme="light"] .ld-title{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
 [data-theme="light"] .ld-pct-text{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
-[data-theme="light"] .loading-card.on::before{
-  background:
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.06) 20%,transparent 40%) 0 60px / 100% 12px no-repeat,
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.05) 30%,transparent 55%) 0 90px / 100% 10px no-repeat,
-    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.04) 25%,transparent 45%) 0 115px / 80% 10px no-repeat,
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 20%,transparent 40%) 0 calc(100% - 120px) / 100% 14px no-repeat,
-    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 35%,transparent 60%) 0 calc(100% - 90px) / 100% 12px no-repeat,
-    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.03) 25%,transparent 50%) 0 calc(100% - 60px) / 70% 10px no-repeat;
-}
+[data-theme="light"] .ld-ring-bg{stroke:rgba(0,0,0,.06);}
+[data-theme="light"] .ld-tip-card{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .ld-cancel-btn{background:rgba(0,0,0,.04);}
 
 /* 결과 섹션 */
 .results-section{margin-top:12px;}
@@ -1732,17 +1739,18 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-ins-stat-label{font-size:9px;color:var(--t3);margin-top:1px;}
 /* 추천 트랙 가로 스크롤 */
 .mf-insight-rec{margin-bottom:14px;}
-.mf-rec-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mf-rec-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x mandatory;mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 32px),transparent 100%);-webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 32px),transparent 100%);}
 .mf-rec-scroll::-webkit-scrollbar{display:none;}
-.mf-rec-card{flex-shrink:0;width:110px;cursor:pointer;transition:transform .15s;}
-.mf-rec-card:active{transform:scale(.95);}
-.mf-rec-thumb{width:110px;height:110px;border-radius:10px;overflow:hidden;background:var(--bg2);position:relative;}
+.mf-rec-scroll::after{content:'';flex:0 0 24px;}
+.mf-rec-card{flex-shrink:0;width:140px;cursor:pointer;transition:transform .15s;scroll-snap-align:start;border-radius:14px;background:var(--card);border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.mf-rec-card:active{transform:scale(.96);}
+.mf-rec-thumb{width:140px;height:140px;overflow:hidden;background:var(--bg2);position:relative;}
 .mf-rec-thumb img{width:100%;height:100%;object-fit:cover;}
-.mf-rec-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.2);color:#fff;font-size:20px;opacity:0;transition:opacity .2s;border-radius:10px;}
+.mf-rec-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);color:#fff;font-size:22px;opacity:0;transition:opacity .2s;}
 .mf-rec-card:hover .mf-rec-play{opacity:1;}
-.mf-rec-info{padding:4px 2px 0;}
-.mf-rec-title{font-size:11px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mf-rec-artist{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-rec-info{padding:8px 10px 10px;}
+.mf-rec-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-rec-artist{font-size:10px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mf-rec-reason{font-size:9px;color:var(--acc);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mf-rec-new{position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:8px;font-weight:800;padding:2px 5px;border-radius:4px;letter-spacing:.5px;}
 /* 창작 모드 칩 */
@@ -5004,6 +5012,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <!-- 원형 프로그레스 + 파형 -->
       <div class="ld-ring-wrap">
         <svg class="ld-ring" viewBox="0 0 120 120">
+          <defs><linearGradient id="ld-ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="var(--acc,#7c3aed)"/>
+            <stop offset="100%" stop-color="var(--acc2,#a855f7)"/>
+          </linearGradient></defs>
           <circle class="ld-ring-bg" cx="60" cy="60" r="54"/>
           <circle class="ld-ring-fill" id="ld-ring-fill" cx="60" cy="60" r="54"/>
         </svg>
@@ -8115,8 +8127,8 @@ async function _ytDoGenerate(){
   if(ytSpin) ytSpin.style.display='block';
   if(ytTxt)  ytTxt.textContent='생성 중...';
   switchTab('create-view');
+  _setLoadingMode('youtube');
   $('loading-card').classList.add('on');
-  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   $('results').innerHTML='';
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
@@ -8885,19 +8897,14 @@ async function generateMV(){
   const btn=$('mv-gen-btn'),spinner=$('mv-gen-spinner'),txt=$('mv-gen-txt');
   btn.disabled=true;if(spinner)spinner.classList.add('on');if(txt)txt.textContent='생성 중...';
 
-  /* 결과 영역 */
-  const resultArea=$('mv-result-area');
-  resultArea.style.display='block';
-  resultArea.innerHTML=`
-    <div class="mv-result-card">
-      <div class="mv-result-title">🎬 뮤직비디오 생성 중</div>
-      <div class="mv-progress">
-        <div style="font-size:22px;margin-bottom:8px;">🎬</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Grok AI가 영상을 제작하고 있어요</div>
-        <div class="mv-progress-bar-wrap"><div class="mv-progress-bar" id="mv-pbar"></div></div>
-        <div class="mv-progress-txt" id="mv-prog-txt">작업 요청 중...</div>
-      </div>
-    </div>`;
+  /* 통합 로딩 오버레이 */
+  _setLoadingMode('mv');
+  $('loading-card').classList.add('on');
+
+  /* 기존 결과 영역 (로딩 해제 후 결과 표시용) */
+  var resultArea=$('mv-result-area');
+  resultArea.style.display='none';
+  resultArea.innerHTML='';
 
   /* 연결 트랙 */
   const trackSelIdx=$('mv-link-track')?.value;
@@ -8940,9 +8947,13 @@ async function generateMV(){
     for(let i=0;i<90;i++){
       await sleep(i<5?1500:i<20?2500:3500);
       pct=Math.min(92,5+Math.round((i/90)*87));
-      const pbar=$('mv-pbar'),ptxt=$('mv-prog-txt');
-      if(pbar)pbar.style.width=pct+'%';
-      if(ptxt)ptxt.textContent=`처리 중... ${pct}% (약 2~5분 소요)`;
+      /* 통합 로딩 UI 업데이트 */
+      var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent=pct+'%';
+      var _ldFill=$('ld-fill');if(_ldFill)_ldFill.style.width=pct+'%';
+      if(typeof _updateLdRing==='function') _updateLdRing(pct);
+      var _ldSub=$('ld-sub');if(_ldSub)_ldSub.textContent=pct<30?'영상 프레임 생성 중...':pct<60?'장면 렌더링 중...':pct<85?'후처리 마무리 중...':'거의 완성됐어요!';
+      /* 스텝 업데이트 */
+      if(typeof _setGenStep==='function') _setGenStep(pct<20?1:pct<50?2:pct<80?3:4);
 
       try{
         const res=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${mvTaskId}`);
@@ -8974,7 +8985,9 @@ async function generateMV(){
             _saveTrackToServer({id:historyData[0].id,taskId:mvTaskId,title:mvTitle,audio_url:linkedTrack?.audio_url||'',video_url:videoUrl,image_url:linkedTrack?.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||''});
             _notifyBot('\uD83C\uDFAC MV \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+mvTitle);
 
-            /* 결과 렌더 */
+            /* 통합 로딩 해제 + 결과 렌더 */
+            $('loading-card').classList.remove('on');_stopLdTips();
+            resultArea.style.display='block';
             resultArea.innerHTML=`
               <div class="mv-result-card">
                 <div class="mv-result-title">✅ 뮤직비디오 완성!</div>
@@ -9033,11 +9046,14 @@ async function generateMV(){
     else if(/403|permission|plan/i.test(e.message))msg='❌ 유료 플랜에서 지원됩니다';
     resultArea.innerHTML=`<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">${esc(msg)}</div></div>`;
   }finally{
+    $('loading-card').classList.remove('on');
+    _stopLdTips();
     _globalGenerating = false; _syncGenButtons();
     btn.disabled=false;
     if(spinner)spinner.classList.remove('on');
     if(txt)txt.textContent='🎬 뮤직비디오 생성하기';
     genUnlock();
+    resultArea.style.display='block';
   }
 }
 
@@ -9477,6 +9493,8 @@ async function pollResult(apiKey,taskId){
     _prevPct=p;
     if(_pctEl)_pctEl.textContent=p+'%';
     if(_fillEl){_fillEl.style.transition='width .6s ease';_fillEl.style.width=p+'%';}
+    /* 원형 프로그레스 링 동기화 */
+    if(typeof _updateLdRing==='function') _updateLdRing(p);
     /* 남은 시간: 경과 시간 기반 추정 (절대 증가 안 함) */
     var remSec=Math.max(0,estSec-sec);
     if(_etaEl){
@@ -10410,6 +10428,77 @@ var _cancelGeneration=function(){
   _genQueue=[];
   toast('생성이 취소되었어요','',2000);
 };
+/* ══════ 통합 로딩 컨트롤러 ══════ */
+var _ldTipTimer=null;
+var _ldTipIdx=0;
+var _LD_RING_CIRCUM=339.292; /* 2*PI*54 */
+
+/* 모드별 설정 */
+var _LD_MODES={
+  custom: {badge:'✦ 커스텀',title:'AI가 곡 만드는 중',tips:['BPM을 높이면 댄스 팝, 낮추면 발라드 느낌이에요','가사에 감정을 넣으면 AI가 더 감성적으로 만들어요','장르를 조합하면 독특한 사운드가 탄생해요','태그에 악기를 넣으면 해당 악기가 강조돼요','같은 가사도 모델에 따라 전혀 다른 곡이 나와요']},
+  simple: {badge:'⚡ 심플',title:'원클릭 생성 중',tips:['심플 모드는 AI가 알아서 최적 세팅을 잡아줘요','분위기만 선택하면 가사도 자동으로 만들어져요','생성된 곡이 마음에 들면 커스텀으로 세밀 조정해보세요','같은 설명이라도 매번 다른 곡이 나와요','심플 모드로 먼저 감 잡고, 커스텀으로 완성도를 높여보세요']},
+  youtube:{badge:'▶ YouTube',title:'YouTube 스타일로 제작 중',tips:['원곡의 BPM과 키를 분석해서 비슷한 느낌을 재현해요','분석 결과의 태그를 수정하면 커스터마이징할 수 있어요','긴 곡은 자동으로 연장 생성돼요','원곡 가사를 넣으면 더 정확한 커버가 가능해요','YouTube URL만 넣으면 AI가 전부 분석해줘요']},
+  mv:     {badge:'🎬 뮤비',title:'뮤직비디오 제작 중',tips:['Grok AI가 프롬프트를 기반으로 영상을 제작해요','비율은 세로(9:16)가 모바일에 최적이에요','영상 생성은 보통 2~5분 정도 걸려요','생성 후 트랙을 연결하면 MV가 완성돼요','더 자세한 프롬프트를 쓸수록 원하는 영상이 나와요']},
+  extend: {badge:'➕ 연장',title:'곡 연장 중',tips:['연장 지점을 조절하면 자연스러운 이어짐이 가능해요','연장 시 가사를 넣으면 새 파트에 가사가 입혀져요','같은 곡을 여러 번 연장해서 풀 버전을 만들어보세요']},
+  cover:  {badge:'🎤 커버',title:'AI 커버 생성 중',tips:['커버는 원곡의 멜로디를 유지하면서 보컬만 바꿔요','성별을 바꾸면 완전히 다른 느낌의 곡이 돼요','스타일 태그를 추가하면 장르도 변환할 수 있어요']},
+  remaster:{badge:'✨ 리마스터',title:'리마스터 업그레이드 중',tips:['V5 엔진이 음질과 믹싱을 최신 수준으로 올려줘요','리마스터 후 원본과 비교해보세요','이전 버전 곡도 리마스터하면 새 곡처럼 바뀌어요']},
+  vocal:  {badge:'🎙 스템분리',title:'오디오 분리 중',tips:['보컬과 반주를 깔끔하게 분리해줘요','12트랙 스템 분리로 드럼/베이스/기타까지 추출 가능해요','분리된 MR에 내 목소리를 입혀보세요']},
+};
+
+function _setLoadingMode(mode){
+  var lc=$('loading-card');
+  if(!lc) return;
+  lc.setAttribute('data-mode',mode||'custom');
+  var cfg=_LD_MODES[mode]||_LD_MODES.custom;
+  var badge=$('ld-mode-badge');if(badge)badge.textContent=cfg.badge;
+  var title=$('ld-title');if(title)title.textContent=cfg.title;
+  /* 원형 프로그레스 리셋 */
+  var ring=$('ld-ring-fill');if(ring)ring.style.strokeDashoffset=String(_LD_RING_CIRCUM);
+  var pct=$('ld-percent');if(pct)pct.textContent='0%';
+  var fill=$('ld-fill');if(fill)fill.style.width='0%';
+  /* 팁 카드 초기화 + 슬라이드 시작 */
+  _ldTipIdx=0;
+  _startLdTips(cfg.tips);
+}
+
+function _updateLdRing(percent){
+  var ring=$('ld-ring-fill');
+  if(!ring) return;
+  var p=Math.max(0,Math.min(100,percent));
+  ring.style.strokeDashoffset=String(_LD_RING_CIRCUM*(1-p/100));
+}
+
+function _startLdTips(tips){
+  clearInterval(_ldTipTimer);
+  if(!tips||!tips.length) return;
+  var body=$('ld-tip-body');
+  var dotsWrap=$('ld-tip-dots');
+  if(!body||!dotsWrap) return;
+  /* 도트 생성 */
+  dotsWrap.innerHTML='';
+  tips.forEach(function(_,i){
+    var d=document.createElement('span');
+    d.className='ld-tip-dot'+(i===0?' on':'');
+    dotsWrap.appendChild(d);
+  });
+  body.textContent=tips[0];
+  _ldTipIdx=0;
+  _ldTipTimer=setInterval(function(){
+    if(!$('loading-card')?.classList.contains('on')){clearInterval(_ldTipTimer);return;}
+    _ldTipIdx=(_ldTipIdx+1)%tips.length;
+    body.style.opacity='0';body.style.transform='translateY(6px)';
+    setTimeout(function(){
+      body.textContent=tips[_ldTipIdx];
+      body.style.opacity='1';body.style.transform='translateY(0)';
+      dotsWrap.querySelectorAll('.ld-tip-dot').forEach(function(d,i){
+        d.classList.toggle('on',i===_ldTipIdx);
+      });
+    },200);
+  },6000);
+}
+
+function _stopLdTips(){clearInterval(_ldTipTimer);}
+
 var _genStepIcons={1:'📝',2:'🎹',3:'🎚',4:'✅'};
 var _genStepPrev=0;
 var _setGenStep=function(step){
@@ -10602,8 +10691,8 @@ async function generate(overrideParams){
   if(activeSpinner){activeSpinner.style.display='block';}
   if(activeTxt){activeTxt.textContent='생성 중...';}
   if(currentMode!=='custom') switchTab('create-view');
+  _setLoadingMode(isSimple?'simple':isYT?'youtube':'custom');
   $('loading-card').classList.add('on');$('results').innerHTML='';
-  $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   if(typeof _startGenProgress==='function') _startGenProgress();
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
@@ -10840,6 +10929,7 @@ function _resumePendingGenSession() {
     _globalGenerating = true; _syncGenButtons();
 
     /* 로딩 UI 표시 */
+    _setLoadingMode(params?.mode||'custom');
     if ($('loading-card')) { $('loading-card').classList.add('on'); }
     if ($('ld-sub')) { $('ld-sub').innerHTML = '이전 생성 결과를 가져오는 중... 🎧'; }
     if (typeof _startGenProgress === 'function') _startGenProgress();
@@ -11365,10 +11455,8 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     $('extend-modal').classList.remove('on');
     switchTab('create-view');
     toast('🎵 곡 연장을 시작합니다!','ok',2000);
+    _setLoadingMode('extend');
     $('loading-card').classList.add('on');
-    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
-    $('ld-sub').innerHTML='곡 더 늘리는 중이에요~<br>잠깐이면 돼요 ✨';
     $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
@@ -12527,10 +12615,9 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     /* 음악만들기 화면으로 이동 + 로딩 표시 */
     switchTab('create-view');
     toast('🎤 커버 생성을 시작합니다!','ok',2000);
+    _setLoadingMode('cover');
     $('loading-card').classList.add('on');
     $('results').innerHTML='';
-    setTimeout(()=>$('loading-card').scrollIntoView({behavior:'smooth',block:'center'}),200);
-    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='커버 버전 만드는 중~<br>새 보컬 입히고 있어요 🎤';
     $('ld-task').textContent='';
     let result=null;
@@ -12700,11 +12787,8 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     _closeRemaster();
     switchTab('create-view');
     toast('✦ 리마스터를 시작합니다!','ok',2000);
+    _setLoadingMode('remaster');
     $('loading-card').classList.add('on');
-    $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
-    $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
-    $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(!tracks?.length)throw new Error('트랙을 받지 못했어요');
@@ -12801,14 +12885,9 @@ $('vr-submit-btn').addEventListener('click', async () => {
 
     _closeVR();
     switchTab('create-view');
+    _setLoadingMode('vocal');
     $('loading-card').classList.add('on');
     $('results').innerHTML = '';
-    const fl = $('ld-fill');
-    fl.style.animation = 'none'; void fl.offsetWidth; fl.style.animation = '';
-    $('ld-sub').textContent = _vrMode === 'split_stem'
-      ? '12트랙 스템 분리 중~ 잠깐이면 돼요 🎚'
-      : '보컬이랑 반주 분리하는 중이에요 🎤';
-    setTimeout(() => $('loading-card').scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
 
     /* 폴링 */
     let res = null;
@@ -25641,6 +25720,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
         closeBottomSheet();
         switchTab('create-view');
         toast('🎵 보컬 추가를 시작합니다!','ok',2000);
+        _setLoadingMode('vocal');
         $('loading-card').classList.add('on');
         setTimeout(function(){$('loading-card').scrollIntoView({behavior:'smooth',block:'center'});},200);
         var fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}
