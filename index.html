@@ -1810,6 +1810,33 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-ptr-spinner{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;}
 /* 빈 상태 일러스트 */
 .mf-empty-illust{width:120px;height:120px;margin:0 auto 16px;opacity:.6;}
+/* 재생 중 트랙 애니메이션 그래디언트 보더 */
+.mf-trk-card.playing{position:relative;overflow:hidden;}
+.mf-trk-card.playing::before{content:'';position:absolute;inset:-1px;border-radius:12px;padding:1.5px;background:linear-gradient(90deg,var(--acc),#ec4899,#f59e0b,var(--acc));background-size:300% 100%;animation:mfGradBorder 3s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:0;}
+@keyframes mfGradBorder{0%{background-position:0% 50%;}100%{background-position:300% 50%;}}
+/* 패럴랙스 히어로 */
+.mf-detail-hero-bg{transition:transform .1s linear;}
+/* 공유 버튼 */
+.mf-share-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+.mf-share-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(124,58,237,.06);}
+/* 플로팅 액션 버튼 */
+.mf-fab{position:fixed;bottom:90px;right:16px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.35);z-index:30;transition:all .25s;font-size:18px;}
+.mf-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(124,58,237,.45);}
+.mf-fab:active{transform:scale(.95);}
+.mf-fab-menu{position:fixed;bottom:146px;right:16px;z-index:30;display:flex;flex-direction:column;gap:8px;align-items:flex-end;opacity:0;transform:translateY(10px);transition:all .2s;pointer-events:none;}
+.mf-fab-menu.open{opacity:1;transform:translateY(0);pointer-events:auto;}
+.mf-fab-item{display:flex;align-items:center;gap:8px;cursor:pointer;animation:mfFabIn .2s ease-out both;}
+.mf-fab-item:nth-child(1){animation-delay:0s;}
+.mf-fab-item:nth-child(2){animation-delay:.05s;}
+.mf-fab-item:nth-child(3){animation-delay:.1s;}
+@keyframes mfFabIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:translateX(0);}}
+.mf-fab-label{padding:6px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--t1);box-shadow:0 2px 8px rgba(0,0,0,.1);white-space:nowrap;}
+.mf-fab-circle{width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0;}
+/* 스크롤 진행 바 */
+.mf-scroll-progress{position:sticky;top:0;left:0;right:0;height:3px;z-index:25;background:transparent;pointer-events:none;}
+.mf-scroll-progress-bar{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0%;border-radius:0 2px 2px 0;transition:width .1s linear;}
+/* 트랙 그리드 playing 보더 */
+.mf-trk-grid-card.playing{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 4px 12px rgba(124,58,237,.15);}
 /* 장르 태그 클라우드 */
 .mf-genre-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:0 18px 14px;}
 .mf-genre-chip{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:default;transition:transform .15s;}
@@ -14229,6 +14256,36 @@ function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb
 function _mfImgFail(el){el.onerror=null;var ch=el.dataset.initial||'?';var p=el.parentNode;if(p){p.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';}}
 function _mfThumb(u){if(!u||_isBlockedImgHost(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
 
+/* FAB 토글 */
+function _mfToggleFab(){
+  var menu=document.getElementById('mf-fab-menu');
+  var btn=document.getElementById('mf-fab-btn');
+  if(!menu) return;
+  var isOpen=menu.classList.contains('open');
+  menu.classList.toggle('open');
+  if(btn) btn.textContent=isOpen?'🎵':'✕';
+}
+function _mfCloseFab(){
+  var menu=document.getElementById('mf-fab-menu');
+  var btn=document.getElementById('mf-fab-btn');
+  if(menu) menu.classList.remove('open');
+  if(btn) btn.textContent='🎵';
+}
+
+/* 크리에이터 공유 */
+function _mfShareCreator(){
+  if(!_myFeedDetail) return;
+  var name=_myFeedDetail.name;
+  var prov=_myFeedDetail.provider;
+  var url=location.origin+'/?creator='+encodeURIComponent(name)+'&provider='+encodeURIComponent(prov);
+  var text=name+'님의 음악을 들어보세요!';
+  if(navigator.share){
+    navigator.share({title:name+' - AI Music Studio',text:text,url:url}).catch(function(){});
+  } else {
+    try{navigator.clipboard.writeText(url);toast('링크가 복사되었어요','ok',2000);}catch(e){toast('공유 링크: '+url,'',5000);}
+  }
+}
+
 /* 팔로우 컨페티 효과 */
 function _mfConfetti(btn){
   var rect=btn.getBoundingClientRect();
@@ -14644,6 +14701,7 @@ function _renderCreatorDetailView(grid,countEl){
     html+='<button id="mf-follow-btn" class="mf-follow-btn'+(isFollowing?' following':'')+'" data-following="'+(isFollowing?'1':'0')+'" data-name="'+esc(d.name)+'" data-provider="'+esc(d.provider)+'" onclick="_mfToggleFollow(this)">'+(isFollowing?'팔로잉':'팔로우')+'</button>';
   }
   html+='<button class="mf-profile-btn" data-mf-action="go-profile" data-mf-name="'+esc(d.name)+'" data-mf-provider="'+esc(d.provider)+'">프로필 보기</button>';
+  html+='<button class="mf-share-btn" onclick="_mfShareCreator()" title="공유"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>';
   html+='</div></div>';
 
   /* 로딩 — 트랙 스켈레톤 */
@@ -14822,12 +14880,22 @@ function _renderCreatorDetailView(grid,countEl){
     }
   }
 
-  /* sticky 축소 헤더 */
-  html='<div class="mf-sticky-header" id="mf-sticky-hdr">'
+  /* sticky 축소 헤더 + 스크롤 진행 바 */
+  html='<div class="mf-scroll-progress" id="mf-scroll-prog"><div class="mf-scroll-progress-bar" id="mf-scroll-bar"></div></div>'
+    +'<div class="mf-sticky-header" id="mf-sticky-hdr">'
     +'<button class="mf-sticky-back" onclick="_closeCreatorDetail()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>'
     +'<div class="mf-sticky-avatar">'+_mfAvatar(p.avatar||'',d.name,false)+'</div>'
     +'<div class="mf-sticky-name">'+esc(d.name)+'</div>'
+    +'<button class="mf-share-btn" onclick="_mfShareCreator()" title="공유"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>'
     +'</div>'+html;
+
+  /* FAB (플로팅 액션 버튼) */
+  html+='<div class="mf-fab-menu" id="mf-fab-menu">'
+    +'<div class="mf-fab-item" onclick="_mfDetailPlayAll();_mfCloseFab();"><span class="mf-fab-label">전체 재생</span><span class="mf-fab-circle">▶</span></div>'
+    +'<div class="mf-fab-item" onclick="_mfDetailShuffle();_mfCloseFab();"><span class="mf-fab-label">셔플 재생</span><span class="mf-fab-circle">🔀</span></div>'
+    +'<div class="mf-fab-item" onclick="_mfShareCreator();_mfCloseFab();"><span class="mf-fab-label">공유하기</span><span class="mf-fab-circle">↗</span></div>'
+    +'</div>'
+    +'<button class="mf-fab" id="mf-fab-btn" onclick="_mfToggleFab()">🎵</button>';
 
   grid.innerHTML=html;
 
@@ -14839,6 +14907,21 @@ function _renderCreatorDetailView(grid,countEl){
       _stickyEl.classList.toggle('visible',!entries[0].isIntersecting);
     },{threshold:0,rootMargin:'-40px 0px 0px 0px'});
     _stickyObs.observe(_heroEl);
+  }
+
+  /* 스크롤 진행 바 + 패럴랙스 */
+  var _hv=document.getElementById('history-view');
+  var _scrollBar=document.getElementById('mf-scroll-bar');
+  var _heroBg=grid.querySelector('.mf-detail-hero-bg');
+  if(_hv){
+    _hv.addEventListener('scroll',function _mfScroll(){
+      if(!_myFeedDetail){_hv.removeEventListener('scroll',_mfScroll);return;}
+      var sh=_hv.scrollHeight-_hv.clientHeight;
+      var pct=sh>0?(_hv.scrollTop/sh)*100:0;
+      if(_scrollBar) _scrollBar.style.width=pct+'%';
+      /* 패럴랙스 */
+      if(_heroBg){var py=Math.min(_hv.scrollTop*0.4,60);_heroBg.style.transform='translateY('+py+'px)';}
+    });
   }
 
   grid.onclick=function(e){
@@ -15354,6 +15437,7 @@ function _openCreatorDetail(name,provider){
 }
 
 function _closeCreatorDetail(){
+  _mfCloseFab();
   var grid=document.getElementById('history-view-grid');
   if(grid){
     grid.classList.add('mf-slide-exit');
