@@ -892,6 +892,13 @@ textarea.form-input{line-height:1.5;}
             <div class="desc">메인 리스트 상단에 고정 노출할 트랙 ID</div></div>
             <div><textarea class="settings-input" id="cc-featured" rows="3" placeholder="트랙ID 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
           </div>
+
+          <!-- 생성 모드 ON/OFF -->
+          <div class="settings-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+            <div><label>🎹 음악 생성 모드 노출</label>
+            <div class="desc">OFF하면 사용자 화면에서 해당 모드 탭이 숨겨집니다. 1~4개 유동 대응.</div></div>
+          </div>
+          <div id="cc-gen-modes" style="display:flex;flex-direction:column;gap:4px;margin:8px 0 16px;"></div>
         </div>
 
         <div class="admin-table-wrap">
@@ -9432,6 +9439,22 @@ function _loadCommConfig(){
     document.getElementById('cc-recommend').value=(d.recommend_tracks||[]).join('\n');
     document.getElementById('cc-creator-order').value=(d.creator_order||[]).join('\n');
     document.getElementById('cc-featured').value=(d.featured_tracks||[]).join('\n');
+    /* 생성 모드 */
+    var gmWrap=document.getElementById('cc-gen-modes');
+    if(gmWrap){
+      var gModes=[{key:'custom',label:'✏️ 커스텀'},{key:'simple',label:'⚡ 심플'},{key:'youtube',label:'▶️ YouTube'},{key:'mv',label:'🎬 MV'}];
+      var gm=d.gen_modes||{};
+      var gmSorted=gModes.slice().sort(function(a,b){var oa=gm[a.key]?gm[a.key].order:99;var ob=gm[b.key]?gm[b.key].order:99;return oa-ob;});
+      gmWrap.innerHTML=gmSorted.map(function(m,i){
+        var cfg=gm[m.key]||{enabled:true,order:i+1};
+        var isOn=cfg.enabled!==false;
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;'+(isOn?'':'opacity:.5;')+'" data-gmkey="'+m.key+'">'
+          +'<div style="flex:1;font-size:13px;font-weight:600;">'+m.label+'</div>'
+          +'<span style="font-size:10px;color:var(--t3);">순서 '+(i+1)+'</span>'
+          +'<div class="toggle'+(isOn?' on':'')+'" data-gm-toggle="'+m.key+'" onclick="this.classList.toggle(\'on\');this.closest(\'[data-gmkey]\').style.opacity=this.classList.contains(\'on\')?\'1\':\'0.5\'" style="flex-shrink:0;"></div>'
+          +'</div>';
+      }).join('');
+    }
     toast('✅ 커뮤니티 설정 불러옴','ok');
   }).catch(function(e){toast('❌ 설정 로드 실패: '+e.message,'err');});
 }
@@ -9457,6 +9480,18 @@ function _saveCommConfig(){
     creator_order:_lines('cc-creator-order'),
     featured_tracks:_lines('cc-featured'),
   };
+  /* 생성 모드 수집 */
+  var gmWrap=document.getElementById('cc-gen-modes');
+  if(gmWrap){
+    var gmItems=gmWrap.querySelectorAll('[data-gmkey]');
+    var gen_modes={};
+    gmItems.forEach(function(el,i){
+      var key=el.dataset.gmkey;
+      var tog=el.querySelector('[data-gm-toggle]');
+      gen_modes[key]={enabled:tog?tog.classList.contains('on'):true,order:i+1};
+    });
+    config.gen_modes=gen_modes;
+  }
   fetch('/api/community-config',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},

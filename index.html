@@ -7847,6 +7847,32 @@ function renderPresets(){const row=$('preset-row');if(!row)return;
 /* 다른 모드에서 자동 채워진 곡제목/설명을 추적하여 커스텀 전환 시 초기화 */
 var _autoFilledFromOtherMode = false;
 function markAutoFilled(){ _autoFilledFromOtherMode = true; }
+
+/* ── 관리자 설정에 따라 생성 모드 탭 표시/숨김 + 순서 ── */
+function _applyGenModeConfig(){
+  if(!_commConfig||!_commConfig.gen_modes) return;
+  var gm=_commConfig.gen_modes;
+  var tabs=Array.from(document.querySelectorAll('.mtab'));
+  var parent=tabs[0]&&tabs[0].parentNode;
+  if(!parent) return;
+  tabs.sort(function(a,b){
+    var oa=gm[a.dataset.mode]?gm[a.dataset.mode].order:99;
+    var ob=gm[b.dataset.mode]?gm[b.dataset.mode].order:99;
+    return oa-ob;
+  });
+  tabs.forEach(function(tab){
+    var cfg=gm[tab.dataset.mode];
+    tab.style.display=(cfg&&cfg.enabled===false)?'none':'';
+    parent.appendChild(tab);
+  });
+  var activeTab=parent.querySelector('.mtab.on');
+  if(activeTab&&activeTab.style.display==='none'){
+    var first=tabs.find(function(t){return t.style.display!=='none';});
+    if(first) first.click();
+  }
+}
+_loadCommConfig().then(function(){_applyGenModeConfig();});
+
 document.querySelectorAll('.mtab').forEach(tab=>{
   tab.addEventListener('click',function(){
     const prevMode = currentMode;

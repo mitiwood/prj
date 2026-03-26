@@ -34,6 +34,12 @@ const DEFAULT_CONFIG = {
   featured_tracks: [],
   creator_order: [],
   recommend_tracks: [],
+  gen_modes: {
+    custom:  { enabled: true,  order: 1 },
+    simple:  { enabled: true,  order: 2 },
+    youtube: { enabled: true,  order: 3 },
+    mv:      { enabled: true,  order: 4 },
+  },
 };
 
 async function sb(method, path, body = null) {
@@ -69,6 +75,7 @@ export default async function handler(req, res) {
           ...DEFAULT_CONFIG,
           ...saved,
           sections: { ...DEFAULT_CONFIG.sections, ...(saved.sections || {}) },
+          gen_modes: { ...DEFAULT_CONFIG.gen_modes, ...(saved.gen_modes || {}) },
         };
         return res.status(200).json(merged);
       }
@@ -96,7 +103,7 @@ export default async function handler(req, res) {
     const allowedFields = [
       'sections', 'hero_track_id', 'top10_override',
       'spotlight_creators', 'featured_tracks', 'creator_order',
-      'recommend_tracks',
+      'recommend_tracks', 'gen_modes',
     ];
     const config = {};
     for (const field of allowedFields) {
@@ -125,6 +132,9 @@ export default async function handler(req, res) {
         sections: config.sections
           ? { ...existing.sections, ...config.sections }
           : existing.sections,
+        gen_modes: config.gen_modes
+          ? { ...existing.gen_modes, ...config.gen_modes }
+          : existing.gen_modes,
       };
 
       await sb('POST', '/settings?on_conflict=key', {
