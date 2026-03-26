@@ -4964,13 +4964,13 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="ld-title">AI가 곡 만드는 중 ✦</div>
       <div class="ld-sub" id="ld-sub">잠깐만요~ 금방 들려드릴게요 🎧</div>
       <!-- 단계별 진행률 -->
-      <div id="ld-steps" style="display:flex;justify-content:center;gap:6px;margin:10px 0 4px;">
+      <div id="ld-steps" style="display:flex;justify-content:center;align-items:center;gap:8px;margin:10px 0 8px;">
         <div class="ld-step active" id="ld-step-1"><span class="ld-step-icon">📝</span><span class="ld-step-label">요청</span></div>
-        <div class="ld-step-arrow">→</div>
+        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-2"><span class="ld-step-icon">🎹</span><span class="ld-step-label">작곡</span></div>
-        <div class="ld-step-arrow">→</div>
+        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-3"><span class="ld-step-icon">🎚</span><span class="ld-step-label">믹싱</span></div>
-        <div class="ld-step-arrow">→</div>
+        <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-4"><span class="ld-step-icon">✅</span><span class="ld-step-label">완료</span></div>
       </div>
       <div id="ld-percent" style="display:none;">0%</div>
@@ -10247,49 +10247,39 @@ var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[];
 var _genCancelled=typeof _genCancelled!=='undefined'?_genCancelled:false;
 /* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
-if(typeof _cancelGeneration==='undefined'){
-  _cancelGeneration=function(){
-    _genCancelled=true;
-    _globalGenerating=false;_syncGenButtons();
-    $('loading-card').classList.remove('on');
-    _genQueue=[];
-    toast('생성이 취소되었어요','',2000);
-  };
-}
+var _cancelGeneration=function(){
+  _genCancelled=true;
+  _globalGenerating=false;_syncGenButtons();
+  $('loading-card').classList.remove('on');
+  _genQueue=[];
+  toast('생성이 취소되었어요','',2000);
+};
 var _genStepIcons={1:'📝',2:'🎹',3:'🎚',4:'✅'};
 var _genStepPrev=0;
-if(typeof _setGenStep==='undefined'){
-  _setGenStep=function(step){
-    var arrows=document.querySelectorAll('#ld-steps .ld-step-arrow');
-    for(var i=1;i<=4;i++){
-      var el=$('ld-step-'+i);
-      if(!el)continue;
-      var icon=el.querySelector('.ld-step-icon');
-      el.classList.remove('active','done');
-      if(i<step){
-        el.classList.add('done');
-        /* 완료 단계 아이콘 → 체크 전환 (최초 전환 시에만 pop 애니메이션) */
-        if(icon&&icon.textContent!=='✔'){icon.textContent='✔';}
-      } else if(i===step){
-        el.classList.add('active');
-        /* 현재 단계 원래 아이콘 복원 */
-        if(icon&&_genStepIcons[i])icon.textContent=_genStepIcons[i];
-      } else {
-        /* 미래 단계 원래 아이콘 */
-        if(icon&&_genStepIcons[i])icon.textContent=_genStepIcons[i];
-      }
+var _setGenStep=function(step){
+  var arrows=document.querySelectorAll('#ld-steps .ld-step-arrow');
+  for(var i=1;i<=4;i++){
+    var el=$('ld-step-'+i);
+    if(!el)continue;
+    var icon=el.querySelector('.ld-step-icon');
+    el.classList.remove('active','done');
+    if(i<step){
+      el.classList.add('done');
+      if(icon&&icon.textContent!=='✔'){icon.textContent='✔';}
+    } else if(i===step){
+      el.classList.add('active');
+      if(icon&&_genStepIcons[i])icon.textContent=_genStepIcons[i];
+    } else {
+      if(icon&&_genStepIcons[i])icon.textContent=_genStepIcons[i];
     }
-    /* 화살표 활성화 — 완료된 단계 사이 화살표 */
-    arrows.forEach(function(a,idx){
-      if(idx<step-1)a.classList.add('passed');
-      else a.classList.remove('passed');
-    });
-    _genStepPrev=step;
-  };
-}
-if(typeof _updateGenEta==='undefined'){
-  _updateGenEta=function(elapsed){};
-}
+  }
+  arrows.forEach(function(a,idx){
+    if(idx<step-1)a.classList.add('passed');
+    else a.classList.remove('passed');
+  });
+  _genStepPrev=step;
+};
+var _updateGenEta=function(elapsed){};
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
 var _genCount = 1;
 function _setGenCount(n){
