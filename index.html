@@ -1881,6 +1881,27 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-timeline-icon{font-size:16px;flex-shrink:0;}
 .mf-timeline-text{font-size:12px;color:var(--t2);flex:1;}
 .mf-timeline-time{font-size:10px;color:var(--t3);flex-shrink:0;}
+/* 크리에이터 카드 미니 프리뷰 재생 */
+.mf-creator-card .mf-card-preview-btn{position:absolute;right:50px;width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;cursor:pointer;z-index:1;}
+.mf-creator-card:hover .mf-card-preview-btn{opacity:1;}
+.mf-creator-card .mf-card-preview-btn:hover{background:var(--acc);color:#fff;}
+/* 크리에이터 카드 통계 카운트 뱃지 */
+.mf-creator-stats .mf-new-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:6px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:9px;font-weight:700;animation:mfPulse 2s ease-in-out infinite;}
+/* 리스트 헤더 섹션 구분선 */
+.mf-section-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:12px 0;}
+/* 크리에이터 상세 — 곡 수 요약 배너 */
+.mf-track-summary{margin:0 18px 10px;padding:10px 14px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(168,85,247,.02));display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t2);}
+.mf-track-summary b{color:var(--t1);font-weight:700;}
+/* 최근 업로드 NEW 뱃지 */
+.mf-recent-new{position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:8px;font-weight:800;padding:2px 5px;border-radius:4px;letter-spacing:.5px;}
+/* 리스트 카드 진입 stagger 애니메이션 */
+.mf-stagger-in{animation:mfStaggerIn .35s ease-out both;}
+@keyframes mfStaggerIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+/* 크리에이터 카드 뱃지 위치 */
+.mf-creator-card .mf-level-badge{position:absolute;top:4px;right:4px;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;}
+/* 트랙 총 재생시간 */
+.mf-total-duration{font-size:11px;color:var(--acc);font-weight:600;}
+[data-theme="light"] .mf-track-summary{background:rgba(124,58,237,.03);}
 [data-theme="light"] .mf-genre-chip.secondary{background:rgba(124,58,237,.06);}
 [data-theme="light"] .mf-genre-chip.tertiary{background:rgba(0,0,0,.03);}
 [data-theme="light"] .mf-trk-grid-card{background:#fff;border-color:rgba(0,0,0,.06);}
@@ -14453,6 +14474,9 @@ function _renderMyFeedView(grid,countEl){
     }
   }
 
+  /* 섹션 구분선 */
+  if(!_myFeedSearch) html+='<div class="mf-section-divider"></div>';
+
   /* ── ✨ 당신을 위한 추천 인사이트 (비동기 렌더링) ── */
   if(!_myFeedSearch){
     /* 캐시 히트 시 즉시 삽입, 캐시 미스 시 스켈레톤 표시 후 비동기 계산 */
@@ -14471,10 +14495,12 @@ function _renderMyFeedView(grid,countEl){
       html+='<div class="mf-recent-section">';
       html+='<div class="mf-recent-title">🆕 최근 업로드</div>';
       html+='<div class="mf-recent-scroll">';
+      var _now=Date.now();
       recentTracks.forEach(function(rt){
         var thumb=_mfThumb(rt.image_url);
+        var isNew=rt.created_at&&(_now-new Date(rt.created_at).getTime())<86400000;
         html+='<div class="mf-recent-card" data-mf-action="play-recent" data-mf-rt-id="'+esc(rt.id)+'" data-mf-rt-name="'+esc(rt.owner_name||'')+'" data-mf-rt-prov="'+esc(rt.owner_provider||'')+'">'
-          +'<div class="mf-recent-thumb">'+thumb+'</div>'
+          +'<div class="mf-recent-thumb">'+thumb+(isNew?'<div class="mf-recent-new">NEW</div>':'')+'</div>'
           +'<div class="mf-recent-info">'
           +'<div class="mf-recent-trk-title">'+esc(rt.title||'무제')+'</div>'
           +'<div class="mf-recent-artist">'+esc(rt.owner_name||'')+'</div>'
@@ -14483,6 +14509,9 @@ function _renderMyFeedView(grid,countEl){
       html+='</div></div>';
     }
   }
+
+  /* 섹션 구분선 */
+  if(!_myFeedSearch) html+='<div class="mf-section-divider"></div>';
 
   /* ── 전체 리스트 (청크 렌더링) ── */
   html+='<div class="mf-creator-list" id="mf-creator-list">';
@@ -14509,7 +14538,7 @@ function _renderMyFeedView(grid,countEl){
       +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
       +'<div class="mf-creator-name">'+esc(c.name)+' <span style="font-size:10px;">'+provIcon+'</span></div>'
-      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+'</div>'
+      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+((c._latestTs||0)>Date.now()-86400000?' <span class="mf-new-badge">NEW</span>':'')+'</div>'
       +'</div>'
       +'<div class="mf-creator-previews">'+previews+'</div>'
       +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
@@ -14536,6 +14565,14 @@ function _renderMyFeedView(grid,countEl){
     },{rootMargin:'200px'});
     obs.observe(sentinel);
   }
+
+  /* stagger 진입 애니메이션 */
+  requestAnimationFrame(function(){
+    var cards=grid.querySelectorAll('.mf-creator-card,.mf-trend-card,.mf-recent-card');
+    cards.forEach(function(c,i){
+      if(i<20){c.classList.add('mf-stagger-in');c.style.animationDelay=(i*0.03)+'s';}
+    });
+  });
 
   grid.onclick=function(e){
     var card=e.target.closest('[data-mf-action]');
@@ -14648,7 +14685,7 @@ function _mfLoadMoreCreators(){
       +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
       +'<div class="mf-creator-name">'+esc(c.name)+' <span style="font-size:10px;">'+provIcon+'</span></div>'
-      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+'</div>'
+      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+((c._latestTs||0)>Date.now()-86400000?' <span class="mf-new-badge">NEW</span>':'')+'</div>'
       +'</div>'
       +'<div class="mf-creator-previews">'+previews+'</div>'
       +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
@@ -14781,9 +14818,18 @@ function _renderCreatorDetailView(grid,countEl){
     }
   }
 
+  /* ── 곡 요약 배너 ── */
+  var _playableCnt=sortedTracks.length;
+  var _totalLikes=d.tracks.reduce(function(s,t){return s+(t.comm_likes||0);},0);
+  var _totalPlays=d.tracks.reduce(function(s,t){return s+(t.comm_plays||0);},0);
+  html+='<div class="mf-track-summary">'
+    +'<span><b>'+_playableCnt+'</b>곡 재생 가능</span>'
+    +'<span>❤️ <b>'+_totalLikes+'</b> · ▶ <b>'+_totalPlays+'</b></span>'
+    +'</div>';
+
   /* ── 전체재생 + 셔플 ── */
-  html+='<div style="display:flex;gap:8px;margin:14px 18px 8px;">'
-    +'<button onclick="_mfDetailPlayAll()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,.25);transition:all .2s;">▶ 전체 재생 ('+d.tracks.length+'곡)</button>'
+  html+='<div style="display:flex;gap:8px;margin:0 18px 8px;">'
+    +'<button onclick="_mfDetailPlayAll()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,.25);transition:all .2s;">▶ 전체 재생 ('+_playableCnt+'곡)</button>'
     +'<button onclick="_mfDetailShuffle()" style="padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🔀 셔플</button>'
     +'</div>';
 
