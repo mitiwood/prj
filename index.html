@@ -8039,7 +8039,11 @@ async function _ytDoGenerate(){
     saveHistory(); updateHistBadge();
     trackUsage('song',{mode:'youtube',title:songTitle});
     showCompletionPopup('youtube','');
-    setTimeout(gotoHistoryTab,600);
+    /* 현재 모드에 머물고 결과로 스크롤 */
+    setTimeout(function(){
+      var resultSec=$('results-youtube');
+      if(resultSec) resultSec.scrollIntoView({behavior:'smooth',block:'start'});
+    },600);
 
     /* 서버에 트랙 저장 */
     tracks.forEach(t=>{
@@ -10357,7 +10361,11 @@ async function generate(overrideParams){
       bpm:selectedBpm||120,model:model||'',mode:currentMode||'custom'
     });
     showCompletionPopup(currentMode||'custom', '');
-    setTimeout(gotoHistoryTab,600);
+    /* 현재 모드에 머물고 결과 영역으로 스크롤 */
+    setTimeout(function(){
+      var resultSec=$('results-'+(currentMode||'custom'));
+      if(resultSec) resultSec.scrollIntoView({behavior:'smooth',block:'start'});
+    },600);
 
     /* 서버에 트랙 저장 (admin 전체 조회용) */
     tracks.forEach(t=>{
@@ -10510,7 +10518,7 @@ function _resumePendingGenSession() {
       historyData = historyData.slice(0, 30);
       saveHistory(); updateHistBadge();
       showCompletionPopup(params?.mode || 'custom', '');
-      setTimeout(gotoHistoryTab, 600);
+      setTimeout(function(){var rs=$('results-'+(params?.mode||'custom'));if(rs)rs.scrollIntoView({behavior:'smooth',block:'start'});},600);
 
       /* 서버 저장 */
       tracks.forEach(t => {
@@ -12179,7 +12187,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     lastTracks=[{...result,_inputLyrics:h.lyrics||''}];
     renderTracks(lastTracks,'Cover: '+h.title,'cover','custom');
     showCompletionPopup('custom','');
-    setTimeout(gotoHistoryTab,600);
+    setTimeout(function(){var rs=$('results-custom');if(rs)rs.scrollIntoView({behavior:'smooth',block:'start'});},600);
     trackUsage('vocal',{mode:'cover'});
     _saveTrackToServer({id:coverTrack.id,taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:coverTrack.image_url,tags:coverTrack.tags,lyrics:coverTrack.lyrics,genMode:'cover',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||''});
   }catch(e){
