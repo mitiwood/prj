@@ -9415,12 +9415,12 @@ function _loadCommConfig(){
     });
     list.innerHTML=sorted.map(function(s,i){
       var sec=d.sections&&d.sections[s.key]?d.sections[s.key]:{enabled:true,order:i+1};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;cursor:grab;" draggable="true" data-cckey="'+s.key+'">'
-        +'<span style="color:var(--t3);font-size:12px;cursor:grab;">☰</span>'
-        +'<label style="display:flex;align-items:center;gap:6px;flex:1;font-size:13px;cursor:pointer;">'
-        +'<input type="checkbox" data-cc-check="'+s.key+'" '+(sec.enabled?'checked':'')+' style="accent-color:var(--accent);">'
-        +s.label+'</label>'
-        +'<span style="font-size:10px;color:var(--t3);">순서 '+(i+1)+'</span>'
+      var isOn=sec.enabled;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;cursor:grab;'+(isOn?'':'opacity:.5;')+'" draggable="true" data-cckey="'+s.key+'">'
+        +'<span style="color:var(--t3);font-size:14px;cursor:grab;">☰</span>'
+        +'<div style="flex:1;font-size:13px;font-weight:600;">'+s.label+'</div>'
+        +'<span style="font-size:10px;color:var(--t3);margin-right:4px;">순서 '+(i+1)+'</span>'
+        +'<div class="toggle'+(isOn?' on':'')+'" data-cc-toggle="'+s.key+'" onclick="this.classList.toggle(\'on\');this.closest(\'[data-cckey]\').style.opacity=this.classList.contains(\'on\')?\'1\':\'0.5\'" style="flex-shrink:0;"></div>'
         +'</div>';
     }).join('');
     /* 드래그 정렬 */
@@ -9443,8 +9443,8 @@ function _saveCommConfig(){
     var items=list.querySelectorAll('[data-cckey]');
     items.forEach(function(el,i){
       var key=el.dataset.cckey;
-      var chk=el.querySelector('[data-cc-check]');
-      sections[key]={enabled:chk?chk.checked:true,order:i+1};
+      var tog=el.querySelector('[data-cc-toggle]');
+      sections[key]={enabled:tog?tog.classList.contains('on'):true,order:i+1};
     });
   }
   function _lines(id){return document.getElementById(id).value.split('\n').map(function(s){return s.trim();}).filter(Boolean);}
