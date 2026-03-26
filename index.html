@@ -8927,17 +8927,21 @@ async function pollResult(apiKey,taskId){
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
         throw new Error('가사에 부적절한 단어가 포함되어 있어요 — 가사를 수정 후 다시 시도해주세요');
       }
-      /* 1곡 모드: FIRST_SUCCESS에서 즉시 반환 (2번째 곡 대기 안 함 → 더 빠름) */
-      if(status==='FIRST_SUCCESS'&&tracks.length&&_genCount===1){
-        return tracks.slice(0,1);
+      /* audioUrl이 있는 유효 트랙만 필터 */
+      var _validTracks=tracks.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
+      /* 1곡 모드: FIRST_SUCCESS에서 유효 트랙 있으면 즉시 반환 */
+      if(status==='FIRST_SUCCESS'&&_validTracks.length&&_genCount===1){
+        return _validTracks.slice(0,1);
       }
       /* 2곡 모드 또는 완전 완료 */
       if(status==='SUCCESS'||status==='FIRST_SUCCESS'||status==='COMPLETE'){
-        if(tracks.length){
-          return _genCount===1?tracks.slice(0,1):tracks;
+        if(_validTracks.length){
+          return _genCount===1?_validTracks.slice(0,1):_validTracks;
         }
+        /* 트랙은 있지만 audioUrl 미준비 → 폴링 계속 */
+        if(tracks.length && i < MAX_POLLS-2){ continue; }
         if(i < MAX_POLLS-2){ continue; }
-        throw new Error('트랙 데이터를 받지 못했어요 (sunoData null) — 다시 시도해주세요');
+        throw new Error('트랙 데이터를 받지 못했어요 (audioUrl 없음) — 다시 시도해주세요');
       }
       if(['FAILED','ERROR','TIMEOUT'].includes(status)){
         const detail = respMsg ? ' ('+respMsg.slice(0,60)+')' : '';
