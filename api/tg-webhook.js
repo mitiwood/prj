@@ -524,7 +524,7 @@ async function ghApi(method, path, body = null) {
 
 /* 수정 <지시사항> — GitHub Issue 생성 → Claude Code Action 트리거 */
 COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) => {
-  if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 색상을 파란색으로\n수정 커뮤니티 탭 로딩 속도 개선');
+  if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 [화면] <지시사항>\n\n[화면] 태그를 붙이면 해당 영역만 수정해서 빠르고 저렴해요!\n\n예시:\n수정 [설정] 이용약관 링크 수정\n수정 [플레이어] 볼륨 슬라이더 추가\n수정 [커뮤니티] 댓글 정렬 최신순으로\n수정 [css] 다크모드 배경색 변경\n수정 [봇] 도움말 텍스트 수정\n\n지원 화면: 생성, 히스토리, 커뮤니티, 설정, 플레이어, 공유, 로그인, 리믹스, 노래방, 보컬, 공지, 알림, 프로필, 채팅, 플랜, css, js, api, 봇\n\n태그 없이도 사용 가능 (전체 탐색, 비용 높음)');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
 
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });

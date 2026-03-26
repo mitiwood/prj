@@ -83,14 +83,117 @@ jobs:
         with:
           node-version: '20'
 
-      # ── 3. Claude Code 실행 (핵심) ──
+      # ── 3. 화면 태그 파싱 + 프롬프트 생성 ──
+      - name: Parse screen tag and build prompt
+        id: prompt
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+        run: |
+          python3 << 'PYEOF'
+          import os, re, json
+
+          body = os.environ.get('ISSUE_BODY', '')
+          title = os.environ.get('ISSUE_TITLE', '')
+          num = os.environ.get('ISSUE_NUM', '0')
+
+          # [화면] 태그 파싱 — 제목이나 본문에서 추출
+          tag_match = re.search(r'\[([^\]]+)\]', title) or re.search(r'\[([^\]]+)\]', body)
+          screen = tag_match.group(1).strip() if tag_match else ''
+
+          # 화면별 파일/줄 범위 매핑 (토큰 절약용)
+          SCREEN_MAP = {
+              # HTML 뷰 영역
+              '생성':     {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW (음악 생성 폼)'},
+              '만들기':   {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
+              'create':   {'files': ['index.html:3969-4822', 'js/create-enhance.js'], 'desc': 'CREATE VIEW'},
+              '히스토리': {'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW (라이브러리)'},
+              '라이브러리':{'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW'},
+              'history':  {'files': ['index.html:4823-4867'], 'desc': 'HISTORY VIEW'},
+              '커뮤니티': {'files': ['index.html:4868-4930'], 'desc': 'COMMUNITY VIEW'},
+              'community':{'files': ['index.html:4868-4930'], 'desc': 'COMMUNITY VIEW'},
+              '설정':     {'files': ['index.html:4931-5368'], 'desc': 'SETTINGS VIEW'},
+              'settings': {'files': ['index.html:4931-5368'], 'desc': 'SETTINGS VIEW'},
+              '플레이어': {'files': ['index.html:5416-5760'], 'desc': '미니플레이어 + 풀플레이어'},
+              'player':   {'files': ['index.html:5416-5760'], 'desc': '미니/풀 플레이어'},
+              '플레이어편집':{'files': ['index.html:5761-5830'], 'desc': '풀플레이어 편집 바텀시트'},
+              '공유':     {'files': ['index.html:5948-6053'], 'desc': '공유 시트 + DM'},
+              'share':    {'files': ['index.html:5948-6053'], 'desc': '공유 시트'},
+              '로그인':   {'files': ['index.html:6479-6552'], 'desc': '로그인 모달'},
+              'login':    {'files': ['index.html:6479-6552'], 'desc': '로그인 모달'},
+              '리믹스':   {'files': ['index.html:5894-6420'], 'desc': '리믹스/도구 바텀시트들'},
+              'remix':    {'files': ['index.html:5894-6420'], 'desc': '리믹스 바텀시트'},
+              '노래방':   {'files': ['index.html:6418-6478', 'js/vocal-removal.js'], 'desc': '노래방 + 보컬 제거'},
+              '보컬':     {'files': ['index.html:6054-6112', 'js/vocal-removal.js'], 'desc': '보컬 변경/제거'},
+              '공지':     {'files': ['index.html:6455-6478'], 'desc': '인앱 공지 팝업'},
+              '알림':     {'files': ['index.html:19545-19576'], 'desc': '알림 인박스'},
+              '프로필':   {'files': ['index.html:5381-5414', 'index.html:19403-19476'], 'desc': '프로필 뷰 + 시트'},
+              'profile':  {'files': ['index.html:5381-5414', 'index.html:19403-19476'], 'desc': '프로필'},
+              '채팅':     {'files': ['index.html:5499-5546'], 'desc': 'AI 채팅'},
+              'chat':     {'files': ['index.html:5499-5546'], 'desc': 'AI 채팅'},
+              '플랜':     {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜'},
+              'plan':     {'files': ['index.html:5122-5240', 'index.html:19634-21488'], 'desc': '구독 플랜'},
+              # CSS
+              'css':      {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
+              '스타일':   {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
+              'style':    {'files': ['index.html:126-3953'], 'desc': 'CSS 스타일'},
+              # JS 메인
+              'js':       {'files': ['index.html:6553-19401'], 'desc': '메인 JS 로직'},
+              # API
+              'api':      {'files': ['api/'], 'desc': 'API 엔드포인트'},
+              '봇':       {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '텔레그램/카카오 봇'},
+              'bot':      {'files': ['api/tg-webhook.js', 'api/kakao-webhook.js'], 'desc': '봇'},
+          }
+
+          screen_lower = screen.lower() if screen else ''
+          mapping = SCREEN_MAP.get(screen_lower, SCREEN_MAP.get(screen, None))
+
+          # 프롬프트 생성
+          lines = []
+          lines.append(f'다음 수정 요청을 처리해주세요:\n')
+          lines.append(body)
+
+          if mapping:
+              lines.append(f'\n🎯 수정 대상 화면: {mapping["desc"]}')
+              lines.append('아래 파일/범위만 먼저 읽고, 필요할 때만 다른 파일을 참조하세요:')
+              for f in mapping['files']:
+                  if ':' in f and not f.startswith('api/'):
+                      fname, lrange = f.split(':', 1)
+                      start, end = lrange.split('-')
+                      lines.append(f'  - {fname} (줄 {start}~{end})')
+                  else:
+                      lines.append(f'  - {f}')
+              lines.append('')
+              lines.append('⚠️ 토큰 절약: 전체 index.html을 읽지 마세요. 위 범위만 Read하세요.')
+          else:
+              lines.append('\n대상 파일을 스스로 파악하되, index.html은 24000줄이므로 필요한 부분만 읽으세요.')
+              lines.append('Grep/Glob으로 위치를 먼저 찾고, 해당 범위만 Read하세요.')
+
+          lines.append(f'\n규칙:')
+          lines.append('- CLAUDE.md 파일의 프로젝트 규칙을 따르세요')
+          lines.append('- 기존 기능, 함수, CSS를 절대 제거하지 마세요')
+          lines.append('- node_modules/, .env 파일은 수정하지 마세요')
+          lines.append('- 수정 완료 후 git add + git commit을 직접 실행하세요')
+          lines.append(f'- 커밋 메시지: "fix: [#{num}] <간결한 설명>"')
+
+          prompt = '\n'.join(lines)
+          with open('/tmp/claude-prompt.txt', 'w') as f:
+              f.write(prompt)
+
+          print(f'Screen tag: "{screen}" → {"mapped to " + mapping["desc"] if mapping else "no mapping (full scan)"}')
+          print(f'Prompt length: {len(prompt)} chars')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"screen={screen}\n")
+          PYEOF
+
+      # ── 4. Claude Code 실행 ──
       - name: Run Claude Code
         id: claude
         timeout-minutes: 30
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
 
@@ -98,24 +201,10 @@ jobs:
           npm install -g @anthropic-ai/claude-code
           echo "Claude Code version: $(claude --version 2>/dev/null || echo 'unknown')"
 
-          echo "=== Building prompt ==="
-          cat > /tmp/claude-prompt.txt << PROMPT_EOF
-          다음 수정 요청을 처리해주세요:
-
-          ${ISSUE_BODY}
-
-          규칙:
-          - CLAUDE.md 파일을 읽고 프로젝트 규칙을 따르세요
-          - 기존 기능, 함수, CSS를 절대 제거하지 마세요
-          - node_modules/, .env 파일은 수정하지 마세요
-          - 수정 완료 후 git add + git commit을 직접 실행하세요
-          - 커밋 메시지: "fix: [#${ISSUE_NUM}] <간결한 설명>"
-          PROMPT_EOF
-
-          echo "=== Prompt content ==="
+          echo "=== Prompt ==="
           cat /tmp/claude-prompt.txt
+          echo ""
           echo "=== Running Claude Code ==="
-          # stdin으로 프롬프트 전달 (인자 전달 시 특수문자/줄바꿈 깨짐 방지)
           cat /tmp/claude-prompt.txt | claude --print \
             --allowedTools "Edit,Read,Glob,Grep,Write,Bash" \
             2>&1 | tee /tmp/claude-output.txt

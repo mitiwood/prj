@@ -426,7 +426,7 @@ COMMANDS['알림'] = COMMANDS['push'] = async (arg) => {
 
 /* 수정 — GitHub Issue → Claude Code Action */
 COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (arg) => {
-  if (!arg) return card('🛠 코드 수정', '사용법: 수정 <지시사항>\n\n예시:\n수정 로그인 버튼 파란색으로\n수정 커뮤니티 로딩 개선', [], ['상태', 'PR']);
+  if (!arg) return card('🛠 코드 수정', '사용법: 수정 [화면] <지시사항>\n\n[화면] 태그로 빠르고 저렴하게!\n\n예시:\n수정 [설정] 이용약관 링크 수정\n수정 [플레이어] 볼륨 슬라이더 추가\n수정 [커뮤니티] 댓글 최신순 정렬\n\n화면: 생성/히스토리/커뮤니티/설정/플레이어/공유/로그인/리믹스/css/js/api/봇\n\n태그 없이도 사용 가능', [], ['상태', 'PR']);
   if (!GH_TOKEN) return text('GITHUB_TOKEN 미설정');
 
   const issue = await ghApi('POST', '/issues', {
