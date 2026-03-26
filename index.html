@@ -11699,7 +11699,7 @@ function renderTracks(tracks,prompt,tags,mode){
           <div style="font-size:9px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2);border-radius:6px;padding:2px 7px;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey.toUpperCase()}</div>
         </div>
         <div class="rc-title">${esc(title)}</div>
-        <div class="rc-meta">${esc((prompt||'').slice(0,60))}${(prompt||'').length>60?'...':''} · ${dur}</div>
+        <div class="rc-meta">${esc((prompt||'').slice(0,60))}${(prompt||'').length>60?'...':''} · <span id="rc-dur-${i}">${dur}</span></div>
         <div class="rc-tags">${trackTags.slice(0,6).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
         <div class="rc-tabs">
           <div class="rctab on" data-tab="pl-${i}">🎵 재생</div>
@@ -11754,6 +11754,25 @@ function renderTracks(tracks,prompt,tags,mode){
         <div id="mvpanel-slot-${i}"></div>
       </div>`;
     cardsWrap.appendChild(card);
+    /* duration 없으면 백그라운드에서 오디오 메타 로드 후 표시 업데이트 */
+    if(audioUrl && !track.duration){
+      var _dma=new Audio();_dma.preload='metadata';
+      var _dmt=setTimeout(function(){try{_dma.src='';}catch(e){}},8000);
+      _dma.addEventListener('loadedmetadata',function(){
+        clearTimeout(_dmt);
+        if(_dma.duration&&isFinite(_dma.duration)){
+          var _dmf=formatTime(_dma.duration);
+          var _de=document.getElementById('ap-time-'+i);if(_de)_de.textContent='0:00 / '+_dmf;
+          var _ds=document.getElementById('rc-dur-'+i);if(_ds)_ds.textContent=_dmf;
+          track.duration=Math.round(_dma.duration);
+          var _dh=historyData.find(function(h){return h.id===(track.id||'');});
+          if(_dh&&!(_dh.duration>0)){_dh.duration=Math.round(_dma.duration);saveHistory();}
+        }
+        try{_dma.src='';}catch(e){}
+      },{once:true});
+      _dma.addEventListener('error',function(){clearTimeout(_dmt);try{_dma.src='';}catch(e){}},{once:true});
+      _dma.src=audioUrl;
+    }
   });
 
   /* A/B 선택 버튼 이벤트 */
@@ -13602,14 +13621,14 @@ function showMiniPlayer(idx){
       saveHistory();
     }
   },{once:true,signal:_fpAbort.signal});
-  /* 즉시 play() 시도 — 브라우저가 충분한 데이터를 이미 가지고 있을 수 있음 */
-  setTimeout(function(){
-    if(genId!==_fpAudioGenId||_playStarted) return;
-    audio.play().then(function(){
-      if(genId!==_fpAudioGenId) return;
-      _playStarted=true;clearTimeout(_canplayTimer);_syncAllPlayBtns(true);
-    }).catch(function(){/* canplay 대기로 폴백 */});
-  },300);
+  /* load() 직후 즉시 play() 시도 — 300ms 대기 없이 바로 재생 시작 */
+  audio.play().then(function(){
+    if(genId!==_fpAudioGenId) return;
+    _playStarted=true;clearTimeout(_canplayTimer);_syncAllPlayBtns(true);
+  }).catch(function(err){
+    if(err&&err.name==='AbortError') return;
+    /* canplay/loadeddata 이벤트에서 재시도 (이미 등록됨) */
+  });
 }
 
 function hideMiniPlayer(){
