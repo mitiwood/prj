@@ -320,14 +320,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, action, message: '클라이언트에서 처리' });
     }
 
-    /* 프로필 수정 — Rate Limit (IP당 3회/분) */
+    /* 프로필 수정 — Rate Limit (사용자당 10회/분) */
     if (action === 'update-profile') {
       const ip = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown').split(',')[0].trim();
+      const rateKey = (body.oldName || '') + '::' + (body.provider || '') + '::' + ip;
       const now = Date.now();
-      if (!_profileRateMap[ip]) _profileRateMap[ip] = [];
-      _profileRateMap[ip] = _profileRateMap[ip].filter(t => now - t < 60000);
-      if (_profileRateMap[ip].length >= 3) return res.status(429).json({ error: '너무 많은 요청입니다' });
-      _profileRateMap[ip].push(now);
+      if (!_profileRateMap[rateKey]) _profileRateMap[rateKey] = [];
+      _profileRateMap[rateKey] = _profileRateMap[rateKey].filter(t => now - t < 60000);
+      if (_profileRateMap[rateKey].length >= 10) return res.status(429).json({ error: '너무 많은 요청입니다' });
+      _profileRateMap[rateKey].push(now);
       const { name: newName, provider: prov, oldName, bio } = body;
       if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
       const trimmed = newName.trim().slice(0, 10);
