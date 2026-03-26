@@ -9159,27 +9159,34 @@ async function pollResult(apiKey,taskId){
   /* 폴링: 초기 3회(500ms) → 다음 7회(1초) → 이후(2초) → 80초 이후(3초) */
   let elapsed = 0;
   let _noDataCount = 0;
-  /* ── 진행률 UI ── */
+  /* ── 진행률 UI (단조증가 — 절대 뒤로 안 감) ── */
   var _pctEl=$('ld-percent'),_etaEl=$('ld-eta'),_fillEl=$('ld-fill');
-  if(_pctEl)_pctEl.style.display='block';
-  if(_etaEl)_etaEl.style.display='block';
-  var _maxT=_genCount===1?60000:120000;
+  var _prevPct=0;
+  /* 상태별 목표 퍼센트 (단계가 올라가면 최소 이 값 보장) */
+  var _stageMin={'PENDING':0,'CREATE':5,'GENERATE':20,'TEXT_SUCCESS':50,'FIRST_SUCCESS':75,'SUCCESS':100,'COMPLETE':100};
   function _updPct(ms,st){
-    var p=0;
-    if(st==='CREATE'||st==='PENDING')p=Math.min(20,Math.round(ms/_maxT*20));
-    else if(st==='GENERATE'||st==='TEXT_SUCCESS')p=20+Math.min(55,Math.round((ms-3000)/(_maxT-3000)*55));
-    else if(st==='FIRST_SUCCESS')p=75+Math.min(20,Math.round((ms-_maxT*.5)/(_maxT*.5)*20));
-    else if(st==='SUCCESS'||st==='COMPLETE')p=100;
-    else p=Math.min(92,Math.round(ms/_maxT*92));
-    p=Math.max(0,Math.min(p,99));
+    var sec=Math.round(ms/1000);
+    var estSec=_genCount===1?45:90; /* 예상 총 시간 */
+    /* 상태 기반 최소 퍼센트 */
+    var stageBase=_stageMin[st]||0;
+    /* 시간 기반 퍼센트 (예상 시간 대비 경과, 최대 95%) */
+    var timePct=Math.min(95,Math.round(sec/estSec*100));
+    /* 둘 중 큰 값 사용 */
+    var p=Math.max(stageBase,timePct);
+    /* 완료 상태가 아니면 99% 제한 */
+    if(st!=='SUCCESS'&&st!=='COMPLETE')p=Math.min(p,99);
+    /* 절대 이전 값보다 작아지지 않음 (단조증가) */
+    p=Math.max(p,_prevPct);
+    _prevPct=p;
     if(_pctEl)_pctEl.textContent=p+'%';
-    if(_fillEl){_fillEl.style.transition='width .5s ease';_fillEl.style.width=p+'%';}
-    var rem=Math.max(0,_maxT-ms);
+    if(_fillEl){_fillEl.style.transition='width .6s ease';_fillEl.style.width=p+'%';}
+    /* 남은 시간: 경과 시간 기반 추정 (절대 증가 안 함) */
+    var remSec=Math.max(0,estSec-sec);
     if(_etaEl){
-      if(rem>60000)_etaEl.textContent='\u23F3 약 '+Math.ceil(rem/60000)+'분 남음';
-      else if(rem>10000)_etaEl.textContent='\u23F3 약 '+Math.round(rem/1000)+'초 남음';
-      else if(p>=90)_etaEl.textContent='\u2728 거의 완료!';
-      else _etaEl.textContent='';
+      if(p>=99)_etaEl.textContent='\u2728 거의 완료!';
+      else if(remSec>60)_etaEl.textContent='\u23F3 약 '+Math.ceil(remSec/60)+'분 남음';
+      else if(remSec>0)_etaEl.textContent='\u23F3 약 '+remSec+'초 남음';
+      else _etaEl.textContent='\u23F3 마무리 중...';
     }
   }
   _updPct(0,'PENDING');
@@ -10107,12 +10114,7 @@ function _setGenStep(step){
   }
 }
 function _updateGenEta(elapsed){
-  var eta=$('ld-eta');if(!eta)return;
-  var est=_genCount===1?40:80; /* 1곡 ~40초, 2곡 ~80초 */
-  var remaining=Math.max(0,est-Math.round(elapsed/1000));
-  if(remaining>60)eta.textContent='예상 ~'+ Math.ceil(remaining/60)+'분';
-  else if(remaining>0)eta.textContent='약 '+remaining+'초 남음';
-  else eta.textContent='거의 다 됐어요!';
+  /* _updPct가 ld-eta를 관리하므로 여기서는 무시 */
 }
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
 let _genCount = 1;
