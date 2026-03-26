@@ -833,6 +833,67 @@ textarea.form-input{line-height:1.5;}
           </div>
         </div>
         
+        <!-- ── 커뮤니티 콘텐츠 관리 ── -->
+        <div class="settings-group" id="comm-content-mgr" style="margin-bottom:16px;">
+          <div class="settings-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;">
+            <div><label style="font-size:15px;font-weight:800;">🎨 커뮤니티 콘텐츠 관리</label>
+            <div class="desc">레이아웃 배치, 대표곡, TOP10, 크리에이터, 추천곡을 관리합니다</div></div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-acc" onclick="_loadCommConfig()">불러오기</button>
+              <button class="btn btn-acc" onclick="_saveCommConfig()" style="background:var(--accent);">💾 저장</button>
+            </div>
+          </div>
+
+          <!-- 섹션 순서/ON-OFF -->
+          <div class="settings-row">
+            <div><label>📋 섹션 배치 (드래그 순서 변경)</label>
+            <div class="desc">체크 해제하면 해당 섹션이 커뮤니티에서 숨겨집니다</div></div>
+          </div>
+          <div id="comm-sections-list" style="display:flex;flex-direction:column;gap:4px;margin:8px 0 16px;"></div>
+
+          <!-- 대표곡(히어로) 선택 -->
+          <div class="settings-row">
+            <div><label>🌟 대표곡 (Featured Hero)</label>
+            <div class="desc">커뮤니티 상단에 크게 노출할 곡의 트랙 ID</div></div>
+            <div><input class="settings-input" id="cc-hero-track" placeholder="트랙 ID (비우면 자동 선택)" style="width:280px;"></div>
+          </div>
+
+          <!-- TOP10 수동 지정 -->
+          <div class="settings-row">
+            <div><label>🏆 TOP10 수동 지정</label>
+            <div class="desc">트랙 ID를 줄바꿈으로 입력 (비우면 좋아요순 자동)</div></div>
+            <div><textarea class="settings-input" id="cc-top10" rows="4" placeholder="트랙ID 1줄 1개&#10;예: abc123&#10;def456" style="width:280px;font-size:11px;"></textarea></div>
+          </div>
+
+          <!-- 이번주 크리에이터 -->
+          <div class="settings-row">
+            <div><label>✨ 이번주 크리에이터 (Spotlight)</label>
+            <div class="desc">크리에이터 이름을 줄바꿈으로 입력</div></div>
+            <div><textarea class="settings-input" id="cc-spotlight" rows="3" placeholder="크리에이터 이름 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+          </div>
+
+          <!-- 추천 곡 큐레이션 -->
+          <div class="settings-row">
+            <div><label>💎 추천 곡 큐레이션</label>
+            <div class="desc">"당신을 위한 추천"에 우선 노출할 트랙 ID</div></div>
+            <div><textarea class="settings-input" id="cc-recommend" rows="3" placeholder="트랙ID 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+          </div>
+
+          <!-- 크리에이터 노출 순서 -->
+          <div class="settings-row">
+            <div><label>👥 크리에이터 노출 순서</label>
+            <div class="desc">상단 크리에이터 섹션 순서 (이름, 줄바꿈)</div></div>
+            <div><textarea class="settings-input" id="cc-creator-order" rows="3" placeholder="크리에이터 이름 1줄 1개&#10;비우면 곡 수 기준 자동" style="width:280px;font-size:11px;"></textarea></div>
+          </div>
+
+          <!-- 대표 노출곡 (comm-featured-info) -->
+          <div class="settings-row">
+            <div><label>🎵 대표 노출곡 목록</label>
+            <div class="desc">메인 리스트 상단에 고정 노출할 트랙 ID</div></div>
+            <div><textarea class="settings-input" id="cc-featured" rows="3" placeholder="트랙ID 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+          </div>
+        </div>
+
         <div class="admin-table-wrap">
           <div class="admin-table-header">
             <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
@@ -9324,6 +9385,122 @@ adminPlayComm=function(url,title,idx){
   var tracks=(_serverTracks||[]).filter(function(t){return t.audio_url;});
   _apLoadQueue(tracks,idx);
 };
+
+/* ══════════════ 커뮤니티 콘텐츠 관리 ══════════════ */
+var _ccSections=[
+  {key:'creators',label:'👥 크리에이터'},
+  {key:'daily_discover',label:'🔍 오늘의 발견'},
+  {key:'challenge',label:'🔥 챌린지'},
+  {key:'activity_feed',label:'📢 활동 피드'},
+  {key:'hero',label:'🌟 대표곡 (Featured)'},
+  {key:'chart',label:'🏆 TOP 10 차트'},
+  {key:'mood',label:'🎵 무드 플레이리스트'},
+  {key:'spotlight',label:'✨ 이번주 크리에이터'},
+  {key:'genre',label:'🎸 장르 탐색'},
+  {key:'main_list',label:'📋 메인 곡 목록'},
+  {key:'suggest',label:'💡 추천 크리에이터'},
+];
+var _ccData=null;
+
+function _loadCommConfig(){
+  fetch('/api/community-config').then(r=>r.json()).then(d=>{
+    _ccData=d;
+    /* 섹션 리스트 렌더 */
+    var list=document.getElementById('comm-sections-list');
+    if(!list)return;
+    var sorted=_ccSections.slice().sort(function(a,b){
+      var oa=(d.sections&&d.sections[a.key])?d.sections[a.key].order:99;
+      var ob=(d.sections&&d.sections[b.key])?d.sections[b.key].order:99;
+      return oa-ob;
+    });
+    list.innerHTML=sorted.map(function(s,i){
+      var sec=d.sections&&d.sections[s.key]?d.sections[s.key]:{enabled:true,order:i+1};
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border-radius:8px;cursor:grab;" draggable="true" data-cckey="'+s.key+'">'
+        +'<span style="color:var(--t3);font-size:12px;cursor:grab;">☰</span>'
+        +'<label style="display:flex;align-items:center;gap:6px;flex:1;font-size:13px;cursor:pointer;">'
+        +'<input type="checkbox" data-cc-check="'+s.key+'" '+(sec.enabled?'checked':'')+' style="accent-color:var(--accent);">'
+        +s.label+'</label>'
+        +'<span style="font-size:10px;color:var(--t3);">순서 '+(i+1)+'</span>'
+        +'</div>';
+    }).join('');
+    /* 드래그 정렬 */
+    _initDragSort(list);
+    /* 나머지 필드 */
+    document.getElementById('cc-hero-track').value=d.hero_track_id||'';
+    document.getElementById('cc-top10').value=(d.top10_override||[]).join('\n');
+    document.getElementById('cc-spotlight').value=(d.spotlight_creators||[]).join('\n');
+    document.getElementById('cc-recommend').value=(d.recommend_tracks||[]).join('\n');
+    document.getElementById('cc-creator-order').value=(d.creator_order||[]).join('\n');
+    document.getElementById('cc-featured').value=(d.featured_tracks||[]).join('\n');
+    toast('✅ 커뮤니티 설정 불러옴','ok');
+  }).catch(function(e){toast('❌ 설정 로드 실패: '+e.message,'err');});
+}
+
+function _saveCommConfig(){
+  var list=document.getElementById('comm-sections-list');
+  var sections={};
+  if(list){
+    var items=list.querySelectorAll('[data-cckey]');
+    items.forEach(function(el,i){
+      var key=el.dataset.cckey;
+      var chk=el.querySelector('[data-cc-check]');
+      sections[key]={enabled:chk?chk.checked:true,order:i+1};
+    });
+  }
+  function _lines(id){return document.getElementById(id).value.split('\n').map(function(s){return s.trim();}).filter(Boolean);}
+  var config={
+    sections:sections,
+    hero_track_id:(document.getElementById('cc-hero-track').value||'').trim(),
+    top10_override:_lines('cc-top10'),
+    spotlight_creators:_lines('cc-spotlight'),
+    recommend_tracks:_lines('cc-recommend'),
+    creator_order:_lines('cc-creator-order'),
+    featured_tracks:_lines('cc-featured'),
+  };
+  fetch('/api/community-config',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},
+    body:JSON.stringify(config)
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok)toast('✅ 커뮤니티 설정 저장 완료!','ok');
+    else toast('❌ 저장 실패: '+(d.error||''),'err');
+  }).catch(function(e){toast('❌ 저장 실패: '+e.message,'err');});
+}
+
+/* 드래그 정렬 헬퍼 */
+function _initDragSort(container){
+  var dragEl=null;
+  container.addEventListener('dragstart',function(e){
+    dragEl=e.target.closest('[data-cckey]');
+    if(dragEl)dragEl.style.opacity='0.4';
+  });
+  container.addEventListener('dragend',function(){
+    if(dragEl)dragEl.style.opacity='1';dragEl=null;
+  });
+  container.addEventListener('dragover',function(e){e.preventDefault();});
+  container.addEventListener('drop',function(e){
+    e.preventDefault();
+    var target=e.target.closest('[data-cckey]');
+    if(!target||!dragEl||target===dragEl)return;
+    var items=Array.from(container.querySelectorAll('[data-cckey]'));
+    var dIdx=items.indexOf(dragEl),tIdx=items.indexOf(target);
+    if(dIdx<tIdx)target.after(dragEl);else target.before(dragEl);
+    /* 순서 번호 업데이트 */
+    container.querySelectorAll('[data-cckey]').forEach(function(el,i){
+      var sp=el.querySelector('span:last-child');if(sp)sp.textContent='순서 '+(i+1);
+    });
+  });
+}
+
+/* 커뮤니티 관리 탭 진입 시 자동 로드 */
+var _ccLoaded=false;
+var _origShowSection=typeof showSection==='function'?showSection:null;
+if(_origShowSection){
+  showSection=function(id){
+    _origShowSection(id);
+    if(id==='sec-community'&&!_ccLoaded){_ccLoaded=true;_loadCommConfig();}
+  };
+}
 </script>
 </body>
 </html>
