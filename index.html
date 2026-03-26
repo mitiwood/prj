@@ -4854,8 +4854,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <!-- 음악/뮤비 탭 -->
     <div class="hist-tabs" id="hist-tabs">
       <button class="hist-tab on" data-htab="all" onclick="_switchHistTab('all')">전체</button>
+      <button class="hist-tab" data-htab="mygen" onclick="_switchHistTab('mygen')">내 곡</button>
       <button class="hist-tab" data-htab="music" onclick="_switchHistTab('music')">음악</button>
       <button class="hist-tab" data-htab="mv" onclick="_switchHistTab('mv')">뮤비</button>
+      <button class="hist-tab" data-htab="vocal" onclick="_switchHistTab('vocal')">보컬/MR</button>
       <button class="hist-tab" data-htab="liked" onclick="_switchHistTab('liked')">좋아요</button>
       <button class="hist-tab" data-htab="playlist" onclick="_switchHistTab('playlist')">플리</button>
       <button class="hist-tab" data-htab="myfeed" onclick="_switchHistTab('myfeed')">MY</button>
@@ -11226,6 +11228,8 @@ function renderHistoryView(){
     if(_histTabFilter==='music') return !h.video_url;
     if(_histTabFilter==='mv') return !!h.video_url;
     if(_histTabFilter==='liked') return h._liked || h._commLiked;
+    if(_histTabFilter==='mygen') return !h._fromFeed && !h._fromPl && !h._commLiked && !h._vocalRemovedFrom && h.genMode!=='vocal-removal' && h.genMode!=='vocal-extract' && h.genMode!=='split_stem';
+    if(_histTabFilter==='vocal') return h._vocalRemovedFrom || h.genMode==='vocal-removal' || h.genMode==='vocal-extract' || h.genMode==='split_stem';
     return true;
   });
   /* 정렬 */
@@ -11234,13 +11238,15 @@ function renderHistoryView(){
   const musicCount = historyData.filter(h=>!h.video_url).length;
   const mvCount = historyData.filter(h=>!!h.video_url).length;
   const likedCount = historyData.filter(h=>h._liked||h._commLiked).length;
+  const mygenCount = historyData.filter(h=>!h._fromFeed&&!h._fromPl&&!h._commLiked&&!h._vocalRemovedFrom&&h.genMode!=='vocal-removal'&&h.genMode!=='vocal-extract'&&h.genMode!=='split_stem').length;
+  const vocalCount = historyData.filter(h=>h._vocalRemovedFrom||h.genMode==='vocal-removal'||h.genMode==='vocal-extract'||h.genMode==='split_stem').length;
   var _plCount=0;try{var _plsAll=JSON.parse(localStorage.getItem('kms_playlists')||'[]');_plsAll.forEach(function(p){_plCount+=p.tracks?p.tracks.length:0;});}catch(e){try{_plCount=JSON.parse(localStorage.getItem('kms_playlist')||'[]').length;}catch(e2){}}
-  if(count) count.textContent=`${historyData.length}곡 (음악 ${musicCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount} · 플리 ${_plCount})`;
+  if(count) count.textContent=`${historyData.length}곡 (내곡 ${mygenCount} · 보컬/MR ${vocalCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount})`;
 
   if(!filtered.length){
     const emptyIcon = _histTabFilter==='mv' ? '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>' : _histTabFilter==='liked' ? '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' : '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-    const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : _histTabFilter==='liked' ? '좋아요한 곡이 없어요' : _histTabFilter==='playlist' ? '플레이리스트가 비어있어요' : '아직 생성된 음악이 없어요';
-    const ctaText = _histTabFilter==='liked' ? '커뮤니티 둘러보기' : '첫 곡 만들기';
+    const emptyMsg = _histTabFilter==='mv' ? '아직 뮤직비디오가 없어요' : _histTabFilter==='music' ? '아직 음악이 없어요' : _histTabFilter==='liked' ? '좋아요한 곡이 없어요' : _histTabFilter==='playlist' ? '플레이리스트가 비어있어요' : _histTabFilter==='mygen' ? '직접 만든 곡이 없어요' : _histTabFilter==='vocal' ? '보컬 제거/스템 분리한 곡이 없어요' : '아직 생성된 음악이 없어요';
+    const ctaText = _histTabFilter==='liked' ? '커뮤니티 둘러보기' : _histTabFilter==='vocal' ? '보컬 제거해보기' : '첫 곡 만들기';
     const ctaView = _histTabFilter==='liked' ? 'community-view' : 'create-view';
     grid.innerHTML=`<div class="hist-empty"><div class="he-icon">${emptyIcon}</div><div class="he-txt">${emptyMsg}</div><div class="he-sub">시작해볼까요?</div><button class="hist-empty-cta" onclick="switchTab('${ctaView}')">${ctaText}</button></div>`;
     return;
@@ -11259,7 +11265,12 @@ function renderHistoryView(){
     const typeBadge=hasVideo?'<div class="hist-type-badge">🎬</div>':'';
     const remixBadge=h._extendedFrom?'<div class="hist-type-badge" style="background:rgba(59,130,246,.8);">🔄</div>':h._coveredFrom?'<div class="hist-type-badge" style="background:rgba(245,158,11,.8);">🎤</div>':h._remasteredFrom?'<div class="hist-type-badge" style="background:rgba(16,185,129,.8);">✨</div>':h._styleFrom?'<div class="hist-type-badge" style="background:rgba(168,85,247,.8);">🎨</div>':h._vocalRemovedFrom?'<div class="hist-type-badge" style="background:rgba(239,68,68,.8);">🎙</div>':'';
     const remixLabel=h._extendedFrom?'연장':h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
-    const hasLyrics = !!(h._inputLyrics || h.lyric || h.lyrics || h.lrc) && (h._inputLyrics || h.lyric || h.lyrics || h.lrc).trim().length > 0;
+    const _ownLyrics = h._inputLyrics || h.lyric || h.lyrics || h.lrc || '';
+    /* MR 트랙이면 원본 트랙에서 가사 가져오기 */
+    const _originLyrics = (!_ownLyrics.trim() && h._vocalRemovedFrom) ? (function(){var orig=historyData.find(function(o){return o.id===h._vocalRemovedFrom;});return orig?(orig._inputLyrics||orig.lyric||orig.lyrics||orig.lrc||''):'';})() : '';
+    const hasLyrics = !!(_ownLyrics||_originLyrics).trim();
+    /* MR 트랙(보컬 제거)이면서 가사가 있으면 노래방 가능 */
+    const isKaraokeReady = hasLyrics && (h.genMode==='vocal-removal' || (h._vocalRemovedFrom && h.tags && h.tags.includes('instrumental')));
     const durId='hdur-'+idx;
     const noAudio = !h.audio_url;
     return`
@@ -11285,7 +11296,7 @@ function renderHistoryView(){
         </div>
         <div class="hist-full-actions">
           <button class="hist-full-act" data-fullplay-idx="${idx}"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/></svg> 재생</button>
-          ${hasLyrics?`<button class="hist-full-act act-karaoke" onclick="event.stopPropagation();event.preventDefault();_openFullKaraoke(${idx})">🎤 노래방</button>`:''}
+          ${isKaraokeReady?`<button class="hist-full-act act-karaoke" style="background:rgba(239,68,68,.15);color:#ef4444;font-weight:700;" onclick="event.stopPropagation();event.preventDefault();_openKaraokeWithMR(${idx})">🎤 노래방모드</button>`:hasLyrics?`<button class="hist-full-act act-karaoke" onclick="event.stopPropagation();event.preventDefault();_openFullKaraoke(${idx})">🎤 노래방</button>`:''}
           <button class="hist-full-act${h._liked?' liked':''}" data-fulllike-idx="${idx}"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"${h._liked?' fill="currentColor"':''}/></svg>${h._liked?' 좋아요 취소':' 좋아요'}</button>
           <button class="hist-full-act act-share" data-fullshare-idx="${idx}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> 공유</button>
         </div>
@@ -16114,6 +16125,20 @@ function getPlayingInfo(){
 let kpAudio=null,kpVizTimer=null,kpLines=[];
 
 /* 전체모드 노래방 버튼 → onclick에서 직접 호출 */
+/* MR(보컬 제거) 트랙으로 노래방 모드 열기 — 원본 가사 사용 */
+function _openKaraokeWithMR(idx){
+  var h=historyData[idx];
+  if(!h)return;
+  /* 가사: 본인 가사 → 원본 트랙 가사 */
+  var plain=h._inputLyrics||h.lyric||h.lyrics||h.lrc||'';
+  if(!plain.trim()&&h._vocalRemovedFrom){
+    var orig=historyData.find(function(o){return o.id===h._vocalRemovedFrom;});
+    if(orig) plain=orig._inputLyrics||orig.lyric||orig.lyrics||orig.lrc||'';
+  }
+  stopAllAudio();
+  openKaraokePlayer(h.audio_url||'',h.title||'노래방',_normTags(h.tags),h.image_url||'',h.taskId||'',h.id||'',plain);
+}
+
 function _openFullKaraoke(idx){
   const h=historyData[idx];
   if(!h)return;
