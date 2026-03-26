@@ -9519,8 +9519,8 @@ async function pollResult(apiKey,taskId){
       /* sunoData 외 다양한 응답 구조 대응 */
       const tracks=st.response?.sunoData||st.sunoData||st.tracks||st.response?.tracks||st.response?.data||st.data||[];
       const sec = Math.round(elapsed/1000);
-      if(_genCount===1){$('ld-sub').textContent=sec<10?'⚡ 빠른 생성 중... 🎧':sec<25?'멜로디 완성 중 🎹':sec<45?'믹싱 마무리 중 🎚':'거의 다 됐어요! ✨';}
-      else{$('ld-sub').textContent=sec<15?'AI한테 곡 맡겼어요~ 잠깐만요 🎧':sec<35?'멜로디 뽑는 중 🎹 감 잡았대요':sec<60?'보컬 녹음 들어갔어요 🎤 목 푸는 중':sec<90?'편곡이랑 믹싱 거의 끝나가요 🎚':'마지막 마무리 중 ✨ 진짜 곧 나와요!';}
+      if(_genCount===1){$('ld-sub').textContent=sec<10?'⚡ 빠른 생성 중... 🎧':sec<25?'멜로디 완성 중 🎹':sec<45?'믹싱 마무리 중 🎚':sec<60?'거의 다 됐어요! ✨':'서버가 바빠요... 조금만 더 기다려주세요 🙏';}
+      else{$('ld-sub').textContent=sec<15?'AI한테 곡 맡겼어요~ 잠깐만요 🎧':sec<35?'멜로디 뽑는 중 🎹 감 잡았대요':sec<60?'보컬 녹음 들어갔어요 🎤 목 푸는 중':sec<90?'편곡이랑 믹싱 거의 끝나가요 🎚':sec<120?'마지막 마무리 중 ✨ 진짜 곧 나와요!':'서버가 바빠요... 조금만 더 기다려주세요 🙏';}
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
@@ -10592,7 +10592,7 @@ async function generate(overrideParams){
   const songDesc=($('song-desc')?.value||'').trim();
   const mood=moodVal;
   const negTags=$('neg-tags').value.trim();
-  const model=$('model-sel').value;
+  const model=isSimple?'V3_5':$('model-sel').value; /* 심플모드: V3.5(빠름) 강제 */
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
   /* 커스텀 모드 — 입력 데이터 충분성 체크 → 바텀시트 안내 */
