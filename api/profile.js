@@ -210,7 +210,7 @@ export default async function handler(req, res) {
       /* 병렬로 모든 쿼리 실행 */
       const promises = [
         sb('GET', `/users?name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits_song,credits_mv,credits_lyrics,login_count,created_at&limit=1`),
-        sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&is_public=eq.true&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_dislikes,comm_plays,comm_rating,duration,created_at&limit=50`),
+        sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_dislikes,comm_plays,comm_rating,duration,created_at,is_public&limit=50`),
         sb('GET', `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
         sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
       ];
