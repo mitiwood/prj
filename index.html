@@ -747,22 +747,47 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* 로딩 카드 */
 .loading-card{
   display:none;position:relative;overflow:hidden;text-align:center;
-  /* 기본(비활성)은 숨김 */
 }
-.loading-card::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at 30% 40%,rgba(124,58,237,.10) 0%,transparent 70%);
-  animation:ld-glow 4s ease-in-out infinite alternate;
-}
-@keyframes ld-glow{0%{opacity:.3;transform:scale(1);}100%{opacity:.8;transform:scale(1.1);}}
-/* ── 활성 시: 풀스크린 오버레이 ── */
+/* ── 활성 시: 풀스크린 오버레이 (불투명 — 뒤 콘텐츠 완전 차단) ── */
 .loading-card.on{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   position:fixed;inset:0;z-index:10001;
   background:var(--bg, #0a0a1a);
   padding:32px 24px;
   animation:ld-fadein .35s ease-out;
+  /* 스켈레톤 배경 장식 */
+  overflow:hidden;
 }
+/* 상단 스켈레톤 바 — 가상의 트랙 카드 형태 */
+.loading-card.on::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:100%;
+  background:
+    /* 상단 장식선 */
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 20%,transparent 40%) 0 60px / 100% 12px no-repeat,
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.03) 30%,transparent 55%) 0 90px / 100% 10px no-repeat,
+    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.03) 25%,transparent 45%) 0 115px / 80% 10px no-repeat,
+    /* 하단 스켈레톤 카드 모양 */
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.025) 20%,transparent 40%) 0 calc(100% - 120px) / 100% 14px no-repeat,
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.025) 35%,transparent 60%) 0 calc(100% - 90px) / 100% 12px no-repeat,
+    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.02) 25%,transparent 50%) 0 calc(100% - 60px) / 70% 10px no-repeat;
+  animation:ld-skel-shimmer 2s ease-in-out infinite;
+  pointer-events:none;z-index:0;
+}
+/* 스켈레톤 시머 애니메이션 */
+@keyframes ld-skel-shimmer{
+  0%{opacity:.3;transform:translateX(-5%);}
+  50%{opacity:.7;transform:translateX(5%);}
+  100%{opacity:.3;transform:translateX(-5%);}
+}
+/* 중앙 글로우 */
+.loading-card.on::after{
+  content:'';position:absolute;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,58,237,.08) 0%,transparent 70%);
+  animation:ld-glow 4s ease-in-out infinite alternate;
+  pointer-events:none;z-index:0;
+}
+@keyframes ld-glow{0%{opacity:.3;transform:scale(.8);}100%{opacity:.7;transform:scale(1.2);}}
 @keyframes ld-fadein{from{opacity:0;}to{opacity:1;}}
 .ld-waveform{display:flex;align-items:center;justify-content:center;gap:5px;height:40px;margin-bottom:14px;position:relative;z-index:1;}
 .ld-bar{
@@ -778,8 +803,10 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .ld-bar:nth-child(6){height:24px;animation-delay:.1s;}
 .ld-bar:nth-child(7){height:16px;animation-delay:0s;}
 @keyframes ldWave{0%,100%{transform:scaleY(.5);opacity:.4}50%{transform:scaleY(1);opacity:1}}
-.ld-title{font-size:16px;font-weight:800;margin-bottom:6px;position:relative;z-index:1;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.ld-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:14px;position:relative;z-index:1;}
+.ld-title{font-size:18px;font-weight:800;margin-bottom:6px;position:relative;z-index:1;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ld-sub{font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:14px;position:relative;z-index:1;}
+.ld-pct-text{font-size:36px;font-weight:900;position:relative;z-index:1;margin-bottom:2px;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;}
+.ld-eta-text{font-size:12px;color:var(--t3);position:relative;z-index:1;margin-bottom:8px;}
 .ld-step{display:flex;flex-direction:column;align-items:center;gap:2px;opacity:.35;transition:all .4s cubic-bezier(.4,0,.2,1);transform:scale(.85);}
 .ld-step.active{opacity:1;transform:scale(1.1);}
 .ld-step.active .ld-step-icon{animation:ld-step-pulse 1.5s ease-in-out infinite;}
@@ -798,6 +825,16 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 @keyframes ld-fill-shift{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
 .ld-task{display:none;position:relative;z-index:1;max-width:360px;width:100%;}
 [data-theme="light"] .ld-title{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
+[data-theme="light"] .ld-pct-text{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
+[data-theme="light"] .loading-card.on::before{
+  background:
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.06) 20%,transparent 40%) 0 60px / 100% 12px no-repeat,
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.05) 30%,transparent 55%) 0 90px / 100% 10px no-repeat,
+    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.04) 25%,transparent 45%) 0 115px / 80% 10px no-repeat,
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 20%,transparent 40%) 0 calc(100% - 120px) / 100% 14px no-repeat,
+    linear-gradient(90deg,transparent 5%,rgba(124,58,237,.04) 35%,transparent 60%) 0 calc(100% - 90px) / 100% 12px no-repeat,
+    linear-gradient(90deg,transparent 10%,rgba(124,58,237,.03) 25%,transparent 50%) 0 calc(100% - 60px) / 70% 10px no-repeat;
+}
 
 /* 결과 섹션 */
 .results-section{margin-top:12px;}
@@ -4978,8 +5015,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ld-step-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="ld-step" id="ld-step-4"><span class="ld-step-icon">✅</span><span class="ld-step-label">완료</span></div>
       </div>
-      <div id="ld-percent" style="display:none;">0%</div>
-      <div id="ld-eta" style="display:none;"></div>
+      <div id="ld-percent" class="ld-pct-text">0%</div>
+      <div id="ld-eta" class="ld-eta-text"></div>
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
       <div id="gen-progress-steps"></div>
       <div class="ld-task" id="ld-task"></div>
@@ -19029,12 +19066,16 @@ async function commRateSb(sbId, rating){
   /* 로컬 히스토리에도 반영 */
   const h=historyData.find(h=>h.id===sbId);
   if(h){h._rating=rating;saveHistory();}
-  /* 서버 저장 */
+  /* 서버 저장 (사용자 정보 포함) */
   try{
-    await fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action=rate',{
+    var u=currentUser||{};
+    var r=await fetch('/api/tracks?id='+encodeURIComponent(sbId)+'&action=rate',{
       method:'PATCH',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({rating})
+      body:JSON.stringify({rating,userName:u.name||'',userProvider:u.provider||''})
     });
+    var d=await r.json();
+    if(d.comm_rating!=null&&t){t.avgRating=d.comm_rating;t.ratingCount=d.comm_rating_count||0;}
+    toast('⭐ '+rating+'점 평가 완료','ok',1500);
   }catch(e){console.warn('[rate]',e.message);}
   toast(['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][rating]+' 별점 등록!','ok',1500);
   _notifyBot('\u2B50 \uBCC4\uC810 '+rating+'\uC810\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+(t&&t.title||sbId));

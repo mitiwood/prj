@@ -838,7 +838,7 @@ textarea.form-input{line-height:1.5;}
             <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
             <button class="btn btn-acc" onclick="renderCommunityAdmin(true)">🔄 새로고침</button>
           </div>
-          <table><thead><tr><th><input type="checkbox" id="comm-chk-all" onchange="toggleAllComm(this)"></th><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>출처</th><th>생성일</th><th>관리</th></tr></thead>
+          <table><thead><tr><th><input type="checkbox" id="comm-chk-all" onchange="toggleAllComm(this)"></th><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>⭐ 별점</th><th>출처</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="comm-tbody"></tbody></table>
         </div>
       </div>
@@ -1046,7 +1046,7 @@ textarea.form-input{line-height:1.5;}
               <th>이름</th><th>소셜</th><th>플랜</th><th>크레딧</th><th>만료일</th><th>로그인</th><th>가입일</th><th>액션</th>
             </tr></thead>
             <tbody id="pay-user-tbody">
-              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
+              <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">로딩 중...</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -1140,7 +1140,7 @@ textarea.form-input{line-height:1.5;}
               <th>No</th><th>주문ID</th><th>유저</th><th>플랜</th><th>금액</th><th>상태</th><th>결제일</th><th>액션</th>
             </tr></thead>
             <tbody id="pay-history-tbody">
-              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>
+              <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">결제 내역이 없습니다</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -1725,7 +1725,7 @@ textarea.form-input{line-height:1.5;}
           </div>
           <table><thead><tr><th style="width:30px;">No</th><th>제목</th><th>내용</th><th>대상</th><th>수신자</th><th>발송일</th><th>결과</th><th>액션</th></tr></thead>
           <tbody id="push-history-tbody">
-            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
+            <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>
           </tbody></table>
           <div id="push-hist-paging" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;"></div>
         </div>
@@ -3060,7 +3060,7 @@ function _mapTrack(t){
     id:t.id, taskId:t.task_id||'', title:t.title||'무제',
     audio_url:t.audio_url||'', video_url:t.video_url||'', image_url:t.image_url||'',
     tags:t.tags||'', lyrics:t.lyrics||'', genMode:t.gen_mode||'custom',
-    created:c, _commLikes:t.comm_likes||0, _commPlays:t.comm_plays||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0,
+    created:c, _commLikes:t.comm_likes||0, _commPlays:t.comm_plays||0, _commDislikes:t.comm_dislikes||0, _commRating:t.comm_rating||0, _commRatingCount:t.comm_rating_count||0,
     _owner:t.owner_name?{name:t.owner_name,avatar:t.owner_avatar||'',provider:t.owner_provider||'guest'}:null,
   };
 }
@@ -3424,7 +3424,7 @@ async function renderTracksAdmin(){
   const tbody=document.getElementById('tracks-tbody');
   /* 캐시에 데이터가 있으면 로딩 표시 생략 (깜빡임 방지) */
   if(!_serverTracks.length && tbody){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--t3);">🔄 Supabase에서 불러오는 중...</td></tr>';
   }
   /* 캐시가 비어있으면 서버에서 로드 */
   if(!_serverTracks.length){
@@ -3465,7 +3465,7 @@ let _trackListForRender = [];
 
 function renderTracksTable(list){
   const tbody=document.getElementById('tracks-tbody');
-  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--t3);">데이터 없음</td></tr>';return;}
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--t3);">데이터 없음</td></tr>';return;}
   _trackListForRender = list;
   _trackPage = 0;
   tbody.innerHTML = '';
@@ -3518,7 +3518,7 @@ function _appendTrackRows(tbody, fromIdx){
   if(end < list.length){
     const moreRow = document.createElement('tr');
     moreRow.className = 'load-more-row';
-    moreRow.innerHTML = '<td colspan="8" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreTracks()" style="padding:8px 32px;">더 보기 ('+(list.length-end)+'곡 남음)</button></td>';
+    moreRow.innerHTML = '<td colspan="9" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreTracks()" style="padding:8px 32px;">더 보기 ('+(list.length-end)+'곡 남음)</button></td>';
     tbody.appendChild(moreRow);
   }
   _trackPage = end;
@@ -4236,7 +4236,7 @@ function _renderCommTable(){
   if(toggleEl) toggleEl.className=_commShowHidden?'toggle on':'toggle';
 
   if(!_commDisplayTracks.length){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3);">표시할 트랙이 없습니다</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--t3);">표시할 트랙이 없습니다</td></tr>';
     return;
   }
   tbody.innerHTML='';
@@ -4285,6 +4285,7 @@ function _appendCommRows(tbody, fromIdx){
       +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
       +'<td><span class="badge" style="background:rgba(124,58,237,.15);color:var(--acc2);">'+ml+'</span></td>'
       +'<td style="font-size:11px;">'+likesHtml+'</td>'
+      +'<td style="font-size:11px;"><span style="color:#f59e0b;">'+(t._commRating?('⭐ '+(t._commRating||0)):'☆ 0')+'</span><span style="font-size:9px;color:var(--t3);"> ('+(t._commRatingCount||0)+'명)</span>'+(t.id?'<br><button class="btn" onclick="resetRating(\''+esc(t.id)+'\')" style="font-size:9px;padding:1px 6px;margin-top:2px;">초기화</button>':'')+'</td>'
       +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
       +'<td><div style="display:flex;gap:5px;flex-wrap:wrap;">'
         +(au?'<button class="btn btn-acc" id="aplay-btn-'+i+'" data-url="'+au+'" data-title="'+tl+'" onclick="adminPlayComm(this.dataset.url,this.dataset.title,'+i+')" style="font-size:12px;padding:5px 10px;">▶</button><audio id="apl-comm-'+i+'" src="'+au+'" preload="none"></audio>':'')
@@ -4299,7 +4300,7 @@ function _appendCommRows(tbody, fromIdx){
   if(end < displayTracks.length){
     const moreRow = document.createElement('tr');
     moreRow.className = 'load-more-row';
-    moreRow.innerHTML = '<td colspan="8" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreComm()" style="padding:8px 32px;">더 보기 ('+(displayTracks.length-end)+'곡 남음)</button></td>';
+    moreRow.innerHTML = '<td colspan="9" style="text-align:center;padding:16px;"><button class="btn btn-acc" onclick="_loadMoreComm()" style="padding:8px 32px;">더 보기 ('+(displayTracks.length-end)+'곡 남음)</button></td>';
     tbody.appendChild(moreRow);
   }
   _commPage = end;
@@ -4334,6 +4335,17 @@ async function showSbTrack(id){
   }catch(e){ adminToast('❌ 오류: '+e.message); }
 }
 
+async function resetRating(id){
+  if(!confirm('이 곡의 별점을 초기화할까요?')) return;
+  try{
+    await adminFetch('/api/tracks?id='+encodeURIComponent(id)+'&action=rate',{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rating:0,userName:'admin',userProvider:'admin'})
+    });
+    showToast('별점 초기화 완료','ok');
+    renderCommunityAdmin(true);
+  }catch(e){showToast('초기화 실패','err');}
+}
 async function deleteCommTrack(id){
   if(!confirm('Supabase에서 완전 삭제할까요?')) return;
   try{
@@ -4609,7 +4621,7 @@ function _sortAndRenderUsers(){
   const loginTbody=document.getElementById('users-login-tbody');
   if(!loginTbody) return;
   if(!users.length){
-    loginTbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">'+(q||pf||plf?'검색 결과 없음':'로그인 기록이 없습니다')+'</td></tr>';
+    loginTbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">'+(q||pf||plf?'검색 결과 없음':'로그인 기록이 없습니다')+'</td></tr>';
     return;
   }
   const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',guest:'badge-acc'};
@@ -5105,7 +5117,7 @@ function renderPushHistory(){
   if(countEl) countEl.textContent = `(총 ${filtered.length}건)`;
 
   if(!filtered.length){
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">발송 내역이 없습니다</td></tr>';
     if(pagingEl) pagingEl.innerHTML = '';
     return;
   }
@@ -7220,7 +7232,7 @@ async function _loadPaymentData(){
     _memAllUsers = d.users || d.data || [];
     _renderMembers(_memAllUsers);
   } catch(e){
-    document.getElementById('pay-user-tbody').innerHTML = `<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
+    document.getElementById('pay-user-tbody').innerHTML = `<tr><td colspan="9" style="color:#ef4444;">${e.message}</td></tr>`;
   }
   /* 결제 내역 */
   try {
@@ -7233,7 +7245,7 @@ async function _loadPaymentData(){
     const el2=document.getElementById('pay-total-amount');if(el2)el2.textContent='₩'+totalAmount.toLocaleString();
     const tbody=document.getElementById('pay-history-tbody');
     if(!payments.length){
-      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">결제 내역 없음</td></tr>';
+      tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">결제 내역 없음</td></tr>';
     } else {
       tbody.innerHTML=payments.map((p,i)=>{
         const st={'DONE':'<span style="color:var(--grn);">✅완료</span>','CANCELED':'<span style="color:#ef4444;">❌취소</span>','EXPIRED':'<span style="color:var(--t3);">⏰만료</span>'}[p.status]||p.status;
@@ -7242,7 +7254,7 @@ async function _loadPaymentData(){
       }).join('');
     }
   } catch(e){
-    document.getElementById('pay-history-tbody').innerHTML=`<tr><td colspan="8" style="color:#ef4444;">${e.message}</td></tr>`;
+    document.getElementById('pay-history-tbody').innerHTML=`<tr><td colspan="9" style="color:#ef4444;">${e.message}</td></tr>`;
   }
   /* 정지 회원 */
   const suspended=_memAllUsers.filter(u=>(u.credits_song||0)===0&&u.plan==='free'&&u.login_count>1);
@@ -7258,7 +7270,7 @@ function _renderMembers(users){
   const el2=document.getElementById('pay-creator-count');if(el2)el2.textContent=creatorCount;
   const el3=document.getElementById('pay-total-users');if(el3)el3.textContent=users.length;
 
-  if(!users.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);">유저 없음</td></tr>';return;}
+  if(!users.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">유저 없음</td></tr>';return;}
   tbody.innerHTML=users.sort((a,b)=>{
     const po={creator:0,pro:1,free:2};
     return (po[a.plan]||2)-(po[b.plan]||2)||(b.login_count||0)-(a.login_count||0);
