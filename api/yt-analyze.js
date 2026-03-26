@@ -110,6 +110,7 @@ export default async function handler(req, res) {
   // ── Step 2: Claude Sonnet으로 정밀 분석 ──
   const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
   let analysis = null;
+  let _debugError = '';
   const _keyPrefix = apiKey ? apiKey.slice(0, 12) + '...' : 'NONE';
   console.log('[yt-analyze] key:', _keyPrefix, '| title:', title, '| author:', author);
 
@@ -189,7 +190,8 @@ Answer in JSON ONLY:
         console.log('[yt-analyze] Claude OK:', analysis.genre, analysis.bpm_estimate);
       }
     } catch (e) {
-      console.warn('[yt-analyze] Claude 분석 실패:', e.message);
+      console.warn('[yt-analyze] Claude 분석 실패:', e.message, e.stack?.slice(0,200));
+      _debugError = e.message;
     }
   }
 
@@ -224,7 +226,8 @@ Answer in JSON ONLY:
     duration,
     videoId,
     _analyzed: !!apiKey && analysis && analysis.genre !== 'Pop',
-    _debug_key: _keyPrefix, /* 임시 디버그 — 배포 후 제거 */
+    _debug_key: _keyPrefix,
+    _debug_error: _debugError,
     ...analysis,
   });
 }
