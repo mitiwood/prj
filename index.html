@@ -9486,7 +9486,7 @@ async function pollResult(apiKey,taskId){
     }
   }
   _updPct(0,'PENDING');
-  _setGenStep(1); _genCancelled=false; _genStartTime=Date.now();
+  _genStepPrev=0; _setGenStep(1); _genCancelled=false; _genStartTime=Date.now();
   let _netFailCount=0; /* 연속 네트워크 실패 카운터 */
   const _maxNetFails=10; /* 연속 10회 실패 시 중단 */
   for(let i=0;i<MAX_POLLS;i++){
@@ -9511,10 +9511,11 @@ async function pollResult(apiKey,taskId){
       else if(status==='SUCCESS'||status==='COMPLETE') _statusStep=4;
       var _estSec=_genCount===1?45:90;
       var _timeStep=elapsed<(_estSec*150)?1:elapsed<(_estSec*450)?2:elapsed<(_estSec*800)?3:4;
-      _setGenStep(Math.max(_statusStep,_timeStep));
-      /* ld-sub: 단계 텍스트 (팁 카드가 보조) */
+      var _stepNow=Math.max(_statusStep,_timeStep);
+      _setGenStep(_stepNow);
+      /* ld-sub: 단계 텍스트 — _genStepPrev 기준 (단조증가 반영) */
       var _stepMsg=['','요청을 보내는 중...','멜로디를 만들고 있어요','믹싱 마무리 중...','거의 완성됐어요!'];
-      var _ldS=$('ld-sub');if(_ldS)_ldS.textContent=_stepMsg[Math.max(_statusStep,_timeStep)]||'';
+      var _ldS=$('ld-sub');if(_ldS&&_stepMsg[_genStepPrev])_ldS.textContent=_stepMsg[_genStepPrev];
       /* sunoData 외 다양한 응답 구조 대응 */
       var tracks=st.response?.sunoData||st.sunoData||st.tracks||st.response?.tracks||st.response?.data||st.data||[];
       var sec = Math.round(elapsed/1000);
@@ -10488,6 +10489,9 @@ function _stopLdTips(){clearInterval(_ldTipTimer);}
 var _genStepIcons={1:'📝',2:'🎹',3:'🎚',4:'✅'};
 var _genStepPrev=0;
 var _setGenStep=function(step){
+  /* 단조증가 — 이전 단계보다 낮은 값은 무시 */
+  if(step<_genStepPrev) return;
+  _genStepPrev=step;
   var arrows=document.querySelectorAll('#ld-steps .ld-step-arrow');
   for(var i=1;i<=4;i++){
     var el=$('ld-step-'+i);
@@ -10508,7 +10512,6 @@ var _setGenStep=function(step){
     if(idx<step-1)a.classList.add('passed');
     else a.classList.remove('passed');
   });
-  _genStepPrev=step;
 };
 var _updateGenEta=function(elapsed){};
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
@@ -10533,9 +10536,12 @@ function _syncGenButtons(){
   });
 }
 async function generate(overrideParams){
+  var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
+  var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
+  _genLog('START','mode='+_modeKey+', genCount='+_genCount);
   const apiKey=kieApiKey;
-  if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
+  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
   if(!overrideParams?._afterLyrics) _retryCount = 0;
   /* 전역 생성 중 — 큐에 추가 (최대 1개 대기) */
@@ -10706,14 +10712,18 @@ async function generate(overrideParams){
     if(songTitle)body.title=songTitle;
     /* kie.ai generate API는 duration을 지원하지 않음 — 제거 */
 
+    _genLog('API','POST /api/v1/generate',{model:body.model,inst:body.instrumental,style:(body.style||'').slice(0,60),prompt:(body.prompt||'').slice(0,40)});
     const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
     const taskId=genData?.data?.taskId||genData?.taskId;
+    _genLog('TASK',taskId?'taskId='+taskId:'taskId 없음!');
     if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
     lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
     _saveGenSession(taskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
     $('ld-task').textContent='';
 
+    _genLog('POLL','폴링 시작 taskId='+taskId);
     const _rawTracks=await pollResult(apiKey,taskId);
+    _genLog('POLL','폴링 완료 '+(Date.now()-_genT0)+'ms, 트랙 '+(_rawTracks?.length||0)+'개');
     _clearGenSession();
     if(!_rawTracks?.length)throw new Error('트랙을 받지 못했어요');
     /* ✅ FIX: 생성 실패 트랙(audio_url 없음) 필터링 — A/B 중 한쪽 실패 방어 */
@@ -10743,11 +10753,10 @@ async function generate(overrideParams){
       }
     }
 
-    /* gp-steps 제거됨 */
     $('loading-card').classList.remove('on');
+    _genLog('DONE','총 '+(Date.now()-_genT0)+'ms, 유효 트랙 '+tracks.length+'개');
 
-    /* 취소된 경우 결과 저장하지 않음 */
-    if(_genCancelled){ toast('생성이 취소되었어요','',2000); return; }
+    if(_genCancelled){ _genLog('CANCEL','사용자 취소'); toast('생성이 취소되었어요','',2000); return; }
 
     lastTracks=tracks.map(t=>({...t,_inputLyrics:lastLyricsInput,_taskId:taskId}));
     renderTracks(lastTracks,prompt,styleStr,currentMode);
