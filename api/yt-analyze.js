@@ -166,7 +166,7 @@ Answer in JSON ONLY:
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 600,
+          max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         }),
       });
@@ -177,7 +177,7 @@ Answer in JSON ONLY:
         const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
         });
         cd = await cr2.json();
       }
@@ -226,8 +226,6 @@ Answer in JSON ONLY:
     duration,
     videoId,
     _analyzed: !!apiKey && analysis && analysis.genre !== 'Pop',
-    _debug_key: _keyPrefix,
-    _debug_error: _debugError,
     ...analysis,
   });
 }
