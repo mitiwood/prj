@@ -5642,6 +5642,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <span class="fp-extra-label">가사</span>
         </button>
       </div>
+      <!-- 볼륨 슬라이더 -->
+      <div class="fp-bottom-bar">
+        <div class="fp-vol-wrap">
+          <span class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
+          <input type="range" class="fp-vol-slider" id="fp-vol-slider" min="0" max="100" value="100" oninput="fpSetVolume(this.value)">
+          <span class="fp-vol-icon"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span>
+        </div>
+      </div>
       <!-- 이퀄라이저 패널 -->
       <div class="fp-eq-panel" id="fp-eq-panel">
         <div class="fp-eq-title"><span>이퀄라이저</span><span id="fp-eq-preset-name">기본</span></div>
@@ -12760,6 +12768,10 @@ function expandToFullPlayer(){
     const r = pw.getBoundingClientRect();
     fpAudio.currentTime = fpAudio.duration * Math.max(0, Math.min(1,(e.clientX-r.left)/r.width));
   };
+
+  /* 볼륨 슬라이더 동기화 */
+  var vs=$('fp-vol-slider');
+  if(vs){var cv=fpAudio?Math.round(fpAudio.volume*100):100;vs.value=cv;vs.style.background='linear-gradient(to right,rgba(255,255,255,.8) '+cv+'%,rgba(255,255,255,.12) '+cv+'%)';}
 }
 
 /* 미니플레이어 이벤트 */
@@ -13503,6 +13515,12 @@ $('fp-play-btn').addEventListener('click',()=>{
 });
 
 /* 볼륨 슬라이더 */
+function fpSetVolume(val){
+  var v=parseInt(val,10)/100;
+  if(fpAudio)fpAudio.volume=v;
+  var s=$('fp-vol-slider');
+  if(s){s.value=val;s.style.background='linear-gradient(to right,rgba(255,255,255,.8) '+val+'%,rgba(255,255,255,.12) '+val+'%)';}
+}
 function fpSeekRel(sec){
   if(!fpAudio?.duration)return;
   fpAudio.currentTime=Math.max(0,Math.min(fpAudio.duration,fpAudio.currentTime+sec));
