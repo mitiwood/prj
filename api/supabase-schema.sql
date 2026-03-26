@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.tracks (
   lyrics          TEXT        DEFAULT '',
   gen_mode        TEXT        DEFAULT 'custom',
   owner_name      TEXT        DEFAULT '익명',
+  owner_email     TEXT        DEFAULT '',
   owner_avatar    TEXT        DEFAULT '',
   owner_provider  TEXT        DEFAULT 'guest',
   is_public       BOOLEAN     DEFAULT TRUE,
@@ -25,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.tracks (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. users 테이블
+-- 2. users 테이블 (email+provider가 안정적 식별자)
 CREATE TABLE IF NOT EXISTS public.users (
   id              BIGSERIAL   PRIMARY KEY,
   name            TEXT        NOT NULL,
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   last_login      BIGINT      NOT NULL DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(name, provider)
+  UNIQUE(email, provider)
 );
 
 -- 3. announcements 테이블 (인앱 공지)

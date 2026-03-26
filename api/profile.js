@@ -207,10 +207,17 @@ export default async function handler(req, res) {
       const viewerName = req.query?.viewerName;
       const viewerProvider = req.query?.viewerProvider;
 
-      /* 병렬로 모든 쿼리 실행 */
+      /* 병렬로 모든 쿼리 실행 — email 기반 매칭 우선 */
+      const qEmail = req.query?.email;
+      const userFilter = qEmail
+        ? `email=ilike.${encodeURIComponent(qEmail)}&provider=ilike.${encodeURIComponent(provider)}`
+        : `name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}`;
+      const trackFilter = qEmail
+        ? `owner_email=ilike.${encodeURIComponent(qEmail)}&owner_provider=ilike.${encodeURIComponent(provider)}`
+        : `owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}`;
       const promises = [
-        sb('GET', `/users?name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}&select=name,provider,email,avatar,plan,credits_song,credits_mv,credits_lyrics,login_count,created_at&limit=1`),
-        sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_dislikes,comm_plays,comm_rating,duration,created_at,is_public&limit=50`),
+        sb('GET', `/users?${userFilter}&select=name,provider,email,avatar,plan,credits_song,credits_mv,credits_lyrics,login_count,created_at&limit=1`),
+        sb('GET', `/tracks?${trackFilter}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_dislikes,comm_plays,comm_rating,duration,created_at,is_public&limit=50`),
         sb('GET', `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
         sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
       ];
@@ -329,28 +336,31 @@ export default async function handler(req, res) {
       _profileRateMap[rateKey] = _profileRateMap[rateKey].filter(t => now - t < 60000);
       if (_profileRateMap[rateKey].length >= 10) return res.status(429).json({ error: '너무 많은 요청입니다' });
       _profileRateMap[rateKey].push(now);
-      const { name: newName, provider: prov, oldName, bio } = body;
-      if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
+      const { name: newName, provider: prov, oldName, bio, email: userEmail } = body;
+      if (!newName || !prov) return res.status(400).json({ error: '이름/프로바이더 필요' });
       const trimmed = newName.trim().slice(0, 10);
       if (!trimmed) return res.status(400).json({ error: '이름이 비어있어요' });
       try {
+        /* email+provider로 사용자 매칭 (email 없으면 oldName 폴백) */
+        const userFilter = userEmail
+          ? `email=ilike.${encodeURIComponent(userEmail)}&provider=ilike.${encodeURIComponent(prov)}`
+          : `name=ilike.${encodeURIComponent(oldName || trimmed)}&provider=ilike.${encodeURIComponent(prov)}`;
         const updateData = { name: trimmed };
         if (typeof bio === 'string') {
-          /* 기존 ua 데이터 보존하며 bio 업데이트 */
           let existingUa = {};
           try {
-            const rows = await sb('GET', `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}&select=ua`);
+            const rows = await sb('GET', `/users?${userFilter}&select=ua`);
             if (rows && rows[0] && rows[0].ua) existingUa = typeof rows[0].ua === 'string' ? JSON.parse(rows[0].ua) : rows[0].ua;
           } catch (_) {}
           updateData.ua = JSON.stringify({ ...existingUa, bio: bio.trim().slice(0, 100) });
         }
-        await sb('PATCH',
-          `/users?name=ilike.${encodeURIComponent(oldName)}&provider=ilike.${encodeURIComponent(prov)}`,
-          updateData);
+        await sb('PATCH', `/users?${userFilter}`, updateData);
+        /* tracks 테이블: email 기반 매칭 우선, 없으면 oldName 폴백 */
         try {
-          await sb('PATCH',
-            `/tracks?owner_name=ilike.${encodeURIComponent(oldName)}&owner_provider=ilike.${encodeURIComponent(prov)}`,
-            { owner_name: trimmed });
+          const trackFilter = userEmail
+            ? `owner_email=ilike.${encodeURIComponent(userEmail)}&owner_provider=ilike.${encodeURIComponent(prov)}`
+            : `owner_name=ilike.${encodeURIComponent(oldName || trimmed)}&owner_provider=ilike.${encodeURIComponent(prov)}`;
+          await sb('PATCH', `/tracks?${trackFilter}`, { owner_name: trimmed });
         } catch (e) { console.warn('[update-profile] tracks update:', e.message); }
         return res.status(200).json({ ok: true, name: trimmed });
       } catch (e) {

@@ -186,6 +186,7 @@ async function _handler(req, res) {
         lyrics: (lyrics || "").slice(0, 5000),
         gen_mode: genMode || "custom",
         owner_name: owner_name || "익명",
+        owner_email: b.owner_email || "",
         owner_avatar: owner_avatar || "",
         owner_provider: owner_provider || "guest",
         is_public: b._is_public !== undefined ? !!b._is_public : true,

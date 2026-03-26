@@ -127,11 +127,19 @@ export default async function handler(req, res) {
       }
 
       try {
-        /* 기존 유저 조회 → login_count +1 누적 */
+        /* 기존 유저 조회 → email+provider로 매칭 (닉네임 변경에 안전) */
         let existingCount = 0;
         let isNew = true;
+        const userEmail = email || '';
         try {
-          const existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count`);
+          let existing = null;
+          if (userEmail) {
+            existing = await sbFetch(`/users?email=ilike.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name`);
+          }
+          /* email 없는 경우 기존 name+provider 폴백 */
+          if (!existing?.length) {
+            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name`);
+          }
           if (existing?.length > 0) {
             existingCount = existing[0].login_count || 0;
             isNew = false;
@@ -140,7 +148,7 @@ export default async function handler(req, res) {
 
         const entry = {
           name, provider,
-          email:       email    || '',
+          email:       userEmail,
           avatar:      avatar   || '',
           uid:         id       || '',
           ua:          (ua||'').slice(0, 250),
@@ -151,8 +159,9 @@ export default async function handler(req, res) {
           ...(location ? { last_location: location } : {}),
         };
 
-        /* upsert: name+provider 중복 시 업데이트 */
-        await sbFetch('/users?on_conflict=name,provider', {
+        /* upsert: email+provider 기준 (email 있으면), 없으면 name+provider 폴백 */
+        const conflictKey = userEmail ? 'email,provider' : 'name,provider';
+        await sbFetch(`/users?on_conflict=${conflictKey}`, {
           method: 'POST',
           prefer: 'resolution=merge-duplicates',
           body: JSON.stringify(entry),

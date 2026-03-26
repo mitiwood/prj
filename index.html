@@ -13076,6 +13076,7 @@ function _saveTrackToServer(track){
     genMode:        track.genMode        || 'custom',
     parent_id:      track.parent_id      || track._extendedFrom || track._coveredFrom || track._remasteredFrom || track._styleFrom || track._vocalRemovedFrom || '',
     owner_name:     track._owner?.name     || currentUser?.name     || '익명',
+    owner_email:    currentUser?.email     || '',
     owner_avatar:   track._owner?.avatar   || currentUser?.avatar   || '',
     owner_provider: track._owner?.provider || currentUser?.provider || '',
     _is_public:     _commAutoPublish,
@@ -15552,6 +15553,7 @@ async function _shareToComm(h){
         tags:h.tags||'',
         lyrics:h.lyrics||'',
         owner_name:currentUser.name,
+        owner_email:currentUser.email||'',
         owner_provider:currentUser.provider,
         owner_avatar:currentUser.avatar||'',
         _is_public:true
@@ -19070,7 +19072,7 @@ function _editProfile() {
     this.disabled=true;this.textContent='저장 중...';
     var oldName = currentUser.name;
     try{
-      var r = await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update-profile',name:newName,provider:currentUser.provider,oldName:oldName,bio:newBio})});
+      var r = await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update-profile',name:newName,provider:currentUser.provider,oldName:oldName,email:currentUser.email||'',bio:newBio})});
       var d = await r.json();
       if(d.ok){
         currentUser.name=newName;currentUser.bio=newBio;
@@ -20822,7 +20824,9 @@ function openCreatorProfile(name, provider){
   $('pv-follow-btn').style.display = _pvIsMe ? 'none' : '';
 
   const viewerQ = currentUser ? `&viewerName=${encodeURIComponent(currentUser.name)}&viewerProvider=${encodeURIComponent(currentUser.provider)}` : '';
-  fetch(`/api/profile?name=${encodeURIComponent(name)}&provider=${encodeURIComponent(provider||'')}${viewerQ}`)
+  /* 내 프로필이면 email 기반 조회 (닉네임 변경 후에도 정확 매칭) */
+  const emailQ = (_pvIsMe && currentUser?.email) ? `&email=${encodeURIComponent(currentUser.email)}` : '';
+  fetch(`/api/profile?name=${encodeURIComponent(name)}&provider=${encodeURIComponent(provider||'')}${emailQ}${viewerQ}`)
     .then(r=>r.json()).then(d=>{
       if(!d.ok) throw new Error('profile load fail');
       const p = d.profile || {};
