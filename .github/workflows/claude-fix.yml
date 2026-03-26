@@ -17,6 +17,26 @@ jobs:
       issues: write
 
     steps:
+      # ── 0. 시크릿 사전 검증 ──
+      - name: Validate secrets
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          MISSING=""
+          if [ -z "$ANTHROPIC_API_KEY" ]; then MISSING="$MISSING ANTHROPIC_API_KEY"; fi
+          if [ -z "$PAT_TOKEN" ]; then MISSING="$MISSING PAT_TOKEN"; fi
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing secrets:$MISSING"
+            exit 1
+          fi
+          echo "✅ All required secrets present"
+          # API 키 형식 기본 검증
+          if [[ ! "$ANTHROPIC_API_KEY" == sk-ant-* ]]; then
+            echo "::warning::ANTHROPIC_API_KEY doesn't start with sk-ant- (may be invalid)"
+          fi
+
+      # ── 1. 시작 알림 ──
       - name: Notify start
         id: tg_start
         continue-on-error: true
@@ -40,16 +60,15 @@ jobs:
               f'{site}/api/telegram', data=tg,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
             )).read().decode('utf-8'))
+            mid = resp.get('message_id', '')
+            print(f'TG start OK, message_id={mid}')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"msg_id={resp.get('message_id','')}\n")
-          except Exception as e: print(f'TG: {e}')
-          try:
-            urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify',
-              data=json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8'),
-              headers={'Content-Type': 'application/json; charset=utf-8'}))
-          except: pass
+              f.write(f"msg_id={mid}\n")
+          except Exception as e:
+            print(f'TG start failed: {e}')
           PYEOF
 
+      # ── 2. 체크아웃 + 설정 ──
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -60,11 +79,11 @@ jobs:
           git config user.name "claude-bot"
           git config user.email "claude-bot@users.noreply.github.com"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # ── 3. Claude Code 실행 (핵심) ──
       - name: Run Claude Code
         id: claude
         timeout-minutes: 30
@@ -73,55 +92,68 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          # Claude Code CLI 설치
-          npm install -g @anthropic-ai/claude-code 2>/dev/null || {
-            echo "Trying npx directly..."
-          }
+          set -euo pipefail
 
-          # 프롬프트 작성
-          cat > /tmp/claude-prompt.txt << 'PROMPT_EOF'
-          다음 수정 요청을 처리해주세요:
+          echo "=== Installing Claude Code CLI ==="
+          npm install -g @anthropic-ai/claude-code
+          echo "Claude Code version: $(claude --version 2>/dev/null || echo 'unknown')"
 
-          PROMPT_EOF
-          echo "$ISSUE_BODY" >> /tmp/claude-prompt.txt
-          cat >> /tmp/claude-prompt.txt << 'PROMPT_EOF'
+          echo "=== Building prompt ==="
+          PROMPT="다음 수정 요청을 처리해주세요:
+
+          ${ISSUE_BODY}
 
           규칙:
           - CLAUDE.md 파일을 읽고 프로젝트 규칙을 따르세요
           - 기존 기능, 함수, CSS를 절대 제거하지 마세요
           - node_modules/, .env 파일은 수정하지 마세요
           - 수정 완료 후 git add + git commit을 직접 실행하세요
-          - 커밋 메시지: "fix: [#ISSUE_NUM] <설명>"
-          PROMPT_EOF
+          - 커밋 메시지: \"fix: [#${ISSUE_NUM}] <간결한 설명>\""
 
-          sed -i "s/ISSUE_NUM/${ISSUE_NUM}/g" /tmp/claude-prompt.txt
-
-          echo "=== Prompt ==="
-          cat /tmp/claude-prompt.txt
           echo "=== Running Claude Code ==="
-
-          # Claude Code 실행 (--print 모드 = 비대화형)
-          npx -y @anthropic-ai/claude-code --print \
+          # 출력을 로그 파일에도 저장
+          claude --print \
             --allowedTools "Edit,Read,Glob,Grep,Write,Bash" \
-            "$(cat /tmp/claude-prompt.txt)" || {
-            echo "::warning::Claude Code exited with non-zero status"
-          }
+            "$PROMPT" 2>&1 | tee /tmp/claude-output.txt
 
-          echo "=== Done ==="
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "claude_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::Claude Code exited with code $EXIT_CODE"
+            echo "=== Last 50 lines of output ==="
+            tail -50 /tmp/claude-output.txt
+            exit 1
+          fi
+
+          echo "=== Claude Code completed successfully ==="
+
+      # ── 4. 변경사항 확인 + 푸시 ──
       - name: Push changes
         id: push
         env:
           ISSUE_NUM: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          # Claude가 이미 커밋했을 수 있음
-          HAS_COMMITTED=$(git log --oneline -1 --format="%s" | grep -c "fix:" || true)
+          echo "=== Git status ==="
+          git status
+          echo ""
+
+          # Claude가 이미 커밋했는지 확인
+          LAST_MSG=$(git log --oneline -1 --format="%s")
+          echo "Last commit: $LAST_MSG"
+
+          HAS_COMMITTED=$(echo "$LAST_MSG" | grep -c "fix:" || true)
           HAS_CHANGES=$(git diff --name-only)
           HAS_STAGED=$(git diff --cached --name-only)
           HAS_UNTRACKED=$(git ls-files --others --exclude-standard)
 
+          echo "HAS_COMMITTED=$HAS_COMMITTED"
+          echo "HAS_CHANGES=$HAS_CHANGES"
+          echo "HAS_STAGED=$HAS_STAGED"
+          echo "HAS_UNTRACKED=$HAS_UNTRACKED"
+
+          # Claude가 커밋 안 했으면 수동 커밋
           if [ "$HAS_COMMITTED" = "0" ] && [ -n "$HAS_CHANGES$HAS_STAGED$HAS_UNTRACKED" ]; then
             echo "Claude didn't commit — committing now"
             git add -A
@@ -129,18 +161,27 @@ jobs:
               --author="claude-bot <claude-bot@users.noreply.github.com>" || true
           fi
 
-          # 변경사항 확인
+          # origin/main 대비 변경사항 확인
           DIFF=$(git diff origin/main --name-only)
           if [ -z "$DIFF" ]; then
             echo "status=no_changes" >> "$GITHUB_OUTPUT"
-            echo "No changes to push"
+            echo "::warning::No changes to push — Claude Code didn't modify any files"
+            echo "changed_files=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          echo "=== Changed files ==="
+          echo "$DIFF"
+          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$DIFF" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
           echo "Pushing to main..."
           git push origin HEAD:main
           echo "status=merged" >> "$GITHUB_OUTPUT"
+          echo "✅ Push successful"
 
+      # ── 5. 이슈 닫기 ──
       - name: Close issue
         if: steps.push.outputs.status == 'merged'
         continue-on-error: true
@@ -154,6 +195,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUM}" \
             -d '{"state":"closed","state_reason":"completed"}'
 
+      # ── 6. 결과 알림 (성공/실패 모두) ──
       - name: Notify result
         if: always()
         continue-on-error: true
@@ -162,7 +204,9 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUM: ${{ github.event.issue.number }}
           PUSH_STATUS: ${{ steps.push.outputs.status }}
+          CHANGED_FILES: ${{ steps.push.outputs.changed_files }}
           CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
+          CLAUDE_EXIT: ${{ steps.claude.outputs.claude_exit }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SITE_URL: https://ai-music-studio-bice.vercel.app
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
@@ -177,20 +221,26 @@ jobs:
           num = os.environ.get('ISSUE_NUM', '?')
           push_status = os.environ.get('PUSH_STATUS', '').strip()
           claude_out = os.environ.get('CLAUDE_OUTCOME', '?')
+          claude_exit = os.environ.get('CLAUDE_EXIT', '?')
           run_url = os.environ.get('RUN_URL', '')
+          changed = os.environ.get('CHANGED_FILES', '').strip()
 
+          # 상태 판단
           if push_status == 'merged':
             icon = '\u2705'
+            files_list = '\n'.join(f'  \u2022 {f}' for f in changed.split('\n') if f.strip()) if changed else ''
             status_line = '\u2705 main 푸시 완료! Vercel 배포 시작됨'
+            if files_list:
+              status_line += f'\n\n\U0001f4c1 수정된 파일:\n{files_list}'
           elif push_status == 'no_changes':
-            icon = '\u26a0'
-            status_line = '\u26a0 변경사항 없음'
+            icon = '\u26a0\ufe0f'
+            status_line = '\u26a0\ufe0f 변경사항 없음 — Claude가 파일을 수정하지 않았습니다'
           elif claude_out == 'failure':
             icon = '\u274c'
-            status_line = f'\u274c Claude Code 실행 실패 (outcome: {claude_out})'
+            status_line = f'\u274c Claude Code 실행 실패 (exit: {claude_exit})\n\n로그를 확인해주세요'
           else:
-            icon = '\u26a0'
-            status_line = f'\u26a0 완료 (Claude: {claude_out}, Push: {push_status or "skipped"})'
+            icon = '\u26a0\ufe0f'
+            status_line = f'\u26a0\ufe0f 예상치 못한 상태 (Claude: {claude_out}, Push: {push_status or "skipped"})'
 
           msg = f'{icon} <b>Claude Code 작업 완료</b>\n\n\U0001f4cc Issue #{num}: {title}\n\n{status_line}'
           kb = {'inline_keyboard': [
@@ -198,27 +248,40 @@ jobs:
             [{'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
           ]}
 
-          try:
-            payload = {'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb}
-            if msg_id:
-              payload['action'] = 'edit'
-              payload['message_id'] = int(msg_id)
-            tg = json.dumps(payload, ensure_ascii=False).encode('utf-8')
-            urllib.request.urlopen(urllib.request.Request(
-              f'{site}/api/telegram', data=tg,
+          def tg_send(payload):
+            data = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+            req = urllib.request.Request(
+              f'{site}/api/telegram', data=data,
               headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}
-            ))
-          except Exception as e:
-            print(f'TG: {e}')
-            try:
-              tg2 = json.dumps({'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb}, ensure_ascii=False).encode('utf-8')
-              urllib.request.urlopen(urllib.request.Request(f'{site}/api/telegram', data=tg2,
-                headers={'Content-Type': 'application/json; charset=utf-8', 'Authorization': f'Bearer {secret}'}))
-            except: pass
+            )
+            return json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
 
+          # 텔레그램 알림: edit 시도 → 실패 시 새 메시지
+          sent = False
+          if msg_id:
+            try:
+              tg_send({'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb, 'action': 'edit', 'message_id': int(msg_id)})
+              sent = True
+              print(f'TG edit OK (msg_id={msg_id})')
+            except Exception as e:
+              print(f'TG edit failed: {e}')
+
+          if not sent:
+            try:
+              tg_send({'text': msg, 'parse_mode': 'HTML', 'reply_markup': kb})
+              print('TG new message sent')
+            except Exception as e:
+              print(f'TG send failed: {e}')
+
+          # 카카오 알림
           try:
+            # HTML 태그 제거
+            import re
+            plain = re.sub(r'<[^>]+>', '', msg)
             urllib.request.urlopen(urllib.request.Request(f'{site}/api/kakao-notify',
-              data=json.dumps({'text': msg[:300]}, ensure_ascii=False).encode('utf-8'),
+              data=json.dumps({'text': plain[:300]}, ensure_ascii=False).encode('utf-8'),
               headers={'Content-Type': 'application/json; charset=utf-8'}))
-          except: pass
+            print('Kakao notify sent')
+          except Exception as e:
+            print(f'Kakao notify failed: {e}')
           PYEOF
