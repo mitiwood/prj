@@ -8852,6 +8852,7 @@ function _mvMergeSetTrack(idx){
     _mvMergePlaying = false; $('mv-merge-play-btn').textContent = '▶';
     var vid = $('mv-merge-video'); if(vid){ vid.pause(); vid.currentTime = 0; }
   });
+  _mvMergeAudio.addEventListener('error', function(){ toast('MV 오디오 로드 실패','err',3000); _mvMergePlaying=false; });
 }
 let _mvMergePickedIdx = null;
 function mvMergePickTrack(){
@@ -10093,9 +10094,9 @@ function _checkLyricsQuality(text){
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
 let _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
-var _genQueue = []; /* 생성 큐 (최대 2개 대기) */
-var _genCancelled = false; /* 생성 취소 플래그 */
-var _genStartTime = 0; /* 생성 시작 시간 */
+if(typeof _genQueue==="undefined"){_genQueue=[];} /* 생성 큐 */
+if(typeof _genCancelled==="undefined"){_genCancelled=false;} /* 생성 취소 플래그 */
+if(typeof _genStartTime==="undefined"){_genStartTime=0;} /* 생성 시작 시간 */
 
 function _cancelGeneration(){
   _genCancelled=true;
@@ -10968,6 +10969,7 @@ function openExtendModal(audioId){
     $('ext-duration-label').textContent='길이: 측정 중...';
     if(h.audio_url){
       const _a=new Audio();_a.preload='metadata';_a.src=h.audio_url;
+      _a.addEventListener('error',()=>{$('ext-duration-label').textContent='길이: 측정 실패';});
       _a.addEventListener('loadedmetadata',()=>{
         _extDuration=Math.round(_a.duration);
         const m=Math.floor(_extDuration/60),s=_extDuration%60;
@@ -11407,7 +11409,7 @@ function togglePlay(btn){
   if(!url){toast('오디오 URL이 없어요','err');return;}
   /* 같은 트랙: 토글 (idx + URL 모두 일치해야 동일 트랙) */
   if(activeAudio&&activeAudio._idx===idx&&activeAudio._url===url){
-    if(activeAudio.paused){stopAllAudio();activeAudio.play();btn.textContent='⏸';startViz(idx);}
+    if(activeAudio.paused){stopAllAudio();activeAudio.play().catch(e=>{toast('재생 실패: '+e.message,'err',3000);});btn.textContent='⏸';startViz(idx);}
     else{activeAudio.pause();btn.textContent='▶';stopViz(idx);}
     return;
   }
@@ -12536,6 +12538,7 @@ $('vr-submit-btn').addEventListener('click', async () => {
       [{k:'vocalUrl'},{k:'drumsUrl'},{k:'bassUrl'},{k:'guitarUrl'},{k:'pianoUrl'},{k:'stringsUrl'},{k:'instrumentalUrl'}].forEach(function(ms){
         var mu = res[ms.k]; if(!mu) return;
         var a = new Audio(mu); a.volume = 0.8; a.loop = true;
+        a.addEventListener('error',function(){console.warn('[StemMix] 스템 로드 실패:',ms.k);});
         window._mixAudios[ms.k] = a;
       });
     }
@@ -12594,6 +12597,7 @@ function _vrStartRecord(mrUrl, title){
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     /* MR 재생 */
     var mrAudio=new Audio(mrUrl);mrAudio.volume=0.8;
+    mrAudio.addEventListener('error',function(){toast('MR 오디오 로드 실패','err',3000);});
     window._vrRecMrAudio=mrAudio;
     /* 녹음 시작 */
     _vrRecChunks=[];
