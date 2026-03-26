@@ -8033,6 +8033,7 @@ var _ytRetryCount=0; /* YouTube 모드 자동 재시도 카운터 */
 async function _ytDoGenerate(){
   var _ytT0=Date.now();
   console.log('%c[Generate] %cYT-START%c YouTube 모드 생성 시작','color:#a78bfa;font-weight:bold','color:#f87171;font-weight:bold','color:inherit');
+  if(_genCancelled) return; /* 취소 상태면 즉시 중단 */
   if(_ytGenerating) return;
   if(_globalGenerating){ _showGeneratingPopup(); return; }
 
@@ -8250,9 +8251,9 @@ async function _ytDoGenerate(){
     console.error('%c[Generate] %cYT-ERROR%c '+e.message+' ('+(Date.now()-_ytT0)+'ms)','color:#a78bfa;font-weight:bold','color:#ef4444;font-weight:bold','color:inherit');
     var ytErrMsg = e.message;
     const _ytIsSensitive = ytErrMsg.includes('SENSITIVE_WORD')||ytErrMsg.includes('부적절한 단어');
-    const _ytIsRetryable = !_ytIsSensitive && !ytErrMsg.includes('credit') && !ytErrMsg.includes('사용량') && _ytRetryCount < 2;
+    const _ytIsRetryable = !_ytIsSensitive && !_genCancelled && !ytErrMsg.includes('취소') && !ytErrMsg.includes('credit') && !ytErrMsg.includes('사용량') && _ytRetryCount < 2;
 
-    /* 자동 재시도 (최대 2회, 지수 백오프) */
+    /* 자동 재시도 (최대 2회, 지수 백오프) — 취소 시 재시도 안 함 */
     if(_ytIsRetryable){
       _ytRetryCount++;
       var _ytRetryDelay = _ytRetryCount * 2000;
@@ -8262,7 +8263,7 @@ async function _ytDoGenerate(){
       if(ytBtn){ytBtn.disabled=false;ytBtn.style.opacity='1';}
       if(ytSpin)ytSpin.style.display='none';
       if(ytTxt)ytTxt.textContent='▶ YouTube 스타일로 생성';
-      setTimeout(()=>_ytDoGenerate(), _ytRetryDelay);
+      _genRetryTimer=setTimeout(()=>{if(_genCancelled)return;_ytDoGenerate();}, _ytRetryDelay);
       return;
     }
     _ytRetryCount=0;
@@ -8279,6 +8280,12 @@ async function _ytDoGenerate(){
       ytErrMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
     }
     toast('❌ '+ytErrMsg,'err',5000);
+    /* 다시 시도 플로팅 버튼 */
+    var _ytRetryToast=document.createElement('div');
+    _ytRetryToast.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;';
+    _ytRetryToast.innerHTML='<button onclick="this.parentNode.remove();_ytDoGenerate()" style="padding:10px 24px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(124,58,237,.3);">🔄 다시 시도</button>';
+    document.body.appendChild(_ytRetryToast);
+    setTimeout(()=>{if(_ytRetryToast.parentNode)_ytRetryToast.remove();},8000);
   }finally{
     var _ytWasCancelled=_genCancelled;
     _ytGenerating     = false;
