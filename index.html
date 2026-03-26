@@ -8022,11 +8022,19 @@ async function _ytDoGenerate(){
   /* prompt: 가사가 있으면 가사, 없으면 스타일 설명 */
   const prompt = ytLyrics || ytStyle || 'YouTube cover music';
 
+  /* 가사에 한글이 포함되면 style에 Korean vocal 힌트 추가 */
+  var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
+  var _finalStyle = ytStyle || ytMood || '';
+  if(_hasKorean && !isInst && _finalStyle.toLowerCase().indexOf('korean')===-1){
+    _finalStyle = 'Korean lyrics, Korean vocal, sung in Korean, ' + _finalStyle;
+    if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
+  }
+
   try{
     const body = {
       prompt,
       customMode: true,
-      style: ytStyle || ytMood || '',
+      style: _finalStyle,
       instrumental: isInst,
       model,
       callBackUrl: CALLBACK,
@@ -10466,8 +10474,14 @@ async function generate(overrideParams){
     /* customMode: 가사 500자 초과 시 강제 true (kie.ai 제한) */
     const _forceCustom = (prompt||'').length > 400;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
+    /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
+    var _promptHasKo=/[\uAC00-\uD7AF]/.test(prompt);
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
     else if(isCustom && (subGenre||moodVal)){ body.style = styleStr||moodVal; }
+    if(_promptHasKo && !instOn && body.style && body.style.toLowerCase().indexOf('korean')===-1){
+      body.style = 'Korean lyrics, Korean vocal, sung in Korean, ' + body.style;
+      if(body.style.length>999) body.style=body.style.slice(0,999);
+    }
     if(negTags)body.negativeTags=negTags;
     if(!instOn&&vocalGender)body.vocalGender=vocalGender;
     const songTitle=overrideParams?.title||(isSimple?$('simple-song-title')?.value?.trim():'') ||(isYT?$('yt-song-title')?.value?.trim():'')|| $('song-title').value.trim();
