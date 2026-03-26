@@ -1521,11 +1521,12 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 [data-theme="light"] .mf-preview-thumb{background:#f0f0f0;}
 /* 모바일 그리드 간격 */
 @media(max-width:360px){.hist-view-grid.grid-mode{gap:6px;}.hist-view-grid.grid-mode .hist-info{padding:8px 10px;}.hist-view-grid.grid-mode .hist-play-icon{width:36px;height:36px;font-size:14px;}}
-.hist-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:12px;padding:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.hist-tabs{display:flex;gap:8px;margin-bottom:16px;padding:0 2px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity;mask-image:linear-gradient(to right,transparent 0,#000 8px,#000 calc(100% - 24px),transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0,#000 8px,#000 calc(100% - 24px),transparent 100%);}
 .hist-tabs::-webkit-scrollbar{display:none;}
-.hist-tab{padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s ease;}
-.hist-tab.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3);}
-.hist-tab:hover:not(.on){color:var(--t1);background:var(--s2);}
+.hist-tabs::after{content:'';flex:0 0 16px;}
+.hist-tab{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s ease;white-space:nowrap;flex-shrink:0;scroll-snap-align:start;}
+.hist-tab.on{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 2px 10px rgba(124,58,237,.35);}
+.hist-tab:hover:not(.on){color:var(--t1);border-color:var(--t3);}
 /* MY 피드 — 크리에이터 (고도화) */
 .myfeed-section{margin-bottom:8px;}
 .myfeed-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;}
@@ -3863,8 +3864,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .fp-lm-line.active{font-size:15px;}
 
   /* 히스토리 */
-  .hist-tabs{gap:4px;}
-  .hist-tab{padding:6px 12px;font-size:12px;}
+  .hist-tabs{gap:6px;}
+  .hist-tab{padding:6px 14px;font-size:11.5px;}
   .hist-card{padding:6px 2px;}
   .hist-thumb{width:44px;height:44px;}
 
@@ -11217,7 +11218,10 @@ let _histViewMode = localStorage.getItem('kms_hist_view') || 'grid';
 function _switchHistTab(tab){
   _histTabFilter = tab;
   if(tab!=='myfeed') _myFeedDetail=null; /* 다른 탭 이동 시 상세뷰 초기화 */
-  document.querySelectorAll('.hist-tab').forEach(t=>t.classList.toggle('on',t.dataset.htab===tab));
+  document.querySelectorAll('.hist-tab').forEach(function(t){
+    t.classList.toggle('on',t.dataset.htab===tab);
+    if(t.dataset.htab===tab) t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  });
   /* MY 피드 탭 진입 시 _sbTracks 프리로드 (추천 데이터 빠른 표시) */
   if(tab==='myfeed'&&typeof _loadSbTracks==='function'&&!(typeof _sbTracks!=='undefined'&&_sbTracks&&_sbTracks.length>0)){
     _loadSbTracks(false);
