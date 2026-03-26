@@ -188,7 +188,7 @@ async function _handler(req, res) {
         owner_name: owner_name || "익명",
         owner_avatar: owner_avatar || "",
         owner_provider: owner_provider || "guest",
-        is_public: true,
+        is_public: b._is_public !== undefined ? !!b._is_public : true,
         comm_likes: 0,
         comm_dislikes: 0,
         comm_plays: 0,

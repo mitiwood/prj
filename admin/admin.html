@@ -1961,8 +1961,8 @@ textarea.form-input{line-height:1.5;}
             <input class="settings-input" id="set-version" value="v3.0">
           </div>
           <div class="settings-row">
-            <div><label>커뮤니티 공개</label><div class="desc">소셜 로그인 사용자 곡 커뮤니티 노출</div></div>
-            <div class="toggle on" id="tog-community" onclick="this.classList.toggle('on')"></div>
+            <div><label>커뮤니티 곡 공개 모드</label><div class="desc" id="tog-community-desc">자동: 생성 즉시 커뮤니티 노출</div></div>
+            <div class="toggle on" id="tog-community" onclick="_toggleCommunityPublish(this)"></div>
           </div>
           <div class="settings-row">
             <div><label>비로그인 커뮤니티 열람</label><div class="desc">비로그인 사용자도 커뮤니티 볼 수 있음</div></div>
@@ -4723,6 +4723,38 @@ async function banUser(name){
   renderUsersAdmin();loadData();
 }
 
+// ── 앱 설정 (커뮤니티 자동공개 등) ──
+async function _loadAppSettings(){
+  try{
+    const r=await fetch('/api/app-settings');
+    const d=await r.json();
+    const tog=document.getElementById('tog-community');
+    const desc=document.getElementById('tog-community-desc');
+    if(tog){
+      const isAuto=d.community_auto_publish!==false;
+      tog.classList.toggle('on',isAuto);
+      if(desc)desc.textContent=isAuto?'자동: 생성 즉시 커뮤니티 노출':'수동: 사용자가 직접 공유해야 노출';
+    }
+  }catch(e){console.warn('앱 설정 로드 실패',e);}
+}
+async function _toggleCommunityPublish(el){
+  el.classList.toggle('on');
+  const isAuto=el.classList.contains('on');
+  const desc=document.getElementById('tog-community-desc');
+  if(desc)desc.textContent=isAuto?'자동: 생성 즉시 커뮤니티 노출':'수동: 사용자가 직접 공유해야 노출';
+  try{
+    const pw=sessionStorage.getItem('kms_admin_session')||'';
+    const r=await fetch('/api/app-settings',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+pw},
+      body:JSON.stringify({key:'community_auto_publish',value:isAuto})
+    });
+    const d=await r.json();
+    if(d.ok){showToast(isAuto?'커뮤니티 자동공개 ON':'커뮤니티 수동공개 모드','ok');}
+    else{showToast(d.error||'설정 저장 실패','err');el.classList.toggle('on');if(desc)desc.textContent=!isAuto?'자동: 생성 즉시 커뮤니티 노출':'수동: 사용자가 직접 공유해야 노출';}
+  }catch(e){showToast('설정 저장 실패','err');el.classList.toggle('on');}
+}
+
 // ── 설정 저장 ──
 function savePw(){
   const currentPw=document.getElementById('set-pw-current')?.value||'';
@@ -6924,6 +6956,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if(el) el.addEventListener('input', _updateLivePreview);
   });
+  _loadAppSettings();
 });
 
 function _updateLivePreview(){
