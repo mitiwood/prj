@@ -4807,6 +4807,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             </div>
           </div>
         </div>
+        <div class="options-row" style="margin-top:8px;">
+          <div class="opt-group" style="flex:1;">
+            <div class="opt-label">곡 길이</div>
+            <div style="display:flex;gap:6px;" id="yt-duration-btns">
+              <button class="hist-tab on" data-ytdur="short" onclick="_setYtDuration('short')" style="flex:1;padding:7px 0;font-size:11px;">짧게 ~1분</button>
+              <button class="hist-tab" data-ytdur="normal" onclick="_setYtDuration('normal')" style="flex:1;padding:7px 0;font-size:11px;">보통 ~2분</button>
+              <button class="hist-tab" data-ytdur="long" onclick="_setYtDuration('long')" style="flex:1;padding:7px 0;font-size:11px;">길게 ~4분</button>
+            </div>
+            <div style="font-size:10px;color:var(--t3);margin-top:4px;" id="yt-dur-hint">기본 생성 (~1분). 보통/길게는 자동 연장됩니다.</div>
+          </div>
+        </div>
         <button class="gen-btn" id="yt-gen-btn" disabled style="opacity:.5;">
           <span class="gen-spinner" id="yt-gen-spinner"></span>
           <span id="yt-gen-txt">▶ 분석 후 생성 가능</span>
@@ -7893,6 +7904,19 @@ $('simple-gen-btn').addEventListener('click',async()=>{
 });
 
 /* ── YouTube 생성 버튼 ── */
+/* ── YouTube 곡 길이 옵션 ── */
+let _ytDuration = 'short'; /* short(기본~1분), normal(~2분 자동연장), long(~4분 2회연장) */
+function _setYtDuration(v){
+  _ytDuration=v;
+  document.querySelectorAll('#yt-duration-btns button').forEach(function(b){b.classList.toggle('on',b.dataset.ytdur===v);});
+  var hint=$('yt-dur-hint');
+  if(hint){
+    if(v==='short')hint.textContent='기본 생성 (~1분). 빠르게 미리 들어볼 수 있어요.';
+    else if(v==='normal')hint.textContent='생성 후 자동 연장 1회 (~2분). 크레딧 2배 사용.';
+    else hint.textContent='생성 후 자동 연장 2회 (~4분). 크레딧 3배 사용.';
+  }
+}
+
 /* ── YouTube 생성 버튼 ── */
 /* generate()를 완전히 우회 — YT 전용 독립 생성 흐름 */
 let _ytGenerating = false;
@@ -8008,8 +8032,32 @@ async function _ytDoGenerate(){
     const _rawYtTracks = await pollResult(apiKey, taskId);
     if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
     /* ✅ FIX: 생성 실패 트랙 필터링 */
-    const tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+    var tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
     if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
+
+    /* ── 곡 길이 옵션: normal/long이면 자동 연장 ── */
+    var _extRounds=_ytDuration==='long'?2:_ytDuration==='normal'?1:0;
+    if(_extRounds>0 && tracks[0]){
+      for(var _er=0;_er<_extRounds;_er++){
+        var _extTrack=tracks[0];
+        var _extId=_extTrack.id||_extTrack.audioId||'';
+        if(!_extId)break;
+        $('ld-sub').innerHTML='\uD83D\uDD04 곡 연장 중... ('+(_er+1)+'/'+_extRounds+')<br>더 긴 곡을 만들고 있어요';
+        if(_pctEl)_pctEl.textContent='연장 중';
+        try{
+          var _extBody={audioId:_extId,model:model,callBackUrl:CALLBACK,defaultParamFlag:false};
+          var _extData=await kieRequest(apiKey,'POST','/api/v1/generate/extend',_extBody);
+          var _extTaskId=_extData?.data?.taskId||_extData?.taskId;
+          if(_extTaskId){
+            var _extResult=await pollResult(apiKey,_extTaskId);
+            if(_extResult?.length){
+              var _extValid=_extResult.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
+              if(_extValid.length)tracks[0]=_extValid[0]; /* 연장된 트랙으로 교체 */
+            }
+          }
+        }catch(extErr){console.warn('[YT extend '+(_er+1)+']',extErr.message);}
+      }
+    }
 
     $('loading-card').classList.remove('on');
     clearInterval(_tipTimer);
@@ -9100,6 +9148,16 @@ $('yt-analyze-btn').addEventListener('click', async () => {
         if(lyrics){
           const ta = document.getElementById('yt-lyrics-ta');
           if(ta) ta.value = lyrics;
+          /* 가사에서 제목 자동 추출 → yt-song-title에 표시 */
+          var ytTitleEl=$('yt-song-title');
+          if(ytTitleEl && !ytTitleEl.value.trim() && typeof _extractTitleFromLyrics==='function'){
+            var autoTitle=_extractTitleFromLyrics(lyrics,analysis.genre||'',analysis.mood||'');
+            if(autoTitle && autoTitle!=='Untitled'){
+              ytTitleEl.value=autoTitle;
+              ytTitleEl.style.borderColor='rgba(124,58,237,.4)';
+              setTimeout(function(){ytTitleEl.style.borderColor='';},2000);
+            }
+          }
           toast('✅ 가사 생성 완료!','ok',2000);
           trackUsage('lyrics',{mode:'yt-lyrics'});
         } else { toast('가사 생성에 실패했어요. 다시 시도해주세요.','err',3000); }

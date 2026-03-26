@@ -131,11 +131,13 @@ export default async function handler(req, res) {
 ${metaInfo}
 
 CRITICAL INSTRUCTIONS:
-1. If you recognize the artist/song, use your EXACT knowledge of the track's production.
-2. If unknown, analyze ALL available metadata (title, description, tags, channel) for clues.
-3. BPM must be your best estimate — for known songs use the actual BPM.
-4. style_prompt is the MOST IMPORTANT field — it directly controls AI music generation.
+1. FIRST, parse the title to identify the ARTIST and SONG NAME separately. Titles often follow patterns like "Artist - Song", "(Year) Artist - Song [info]", etc.
+2. If you recognize the artist/song, use your EXACT knowledge of the track's production — the actual BPM, key, instrumentation, and arrangement.
+3. If unknown, analyze ALL available metadata (title, description, tags, channel) for clues.
+4. BPM must be PRECISE — for well-known songs, use the verified BPM. Do NOT default to 120.
+5. style_prompt is the MOST IMPORTANT field — it directly controls AI music generation.
    Make it extremely specific with production details that capture the song's unique sound.
+6. Think about what makes this specific song DIFFERENT from other songs in the same genre.
 
 Answer in JSON ONLY:
 {
