@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
       try {
         const { data: tracks } = await sb('GET',
-          `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&is_public=eq.true&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,owner_name,owner_provider,created_at&limit=10`);
+          `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,owner_name,owner_provider,created_at&limit=10`);
 
         if (tracks?.length) {
           artists.push({ name: f.following_name, provider: f.following_provider, trackCount: tracks.length });

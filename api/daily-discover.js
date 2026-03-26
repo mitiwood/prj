@@ -220,7 +220,7 @@ export default async function handler(req, res) {
 
         // 내 곡 제외를 위해 전체 곡 로드
         const allTracks = await sbFetch('GET',
-          `/tracks?is_public=eq.true&audio_url=neq.&select=id,title,tags,audio_url,image_url,user_name,user_provider,comm_likes,comm_plays,created_at&order=created_at.desc&limit=500`
+          `/tracks?audio_url=neq.&audio_url=not.is.null&select=id,title,tags,audio_url,image_url,user_name,user_provider,comm_likes,comm_plays,created_at&order=created_at.desc&limit=500`
         );
 
         // 내 곡 제외

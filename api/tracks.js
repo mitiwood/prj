@@ -108,7 +108,7 @@ async function _handler(req, res) {
       } else {
         const sel = isLite ? liteSelect : '*';
         // 공개된 모든 트랙을 가져옴 (사용자 필터링은 클라이언트에서 처리)
-        filter = `/tracks?is_public=eq.true&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
+        filter = `/tracks?audio_url=neq.&audio_url=not.is.null&order=comm_likes.desc,created_at.desc&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
       const mapped = (rows || []).map((r) => ({
