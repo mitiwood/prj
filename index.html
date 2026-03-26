@@ -1506,7 +1506,12 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 [data-theme="light"] .mf-trend-card,[data-theme="light"] .mf-creator-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-creator-card:hover{border-color:var(--acc);box-shadow:0 4px 16px rgba(0,0,0,.06);}
 [data-theme="light"] .mf-detail-hero{background:#fff;border-color:rgba(0,0,0,.06);}
-[data-theme="light"] .mf-back-btn{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);}
+[data-theme="light"] .mf-detail-hero-bg{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.05),rgba(236,72,153,.03));}
+[data-theme="light"] .mf-back-btn{background:rgba(0,0,0,.3);color:#fff;}
+[data-theme="light"] .mf-creator-avatar-ring{background:linear-gradient(135deg,var(--acc),var(--acc2));}
+[data-theme="light"] .mf-creator-avatar-ring.no-tracks{background:rgba(0,0,0,.1);}
+[data-theme="light"] .mf-creator-avatar-ring .mf-creator-avatar{border-color:#fff;}
+[data-theme="light"] .mf-creator-stats .mf-stat-pill{background:rgba(124,58,237,.08);}
 [data-theme="light"] .mf-stat-box{background:rgba(124,58,237,.04);}
 [data-theme="light"] .mf-follow-btn.following{background:#f5f5f5;border-color:rgba(0,0,0,.1);}
 [data-theme="light"] .mf-detail-top{background:rgba(124,58,237,.03);border-color:rgba(124,58,237,.08);}
@@ -1607,7 +1612,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-detail-top-badge{position:absolute;top:4px;left:4px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px;}
 .mf-detail-top-info{flex:1;min-width:0;}
 /* 트랙 리스트 (리치) */
-.mf-detail-tracklist{display:flex;flex-direction:column;gap:2px;}
+.mf-detail-tracklist{display:flex;flex-direction:column;gap:2px;padding:0 10px;}
 .mf-trk-card{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:12px;cursor:pointer;transition:all .15s;}
 .mf-trk-card:hover{background:rgba(124,58,237,.04);}
 .mf-trk-card:active{background:rgba(124,58,237,.08);}
@@ -1724,18 +1729,22 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 [data-theme="light"] .mf-mode-chip,[data-theme="light"] .mf-remix-item{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.04);}
 [data-theme="light"] .mf-week-bar{background:linear-gradient(180deg,var(--acc),rgba(124,58,237,.6));}
 /* 최근 업로드 */
-.mf-recent-section{margin-bottom:14px;}
-.mf-recent-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:8px;letter-spacing:-.3px;}
-.mf-recent-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mf-recent-section{margin-bottom:16px;}
+.mf-recent-title{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:10px;letter-spacing:-.3px;display:flex;align-items:center;gap:6px;}
+.mf-recent-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x mandatory;}
 .mf-recent-scroll::-webkit-scrollbar{display:none;}
-.mf-recent-card{flex-shrink:0;width:120px;cursor:pointer;transition:transform .15s;}
+.mf-recent-card{flex-shrink:0;width:130px;cursor:pointer;transition:transform .2s;scroll-snap-align:start;}
+.mf-recent-card:hover{transform:translateY(-3px);}
 .mf-recent-card:active{transform:scale(.95);}
-.mf-recent-thumb{width:120px;height:120px;border-radius:10px;overflow:hidden;background:var(--bg2);margin-bottom:6px;}
-.mf-recent-thumb img{width:100%;height:100%;object-fit:cover;}
-.mf-recent-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--bg2);}
+.mf-recent-thumb{width:130px;height:130px;border-radius:12px;overflow:hidden;background:var(--bg2);margin-bottom:8px;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.mf-recent-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .3s;}
+.mf-recent-card:hover .mf-recent-thumb img{transform:scale(1.05);}
+.mf-recent-thumb::after{content:'▶';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);color:#fff;font-size:22px;opacity:0;transition:opacity .2s;border-radius:12px;}
+.mf-recent-card:hover .mf-recent-thumb::after{opacity:1;}
+.mf-recent-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,var(--bg2),rgba(124,58,237,.05));}
 .mf-recent-info{padding:0 2px;}
-.mf-recent-trk-title{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mf-recent-artist{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-recent-trk-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-recent-artist{font-size:10px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 [data-theme="light"] .mf-recent-thumb{background:#f0f0f0;}
 [data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
@@ -14218,15 +14227,17 @@ function _renderMyFeedView(grid,countEl){
       previews+='<div class="mf-preview-thumb">'+_mfThumb(c.latestTrack.image_url)+'</div>';
     }
     var totalPlays=c.totalPlays||0;
+    var isTop3=idx<3&&!_myFeedSearch;
+    var hasMultipleTracks=c.trackCount>=3;
     html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
-      +'<div class="mf-creator-rank">'+(idx+1)+'</div>'
-      +'<div class="mf-creator-avatar">'+avatarHtml+'</div>'
+      +'<div class="mf-creator-rank'+(isTop3?' top3':'')+'">'+(idx+1)+'</div>'
+      +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
       +'<div class="mf-creator-name">'+esc(c.name)+' <span style="font-size:10px;">'+provIcon+'</span></div>'
-      +'<div class="mf-creator-stats">'+c.trackCount+'곡 · ❤️ '+c.totalLikes+(totalPlays>0?' · ▶ '+totalPlays:'')+'</div>'
+      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+'</div>'
       +'</div>'
       +'<div class="mf-creator-previews">'+previews+'</div>'
-      +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
+      +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
       +'</div>';
   });
   html+='</div>';
@@ -14335,18 +14346,19 @@ function _mfLoadMoreCreators(){
       previews+='<div class="mf-preview-thumb">'+_mfThumb(c.latestTrack.image_url)+'</div>';
     }
     var totalPlays=c.totalPlays||0;
+    var hasMultipleTracks=c.trackCount>=3;
     html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
       +'<div class="mf-creator-rank">'+(actualIdx+1)+'</div>'
-      +'<div class="mf-creator-avatar">'+avatarHtml+'</div>'
+      +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
       +'<div class="mf-creator-name">'+esc(c.name)+' <span style="font-size:10px;">'+provIcon+'</span></div>'
-      +'<div class="mf-creator-stats">'+c.trackCount+'곡 · ❤️ '+c.totalLikes+(totalPlays>0?' · ▶ '+totalPlays:'')+'</div>'
+      +'<div class="mf-creator-stats"><span class="mf-stat-pill">'+c.trackCount+'곡</span> <span>❤️ '+c.totalLikes+'</span>'+(totalPlays>0?' <span>▶ '+totalPlays+'</span>':'')+'</div>'
       +'</div>'
       +'<div class="mf-creator-previews">'+previews+'</div>'
-      +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
+      +'<div class="mf-creator-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>'
       +'</div>';
   });
-  
+
   list.insertAdjacentHTML('beforeend',html);
   _mfRenderedCount+=nextChunk.length;
   
@@ -14366,6 +14378,11 @@ function _renderCreatorDetailView(grid,countEl){
 
   /* ── 히어로 프로필 헤더 ── */
   html+='<div class="mf-detail-hero">';
+  /* 커버 배경 (대표곡 이미지 블러) */
+  var _heroBgImg=d.tracks&&d.tracks.length>0?d.tracks[0].image_url:'';
+  html+='<div class="mf-detail-hero-bg">'
+    +(_heroBgImg&&!_mfIsBlocked(_heroBgImg)?'<img src="'+esc(_heroBgImg)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')
+    +'</div>';
   html+='<button class="mf-back-btn" onclick="_closeCreatorDetail()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>';
   var avatarUrl=p.avatar||'';
   var avatarHtml=_mfAvatar(avatarUrl,d.name,false);
@@ -14399,9 +14416,13 @@ function _renderCreatorDetailView(grid,countEl){
   html+='<button class="mf-profile-btn" data-mf-action="go-profile" data-mf-name="'+esc(d.name)+'" data-mf-provider="'+esc(d.provider)+'">프로필 보기</button>';
   html+='</div></div>';
 
-  /* 로딩 */
+  /* 로딩 — 트랙 스켈레톤 */
   if(_myFeedDetailLoading&&(!d.tracks||!d.tracks.length)){
-    html+=_commLoadingHtml('곡 불러오는 중...',true);
+    html+='<div style="padding:0 18px;display:flex;flex-direction:column;gap:6px;">';
+    for(var _tsk=0;_tsk<5;_tsk++){
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;"><div style="width:20px;height:14px;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="width:46px;height:46px;border-radius:10px;background:var(--border);animation:skeletonPulse 1.5s infinite;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:13px;width:65%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div><div style="height:10px;width:40%;border-radius:4px;background:var(--border);animation:skeletonPulse 1.5s infinite;"></div></div></div>';
+    }
+    html+='</div>';
     grid.innerHTML=html; return;
   }
   if(!d.tracks||!d.tracks.length){
@@ -14414,7 +14435,7 @@ function _renderCreatorDetailView(grid,countEl){
     var topTracks=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
     var top=topTracks[0];
     if(top&&top.image_url&&!_mfIsBlocked(top.image_url)){
-      html+='<div class="mf-detail-top" data-mf-action="play-detail" data-mf-trk-idx="'+d.tracks.indexOf(top)+'">'
+      html+='<div class="mf-detail-top" style="margin:0 18px;" data-mf-action="play-detail" data-mf-trk-idx="'+d.tracks.indexOf(top)+'">'
         +'<div class="mf-detail-top-img"><img src="'+esc(top.image_url)+'" alt="">'
         +'<div class="mf-detail-top-play">▶</div>'
         +'<div class="mf-detail-top-badge">BEST</div></div>'
@@ -14426,13 +14447,13 @@ function _renderCreatorDetailView(grid,countEl){
   }
 
   /* ── 전체재생 + 셔플 ── */
-  html+='<div style="display:flex;gap:8px;margin:12px 0;">'
-    +'<button onclick="_mfDetailPlayAll()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">▶ 전체 재생 ('+d.tracks.length+'곡)</button>'
-    +'<button onclick="_mfDetailShuffle()" style="padding:11px 18px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔀 셔플</button>'
+  html+='<div style="display:flex;gap:8px;margin:14px 18px 8px;">'
+    +'<button onclick="_mfDetailPlayAll()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,.25);transition:all .2s;">▶ 전체 재생 ('+d.tracks.length+'곡)</button>'
+    +'<button onclick="_mfDetailShuffle()" style="padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🔀 셔플</button>'
     +'</div>';
 
   /* ── 트랙 정렬 ── */
-  html+='<div class="mf-trk-sort-row">'
+  html+='<div class="mf-trk-sort-row" style="padding:0 18px;">'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='default'?' on':'')+'" onclick="_myFeedTrkSort=\'default\';renderHistoryView();">기본</button>'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='likes'?' on':'')+'" onclick="_myFeedTrkSort=\'likes\';renderHistoryView();">인기순</button>'
     +'<button class="mf-trk-sort-btn'+(_myFeedTrkSort==='plays'?' on':'')+'" onclick="_myFeedTrkSort=\'plays\';renderHistoryView();">재생순</button>'
