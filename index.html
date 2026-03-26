@@ -8070,10 +8070,12 @@ var _ytGenerating = false;
 
 var _ytRetryCount=0; /* YouTube 모드 자동 재시도 카운터 */
 async function _ytDoGenerate(){
+  var _ytT0=Date.now();
+  console.log('%c[Generate] %cYT-START%c YouTube 모드 생성 시작','color:#a78bfa;font-weight:bold','color:#f87171;font-weight:bold','color:inherit');
   if(_ytGenerating) return;
   if(_globalGenerating){ _showGeneratingPopup(); return; }
 
-  const apiKey = kieApiKey;
+  var apiKey = kieApiKey;
   if(!apiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도','err'); return; }
   if(!_lastYtAnalysis){ toast('먼저 YouTube URL을 분석해주세요','err',2500); return; }
   /* 로그인 체크 */
@@ -8124,36 +8126,26 @@ async function _ytDoGenerate(){
   var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent='0%';
   var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent='예상 ~1분';
 
-  /* ── 가사 비어있고 인스트루멘탈 아니면 → 자동 가사 생성 ── */
+  /* ── 가사 비어있고 인스트루멘탈 아니면 → 가사 생성을 백그라운드로 시작 (음악 생성과 병렬) ── */
+  var _ytLyricsPromise = null;
   if(!ytLyrics && !isInst){
-    $('ld-sub').innerHTML='🎤 원곡 느낌의 가사 생성 중...<br>잠시만 기다려주세요';
-    try{
-      const lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
-      const lyricsStyle = _lastYtAnalysis.lyrics_style || '';
-      const lyricsPrompt = [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
-      const autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300));
-      if(autoLyrics && autoLyrics.length > 30){
-        ytLyrics = autoLyrics;
-        if(_ytTa) _ytTa.value = autoLyrics;
-        trackUsage('lyrics',{mode:'yt-auto-lyrics'});
-      }
-    }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
+    var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
+    var lyricsStyle = _lastYtAnalysis.lyrics_style || '';
+    var lyricsPrompt = [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
+    _ytLyricsPromise = _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300)).catch(function(e){ console.warn('[YT auto-lyrics]', e.message); return ''; });
   }
 
   /* ── 제목 미입력/자동 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
   if(_titleIsAuto && ytLyrics && ytLyrics.length > 30){
     songTitle = _extractTitleFromLyrics(ytLyrics, ytGenre, ytMood);
-    /* UI에도 반영 */
     if(_ytTitleEl && songTitle && songTitle !== 'Untitled'){
       _ytTitleEl.value = songTitle;
       delete _ytTitleEl.dataset.autoFilled;
     }
   }
 
-  /* ld-sub/팁은 pollResult + 팁카드에서 자동 관리 */
-
   /* prompt: 가사가 있으면 가사, 없으면 스타일 설명 */
-  const prompt = ytLyrics || ytStyle || 'YouTube cover music';
+  var prompt = ytLyrics || ytStyle || 'YouTube cover music';
 
   /* 가사에 한글이 포함되면 style에 Korean vocal 힌트 추가 */
   var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
@@ -8219,9 +8211,22 @@ async function _ytDoGenerate(){
 
     $('loading-card').classList.remove('on');
     _stopLdTips();
+    console.log('%c[Generate] %cYT-DONE%c '+(Date.now()-_ytT0)+'ms','color:#a78bfa;font-weight:bold','color:#4ade80;font-weight:bold','color:inherit');
 
     /* 취소된 경우 결과 저장하지 않음 */
     if(_genCancelled){ toast('생성이 취소되었어요','',2000); return; }
+
+    /* 백그라운드 가사 생성 결과 적용 */
+    if(_ytLyricsPromise && !ytLyrics){
+      try{
+        var _bgLyrics = await _ytLyricsPromise;
+        if(_bgLyrics && _bgLyrics.length > 30){
+          ytLyrics = _bgLyrics;
+          if(_ytTa) _ytTa.value = _bgLyrics;
+          trackUsage('lyrics',{mode:'yt-auto-lyrics'});
+        }
+      }catch(e){}
+    }
 
     lastTracks      = tracks.map(t=>({...t,_inputLyrics:ytLyrics,_taskId:taskId}));
     lastLyricsInput = ytLyrics;
@@ -8280,8 +8285,8 @@ async function _ytDoGenerate(){
   }catch(e){
     _stopLdTips();
     $('loading-card').classList.remove('on');
-    console.error('[YT Generate error]', e.message);
-    let ytErrMsg = e.message;
+    console.error('%c[Generate] %cYT-ERROR%c '+e.message+' ('+(Date.now()-_ytT0)+'ms)','color:#a78bfa;font-weight:bold','color:#ef4444;font-weight:bold','color:inherit');
+    var ytErrMsg = e.message;
     const _ytIsSensitive = ytErrMsg.includes('SENSITIVE_WORD')||ytErrMsg.includes('부적절한 단어');
     const _ytIsRetryable = !_ytIsSensitive && !ytErrMsg.includes('credit') && !ytErrMsg.includes('사용량') && _ytRetryCount < 2;
 
@@ -9398,17 +9403,17 @@ async function kieRequest(apiKey,method,path,body){
       });
       /* 429 Rate Limit → 지수 백오프 후 재시도 */
       if(res.status===429 && _att<_maxRetry){
-        await sleep(Math.min(3000*(1+_att), 10000));
+        await sleep(Math.min(1500*(1+_att), 5000));
         continue;
       }
       /* 502/503 서버 과부하 → 재시도 */
       if((res.status===502||res.status===503) && _att<_maxRetry){
-        await sleep(2000*(1+_att));
+        await sleep(1000*(1+_att));
         continue;
       }
       /* 504 타임아웃 → 재시도 */
       if(res.status===504 && _att<_maxRetry){
-        await sleep(2000*(1+_att));
+        await sleep(1000*(1+_att));
         continue;
       }
       var data;
@@ -9427,7 +9432,7 @@ async function kieRequest(apiKey,method,path,body){
         /* model is empty → 일시 오류, 재시도 */
         if((errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')) && _att<_maxRetry){
           console.warn('[kieRequest] model empty, retry '+(_att+1));
-          await sleep(2000*(1+_att));
+          await sleep(1000*(1+_att));
           continue;
         }
         throw new Error(errMsg);
@@ -9440,7 +9445,7 @@ async function kieRequest(apiKey,method,path,body){
       /* 네트워크 오류 → 재시도 */
       if(_att<_maxRetry){
         console.warn('[kieRequest] retry '+(_att+1)+'/'+_maxRetry+': '+e.message);
-        await sleep(2000*(1+_att));
+        await sleep(1000*(1+_att));
         continue;
       }
       throw e;
@@ -9491,7 +9496,7 @@ async function pollResult(apiKey,taskId){
   const _maxNetFails=10; /* 연속 10회 실패 시 중단 */
   for(let i=0;i<MAX_POLLS;i++){
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
-    const interval = i < 3 ? 500 : i < 10 ? 1000 : elapsed < 80000 ? 2000 : 3000;
+    const interval = i < 3 ? 500 : i < 8 ? 1000 : i < 20 ? 1500 : elapsed < 80000 ? 2000 : 2500;
     await sleep(interval);
     elapsed += interval;
     _updateGenEta(elapsed);
@@ -9501,8 +9506,9 @@ async function pollResult(apiKey,taskId){
       const st=data?.data;
       if(!st){ _noDataCount++; _updPct(elapsed,'PENDING'); if(_noDataCount>5) console.warn('[poll] no data x'+_noDataCount); continue; }
       _noDataCount=0;
-      const status=(st.status||'').toUpperCase();
+      var status=(st.status||'').toUpperCase();
       _updPct(elapsed,status);
+      if(i%5===0||status!=='PENDING') console.log('[Poll] #'+i+' '+Math.round(elapsed/1000)+'s status='+status);
       /* 단계 진행 — 서버 상태 + 시간 기반 폴백 (진행이 빠른 쪽 채택) */
       var _statusStep=1;
       if(status==='PENDING'||status==='CREATE') _statusStep=1;
@@ -10651,7 +10657,7 @@ async function generate(overrideParams){
       }
     }
   }
-  if(!lyricsText&&!subGenre&&!isSimple&&!isYT&&!isCustom){toast('입력값을 확인해주세요','err');return;}
+  if(!lyricsText&&!subGenre&&!isSimple&&!isYT&&!isCustom){_globalGenerating=false;_syncGenButtons();toast('입력값을 확인해주세요','err');return;}
 
   /* ── 최적화된 프롬프트 빌드 (buildOptimalPrompt) ── */
   const refArtist=$('ref-artist')?.value.trim()||'';
@@ -10837,9 +10843,10 @@ async function generate(overrideParams){
     /* gp-steps 제거됨 */
     if(typeof _stopLdTips==='function') _stopLdTips();
     $('loading-card').classList.remove('on');
-    let errMsg = e.message;
-    const isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
-    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
+    _genLog('ERROR',e.message,{elapsed:(Date.now()-_genT0)+'ms'});
+    var errMsg = e.message;
+    var isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
+    var isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
 
     /* 자동 재시도 (최대 2회, 지수 백오프) */
     if(isRetryable){
@@ -14011,8 +14018,8 @@ async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
     const ld=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt, callBackUrl:CALLBACK});
     const ltid=ld?.data?.taskId||ld?.taskId;
     if(ltid){
-      for(let i=0;i<40;i++){
-        await sleep(i<3?800:i<10?1500:2500);
+      for(let i=0;i<25;i++){
+        await sleep(i<3?500:i<8?1000:2000);
         let d=null;
         try{ const r=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`); d=r?.data; }
         catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${ltid}`); d=r2?.data; }catch(e2){} }
