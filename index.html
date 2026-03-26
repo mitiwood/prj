@@ -15644,32 +15644,34 @@ function _renderCreatorDetailView(grid,countEl){
 }
 
 /* 팔로우 토글 */
-async function _mfToggleFollow(btn){
+function _mfToggleFollow(btn){
   if(!currentUser){openLoginSheet();return;}
   var name=btn.dataset.name,prov=btn.dataset.provider;
   var isFollowing=btn.dataset.following==='1';
-  btn.disabled=true;
-  try{
-    var r=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      action:isFollowing?'unfollow':'follow',
-      followerName:currentUser.name,followerProvider:currentUser.provider,
-      followingName:name,followingProvider:prov
-    })});
-    var d=await r.json();
-    if(d.ok){
-      if(isFollowing){btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');toast('팔로우 취소','',1500);}
-      else{btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');toast('팔로우!','ok',1500);_mfConfetti(btn);}
-      /* 팔로우 캐시 동기화 */
-      var fCacheKey=name+'__'+prov;
-      _followStateCache[fCacheKey]=!isFollowing;
-      if(typeof _saveFollowCache==='function')_saveFollowCache();
-      if(_myFeedDetail&&_myFeedDetail.profile){
-        _myFeedDetail.profile.isFollowing=!isFollowing;
-        _myFeedDetail.profile.followerCount=(_myFeedDetail.profile.followerCount||0)+(isFollowing?-1:1);
-      }
+  var nowFollowing=!isFollowing;
+  /* ── 즉시 UI 반영 (낙관적) ── */
+  if(nowFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');toast('팔로우!','ok',1500);_mfConfetti(btn);}
+  else{btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');toast('팔로우 취소','',1500);}
+  var fCacheKey=name+'__'+prov;
+  _followStateCache[fCacheKey]=nowFollowing;
+  if(typeof _saveFollowCache==='function')_saveFollowCache();
+  if(_myFeedDetail&&_myFeedDetail.profile){
+    _myFeedDetail.profile.isFollowing=nowFollowing;
+    _myFeedDetail.profile.followerCount=(_myFeedDetail.profile.followerCount||0)+(nowFollowing?1:-1);
+  }
+  /* ── DB 백그라운드 전송 ── */
+  fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    action:nowFollowing?'follow':'unfollow',
+    followerName:currentUser.name,followerProvider:currentUser.provider,
+    followingName:name,followingProvider:prov
+  })}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){/* 실패 시 롤백 */
+      _followStateCache[fCacheKey]=isFollowing;if(typeof _saveFollowCache==='function')_saveFollowCache();
+      if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');}
+      else{btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');}
+      toast('팔로우 처리 실패','err',1500);
     }
-  }catch(e){console.warn('[follow]',e);}
-  btn.disabled=false;
+  }).catch(function(e){console.warn('[follow]',e);});
 }
 
 /* 크리에이터 목록 로드 */
@@ -18955,44 +18957,44 @@ function _toggleCreatorAccordion(header){
   group.classList.toggle('open');
 }
 
-async function _creatorFollowToggle(btn){
+function _creatorFollowToggle(btn){
   if(!currentUser){openLoginSheet();return;}
-  const name=btn.dataset.cname;
-  const prov=btn.dataset.cprov;
+  var name=btn.dataset.cname;
+  var prov=btn.dataset.cprov;
   if(!name)return;
-  const isFollowing=btn.dataset.following==='1';
-  btn.disabled=true;
-  try{
-    const r=await fetch('/api/profile',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        action:isFollowing?'unfollow':'follow',
-        followerName:currentUser.name,followerProvider:currentUser.provider,
-        followingName:name,followingProvider:prov
-      })
-    });
-    const d=await r.json();
+  var isFollowing=btn.dataset.following==='1';
+  var nowFollowing=!isFollowing;
+  /* ── 즉시 UI 반영 (낙관적) ── */
+  _followStateCache[name+'__'+prov]=nowFollowing;
+  _saveFollowCache();
+  _followFeedCache=null;_followFeedAt=0;
+  _followingNames=null;
+  _updateCommBadge();
+  document.querySelectorAll('.comm-item-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"],.comm-creator-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"]').forEach(function(b){
+    if(nowFollowing){b.textContent='팔로잉';b.classList.add('following');b.dataset.following='1';}
+    else{b.textContent='팔로우';b.classList.remove('following');b.dataset.following='0';}
+  });
+  toast(nowFollowing?'팔로우!':'팔로우 취소',nowFollowing?'ok':'',1500);
+  /* ── DB 백그라운드 전송 ── */
+  fetch('/api/profile',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      action:nowFollowing?'follow':'unfollow',
+      followerName:currentUser.name,followerProvider:currentUser.provider,
+      followingName:name,followingProvider:prov
+    })
+  }).then(function(r){return r.json();}).then(function(d){
     if(d.ok){
-      const nowFollowing=!isFollowing;
-      _followStateCache[name+'__'+prov]=nowFollowing;
-      _saveFollowCache();
       _notifyBot((nowFollowing?'\uD83D\uDC65 \uD314\uB85C\uC6B0':'\uD83D\uDC64 \uC5B8\uD314\uB85C\uC6B0')+'\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+' \u2192 '+name);
-      /* 팔로잉 피드 캐시 무효화 */
-      _followFeedCache=null;_followFeedAt=0;
-      _followingNames=null;
-      _updateCommBadge();
-      /* 같은 유저의 모든 팔로우 버튼 동기화 */
-      document.querySelectorAll('.comm-item-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"],.comm-creator-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"]').forEach(b=>{
-        if(nowFollowing){
-          b.textContent='팔로잉';b.classList.add('following');b.dataset.following='1';
-        } else {
-          b.textContent='팔로우';b.classList.remove('following');b.dataset.following='0';
-        }
+    } else {/* 롤백 */
+      _followStateCache[name+'__'+prov]=isFollowing;_saveFollowCache();
+      document.querySelectorAll('.comm-item-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"],.comm-creator-follow-btn[data-cname="'+name+'"][data-cprov="'+prov+'"]').forEach(function(b){
+        if(isFollowing){b.textContent='팔로잉';b.classList.add('following');b.dataset.following='1';}
+        else{b.textContent='팔로우';b.classList.remove('following');b.dataset.following='0';}
       });
-      toast(nowFollowing?'팔로우!':'팔로우 취소',nowFollowing?'ok':'',1500);
+      toast('팔로우 처리 실패','err',1500);
     }
-  }catch(e){toast('오류: '+e.message,'err');}
-  btn.disabled=false;
+  }).catch(function(e){console.warn('[comm-follow]',e);});
 }
 
 /* 커뮤니티 리스트 재생시간 비동기 로드 */
@@ -22205,45 +22207,43 @@ function openCreatorProfile(name, provider){
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
 }
-async function _pvToggleFollow(){
+function _pvToggleFollow(){
   if(!currentUser){ openLoginSheet(); return; }
   if(!window._pvTarget) return;
-  const btn = $('pv-follow-btn');
-  const isFollowing = btn.dataset.following === '1';
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/profile', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action: isFollowing ? 'unfollow' : 'follow',
-        followerName: currentUser.name, followerProvider: currentUser.provider,
-        followingName: window._pvTarget.name, followingProvider: window._pvTarget.provider,
-      })
-    });
-    const d = await r.json();
-    if(d.ok){
-      /* 로컬 상태 즉시 반영 + _pvFollowState 플래그로 재로드 방어 */
-      if(isFollowing){
-        btn.textContent='팔로우'; btn.dataset.following='0';
-        btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
-        window._pvFollowState = false;
-        toast('팔로우 취소','',1500);
-      } else {
-        btn.textContent='팔로잉'; btn.dataset.following='1';
-        btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
-        window._pvFollowState = true;
-        toast('팔로우!','ok',1500);
-      }
-      const fc = $('pv-follower-cnt');
-      if(fc){
-        const cur = parseInt(fc.textContent)||0;
-        fc.textContent = Math.max(0, cur + (isFollowing ? -1 : 1));
-      }
-      /* 3초간 서버 재로드에 의한 덮어쓰기 방어 */
-      window._pvFollowLock = Date.now();
+  var btn = $('pv-follow-btn');
+  var isFollowing = btn.dataset.following === '1';
+  var nowFollowing = !isFollowing;
+  /* ── 즉시 UI 반영 (낙관적) ── */
+  if(nowFollowing){
+    btn.textContent='팔로잉'; btn.dataset.following='1';
+    btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
+    window._pvFollowState = true;
+    toast('팔로우!','ok',1500);
+  } else {
+    btn.textContent='팔로우'; btn.dataset.following='0';
+    btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
+    window._pvFollowState = false;
+    toast('팔로우 취소','',1500);
+  }
+  var fc = $('pv-follower-cnt');
+  if(fc){ fc.textContent = Math.max(0, (parseInt(fc.textContent)||0) + (nowFollowing ? 1 : -1)); }
+  window._pvFollowLock = Date.now();
+  /* ── DB 백그라운드 전송 ── */
+  fetch('/api/profile', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action: nowFollowing ? 'follow' : 'unfollow',
+      followerName: currentUser.name, followerProvider: currentUser.provider,
+      followingName: window._pvTarget.name, followingProvider: window._pvTarget.provider,
+    })
+  }).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){/* 롤백 */
+      if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
+      else{btn.textContent='팔로우';btn.dataset.following='0';btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
+      if(fc) fc.textContent=Math.max(0,(parseInt(fc.textContent)||0)+(isFollowing?1:-1));
+      toast('팔로우 처리 실패','err',1500);
     }
-  } catch(e){ toast('오류: '+e.message,'err'); }
-  btn.disabled = false;
+  }).catch(function(e){console.warn('[pv-follow]',e);});
 }
 window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
@@ -22400,40 +22400,40 @@ async function _loadFollowerList(){
   }
 }
 
-async function _toggleFollow(){
+function _toggleFollow(){
   if(!currentUser){ openLoginSheet(); return; }
   if(!_pfTarget) return;
-  const btn = $('pf-follow-btn');
-  const isFollowing = btn.dataset.following === '1';
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/profile', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action: isFollowing ? 'unfollow' : 'follow',
-        followerName: currentUser.name, followerProvider: currentUser.provider,
-        followingName: _pfTarget.name, followingProvider: _pfTarget.provider,
-      })
-    });
-    const d = await r.json();
-    if(d.ok){
-      if(isFollowing){
-        btn.textContent = '팔로우'; btn.dataset.following = '0';
-        btn.style.background = 'linear-gradient(135deg,var(--acc),var(--acc2))';
-        btn.style.color = '#fff'; btn.style.border = 'none';
-        toast('팔로우 취소','',1500);
-      } else {
-        btn.textContent = '팔로잉'; btn.dataset.following = '1';
-        btn.style.background = 'var(--card)'; btn.style.color = 'var(--t2)';
-        btn.style.border = '1px solid var(--border)';
-        toast('팔로우!','ok',1500);
-      }
-      /* 카운터 갱신 */
-      const fc = $('pf-followers');
-      if(fc) fc.textContent = Math.max(0, parseInt(fc.textContent||'0') + (isFollowing ? -1 : 1));
+  var btn = $('pf-follow-btn');
+  var isFollowing = btn.dataset.following === '1';
+  var nowFollowing = !isFollowing;
+  /* ── 즉시 UI 반영 (낙관적) ── */
+  if(nowFollowing){
+    btn.textContent='팔로잉'; btn.dataset.following='1';
+    btn.style.background='var(--card)'; btn.style.color='var(--t2)'; btn.style.border='1px solid var(--border)';
+    toast('팔로우!','ok',1500);
+  } else {
+    btn.textContent='팔로우'; btn.dataset.following='0';
+    btn.style.background='linear-gradient(135deg,var(--acc),var(--acc2))'; btn.style.color='#fff'; btn.style.border='none';
+    toast('팔로우 취소','',1500);
+  }
+  var fc=$('pf-followers');
+  if(fc) fc.textContent=Math.max(0,parseInt(fc.textContent||'0')+(nowFollowing?1:-1));
+  /* ── DB 백그라운드 전송 ── */
+  fetch('/api/profile',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      action:nowFollowing?'follow':'unfollow',
+      followerName:currentUser.name,followerProvider:currentUser.provider,
+      followingName:_pfTarget.name,followingProvider:_pfTarget.provider,
+    })
+  }).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){/* 롤백 */
+      if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.style.background='var(--card)';btn.style.color='var(--t2)';btn.style.border='1px solid var(--border)';}
+      else{btn.textContent='팔로우';btn.dataset.following='0';btn.style.background='linear-gradient(135deg,var(--acc),var(--acc2))';btn.style.color='#fff';btn.style.border='none';}
+      if(fc) fc.textContent=Math.max(0,parseInt(fc.textContent||'0')+(isFollowing?1:-1));
+      toast('팔로우 처리 실패','err',1500);
     }
-  } catch(e){ toast('오류: '+e.message,'err'); }
-  btn.disabled = false;
+  }).catch(function(e){console.warn('[pf-follow]',e);});
 }
 
 function _reportUser(){
