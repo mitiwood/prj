@@ -77,6 +77,19 @@ async function _handler(req, res) {
     }
   }
 
+  /* ─── GET: 현재 사용자의 좋아요/싫어요 목록 ─── */
+  if (req.method === "GET" && req.query?.action === "my-likes") {
+    const userName = req.query?.userName || "";
+    const userProvider = req.query?.userProvider || "";
+    if (!userName) return res.status(400).json({ error: "userName required" });
+    try {
+      const rows = await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&select=track_id,type&limit=500`);
+      return res.status(200).json({ ok: true, likes: rows || [] });
+    } catch (e) {
+      return res.status(200).json({ ok: true, likes: [] });
+    }
+  }
+
   /* ─── GET ─── */
   if (req.method === "GET") {
     /* 단건 조회: ?id=xxx (공유 링크 재생용) */

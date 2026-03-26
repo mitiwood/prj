@@ -7114,8 +7114,39 @@ async function _doLoadSbTracks(){
       /* 인사이트 캐시 무효화 (새 데이터 반영) */
       if(typeof _insightFp!=='undefined') _insightFp='';
     }
+    /* 로그인 사용자의 좋아요/싫어요 상태를 서버에서 복원 */
+    _restoreUserLikes();
   }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
   _sbLoading = false;
+}
+
+/* 서버 likes 테이블에서 현재 사용자의 투표를 가져와 historyData에 반영 */
+async function _restoreUserLikes(){
+  var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
+  if(!u||!u.name) return;
+  try{
+    var r=await fetch('/api/tracks?action=my-likes&userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider||''));
+    if(!r.ok) return;
+    var d=await r.json();
+    var likes=d.likes||[]; /* [{track_id, type:'like'|'dislike'}] */
+    if(!likes.length) return;
+    var likeMap={};
+    likes.forEach(function(l){likeMap[l.track_id]=l.type;});
+    var changed=false;
+    historyData.forEach(function(h){
+      var id=h.id||h._sbId||'';
+      if(!id||!likeMap[id]) return;
+      if(likeMap[id]==='like'&&!h._liked){h._liked=true;h._disliked=false;h._commLiked=true;changed=true;}
+      if(likeMap[id]==='dislike'&&!h._disliked){h._disliked=true;h._liked=false;h._commDisliked=true;changed=true;}
+    });
+    /* _sbTracks에도 반영 */
+    _sbTracks.forEach(function(t){
+      var id=t._sbId||t.id||'';
+      if(id&&likeMap[id]==='like'){t.liked=true;t.disliked=false;}
+      if(id&&likeMap[id]==='dislike'){t.disliked=true;t.liked=false;}
+    });
+    if(changed) saveHistory();
+  }catch(e){console.warn('[restoreLikes]',e.message);}
 }
 
 /* 폴링 갱신 — 현재 로드된 만큼만 새로고침 (무한 스크롤 상태 유지) */
@@ -11970,8 +12001,9 @@ function renderHistoryView(){
       const li=parseInt(likeBtn.dataset.fulllikeIdx);
       const hd=historyData[li];if(!hd)return;
       hd._liked=!hd._liked;if(hd._liked)hd._disliked=false;
-      saveHistory();renderHistoryView();
+      saveHistory();_syncAllLikeStates(hd);renderHistoryView();
       toast(hd._liked?'좋아요!':'좋아요 취소','',1200);
+      _syncLikeToServer(hd);
       return;
     }
     /* 전체모드 노래방 — onclick으로 처리, 여기서는 안전 차단만 */
@@ -12237,8 +12269,10 @@ $('hes-like-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   h._liked=!h._liked;if(h._liked)h._disliked=false;
-  saveHistory();_hesUpdateLikeDislikeUI();renderHistoryView();
+  saveHistory();_hesUpdateLikeDislikeUI();renderHistoryView();_syncAllLikeStates(h);
   toast(h._liked?'좋아요!':'좋아요 취소','',1200);
+  /* 서버 즉시 동기화 */
+  _syncLikeToServer(h);
 });
 
 /* 싫어요 */
@@ -12246,8 +12280,10 @@ $('hes-dislike-btn').addEventListener('click',()=>{
   if(_hesIdx<0)return;
   const h=historyData[_hesIdx];if(!h)return;
   h._disliked=!h._disliked;if(h._disliked)h._liked=false;
-  saveHistory();_hesUpdateLikeDislikeUI();renderHistoryView();
+  saveHistory();_hesUpdateLikeDislikeUI();renderHistoryView();_syncAllLikeStates(h);
   toast(h._disliked?'싫어요':'싫어요 취소','',1200);
+  /* 서버 즉시 동기화 */
+  _syncDislikeToServer(h);
 });
 
 /* 공유 */
@@ -13553,6 +13589,24 @@ function mpToggleLike(){
   }
 }
 
+/* 좋아요/싫어요 서버 즉시 동기화 헬퍼 */
+function _syncLikeToServer(h){
+  var id=h.id||h._sbId||'';if(!id)return;
+  var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
+  var body=u?JSON.stringify({userName:u.name||'',userProvider:u.provider||''}):'{}';
+  fetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+(h._liked?'like':'unlike'),{
+    method:'PATCH',headers:{'Content-Type':'application/json'},body:body
+  }).catch(function(e){console.warn('[like sync]',e.message);});
+}
+function _syncDislikeToServer(h){
+  var id=h.id||h._sbId||'';if(!id)return;
+  var u=typeof currentUser!=='undefined'&&currentUser?currentUser:null;
+  var body=u?JSON.stringify({userName:u.name||'',userProvider:u.provider||''}):'{}';
+  fetch('/api/tracks?id='+encodeURIComponent(id)+'&action='+(h._disliked?'dislike':'undislike'),{
+    method:'PATCH',headers:{'Content-Type':'application/json'},body:body
+  }).catch(function(e){console.warn('[dislike sync]',e.message);});
+}
+
 /* 모든 좋아요 UI 동기화 — 미니플레이어, 풀플레이어, 커뮤니티, 히스토리 */
 function _syncAllLikeStates(h){
   if(!h) return;
@@ -13787,9 +13841,8 @@ function _checkAudioPlayable(url){
 
 /* 서버(/api/tracks)에 트랙 저장 — Supabase 저장 */
 function _saveTrackToServer(track){
-  /* debug removed */
   if(!track?.id || !track?.audio_url){ console.warn('[SaveTrack] SKIPPED — missing id or audio_url'); return; }
-  const payload = {
+  var payload = {
     id:             track.id,
     taskId:         track.taskId         || '',
     title:          track.title || _autoGenerateTitle(null,track.lyrics||'',track.tags||'',track.genMode||'custom'),
@@ -13814,19 +13867,16 @@ function _saveTrackToServer(track){
     payload.co_owner_provider = window._collabPending.coOwnerProvider;
     payload.co_owner_avatar = '';
   }
-  const _jwt = localStorage.getItem('kms_jwt')||'';
-  fetch('/api/tracks',{
-    method:'POST',
-    headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
-    body:JSON.stringify(payload),
-  }).then(r=>r.json()).then(d=>{
+  var _jwt = localStorage.getItem('kms_jwt')||'';
+  var _bodyStr = JSON.stringify(payload);
+
+  function _onSaveSuccess(d){
     if(d.source==='supabase'){
       _sbLoaded=false;
       if(document.getElementById('community-view')?.classList.contains('on')){
         renderCommunity(true);
       }
     }
-    /* 콜라보 트랙이면 완료 처리 */
     if(window._collabPending && d.success){
       fetch('/api/collabs',{
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -13834,17 +13884,26 @@ function _saveTrackToServer(track){
       }).catch(function(){});
       window._collabPending = null;
     }
-  }).catch(e=>{
-    console.error('[SaveTrack] error:', e.message);
-    /* 실패 시 3초 후 1회 재시도 */
-    setTimeout(()=>{
-      fetch('/api/tracks',{
-        method:'POST',
-        headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
-        body:JSON.stringify(payload),
-      }).catch(()=>{});
-    }, 3000);
-  });
+  }
+
+  /* 재시도 로직: 최대 3회, 지수 백오프 (2s, 4s, 8s) */
+  function _doSave(attempt){
+    fetch('/api/tracks',{
+      method:'POST',
+      headers:{'Content-Type':'application/json',...(_jwt?{Authorization:'Bearer '+_jwt}:{})},
+      body:_bodyStr,
+    }).then(function(r){return r.json();}).then(_onSaveSuccess).catch(function(e){
+      console.warn('[SaveTrack] attempt '+(attempt+1)+' failed:', e.message);
+      if(attempt<2){
+        setTimeout(function(){_doSave(attempt+1);}, 2000*Math.pow(2,attempt));
+      } else {
+        console.error('[SaveTrack] 3회 실패 — sendBeacon 폴백');
+        /* 최종 폴백: sendBeacon (페이지 이탈에도 전송 보장) */
+        try{navigator.sendBeacon('/api/tracks',new Blob([_bodyStr],{type:'application/json'}));}catch(be){}
+      }
+    });
+  }
+  _doSave(0);
 }
 
 /* ════════════════════════════════════
@@ -13852,15 +13911,27 @@ function _saveTrackToServer(track){
 ════════════════════════════════════ */
 function _notifyBot(text){
   if(!text) return;
-  fetch('/api/telegram',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:text, parse_mode:''}),
-  }).catch(function(){});
+  var _tgBody=JSON.stringify({text:text, parse_mode:''});
+  var _kkBody=JSON.stringify({text:text.slice(0,300)});
+
+  function _sendTg(attempt){
+    fetch('/api/telegram',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:_tgBody,
+    }).then(function(r){
+      if(!r.ok&&attempt<2) setTimeout(function(){_sendTg(attempt+1);},2000*(attempt+1));
+    }).catch(function(e){
+      console.warn('[notifyBot] TG fail #'+(attempt+1)+':', e.message);
+      if(attempt<2) setTimeout(function(){_sendTg(attempt+1);},2000*(attempt+1));
+    });
+  }
+  _sendTg(0);
+
   fetch('/api/kakao-notify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:text.slice(0,300)}),
+    body:_kkBody,
   }).catch(function(){});
 }
 function _notifyMusicCreated(tracks, mode, tags){
