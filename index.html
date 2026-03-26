@@ -1810,6 +1810,55 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-ptr-spinner{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;}
 /* 빈 상태 일러스트 */
 .mf-empty-illust{width:120px;height:120px;margin:0 auto 16px;opacity:.6;}
+/* 장르 태그 클라우드 */
+.mf-genre-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:0 18px 14px;}
+.mf-genre-chip{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:default;transition:transform .15s;}
+.mf-genre-chip:hover{transform:scale(1.05);}
+.mf-genre-chip.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;}
+.mf-genre-chip.secondary{background:rgba(124,58,237,.08);color:var(--acc);}
+.mf-genre-chip.tertiary{background:var(--bg2);color:var(--t3);}
+/* 트랙 그리드 뷰 */
+.mf-view-toggle{display:flex;gap:4px;margin-left:auto;}
+.mf-view-toggle button{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.mf-view-toggle button.on{background:var(--acc);color:#fff;border-color:transparent;}
+.mf-trk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 18px;}
+.mf-trk-grid-card{border-radius:12px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.mf-trk-grid-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+.mf-trk-grid-card:active{transform:scale(.97);}
+.mf-trk-grid-img{width:100%;aspect-ratio:1;background:var(--bg2);position:relative;overflow:hidden;}
+.mf-trk-grid-img img{width:100%;height:100%;object-fit:cover;}
+.mf-trk-grid-play{position:absolute;bottom:6px;right:6px;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.mf-trk-grid-card:hover .mf-trk-grid-play{opacity:1;}
+.mf-trk-grid-card.playing .mf-trk-grid-play{opacity:1;}
+.mf-trk-grid-info{padding:8px 10px;}
+.mf-trk-grid-title{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mf-trk-grid-meta{font-size:10px;color:var(--t3);margin-top:2px;}
+/* TOP 3 캐러셀 */
+.mf-top3-carousel{display:flex;gap:10px;overflow-x:auto;padding:0 18px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x mandatory;margin-bottom:6px;}
+.mf-top3-carousel::-webkit-scrollbar{display:none;}
+.mf-top3-slide{flex-shrink:0;width:85%;scroll-snap-align:center;display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.12);cursor:pointer;transition:all .2s;position:relative;}
+.mf-top3-slide:hover{border-color:var(--acc);}
+.mf-top3-rank{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.mf-top3-img{width:72px;height:72px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg2);}
+.mf-top3-img img{width:100%;height:100%;object-fit:cover;}
+.mf-top3-info{flex:1;min-width:0;}
+/* 숫자 카운터 애니메이션 */
+.mf-stat-animate{display:inline-block;animation:mfCountUp .6s ease-out;}
+@keyframes mfCountUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* 팔로우 컨페티 */
+.mf-confetti{position:absolute;pointer-events:none;z-index:100;}
+.mf-confetti-dot{position:absolute;width:6px;height:6px;border-radius:50%;animation:mfConfettiFall .8s ease-out forwards;}
+@keyframes mfConfettiFall{0%{transform:translateY(0) scale(1);opacity:1;}100%{transform:translateY(-40px) translateX(var(--cx)) scale(0);opacity:0;}}
+/* 활동 타임라인 */
+.mf-timeline{margin:0 18px 14px;padding:12px 14px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;gap:10px;}
+.mf-timeline-icon{font-size:16px;flex-shrink:0;}
+.mf-timeline-text{font-size:12px;color:var(--t2);flex:1;}
+.mf-timeline-time{font-size:10px;color:var(--t3);flex-shrink:0;}
+[data-theme="light"] .mf-genre-chip.secondary{background:rgba(124,58,237,.06);}
+[data-theme="light"] .mf-genre-chip.tertiary{background:rgba(0,0,0,.03);}
+[data-theme="light"] .mf-trk-grid-card{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mf-top3-slide{background:rgba(124,58,237,.03);border-color:rgba(124,58,237,.08);}
+[data-theme="light"] .mf-timeline{background:rgba(0,0,0,.02);}
 [data-theme="light"] .mf-recent-thumb{background:#f0f0f0;}
 [data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
@@ -11296,7 +11345,7 @@ function renderHistoryView(){
     if(_histTabFilter==='music') return !h.video_url;
     if(_histTabFilter==='mv') return !!h.video_url;
     if(_histTabFilter==='liked') return h._liked || h._commLiked;
-    if(_histTabFilter==='mygen') return !h._fromFeed && !h._fromPl && !h._commLiked && !h._vocalRemovedFrom && h.genMode!=='vocal-removal' && h.genMode!=='vocal-extract' && h.genMode!=='split_stem';
+    if(_histTabFilter==='mygen'){var _myModes={'custom':1,'simple':1,'youtube':1,'mv':1,'vocal':1,'extend':1,'cover':1,'remaster':1,'style-reuse':1};return !h._fromFeed&&!h._fromPl&&!h._fromSb&&!!h.genMode&&!!_myModes[h.genMode];}
     if(_histTabFilter==='vocal') return h._vocalRemovedFrom || h.genMode==='vocal-removal' || h.genMode==='vocal-extract' || h.genMode==='split_stem';
     return true;
   });
@@ -11306,7 +11355,8 @@ function renderHistoryView(){
   const musicCount = historyData.filter(h=>!h.video_url).length;
   const mvCount = historyData.filter(h=>!!h.video_url).length;
   const likedCount = historyData.filter(h=>h._liked||h._commLiked).length;
-  const mygenCount = historyData.filter(h=>!h._fromFeed&&!h._fromPl&&!h._commLiked&&!h._vocalRemovedFrom&&h.genMode!=='vocal-removal'&&h.genMode!=='vocal-extract'&&h.genMode!=='split_stem').length;
+  var _myModes2={'custom':1,'simple':1,'youtube':1,'mv':1,'vocal':1,'extend':1,'cover':1,'remaster':1,'style-reuse':1};
+  const mygenCount = historyData.filter(h=>!h._fromFeed&&!h._fromPl&&!h._fromSb&&!!h.genMode&&!!_myModes2[h.genMode]).length;
   const vocalCount = historyData.filter(h=>h._vocalRemovedFrom||h.genMode==='vocal-removal'||h.genMode==='vocal-extract'||h.genMode==='split_stem').length;
   var _plCount=0;try{var _plsAll=JSON.parse(localStorage.getItem('kms_playlists')||'[]');_plsAll.forEach(function(p){_plCount+=p.tracks?p.tracks.length:0;});}catch(e){try{_plCount=JSON.parse(localStorage.getItem('kms_playlist')||'[]').length;}catch(e2){}}
   if(count) count.textContent=`${historyData.length}곡 (내곡 ${mygenCount} · 보컬/MR ${vocalCount} · 뮤비 ${mvCount} · 좋아요 ${likedCount})`;
@@ -14592,10 +14642,48 @@ function _renderCreatorDetailView(grid,countEl){
     grid.innerHTML=html; return;
   }
 
-  /* ── BEST 인기곡 (3곡 이상) ── */
+  /* ── 장르 태그 클라우드 ── */
+  var _dtGenreMap={};
+  d.tracks.forEach(function(t){(t.tags||'').split(',').forEach(function(tag){tag=tag.trim();if(tag)_dtGenreMap[tag]=(_dtGenreMap[tag]||0)+1;});});
+  var _dtGenres=Object.keys(_dtGenreMap).sort(function(a,b){return _dtGenreMap[b]-_dtGenreMap[a];}).slice(0,8);
+  if(_dtGenres.length>0){
+    html+='<div class="mf-genre-cloud">';
+    _dtGenres.forEach(function(g,i){
+      var cls=i===0?'primary':i<3?'secondary':'tertiary';
+      html+='<div class="mf-genre-chip '+cls+'">#'+esc(g)+'</div>';
+    });
+    html+='</div>';
+  }
+
+  /* ── 활동 타임라인 ── */
+  if(d.tracks.length>0){
+    var _latestTrack=d.tracks.slice().sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);})[0];
+    if(_latestTrack&&_latestTrack.created_at){
+      var _ltAge=Date.now()-new Date(_latestTrack.created_at).getTime();
+      var _ltText=_ltAge<3600000?'방금 새 곡 업로드':_ltAge<86400000?Math.floor(_ltAge/3600000)+'시간 전 새 곡 업로드':Math.floor(_ltAge/86400000)+'일 전 새 곡 업로드';
+      html+='<div class="mf-timeline"><div class="mf-timeline-icon">🎵</div><div class="mf-timeline-text">'+_ltText+' — <b>'+esc(_latestTrack.title||'무제')+'</b></div></div>';
+    }
+  }
+
+  /* ── TOP 3 인기곡 캐러셀 (3곡 이상) ── */
   if(d.tracks.length>=3){
-    var topTracks=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
-    var top=topTracks[0];
+    var topTracks=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);}).slice(0,3);
+    html+='<div class="mf-top3-carousel">';
+    topTracks.forEach(function(top,ti){
+      if(!top.image_url||_mfIsBlocked(top.image_url)) return;
+      var origIdx=d.tracks.indexOf(top);
+      html+='<div class="mf-top3-slide" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
+        +'<div class="mf-top3-rank">'+(ti+1)+'</div>'
+        +'<div class="mf-top3-img"><img src="'+esc(top.image_url)+'" alt="" loading="lazy"></div>'
+        +'<div class="mf-top3-info">'
+        +'<div style="font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(top.title||'무제')+'</div>'
+        +'<div style="font-size:11px;color:var(--t3);margin-top:4px;">❤️ '+(top.comm_likes||0)+' · ▶ '+(top.comm_plays||0)+'</div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  } else if(d.tracks.length>0){
+    /* 1~2곡일 때 기존 BEST 카드 */
+    var top=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);})[0];
     if(top&&top.image_url&&!_mfIsBlocked(top.image_url)){
       html+='<div class="mf-detail-top" style="margin:0 18px;" data-mf-action="play-detail" data-mf-trk-idx="'+d.tracks.indexOf(top)+'">'
         +'<div class="mf-detail-top-img"><img src="'+esc(top.image_url)+'" alt="">'
