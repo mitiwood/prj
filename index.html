@@ -8894,6 +8894,7 @@ async function generateMV(){
     /* Step 1: 비디오 생성 (text-to-video) */
     const genData=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
       model: 'kling-2.6/text-to-video',
+      callBackUrl: CALLBACK,
       input: { prompt: prompt, aspect_ratio: _mvRatio, sound: false, duration: _mvDur }
     });
 
@@ -11047,7 +11048,7 @@ async function _mvGenerateImage(){
     txt.textContent='🎬 영상 생성 중...';
     var ra=$('mv-result-area');ra.style.display='block';
     ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 AI 강화 영상 생성 중...</div><div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;"><div id="mv-ai-pbar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#7c3aed);width:5%;transition:width .3s;border-radius:3px;"></div></div><div id="mv-ai-ptxt" style="font-size:11px;color:var(--t3);margin-top:6px;">영상 생성 중... 2~5분 소요</div></div>';
-    var gd=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kling-2.6/text-to-video',input:{prompt:enhanced,aspect_ratio:ratio,sound:false,duration:dur}});
+    var gd=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{model:'kling-2.6/text-to-video',callBackUrl:CALLBACK,input:{prompt:enhanced,aspect_ratio:ratio,sound:false,duration:dur}});
     var tid=gd?.data?.taskId||gd?.taskId;
     if(!tid)throw new Error('영상 taskId 없음');
     for(var i=0;i<90;i++){
@@ -11116,6 +11117,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
     /* Step 1: Kling Market API로 비디오 생성 */
     const genData=await kieRequest(apiKey,'POST','/api/v1/jobs/createTask',{
       model:'kling-2.6/text-to-video',
+      callBackUrl:CALLBACK,
       input:{
         prompt,
         sound:false,

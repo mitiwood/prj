@@ -33,6 +33,7 @@ const CREDIT_PATHS = {
   '/api/v1/generate/cover':       'song',
   '/api/v1/lyrics/generate':      'lyrics',
   '/api/v1/vocal-removal/create': 'vr',
+  '/api/v1/jobs/createTask':      'mv',
 };
 
 function isPathAllowed(path) {
