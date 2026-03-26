@@ -9463,10 +9463,12 @@ async function pollResult(apiKey,taskId){
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
     const interval = i < 3 ? 500 : i < 8 ? 1000 : i < 20 ? 1500 : elapsed < 80000 ? 2000 : 2500;
     await sleep(interval);
+    if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
     elapsed += interval;
     _updateGenEta(elapsed);
     try{
       const data=await kieRequest(apiKey,'GET',`/api/v1/generate/record-info?taskId=${taskId}`);
+      if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
       _netFailCount=0; /* 성공 시 리셋 */
       const st=data?.data;
       if(!st){ _noDataCount++; _updPct(elapsed,'PENDING'); if(_noDataCount>5) console.warn('[poll] no data x'+_noDataCount); continue; }
