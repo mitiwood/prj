@@ -7690,19 +7690,19 @@ async function _ytDoGenerate(){
 
   /* 입력값 수집 */
   const _ytTa   = document.getElementById('yt-lyrics-ta');
-  const ytLyrics= (_ytTa?.value||'').trim();
+  let   ytLyrics= (_ytTa?.value||'').trim();
   const ytMood  = ($('yt-mood')?.value||_lastYtAnalysis.mood||'').trim();
   const ytGenre = _lastYtAnalysis.genre || '';
-  const ytStylePrompt = (_lastYtAnalysis.style_prompt||'').trim().slice(0,200);
-  const ytStyle = [ytGenre, ytMood, ytStylePrompt].filter(Boolean).join(', ');
-  /* prompt: 가사 있으면 가사 우선, 없으면 스타일 프롬프트 */
-  const prompt  = ytLyrics || ytStyle || 'YouTube cover music';
+  const ytStylePrompt = (_lastYtAnalysis.style_prompt||'').trim().slice(0,800);
+  const ytMoodTags = (_lastYtAnalysis.mood_tags||'').trim();
+  /* style: 장르 + 분위기 + 상세 스타일 프롬프트 + 무드태그 (최대 1000자) */
+  const ytStyle = [ytGenre, ytMood, ytStylePrompt, ytMoodTags].filter(Boolean).join(', ').slice(0,1000);
   const model   = ($('model-sel')?.value) || 'V4_5';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
   const songTitle = ($('yt-song-title')?.value||'').trim() || ($('song-title')?.value||'').trim() ||
                     rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
-  /* debug removed */
+  const ytVocalGender = _lastYtAnalysis.vocal_gender || '';
 
   /* UI 로딩 시작 */
   _ytGenerating = true;
@@ -7720,6 +7720,22 @@ async function _ytDoGenerate(){
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
   if(fill){ fill.style.animation='none'; void fill.offsetWidth; fill.style.animation=''; }
+
+  /* ── 가사 비어있고 인스트루멘탈 아니면 → 자동 가사 생성 ── */
+  if(!ytLyrics && !isInst){
+    $('ld-sub').innerHTML='🎤 원곡 느낌의 가사 생성 중...<br>잠시만 기다려주세요';
+    try{
+      const lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
+      const lyricsPrompt = lyricsTheme + ', ' + ytGenre + ', ' + ytMood;
+      const autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,200));
+      if(autoLyrics && autoLyrics.length > 30){
+        ytLyrics = autoLyrics;
+        if(_ytTa) _ytTa.value = autoLyrics;
+        trackUsage('lyrics',{mode:'yt-auto-lyrics'});
+      }
+    }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
+  }
+
   $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
   const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
   let _ti=0;
@@ -7728,6 +7744,9 @@ async function _ytDoGenerate(){
     $('ld-sub').innerHTML=_tips[_ti%_tips.length]+'<br><span style="font-size:11px;color:var(--t3);">조금만 기다려주세요~</span>';
     _ti++;
   }, 8000);
+
+  /* prompt: 가사가 있으면 가사, 없으면 스타일 설명 */
+  const prompt = ytLyrics || ytStyle || 'YouTube cover music';
 
   try{
     const body = {
@@ -7739,6 +7758,9 @@ async function _ytDoGenerate(){
       callBackUrl: CALLBACK,
     };
     if(songTitle) body.title = songTitle;
+    if(ytVocalGender && !isInst) body.vocalGender = ytVocalGender;
+    /* 스타일 가중치 높여서 원곡 느낌 강화 */
+    body.styleWeight = 0.8;
 
     /* debug removed */
 
@@ -20356,6 +20378,25 @@ async function _syncUserDataFromServer(){
       if(updated){
         historyData = historyData.sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,200);
         saveHistory(); updateHistBadge();
+      }
+
+      /* 로컬→서버 역방향 동기화: 서버에 없는 로컬 트랙 업로드 */
+      const serverIds = new Set(serverTracks.map(st => st.id));
+      const localOnly = historyData.filter(h => h.audio_url && h.id && !serverIds.has(h.id) && !h._syncFailed);
+      if(localOnly.length > 0){
+        console.log('[UserSync] 서버에 없는 로컬 트랙 '+localOnly.length+'개 업로드');
+        for(const h of localOnly.slice(0, 20)){
+          try{
+            _saveTrackToServer({
+              id: h.id, taskId: h.taskId||'', title: h.title||'무제',
+              audio_url: h.audio_url, video_url: h.video_url||'',
+              image_url: h.image_url||'', tags: h.tags||'',
+              lyrics: h.lyrics||'', genMode: h.genMode||'custom',
+              _owner: h._owner || {name:currentUser.name, avatar:currentUser.avatar||'', provider:currentUser.provider},
+              _sync: true
+            });
+          }catch(e){ h._syncFailed=true; }
+        }
       }
     }
 
