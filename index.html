@@ -1781,6 +1781,35 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-similar-meta{font-size:9px;color:var(--t3);margin-top:2px;}
 .mf-similar-match{font-size:10px;color:var(--acc);font-weight:700;margin-top:3px;}
 [data-theme="light"] .mf-similar-section{background:linear-gradient(135deg,rgba(124,58,237,.03),rgba(236,72,153,.02));border-color:rgba(124,58,237,.06);}
+/* 크리에이터 스토리 (인스타 스타일) */
+.mf-story-row{display:flex;gap:12px;overflow-x:auto;padding:0 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:14px;}
+.mf-story-row::-webkit-scrollbar{display:none;}
+.mf-story-item{flex-shrink:0;text-align:center;cursor:pointer;width:68px;}
+.mf-story-ring{width:60px;height:60px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f97316);margin:0 auto 4px;transition:transform .2s;}
+.mf-story-ring.seen{background:var(--border);}
+.mf-story-item:active .mf-story-ring{transform:scale(.92);}
+.mf-story-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;border:2px solid var(--card);background:var(--bg2);}
+.mf-story-inner img{width:100%;height:100%;object-fit:cover;}
+.mf-story-name{font-size:10px;color:var(--t2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px;}
+/* 미니 이퀄라이저 */
+.mf-mini-eq{display:inline-flex;align-items:flex-end;gap:1.5px;height:12px;margin-left:4px;vertical-align:middle;}
+.mf-mini-eq span{width:2.5px;border-radius:1px;background:var(--acc);animation:mfEqBounce .8s ease-in-out infinite alternate;}
+.mf-mini-eq span:nth-child(1){height:4px;animation-delay:0s;}
+.mf-mini-eq span:nth-child(2){height:8px;animation-delay:.15s;}
+.mf-mini-eq span:nth-child(3){height:5px;animation-delay:.3s;}
+.mf-mini-eq span:nth-child(4){height:10px;animation-delay:.45s;}
+@keyframes mfEqBounce{0%{height:3px;}100%{height:12px;}}
+/* 크리에이터 레벨 링 색상 */
+.mf-level-bronze .mf-creator-avatar-ring,.mf-level-bronze .mf-story-ring{background:linear-gradient(135deg,#cd7f32,#e8a862);}
+.mf-level-silver .mf-creator-avatar-ring,.mf-level-silver .mf-story-ring{background:linear-gradient(135deg,#9ca3af,#d1d5db);}
+.mf-level-gold .mf-creator-avatar-ring,.mf-level-gold .mf-story-ring{background:linear-gradient(135deg,#f59e0b,#fbbf24);}
+.mf-level-diamond .mf-creator-avatar-ring,.mf-level-diamond .mf-story-ring{background:linear-gradient(135deg,#06b6d4,#a78bfa,#ec4899);}
+/* 풀 투 리프레시 */
+.mf-ptr-indicator{text-align:center;padding:12px 0;font-size:12px;color:var(--t3);overflow:hidden;max-height:0;transition:max-height .3s ease,opacity .3s;opacity:0;}
+.mf-ptr-indicator.active{max-height:60px;opacity:1;}
+.mf-ptr-spinner{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;}
+/* 빈 상태 일러스트 */
+.mf-empty-illust{width:120px;height:120px;margin:0 auto 16px;opacity:.6;}
 [data-theme="light"] .mf-recent-thumb{background:#f0f0f0;}
 [data-theme="light"] .mf-skeleton-card{background:#fff;border-color:rgba(0,0,0,.06);}
 [data-theme="light"] .mf-skeleton-circle,[data-theme="light"] .mf-skeleton-line{background:#eee;}
@@ -14149,6 +14178,16 @@ function _mfAvatar(u,n,lazy){var ch=esc((n||'?').charAt(0).toUpperCase());var fb
 function _mfImgFail(el){el.onerror=null;var ch=el.dataset.initial||'?';var p=el.parentNode;if(p){p.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;">'+ch+'</div>';}}
 function _mfThumb(u){if(!u||_isBlockedImgHost(u))return '<span>🎵</span>';return '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<span>🎵</span>\'">';}
 
+/* 크리에이터 레벨 계산 */
+function _mfCreatorLevel(c){
+  var score=(c.trackCount||0)*2+(c.totalLikes||0)+(c.totalPlays||0)*0.1;
+  if(score>=100) return 'diamond';
+  if(score>=40) return 'gold';
+  if(score>=15) return 'silver';
+  if(score>=3) return 'bronze';
+  return '';
+}
+
 function _renderMyFeedView(grid,countEl){
   /* 크리에이터 상세 뷰 */
   if(_myFeedDetail){
@@ -14158,6 +14197,9 @@ function _renderMyFeedView(grid,countEl){
   var creatorCount=(_myFeedCreators||[]).length;
   if(countEl) countEl.textContent='크리에이터'+(creatorCount?' '+creatorCount+'명':'');
   var html='';
+
+  /* ── 풀 투 리프레시 인디케이터 ── */
+  html+='<div class="mf-ptr-indicator" id="mf-ptr">↓ 당겨서 새로고침</div>';
 
   /* ── 검색 + 새로고침 ── */
   html+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">';
@@ -14233,7 +14275,12 @@ function _renderMyFeedView(grid,countEl){
   _mfRenderedCount=0; /* 렌더링 카운트 초기화 */
 
   if(!creators.length){
-    html+='<div class="hist-empty"><div class="he-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="he-txt">'+(_myFeedSearch?'검색 결과가 없어요':'아직 크리에이터가 없어요')+'</div><div class="he-sub">'+(_myFeedSearch?'"'+esc(_myFeedSearch)+'" 에 해당하는 크리에이터가 없습니다':'곡을 공개한 아티스트가 여기 표시됩니다')+'</div>'+(_myFeedSearch?'':'<button class="hist-empty-cta" onclick="switchTab(\'community-view\')">커뮤니티 둘러보기</button>')+'</div>';
+    html+='<div class="hist-empty">'
+      +'<div class="mf-empty-illust"><svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="50" fill="rgba(124,58,237,.06)" stroke="rgba(124,58,237,.15)" stroke-width="2"/><path d="M45 55c0-8.3 6.7-15 15-15s15 6.7 15 15" stroke="rgba(124,58,237,.3)" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="50" r="3" fill="rgba(124,58,237,.25)"/><circle cx="70" cy="50" r="3" fill="rgba(124,58,237,.25)"/><path d="M52 68c3 3 13 3 16 0" stroke="rgba(124,58,237,.25)" stroke-width="2" stroke-linecap="round"/><path d="M38 35l-5-8M82 35l5-8M60 28v-8" stroke="rgba(124,58,237,.15)" stroke-width="2" stroke-linecap="round"/><circle cx="36" cy="72" r="6" fill="rgba(124,58,237,.04)" stroke="rgba(124,58,237,.1)"/><circle cx="84" cy="72" r="6" fill="rgba(124,58,237,.04)" stroke="rgba(124,58,237,.1)"/><path d="M33 72h6M81 72h6" stroke="rgba(124,58,237,.12)" stroke-width="1.5"/></svg></div>'
+      +'<div class="he-txt">'+(_myFeedSearch?'검색 결과가 없어요':(_myFeedGenre!=='all'?'해당 장르의 크리에이터가 없어요':'아직 크리에이터가 없어요'))+'</div>'
+      +'<div class="he-sub">'+(_myFeedSearch?'"'+esc(_myFeedSearch)+'" 에 해당하는 크리에이터가 없습니다':(_myFeedGenre!=='all'?'다른 장르를 선택해보세요':'곡을 공개한 아티스트가 여기 표시됩니다'))+'</div>'
+      +(_myFeedSearch||_myFeedGenre!=='all'?'<button class="hist-empty-cta" onclick="_myFeedSearch=\'\';_myFeedGenre=\'all\';renderHistoryView();">필터 초기화</button>':'<button class="hist-empty-cta" onclick="switchTab(\'community-view\')">커뮤니티 둘러보기</button>')
+      +'</div>';
     grid.innerHTML=html;
     return;
   }
@@ -14252,6 +14299,24 @@ function _renderMyFeedView(grid,countEl){
         +'</div>';
     });
     html+='</div></div>';
+  }
+
+  /* ── 크리에이터 스토리 (최근 24h 신곡 보유자) ── */
+  if(!_myFeedSearch){
+    var _24h=Date.now()-86400000;
+    var storyCreators=creators.filter(function(c){return (c._latestTs||0)>_24h;}).slice(0,10);
+    if(storyCreators.length>0){
+      html+='<div class="mf-story-row">';
+      storyCreators.forEach(function(c){
+        var lvl=_mfCreatorLevel(c);
+        var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;color:#fff;font-weight:800;">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.style.display=\'none\'">';
+        html+='<div class="mf-story-item'+(lvl?' mf-level-'+lvl:'')+'" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
+          +'<div class="mf-story-ring"><div class="mf-story-inner">'+aH+'</div></div>'
+          +'<div class="mf-story-name">'+esc(c.name)+'</div>'
+          +'</div>';
+      });
+      html+='</div>';
+    }
   }
 
   /* ── ✨ 당신을 위한 추천 인사이트 (비동기 렌더링) ── */
@@ -14304,7 +14369,8 @@ function _renderMyFeedView(grid,countEl){
     var totalPlays=c.totalPlays||0;
     var isTop3=idx<3&&!_myFeedSearch;
     var hasMultipleTracks=c.trackCount>=3;
-    html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
+    var lvl=_mfCreatorLevel(c);
+    html+='<div class="mf-creator-card'+(lvl?' mf-level-'+lvl:'')+'" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
       +'<div class="mf-creator-rank'+(isTop3?' top3':'')+'">'+(idx+1)+'</div>'
       +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
@@ -14366,6 +14432,25 @@ function _renderMyFeedView(grid,countEl){
       }
     });
   }
+
+  /* ── 풀 투 리프레시 (터치 이벤트) ── */
+  var _ptrEl=document.getElementById('mf-ptr');
+  if(_ptrEl){
+    var _ptrStartY=0,_ptrActive=false;
+    grid.addEventListener('touchstart',function(e){
+      if(grid.scrollTop<=0) _ptrStartY=e.touches[0].clientY;
+    },{passive:true});
+    grid.addEventListener('touchmove',function(e){
+      if(_ptrStartY>0&&grid.scrollTop<=0){
+        var dy=e.touches[0].clientY-_ptrStartY;
+        if(dy>40&&dy<150){_ptrEl.classList.add('active');_ptrEl.innerHTML='<span class="mf-ptr-spinner"></span> 새로고침 중...';_ptrActive=true;}
+      }
+    },{passive:true});
+    grid.addEventListener('touchend',function(){
+      if(_ptrActive){_ptrActive=false;_ptrStartY=0;_myFeedRefresh();setTimeout(function(){if(_ptrEl)_ptrEl.classList.remove('active');},1500);}
+      else{_ptrStartY=0;}
+    },{passive:true});
+  }
 }
 
 /* 새로고침 */
@@ -14423,7 +14508,8 @@ function _mfLoadMoreCreators(){
     }
     var totalPlays=c.totalPlays||0;
     var hasMultipleTracks=c.trackCount>=3;
-    html+='<div class="mf-creator-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
+    var lvl=_mfCreatorLevel(c);
+    html+='<div class="mf-creator-card'+(lvl?' mf-level-'+lvl:'')+'" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'" role="button" tabindex="0">'
       +'<div class="mf-creator-rank">'+(actualIdx+1)+'</div>'
       +'<div class="mf-creator-avatar-ring'+(hasMultipleTracks?'':' no-tracks')+'"><div class="mf-creator-avatar">'+avatarHtml+'</div></div>'
       +'<div class="mf-creator-info">'
@@ -14562,7 +14648,7 @@ function _renderCreatorDetailView(grid,countEl){
       +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
       +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
       +'<div class="mf-trk-info">'
-      +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+'</div>'
+      +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+(_mfIsPlaying?'<span class="mf-mini-eq"><span></span><span></span><span></span><span></span></span>':'')+'</div>'
       +'<div class="mf-trk-meta">'
       +(isUnplayable?'<span style="color:var(--err,#e74c3c);">재생불가</span>':'')
       +(likes>0?'<span>❤️ '+likes+'</span>':'')
