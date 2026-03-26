@@ -782,7 +782,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .ld-step-label{font-size:9px;font-weight:700;color:var(--t2);}
 .ld-step.active .ld-step-label{color:var(--acc);}
 .ld-step-arrow{color:var(--t3);font-size:12px;align-self:center;opacity:.3;}
-.ld-progress{height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin:10px 0;position:relative;z-index:1;}
+.ld-progress{height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin:14px 0 10px;position:relative;z-index:1;}
 .ld-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200% 100%;border-radius:4px;width:0%;transition:width .5s;animation:ld-fill-shift 2s linear infinite;}
 @keyframes ld-fill-shift{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
 .ld-task{display:none;position:relative;z-index:1;}
@@ -4967,8 +4967,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="ld-step-arrow">→</div>
         <div class="ld-step" id="ld-step-4"><span class="ld-step-icon">✅</span><span class="ld-step-label">완료</span></div>
       </div>
-      <div id="ld-percent" style="font-size:28px;font-weight:900;color:var(--acc);margin:4px 0 2px;font-variant-numeric:tabular-nums;">0%</div>
-      <div id="ld-eta" style="font-size:11px;color:var(--t3);margin-bottom:6px;">예상 ~1분</div>
+      <div id="ld-percent" style="display:none;">0%</div>
+      <div id="ld-eta" style="display:none;"></div>
       <div class="ld-progress"><div class="ld-fill" id="ld-fill"></div></div>
       <div id="gen-progress-steps"></div>
       <div class="ld-task" id="ld-task"></div>
@@ -7839,6 +7839,8 @@ let ytInstOn=false;
 $('yt-inst-toggle').addEventListener('click',function(){
   ytInstOn=!ytInstOn;this.classList.toggle('on',ytInstOn);
 });
+/* yt-song-title 수동 입력 시 autoFilled 플래그 제거 */
+$('yt-song-title').addEventListener('input',function(){delete this.dataset.autoFilled;});
 
 /* ── 심플 모드 생성 버튼 ── */
 $('simple-gen-btn').addEventListener('click',async()=>{
@@ -7921,6 +7923,7 @@ function _setYtDuration(v){
 /* generate()를 완전히 우회 — YT 전용 독립 생성 흐름 */
 let _ytGenerating = false;
 
+var _ytRetryCount=0; /* YouTube 모드 자동 재시도 카운터 */
 async function _ytDoGenerate(){
   if(_ytGenerating) return;
   if(_globalGenerating){ _showGeneratingPopup(); return; }
@@ -7950,9 +7953,10 @@ async function _ytDoGenerate(){
   const model   = ($('model-sel')?.value) || 'V4_5';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
-  const _userTitle = ($('yt-song-title')?.value||'').trim() || ($('song-title')?.value||'').trim();
-  let songTitle = _userTitle || rawTitle.replace(/[(\[].*/, '').trim().slice(0, 40);
-  const _titleIsAuto = !_userTitle; /* 사용자가 직접 입력하지 않은 경우 */
+  var _ytTitleEl = $('yt-song-title');
+  const _userTitle = (_ytTitleEl?.value||'').trim();
+  const _titleIsAuto = !_userTitle || _ytTitleEl?.dataset?.autoFilled === '1';
+  let songTitle = _userTitle || rawTitle.replace(/[\(\[].*/, '').replace(/\s*[-–|]\s*$/, '').trim().slice(0, 40);
   const ytVocalGender = _lastYtAnalysis.vocal_gender || '';
 
   /* UI 로딩 시작 */
@@ -7970,7 +7974,9 @@ async function _ytDoGenerate(){
   $('results').innerHTML='';
   $('feedback-card').style.display='none';
   const fill=$('ld-fill');
-  if(fill){ fill.style.animation='none'; void fill.offsetWidth; fill.style.animation=''; }
+  if(fill){ fill.style.transition='none'; fill.style.width='0%'; fill.style.animation='none'; void fill.offsetWidth; fill.style.transition=''; fill.style.animation=''; }
+  var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent='0%';
+  var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent='예상 ~1분';
 
   /* ── 가사 비어있고 인스트루멘탈 아니면 → 자동 가사 생성 ── */
   if(!ytLyrics && !isInst){
@@ -7988,9 +7994,14 @@ async function _ytDoGenerate(){
     }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
   }
 
-  /* ── 제목 미입력 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
+  /* ── 제목 미입력/자동 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
   if(_titleIsAuto && ytLyrics && ytLyrics.length > 30){
     songTitle = _extractTitleFromLyrics(ytLyrics, ytGenre, ytMood);
+    /* UI에도 반영 */
+    if(_ytTitleEl && songTitle && songTitle !== 'Untitled'){
+      _ytTitleEl.value = songTitle;
+      delete _ytTitleEl.dataset.autoFilled;
+    }
   }
 
   $('ld-sub').innerHTML='YouTube 느낌으로 만드는 중~<br>금방 나와요 ☕';
@@ -8121,12 +8132,34 @@ async function _ytDoGenerate(){
     $('loading-card').classList.remove('on');
     console.error('[YT Generate error]', e.message);
     let ytErrMsg = e.message;
-    if(ytErrMsg.includes('SENSITIVE_WORD')||ytErrMsg.includes('부적절한 단어')){
+    const _ytIsSensitive = ytErrMsg.includes('SENSITIVE_WORD')||ytErrMsg.includes('부적절한 단어');
+    const _ytIsRetryable = !_ytIsSensitive && !ytErrMsg.includes('credit') && !ytErrMsg.includes('사용량') && _ytRetryCount < 2;
+
+    /* 자동 재시도 (최대 2회, 지수 백오프) */
+    if(_ytIsRetryable){
+      _ytRetryCount++;
+      var _ytRetryDelay = _ytRetryCount * 2000;
+      toast('⏳ YouTube 생성 오류 — 자동 재시도 '+_ytRetryCount+'/2 ('+(_ytRetryCount*2)+'초 후)','',3000);
+      console.warn('[YT Generate] auto-retry #'+_ytRetryCount+':', ytErrMsg);
+      _ytGenerating=false; _globalGenerating=false; _syncGenButtons();
+      if(ytBtn){ytBtn.disabled=false;ytBtn.style.opacity='1';}
+      if(ytSpin)ytSpin.style.display='none';
+      if(ytTxt)ytTxt.textContent='▶ YouTube 스타일로 생성';
+      setTimeout(()=>_ytDoGenerate(), _ytRetryDelay);
+      return;
+    }
+    _ytRetryCount=0;
+
+    if(_ytIsSensitive){
       ytErrMsg='가사에 부적절한 단어가 있어요 — 가사를 수정해주세요';
     } else if(ytErrMsg.includes('시간 초과')){
       ytErrMsg='생성 시간이 초과됐어요 — 잠시 후 다시 시도해주세요';
     } else if(ytErrMsg.includes('taskId')){
       ytErrMsg='kie.ai 요청 오류 — 잠시 후 다시 시도해주세요';
+    } else if(ytErrMsg.includes('네트워크')||ytErrMsg.includes('fetch')||ytErrMsg.includes('Failed to fetch')){
+      ytErrMsg='네트워크 오류 — 인터넷 연결을 확인해주세요';
+    } else if(ytErrMsg.includes('503')||ytErrMsg.includes('502')||ytErrMsg.includes('overload')){
+      ytErrMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
     }
     toast('❌ '+ytErrMsg,'err',5000);
   }finally{
@@ -9087,13 +9120,14 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* _lastYtAnalysis에 title 포함해서 저장 */
     _lastYtAnalysis = { ...analysis, title };
 
-    /* 제목 자동 설정 (다른 모드 자동채움 표시) */
-    if(!($('song-title')?.value||'').trim()){
-      const cleanTitle = title.replace(/[(\[].*/, '').trim().slice(0, 30);
-      const titleEl = $('song-title');
-      titleEl.value = cleanTitle || 'YouTube 커버';
-      titleEl.dataset.autoFilled = '1';
-      markAutoFilled();
+    /* 제목 자동 설정 → yt-song-title에만 (song-title은 건드리지 않음) */
+    var _ytTitleInput = $('yt-song-title');
+    if(_ytTitleInput && !_ytTitleInput.value.trim()){
+      var _cleanYtTitle = title.replace(/[\(\[].*/, '').replace(/\s*[-–|]\s*$/, '').trim();
+      /* 아티스트 - 곡명 패턴에서 곡명만 추출 */
+      var _songNameMatch = _cleanYtTitle.match(/[-–|]\s*(.+)/);
+      _ytTitleInput.value = _songNameMatch ? _songNameMatch[1].trim().slice(0,30) : _cleanYtTitle.slice(0,30) || '';
+      _ytTitleInput.dataset.autoFilled = '1';
     }
 
     /* BPM 반영 */
@@ -9193,25 +9227,69 @@ async function kieRequest(apiKey,method,path,body){
   var u=(typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
   var payload={path,method,body:body||undefined};
   if(u&&u.name){payload.userName=u.name;payload.userProvider=u.provider||'';}
-  var res=await fetch('/api/kie-proxy',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload),
-  });
-  var data=await res.json();
-  if(!res.ok){
-    /* 크레딧 초과 시 업그레이드 안내 */
-    if(data?.error==='credit_exceeded'){
-      var upgrade=data.upgrade==='pro'?'Pro':'Creator';
-      throw new Error('이번 달 사용량을 초과했어요. '+upgrade+' 플랜으로 업그레이드해보세요!');
+
+  /* 재시도: 폴링(GET)=3회, 생성(POST)=2회 — 429/502/503/네트워크/model empty 대응 */
+  var _maxRetry = method==='GET' ? 3 : 2;
+  var _lastErr = null;
+
+  for(var _att=0;_att<=_maxRetry;_att++){
+    try{
+      var res=await fetch('/api/kie-proxy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
+      });
+      /* 429 Rate Limit → 지수 백오프 후 재시도 */
+      if(res.status===429 && _att<_maxRetry){
+        await sleep(Math.min(3000*(1+_att), 10000));
+        continue;
+      }
+      /* 502/503 서버 과부하 → 재시도 */
+      if((res.status===502||res.status===503) && _att<_maxRetry){
+        await sleep(2000*(1+_att));
+        continue;
+      }
+      /* 504 타임아웃 → 재시도 */
+      if(res.status===504 && _att<_maxRetry){
+        await sleep(2000*(1+_att));
+        continue;
+      }
+      var data;
+      try{ data=await res.json(); }catch(je){
+        /* JSON 파싱 실패 → 재시도 */
+        if(_att<_maxRetry){await sleep(1500);continue;}
+        throw new Error('서버 응답 파싱 실패');
+      }
+      if(!res.ok){
+        /* 크레딧 초과 → 즉시 중단 */
+        if(data?.error==='credit_exceeded'){
+          var upgrade=data.upgrade==='pro'?'Pro':'Creator';
+          throw new Error('이번 달 사용량을 초과했어요. '+upgrade+' 플랜으로 업그레이드해보세요!');
+        }
+        var errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
+        /* model is empty → 일시 오류, 재시도 */
+        if((errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')) && _att<_maxRetry){
+          console.warn('[kieRequest] model empty, retry '+(_att+1));
+          await sleep(2000*(1+_att));
+          continue;
+        }
+        throw new Error(errMsg);
+      }
+      return data;
+    }catch(e){
+      _lastErr=e;
+      /* 인증/크레딧/부적절 등 치명적 오류 → 즉시 중단 */
+      if(/credit_exceeded|401|403|크레딧|부적절|사용량|SENSITIVE/i.test(e.message)) throw e;
+      /* 네트워크 오류 → 재시도 */
+      if(_att<_maxRetry){
+        console.warn('[kieRequest] retry '+(_att+1)+'/'+_maxRetry+': '+e.message);
+        await sleep(2000*(1+_att));
+        continue;
+      }
+      throw e;
     }
-    var errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
-    if(errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')){
-      throw new Error('작업을 처리할 수 없습니다. 다시 시도해주세요.');
-    }
-    throw new Error(errMsg);
   }
-  return data;
+  throw _lastErr||new Error('kieRequest 재시도 한도 초과');
 }
 
 async function pollResult(apiKey,taskId){
@@ -9250,6 +9328,8 @@ async function pollResult(apiKey,taskId){
   }
   _updPct(0,'PENDING');
   _setGenStep(1); _genCancelled=false; _genStartTime=Date.now();
+  let _netFailCount=0; /* 연속 네트워크 실패 카운터 */
+  const _maxNetFails=10; /* 연속 10회 실패 시 중단 */
   for(let i=0;i<MAX_POLLS;i++){
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
     const interval = i < 3 ? 500 : i < 10 ? 1000 : elapsed < 80000 ? 2000 : 3000;
@@ -9258,6 +9338,7 @@ async function pollResult(apiKey,taskId){
     _updateGenEta(elapsed);
     try{
       const data=await kieRequest(apiKey,'GET',`/api/v1/generate/record-info?taskId=${taskId}`);
+      _netFailCount=0; /* 성공 시 리셋 */
       const st=data?.data;
       if(!st){ _noDataCount++; _updPct(elapsed,'PENDING'); if(_noDataCount>5) console.warn('[poll] no data x'+_noDataCount); continue; }
       _noDataCount=0;
@@ -9303,9 +9384,13 @@ async function pollResult(apiKey,taskId){
       }
     }catch(e){
       /* 인증 오류나 명확한 API 오류는 즉시 중단 */
-      if(/401|403|크레딧|부적절|생성 실패|FAILED|취소/i.test(e.message)) throw e;
-      /* 일시적 네트워크 오류는 무시하고 재시도 */
-      console.warn('[poll] retry',i,e.message);
+      if(/401|403|크레딧|부적절|생성 실패|FAILED|취소|SENSITIVE/i.test(e.message)) throw e;
+      /* 일시적 네트워크 오류 — 카운트 관리 */
+      _netFailCount++;
+      console.warn('[poll] net fail '+_netFailCount+'/'+_maxNetFails+' (iter '+i+'):', e.message);
+      if(_netFailCount>=_maxNetFails) throw new Error('네트워크 연결 실패가 계속되고 있어요 — 인터넷 연결을 확인해주세요');
+      /* 네트워크 실패 시 폴링 카운터 되돌리기 (낭비 방지) */
+      if(_netFailCount<=5) i--;
     }
   }
   throw new Error('시간 초과 — 다시 시도해주세요');
@@ -10349,7 +10434,7 @@ async function generate(overrideParams){
   $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
   if(typeof _startGenProgress==='function') _startGenProgress();
   $('feedback-card').style.display='none';
-  const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+  const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
   /* 로딩 팁 순환 */
   const _tips=['AI가 곡 구상 중이에요 🧠','비트 깔고 있어요 🥁','멜로디 라인 잡는 중 🎹','보컬 톤 맞추는 중 🎤','믹싱 마무리 중~ 거의 다 됐어요 🎚'];
   let _tipIdx=0;
@@ -11080,7 +11165,7 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     toast('🎵 곡 연장을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='곡 더 늘리는 중이에요~<br>잠깐이면 돼요 ✨';
     $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
@@ -12226,7 +12311,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
     $('loading-card').classList.add('on');
     $('results').innerHTML='';
     setTimeout(()=>$('loading-card').scrollIntoView({behavior:'smooth',block:'center'}),200);
-    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='커버 버전 만드는 중~<br>새 보컬 입히고 있어요 🎤';
     $('ld-task').textContent='';
     let result=null;
@@ -12314,7 +12399,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
     toast('🎵 스타일 재사용 곡 생성을 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='원곡 느낌 살려서 새로 만드는 중~<br>기대해주세요 🎵';
     $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
@@ -12398,7 +12483,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
     toast('✦ 리마스터를 시작합니다!','ok',2000);
     $('loading-card').classList.add('on');
     $('loading-card').scrollIntoView({behavior:'smooth',block:'center'});
-    const fill=$('ld-fill');fill.style.animation='none';void fill.offsetWidth;fill.style.animation='';
+    const fill=$('ld-fill');if(fill){fill.style.transition='none';fill.style.width='0%';fill.style.animation='none';void fill.offsetWidth;fill.style.transition='';fill.style.animation='';}var _rPct=$('ld-percent');if(_rPct)_rPct.textContent='0%';
     $('ld-sub').innerHTML='V5로 리마스터 중~<br>최고 음질로 업그레이드해드릴게요 ✦';
     $('ld-task').textContent='';
     const tracks=await pollResult(apiKey,taskId);
