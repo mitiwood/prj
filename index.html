@@ -8153,17 +8153,18 @@ async function _ytDoGenerate(){
         var _extTrack=tracks[0];
         var _extId=_extTrack.id||_extTrack.audioId||'';
         if(!_extId)break;
-        $('ld-sub').innerHTML='\uD83D\uDD04 곡 연장 중... ('+(_er+1)+'/'+_extRounds+')<br>더 긴 곡을 만들고 있어요';
-        var _pe=$('ld-percent');if(_pe)_pe.textContent='연장 중';
+        var _ldS4=$('ld-sub');if(_ldS4)_ldS4.textContent='곡 연장 중... ('+(_er+1)+'/'+_extRounds+')';
         try{
           var _extBody={audioId:_extId,model:model,callBackUrl:CALLBACK,defaultParamFlag:false};
           var _extData=await kieRequest(apiKey,'POST','/api/v1/generate/extend',_extBody);
           var _extTaskId=_extData?.data?.taskId||_extData?.taskId;
           if(_extTaskId){
+            var _svStep3=_genStepPrev;
             var _extResult=await pollResult(apiKey,_extTaskId);
+            _genStepPrev=_svStep3;
             if(_extResult?.length){
               var _extValid=_extResult.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
-              if(_extValid.length)tracks[0]=_extValid[0]; /* 연장된 트랙으로 교체 */
+              if(_extValid.length)tracks[0]=_extValid[0];
             }
           }
         }catch(extErr){console.warn('[YT extend '+(_er+1)+']',extErr.message);}
