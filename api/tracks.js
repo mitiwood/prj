@@ -128,7 +128,7 @@ async function _handler(req, res) {
           'default': 'comm_rating.desc.nullslast,comm_likes.desc,created_at.desc',
         };
         const order = orderMap[sortParam] || orderMap['default'];
-        filter = `/tracks?audio_url=neq.&audio_url=not.is.null&order=${order}&limit=${limit}&offset=${offset}&select=${sel}`;
+        filter = `/tracks?audio_url=neq.&audio_url=not.is.null&duration=gt.0&order=${order}&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
       const mapped = (rows || []).map((r) => ({
