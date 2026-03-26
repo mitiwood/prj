@@ -9535,7 +9535,7 @@ function _saveCommConfig(){
   }
   fetch('/api/community-config',{
     method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_SECRET},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},
     body:JSON.stringify(config)
   }).then(r=>r.json()).then(d=>{
     if(d.ok)toast('✅ 커뮤니티 설정 저장 완료!','ok');
@@ -9586,7 +9586,7 @@ var _ccSelections={hero:[],top10:[],recommend:[],featured:[],spotlight:[],  'cre
 /* DB 데이터 로드 */
 function _ccLoadDbData(){
   /* 트랙 */
-  fetch('/api/tracks?public=true&limit=500',{headers:{'Authorization':'Bearer '+ADMIN_SECRET}})
+  fetch('/api/tracks?public=true&limit=500',{headers:{'Authorization':'Bearer '+getAdminPw()}})
     .then(function(r){return r.json();}).then(function(d){
       _ccAllTracks=(d.tracks||d||[]).map(function(t){
         return{id:t.id,title:t.title||'무제',owner:t.owner_name||'',image:t.image_url||'',likes:t.comm_likes||0,plays:t.comm_plays||0};
