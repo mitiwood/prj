@@ -10869,7 +10869,7 @@ async function generate(overrideParams){
     } else if(errMsg.includes('model error')||errMsg.includes('model is empty')){
       errMsg='AI 모델 오류 — 다른 모델을 선택하거나 다시 시도해주세요';
     } else if(errMsg.includes('network')||errMsg.includes('fetch')||errMsg.includes('Failed to fetch')){
-      errMsg='네트워크 오류 — 인터넷 연결을 확인해주세요';
+      errMsg=navigator.onLine?'네트워크 오류 — 잠시 후 다시 시도해주세요':'오프라인 상태입니다 — 인터넷 연결을 확인해주세요';
     } else if(errMsg.includes('503')||errMsg.includes('502')||errMsg.includes('overload')){
       errMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
     }
@@ -10887,7 +10887,7 @@ async function generate(overrideParams){
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
     if(activeSpinner){activeSpinner.style.display='none';}
     if(activeTxt){activeTxt.textContent=isSimple?'⚡ 음악 생성하기':isYT?'▶ YouTube로 생성':' ✦ 음악 생성하기';}
-    $('gen-btn').disabled=false;$('gen-spinner').style.display='none';$('gen-txt').textContent='✦ 음악 생성하기';
+    $('gen-btn').disabled=false;$('gen-spinner').style.display='none';$('gen-txt').textContent='✦ 음악 생성하기';$('simple-gen-btn').disabled=false;var _spn=$('simple-gen-spinner');if(_spn)_spn.style.display='none';var _stx=$('simple-gen-txt');if(_stx)_stx.textContent='⚡ 음악 생성하기';var _ldt=$('ld-task');if(_ldt){_ldt.style.display='none';_ldt.textContent='';}
     /* 큐에 대기 중인 곡이 있으면 자동 실행 */
     if(_genQueue.length>0){
       var _next=_genQueue.shift();
