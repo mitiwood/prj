@@ -9431,17 +9431,15 @@ async function _autoLyricsAndGenerate(){
       }
     }catch(e){ console.warn('[auto-lyrics] kie.ai 실패:', e.message); }
 
-    /* 2차 폴백: Claude 스트리밍 */
-    if(!text){
-      toast('✍️ Claude AI로 작사 중...','',2000);
-      const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
-      const sys = '당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
-      const usr = `다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${lyricsPrompt}"${artistHint}`;
-      text = await callClaudeStream(sys, usr, ()=>{}) || '';
-    }
-
     clearInterval(ti);
-    if(!text) throw new Error('가사 생성 실패');
+    /* 가사 생성 실패 시 → 가사 없이 스타일만으로 바로 생성 */
+    if(!text){
+      toast('✍️ 가사 없이 스타일로 바로 생성합니다','',2000);
+      btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';
+      _globalGenerating=false;_syncGenButtons();
+      generate({_afterLyrics:true,_skipGuide:true});
+      return;
+    }
 
     const _p=$('prompt');
     _p.value=text;
@@ -9952,7 +9950,8 @@ function buildOptimalPrompt({ genre, mood, songDesc, bpm, instruments, refArtist
 
 const _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 let _globalGenerating = false; _syncGenButtons(); /* 전역 생성 잠금 */
-let _retryAttempted = false; /* 자동 재시도 1회 제한 */
+let _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
+var _genQueue = []; /* 생성 큐 (최대 2개 대기) */
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
 let _genCount = 1;
 function _setGenCount(n){
@@ -9979,10 +9978,17 @@ async function generate(overrideParams){
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
-  if(!overrideParams?._afterLyrics) _retryAttempted = false;
-  /* 전역 생성 중 차단 — 어떤 모드든 한 번에 하나만 */
+  if(!overrideParams?._afterLyrics) _retryCount = 0;
+  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기) */
   if(_globalGenerating && !overrideParams?._afterLyrics){
-    _showGeneratingPopup();
+    if(_genQueue.length>=1){
+      toast('대기 큐가 가득 찼어요 (최대 1곡 대기)','err',3000);
+      return;
+    }
+    _genQueue.push({params:overrideParams||{},mode:currentMode});
+    toast('🎵 현재 곡 완료 후 자동 생성됩니다 (대기 1곡)','ok',3000);
+    /* 로딩카드에 큐 표시 */
+    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 다음 곡 대기 중...';}
     return;
   }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
@@ -10222,27 +10228,40 @@ async function generate(overrideParams){
     clearInterval(typeof _tipTimer!=='undefined'?_tipTimer:null);
     let errMsg = e.message;
     const isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
-    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && !_retryAttempted;
+    const isRetryable = !isSensitive && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
 
-    /* 자동 재시도 (1회, 민감단어/크레딧 제외) */
+    /* 자동 재시도 (최대 2회, 지수 백오프) */
     if(isRetryable){
-      _retryAttempted = true;
-      toast('⏳ 생성 오류 발생 — 자동 재시도 중...','',3000);
-      console.warn('[generate] auto-retry:', errMsg);
-      setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, 2000);
+      _retryCount++;
+      var retryDelay = _retryCount * 2000; /* 2초, 4초 */
+      toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
+      console.warn('[generate] auto-retry #'+_retryCount+':', errMsg);
+      setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, retryDelay);
       return;
     }
-    _retryAttempted = false;
+    _retryCount = 0;
 
-    /* SENSITIVE_WORD → 친절한 안내 */
+    /* 에러 유형별 구체적 안내 */
     if(isSensitive){
       errMsg='가사에 부적절한 단어가 있어요 — 가사를 수정해주세요';
     } else if(errMsg.includes('callBackUrl')||errMsg.includes('422')){
       errMsg='요청 오류 — 잠시 후 다시 시도해주세요';
     } else if(errMsg.includes('시간 초과')){
       errMsg='생성 시간이 초과됐어요 — 잠시 후 다시 시도해주세요';
+    } else if(errMsg.includes('model error')||errMsg.includes('model is empty')){
+      errMsg='AI 모델 오류 — 다른 모델을 선택하거나 다시 시도해주세요';
+    } else if(errMsg.includes('network')||errMsg.includes('fetch')||errMsg.includes('Failed to fetch')){
+      errMsg='네트워크 오류 — 인터넷 연결을 확인해주세요';
+    } else if(errMsg.includes('503')||errMsg.includes('502')||errMsg.includes('overload')){
+      errMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
     }
     toast('❌ '+errMsg,'err',5000);
+    /* "다시 시도" 버튼 표시 */
+    var _retryToast=document.createElement('div');
+    _retryToast.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;';
+    _retryToast.innerHTML='<button onclick="this.parentNode.remove();generate()" style="padding:10px 24px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(124,58,237,.3);">🔄 다시 시도</button>';
+    document.body.appendChild(_retryToast);
+    setTimeout(()=>{if(_retryToast.parentNode)_retryToast.remove();},8000);
     console.error('[generateMusic error]',e.message);
   }finally{
     _globalGenerating = false; _syncGenButtons();
@@ -10250,6 +10269,12 @@ async function generate(overrideParams){
     if(activeSpinner){activeSpinner.style.display='none';}
     if(activeTxt){activeTxt.textContent=isSimple?'⚡ 음악 생성하기':isYT?'▶ YouTube로 생성':' ✦ 음악 생성하기';}
     $('gen-btn').disabled=false;$('gen-spinner').style.display='none';$('gen-txt').textContent='✦ 음악 생성하기';
+    /* 큐에 대기 중인 곡이 있으면 자동 실행 */
+    if(_genQueue.length>0){
+      var _next=_genQueue.shift();
+      toast('🎵 대기 곡 생성 시작!','ok',2000);
+      setTimeout(function(){generate(_next.params);},1500);
+    }
   }
 }
 
