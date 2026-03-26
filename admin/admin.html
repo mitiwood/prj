@@ -91,6 +91,17 @@ tr[style*="cursor:pointer"]:hover td{background:rgba(124,58,237,.06);}
 .toggle.on{background:var(--acc);}
 .toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .2s;}
 .toggle.on::after{transform:translateX(16px);}
+/* 콘텐츠 선택 드롭다운 */
+.cc-dropdown{max-height:200px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:2px;z-index:10;position:relative;}
+.cc-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;}
+.cc-dropdown-item:hover{background:rgba(124,58,237,.1);}
+.cc-dropdown-item img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+.cc-dropdown-item .cc-no-img{width:32px;height:32px;border-radius:6px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.cc-selected-list{display:flex;flex-direction:column;gap:3px;margin-top:4px;}
+.cc-selected-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:8px;font-size:11px;}
+.cc-selected-item img{width:24px;height:24px;border-radius:4px;object-fit:cover;}
+.cc-selected-item .cc-rm{margin-left:auto;cursor:pointer;color:var(--t3);font-size:14px;padding:0 4px;}
+.cc-selected-item .cc-rm:hover{color:#ef4444;}
 /* 설정 폼 */
 .settings-group{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
 .settings-row{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.04);}
@@ -854,44 +865,74 @@ textarea.form-input{line-height:1.5;}
           <!-- 대표곡(히어로) 선택 -->
           <div class="settings-row">
             <div><label>🌟 대표곡 (Featured Hero)</label>
-            <div class="desc">커뮤니티 상단에 크게 노출할 곡의 트랙 ID</div></div>
-            <div><input class="settings-input" id="cc-hero-track" placeholder="트랙 ID (비우면 자동 선택)" style="width:280px;"></div>
+            <div class="desc">커뮤니티 상단에 크게 노출할 곡 (1곡)</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-hero-search" placeholder="🔍 곡 제목/소유자 검색..." oninput="_ccFilterTracks('hero')" style="margin-bottom:4px;">
+              <div id="cc-hero-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-hero-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <input type="hidden" id="cc-hero-track">
 
           <!-- TOP10 수동 지정 -->
           <div class="settings-row">
             <div><label>🏆 TOP10 수동 지정</label>
-            <div class="desc">트랙 ID를 줄바꿈으로 입력 (비우면 좋아요순 자동)</div></div>
-            <div><textarea class="settings-input" id="cc-top10" rows="4" placeholder="트랙ID 1줄 1개&#10;예: abc123&#10;def456" style="width:280px;font-size:11px;"></textarea></div>
+            <div class="desc">최대 10곡 선택 (비우면 좋아요순 자동)</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-top10-search" placeholder="🔍 곡 제목/소유자 검색..." oninput="_ccFilterTracks('top10')">
+              <div id="cc-top10-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-top10-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <textarea id="cc-top10" style="display:none;"></textarea>
 
           <!-- 이번주 크리에이터 -->
           <div class="settings-row">
             <div><label>✨ 이번주 크리에이터 (Spotlight)</label>
-            <div class="desc">크리에이터 이름을 줄바꿈으로 입력</div></div>
-            <div><textarea class="settings-input" id="cc-spotlight" rows="3" placeholder="크리에이터 이름 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+            <div class="desc">최대 5명 선택</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-spotlight-search" placeholder="🔍 크리에이터 검색..." oninput="_ccFilterCreators('spotlight')">
+              <div id="cc-spotlight-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-spotlight-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <textarea id="cc-spotlight" style="display:none;"></textarea>
 
           <!-- 추천 곡 큐레이션 -->
           <div class="settings-row">
             <div><label>💎 추천 곡 큐레이션</label>
-            <div class="desc">"당신을 위한 추천"에 우선 노출할 트랙 ID</div></div>
-            <div><textarea class="settings-input" id="cc-recommend" rows="3" placeholder="트랙ID 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+            <div class="desc">"당신을 위한 추천"에 우선 노출 (최대 6곡)</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-recommend-search" placeholder="🔍 곡 제목/소유자 검색..." oninput="_ccFilterTracks('recommend')">
+              <div id="cc-recommend-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-recommend-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <textarea id="cc-recommend" style="display:none;"></textarea>
 
           <!-- 크리에이터 노출 순서 -->
           <div class="settings-row">
             <div><label>👥 크리에이터 노출 순서</label>
-            <div class="desc">상단 크리에이터 섹션 순서 (이름, 줄바꿈)</div></div>
-            <div><textarea class="settings-input" id="cc-creator-order" rows="3" placeholder="크리에이터 이름 1줄 1개&#10;비우면 곡 수 기준 자동" style="width:280px;font-size:11px;"></textarea></div>
+            <div class="desc">상단 크리에이터 섹션 순서</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-creator-order-search" placeholder="🔍 크리에이터 검색..." oninput="_ccFilterCreators('creator-order')">
+              <div id="cc-creator-order-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-creator-order-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <textarea id="cc-creator-order" style="display:none;"></textarea>
 
-          <!-- 대표 노출곡 (comm-featured-info) -->
+          <!-- 대표 노출곡 -->
           <div class="settings-row">
             <div><label>🎵 대표 노출곡 목록</label>
-            <div class="desc">메인 리스트 상단에 고정 노출할 트랙 ID</div></div>
-            <div><textarea class="settings-input" id="cc-featured" rows="3" placeholder="트랙ID 1줄 1개" style="width:280px;font-size:11px;"></textarea></div>
+            <div class="desc">메인 리스트 상단에 고정 노출</div></div>
+            <div style="width:360px;">
+              <input class="settings-input" id="cc-featured-search" placeholder="🔍 곡 제목/소유자 검색..." oninput="_ccFilterTracks('featured')">
+              <div id="cc-featured-dropdown" class="cc-dropdown" style="display:none;"></div>
+              <div id="cc-featured-selected" class="cc-selected-list"></div>
+            </div>
           </div>
+          <textarea id="cc-featured" style="display:none;"></textarea>
 
           <!-- 생성 모드 ON/OFF -->
           <div class="settings-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
@@ -9536,6 +9577,183 @@ if(_origShowSection){
     if(id==='sec-community'&&!_ccLoaded){_ccLoaded=true;_loadCommConfig();}
   };
 }
+
+/* ══════════════ DB 기반 트랙/크리에이터 선택 UI ══════════════ */
+var _ccAllTracks=[];  /* DB에서 불러온 전체 트랙 */
+var _ccAllCreators=[]; /* DB에서 불러온 전체 크리에이터 */
+var _ccSelections={hero:[],top10:[],recommend:[],featured:[],spotlight:[],  'creator-order':[]};
+
+/* DB 데이터 로드 */
+function _ccLoadDbData(){
+  /* 트랙 */
+  fetch('/api/tracks?public=true&limit=500',{headers:{'Authorization':'Bearer '+ADMIN_SECRET}})
+    .then(function(r){return r.json();}).then(function(d){
+      _ccAllTracks=(d.tracks||d||[]).map(function(t){
+        return{id:t.id,title:t.title||'무제',owner:t.owner_name||'',image:t.image_url||'',likes:t.comm_likes||0,plays:t.comm_plays||0};
+      });
+      console.log('[CC] 트랙 '+_ccAllTracks.length+'개 로드');
+    }).catch(function(){});
+  /* 크리에이터 */
+  fetch('/api/profile?name=_&provider=_&action=creators')
+    .then(function(r){return r.json();}).then(function(d){
+      _ccAllCreators=(d.creators||[]).map(function(c){
+        return{name:c.name||'',provider:c.provider||'',avatar:c.avatar||'',tracks:c.tracks||0,likes:c.likes||0};
+      });
+      console.log('[CC] 크리에이터 '+_ccAllCreators.length+'명 로드');
+    }).catch(function(){});
+}
+
+/* 트랙 검색 드롭다운 */
+function _ccFilterTracks(field){
+  var input=document.getElementById('cc-'+field+'-search');
+  var dd=document.getElementById('cc-'+field+'-dropdown');
+  if(!input||!dd)return;
+  var q=(input.value||'').trim().toLowerCase();
+  if(q.length<1){dd.style.display='none';return;}
+  var sel=_ccSelections[field]||[];
+  var selIds=new Set(sel.map(function(s){return s.id;}));
+  var filtered=_ccAllTracks.filter(function(t){
+    if(selIds.has(t.id))return false;
+    return t.title.toLowerCase().indexOf(q)>=0||t.owner.toLowerCase().indexOf(q)>=0;
+  }).slice(0,8);
+  if(!filtered.length){dd.style.display='none';return;}
+  dd.style.display='block';
+  dd.innerHTML=filtered.map(function(t){
+    var img=t.image?'<img src="'+t.image+'" onerror="this.outerHTML=\'<div class=cc-no-img>🎵</div>\'">':'<div class="cc-no-img">🎵</div>';
+    return '<div class="cc-dropdown-item" onclick="_ccSelectTrack(\''+field+'\',\''+t.id+'\')">'
+      +img+'<div style="flex:1;min-width:0;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_esc(t.title)+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);">'+_esc(t.owner)+' · ❤️'+t.likes+' · ▶'+t.plays+'</div></div></div>';
+  }).join('');
+}
+function _esc(s){return(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* 크리에이터 검색 드롭다운 */
+function _ccFilterCreators(field){
+  var input=document.getElementById('cc-'+field+'-search');
+  var dd=document.getElementById('cc-'+field+'-dropdown');
+  if(!input||!dd)return;
+  var q=(input.value||'').trim().toLowerCase();
+  if(q.length<1){dd.style.display='none';return;}
+  var sel=_ccSelections[field]||[];
+  var selNames=new Set(sel.map(function(s){return s.name;}));
+  var filtered=_ccAllCreators.filter(function(c){
+    if(selNames.has(c.name))return false;
+    return c.name.toLowerCase().indexOf(q)>=0;
+  }).slice(0,8);
+  if(!filtered.length){dd.style.display='none';return;}
+  dd.style.display='block';
+  dd.innerHTML=filtered.map(function(c){
+    var av=c.avatar&&c.avatar!=='👤'?'<img src="'+c.avatar+'" onerror="this.outerHTML=\'<div class=cc-no-img>👤</div>\'">':'<div class="cc-no-img">👤</div>';
+    return '<div class="cc-dropdown-item" onclick="_ccSelectCreator(\''+field+'\',\''+_esc(c.name)+'\',\''+_esc(c.provider)+'\')">'
+      +av+'<div style="flex:1;"><div style="font-weight:600;">'+_esc(c.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);">🎵'+c.tracks+'곡 · ❤️'+c.likes+'</div></div></div>';
+  }).join('');
+}
+
+/* 트랙 선택 */
+function _ccSelectTrack(field,id){
+  var t=_ccAllTracks.find(function(x){return x.id===id;});if(!t)return;
+  var max={hero:1,top10:10,recommend:6,featured:20}[field]||20;
+  if(!_ccSelections[field])_ccSelections[field]=[];
+  if(_ccSelections[field].length>=max){toast('최대 '+max+'개까지 선택 가능','err');return;}
+  _ccSelections[field].push(t);
+  _ccRenderSelected(field,'track');
+  document.getElementById('cc-'+field+'-search').value='';
+  document.getElementById('cc-'+field+'-dropdown').style.display='none';
+  /* hidden textarea 동기화 */
+  _ccSyncHidden(field,'track');
+}
+
+/* 크리에이터 선택 */
+function _ccSelectCreator(field,name,provider){
+  var c=_ccAllCreators.find(function(x){return x.name===name;});if(!c)return;
+  var max={spotlight:5,'creator-order':20}[field]||20;
+  if(!_ccSelections[field])_ccSelections[field]=[];
+  if(_ccSelections[field].length>=max){toast('최대 '+max+'명까지 선택 가능','err');return;}
+  _ccSelections[field].push(c);
+  _ccRenderSelected(field,'creator');
+  document.getElementById('cc-'+field+'-search').value='';
+  document.getElementById('cc-'+field+'-dropdown').style.display='none';
+  _ccSyncHidden(field,'creator');
+}
+
+/* 선택 목록 렌더 */
+function _ccRenderSelected(field,type){
+  var wrap=document.getElementById('cc-'+field+'-selected');if(!wrap)return;
+  var items=_ccSelections[field]||[];
+  wrap.innerHTML=items.map(function(item,i){
+    if(type==='track'){
+      var img=item.image?'<img src="'+item.image+'" onerror="this.style.display=\'none\'">':'';
+      return '<div class="cc-selected-item">'+img+'<span style="font-weight:600;">'+_esc(item.title)+'</span><span style="color:var(--t3);font-size:10px;">'+_esc(item.owner)+' · ❤️'+item.likes+'</span><span class="cc-rm" onclick="_ccRemove(\''+field+'\','+i+',\'track\')">&times;</span></div>';
+    } else {
+      var av=item.avatar&&item.avatar!=='👤'?'<img src="'+item.avatar+'" onerror="this.style.display=\'none\'">':'';
+      return '<div class="cc-selected-item">'+av+'<span style="font-weight:600;">'+_esc(item.name)+'</span><span style="color:var(--t3);font-size:10px;">🎵'+item.tracks+'곡</span><span class="cc-rm" onclick="_ccRemove(\''+field+'\','+i+',\'creator\')">&times;</span></div>';
+    }
+  }).join('');
+}
+
+/* 선택 제거 */
+function _ccRemove(field,idx,type){
+  if(_ccSelections[field])_ccSelections[field].splice(idx,1);
+  _ccRenderSelected(field,type);
+  _ccSyncHidden(field,type);
+}
+
+/* hidden textarea에 ID/이름 동기화 (저장용) */
+function _ccSyncHidden(field,type){
+  var ta=document.getElementById('cc-'+field);
+  if(!ta)return;
+  var items=_ccSelections[field]||[];
+  if(type==='track') ta.value=items.map(function(t){return t.id;}).join('\n');
+  else ta.value=items.map(function(c){return c.name;}).join('\n');
+  /* hero는 단일 값 → input */
+  if(field==='hero'){
+    var heroInput=document.getElementById('cc-hero-track');
+    if(heroInput) heroInput.value=items.length?items[0].id:'';
+  }
+}
+
+/* _loadCommConfig 로드 후 기존 선택값 → 선택 목록으로 복원 */
+var _origLoadCommConfig=_loadCommConfig;
+_loadCommConfig=function(){
+  _origLoadCommConfig();
+  _ccLoadDbData();
+  fetch('/api/community-config').then(function(r){return r.json();}).then(function(d){
+    setTimeout(function(){
+      _ccRestoreSelections(d);
+    },800); /* DB 로드 대기 */
+  }).catch(function(){});
+};
+
+function _ccRestoreSelections(d){
+  /* 트랙 기반 필드 복원 */
+  ['top10','recommend','featured'].forEach(function(field){
+    var key=field==='top10'?'top10_override':field==='recommend'?'recommend_tracks':'featured_tracks';
+    var ids=d[key]||[];
+    _ccSelections[field]=ids.map(function(id){return _ccAllTracks.find(function(t){return t.id===id;})||{id:id,title:id,owner:'?',image:'',likes:0,plays:0};}).filter(Boolean);
+    _ccRenderSelected(field,'track');
+  });
+  /* 히어로 (단일) */
+  if(d.hero_track_id){
+    var ht=_ccAllTracks.find(function(t){return t.id===d.hero_track_id;});
+    _ccSelections.hero=ht?[ht]:[{id:d.hero_track_id,title:d.hero_track_id,owner:'?',image:'',likes:0,plays:0}];
+    _ccRenderSelected('hero','track');
+  }
+  /* 크리에이터 기반 필드 복원 */
+  ['spotlight','creator-order'].forEach(function(field){
+    var key=field==='spotlight'?'spotlight_creators':'creator_order';
+    var names=d[key]||[];
+    _ccSelections[field]=names.map(function(name){return _ccAllCreators.find(function(c){return c.name===name;})||{name:name,provider:'',avatar:'',tracks:0,likes:0};}).filter(Boolean);
+    _ccRenderSelected(field,'creator');
+  });
+}
+
+/* 검색 외부 클릭 시 드롭다운 닫기 */
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.settings-row')){
+    document.querySelectorAll('.cc-dropdown').forEach(function(d){d.style.display='none';});
+  }
+});
 </script>
 </body>
 </html>
