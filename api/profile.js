@@ -330,7 +330,7 @@ export default async function handler(req, res) {
       _profileRateMap[ip].push(now);
       const { name: newName, provider: prov, oldName, bio } = body;
       if (!newName || !prov || !oldName) return res.status(400).json({ error: '이름/프로바이더 필요' });
-      const trimmed = newName.trim().slice(0, 30);
+      const trimmed = newName.trim().slice(0, 10);
       if (!trimmed) return res.status(400).json({ error: '이름이 비어있어요' });
       try {
         const updateData = { name: trimmed };
