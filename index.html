@@ -13269,7 +13269,7 @@ function showMiniPlayer(idx){
   _fpAbort=new AbortController();
   var _sig={signal:_fpAbort.signal};
   var audio = fpAudio || new Audio();
-  audio.preload='auto';
+  audio.preload='none';
   audio._corsRetried=false;
   audio._retried=false;
   fpAudio = audio;
@@ -13372,7 +13372,7 @@ function showMiniPlayer(idx){
   var _waitingTimer=null,_stallRetryCount=0,_maxStallRetries=3;
   function _audioReconnect(reason){
     if(genId!==_fpAudioGenId) return;
-    if(audio.readyState>=3) return;
+    if(audio.readyState>=3&&!audio.paused) return; /* 이미 재생 가능 */
     _stallRetryCount++;
     if(_stallRetryCount>_maxStallRetries){
       console.warn('[Audio] 재시도 '+_maxStallRetries+'회 초과 — 다음 곡');
@@ -13381,8 +13381,14 @@ function showMiniPlayer(idx){
     }
     console.warn('[Audio] '+reason+' — 재연결 시도 '+_stallRetryCount+'/'+_maxStallRetries);
     toast('오디오 재연결 중... ('+_stallRetryCount+'/'+_maxStallRetries+')','',2000);
+    _playStarted=false;
     var ct=audio.currentTime||0;
-    audio.load(); audio.currentTime=ct; audio.play().catch(function(){});
+    audio.src=_safeAudioUrl;
+    audio.load();
+    if(ct>0.5) audio.currentTime=ct;
+    audio.play().then(function(){
+      _playStarted=true;_stallRetryCount=0;_syncAllPlayBtns(true);
+    }).catch(function(){/* canplay 대기 */});
   }
 
   audio.addEventListener('waiting',function(){
@@ -13415,9 +13421,12 @@ function showMiniPlayer(idx){
   /* BPM 뱃지 초기화 */
   var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
-  /* canplay 대기 후 재생 */
-  audio.addEventListener('canplay',function(){
-    if(genId!==_fpAudioGenId) return;
+  /* ── 재생 시작 핸들러 (중복 호출 방지) ── */
+  var _playStarted=false;
+  function _tryPlay(){
+    if(_playStarted||genId!==_fpAudioGenId) return;
+    _playStarted=true;
+    clearTimeout(_canplayTimer);
     audio.play().then(function(){
       if(genId!==_fpAudioGenId) return;
       _syncAllPlayBtns(true);
@@ -13429,32 +13438,43 @@ function showMiniPlayer(idx){
         }
       }catch(e){console.warn('[BPM/Spectrum]',e.message);}
     }).catch(function(err){
-      if(err.name!=='AbortError'){
-        console.warn('[play() failed]',err.message);
-        if(!audio._corsRetried){
-          audio._corsRetried=true;
-          audio.removeAttribute('crossorigin'); audio.crossOrigin=null;
-          audio.src=_safeAudioUrl; audio.load();
-          audio.play().then(function(){if(genId!==_fpAudioGenId)return;_syncAllPlayBtns(true);})
-            .catch(function(e2){toast('재생 실패: '+e2.message,'err',3000);});
-        } else { toast('재생 실패: '+err.message,'err',3000); }
-      }
+      _playStarted=false;
+      if(err.name==='AbortError') return;
+      console.warn('[play() failed]',err.message);
+      if(!audio._corsRetried){
+        audio._corsRetried=true;
+        audio.removeAttribute('crossorigin'); audio.crossOrigin=null;
+        audio.src=_safeAudioUrl; audio.load();
+        audio.play().then(function(){if(genId!==_fpAudioGenId)return;_playStarted=true;_syncAllPlayBtns(true);})
+          .catch(function(e2){toast('재생 실패: '+e2.message,'err',3000);});
+      } else { toast('재생 실패: '+err.message,'err',3000); }
     });
-  },{once:true,signal:_fpAbort.signal});
+  }
 
-  /* canplay 10초 타임아웃 */
+  /* canplay / loadeddata 중 먼저 도착하는 이벤트로 재생 시작 */
+  audio.addEventListener('canplay',_tryPlay,{once:true,signal:_fpAbort.signal});
+  audio.addEventListener('loadeddata',_tryPlay,{once:true,signal:_fpAbort.signal});
+
+  /* 15초 타임아웃 — 직접 play() 시도 (canplay 없이도 재생 가능한 경우 대응) */
   var _canplayTimer=setTimeout(function(){
     if(genId!==_fpAudioGenId) return;
-    if(audio.readyState<3){
-      console.warn('[showMiniPlayer] canplay timeout — 재연결 시도');
-      _audioReconnect('초기 로딩 타임아웃');
+    if(!_playStarted){
+      console.warn('[showMiniPlayer] canplay timeout — 직접 play() 시도');
+      _tryPlay();
     }
-  },10000);
-  audio.addEventListener('canplay',function(){clearTimeout(_canplayTimer);},{once:true,signal:_fpAbort.signal});
+  },15000);
 
   /* src 설정 + load() */
   audio.src = _safeAudioUrl;
   audio.load();
+  /* 즉시 play() 시도 — 브라우저가 충분한 데이터를 이미 가지고 있을 수 있음 */
+  setTimeout(function(){
+    if(genId!==_fpAudioGenId||_playStarted) return;
+    audio.play().then(function(){
+      if(genId!==_fpAudioGenId) return;
+      _playStarted=true;clearTimeout(_canplayTimer);_syncAllPlayBtns(true);
+    }).catch(function(){/* canplay 대기로 폴백 */});
+  },300);
 }
 
 function hideMiniPlayer(){
