@@ -3919,27 +3919,54 @@ function _renderUserCreationStats(ownerMap){
   var body=document.getElementById('track-user-stats-body');
   var panel=document.getElementById('track-user-stats');
   if(!body||!panel) return;
-  var owners=Object.keys(ownerMap).filter(function(n){return n!=='게스트';}).sort(function(a,b){return ownerMap[b].count-ownerMap[a].count;});
+  var owners=Object.keys(ownerMap).filter(function(n){return n!=='\uAC8C\uC2A4\uD2B8';}).sort(function(a,b){return ownerMap[b].count-ownerMap[a].count;});
   if(!owners.length){panel.style.display='none';return;}
   panel.style.display='block';
-  var provBadge={google:'🔴',kakao:'🟡',naver:'🟢',guest:'⚪'};
+  var provBadge={google:'\uD83D\uDD34',kakao:'\uD83D\uDFE1',naver:'\uD83D\uDFE2',guest:'\u26AA'};
   var html='<table style="width:100%;font-size:12px;border-collapse:collapse;">';
-  html+='<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">사용자</th><th style="padding:6px 4px;">곡수</th><th style="padding:6px 4px;">모드별</th><th style="padding:6px 4px;">❤️</th><th style="padding:6px 4px;">▶</th><th style="padding:6px 4px;">⚠️</th></tr>';
-  owners.forEach(function(name){
+  html+='<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">\uC0AC\uC6A9\uC790</th><th style="padding:6px 4px;">\uACE1\uC218</th><th style="padding:6px 4px;">\uBAA8\uB4DC\uBCC4</th><th style="padding:6px 4px;">\u2764\uFE0F</th><th style="padding:6px 4px;">\u25B6</th><th style="padding:6px 4px;">\u26A0\uFE0F</th></tr>';
+  owners.forEach(function(name,oi){
     var o=ownerMap[name];
-    var prov=provBadge[o.provider]||'⚪';
+    var prov=provBadge[o.provider]||'\u26AA';
     var modes=Object.keys(o.modes).map(function(m){return m+':'+o.modes[m];}).join(', ');
-    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;" onclick="document.getElementById(\'track-owner-filter\').value=\''+name+'\';filterTracks();">';
-    html+='<td style="padding:6px 4px;">'+prov+' '+name+'</td>';
+    var playable=o.count-o.broken;
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;" onclick="_toggleOwnerTracks(\''+esc(name)+'\','+oi+')">';
+    html+='<td style="padding:6px 4px;">'+prov+' '+name+(playable>0?' <span style="font-size:9px;color:var(--acc);">\uD83C\uDFB5'+playable+'</span>':'')+'</td>';
     html+='<td style="padding:6px 4px;text-align:center;font-weight:700;">'+o.count+'</td>';
     html+='<td style="padding:6px 4px;font-size:10px;color:var(--t3);">'+modes+'</td>';
     html+='<td style="padding:6px 4px;text-align:center;">'+o.likes+'</td>';
     html+='<td style="padding:6px 4px;text-align:center;">'+o.plays+'</td>';
     html+='<td style="padding:6px 4px;text-align:center;color:'+(o.broken>0?'#ef4444':'var(--t3)')+';">'+o.broken+'</td>';
     html+='</tr>';
+    html+='<tr id="owner-tracks-'+oi+'" style="display:none;"><td colspan="6" style="padding:0 4px 8px;"><div id="owner-tracks-inner-'+oi+'" style="background:var(--bg3);border-radius:8px;padding:8px;max-height:300px;overflow-y:auto;"></div></td></tr>';
   });
   html+='</table>';
   body.innerHTML=html;
+}
+var _ownerTrackOpen=-1;
+function _toggleOwnerTracks(ownerName,oi){
+  var row=document.getElementById('owner-tracks-'+oi);
+  if(!row) return;
+  if(_ownerTrackOpen===oi){row.style.display='none';_ownerTrackOpen=-1;return;}
+  if(_ownerTrackOpen>=0){var prev=document.getElementById('owner-tracks-'+_ownerTrackOpen);if(prev)prev.style.display='none';}
+  _ownerTrackOpen=oi;
+  row.style.display='';
+  var inner=document.getElementById('owner-tracks-inner-'+oi);
+  if(!inner) return;
+  var tracks=(_allAdminTracks||[]).filter(function(t){return t.audio_url&&t._owner&&t._owner.name===ownerName;});
+  if(!tracks.length){inner.innerHTML='<div style="font-size:11px;color:var(--t3);padding:8px;">\uC7AC\uC0DD \uAC00\uB2A5\uD55C \uACE1\uC774 \uC5C6\uC2B5\uB2C8\uB2E4</div>';return;}
+  var h='';
+  tracks.forEach(function(t){
+    var thumbHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;" loading="lazy" onerror="this.style.display=\'none\'">':'<div style="width:32px;height:32px;border-radius:6px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;">\uD83C\uDFB5</div>';
+    var isPlaying=_adminCurrentAudio&&!_adminCurrentAudio.paused&&_adminCurrentAudio._srcUrl===t.audio_url;
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;cursor:pointer;'+(isPlaying?'background:rgba(124,58,237,.15);':'')+'" onclick="adminPlayTrack(\''+esc(t.audio_url)+'\',\''+esc(t.title||'track')+'\',null,-1)">';
+    h+=thumbHtml;
+    h+='<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(t.title||'\uBB34\uC81C')+'</div>';
+    h+='<div style="font-size:10px;color:var(--t3);">\u2764\uFE0F'+(t._commLikes||0)+' \u25B6'+(t._commPlays||0)+'</div></div>';
+    h+='<button class="btn btn-acc" onclick="event.stopPropagation();adminPlayTrack(\''+esc(t.audio_url)+'\',\''+esc(t.title||'track')+'\',this,-1)" style="padding:4px 10px;font-size:11px;flex-shrink:0;">'+(isPlaying?'\u23F8':'\u25B6')+'</button>';
+    h+='</div>';
+  });
+  inner.innerHTML=h;
 }
 
 function _renderGenreStats(genreMap){
@@ -3975,79 +4002,31 @@ function deleteSelected(){
   adminToast('✅ '+selected.length+'곡 삭제됨');
   renderTracksAdmin();loadData();
 }
-/* 관리자 트랙 즉시 재생 */
-let _adminCurrentAudio = null;
-let _adminCurrentIdx = -1;
-function adminPlayTrack(url, title, btn, idx){
-  /* 같은 버튼 다시 누르면 일시정지 */
-  if(_adminCurrentIdx === idx && _adminCurrentAudio){
-    if(_adminCurrentAudio.paused){
-      _adminCurrentAudio.play();
-      btn.textContent = '⏸ 정지';
-    } else {
-      _adminCurrentAudio.pause();
-      btn.textContent = '▶ 재생';
-    }
+/* \uAD00\uB9AC\uC790 \uD2B8\uB799 \uC988\uC2DC \uC7AC\uC0DD */
+var _adminCurrentAudio=null;
+var _adminCurrentBtn=null;
+function adminPlayTrack(url,title,btn,idx){
+  if(_adminCurrentAudio&&_adminCurrentAudio._srcUrl===url){
+    if(_adminCurrentAudio.paused){_adminCurrentAudio.play();if(btn)btn.textContent='\u23F8 \uC815\uC9C0';}
+    else{_adminCurrentAudio.pause();if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';}
     return;
   }
-  /* 기존 재생 중인 오디오 정지 */
-  if(_adminCurrentAudio){
-    _adminCurrentAudio.pause();
-    _adminCurrentAudio = null;
-  }
-  /* 이전 버튼 복원 */
-  if(_adminCurrentIdx >= 0){
-    const prevBtn = document.getElementById('aplay-btn-'+_adminCurrentIdx);
-    const prevWrap = document.getElementById('apl-'+_adminCurrentIdx);
-    if(prevBtn) prevBtn.textContent = '▶ 재생';
-    if(prevWrap) prevWrap.style.display = 'none';
-  }
-  _adminCurrentIdx = idx;
-
-  const wrap = document.getElementById('apl-'+idx);
-  if(!wrap) return;
-  const audio = wrap.querySelector('audio');
-  if(!audio) return;
-
-  if(!url || !/^https?:\/\//i.test(url)){
-    adminToast('⚠️ 유효하지 않은 오디오 URL');
-    return;
-  }
-  audio.src = url;
-  wrap.style.display = 'block';
-  btn.textContent = '⏸ 정지';
-  _adminCurrentAudio = audio;
-
-  /* error 이벤트 먼저 등록 (DOMException Uncaught 방지) */
-  audio.addEventListener('error', ()=>{
-    adminToast('⚠️ 오디오 재생 불가');
-    btn.textContent = '▶ 재생';
-    wrap.style.display = 'none';
-    _adminCurrentAudio = null;
-    _adminCurrentIdx = -1;
-  }, {once:true});
-
-  audio.play().catch(e => {
-    if(e.name !== 'AbortError') adminToast('⚠️ 재생 실패: ' + (e.message||e.name));
-    btn.textContent = '▶ 재생';
-    wrap.style.display = 'none';
-    _adminCurrentAudio = null;
-    _adminCurrentIdx = -1;
-  });
-
-  audio.addEventListener('ended', () => {
-    btn.textContent = '▶ 재생';
-    _adminCurrentAudio = null;
-    _adminCurrentIdx = -1;
-  }, { once: true });
-
-  audio.addEventListener('pause', () => {
-    if(audio.ended) return;
-    btn.textContent = '▶ 재생';
-  });
-  audio.addEventListener('play', () => {
-    btn.textContent = '⏸ 정지';
-  });
+  if(_adminCurrentAudio){_adminCurrentAudio.pause();_adminCurrentAudio=null;}
+  if(_adminCurrentBtn){_adminCurrentBtn.textContent='\u25B6 \uC7AC\uC0DD';}
+  document.querySelectorAll('[id^="apl-"]').forEach(function(w){w.style.display='none';});
+  document.querySelectorAll('[id^="aplay-btn-"]').forEach(function(b){b.textContent='\u25B6 \uC7AC\uC0DD';});
+  if(!url||!/^https?:\/\//i.test(url)){adminToast('\u26A0\uFE0F \uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 URL');return;}
+  var audio=new Audio(url);
+  audio._srcUrl=url;
+  _adminCurrentAudio=audio;
+  _adminCurrentBtn=btn;
+  if(btn)btn.textContent='\u23F3';
+  if(idx>=0){var wrap=document.getElementById('apl-'+idx);if(wrap){wrap.style.display='block';var ap=wrap.querySelector('audio');if(ap)ap.src=url;}var tb=document.getElementById('aplay-btn-'+idx);if(tb)tb.textContent='\u23F3';}
+  audio.addEventListener('error',function(){adminToast('\u26A0\uFE0F \uC624\uB514\uC624 \uC7AC\uC0DD \uBD88\uAC00');if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';_adminCurrentAudio=null;},{once:true});
+  audio.play().then(function(){if(btn)btn.textContent='\u23F8 \uC815\uC9C0';if(idx>=0){var tb=document.getElementById('aplay-btn-'+idx);if(tb)tb.textContent='\u23F8 \uC815\uC9C0';}adminToast('\u25B6 '+title,'',1500);}).catch(function(e){if(e.name!=='AbortError')adminToast('\u26A0\uFE0F \uC7AC\uC0DD \uC2E4\uD328: '+(e.message||e.name));if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';_adminCurrentAudio=null;});
+  audio.addEventListener('ended',function(){if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';if(_adminCurrentBtn)_adminCurrentBtn.textContent='\u25B6 \uC7AC\uC0DD';_adminCurrentAudio=null;},{once:true});
+  audio.addEventListener('pause',function(){if(audio.ended)return;if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';});
+  audio.addEventListener('play',function(){if(btn)btn.textContent='\u23F8 \uC815\uC9C0';});
 }
 
 async function adminDownloadTrack(url, title){
@@ -4875,8 +4854,8 @@ function _renderProviderGroupView(){
       var cInfo=_creatorMap[u.name+'__'+u.provider];
       var planBadge={creator:'\uD83D\uDC51',pro:'\uD83D\uDC9C'}[u.plan||'free']||'';
       var avatar=_isImgUrl(u.avatar)
-        ?'<img src="'+esc(u.avatar)+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.outerHTML=\'<div style=\\'width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;\\'>\uD83D\uDC64</div>\'">'
-        :'<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">\uD83D\uDC64</div>';
+        ?'<img src="'+esc(u.avatar)+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+        :'<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>';
 
       html+='<div onclick="_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid '+(isOnline?'var(--grn)':'var(--border)')+';background:'+(isOnline?'rgba(34,197,94,.04)':'var(--bg)')+';cursor:pointer;transition:all .15s;" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">'
         +avatar
