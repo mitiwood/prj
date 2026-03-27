@@ -981,6 +981,38 @@ textarea.form-input{line-height:1.5;}
             <h3 id="comm-table-title">커뮤니티 곡 목록</h3>
             <button class="btn btn-acc" onclick="renderCommunityAdmin(true)">🔄 새로고침</button>
           </div>
+          <!-- 필터 + 검색 바 -->
+          <div id="comm-filter-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;margin-bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+            <select id="comm-f-mode" onchange="_applyCommFilter()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--t1);">
+              <option value="">전체 모드</option>
+              <option value="custom">커스텀</option>
+              <option value="simple">심플</option>
+              <option value="youtube">YouTube</option>
+              <option value="mv">MV</option>
+            </select>
+            <select id="comm-f-provider" onchange="_applyCommFilter()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--t1);">
+              <option value="">전체 소유자</option>
+              <option value="google">Google</option>
+              <option value="kakao">Kakao</option>
+              <option value="naver">Naver</option>
+              <option value="guest">게스트</option>
+            </select>
+            <select id="comm-f-period" onchange="_applyCommFilter()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--t1);">
+              <option value="">전체 기간</option>
+              <option value="today">오늘</option>
+              <option value="7d">최근 7일</option>
+              <option value="30d">최근 30일</option>
+            </select>
+            <select id="comm-f-sort" onchange="_applyCommFilter()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--t1);">
+              <option value="newest">최신순</option>
+              <option value="oldest">오래된순</option>
+              <option value="likes">좋아요순</option>
+              <option value="rating">별점순</option>
+              <option value="plays">재생순</option>
+            </select>
+            <span id="comm-filter-count" style="font-size:11px;color:var(--t3);margin-left:4px;"></span>
+            <button class="btn" onclick="_resetCommFilter()" style="font-size:11px;padding:3px 10px;margin-left:auto;">초기화</button>
+          </div>
           <table><thead><tr><th><input type="checkbox" id="comm-chk-all" onchange="toggleAllComm(this)"></th><th>커버</th><th>제목</th><th>소유자</th><th>❤️</th><th>⭐ 별점</th><th>출처</th><th>생성일</th><th>관리</th></tr></thead>
           <tbody id="comm-tbody"></tbody></table>
         </div>
@@ -1011,10 +1043,16 @@ textarea.form-input{line-height:1.5;}
         <div style="display:flex;gap:12px;margin-bottom:20px;font-size:11px;color:var(--t3);flex-wrap:wrap;" id="ustat-provider-legend"></div>
 
         <!-- 탭 전환 -->
-        <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:4px;width:fit-content;">
-          <button class="btn btn-acc" id="utab-login" onclick="switchUserTab('login')" style="font-size:12px;padding:7px 16px;">🔑 로그인 사용자</button>
+        <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:10px;padding:4px;width:fit-content;flex-wrap:wrap;">
+          <button class="btn btn-acc" id="utab-login" onclick="switchUserTab('login')" style="font-size:12px;padding:7px 16px;">🔑 전체</button>
+          <button class="btn" id="utab-provider" onclick="switchUserTab('provider')" style="font-size:12px;padding:7px 16px;">📊 소셜별 분류</button>
           <button class="btn" id="utab-creator" onclick="switchUserTab('creator')" style="font-size:12px;padding:7px 16px;">🎵 생성 기여자</button>
           <button class="btn" id="utab-activity" onclick="switchUserTab('activity')" style="font-size:12px;padding:7px 16px;">📝 활동 로그</button>
+        </div>
+
+        <!-- 소셜별 분류 뷰 -->
+        <div id="utab-panel-provider" style="display:none;">
+          <div id="provider-group-view"></div>
         </div>
 
         <!-- 로그인 사용자 목록 -->
@@ -4510,14 +4548,53 @@ function _renderCommTable(){
   const allTracks = _commAllTracksCache;
   const publicTracks = allTracks.filter(t=>t.is_public!==false);
   const hiddenTracks = allTracks.filter(t=>t.is_public===false);
-  _commDisplayTracks = (_commShowHidden ? allTracks : publicTracks).slice();
-  _commDisplayTracks.sort((a,b)=>(b.created||0)-(a.created||0));
+  let pool = (_commShowHidden ? allTracks : publicTracks).slice();
+
+  /* ── 필터 적용 ── */
+  const fMode = document.getElementById('comm-f-mode')?.value||'';
+  const fProv = document.getElementById('comm-f-provider')?.value||'';
+  const fPeriod = document.getElementById('comm-f-period')?.value||'';
+  const fSort = document.getElementById('comm-f-sort')?.value||'newest';
+  const searchQ = (document.getElementById('comm-search')?.value||'').toLowerCase().trim();
+
+  if(fMode) pool = pool.filter(t=>(t.genMode||'custom')===fMode);
+  if(fProv){
+    if(fProv==='guest') pool = pool.filter(t=>{const o=t._owner||{};return !o.name||o.name==='익명'||o.provider==='guest'||!o.provider;});
+    else pool = pool.filter(t=>(t._owner?.provider||'')=== fProv);
+  }
+  if(fPeriod){
+    const now=Date.now();
+    const cutoff = fPeriod==='today'? now-86400000 : fPeriod==='7d'? now-604800000 : now-2592000000;
+    pool = pool.filter(t=>(t.created||0)>=cutoff);
+  }
+  if(searchQ){
+    pool = pool.filter(t=>{
+      const title=(t.title||'').toLowerCase();
+      const owner=(t._owner?.name||'').toLowerCase();
+      const tags=(t.tags||'').toLowerCase();
+      return title.includes(searchQ)||owner.includes(searchQ)||tags.includes(searchQ);
+    });
+  }
+
+  /* ── 정렬 ── */
+  if(fSort==='oldest') pool.sort((a,b)=>(a.created||0)-(b.created||0));
+  else if(fSort==='likes') pool.sort((a,b)=>(b._commLikes||0)-(a._commLikes||0));
+  else if(fSort==='rating') pool.sort((a,b)=>(b._commRating||0)-(a._commRating||0)||(b._commRatingCount||0)-(a._commRatingCount||0));
+  else if(fSort==='plays') pool.sort((a,b)=>(b._commPlays||0)-(a._commPlays||0));
+  else pool.sort((a,b)=>(b.created||0)-(a.created||0));
+
+  _commDisplayTracks = pool;
 
   /* 통계 업데이트 */
   const cnt=document.getElementById('comm-count');
   if(cnt) cnt.textContent='(공개 '+publicTracks.length+'곡 / 숨김 '+hiddenTracks.length+'곡)';
   const toggleEl=document.getElementById('comm-hidden-toggle');
   if(toggleEl) toggleEl.className=_commShowHidden?'toggle on':'toggle';
+  const fcnt=document.getElementById('comm-filter-count');
+  if(fcnt){
+    const hasFilter=fMode||fProv||fPeriod||searchQ;
+    fcnt.textContent=hasFilter?('필터 결과: '+pool.length+'곡'):'';
+  }
 
   if(!_commDisplayTracks.length){
     tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--t3);">표시할 트랙이 없습니다</td></tr>';
@@ -4563,7 +4640,7 @@ function _appendCommRows(tbody, fromIdx){
     const tr=document.createElement('tr');
     tr.id='comm-row-'+i;
     if(rowStyle) tr.style.cssText=rowStyle;
-    tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'"></td>'
+    tr.innerHTML='<td><input type="checkbox" data-idx="'+i+'" data-track-id="'+esc(t.id||'')+'"></td>'
       +'<td><div class="td-thumb">'+thumbHtml+'</div></td>'
       +'<td class="td-title"><b>'+esc(t.title||'무제')+'</b> '+statusBadge+srcIcon+'<div style="font-size:10px;color:var(--t3);">'+esc(t.tags||'')+'</div></td>'
       +'<td>'+avHtml+'<span class="badge '+(isGuest?'':pc)+'" style="'+(isGuest?'background:rgba(255,255,255,.07);color:var(--t3);':'')+'">'+( isGuest?'👤게스트':esc(o.name))+'</span></td>'
@@ -6812,12 +6889,18 @@ function toggleAllComm(el){
   document.querySelectorAll('#comm-tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);
 }
 
+var _commSearchTimer=null;
 function filterCommunity(){
-  const q = (document.getElementById('comm-search')?.value||'').toLowerCase();
-  const rows = document.querySelectorAll('#comm-tbody tr');
-  rows.forEach(r=>{
-    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
+  clearTimeout(_commSearchTimer);
+  _commSearchTimer=setTimeout(()=>_renderCommTable(), 250);
+}
+function _applyCommFilter(){ _renderCommTable(); }
+function _resetCommFilter(){
+  const ids=['comm-f-mode','comm-f-provider','comm-f-period'];
+  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sort=document.getElementById('comm-f-sort');if(sort)sort.value='newest';
+  const search=document.getElementById('comm-search');if(search)search.value='';
+  _renderCommTable();
 }
 
 async function batchCommAction(action){
@@ -6828,7 +6911,7 @@ async function batchCommAction(action){
   if(!confirm(checked.length+'곡을 '+label+'할까요?')) return;
   let success = 0, fail = 0;
   for(const chk of checked){
-    const id = chk.dataset.trackId;
+    const id = chk.dataset.trackId || _commDisplayTracks[+chk.dataset.idx]?.id || '';
     if(!id){ fail++; continue; }
     try{
       if(action==='delete'){
