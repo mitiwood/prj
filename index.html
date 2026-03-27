@@ -2889,6 +2889,9 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
   display:flex;flex-direction:column;overflow:hidden;
 }
 #fullplayer.on{transform:translateY(0);}
+.fp-swipe-handle{text-align:center;padding:8px 0 0;position:relative;z-index:2;cursor:grab;}
+.fp-handle-bar{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.3);margin:0 auto;}
+[data-theme="light"] .fp-handle-bar{background:rgba(0,0,0,.15);}
 .fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.25) saturate(1.4);transform:scale(1.2);}
 .fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;width:100%;}
 .fp-header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,50px) 20px 10px;}
@@ -5859,6 +5862,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <!-- iOS 바텀시트 컨테이너 (transform 스택 컨텍스트 내부) -->
   <div id="fp-sheet-container" style="display:none;position:absolute;inset:0;z-index:10007;"></div>
   <div class="fp-inner">
+    <div class="fp-swipe-handle"><div class="fp-handle-bar"></div></div>
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="fp-header-title" id="fp-header-title">재생 중</div>
@@ -12331,6 +12335,23 @@ function _switchHistView(mode){
   document.querySelectorAll('.hist-vt-btn').forEach(b=>b.classList.toggle('on',b.dataset.hvt===mode));
   renderHistoryView();
 }
+/* 히스토리 뷰에서 재생 — 현재 필터링된 내 곡 리스트를 컨텍스트로 설정 */
+function _playFromHistoryView(idx) {
+  var _myModes = {'custom':1,'simple':1,'youtube':1,'mv':1,'vocal':1,'extend':1,'cover':1,'remaster':1,'style-reuse':1};
+  var _ctxIds = [];
+  for(var i=0;i<historyData.length;i++){
+    var h=historyData[i];
+    if(!h||!h.audio_url) continue;
+    /* duration check removed */
+    /* 내 생성곡만 포함 (커뮤니티/피드/플레이리스트 제외) */
+    if(!h._fromSb && !h._fromFeed && !h._fromPl) _ctxIds.push(h.id||h._sbId||('hist_'+i));
+  }
+  var curId = historyData[idx]?.id || historyData[idx]?._sbId || '';
+  var ctxIdx = _ctxIds.indexOf(curId);
+  _mfPlayQueue=[]; _mfPlayQueueIdx=-1;
+  _setPlayContext('history', _ctxIds, ctxIdx >= 0 ? ctxIdx : 0);
+  showMiniPlayer(idx);
+}
 function renderHistoryView(){
   var grid=$('history-view-grid');
   var count=$('hist-view-count');
@@ -12402,7 +12423,7 @@ function renderHistoryView(){
     /* MR 트랙(보컬 제거)이면서 가사가 있으면 노래방 가능 */
     const isKaraokeReady = hasLyrics && (h.genMode==='vocal-removal' || (h._vocalRemovedFrom && h.tags && h.tags.includes('instrumental')));
     const durId='hdur-'+idx;
-    const noAudio = !h.audio_url||(h.duration!==undefined&&h.duration!==null&&Number(h.duration)===0);
+    const noAudio = !h.audio_url||false;
     return`
     <div class="hist-card-wrap" data-hist-wrap-idx="${idx}">
       <div class="hist-card-del-bg" data-swipe-del="${idx}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><br>삭제</div>
@@ -12441,7 +12462,7 @@ function renderHistoryView(){
   wrap.addEventListener('click',function(e){
     /* 전체모드 재생 버튼 */
     const playBtn=e.target.closest('[data-fullplay-idx]');
-    if(playBtn){e.stopPropagation();showMiniPlayer(parseInt(playBtn.dataset.fullplayIdx));return;}
+    if(playBtn){e.stopPropagation();_playFromHistoryView(parseInt(playBtn.dataset.fullplayIdx));return;}
     /* 전체모드 좋아요 버튼 */
     const likeBtn=e.target.closest('[data-fulllike-idx]');
     if(likeBtn){
@@ -12476,7 +12497,7 @@ function renderHistoryView(){
         _showFailedTrackDialog(hi);
         return;
       }
-      showMiniPlayer(hi);
+      _playFromHistoryView(hi);
     }
   });
   /* 키보드 접근성 */
@@ -13419,6 +13440,37 @@ function mpStopViz(){
 
 var _fpAudioGenId=0; /* 오디오 세대 ID — stale 이벤트 방지 */
 
+/* ── 재생 컨텍스트 추적 — 사용자가 진입한 리스트에서만 다음곡 재생 ── */
+var _playContext = 'single'; /* 'single' | 'community' | 'creator' | 'playlist' | 'history' */
+var _playContextIds = [];    /* 현재 컨텍스트의 트랙 ID 목록 (재생 순서) */
+var _playContextIdx = -1;    /* 컨텍스트 내 현재 위치 */
+
+/* 컨텍스트 설정 헬퍼 */
+function _setPlayContext(ctx, ids, idx) {
+  _playContext = ctx || 'single';
+  _playContextIds = Array.isArray(ids) ? ids : [];
+  _playContextIdx = typeof idx === 'number' ? idx : -1;
+}
+
+/* 컨텍스트 기반 다음곡 찾기 — 같은 리스트 내에서만 */
+function _getNextInContext() {
+  if (_playContext === 'single') return null;
+  if (_playContext === 'creator' && _mfPlayQueue.length > 0 && _mfPlayQueueIdx >= 0) {
+    var nqi = _mfPlayQueueIdx + 1;
+    if (nqi < _mfPlayQueue.length) return { type: 'creator', queueIdx: nqi };
+    return null;
+  }
+  if (_playContextIds.length === 0 || _playContextIdx < 0) return null;
+  var nextCtxIdx = _playContextIdx + 1;
+  if (nextCtxIdx >= _playContextIds.length) return null;
+  var nextId = _playContextIds[nextCtxIdx];
+  var hIdx = historyData.findIndex(function(h) { return h.id === nextId || h._sbId === nextId; });
+  if (hIdx >= 0 && historyData[hIdx]?.audio_url) return { type: 'context', hIdx: hIdx, ctxIdx: nextCtxIdx };
+  /* 해당 ID가 historyData에 없으면 스킵하고 그 다음 시도 */
+  _playContextIdx = nextCtxIdx;
+  return _getNextInContext();
+}
+
 /* ── 미니플레이어 성능 최적화: DOM 캐시 + rAF ── */
 var _mpDomCache=null;
 function _ensureMpDom(){
@@ -13557,7 +13609,7 @@ function showMiniPlayer(idx){
   var mpTimeEl=$('mp-time');if(mpTimeEl) mpTimeEl.textContent='0:00 / 0:00';
   var mpFillReset=$('mp-prog-fill');if(mpFillReset) mpFillReset.style.transform='scaleX(0)';
 
-  if(!h.audio_url||(h.duration!==undefined&&h.duration!==null&&Number(h.duration)===0)){ toast('⚠️ 이 곡은 오디오가 없어 재생할 수 없어요','err',3000); return; }
+  if(!h.audio_url){ toast('⚠️ 이 곡은 오디오가 없어 재생할 수 없어요','err',3000); return; }
   /* URL 유효성 체크 */
   let _safeAudioUrl = h.audio_url;
   try{ new URL(_safeAudioUrl); }catch(e){ toast('⚠️ 잘못된 오디오 URL이에요','err',3000); return; }
@@ -13603,25 +13655,21 @@ function showMiniPlayer(idx){
     if(genId!==_fpAudioGenId) return; /* stale 체크 */
     if(typeof _checkSleepOnEnd==='function'&&_checkSleepOnEnd())return;
     _syncAllPlayBtns(false);
-    /* 크리에이터 큐가 있으면 큐에서 다음 곡 */
-    if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
-      var nqi=_mfPlayQueueIdx+1;
-      if(nqi<_mfPlayQueue.length){
-        _mfPlayQueueIdx=nqi;
-        setTimeout(function(){_mfQueuePlay(nqi);},600);
+    /* 컨텍스트 기반 다음곡 — 사용자가 진입한 리스트에서만 재생 */
+    var _ctxNext = _getNextInContext();
+    if(_ctxNext) {
+      if(_ctxNext.type === 'creator') {
+        _mfPlayQueueIdx = _ctxNext.queueIdx;
+        setTimeout(function(){ _mfQueuePlay(_ctxNext.queueIdx); }, 600);
       } else {
-        _mfPlayQueue=[];_mfPlayQueueIdx=-1;
-        toast('크리에이터 재생 완료','',2000);
+        _playContextIdx = _ctxNext.ctxIdx;
+        setTimeout(function(){ showMiniPlayer(_ctxNext.hIdx); }, 600);
       }
     } else {
-      /* 일반 히스토리에서 다음 곡 */
-      let next = fpCurrentIdx + 1;
-      while(next < historyData.length && !historyData[next]?.audio_url) next++;
-      if(next < historyData.length){
-        setTimeout(()=> showMiniPlayer(next), 600);
-      } else {
-        toast('마지막 곡이에요','',2000);
-      }
+      /* 컨텍스트 내 다음곡 없음 — 재생 종료 */
+      if(_playContext === 'creator'){ _mfPlayQueue=[]; _mfPlayQueueIdx=-1; }
+      _setPlayContext('single', [], -1);
+      toast('마지막 곡이에요','',2000);
     }
   },_sig);
 
@@ -14743,24 +14791,20 @@ function _doOpenFullPlayer(idx){
     if(genId!==_fpAudioGenId)return;
     if(typeof _checkSleepOnEnd==='function'&&_checkSleepOnEnd())return;
     _syncAllPlayBtns(false);
-    /* 자동 다음곡 — audio_url 없는 트랙 스킵 */
-    if(_mfPlayQueue.length>0&&_mfPlayQueueIdx>=0){
-      var nqi=_mfPlayQueueIdx+1;
-      if(nqi<_mfPlayQueue.length){
-        _mfPlayQueueIdx=nqi;
-        setTimeout(function(){_mfQueuePlay(nqi);},600);
+    /* 컨텍스트 기반 다음곡 — 사용자가 진입한 리스트에서만 재생 */
+    var _ctxNext = _getNextInContext();
+    if(_ctxNext) {
+      if(_ctxNext.type === 'creator') {
+        _mfPlayQueueIdx = _ctxNext.queueIdx;
+        setTimeout(function(){ _mfQueuePlay(_ctxNext.queueIdx); }, 600);
       } else {
-        _mfPlayQueue=[];_mfPlayQueueIdx=-1;
-        toast('크리에이터 재생 완료','',2000);
+        _playContextIdx = _ctxNext.ctxIdx;
+        setTimeout(function(){ _doOpenFullPlayer(_ctxNext.hIdx); }, 600);
       }
     } else {
-      let next=fpCurrentIdx+1;
-      while(next<historyData.length&&!historyData[next]?.audio_url) next++;
-      if(next<historyData.length){
-        setTimeout(()=>_doOpenFullPlayer(next),600);
-      } else {
-        toast('마지막 곡이에요','',2000);
-      }
+      if(_playContext === 'creator'){ _mfPlayQueue=[]; _mfPlayQueueIdx=-1; }
+      _setPlayContext('single', [], -1);
+      toast('마지막 곡이에요','',2000);
     }
   });
   audio.addEventListener('error',(ev)=>{
@@ -14864,18 +14908,40 @@ function _playParentTrack(parentId){
 /* 다음/이전 곡 — audio_url 없는 트랙 스킵 */
 function fpPlayNext(){
   if(fpCurrentIdx<0)return;
-  let next=fpCurrentIdx+1;
-  while(next<historyData.length&&!historyData[next]?.audio_url) next++;
-  if(next>=historyData.length){toast('마지막 곡이에요','',1500);return;}
-  if(typeof _fpXfadeEnabled!=='undefined'&&_fpXfadeEnabled&&fpAudio&&!fpAudio.paused){_doCrossfade(next);return;}
-  _doOpenFullPlayer(next);
+  /* 컨텍스트 기반 다음곡 */
+  var _ctxNext = _getNextInContext();
+  if(_ctxNext) {
+    if(_ctxNext.type === 'creator') {
+      _mfPlayQueueIdx = _ctxNext.queueIdx;
+      _mfQueuePlay(_ctxNext.queueIdx);
+    } else {
+      _playContextIdx = _ctxNext.ctxIdx;
+      if(typeof _fpXfadeEnabled!=='undefined'&&_fpXfadeEnabled&&fpAudio&&!fpAudio.paused){_doCrossfade(_ctxNext.hIdx);return;}
+      _doOpenFullPlayer(_ctxNext.hIdx);
+    }
+  } else {
+    toast('마지막 곡이에요','',1500);
+  }
 }
 function fpPlayPrev(){
-  if(fpCurrentIdx<=0){toast('첫 번째 곡이에요','',1500);return;}
-  let prev=fpCurrentIdx-1;
-  while(prev>=0&&!historyData[prev]?.audio_url) prev--;
-  if(prev<0){toast('첫 번째 곡이에요','',1500);return;}
-  _doOpenFullPlayer(prev);
+  if(_playContext === 'single' || _playContextIds.length === 0) {
+    toast('첫 번째 곡이에요','',1500); return;
+  }
+  if(_playContext === 'creator' && _mfPlayQueue.length > 0 && _mfPlayQueueIdx > 0) {
+    _mfPlayQueueIdx--;
+    _mfQueuePlay(_mfPlayQueueIdx);
+    return;
+  }
+  if(_playContextIdx <= 0){ toast('첫 번째 곡이에요','',1500); return; }
+  var prevCtxIdx = _playContextIdx - 1;
+  var prevId = _playContextIds[prevCtxIdx];
+  var hIdx = historyData.findIndex(function(h){ return h.id === prevId || h._sbId === prevId; });
+  if(hIdx >= 0 && historyData[hIdx]?.audio_url) {
+    _playContextIdx = prevCtxIdx;
+    _doOpenFullPlayer(hIdx);
+  } else {
+    toast('첫 번째 곡이에요','',1500);
+  }
 }
 
 /* ═══ 1. 가사 패널 토글 ═══ */
@@ -14907,24 +14973,87 @@ function fpToggleCrossfade(){_fpXfadeEnabled=!_fpXfadeEnabled;var b=$('fp-crossf
 function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId||!fpAudio||!fpAudio.duration)return;if(_mpRafPending)return;_mpRafPending=true;requestAnimationFrame(function(){_mpRafPending=false;if(gid!==_fpAudioGenId)return;var d=_ensureMpDom();var ratio=fpAudio.currentTime/fpAudio.duration;var p=ratio*100;if(d.fpFill)d.fpFill.style.width=p+'%';if(d.fpThumb)d.fpThumb.style.left=p+'%';if(d.fpCur)d.fpCur.textContent=formatTime(fpAudio.currentTime);if(d.fpDur)d.fpDur.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function')fpSyncLyrics();if(d.fill)d.fill.style.transform='scaleX('+ratio+')';});});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
 function _updateFpUI(idx){var h=historyData[idx];if(!h)return;var t=$('fp-title');if(t)t.textContent=h.title||'무제';var tg=$('fp-tags');if(tg)tg.textContent=h.tags?.split(',')[0]?.trim()||'';var cv=$('fp-cover');if(cv)cv.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;">🎵</div>';var bg=$('fp-bg');if(bg&&h.image_url)bg.style.backgroundImage='url('+h.image_url+')';var mt=$('mp-title');if(mt)mt.textContent=h.title||'무제';var ms=$('mp-sub');if(ms)ms.textContent=h.tags?.split(',')[0]?.trim()||'';var mth=$('mp-thumb');if(mth)mth.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'🎵';if(typeof fpRenderLyrics==='function')fpRenderLyrics();if(typeof fpUpdateLikeUI==='function')fpUpdateLikeUI();}
 
-/* 풀플레이어 스와이프 제스처 — 좌: 다음곡, 우: 이전곡 */
+/* 풀플레이어 제스처 — 아래: 닫기, 좌: 다음곡, 우: 이전곡 (시각적 피드백 포함) */
 (function(){
-  const el=$('fullplayer');
+  var el=$('fullplayer');
   if(!el)return;
-  let _fpTX=0,_fpTY=0,_fpTTime=0;
+  var _sx=0,_sy=0,_st=0,_dir='',_active=false;
+  var THRESH_X=60,THRESH_Y=80;
+  var cover=$('fp-cover');
+
   el.addEventListener('touchstart',function(e){
-    _fpTX=e.touches[0].clientX;
-    _fpTY=e.touches[0].clientY;
-    _fpTTime=Date.now();
+    var tag=e.target.tagName;
+    if(tag==='INPUT'||tag==='BUTTON'||tag==='A'||e.target.closest('.fp-prog-wrap,.fp-eq-panel,.fp-sleep-panel,.fp-side-actions,.fp-controls,button')) return;
+    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;
+    _st=Date.now();_dir='';_active=true;
   },{passive:true});
+
+  el.addEventListener('touchmove',function(e){
+    if(!_active)return;
+    var dx=e.touches[0].clientX-_sx,dy=e.touches[0].clientY-_sy;
+    if(!_dir&&(Math.abs(dx)>10||Math.abs(dy)>10)) _dir=(Math.abs(dy)>Math.abs(dx))?'v':'h';
+    if(!_dir)return;
+    if(_dir==='v'&&dy>0){
+      el.style.transition='none';
+      el.style.transform='translateY('+dy+'px)';
+      el.style.opacity=String(1-Math.min(dy/300,1)*0.4);
+    } else if(_dir==='h'&&cover){
+      var c=Math.max(-120,Math.min(120,dx));
+      cover.style.transition='none';
+      cover.style.transform='translateX('+c+'px) scale('+(1-Math.abs(c)/600)+')';
+      cover.style.opacity=String(1-Math.abs(c)/300);
+    }
+  },{passive:true});
+
   el.addEventListener('touchend',function(e){
-    const dx=_fpTX-e.changedTouches[0].clientX;
-    const dy=_fpTY-e.changedTouches[0].clientY;
-    const dt=Date.now()-_fpTTime;
-    if(dt>400||Math.abs(dx)<70)return;
-    if(Math.abs(dy)>Math.abs(dx))return;
-    if(dx>0) fpPlayNext();
-    else fpPlayPrev();
+    if(!_active)return;_active=false;
+    var dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
+    var dt=Date.now()-_st;
+    if(_dir==='v'){
+      if(dy>THRESH_Y&&dt<600){
+        el.style.transition='transform .3s ease,opacity .3s ease';
+        el.style.transform='translateY(100%)';el.style.opacity='0';
+        setTimeout(function(){
+          el.style.transition='';el.style.opacity='';
+          el.classList.remove('on');el.style.transform='';
+          document.body.style.overflow='';fpStopViz();
+          if(typeof _stopSpectrum==='function')_stopSpectrum();
+          if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]?.audio_url){
+            var mp=$('mini-player');if(mp){mp.classList.remove('mp-hide');mp.style.transition='';mp.classList.add('on');}
+            document.body.classList.add('mp-on');
+          }
+          if(fpAudio&&!fpAudio.paused){mpStartViz();_setPlayIcon($('mp-play-btn'),true,false);}
+        },300);
+      } else {
+        el.style.transition='transform .25s ease,opacity .25s ease';
+        el.style.transform='translateY(0)';el.style.opacity='1';
+      }
+    } else if(_dir==='h'){
+      if(Math.abs(dx)>THRESH_X&&dt<400&&Math.abs(dx)>Math.abs(dy)){
+        var dir=dx>0?1:-1;
+        if(cover){
+          cover.style.transition='transform .2s ease,opacity .2s ease';
+          cover.style.transform='translateX('+(-dir*200)+'px) scale(.85)';cover.style.opacity='0';
+          setTimeout(function(){
+            if(dir>0) fpPlayNext(); else fpPlayPrev();
+            if(cover){cover.style.transition='none';cover.style.transform='translateX('+(dir*150)+'px) scale(.9)';cover.style.opacity='0';
+              requestAnimationFrame(function(){if(cover){cover.style.transition='transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease';cover.style.transform='translateX(0) scale(1)';cover.style.opacity='1';}});
+            }
+          },200);
+        } else { if(dir>0) fpPlayNext(); else fpPlayPrev(); }
+      } else if(cover){
+        cover.style.transition='transform .25s ease,opacity .25s ease';
+        cover.style.transform='translateX(0) scale(1)';cover.style.opacity='1';
+      }
+    }
+    _dir='';
+  },{passive:true});
+
+  el.addEventListener('touchcancel',function(){
+    _active=false;_dir='';
+    el.style.transition='transform .25s ease,opacity .25s ease';
+    el.style.transform='translateY(0)';el.style.opacity='1';
+    if(cover){cover.style.transition='transform .25s ease,opacity .25s ease';cover.style.transform='';cover.style.opacity='1';}
   },{passive:true});
 })();
 
@@ -14934,13 +15063,11 @@ var _bpmBeats=[],_bpmLastEnergy=0,_bpmValue=0,_bpmSmoothed=0;
 
 function _initBpmAnalyser(){
   if(!fpAudio)return;
-  /* Web Audio API에 crossOrigin 필요 — 아직 없으면 설정 + 리로드 */
+  /* crossOrigin 없으면 BPM 분석 포기 — load() 재호출 시 무음 버그 방지 */
   if(!fpAudio.crossOrigin&&!fpAudio._mediaSourceCreated){
-    fpAudio.crossOrigin='anonymous';
-    var ct=fpAudio.currentTime,wasPlaying=!fpAudio.paused;
-    fpAudio.load();
-    fpAudio.currentTime=ct;
-    if(wasPlaying)fpAudio.play().catch(function(){});
+    console.info('[BPM] skipped — crossOrigin not set');
+    var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';}
+    return;
   }
   try{
     /* EQ 컨텍스트가 있으면 공유, 없으면 새로 생성 */
@@ -15249,6 +15376,10 @@ async function _plPlay(i){
     toast('⚠️ 이 곡은 현재 재생할 수 없어요\n(만료되었거나 접근 불가)','err',3000);
     return;
   }
+  /* 플레이리스트 컨텍스트 설정 */
+  var _plIds = pl.filter(function(x){ return !!x.audio_url; }).map(function(x){ return x.id; });
+  _setPlayContext('playlist', _plIds, _plIds.indexOf(pl[i].id));
+  _mfPlayQueue=[]; _mfPlayQueueIdx=-1;
   /* 히스토리에서 찾거나 임시 추가 */
   var hIdx=historyData.findIndex(function(h){return h.id===pl[i].id;});
   if(hIdx<0){
@@ -16739,10 +16870,11 @@ async function _mfDetailPlay(idx){
   var playable=await _checkAudioPlayable(t.audio_url);
   if(!playable){toast('재생할 수 없는 곡이에요','err',3000);return;}
 
-  /* 연속재생 큐 설정 */
+  /* 연속재생 큐 설정 + 컨텍스트 */
   _mfPlayQueue=_myFeedDetail.tracks.filter(function(x){return !!x.audio_url;});
   _mfPlayQueueIdx=_mfPlayQueue.indexOf(t);
   if(_mfPlayQueueIdx<0) _mfPlayQueueIdx=0;
+  _setPlayContext('creator', _mfPlayQueue.map(function(x){ return x.id; }), _mfPlayQueueIdx);
   /* historyData에 추가/찾기 */
   var hIdx=historyData.findIndex(function(h){return h.id===t.id||h._sbId===t.id;});
   if(hIdx<0){
@@ -19186,7 +19318,7 @@ function _renderCommContent(heroWrap, list){
     let allListTracks=[];
 
 /* 🏆 주간 인기 차트 (Top 10) — 순위 변동 표시 */
-    const weekTracks=otherTracks.filter(t=>_isValidAudioUrl(t.audioUrl)).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,10);
+    const weekTracks=otherTracks.filter(t=>_isValidAudioUrl(t.audioUrl,t)).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,10);
     if(weekTracks.length>=3){
       html+='<div class="comm-chart"><div class="comm-chart-title"><span>🏆 이번 주 인기 차트</span><span style="font-size:10px;color:var(--t3);font-weight:400;">Top '+weekTracks.length+'</span></div>';
       var chartIds=weekTracks.map(function(t){return t._sbId;});
@@ -19711,7 +19843,38 @@ function _loadCommDurations(tracks){
       }
       _cleanup();
     });
-    a.addEventListener('error',function(){clearTimeout(_timeout);_cleanup();});
+    a.addEventListener('error',function(){
+      clearTimeout(_timeout);_cleanup();
+      /* 재생불가 URL 등록 + UI 즉시 비활성화 */
+      if(t.audioUrl) _failedAudioUrls.add(t.audioUrl);
+      var item=document.querySelector('.comm-list-item[data-sbid="'+t._sbId+'"]');
+      if(item&&!item.classList.contains('comm-failed')){
+        item.classList.add('comm-failed');
+        item.style.opacity='.55';
+        item.removeAttribute('onclick');
+        var titleEl=item.querySelector('.comm-list-title');
+        if(titleEl&&!titleEl.querySelector('.comm-fail-tag')){
+          titleEl.style.opacity='.5';titleEl.style.textDecoration='line-through';
+          titleEl.insertAdjacentHTML('beforeend',' <span class="comm-fail-tag" style="color:var(--err,#e74c3c);font-size:10px;font-weight:600;text-decoration:none;display:inline-block;">재생불가</span>');
+        }
+        var playBtn=item.querySelector('.comm-play-sm');
+        if(playBtn){playBtn.disabled=true;playBtn.style.opacity='.3';playBtn.removeAttribute('onclick');}
+      }
+      /* 크리에이터 상세 뷰 카드도 비활성화 */
+      var card=document.querySelector('.mf-trk-card[data-sbid="'+t._sbId+'"]');
+      if(card&&!card.classList.contains('unplayable')){
+        card.classList.add('unplayable');
+        card.removeAttribute('data-mf-action');
+        var numEl=card.querySelector('.mf-trk-num');
+        if(numEl) numEl.innerHTML='<span style="color:var(--err,#e74c3c);font-size:11px;">\u2715</span>';
+        var tTitle=card.querySelector('.mf-trk-title');
+        if(tTitle){tTitle.style.opacity='.5';tTitle.style.textDecoration='line-through';}
+        var metaEl=card.querySelector('.mf-trk-meta');
+        if(metaEl&&!metaEl.querySelector('.comm-fail-tag')) metaEl.insertAdjacentHTML('afterbegin','<span class="comm-fail-tag" style="color:var(--err,#e74c3c);">\uc7ac\uc0dd\ubd88\uac00</span>');
+        var pBtn=card.querySelector('.mf-trk-play-btn');
+        if(pBtn){pBtn.removeAttribute('data-mf-action');pBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';}
+      }
+    });
   });
 }
 
@@ -20049,8 +20212,9 @@ function commPlaySb(sbId){
     /* 2) 크리에이터 상세 트랙 (_myFeedDetail) */
     if(!_fallback&&_myFeedDetail&&_myFeedDetail.tracks){_fallback=_myFeedDetail.tracks.find(function(x){return x.id===sbId;});}
     if(_fallback&&_fallback.audio_url){
-      /* 폴백 데이터로 직접 재생 */
+      /* 폴백 데이터로 직접 재생 — 단일곡 컨텍스트 */
       _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+      _setPlayContext('single', [], -1);
       var _fbCur=historyData[fpCurrentIdx];
       if(_fbCur&&(_fbCur.id===sbId||_fbCur._sbId===sbId)&&fpAudio){
         if(fpAudio.paused){if(fpAudio.ended)fpAudio.currentTime=0;fpAudio.play().then(function(){_syncAllPlayBtns(true);}).catch(function(){});} else {fpAudio.pause();_syncAllPlayBtns(false);}
@@ -20071,10 +20235,13 @@ function commPlaySb(sbId){
     }
     toast('트랙을 찾을 수 없어요','err');return;
   }
-  if(!t.audioUrl||(t._duration!==undefined&&Number(t._duration)===0)){toast('오디오가 없어요','err');return;}
+  if(!t.audioUrl||(t._duration!==undefined&&Number(t._duration)===0)||_failedAudioUrls.has(t.audioUrl)){toast('재생할 수 없는 곡이에요','err');return;}
 
-  /* 커뮤니티 리스트에서 재생 시 크리에이터 상세 큐 초기화 */
+  /* 커뮤니티 리스트에서 재생 — 컨텍스트 설정 */
   _mfPlayQueue=[];_mfPlayQueueIdx=-1;
+  var _commIds = _sbTracks.filter(function(x){ return !!(x.audioUrl || x.audio_url); }).map(function(x){ return x._sbId || x.id; });
+  var _commCtxIdx = _commIds.indexOf(sbId);
+  _setPlayContext('community', _commIds, _commCtxIdx >= 0 ? _commCtxIdx : 0);
 
   /* 현재 재생 중인 곡과 같은 곡이면 → 재생/일시정지 토글 */
   const currentH = historyData[fpCurrentIdx];
