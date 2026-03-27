@@ -19095,12 +19095,12 @@ function _renderCommContent(heroWrap, list){
   /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero (유효한 오디오 URL 필수) */
   const sortFns={likes:(a,b)=>b.likes-a.likes,newest:(a,b)=>(b._created||0)-(a._created||0),rating:(a,b)=>(b.rating||0)-(a.rating||0),plays:(a,b)=>(b.plays||0)-(a.plays||0)};
   const sorted=[...tracks].sort(sortFns[_commSortMode]||sortFns.likes);
-  const _isValidAudioUrl=(url)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url);
+  const _isValidAudioUrl=(url,t)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url)&&!(t&&t._duration!==undefined&&Number(t._duration)===0);
   /* 유효한 오디오가 있는 트랙을 hero로 선택 — 관리자 지정 우선, 재생 불가 URL 제외 */
   var _adminHeroId=_commConfig&&_commConfig.hero_track_id?_commConfig.hero_track_id:'';
   var heroIdx=-1;
-  if(_adminHeroId) heroIdx=sorted.findIndex(function(t){return (t._sbId===_adminHeroId||t.id===_adminHeroId)&&_isValidAudioUrl(t.audioUrl);});
-  if(heroIdx<0) heroIdx=sorted.findIndex(t=>_isValidAudioUrl(t.audioUrl));
+  if(_adminHeroId) heroIdx=sorted.findIndex(function(t){return (t._sbId===_adminHeroId||t.id===_adminHeroId)&&_isValidAudioUrl(t.audioUrl,t);});
+  if(heroIdx<0) heroIdx=sorted.findIndex(t=>_isValidAudioUrl(t.audioUrl,t));
   const hero=heroIdx>=0?sorted[heroIdx]:sorted[0];
   const rest=sorted.filter(t=>t!==hero);
 
