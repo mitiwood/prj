@@ -19089,7 +19089,7 @@ function _buildCommItem(t,i,isMine){
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
   const chainCls=chainMap[t._genMode]||'';
   const chainTxt=chainLbl[t._genMode]||'';
-  const _commFailed=!t.audioUrl||_failedAudioUrls.has(t.audioUrl)||(t._duration!==undefined&&Number(t._duration)===0);
+  const _commFailed=!t.audioUrl||_failedAudioUrls.has(t.audioUrl);
   return `<div class="comm-list-item${_commFailed?' comm-failed':''}" data-sbid="${sid}" data-genre="${genre}" ${_commFailed?'':'onclick="commPlaySb(\''+sid+'\')"'} style="${_commFailed?'opacity:.55;':''}">
     <div class="comm-list-top">
       <div class="comm-list-img" style="position:relative;">
@@ -19240,7 +19240,7 @@ function _renderCommContent(heroWrap, list){
   /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero (유효한 오디오 URL 필수) */
   const sortFns={likes:(a,b)=>b.likes-a.likes,newest:(a,b)=>(b._created||0)-(a._created||0),rating:(a,b)=>(b.rating||0)-(a.rating||0),plays:(a,b)=>(b.plays||0)-(a.plays||0)};
   const sorted=[...tracks].sort(sortFns[_commSortMode]||sortFns.likes);
-  const _isValidAudioUrl=(url,t)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url)&&!(t&&t._duration!==undefined&&Number(t._duration)===0);
+  const _isValidAudioUrl=(url,t)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url);
   /* 유효한 오디오가 있는 트랙을 hero로 선택 — 관리자 지정 우선, 재생 불가 URL 제외 */
   var _adminHeroId=_commConfig&&_commConfig.hero_track_id?_commConfig.hero_track_id:'';
   var heroIdx=-1;
@@ -20235,7 +20235,7 @@ function commPlaySb(sbId){
     }
     toast('트랙을 찾을 수 없어요','err');return;
   }
-  if(!t.audioUrl||(t._duration!==undefined&&Number(t._duration)===0)||_failedAudioUrls.has(t.audioUrl)){toast('재생할 수 없는 곡이에요','err');return;}
+  if(!t.audioUrl||_failedAudioUrls.has(t.audioUrl)){toast('재생할 수 없는 곡이에요','err');return;}
 
   /* 커뮤니티 리스트에서 재생 — 컨텍스트 설정 */
   _mfPlayQueue=[];_mfPlayQueueIdx=-1;
