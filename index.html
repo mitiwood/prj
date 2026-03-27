@@ -7388,9 +7388,27 @@ async function _loadMyTracks(force=false){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
-      _sbMyTracks = d.tracks.map(_rowToTrack);
+      /* ── 타인 곡 정리: 로컬에서 _fromFeed/_fromPl로 표시된 곡은 내가 생성한 게 아님 → 서버에서 삭제 ── */
+      const _feedIds = new Set();
+      historyData.forEach(h=>{
+        if(h._fromFeed || h._fromPl){
+          if(h.id) _feedIds.add(h.id);
+          if(h._sbId) _feedIds.add(h._sbId);
+        }
+      });
+      /* 서버 트랙 중 타인 곡(피드/플리에서 유입)은 서버에서 삭제 후 제외 */
+      const _cleanTracks = [];
+      d.tracks.forEach(t=>{
+        if(_feedIds.has(t.id)){
+          /* 잘못 동기화된 타인 곡 → 서버에서 삭제 */
+          fetch('/api/tracks?id='+encodeURIComponent(t.id)+'&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider),{method:'DELETE'}).catch(()=>{});
+        } else {
+          _cleanTracks.push(t);
+        }
+      });
+      _sbMyTracks = _cleanTracks.map(_rowToTrack);
       _sbMyLoaded = true;
-      /* historyData에 병합 (로컬에 없는 것만) */
+      /* historyData에 병합 (로컬에 없는 것만, 타인 곡 제외) */
       _sbMyTracks.forEach(st=>{
         const exists = historyData.find(h=>h.id===st._sbId||h.taskId===st.taskId);
         if(!exists){
@@ -7410,8 +7428,7 @@ async function _loadMyTracks(force=false){
       saveHistory(); updateHistBadge();
       /* 로컬에만 있고 서버에 없는 트랙 → 서버에 동기화 */
       /* 주의: _fromFeed(커뮤니티 재생), _fromPl(플레이리스트) 트랙은 타인 곡이므로 동기화 제외 */
-      const _serverIds = new Set(d.tracks.map(t=>t.id));
-      const _myGenModes={'custom':1,'simple':1,'youtube':1,'mv':1,'vocal':1,'extend':1,'cover':1,'remaster':1,'style-reuse':1,'vocal-removal':1,'vocal-extract':1,'split_stem':1};
+      const _serverIds = new Set(_cleanTracks.map(t=>t.id));
       historyData.forEach(h=>{
         if(h.audio_url && h.id && !h._fromSb && !h._fromFeed && !h._fromPl && !_serverIds.has(h.id)){
           /* 소유자 정보가 다른 사용자인 경우 동기화 제외 */
@@ -7476,6 +7493,8 @@ function _rowToTrack(t){
   };
 }
 var activeAudio=null,activeVizTimer=null;
+var _apRafPending=false,_commRafPending=false,_commHeroRafPending=false,_kpRafPending=false;
+function _destroyAudio(a){if(!a)return;try{a.pause();}catch(e){}a.removeAttribute('src');a.src='';try{a.load();}catch(e){}}
 var instOn=false,vocalGender='',currentMode='custom';
 var extendAudioId=null,toastTmr=null;
 var selectedEmotions=new Set(),makeMV=false;
@@ -13654,7 +13673,7 @@ function showMiniPlayer(idx){
     _waitingTimer=setTimeout(function(){
       if(genId!==_fpAudioGenId) return;
       if(audio.readyState<3) _audioReconnect('버퍼 부족');
-    },5000);
+    },8000);
   },_sig);
   audio.addEventListener('playing',function(){
     clearTimeout(_waitingTimer); _stallRetryCount=0;
@@ -13670,7 +13689,7 @@ function showMiniPlayer(idx){
     setTimeout(function(){
       if(genId!==_fpAudioGenId) return;
       if(!audio.paused&&audio.readyState<3) _audioReconnect('네트워크 정체');
-    },2000);
+    },5000);
   },_sig);
 
   /* BPM 뱃지 초기화 */
@@ -16121,7 +16140,12 @@ function _mfToggleFollow(btn){
       else{btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');}
       toast('팔로우 처리 실패','err',1500);
     }
-  }).catch(function(e){console.warn('[follow]',e);});
+  }).catch(function(e){console.warn('[follow]',e);
+    _followStateCache[fCacheKey]=isFollowing;if(typeof _saveFollowCache==='function')_saveFollowCache();
+    if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.classList.add('following');}
+    else{btn.textContent='팔로우';btn.dataset.following='0';btn.classList.remove('following');}
+    toast('팔로우 처리 실패','err',1500);
+  });
 }
 
 /* 크리에이터 목록 로드 */
@@ -16585,9 +16609,16 @@ function _openCreatorDetail(name,provider){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.ok){
-        _myFeedDetail.tracks=d.tracks||[];
+        var _rawTracks=d.tracks||[];
+        /* 내 프로필일 때: 로컬에서 _fromFeed/_fromPl로 표시된 타인 곡 제외 */
+        if(currentUser&&name===currentUser.name&&provider===currentUser.provider){
+          var _feedIds=new Set();
+          historyData.forEach(function(h){if(h._fromFeed||h._fromPl){if(h.id)_feedIds.add(h.id);if(h._sbId)_feedIds.add(h._sbId);}});
+          _rawTracks=_rawTracks.filter(function(t){return !_feedIds.has(t.id);});
+        }
+        _myFeedDetail.tracks=_rawTracks;
         _myFeedDetail.profile=d.profile||null;
-        _myFeedDetailCache[cKey]={tracks:d.tracks||[],profile:d.profile||null,ts:Date.now()};
+        _myFeedDetailCache[cKey]={tracks:_rawTracks,profile:d.profile||null,ts:Date.now()};
       }
       _myFeedDetailLoading=false;
       if(_histTabFilter==='myfeed') renderHistoryView();
@@ -19435,9 +19466,17 @@ function _renderCreatorList(){
   /* 트랙을 크리에이터별로 그룹핑 */
   const groupMap={};
   const groupOrder=[];
+  /* 내 이름으로 잘못 등록된 타인 곡 ID 수집 */
+  const _myFeedIds=new Set();
+  if(currentUser){
+    historyData.forEach(function(h){if(h._fromFeed||h._fromPl){if(h.id)_myFeedIds.add(h.id);if(h._sbId)_myFeedIds.add(h._sbId);}});
+  }
   all.forEach(t=>{
     const owner=t._owner||{};
     const key=(owner.name||'익명')+'__'+(owner.provider||'');
+    /* 내 이름으로 잘못 등록된 타인 곡은 내 그룹에서 제외 */
+    const isMe=currentUser&&owner.name===currentUser.name&&owner.provider===currentUser.provider;
+    if(isMe&&_myFeedIds.has(t._sbId)) return;
     if(!groupMap[key]){
       groupMap[key]={name:owner.name||'익명',provider:owner.provider||'',avatar:owner.avatar||'',tracks:[],totalLikes:0};
       groupOrder.push(key);
@@ -22161,6 +22200,8 @@ function _checkAttendance(){
 ══════════════════════════════ */
 async function _syncPlanFromServer(){
   if(typeof currentUser === 'undefined' || !currentUser) return;
+  /* 결제 직후 30초간 — 서버가 아직 반영 안됐을 수 있으므로 다운그레이드 방지 */
+  var _paymentGuardActive = (typeof _paymentJustDone !== 'undefined') && _paymentJustDone && (Date.now() - _paymentJustDone < 30000);
   try {
     /* users API로 직접 조회 (check-credit 대신 — 더 정확) */
     const ur = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
@@ -22169,11 +22210,17 @@ async function _syncPlanFromServer(){
       const serverPlan = ud.profile.plan || 'free';
       const localPlan = getPlan();
       if(localPlan.type !== serverPlan){
+        /* 결제 가드: 로컬이 유료인데 서버가 free면 → 결제 직후엔 덮어쓰지 않음 */
+        if(_paymentGuardActive && localPlan.type !== 'free' && serverPlan === 'free'){
+          console.log('[PlanSync] 결제 직후 가드 — 서버 free 무시 (local:', localPlan.type, ')');
+          return;
+        }
         const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
         localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
-        /* 플랜 업그레이드 시 사용량 리셋 */
+        /* 플랜 업그레이드 시 사용량 리셋 (올바른 월별 키 사용) */
         if(serverPlan !== 'free' && localPlan.type === 'free'){
-          localStorage.setItem('kms_usage', JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
+          var _mk = getMonthKey();
+          localStorage.setItem('kms_usage_'+_mk, JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
         }
         if(typeof renderPlanUI === 'function') renderPlanUI();
         if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
@@ -22205,14 +22252,16 @@ async function _syncUserDataFromServer(){
     /* 1) 프로필 정보 동기화 — 플랜, 크레딧, 아바타, 이메일 */
     if(profRes.status==='fulfilled' && profRes.value?.ok && profRes.value.profile){
       const p = profRes.value.profile;
-      /* 플랜 동기화 */
+      /* 플랜 동기화 — 결제 가드 포함 */
       const serverPlan = p.plan || 'free';
       const localPlan = getPlan();
-      if(localPlan.type !== serverPlan){
+      var _pgActive = (typeof _paymentJustDone !== 'undefined') && _paymentJustDone && (Date.now() - _paymentJustDone < 30000);
+      if(localPlan.type !== serverPlan && !(_pgActive && localPlan.type !== 'free' && serverPlan === 'free')){
         const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
         localStorage.setItem('kms_plan', JSON.stringify({type:serverPlan, startDate:new Date().toISOString(), endDate}));
         if(serverPlan !== 'free' && localPlan.type === 'free'){
-          localStorage.setItem('kms_usage', JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
+          var _mk2 = getMonthKey();
+          localStorage.setItem('kms_usage_'+_mk2, JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
         }
       }
       /* 크레딧 동기화 */
@@ -22779,6 +22828,10 @@ function openCreatorProfile(name, provider){
         /* 팔로우 토글 직후 3초간은 서버 응답으로 덮어쓰지 않음 (race condition 방어) */
         var lockActive = window._pvFollowLock && (Date.now() - window._pvFollowLock < 3000);
         if(!lockActive){
+          /* 글로벌 캐시도 DB 응답 기준으로 동기화 */
+          var _pvCK = name + '__' + (provider||'');
+          _followStateCache[_pvCK] = !!p.isFollowing;
+          if(typeof _saveFollowCache==='function') _saveFollowCache();
           if(p.isFollowing){ fbtn.textContent='팔로잉'; fbtn.dataset.following='1'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
           else { fbtn.textContent='팔로우'; fbtn.dataset.following='0'; fbtn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;'; }
         }
@@ -22834,6 +22887,8 @@ function _pvToggleFollow(){
   var btn = $('pv-follow-btn');
   var isFollowing = btn.dataset.following === '1';
   var nowFollowing = !isFollowing;
+  var tName = window._pvTarget.name, tProv = window._pvTarget.provider;
+  var fCacheKey = tName + '__' + tProv;
   /* ── 즉시 UI 반영 (낙관적) ── */
   if(nowFollowing){
     btn.textContent='팔로잉'; btn.dataset.following='1';
@@ -22849,22 +22904,37 @@ function _pvToggleFollow(){
   var fc = $('pv-follower-cnt');
   if(fc){ fc.textContent = Math.max(0, (parseInt(fc.textContent)||0) + (nowFollowing ? 1 : -1)); }
   window._pvFollowLock = Date.now();
+  /* ── 글로벌 캐시 동기화 ── */
+  _followStateCache[fCacheKey] = nowFollowing;
+  if(typeof _followPendingOps!=='undefined') _followPendingOps[fCacheKey] = Date.now();
+  if(typeof _saveFollowCache==='function') _saveFollowCache();
+  _followFeedCache = null; _followFeedAt = 0;
+  _followingNames = null;
+  if(typeof _updateCommBadge==='function') _updateCommBadge();
+  /* 커뮤니티 버튼도 동시 갱신 */
+  document.querySelectorAll('.comm-item-follow-btn[data-cname="'+tName+'"][data-cprov="'+tProv+'"],.comm-creator-follow-btn[data-cname="'+tName+'"][data-cprov="'+tProv+'"]').forEach(function(b){
+    if(nowFollowing){b.textContent='팔로잉';b.classList.add('following');b.dataset.following='1';}
+    else{b.textContent='팔로우';b.classList.remove('following');b.dataset.following='0';}
+  });
   /* ── DB 백그라운드 전송 ── */
+  var _pvRollback = function(){
+    _followStateCache[fCacheKey] = isFollowing;
+    if(typeof _saveFollowCache==='function') _saveFollowCache();
+    if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
+    else{btn.textContent='팔로우';btn.dataset.following='0';btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
+    if(fc) fc.textContent=Math.max(0,(parseInt(fc.textContent)||0)+(isFollowing?1:-1));
+    toast('팔로우 처리 실패','err',1500);
+  };
   fetch('/api/profile', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       action: nowFollowing ? 'follow' : 'unfollow',
       followerName: currentUser.name, followerProvider: currentUser.provider,
-      followingName: window._pvTarget.name, followingProvider: window._pvTarget.provider,
+      followingName: tName, followingProvider: tProv,
     })
   }).then(function(r){return r.json();}).then(function(d){
-    if(!d.ok){/* 롤백 */
-      if(isFollowing){btn.textContent='팔로잉';btn.dataset.following='1';btn.style.cssText='flex:1;padding:10px;border-radius:10px;background:var(--card);color:var(--t2);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
-      else{btn.textContent='팔로우';btn.dataset.following='0';btn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';}
-      if(fc) fc.textContent=Math.max(0,(parseInt(fc.textContent)||0)+(isFollowing?1:-1));
-      toast('팔로우 처리 실패','err',1500);
-    }
-  }).catch(function(e){console.warn('[pv-follow]',e);});
+    if(!d.ok) _pvRollback();
+  }).catch(function(e){console.warn('[pv-follow]',e); _pvRollback();});
 }
 window._pvToggleFollow=_pvToggleFollow;
 window.openCreatorProfile=typeof openCreatorProfile!=="undefined"?openCreatorProfile:window.openCreatorProfile||function(){};
@@ -25965,7 +26035,7 @@ function openBottomSheet(html){
   requestAnimationFrame(function(){ov.style.opacity='1';ov.firstElementChild.style.transform='translateY(0)';});
 }
 function closeBottomSheet(){
-  var ov=_bsOverlayEl||document.getElementById('_bs_overlay');
+  var ov=_bsOverlayEl;
   if(!ov)return;
   ov.firstElementChild.style.transform='translateY(100%)';
   ov.style.opacity='0';
@@ -26015,6 +26085,15 @@ function _usNativeShare(){
   } else { _usCopyUrl(); }
 }
 /* ── 포스트 프로덕션 도구 바텀시트 ── */
+/* historyData 인덱스를 찾거나 임시 항목을 추가하는 헬퍼 */
+function _ensureHistIdx(audioUrl,audioId,title){
+  var idx=historyData.findIndex(function(h){return h.id===audioId||h.audio_url===audioUrl;});
+  if(idx<0){
+    idx=historyData.length;
+    historyData.push({id:audioId,audio_url:audioUrl,title:title||'무제',tags:'',lyrics:'',image_url:'',created:Date.now()});
+  }
+  return idx;
+}
 function _showPostTools(audioUrl,audioId,title,taskId){
   var btnStyle='display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;';
   var tools=[
@@ -26032,27 +26111,39 @@ function _showPostTools(audioUrl,audioId,title,taskId){
   });
   html+='</div></div>';
   openBottomSheet(html);
-  /* 이벤트 바인딩 — 인라인 onclick 대신 */
+  /* 이벤트 바인딩 */
   setTimeout(function(){
     document.querySelectorAll('._pt-action').forEach(function(btn){
       btn.addEventListener('click',function(){
         var act=this.dataset.action;
-        closeBottomSheet();
+        /* 바텀시트 즉시 제거 — 애니메이션 충돌 방지 */
+        var ov=document.getElementById('_bs_overlay');
+        if(ov&&ov.parentNode) ov.remove();
+        _bsOverlayEl=null;
+        /* historyData 인덱스 확보 */
+        var hIdx=_ensureHistIdx(audioUrl,audioId,title);
         setTimeout(function(){
           if(act==='vocal-removal'){
-            if(typeof openVocalRemoval==='function') openVocalRemoval(audioUrl,audioId,taskId);
-            else toast('보컬 제거 모듈 로딩 중...','',1500);
+            /* 보컬 제거 모달 직접 열기 */
+            _vrSourceIdx=hIdx;
+            _vrMode='separate_vocal';
+            document.querySelectorAll('.vr-mode-btn').forEach(function(x){
+              var v=x.dataset.vrmode==='separate_vocal';
+              x.style.background=v?'rgba(239,68,68,.08)':'var(--bg2)';
+              x.style.borderColor=v?'#ef4444':'var(--border)';
+              x.style.color=v?'#ef4444':'var(--t2)';
+            });
+            var stemDesc=$('vr-stem-desc');if(stemDesc) stemDesc.style.display='none';
+            var vrBtn=$('vr-btn-txt');if(vrBtn) vrBtn.textContent='🎤 보컬 제거 시작';
+            $('vocal-remove-modal').classList.add('on');
           } else if(act==='cover'){
-            if(typeof _openCoverModal==='function') _openCoverModal(audioUrl,audioId,title);
-            else toast('커버 기능 준비 중','',1500);
+            _openCoverModal(audioUrl,audioId,title);
           } else if(act==='vocal-add'){
-            if(typeof _openVocalAddModal==='function') _openVocalAddModal(audioUrl,audioId,title);
-            else toast('보컬 추가 기능 준비 중','',1500);
+            _openVocalAddModal(audioUrl,audioId,title);
           } else if(act==='remaster'){
-            if(typeof _remasterV5==='function') _remasterV5(audioUrl,audioId,title);
-            else toast('리마스터 기능 준비 중','',1500);
+            _remasterV5(audioUrl,audioId,title);
           }
-        },300);
+        },50);
       });
     });
   },50);
