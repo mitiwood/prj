@@ -12037,11 +12037,16 @@ function togglePlay(btn){
     const _apTitle=btn.closest('.result-card')?.querySelector('.rc-title')?.textContent||url.slice(-20)||'트랙';
     showAudioSwitchPopup(_tpSrc,_apTitle,()=>{
       if(activeAudio){activeAudio.pause();stopViz(activeAudio._idx);const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);if(old)old.textContent='▶';}
-      const a2=new Audio(url);a2._idx=idx;a2._url=url;activeAudio=a2;
-      a2.addEventListener('timeupdate',()=>{const pct=a2.duration?(a2.currentTime/a2.duration)*100:0;const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';const t=document.getElementById(`ap-time-${idx}`);if(t)t.textContent=`${formatTime(a2.currentTime)} / ${formatTime(a2.duration||0)}`;updateKaraokeSync(idx,a2.currentTime);});
-      a2.addEventListener('ended',()=>{btn.textContent='▶';stopViz(idx);const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width='0%';});
-      a2.addEventListener('error',()=>toast('오디오 재생 오류','err'));
-      a2.play().then(()=>{btn.textContent='⏸';startViz(idx);}).catch(e=>toast('재생 실패: '+e.message,'err'));
+      btn.textContent='\u23F3';
+      var _tEl2=document.getElementById('ap-time-'+idx);
+      if(_tEl2){var _tc2=_tEl2.textContent;if(_tc2.includes('/ —')||_tc2.includes('불러오는 중'))_tEl2.textContent='0:00 / 잠시만 기다려 주세요...';}
+      var a2=new Audio();a2._idx=idx;a2._url=url;a2.preload='auto';a2._corsRetried=false;a2._retried=false;activeAudio=a2;
+      a2.addEventListener('timeupdate',function(){var pct=a2.duration?(a2.currentTime/a2.duration)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(a2.currentTime)+' / '+formatTime(a2.duration||0);updateKaraokeSync(idx,a2.currentTime);});
+      a2.addEventListener('ended',function(){btn.textContent='\u25B6';stopViz(idx);var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width='0%';});
+      a2.addEventListener('error',function(){var code=a2.error?.code;if(!a2._corsRetried&&(code===2||code===4)){a2._corsRetried=true;a2.removeAttribute('crossorigin');a2.crossOrigin=null;a2.src=url;a2.load();a2.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});toast('오디오 재연결 중...','',2000);return;}if(!a2._retried&&code===2){a2._retried=true;a2.src=url;a2.load();a2.play().catch(function(){});toast('오디오 재연결 중...','',2000);return;}btn.textContent='\u25B6';toast('오디오 재생 오류','err',3000);});
+      a2.src=url;a2.addEventListener('canplay',function _cp2(){a2.removeEventListener('canplay',_cp2);if(a2!==activeAudio)return;a2.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){btn.textContent='\u25B6';toast('재생 실패: '+e.message,'err',3000);});},{once:true});
+      setTimeout(function(){if(a2===activeAudio&&a2.paused&&a2.readyState>=2){a2.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});}},300);
+      setTimeout(function(){if(a2===activeAudio&&a2.paused){btn.textContent='\u25B6';toast('오디오를 불러올 수 없어요. 잠시 후 다시 시도해주세요.','err',3000);}},10000);
     });
     return;
   }
@@ -12052,13 +12057,19 @@ function togglePlay(btn){
     const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);
     if(old)old.textContent='▶';
   }
-  var audio=new Audio();audio._idx=idx;audio._url=url;audio.preload='auto';activeAudio=audio;
+  btn.textContent='\u23F3';
+  var _tEl=document.getElementById('ap-time-'+idx);
+  if(_tEl){var _tc=_tEl.textContent;if(_tc.includes('/ —')||_tc.includes('불러오는 중'))_tEl.textContent='0:00 / 잠시만 기다려 주세요...';}
+  var audio=new Audio();audio._idx=idx;audio._url=url;audio.preload='auto';audio._corsRetried=false;audio._retried=false;activeAudio=audio;
   audio.addEventListener('timeupdate',function(){var pct=audio.duration?(audio.currentTime/audio.duration)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(audio.currentTime)+' / '+formatTime(audio.duration||0);updateKaraokeSync(idx,audio.currentTime);});
   audio.addEventListener('ended',function(){btn.textContent='\u25B6';stopViz(idx);var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width='0%';});
-  audio.addEventListener('error',function(){var code=audio.error?.code;var msgs={1:'로딩 중단',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};if(!audio._corsRetried&&audio.crossOrigin&&(code===2||code===4)){audio._corsRetried=true;audio.removeAttribute('crossorigin');audio.crossOrigin=null;audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});return;}if(!audio._retried&&code===2){audio._retried=true;setTimeout(function(){audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});},1000);toast('오디오 재연결 중...','',2000);return;}toast('오디오 '+(msgs[code]||'재생 오류'),'err',3000);});
+  audio.addEventListener('error',function(){var code=audio.error?.code;var msgs={1:'로딩 중단',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};if(!audio._corsRetried&&(code===2||code===4)){audio._corsRetried=true;audio.removeAttribute('crossorigin');audio.crossOrigin=null;audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});toast('오디오 재연결 중...','',2000);return;}if(!audio._retried&&code===2){audio._retried=true;setTimeout(function(){audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});},1000);toast('오디오 재연결 중...','',2000);return;}btn.textContent='\u25B6';toast('오디오 '+(msgs[code]||'재생 오류'),'err',3000);});
   audio.src=url;
-  audio.addEventListener('canplay',function _onCp(){audio.removeEventListener('canplay',_onCp);if(audio!==activeAudio)return;audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){toast('재생 실패: '+e.message,'err',3000);});},{once:true});
-  setTimeout(function(){if(audio===activeAudio&&audio.paused){audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});}},5000);
+  audio.addEventListener('canplay',function _onCp(){audio.removeEventListener('canplay',_onCp);if(audio!==activeAudio)return;audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){btn.textContent='\u25B6';toast('재생 실패: '+e.message,'err',3000);});},{once:true});
+  /* 300ms 후 즉시 시도 — 이미 캐시된 경우 */
+  setTimeout(function(){if(audio===activeAudio&&audio.paused&&audio.readyState>=2){audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});}},300);
+  /* 10초 타임아웃 — 로딩 불가 시 안내 */
+  setTimeout(function(){if(audio===activeAudio&&audio.paused){btn.textContent='\u25B6';toast('오디오를 불러올 수 없어요. 잠시 후 다시 시도해주세요.','err',3000);}},10000);
 }
 function seekAudio(e,wrap){
   if(!activeAudio||activeAudio._idx!==+wrap.dataset.idx)return;
