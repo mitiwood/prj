@@ -3229,10 +3229,16 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .rc-cover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.25);}
 .rc-cover-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;}
 /* lyrics display */
-.lyrics-display{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;min-height:80px;line-height:1.8;color:var(--t2);font-size:13px;white-space:pre-wrap;}
+.lyrics-display{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;min-height:80px;max-height:220px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;line-height:1.8;color:var(--t2);font-size:13px;white-space:pre-wrap;}
+.lyrics-display::-webkit-scrollbar{width:3px;}
+.lyrics-display::-webkit-scrollbar-thumb{background:var(--acc3);border-radius:3px;opacity:.5;}
 .lyrics-text{color:var(--t1);font-size:13px;line-height:1.8;white-space:pre-wrap;}
 .lyrics-empty{font-size:12px;color:var(--t3);padding:12px 0;text-align:center;}
 .lsec{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:2px;text-transform:uppercase;display:block;margin:10px 0 4px;}
+/* 가사 라인 싱크 (노래방 스타일) */
+.lyric-line{display:block;padding:2px 0;transition:color .25s,padding-left .2s,border-left-color .2s;border-left:2px solid transparent;margin-left:-2px;}
+.lyric-line.ly-active{color:var(--acc2);font-weight:700;padding-left:8px;border-left-color:var(--acc2);}
+.lyric-line.ly-done{color:var(--t3);}
 .lrc-edit-area{width:100%;background:var(--bg);border:1px solid var(--acc);border-radius:var(--rs);padding:12px;color:var(--t1);font-family:inherit;font-size:13px;line-height:1.8;resize:vertical;min-height:100px;}
 .lrc-edit-area:focus{outline:none;}
 .lrc-edit-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:8px;}
@@ -11645,12 +11651,13 @@ function parseLyrics(text){
   if(!text||!text.trim())return'<div class="lyrics-empty">가사 정보가 없어요</div>';
   const lines=text.split('\n');
   let html='<div class="lyrics-text">';
+  let lineIdx=0;
   lines.forEach(line=>{
     const trimmed=line.trim();
     if(/^\[.+\]$/.test(trimmed)){
       html+=`<span class="lsec">${esc(trimmed.replace(/[\[\]]/g,''))}</span>`;
     }else if(trimmed){
-      html+=esc(trimmed)+'<br>';
+      html+=`<span class="lyric-line" data-line-idx="${lineIdx++}">${esc(trimmed)}</span>`;
     }else{
       html+='<br>';
     }
@@ -12052,22 +12059,50 @@ function _batchCollapse(btn){
 
 /* ── AUDIO PLAYER ── */
 function updateKaraokeSync(idx,currentTime){
-  /* 노래방 모드가 활성화된 경우 단어 하이라이트 */
+  /* 노래방 타임스탬프 모드가 활성화된 경우 단어 하이라이트 */
   const karaokeEl=document.getElementById(`lyrics-karaoke-${idx}`);
-  if(!karaokeEl||karaokeEl.style.display==='none'||karaokeEl.dataset.loaded!=='1')return;
-  karaokeEl.querySelectorAll('.k-word').forEach(w=>{
-    const start=parseFloat(w.dataset.start)||0;
-    const end=parseFloat(w.dataset.end)||0;
-    if(currentTime>=start&&currentTime<end){
-      w.classList.add('active');w.classList.remove('done');
-      /* 현재 단어가 뷰포트에 보이도록 스크롤 */
-      w.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
-    } else if(currentTime>=end){
-      w.classList.remove('active');w.classList.add('done');
-    } else {
-      w.classList.remove('active','done');
-    }
+  if(karaokeEl&&karaokeEl.style.display!=='none'&&karaokeEl.dataset.loaded==='1'){
+    karaokeEl.querySelectorAll('.k-word').forEach(w=>{
+      const start=parseFloat(w.dataset.start)||0;
+      const end=parseFloat(w.dataset.end)||0;
+      if(currentTime>=start&&currentTime<end){
+        w.classList.add('active');w.classList.remove('done');
+        /* 현재 단어가 뷰포트에 보이도록 스크롤 */
+        w.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+      } else if(currentTime>=end){
+        w.classList.remove('active');w.classList.add('done');
+      } else {
+        w.classList.remove('active','done');
+      }
+    });
+    return;
+  }
+  /* 타임스탬프 없는 경우: plain lyrics 라인 싱크 */
+  _syncPlainLyrics(idx,currentTime);
+}
+
+function _syncPlainLyrics(idx,currentTime){
+  const plainEl=document.getElementById('lyrics-plain-'+idx);
+  if(!plainEl)return;
+  const lines=plainEl.querySelectorAll('.lyric-line');
+  if(!lines.length)return;
+  const audio=activeAudio;
+  if(!audio||audio._idx!==idx||!audio.duration)return;
+  const total=lines.length;
+  const activeIdx=Math.min(Math.floor((currentTime/audio.duration)*total),total-1);
+  /* 같은 라인이면 DOM 업데이트 스킵 */
+  if(plainEl.dataset.lyricActive===String(activeIdx))return;
+  plainEl.dataset.lyricActive=String(activeIdx);
+  lines.forEach((el,i)=>{
+    el.classList.toggle('ly-active',i===activeIdx);
+    el.classList.toggle('ly-done',i<activeIdx);
   });
+  /* 현재 라인 가운데로 스크롤 */
+  const activeEl=lines[activeIdx];
+  if(activeEl){
+    const offset=activeEl.getBoundingClientRect().top-plainEl.getBoundingClientRect().top-(plainEl.clientHeight/2)+(activeEl.clientHeight/2);
+    if(Math.abs(offset)>5)plainEl.scrollBy({top:offset,behavior:'smooth'});
+  }
 }
 
 function togglePlay(btn){
