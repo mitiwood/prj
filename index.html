@@ -12052,16 +12052,13 @@ function togglePlay(btn){
     const old=document.querySelector(`.ap-play-btn[data-idx="${activeAudio._idx}"]`);
     if(old)old.textContent='▶';
   }
-  const audio=new Audio(url);audio._idx=idx;audio._url=url;activeAudio=audio;
-  audio.addEventListener('timeupdate',()=>{
-    const pct=audio.duration?(audio.currentTime/audio.duration)*100:0;
-    const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width=pct+'%';
-    const t=document.getElementById(`ap-time-${idx}`);if(t)t.textContent=`${formatTime(audio.currentTime)} / ${formatTime(audio.duration||0)}`;
-    updateKaraokeSync(idx,audio.currentTime); /* ✅ 노래방 싱크 */
-  });
-  audio.addEventListener('ended',()=>{btn.textContent='▶';stopViz(idx);const f=document.getElementById(`ap-prog-${idx}`);if(f)f.style.width='0%';});
-  audio.addEventListener('error',()=>toast('오디오 재생 오류','err'));
-  audio.play().then(()=>{btn.textContent='⏸';startViz(idx);}).catch(e=>toast('재생 실패: '+e.message,'err'));
+  var audio=new Audio();audio._idx=idx;audio._url=url;audio.preload='auto';activeAudio=audio;
+  audio.addEventListener('timeupdate',function(){var pct=audio.duration?(audio.currentTime/audio.duration)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(audio.currentTime)+' / '+formatTime(audio.duration||0);updateKaraokeSync(idx,audio.currentTime);});
+  audio.addEventListener('ended',function(){btn.textContent='\u25B6';stopViz(idx);var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width='0%';});
+  audio.addEventListener('error',function(){var code=audio.error?.code;var msgs={1:'로딩 중단',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};if(!audio._corsRetried&&audio.crossOrigin&&(code===2||code===4)){audio._corsRetried=true;audio.removeAttribute('crossorigin');audio.crossOrigin=null;audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});return;}if(!audio._retried&&code===2){audio._retried=true;setTimeout(function(){audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});},1000);toast('오디오 재연결 중...','',2000);return;}toast('오디오 '+(msgs[code]||'재생 오류'),'err',3000);});
+  audio.src=url;
+  audio.addEventListener('canplay',function _onCp(){audio.removeEventListener('canplay',_onCp);if(audio!==activeAudio)return;audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){toast('재생 실패: '+e.message,'err',3000);});},{once:true});
+  setTimeout(function(){if(audio===activeAudio&&audio.paused){audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});}},5000);
 }
 function seekAudio(e,wrap){
   if(!activeAudio||activeAudio._idx!==+wrap.dataset.idx)return;
@@ -13515,8 +13512,12 @@ function showMiniPlayer(idx){
   audio._retried=false;
   fpAudio = audio;
 
+  var _msLastPos=0; /* Media Session position 업데이트 쓰로틀 */
   audio.addEventListener('timeupdate',()=>{
     if(genId!==_fpAudioGenId||!audio.duration) return;
+    /* Media Session position — 5초마다 업데이트 (백그라운드 잠금화면 진행바) */
+    var now=audio.currentTime;
+    if(now-_msLastPos>5||_msLastPos>now){ _msLastPos=now; _updateMediaSessionPosition(); }
     if(_mpRafPending) return;
     _mpRafPending=true;
     requestAnimationFrame(()=>{
@@ -13738,6 +13739,7 @@ function showMiniPlayer(idx){
 
 function hideMiniPlayer(){
   _destroyFpAudio();
+  _clearMediaSession();
   $('mini-player').classList.remove('on');
   document.body.classList.remove('mp-on');
   /* 풀플레이어도 닫기 */
@@ -15895,11 +15897,12 @@ function _renderCreatorDetailView(grid,countEl){
   }
 
   /* ── 곡 요약 배너 ── */
-  var _playableCnt=sortedTracks.length;
+  var _playableCnt=sortedTracks.filter(function(t){return !_isFailedTrack(t);}).length;
+  var _failedCnt=sortedTracks.length-_playableCnt;
   var _totalLikes=d.tracks.reduce(function(s,t){return s+(t.comm_likes||0);},0);
   var _totalPlays=d.tracks.reduce(function(s,t){return s+(t.comm_plays||0);},0);
   html+='<div class="mf-track-summary">'
-    +'<span><b>'+_playableCnt+'</b>곡 재생 가능</span>'
+    +'<span><b>'+_playableCnt+'</b>곡 재생 가능'+(_failedCnt?' · <span style="color:var(--err,#e74c3c);font-size:11px;">'+_failedCnt+'곡 생성실패</span>':'')+'</span>'
     +'<span>❤️ <b>'+_totalLikes+'</b> · ▶ <b>'+_totalPlays+'</b></span>'
     +'</div>';
 
@@ -15920,15 +15923,18 @@ function _renderCreatorDetailView(grid,countEl){
     +'<button class="'+(_mfDetailGridView?'on':'')+'" onclick="_mfDetailGridView=true;renderHistoryView();" title="그리드"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'
     +'</div></div>';
 
-  /* 트랙 정렬 적용 — 생성 실패(audio_url 없음 또는 duration 0) 곡 제외 */
-  var sortedTracks=d.tracks.filter(function(t){
-    if(!t.audio_url) return false;
-    if(t.duration!==undefined && t.duration!==null && Number(t.duration)===0) return false;
-    return true;
-  }).slice();
+  /* 트랙 정렬 적용 — 생성 실패 곡도 포함 (비활성화 표시) */
+  var _isFailedTrack=function(t){
+    if(!t.audio_url) return true;
+    if(t.duration!==undefined && t.duration!==null && Number(t.duration)===0) return true;
+    return false;
+  };
+  var sortedTracks=d.tracks.slice();
   if(_myFeedTrkSort==='likes') sortedTracks.sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
   else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
   else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+  /* 생성실패 곡은 정렬 후 맨 아래로 */
+  sortedTracks.sort(function(a,b){return (_isFailedTrack(a)?1:0)-(_isFailedTrack(b)?1:0);});
 
   /* ── 트랙 리스트 / 그리드 ── */
   if(_mfDetailGridView){
