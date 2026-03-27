@@ -14883,6 +14883,18 @@ function _doOpenFullPlayer(idx){
   });
   audio.src=_audioUrl;
   audio.load();
+
+  /* 타임스탬프 가사 API 로드 — LRC 없을 때 노래방 모드와 동일하게 싱크 */
+  if(h.taskId&&h.id&&!_fpLrcTimes.length){
+    kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:h.taskId,audioId:h.id})
+      .then(function(res){
+        if(genId!==_fpAudioGenId)return;
+        const words=res?.data?.alignedWords||[];
+        if(words.length)fpRenderTimestampedLyrics(words);
+      })
+      .catch(function(){});
+  }
+
   /* BPM 뱃지 초기화 */
   var bpmBadge=$('fp-bpm-badge');if(bpmBadge){bpmBadge.textContent='-- BPM';bpmBadge.style.color='';bpmBadge.style.background='';}
 
@@ -17148,6 +17160,59 @@ function fpSyncLyrics(currentTime){
   }
 }
 
+/* 풀플레이어 — API 타임스탬프 가사 렌더 (노래방 모드와 동일) */
+function fpRenderTimestampedLyrics(words){
+  const mainBox=$('fp-lyrics-main');
+  if(!mainBox||!words||!words.length)return;
+  const lines=[];
+  let curLine={words:[],startS:null,endS:null,isSec:false};
+  words.forEach(function(w){
+    const text=w.word||'';
+    if(/^\[.+\]$/.test(text.trim())){
+      if(curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};}
+      lines.push({isSec:true,text:text.replace(/[\[\]]/g,'').trim(),startS:w.startS||0});
+    } else if(text.includes('\n')){
+      const parts=text.split('\n');
+      parts.forEach(function(p,pi){
+        if(p.trim()){curLine.words.push({text:p,startS:w.startS||0,endS:w.endS||0});if(curLine.startS===null)curLine.startS=w.startS||0;curLine.endS=w.endS||0;}
+        if(pi<parts.length-1&&curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};}
+      });
+    } else {
+      if(text.trim()){
+        curLine.words.push({text:text.trim(),startS:w.startS||0,endS:w.endS||0});
+        if(curLine.startS===null)curLine.startS=w.startS||0;
+        curLine.endS=w.endS||0;
+      }
+      const joined=curLine.words.map(function(x){return x.text;}).join(' ');
+      if(/[.!?,。！？、，]$/.test(text.trim())||joined.length>40){
+        lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};
+      }
+    }
+  });
+  if(curLine.words.length)lines.push({...curLine});
+  let html='';
+  let lineIdx=0;
+  const newLrcTimes=[];
+  lines.forEach(function(line){
+    if(line.isSec){
+      html+=`<div class="fp-lm-sec">${esc(line.text||'')}</div>`;
+    } else {
+      const lineText=line.words.map(function(w){return w.text;}).join(' ');
+      html+=`<div class="fp-lm-line" data-li="${lineIdx}" onclick="fpSeekToLine(this)">${esc(lineText)}</div>`;
+      newLrcTimes.push(line.startS||0);
+      lineIdx++;
+    }
+  });
+  if(!html)return;
+  mainBox.innerHTML=html;
+  fpTimestampLines=[...mainBox.querySelectorAll('.fp-lm-line')];
+  _fpLrcTimes=newLrcTimes;
+  fpSyncMode=true;
+  _fpPrevActiveIdx=-1;
+  const syncBtn=$('fp-lyrics-mode-btn');
+  if(syncBtn)syncBtn.style.display='';
+}
+
 /* 다운로드 */
 async function fpDownload(){
   const h=historyData[fpCurrentIdx];if(!h?.audio_url)return;
@@ -17963,7 +18028,7 @@ function getPlayingInfo(){
   return null;
 }
 
-var kpAudio=null,kpVizTimer=null,kpLines=[];
+var kpAudio=null,kpVizTimer=null,kpLines=[],kpCurrentIdx=-1;
 
 /* 전체모드 노래방 버튼 → onclick에서 직접 호출 */
 /* MR(보컬 제거) 트랙으로 노래방 모드 열기 — 원본 가사 사용 */
@@ -18012,6 +18077,7 @@ function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyri
   $('kp-dur').textContent='0:00';
   $('kp-play-btn').textContent='▶';
   kpLines=[];
+  kpCurrentIdx=historyData.findIndex(function(t){return t.id===audioId||(taskId&&t.taskId===taskId);});
 
   /* 가사 표시 — 우선 plain 표시 후 timestamped 시도 */
   const lyricsArea=$('kp-lyrics-area');
@@ -18180,10 +18246,22 @@ function stopKpViz(){
 }
 
 function closeKaraokePlayer(){
-  if(kpAudio){kpAudio.pause();kpAudio=null;}
+  const _savedTime=kpAudio?kpAudio.currentTime:0;
+  if(kpAudio){kpAudio.pause();}
   stopKpViz();
   $('karaoke-player').classList.remove('on');
   document.body.style.overflow='';
+  /* 미니플레이어로 전환하며 음악 계속 재생 */
+  if(kpCurrentIdx>=0&&historyData[kpCurrentIdx]){
+    kpAudio=null;
+    showMiniPlayer(kpCurrentIdx);
+    if(_savedTime>0&&fpAudio){
+      const _sa=fpAudio;
+      _sa.addEventListener('canplay',function(){if(_sa===fpAudio)_sa.currentTime=_savedTime;},{once:true});
+    }
+  } else {
+    kpAudio=null;
+  }
 }
 
 $('kp-close-btn').addEventListener('click',closeKaraokePlayer);
