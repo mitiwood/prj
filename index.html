@@ -16835,7 +16835,7 @@ function _closeCreatorDetail(){
 }
 
 /* 크리에이터 상세 — 트랙 재생 (큐 설정) */
-async function _mfDetailPlay(idx){
+function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
   if(!t||!t.audio_url||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0)){toast('생성에 실패한 곡이에요','err');return;}
@@ -16866,9 +16866,6 @@ async function _mfDetailPlay(idx){
     }
     return;
   }
-
-  var playable=await _checkAudioPlayable(t.audio_url);
-  if(!playable){toast('재생할 수 없는 곡이에요','err',3000);return;}
 
   /* 연속재생 큐 설정 + 컨텍스트 */
   _mfPlayQueue=_myFeedDetail.tracks.filter(function(x){return !!x.audio_url;});
@@ -19876,20 +19873,7 @@ function _loadCommDurations(tracks){
         var playBtn=item.querySelector('.comm-play-sm');
         if(playBtn){playBtn.disabled=true;playBtn.style.opacity='.3';playBtn.removeAttribute('onclick');}
       }
-      /* 크리에이터 상세 뷰 카드도 비활성화 */
-      var card=document.querySelector('.mf-trk-card[data-sbid="'+t._sbId+'"]');
-      if(card&&!card.classList.contains('unplayable')){
-        card.classList.add('unplayable');
-        card.removeAttribute('data-mf-action');
-        var numEl=card.querySelector('.mf-trk-num');
-        if(numEl) numEl.innerHTML='<span style="color:var(--err,#e74c3c);font-size:11px;">\u2715</span>';
-        var tTitle=card.querySelector('.mf-trk-title');
-        if(tTitle){tTitle.style.opacity='.5';tTitle.style.textDecoration='line-through';}
-        var metaEl=card.querySelector('.mf-trk-meta');
-        if(metaEl&&!metaEl.querySelector('.comm-fail-tag')) metaEl.insertAdjacentHTML('afterbegin','<span class="comm-fail-tag" style="color:var(--err,#e74c3c);">\uc7ac\uc0dd\ubd88\uac00</span>');
-        var pBtn=card.querySelector('.mf-trk-play-btn');
-        if(pBtn){pBtn.removeAttribute('data-mf-action');pBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';}
-      }
+      /* 크리에이터 상세 뷰 카드는 별도 재생 시도 시 판단 — 메타데이터 로드 실패가 스트리밍 불가를 의미하지 않으므로 비활성화하지 않음 */
     });
   });
 }
