@@ -16689,14 +16689,18 @@ function _mfQueuePlay(qi){
 
 function _mfDetailPlayAll(){
   if(!_myFeedDetail||!_myFeedDetail.tracks||!_myFeedDetail.tracks.length){toast('재생할 곡이 없어요','err');return;}
-  _mfDetailPlay(0);
+  var firstIdx=_myFeedDetail.tracks.findIndex(function(t){return t.audio_url&&!(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0);});
+  if(firstIdx<0){toast('재생할 수 있는 곡이 없어요','err');return;}
+  _mfDetailPlay(firstIdx);
   toast('▶ 전체 재생 시작','ok',1500);
 }
 
 function _mfDetailShuffle(){
   if(!_myFeedDetail||!_myFeedDetail.tracks||_myFeedDetail.tracks.length<1){toast('재생할 곡이 없어요','err');return;}
-  var ri=Math.floor(Math.random()*_myFeedDetail.tracks.length);
-  _mfDetailPlay(ri);
+  var playable=_myFeedDetail.tracks.map(function(t,i){return{t:t,i:i};}).filter(function(x){return x.t.audio_url&&!(x.t.duration!==undefined&&x.t.duration!==null&&Number(x.t.duration)===0);});
+  if(!playable.length){toast('재생할 수 있는 곡이 없어요','err');return;}
+  var ri=Math.floor(Math.random()*playable.length);
+  _mfDetailPlay(playable[ri].i);
   toast('🔀 셔플 재생','ok',1500);
 }
 
@@ -18079,12 +18083,8 @@ async function _renderFollowingFeed(heroWrap,list){
 function _renderFollowFeedUI(list){
   let tracks=_followFeedCache||[];
   if(!tracks.length){
-    /* 팔로잉 곡이 없으면 전체 최신곡 표시 */
-    if(lbl) lbl.textContent='팔로잉 · 추천 곡';
-    var allTracks=(_sbTracks||[]).slice(0,20);
-    if(!allTracks.length){list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">🎵</div><div class="comm-no-title">아직 곡이 없어요</div><div class="comm-no-desc">커뮤니티에서 마음에 드는 아티스트를 팔로우해보세요</div></div>';return;}
-    tracks=allTracks.map(function(t){return{id:t._sbId,title:t.title,image_url:t.img,tags:t.allTags,owner_name:t._owner?.name||'익명',owner_avatar:t._owner?.avatar||'',owner_provider:t._owner?.provider||'',created_at:t._created?new Date(t._created).toISOString():''};});
-    _followFeedCache=tracks;
+    list.innerHTML='<div class="comm-no-results"><div class="comm-no-icon">👥</div><div class="comm-no-title">팔로잉 곡이 없어요</div><div class="comm-no-desc">커뮤니티에서 마음에 드는 아티스트를 팔로우해보세요</div></div>';
+    return;
   }
   let html='';
   tracks.forEach((t,i)=>{
@@ -21962,6 +21962,8 @@ async function _doTossPayment(type, method, userName, userProvider){
   }
 }
 
+/* 결제 직후 동기화 가드 — 서버 동기화가 결제 결과를 덮어쓰는 것 방지 */
+var _paymentJustDone = 0;
 /* 결제 성공 콜백 처리 (리다이렉트 후) */
 async function _handlePaymentResult(){
   const params = new URLSearchParams(location.search);
@@ -21976,6 +21978,8 @@ async function _handlePaymentResult(){
   /* 성공 */
   if(params.get('payment') === 'success'){
     const plan = params.get('plan');
+    /* 결제 완료 타임스탬프 — 30초간 _syncPlanFromServer의 다운그레이드 방지 */
+    _paymentJustDone = Date.now();
     /* PLAN_LIMITS를 우선 사용 (항상 존재) → _TOSS_PLANS 폴백 */
     const planLabels = {pro:'Pro',creator:'Creator',free:'Free'};
     const label = planLabels[plan] || PLAN_LIMITS[plan]?.label || _TOSS_PLANS[plan]?.label || plan;
@@ -21997,6 +22001,29 @@ async function _handlePaymentResult(){
     }, 500);
 
     history.replaceState(null, '', location.pathname);
+
+    /* 3초 후 서버 플랜 확인 — DB 반영 검증 */
+    setTimeout(async ()=>{
+      try {
+        if(!currentUser) return;
+        const r = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+        const d = await r.json();
+        if(d.ok && d.profile){
+          const serverPlan = d.profile.plan || 'free';
+          if(serverPlan === plan){
+            console.log('[Payment] 서버 플랜 확인 완료:', serverPlan);
+            /* 서버 크레딧도 동기화 */
+            if(d.profile.credits_song != null){
+              currentUser.credits_song = d.profile.credits_song;
+              currentUser.credits_mv = d.profile.credits_mv || 0;
+              currentUser.credits_lyrics = d.profile.credits_lyrics || 0;
+            }
+          } else {
+            console.warn('[Payment] 서버 플랜 불일치 — local:', plan, 'server:', serverPlan, '(결제 성공이므로 로컬 유지)');
+          }
+        }
+      } catch(e){ console.warn('[Payment] 서버 확인 실패:', e.message); }
+    }, 3000);
   }
 }
 /* 앱 로드 시 결제 결과 확인 — 중복 방지 */
