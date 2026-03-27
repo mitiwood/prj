@@ -15876,9 +15876,10 @@ function _renderCreatorDetailView(grid,countEl){
     }
   }
 
-  /* ── TOP 3 인기곡 캐러셀 (3곡 이상) ── */
-  if(d.tracks.length>=3){
-    var topTracks=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);}).slice(0,3);
+  /* ── TOP 3 인기곡 캐러셀 (3곡 이상, 생성실패 제외) ── */
+  var _playableTracks=d.tracks.filter(function(t){return !_isFailedTrack(t);});
+  if(_playableTracks.length>=3){
+    var topTracks=_playableTracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);}).slice(0,3);
     html+='<div class="mf-top3-carousel">';
     topTracks.forEach(function(top,ti){
       if(!top.image_url||_mfIsBlocked(top.image_url)) return;
@@ -16619,7 +16620,8 @@ function _closeCreatorDetail(){
 async function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
-  if(!t||!t.audio_url){toast('오디오를 재생할 수 없어요','err');return;}
+  if(!t||!t.audio_url){toast('생성에 실패한 곡이에요','err');return;}
+  if(t.duration!==undefined && t.duration!==null && Number(t.duration)===0){toast('생성에 실패한 곡이에요','err');return;}
   if(_mfUnplayableIds.has(t.id)){toast('재생할 수 없는 곡이에요','err',2000);return;}
 
   /* 같은 곡이면 재생/일시정지 토글 */
@@ -17947,6 +17949,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('karaoke-player')
 /* ── 커뮤니티 전역 상태 ── */
 var commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
 var commHeroAudio=null,commHeroVizTimer=null;
+/* 재생 불가 오디오 URL 블랙리스트 (세션 내 캐시) */
+var _failedAudioUrls=new Set();
 
 /* ── 커뮤니티 관리자 설정 (서버에서 로드) ── */
 var _commConfig=null;
@@ -18812,15 +18816,17 @@ function _buildCommItem(t,i,isMine){
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
   const chainCls=chainMap[t._genMode]||'';
   const chainTxt=chainLbl[t._genMode]||'';
-  return `<div class="comm-list-item" data-sbid="${sid}" data-genre="${genre}" onclick="commPlaySb('${sid}')">
+  const _commFailed=!t.audioUrl||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0);
+  return `<div class="comm-list-item${_commFailed?' comm-failed':''}" data-sbid="${sid}" data-genre="${genre}" ${_commFailed?'':'onclick="commPlaySb(\''+sid+'\')"'} style="${_commFailed?'opacity:.55;':''}">
     <div class="comm-list-top">
-      <div class="comm-list-img">
+      <div class="comm-list-img" style="position:relative;">
         ${(!t.img||_isBlockedImgHost(t.img))?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`
-          :`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='<span>🎵</span>'">`}
+          :`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;${_commFailed?'opacity:.4;filter:grayscale(1);':''}" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='<span>🎵</span>'">`}
+        ${_commFailed?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><span style="color:#ff6b6b;font-size:9px;font-weight:700;background:rgba(0,0,0,.5);padding:2px 5px;border-radius:4px;">실패</span></div>':''}
       </div>
       <div class="comm-list-info">
         <!-- 1열: 제목 + 재생시간 -->
-        <div class="comm-list-title">${esc(t.title)} <span class="comm-list-duration" id="comm-dur-${sid}" style="color:var(--t3);font-weight:400;font-size:11px;">${_durCache[t._sbId]||''}</span>${t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}${(typeof _isTrending==='function'&&_isTrending(t))?_getTrendingBadge():''}</div>
+        <div class="comm-list-title" ${_commFailed?'style="opacity:.5;text-decoration:line-through;"':''}>${esc(t.title)} ${_commFailed?'<span style="color:var(--err,#e74c3c);font-size:10px;font-weight:600;text-decoration:none;display:inline-block;">생성실패</span>':'<span class="comm-list-duration" id="comm-dur-'+sid+'" style="color:var(--t3);font-weight:400;font-size:11px;">'+((_durCache[t._sbId]||''))+'</span>'}${!_commFailed&&t.isNew?' <span class="cs-new">NEW</span>':''}${isMine?' <span style="font-size:9px;color:var(--acc3);font-weight:700;">MY</span>':''}${(!_commFailed&&typeof _isTrending==='function'&&_isTrending(t))?_getTrendingBadge():''}</div>
         <!-- 2열: 사용자 + 팔로우 -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
           ${ownerAvatar?`<img src="${esc(ownerAvatar)}" style="width:14px;height:14px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">`:''}
@@ -18832,15 +18838,15 @@ function _buildCommItem(t,i,isMine){
       </div>
     </div>
     <div class="comm-list-actions">
-      <button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">▶</button>
+      ${_commFailed?`<span style="color:var(--err,#e74c3c);font-size:11px;font-weight:600;padding:4px 8px;">재생 불가</span>`:`<button class="comm-reaction-sm comm-play-sm" onclick="event.stopPropagation();commPlaySb('${sid}')" title="재생">▶</button>
       <button class="comm-reaction-sm${t.liked?' liked':''}" id="comm-like-btn-${i}" onclick="event.stopPropagation();commLikeSb('${sid}')" title="좋아요">${t.liked?'❤️':'🤍'} <span>${t.likes>0?t.likes:''}</span></button>
       <button class="comm-reaction-sm${t.disliked?' disliked':''}" onclick="event.stopPropagation();commDislikeSb('${sid}')" title="싫어요">💔</button>
       <span class="star-rating star-rating-sm" data-rating-id="${sid}" onclick="event.stopPropagation()">
         ${[1,2,3,4,5].map(n=>`<span class="star${n<=t.rating?' on':''}" data-star="${n}" onclick="commRateSb('${sid}',${n})">★</span>`).join('')}
-      </span>${t.avgRating?`<span style="font-size:10px;color:var(--acc);font-weight:700;margin-left:2px;">${t.avgRating}${t.ratingCount?' <span style="font-size:9px;color:var(--t3);font-weight:400;">(${t.ratingCount})</span>':''}</span>`:''}
-      <button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span></button>
-      <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>
-      ${!isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openReportSheet('${sid}')" title="신고" style="color:rgba(255,160,80,.5);">🚩</button>`:''}
+      </span>${t.avgRating?`<span style="font-size:10px;color:var(--acc);font-weight:700;margin-left:2px;">${t.avgRating}${t.ratingCount?' <span style="font-size:9px;color:var(--t3);font-weight:400;">(${t.ratingCount})</span>':''}</span>`:''}`}
+      ${!_commFailed?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openCommentSheet('${sid}')" title="댓글">💬 <span class="comm-comment-cnt" data-cnt-id="${sid}"></span></button>
+      <button class="comm-reaction-sm" onclick="event.stopPropagation();commShareSheet('${sid}')" title="공유">↗</button>`:''}
+      ${!isMine&&!_commFailed?`<button class="comm-reaction-sm" onclick="event.stopPropagation();openReportSheet('${sid}')" title="신고" style="color:rgba(255,160,80,.5);">🚩</button>`:''}
       ${isMine?`<button class="comm-reaction-sm" onclick="event.stopPropagation();commDeleteSb('${sid}')" title="삭제" style="color:rgba(255,80,80,.5);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
     </div>
     <div class="comm-comment-preview" data-preview-id="${sid}" onclick="event.stopPropagation();openCommentSheet('${sid}')" style="display:none;"></div>
@@ -18961,11 +18967,11 @@ function _renderCommContent(heroWrap, list){
   /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero (유효한 오디오 URL 필수) */
   const sortFns={likes:(a,b)=>b.likes-a.likes,newest:(a,b)=>(b._created||0)-(a._created||0),rating:(a,b)=>(b.rating||0)-(a.rating||0),plays:(a,b)=>(b.plays||0)-(a.plays||0)};
   const sorted=[...tracks].sort(sortFns[_commSortMode]||sortFns.likes);
-  const _isValidAudioUrl=(url)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'));
-  /* 유효한 오디오가 있는 트랙을 hero로 선택 — 관리자 지정 우선 */
+  const _isValidAudioUrl=(url)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url);
+  /* 유효한 오디오가 있는 트랙을 hero로 선택 — 관리자 지정 우선, 재생 불가 URL 제외 */
   var _adminHeroId=_commConfig&&_commConfig.hero_track_id?_commConfig.hero_track_id:'';
   var heroIdx=-1;
-  if(_adminHeroId) heroIdx=sorted.findIndex(function(t){return t._sbId===_adminHeroId||t.id===_adminHeroId;});
+  if(_adminHeroId) heroIdx=sorted.findIndex(function(t){return (t._sbId===_adminHeroId||t.id===_adminHeroId)&&_isValidAudioUrl(t.audioUrl);});
   if(heroIdx<0) heroIdx=sorted.findIndex(t=>_isValidAudioUrl(t.audioUrl));
   const hero=heroIdx>=0?sorted[heroIdx]:sorted[0];
   const rest=sorted.filter(t=>t!==hero);
@@ -19768,6 +19774,8 @@ function setupHeroAudio(hero){
   audio.addEventListener('error',(e)=>{
     var code=audio.error?audio.error.code:0;
     console.warn('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src);
+    /* 재생 불가 URL 블랙리스트 등록 → 다음 렌더에서 hero/차트 제외 */
+    if(code===4||code===3) _failedAudioUrls.add(audio.src);
     /* code 2(네트워크) 만 재연결 — code 4(미지원)는 URL 자체 문제이므로 재시도 무의미 */
     if(code===2&&_heroRetryCount<_heroMaxRetries){
       _heroReconnect('error code '+code);

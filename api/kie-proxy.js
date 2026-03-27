@@ -23,14 +23,18 @@ const ALLOWED_PATHS = [
   '/gemini-2.5-flash/v1/chat/completions',  // LLM (AI 프롬프트/추천)
 ];
 
-/* 크레딧 소모가 발생하는 경로 (조회/폴링은 제외) */
+/* 크레딧 소모가 발생하는 경로 (조회/폴링은 제외)
+ * ✅ FIX: 순서 중요 — 구체적 경로를 먼저 배치 (prefix match이므로)
+ *   /api/v1/generate/extend 등이 /api/v1/generate 보다 먼저 매칭되어야 함 */
 const CREDIT_PATHS = {
-  '/api/v1/generate/music':       'song',
   '/api/v1/generate/mv':          'mv',
   '/api/v1/generate/extend':      'song',
   '/api/v1/generate/remaster':    'song',
   '/api/v1/generate/add-vocals':  'song',
   '/api/v1/generate/cover':       'song',
+  '/api/v1/generate/record-info': null,   /* 폴링은 크레딧 불필요 */
+  '/api/v1/generate/get-timestamped-lyrics': null, /* 가사 타임스탬프 조회 */
+  '/api/v1/generate':             'song', /* ✅ FIX: 기본 음악 생성 (이전: /api/v1/generate/music — 실제 API 경로 불일치) */
   '/api/v1/lyrics/generate':      'lyrics',
   '/api/v1/vocal-removal/create': 'vr',
   '/api/v1/jobs/createTask':      'mv',
@@ -44,7 +48,7 @@ function isPathAllowed(path) {
 function getCreditType(path, method) {
   if (method === 'GET') return null; // 조회는 크레딧 불필요
   for (const [prefix, type] of Object.entries(CREDIT_PATHS)) {
-    if (path.startsWith(prefix)) return type;
+    if (path.startsWith(prefix)) return type; // type이 null이면 크레딧 불필요 (폴링/조회)
   }
   return null;
 }
