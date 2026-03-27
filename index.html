@@ -18816,7 +18816,7 @@ function _buildCommItem(t,i,isMine){
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
   const chainCls=chainMap[t._genMode]||'';
   const chainTxt=chainLbl[t._genMode]||'';
-  const _commFailed=!t.audioUrl||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0);
+  const _commFailed=!t.audioUrl||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0)||_failedAudioUrls.has(t.audioUrl);
   return `<div class="comm-list-item${_commFailed?' comm-failed':''}" data-sbid="${sid}" data-genre="${genre}" ${_commFailed?'':'onclick="commPlaySb(\''+sid+'\')"'} style="${_commFailed?'opacity:.55;':''}">
     <div class="comm-list-top">
       <div class="comm-list-img" style="position:relative;">
@@ -19058,7 +19058,7 @@ function _renderCommContent(heroWrap, list){
     let allListTracks=[];
 
 /* 🏆 주간 인기 차트 (Top 10) — 순위 변동 표시 */
-    const weekTracks=otherTracks.sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,10);
+    const weekTracks=otherTracks.filter(t=>_isValidAudioUrl(t.audioUrl)).sort((a,b)=>(b.likes*2+(b.plays||0))-(a.likes*2+(a.plays||0))).slice(0,10);
     if(weekTracks.length>=3){
       html+='<div class="comm-chart"><div class="comm-chart-title"><span>🏆 이번 주 인기 차트</span><span style="font-size:10px;color:var(--t3);font-weight:400;">Top '+weekTracks.length+'</span></div>';
       var chartIds=weekTracks.map(function(t){return t._sbId;});
@@ -19225,10 +19225,10 @@ var _followBatchLoaded=false;
 var _followBatchLoadedAt=0;
 var _FOLLOW_CACHE_TTL=300000; /* 5분 */
 
-/* 페이지 로드 시 sessionStorage에서 캐시 복원 */
+/* 페이지 로드 시 localStorage에서 캐시 복원 (앱 재진입에도 유지) */
 ;(function(){
   try{
-    var s=JSON.parse(sessionStorage.getItem('kms_follow_cache')||'null');
+    var s=JSON.parse(localStorage.getItem('kms_follow_cache')||'null');
     if(s&&s.data&&s.at&&(Date.now()-s.at)<_FOLLOW_CACHE_TTL){
       Object.assign(_followStateCache,s.data);
       _followBatchLoaded=true;_followBatchLoadedAt=s.at;
@@ -19236,7 +19236,7 @@ var _FOLLOW_CACHE_TTL=300000; /* 5분 */
   }catch(e){}
 })();
 function _saveFollowCache(){
-  try{sessionStorage.setItem('kms_follow_cache',JSON.stringify({data:_followStateCache,at:_followBatchLoadedAt}));}catch(e){}
+  try{localStorage.setItem('kms_follow_cache',JSON.stringify({data:_followStateCache,at:_followBatchLoadedAt}));}catch(e){}
 }
 
 function _applyFollowToBtn(btn){
