@@ -15932,6 +15932,19 @@ function _renderCreatorDetailView(grid,countEl){
     }
   }
 
+  /* 트랙 정렬 적용 — 생성 실패 곡도 포함 (비활성화 표시) */
+  var _isFailedTrack=function(t){
+    if(!t.audio_url) return true;
+    if(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0) return true;
+    return false;
+  };
+  var sortedTracks=d.tracks.slice();
+  if(_myFeedTrkSort==='likes') sortedTracks.sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
+  else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
+  else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+  /* 생성실패 곡은 정렬 후 맨 아래로 */
+  sortedTracks.sort(function(a,b){return (_isFailedTrack(a)?1:0)-(_isFailedTrack(b)?1:0);});
+
   /* ── TOP 3 인기곡 캐러셀 (3곡 이상, 생성실패 제외) ── */
   var _playableTracks=d.tracks.filter(function(t){return !_isFailedTrack(t);});
   if(_playableTracks.length>=3){
@@ -15990,19 +16003,6 @@ function _renderCreatorDetailView(grid,countEl){
     +'<button class="'+(!_mfDetailGridView?'on':'')+'" onclick="_mfDetailGridView=false;renderHistoryView();" title="리스트"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>'
     +'<button class="'+(_mfDetailGridView?'on':'')+'" onclick="_mfDetailGridView=true;renderHistoryView();" title="그리드"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'
     +'</div></div>';
-
-  /* 트랙 정렬 적용 — 생성 실패 곡도 포함 (비활성화 표시) */
-  var _isFailedTrack=function(t){
-    if(!t.audio_url) return true;
-    if(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0) return true;
-    return false;
-  };
-  var sortedTracks=d.tracks.slice();
-  if(_myFeedTrkSort==='likes') sortedTracks.sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);});
-  else if(_myFeedTrkSort==='plays') sortedTracks.sort(function(a,b){return (b.comm_plays||0)-(a.comm_plays||0);});
-  else if(_myFeedTrkSort==='newest') sortedTracks.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
-  /* 생성실패 곡은 정렬 후 맨 아래로 */
-  sortedTracks.sort(function(a,b){return (_isFailedTrack(a)?1:0)-(_isFailedTrack(b)?1:0);});
 
   /* ── 트랙 리스트 / 그리드 ── */
   if(_mfDetailGridView){
