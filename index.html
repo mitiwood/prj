@@ -22610,7 +22610,15 @@ async function _syncUserDataFromServer(){
 
       /* 로컬→서버 역방향 동기화: 서버에 없는 로컬 트랙 업로드 */
       const serverIds = new Set(serverTracks.map(st => st.id));
-      const localOnly = historyData.filter(h => h.audio_url && h.id && !serverIds.has(h.id) && !h._syncFailed);
+      /* _fromSb/_fromFeed/_fromPl: 커뮤니티·피드·플레이리스트에서 가져온 타인의 곡 → 동기화 제외 */
+      /* 소유자 불일치: _owner.name이 현재 사용자와 다른 트랙 → 동기화 제외 */
+      const localOnly = historyData.filter(h => {
+        if(!h.audio_url || !h.id || serverIds.has(h.id) || h._syncFailed) return false;
+        if(h._fromSb || h._fromFeed || h._fromPl) return false;
+        if(h._owner && h._owner.name && currentUser && h._owner.name !== currentUser.name) return false;
+        if(h.owner_name && currentUser && h.owner_name !== currentUser.name) return false;
+        return true;
+      });
       if(localOnly.length > 0){
         console.log('[UserSync] 서버에 없는 로컬 트랙 '+localOnly.length+'개 업로드');
         for(const h of localOnly.slice(0, 20)){
@@ -26643,7 +26651,7 @@ function _renderWeeklyChart(){
     var rank=i+1;
     var rc=rank<=3?'r'+rank:'';
     var owner=t._owner||{};
-    var artistName=(owner.name||t.user_name||'익명').replace(/</g,'&lt;');
+    var artistName=(owner.name||'익명').replace(/</g,'&lt;');
     var artistAvatar=owner.avatar||'';
     var provIcon={'google':'🔵','kakao':'💬','naver':'🟢'}[owner.provider||'']||'';
     var avatarHtml=artistAvatar?'<img src="'+artistAvatar.replace(/"/g,'&quot;')+'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<span style="font-size:12px;">👤</span>';
