@@ -15953,15 +15953,16 @@ function _renderCreatorDetailView(grid,countEl){
     html+='<div class="mf-trk-grid">';
     sortedTracks.forEach(function(t,i){
       var origIdx=d.tracks.indexOf(t);
-      var imgHtml=(!t.image_url||_mfIsBlocked(t.image_url))?'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2);">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy">';
+      var isFailed=_isFailedTrack(t);
+      var imgHtml=(!t.image_url||_mfIsBlocked(t.image_url))?'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2);">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy"'+(isFailed?' style="opacity:.35;filter:grayscale(1);"':'')+'>';
       var likes=t.comm_likes||0;
-      var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
-      html+='<div class="mf-trk-grid-card'+(_mfIsPlaying?' playing':'')+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
-        +'<div class="mf-trk-grid-img">'+imgHtml
-        +'<div class="mf-trk-grid-play">'+(_mfIsPlaying?'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg>')+'</div>'
+      var _mfIsPlaying=!isFailed&&historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
+      html+='<div class="mf-trk-grid-card'+(_mfIsPlaying?' playing':'')+'" style="'+(isFailed?'opacity:.6;':'')+ '"'+(isFailed?'':' data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"')+'>'
+        +'<div class="mf-trk-grid-img" style="position:relative;">'+imgHtml
+        +(isFailed?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border-radius:10px;"><span style="color:#ff6b6b;font-size:11px;font-weight:700;">생성실패</span></div>':'<div class="mf-trk-grid-play">'+(_mfIsPlaying?'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg>')+'</div>')
         +'</div>'
-        +'<div class="mf-trk-grid-info"><div class="mf-trk-grid-title">'+esc(t.title||'무제')+'</div>'
-        +'<div class="mf-trk-grid-meta">'+(likes>0?'❤️ '+likes:'')+'</div></div></div>';
+        +'<div class="mf-trk-grid-info"><div class="mf-trk-grid-title"'+(isFailed?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+'</div>'
+        +'<div class="mf-trk-grid-meta">'+(isFailed?'<span style="color:var(--err,#e74c3c);font-size:10px;">생성실패</span>':(likes>0?'❤️ '+likes:''))+'</div></div></div>';
     });
     html+='</div>';
   } else {
@@ -15969,27 +15970,29 @@ function _renderCreatorDetailView(grid,countEl){
     html+='<div class="mf-detail-tracklist">';
     sortedTracks.forEach(function(t,i){
       var origIdx=d.tracks.indexOf(t);
-      var thumb=(!t.image_url||_mfIsBlocked(t.image_url))?'<div class="mf-trk-thumb-ph">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trk-thumb-ph>🎵</div>\'">';
+      var isFailed=_isFailedTrack(t);
+      var thumb=(!t.image_url||_mfIsBlocked(t.image_url))?'<div class="mf-trk-thumb-ph">🎵</div>':'<img src="'+esc(t.image_url)+'" alt="" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trk-thumb-ph>🎵</div>\'"'+(isFailed?' style="opacity:.35;filter:grayscale(1);"':'')+'>';
       var tag1=(t.tags||'').split(',')[0]?.trim()||'';
-      var hasVideo=!!t.video_url;
+      var hasVideo=!isFailed&&!!t.video_url;
       var likes=t.comm_likes||0, plays=t.comm_plays||0;
       var dateStr='';
       if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
-      var _mfIsPlaying=historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
-      var isUnplayable=_mfUnplayableIds.has(t.id);
-      html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'
+      var _mfIsPlaying=!isFailed&&historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
+      var isUnplayable=isFailed||_mfUnplayableIds.has(t.id);
+      var failLabel=isFailed?'생성실패':(isUnplayable?'재생불가':'');
+      html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'"'+(isUnplayable?'':' data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"')+'>'
         +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
         +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
         +'<div class="mf-trk-info">'
-        +'<div class="mf-trk-title"'+(isUnplayable?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+(_mfIsPlaying?'<span class="mf-mini-eq"><span></span><span></span><span></span><span></span></span>':'')+'</div>'
+        +'<div class="mf-trk-title" style="'+(isUnplayable?'opacity:.5;text-decoration:line-through;':'')+'">'+esc(t.title||'무제')+(_mfIsPlaying?'<span class="mf-mini-eq"><span></span><span></span><span></span><span></span></span>':'')+'</div>'
         +'<div class="mf-trk-meta">'
-        +(isUnplayable?'<span style="color:var(--err,#e74c3c);">재생불가</span>':'')
-        +(likes>0?'<span>❤️ '+likes+'</span>':'')
-        +(plays>0?'<span>▶ '+plays+'</span>':'')
-        +(tag1?'<span>'+esc(tag1)+'</span>':'')
+        +(failLabel?'<span style="color:var(--err,#e74c3c);">'+failLabel+'</span>':'')
+        +(!isFailed&&likes>0?'<span>❤️ '+likes+'</span>':'')
+        +(!isFailed&&plays>0?'<span>▶ '+plays+'</span>':'')
+        +(!isFailed&&tag1?'<span>'+esc(tag1)+'</span>':'')
         +(dateStr?'<span>'+dateStr+'</span>':'')
         +'</div></div>'
-        +'<div class="mf-trk-play-btn" data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'">'+(isUnplayable?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>':(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>'))+'</div>'
+        +'<div class="mf-trk-play-btn"'+(isUnplayable?'':' data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"')+'>'+(isUnplayable?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err,#e74c3c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>':(_mfIsPlaying?'<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--acc)"><polygon points="5 3 19 12 5 21 5 3"/></svg>'))+'</div>'
         +'<button class="mf-trk-more-btn" data-mf-action="trk-more" data-mf-trk-idx="'+origIdx+'" onclick="event.stopPropagation()">···</button>'
         +'</div>';
     });
