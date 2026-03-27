@@ -8955,8 +8955,10 @@ async function generateMV(){
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   if(_globalGenerating){_showGeneratingPopup();return;}
+  const _mvPromptRaw=($('mv-prompt')?.value||'').trim();
+  if(!_mvPromptRaw){toast('영상 프롬프트를 입력해주세요','err',2500);return;}
   _globalGenerating = true; _syncGenButtons();
-  const prompt=($('mv-prompt')?.value||'').trim();
+  const prompt=_mvPromptRaw;
   genLock();
   const btn=$('mv-gen-btn'),spinner=$('mv-gen-spinner'),txt=$('mv-gen-txt');
   btn.disabled=true;if(spinner)spinner.classList.add('on');if(txt)txt.textContent='생성 중...';
@@ -11025,106 +11027,120 @@ async function generate(overrideParams){
 }
 
 /* ── 페이지 재진입 시 미완료 음악 생성 세션 복원 ── */
-function _resumePendingGenSession() {
-  const session = _getGenSession();
+/* 세션 복원 → 히스토리/서버 저장 공통 헬퍼 */
+function _applyResumedTracks(tracks, taskId, params) {
+  $('loading-card').classList.remove('on');
+  lastTracks = tracks.map(function(t) { return Object.assign({}, t, { _taskId: taskId }); });
+  lastTaskId = taskId;
+  var mode = params?.mode || 'custom';
+  var styleStr = params?.styleStr || '';
+  renderTracks(lastTracks, params?.prompt || '', styleStr, mode);
+  showFeedbackCard();
+  tracks.forEach(function(t) {
+    var apiLyric = t.lyric || t.lyrics || t.lrc || '';
+    var _tTags = _normTags(t.tags) || styleStr;
+    historyData.unshift({ id: t.id, taskId: taskId, title: _autoGenerateTitle(t.title, apiLyric, _tTags, mode), audio_url: t.audioUrl || t.audio_url || t.song_path || '', video_url: '', image_url: t.imageUrl || t.image_url || '', tags: _tTags, lyrics: apiLyric, created: Date.now(), type: 'audio', genMode: mode, _owner: currentUser ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider } : null });
+  });
+  historyData = historyData.slice(0, 30);
+  saveHistory(); updateHistBadge();
+  showCompletionPopup(mode, '');
+  setTimeout(function() { var rs = $('results-' + mode); if (rs) rs.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
+  tracks.forEach(function(t) {
+    var _sTags = _normTags(t.tags) || styleStr;
+    _saveTrackToServer({ id: t.id, taskId: taskId, title: _autoGenerateTitle(t.title, t.lyric || t.lyrics || '', _sTags, mode), audio_url: t.audioUrl || t.audio_url || t.song_path || '', image_url: t.imageUrl || t.image_url || '', tags: _sTags, lyrics: t.lyric || t.lyrics || t.lrc || '', genMode: mode, owner_name: currentUser?.name || '\uC775\uBA85', owner_avatar: currentUser?.avatar || '', owner_provider: currentUser?.provider || '' });
+  });
+}
+/* 실패/만료 시 신규 생성 안내 팝업 */
+function _showGenFailedPopup(reason) {
+  var ov = document.createElement('div');
+  ov.id = '_gen_failed_overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s;';
+  ov.innerHTML = '<div style="background:var(--card,#1e1e2a);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(239,68,68,.3);box-shadow:0 20px 60px rgba(0,0,0,.4);"><div style="font-size:36px;margin-bottom:12px;">\uD83D\uDE14</div><div style="font-size:17px;font-weight:800;color:var(--t1,#f1f0f5);margin-bottom:8px;">\uC74C\uC545 \uC0DD\uC131\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694</div><div style="font-size:13px;color:var(--t3,#a09ab8);margin-bottom:6px;line-height:1.6;">' + (reason || '\uC774\uC804 \uC0DD\uC131 \uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694.') + '</div><div style="font-size:12px;color:var(--t3,#888);margin-bottom:20px;">\uD398\uC774\uC9C0\uB97C \uB5A0\uB098\uB294 \uB3D9\uC548 \uC0DD\uC131\uC774 \uC911\uB2E8\uB410\uC5B4\uC694.<br>\uC0C8\uB85C\uC6B4 \uC74C\uC545\uC744 \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!</div><button id="_gen_failed_new" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">\u2728 \uC0C8\uB85C\uC6B4 \uC74C\uC545 \uB9CC\uB4E4\uAE30</button><button id="_gen_failed_close" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--t3,#a09ab8);font-size:13px;cursor:pointer;font-family:inherit;">\uB2EB\uAE30</button></div>';
+  ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+  document.getElementById('_gen_failed_close').onclick = function() { ov.remove(); };
+  document.getElementById('_gen_failed_new').onclick = function() { ov.remove(); switchTab('create-view'); var pi = $('prompt') || $('simple-prompt'); if (pi) { pi.focus(); pi.scrollIntoView({ behavior: 'smooth', block: 'center' }); } };
+}
+async function _resumePendingGenSession() {
+  var session = _getGenSession();
   if (!session || !session.taskId) return;
   if (!kieApiKey) { _clearGenSession(); return; }
-
-  /* 복원 안내 바텀시트 */
-  const overlay = document.createElement('div');
-  overlay.id = '_gen_resume_overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s;';
-  const elapsed = Math.round((Date.now() - session.startedAt) / 1000);
-  overlay.innerHTML = `<div style="background:var(--card,#1e1e2a);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(124,58,237,.3);">
-    <div style="font-size:36px;margin-bottom:12px;">🎵</div>
-    <div style="font-size:17px;font-weight:800;color:var(--t1,#f1f0f5);margin-bottom:8px;">생성 중인 곡이 있어요!</div>
-    <div style="font-size:13px;color:var(--t3,#a09ab8);margin-bottom:20px;line-height:1.6;">${elapsed}초 전에 시작된 음악 생성이<br>아직 진행 중일 수 있어요.</div>
-    <button id="_gen_resume_btn" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🔄 이어서 받기</button>
-    <button id="_gen_resume_cancel" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--t3,#a09ab8);font-size:13px;cursor:pointer;font-family:inherit;">취소</button>
-  </div>`;
-  document.body.appendChild(overlay);
-
-  document.getElementById('_gen_resume_cancel').onclick = function() {
-    _clearGenSession();
-    overlay.remove();
-  };
-
-  document.getElementById('_gen_resume_btn').onclick = async function() {
-    overlay.remove();
-    const apiKey = kieApiKey;
-    const { taskId, params } = session;
-    _globalGenerating = true; _syncGenButtons();
-
-    /* 로딩 UI 표시 */
-    _setLoadingMode(params?.mode||'custom');
-    if ($('loading-card')) { $('loading-card').classList.add('on'); }
-    if ($('ld-sub')) { $('ld-sub').innerHTML = '이전 생성 결과를 가져오는 중... 🎧'; }
-    /* gp-steps 제거됨 */
-
-    try {
-      const tracks = await pollResult(apiKey, taskId);
-      _clearGenSession();
-      if (!tracks?.length) throw new Error('트랙을 받지 못했어요');
-      /* gp-steps 제거됨 */
-      $('loading-card').classList.remove('on');
-
-      lastTracks = tracks.map(t => ({ ...t, _taskId: taskId }));
-      lastTaskId = taskId;
-      const mode = params?.mode || 'custom';
-      const styleStr = params?.styleStr || '';
-      renderTracks(lastTracks, params?.prompt || '', styleStr, mode);
-      showFeedbackCard();
-
-      /* 히스토리에 추가 */
-      tracks.forEach(t => {
-        const apiLyric = t.lyric || t.lyrics || t.lrc || '';
-        const _tTags = _normTags(t.tags) || styleStr;
-        historyData.unshift({
-          id: t.id, taskId,
-          title: _autoGenerateTitle(t.title, apiLyric, _tTags, mode),
-          audio_url: t.audioUrl || t.audio_url || t.song_path || '',
-          video_url: '', image_url: t.imageUrl || t.image_url || '',
-          tags: _tTags, lyrics: apiLyric, created: Date.now(),
-          type: 'audio', genMode: mode,
-          _owner: currentUser ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider } : null,
-        });
-      });
-      historyData = historyData.slice(0, 30);
-      saveHistory(); updateHistBadge();
-      showCompletionPopup(params?.mode || 'custom', '');
-      setTimeout(function(){var rs=$('results-'+(params?.mode||'custom'));if(rs)rs.scrollIntoView({behavior:'smooth',block:'start'});},600);
-
-      /* 서버 저장 */
-      tracks.forEach(t => {
-        _saveTrackToServer({
-          id: t.id, taskId,
-          title: _autoGenerateTitle(t.title, t.lyric || t.lyrics || '', _normTags(t.tags) || styleStr, mode),
-          audio_url: t.audioUrl || t.audio_url || t.song_path || '',
-          image_url: t.imageUrl || t.image_url || '',
-          tags: _normTags(t.tags) || styleStr,
-          lyrics: t.lyric || t.lyrics || t.lrc || '',
-          genMode: mode,
-          owner_name: currentUser?.name || '익명',
-          owner_avatar: currentUser?.avatar || '',
-          owner_provider: currentUser?.provider || '',
-        });
-      });
-
-      toast('✅ 음악 생성 완료! 이전 세션에서 이어받았어요', 'ok', 3000);
-    } catch (e) {
-      _clearGenSession();
-      /* gp-steps 제거됨 */
-      $('loading-card').classList.remove('on');
-      toast('❌ 이전 생성을 이어받지 못했어요: ' + e.message, 'err', 4000);
-    } finally {
-      _globalGenerating = false; _syncGenButtons();
+  var apiKey = kieApiKey;
+  var taskId = session.taskId;
+  var params = session.params;
+  var elapsed = Math.round((Date.now() - session.startedAt) / 1000);
+  /* record-info\uB85C \uD0DC\uC2A4\uD06C \uC0C1\uD0DC \uBA3C\uC800 \uD655\uC778 */
+  var taskStatus = null;
+  var existingTracks = [];
+  try {
+    var data = await kieRequest(apiKey, 'GET', '/api/v1/generate/record-info?taskId=' + taskId);
+    var st = data?.data;
+    if (st) {
+      taskStatus = (st.status || '').toUpperCase();
+      var rawTracks = st.response?.sunoData || st.sunoData || st.tracks || st.response?.tracks || [];
+      rawTracks.forEach(function(t) { if (!t.audioUrl && t.streamAudioUrl) t.audioUrl = t.streamAudioUrl; });
+      existingTracks = rawTracks.filter(function(t) { var url = t.audioUrl || t.audio_url || t.song_path || ''; return !!(url && url.length > 10 && (url.startsWith('http') || url.startsWith('//'))); });
     }
-  };
+  } catch (e) { console.warn('[Resume] record-info fail:', e.message); }
+  console.log('[Resume] taskId=' + taskId + ' status=' + taskStatus + ' tracks=' + existingTracks.length + ' elapsed=' + elapsed + 's');
+  /* A) \uC774\uBBF8 \uC644\uB8CC + \uC720\uD6A8 \uD2B8\uB799 -> \uC790\uB3D9 \uBCF5\uC6D0 */
+  if (existingTracks.length > 0 && (taskStatus === 'SUCCESS' || taskStatus === 'COMPLETE' || taskStatus === 'FIRST_SUCCESS')) {
+    _clearGenSession();
+    toast('\uD83C\uDFB5 \uC774\uC804\uC5D0 \uC0DD\uC131\uB41C \uC74C\uC545\uC744 \uAC00\uC838\uC654\uC5B4\uC694!', 'ok', 3000);
+    _applyResumedTracks(existingTracks, taskId, params);
+    return;
+  }
+  /* B) \uC2E4\uD328/\uC5D0\uB7EC/\uD0C0\uC784\uC544\uC6C3 -> \uC2E4\uD328 \uC548\uB0B4 + \uC2E0\uADDC \uC0DD\uC131 */
+  if (taskStatus === 'FAILED' || taskStatus === 'ERROR' || taskStatus === 'TIMEOUT') {
+    _clearGenSession();
+    _showGenFailedPopup('\uC11C\uBC84\uC5D0\uC11C \uC0DD\uC131\uC774 \uC2E4\uD328\uD588\uC5B4\uC694.');
+    return;
+  }
+  /* C) 8\uBD84 \uC774\uC0C1 + \uD2B8\uB799 \uC5C6\uC74C -> \uB9CC\uB8CC */
+  if (elapsed > 480 && !existingTracks.length) {
+    _clearGenSession();
+    _showGenFailedPopup('\uC0DD\uC131 \uC2DC\uC791 \uD6C4 ' + Math.round(elapsed / 60) + '\uBD84\uC774 \uACBD\uACFC\uD558\uC5EC \uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694.');
+    return;
+  }
+  /* D) \uC9C4\uD589 \uC911 -> \uC774\uC5B4\uC11C \uD3F4\uB9C1 \uC81C\uC548 */
+  if (taskStatus === 'PENDING' || taskStatus === 'CREATE' || taskStatus === 'GENERATE' || taskStatus === 'TEXT_SUCCESS' || taskStatus === 'FIRST_SUCCESS') {
+    var statusLabel = { 'PENDING': '\uB300\uAE30 \uC911', 'CREATE': '\uC900\uBE44 \uC911', 'GENERATE': '\uC0DD\uC131 \uC911', 'TEXT_SUCCESS': '\uAC00\uC0AC \uC644\uC131', 'FIRST_SUCCESS': '\uAC70\uC758 \uC644\uB8CC' }[taskStatus] || '\uC9C4\uD589 \uC911';
+    var overlay = document.createElement('div');
+    overlay.id = '_gen_resume_overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s;';
+    overlay.innerHTML = '<div style="background:var(--card,#1e1e2a);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(124,58,237,.3);"><div style="font-size:36px;margin-bottom:12px;">\uD83C\uDFB5</div><div style="font-size:17px;font-weight:800;color:var(--t1,#f1f0f5);margin-bottom:8px;">\uC0DD\uC131 \uC911\uC778 \uACE1\uC774 \uC788\uC5B4\uC694!</div><div style="font-size:13px;color:var(--t3,#a09ab8);margin-bottom:6px;line-height:1.6;">' + elapsed + '\uCD08 \uC804\uC5D0 \uC2DC\uC791\uB41C \uC74C\uC545\uC774<br>\uC544\uC9C1 \uC9C4\uD589 \uC911\uC774\uC5D0\uC694.</div><div style="display:inline-block;padding:4px 12px;border-radius:8px;background:rgba(124,58,237,.15);color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:16px;">\uC0C1\uD0DC: ' + statusLabel + '</div><button id="_gen_resume_btn" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">\uD83D\uDD04 \uC774\uC5B4\uC11C \uBC1B\uAE30</button><button id="_gen_resume_cancel" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--t3,#a09ab8);font-size:13px;cursor:pointer;font-family:inherit;">\uCDE8\uC18C\uD558\uACE0 \uC0C8\uB85C \uB9CC\uB4E4\uAE30</button></div>';
+    document.body.appendChild(overlay);
+    document.getElementById('_gen_resume_cancel').onclick = function() { _clearGenSession(); overlay.remove(); toast('\uC774\uC804 \uC0DD\uC131\uC744 \uCDE8\uC18C\uD588\uC5B4\uC694. \uC0C8\uB85C\uC6B4 \uC74C\uC545\uC744 \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!', '', 2500); };
+    document.getElementById('_gen_resume_btn').onclick = async function() {
+      overlay.remove();
+      _globalGenerating = true; _syncGenButtons();
+      _setLoadingMode(params?.mode || 'custom');
+      if ($('loading-card')) $('loading-card').classList.add('on');
+      if ($('ld-sub')) $('ld-sub').innerHTML = '\uC774\uC804 \uC0DD\uC131 \uACB0\uACFC\uB97C \uAC00\uC838\uC624\uB294 \uC911... \uD83C\uDFA7';
+      try {
+        var tracks = await pollResult(apiKey, taskId);
+        _clearGenSession();
+        if (!tracks?.length) throw new Error('\uD2B8\uB799\uC744 \uBC1B\uC9C0 \uBABB\uD588\uC5B4\uC694');
+        _applyResumedTracks(tracks, taskId, params);
+        toast('\u2705 \uC74C\uC545 \uC0DD\uC131 \uC644\uB8CC! \uC774\uC804 \uC138\uC158\uC5D0\uC11C \uC774\uC5B4\uBC1B\uC558\uC5B4\uC694', 'ok', 3000);
+      } catch (e) {
+        _clearGenSession();
+        $('loading-card').classList.remove('on');
+        _showGenFailedPopup('\uC774\uC5B4\uBC1B\uAE30\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694: ' + e.message);
+      } finally {
+        _globalGenerating = false; _syncGenButtons();
+      }
+    };
+    return;
+  }
+  /* E) \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 -> \uC2E4\uD328 \uCC98\uB9AC */
+  _clearGenSession();
+  _showGenFailedPopup('\uC774\uC804 \uC0DD\uC131 \uC0C1\uD0DC\uB97C \uD655\uC778\uD560 \uC218 \uC5C6\uC5B4\uC694.');
 }
 
-/* 페이지 로드 후 세션 복원 체크 (로그인 처리 후) */
+/* \uD398\uC774\uC9C0 \uB85C\uB4DC \uD6C4 \uC138\uC158 \uBCF5\uC6D0 \uCCB4\uD06C (\uB85C\uADF8\uC778 \uCC98\uB9AC \uD6C4) */
 setTimeout(_resumePendingGenSession, 2000);
-
+\n
 /* 생성 중 안내 팝업 */
 function _showGeneratingPopup(){
   const existing = document.getElementById('_gen_alert_overlay');
@@ -11742,7 +11758,7 @@ function renderTracks(tracks,prompt,tags,mode){
         <div class="rc-tab-panel on" id="pl-${i}">
           <div class="audio-player">
             <div class="ap-top">
-              <button class="ap-play-btn" data-idx="${i}" data-url="${esc(audioUrl)}">▶</button>
+              <button class="ap-play-btn" data-idx="${i}" data-url="${esc(audioUrl)}" data-audio-id="${esc(audioId)}">▶</button>
               <div class="ap-info">
                 <div class="ap-track">${esc(title)}</div>
                 <div class="ap-time" id="ap-time-${i}">0:00 / ${dur}</div>
@@ -13615,6 +13631,7 @@ function showMiniPlayer(idx){
     _syncPvPlayBtns(sid, true);
     _syncMfPlayBtns(sid, true);
     _syncCommPlayBtn(sid, true);
+    if(typeof _syncResultCardPlayBtns==='function') _syncResultCardPlayBtns(sid, true);
     if('mediaSession' in navigator) navigator.mediaSession.playbackState='playing';
   },_sig);
   audio.addEventListener('pause',function(){
@@ -13623,6 +13640,7 @@ function showMiniPlayer(idx){
     _syncPvPlayBtns(sid, false);
     _syncMfPlayBtns(sid, false);
     _syncCommPlayBtn(sid, false);
+    if(typeof _syncResultCardPlayBtns==='function') _syncResultCardPlayBtns(sid, false);
     if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
   },_sig);
 
@@ -20124,6 +20142,28 @@ function _resetAllCommPlayBtns(){
   document.querySelectorAll('.comm-play-sm').forEach(b=>b.textContent='▶');
 }
 
+/* ── 결과 카드 재생 버튼 동기화 ── */
+function _syncResultCardPlayBtns(playingSid,isPlaying){
+  document.querySelectorAll('.ap-play-btn[data-audio-id]').forEach(function(btn){
+    var match=isPlaying&&playingSid&&btn.dataset.audioId===playingSid;
+    btn.textContent=match?'\u23F8':'\u25B6';
+  });
+  /* data-audio-id 없는 버튼은 URL로 매칭 */
+  if(isPlaying&&fpAudio&&fpAudio.src){
+    var curSrc=fpAudio.src;
+    document.querySelectorAll('.ap-play-btn:not([data-audio-id])').forEach(function(btn){
+      if(btn.dataset.url&&curSrc.includes(btn.dataset.url)) btn.textContent='\u23F8';
+      else btn.textContent='\u25B6';
+    });
+    document.querySelectorAll('.ap-play-btn[data-audio-id=""]').forEach(function(btn){
+      if(btn.dataset.url&&curSrc.includes(btn.dataset.url)) btn.textContent='\u23F8';
+      else btn.textContent='\u25B6';
+    });
+  } else if(!isPlaying){
+    document.querySelectorAll('.ap-play-btn[data-audio-id=""]').forEach(function(btn){ btn.textContent='\u25B6'; });
+  }
+}
+
 /* ── 모든 재생 버튼 통합 동기화 (debounce 적용) ── */
 var _syncBtnTimer=null,_syncBtnLast=null;
 function _syncAllPlayBtns(isPlaying){
@@ -20150,6 +20190,7 @@ function _syncAllPlayBtns(isPlaying){
     _syncPvPlayBtns(sbId,playing);
     _syncMfPlayBtns(sbId,playing);
     _syncHistPlayIcons(playing?fpCurrentIdx:-1);
+    _syncResultCardPlayBtns(sbId,playing);
     _syncMpLikeBtn();
   },60);
 }
