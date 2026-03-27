@@ -15893,9 +15893,9 @@ function _renderCreatorDetailView(grid,countEl){
         +'</div></div>';
     });
     html+='</div>';
-  } else if(d.tracks.length>0){
-    /* 1~2곡일 때 기존 BEST 카드 */
-    var top=d.tracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);})[0];
+  } else if(_playableTracks.length>0){
+    /* 1~2곡일 때 기존 BEST 카드 (생성실패 제외) */
+    var top=_playableTracks.slice().sort(function(a,b){return (b.comm_likes||0)-(a.comm_likes||0);})[0];
     if(top&&top.image_url&&!_mfIsBlocked(top.image_url)){
       html+='<div class="mf-detail-top" style="margin:0 18px;" data-mf-action="play-detail" data-mf-trk-idx="'+d.tracks.indexOf(top)+'">'
         +'<div class="mf-detail-top-img"><img src="'+esc(top.image_url)+'" alt="">'
@@ -18782,27 +18782,64 @@ async function _renderCommunityInner(force){
     return;
   }
 
-  /* 첫 로드 — 스켈레톤 + 서버 대기 */
+  /* 첫 로드 — 스켈레톤 + 점진적 렌더링 */
   heroWrap.innerHTML=_skeleton('hero',1);
   list.innerHTML=_skeleton('track',5);
   var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
-  await _loadSbTracks(true);
+
+  /* Phase 1: 트랙 + 유저 데이터 병렬 fetch → 도착 즉시 메인 렌더 */
+  var _tracksP=fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode).then(function(r){return r.ok?r.json():Promise.reject(r.status);});
+  var _usersP=_loadRealUsers();
+  try{
+    var _d=await _tracksP;
+    await _usersP;
+    if(Array.isArray(_d.tracks)){
+      _sbTracks=_d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      _sbTracks.forEach(function(t){if(t.dur&&t.dur!=='—'&&t._sbId) _durCache[t._sbId]=t.dur;});
+      _sbOffset=_sbTracks.length;
+      _sbHasMore=_d.tracks.length>=_SB_PAGE_SIZE;
+      _sbFingerprint=_calcFingerprint(_sbTracks);
+      _sbLoaded=true;_sbLoadedAt=Date.now();_sbLoading=false;
+    }
+  }catch(e){console.warn('[COMM] 트랙 로드 실패:',e);_sbLoading=false;}
+
+  /* 즉시 메인 콘텐츠 렌더 (히어로 + 트랙 리스트) */
   if(crSec){crSec.style.opacity='';crSec.style.transition='opacity .3s';}
   _renderCommContent(heroWrap, list);
-  /* 트랙 아이템 순차 페이드인 */
   heroWrap.querySelectorAll('.comm-featured').forEach(function(el){el.classList.add('comm-fade-in');});
   list.querySelectorAll('.comm-list-item,.chart-item').forEach(function(el,i){
     el.style.opacity='0';
     el.style.animation='commFadeUp .45s cubic-bezier(.16,1,.3,1) '+(i*0.04)+'s both';
   });
-  _renderCreatorsInline();
-  _renderDailyDiscover();
-  _renderWeeklyChart();
-  _renderCommBottom();
-  _renderActivityFeed();
-  _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
   _setupCommInfiniteScroll();
-  try{_renderFollowSuggestions();}catch(e){}
+
+  /* Phase 2: 부가 섹션 비동기 렌더 — 메인 노출 후 순차 */
+  requestAnimationFrame(function(){
+    try{_renderCreatorsInline();}catch(e){}
+    try{_renderDailyDiscover();}catch(e){}
+    try{_renderWeeklyChart();}catch(e){}
+  });
+  setTimeout(function(){
+    try{_renderCommBottom();}catch(e){}
+    try{_renderActivityFeed();}catch(e){}
+    try{_renderFollowSuggestions();}catch(e){}
+    _loadChallenges().then(function(){try{_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));}catch(e){}});
+  },100);
+
+  /* Phase 3: 백그라운드 — 팔로잉/좋아요 복원 (UI 블로킹 없음) */
+  if(!_followingNames) _loadFollowingNames(); else _updateCommBadge();
+  _restoreUserLikes().then(function(){
+    list.querySelectorAll('.comm-list-item').forEach(function(el){
+      var sid=el.dataset.sbid;if(!sid)return;
+      var t=_sbTracks.find(function(x){return x._sbId===sid;});if(!t)return;
+      var likeBtn=el.querySelector('[id^="comm-like-btn-"]');
+      if(likeBtn&&t.liked){likeBtn.classList.add('liked');likeBtn.innerHTML='❤️ <span>'+(t.likes>0?t.likes:'')+'</span>';}
+    });
+  }).catch(function(){});
+  if(typeof _groupCreatorsFromTracks==='function'&&!_myFeedCreators){
+    try{_myFeedCreators=_groupCreatorsFromTracks(_sbTracks);_saveMyFeedCache(_myFeedCreators);}catch(e){}
+  }
+  if(typeof _insightFp!=='undefined') _insightFp='';
 }
 
 /* 커뮤니티 리스트 아이템 HTML 생성 헬퍼 */
