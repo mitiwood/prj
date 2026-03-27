@@ -109,6 +109,8 @@ urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.verc
 - data-lucide 아이콘 이름이 Lucide에 존재하는지
 - 바텀시트/모달 z-index가 하단탭(9999)보다 높은지 (10001+)
 - 바텀시트 bottom이 하단탭(56px) 위인지
+- Mixed Content: 외부 이미지/아바타 URL이 http://로 시작하는지 (반드시 _ensureHttps() 적용)
+- 관리자 전용 API(401)를 일반 사용자 코드에서 호출하는지 (공개 엔드포인트 사용 필수)
 
 **Rules:**
 - 결과 표는 반드시 유니코드 박스 드로잉 문자(┌├└│─┼┬┴┐┤┘)로 구성

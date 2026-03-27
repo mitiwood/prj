@@ -134,28 +134,37 @@ export default async function handler(req, res) {
       // 결제는 이미 승인됨 — DB 저장 실패해도 승인 결과는 반환
     }
 
-    /* 3) 사용자 플랜/크레딧 업데이트 */
+    /* 3) 사용자 플랜/크레딧 업데이트 — 결과 검증 포함 */
     if (userName && userProvider) {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const planBody = {
+        plan,
+        credits_song: PLANS[plan]?.limits?.songs || planDef.credits,
+        credits_mv: PLANS[plan]?.limits?.mv || 0,
+        credits_lyrics: PLANS[plan]?.limits?.lyrics || planDef.credits,
+        plan_expires: expiresAt.toISOString(),
+      };
 
       const updateRes = await sb(
         `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            plan,
-            credits_song: PLANS[plan]?.limits?.songs || planDef.credits,
-            credits_mv: PLANS[plan]?.limits?.mv || 0,
-            credits_lyrics: PLANS[plan]?.limits?.lyrics || planDef.credits,
-            plan_expires: expiresAt.toISOString(),
-          }),
-        }
+        { method: "PATCH", body: JSON.stringify(planBody) }
       );
+      const updateData = await updateRes.json().catch(() => []);
 
       if (!updateRes.ok) {
-        const err = await updateRes.text();
-        console.error("[payments/confirm] User update error:", err);
+        console.error("[payments/confirm] User update error:", JSON.stringify(updateData));
+      } else if (!Array.isArray(updateData) || updateData.length === 0) {
+        /* ilike 매칭 실패 — eq로 재시도 */
+        console.warn("[payments/confirm] ilike PATCH matched 0 rows, retrying with eq...");
+        const retryRes = await sb(
+          `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+          { method: "PATCH", body: JSON.stringify(planBody) }
+        );
+        const retryData = await retryRes.json().catch(() => []);
+        if (!Array.isArray(retryData) || retryData.length === 0) {
+          console.error("[payments/confirm] User not found for plan update:", userName, userProvider);
+        }
       }
     }
 

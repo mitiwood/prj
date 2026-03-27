@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     const profile = kakaoUser.kakao_account?.profile || kakaoUser.properties || {};
     const name    = profile.nickname || '카카오사용자';
     const email   = kakaoUser.kakao_account?.email || '';
-    const avatar  = profile.profile_image_url || profile.thumbnail_image_url || '';
+    const avatar  = (profile.profile_image_url || profile.thumbnail_image_url || '').replace(/^http:\/\//i, 'https://');
 
     const params = new URLSearchParams({
       login: 'ok', provider: 'kakao',

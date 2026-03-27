@@ -7467,6 +7467,7 @@ function _rowToTrack(t){
     allTags: _normTags(t.tags).toLowerCase(),
     img:     t.image_url  || '',
     dur:     (t.duration>0) ? formatTime(t.duration) : '—',
+    _duration: t.duration||0,
     audioUrl:t.audio_url  || '',
     videoUrl:t.video_url  || '',
     lyrics:  t.lyrics     || '',
@@ -12401,7 +12402,7 @@ function renderHistoryView(){
     /* MR 트랙(보컬 제거)이면서 가사가 있으면 노래방 가능 */
     const isKaraokeReady = hasLyrics && (h.genMode==='vocal-removal' || (h._vocalRemovedFrom && h.tags && h.tags.includes('instrumental')));
     const durId='hdur-'+idx;
-    const noAudio = !h.audio_url;
+    const noAudio = !h.audio_url||(h.duration!==undefined&&h.duration!==null&&Number(h.duration)===0);
     return`
     <div class="hist-card-wrap" data-hist-wrap-idx="${idx}">
       <div class="hist-card-del-bg" data-swipe-del="${idx}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><br>삭제</div>
@@ -12471,7 +12472,7 @@ function renderHistoryView(){
     const card=e.target.closest('[data-hist-idx]');
     if(card){
       const hi=parseInt(card.dataset.histIdx);
-      if(historyData[hi] && !historyData[hi].audio_url){
+      if(historyData[hi] && (!historyData[hi].audio_url||(historyData[hi].duration!==undefined&&historyData[hi].duration!==null&&Number(historyData[hi].duration)===0))){
         _showFailedTrackDialog(hi);
         return;
       }
@@ -12484,7 +12485,7 @@ function renderHistoryView(){
       if(e.key==='Enter'||e.key===' '){
         e.preventDefault();
         const _ki=parseInt(card.dataset.histIdx);
-        if(historyData[_ki] && !historyData[_ki].audio_url){
+        if(historyData[_ki] && (!historyData[_ki].audio_url||(historyData[_ki].duration!==undefined&&historyData[_ki].duration!==null&&Number(historyData[_ki].duration)===0))){
           _showFailedTrackDialog(_ki);
           return;
         }
@@ -13556,7 +13557,7 @@ function showMiniPlayer(idx){
   var mpTimeEl=$('mp-time');if(mpTimeEl) mpTimeEl.textContent='0:00 / 0:00';
   var mpFillReset=$('mp-prog-fill');if(mpFillReset) mpFillReset.style.transform='scaleX(0)';
 
-  if(!h.audio_url){ toast('⚠️ 이 곡은 오디오가 없어 재생할 수 없어요','err',3000); return; }
+  if(!h.audio_url||(h.duration!==undefined&&h.duration!==null&&Number(h.duration)===0)){ toast('⚠️ 이 곡은 오디오가 없어 재생할 수 없어요','err',3000); return; }
   /* URL 유효성 체크 */
   let _safeAudioUrl = h.audio_url;
   try{ new URL(_safeAudioUrl); }catch(e){ toast('⚠️ 잘못된 오디오 URL이에요','err',3000); return; }
@@ -15993,6 +15994,7 @@ function _renderCreatorDetailView(grid,countEl){
   /* 트랙 정렬 적용 — 생성 실패 곡도 포함 (비활성화 표시) */
   var _isFailedTrack=function(t){
     if(!t.audio_url) return true;
+    if(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0) return true;
     return false;
   };
   var sortedTracks=d.tracks.slice();
@@ -16705,7 +16707,7 @@ function _closeCreatorDetail(){
 async function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
-  if(!t||!t.audio_url){toast('생성에 실패한 곡이에요','err');return;}
+  if(!t||!t.audio_url||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0)){toast('생성에 실패한 곡이에요','err');return;}
   if(_mfUnplayableIds.has(t.id)){toast('재생할 수 없는 곡이에요','err',2000);return;}
 
   /* 같은 곡이면 재생/일시정지 토글 */
@@ -18187,7 +18189,7 @@ function _renderFollowFeedUI(list){
       <div class="comm-feed-avatar">${_safeAvatarHtml(avatar,owner)}</div>
       <div class="comm-feed-content">
         <div class="comm-feed-creator">${provIcon} ${esc(owner)} <span class="comm-feed-time">${created}</span></div>
-        <div class="comm-list-item" data-sbid="${esc(sid)}" onclick="commPlaySb('${esc(sid)}')" style="margin-top:4px;">
+        <div class="comm-list-item" data-sbid="${esc(sid)}" ${(!t.audio_url||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0))?'style="margin-top:4px;opacity:.55;"':'onclick="commPlaySb(\''+esc(sid)+'\')" style="margin-top:4px;"'}>
           <div class="comm-list-top">
             <div class="comm-list-img">${t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'}</div>
             <div class="comm-list-info"><div class="comm-list-title">${esc(t.title||'무제')}</div>
@@ -18942,7 +18944,7 @@ function _buildCommItem(t,i,isMine){
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
   const chainCls=chainMap[t._genMode]||'';
   const chainTxt=chainLbl[t._genMode]||'';
-  const _commFailed=!t.audioUrl||_failedAudioUrls.has(t.audioUrl);
+  const _commFailed=!t.audioUrl||_failedAudioUrls.has(t.audioUrl)||(t._duration!==undefined&&Number(t._duration)===0);
   return `<div class="comm-list-item${_commFailed?' comm-failed':''}" data-sbid="${sid}" data-genre="${genre}" ${_commFailed?'':'onclick="commPlaySb(\''+sid+'\')"'} style="${_commFailed?'opacity:.55;':''}">
     <div class="comm-list-top">
       <div class="comm-list-img" style="position:relative;">
@@ -20069,7 +20071,7 @@ function commPlaySb(sbId){
     }
     toast('트랙을 찾을 수 없어요','err');return;
   }
-  if(!t.audioUrl){toast('오디오가 없어요','err');return;}
+  if(!t.audioUrl||(t._duration!==undefined&&Number(t._duration)===0)){toast('오디오가 없어요','err');return;}
 
   /* 커뮤니티 리스트에서 재생 시 크리에이터 상세 큐 초기화 */
   _mfPlayQueue=[];_mfPlayQueueIdx=-1;

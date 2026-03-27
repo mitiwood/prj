@@ -4813,13 +4813,90 @@ let _creatorMap = {};
 
 function switchUserTab(tab){
   _uTabCurrent = tab;
-  document.getElementById('utab-panel-login').style.display   = tab==='login'   ? '' : 'none';
-  document.getElementById('utab-panel-creator').style.display = tab==='creator' ? '' : 'none';
-  document.getElementById('utab-panel-activity').style.display= tab==='activity'? '' : 'none';
-  document.getElementById('utab-login').className   = tab==='login'   ? 'btn btn-acc' : 'btn';
-  document.getElementById('utab-creator').className = tab==='creator' ? 'btn btn-acc' : 'btn';
-  document.getElementById('utab-activity').className= tab==='activity'? 'btn btn-acc' : 'btn';
+  ['login','provider','creator','activity'].forEach(function(t){
+    var panel=document.getElementById('utab-panel-'+t);
+    var btn=document.getElementById('utab-'+t);
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+    if(btn) btn.className = t===tab ? 'btn btn-acc' : 'btn';
+  });
   if(tab==='activity') _loadActivityLogs();
+  if(tab==='provider') _renderProviderGroupView();
+}
+
+/* ── 소셜별 분류 뷰 ── */
+function _renderProviderGroupView(){
+  var wrap=document.getElementById('provider-group-view');
+  if(!wrap) return;
+  var users=_allLoginUsers||[];
+  if(!users.length){
+    wrap.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);">사용자 데이터가 없습니다. 먼저 새로고침하세요.</div>';
+    return;
+  }
+  var now=Date.now(), ONLINE=5*60*1000;
+  var groups={google:[],kakao:[],naver:[],other:[]};
+  var meta={
+    google:{icon:'\uD83D\uDD35',label:'Google',color:'#4285f4',bg:'rgba(66,133,244,.08)',border:'rgba(66,133,244,.25)'},
+    kakao:{icon:'\uD83D\uDCAC',label:'\uCE74\uCE74\uC624',color:'#3c1e1e',bg:'rgba(254,229,0,.10)',border:'rgba(254,229,0,.5)'},
+    naver:{icon:'\uD83D\uDFE2',label:'\uB124\uC774\uBC84',color:'#03c75a',bg:'rgba(3,199,90,.08)',border:'rgba(3,199,90,.25)'},
+    other:{icon:'\uD83D\uDC64',label:'\uAE30\uD0C0',color:'var(--t2)',bg:'var(--bg3)',border:'var(--border)'}
+  };
+  users.forEach(function(u){
+    var p=u.provider||'';
+    if(groups[p]) groups[p].push(u);
+    else groups.other.push(u);
+  });
+
+  var html='';
+  ['google','kakao','naver','other'].forEach(function(prov){
+    var list=groups[prov];
+    if(!list.length) return;
+    var m=meta[prov];
+    var onlineCnt=list.filter(function(u){return (now-(u.lastLogin||0))<ONLINE;}).length;
+
+    html+='<div style="margin-bottom:24px;border:1.5px solid '+m.border+';border-radius:14px;overflow:hidden;background:var(--card);">';
+    /* 그룹 헤더 */
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:'+m.bg+';border-bottom:1px solid '+m.border+';">'
+      +'<span style="font-size:22px;">'+m.icon+'</span>'
+      +'<div style="flex:1;">'
+        +'<div style="font-size:15px;font-weight:800;color:var(--t1);">'+m.label+'</div>'
+        +'<div style="font-size:11px;color:var(--t3);margin-top:2px;">'+list.length+'\uBA85'+(onlineCnt?' \xB7 <span style="color:var(--grn);">'+onlineCnt+'\uBA85 \uC628\uB77C\uC778</span>':'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;font-size:11px;color:var(--t3);">'
+        +'<span>\uBAA8\uBC14\uC77C '+list.filter(function(u){return u.isMobile;}).length+'</span>'
+        +'<span>PC '+list.filter(function(u){return !u.isMobile;}).length+'</span>'
+      +'</div>'
+    +'</div>';
+
+    /* 사용자 카드 리스트 */
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px;">';
+    list.sort(function(a,b){return (b.lastLogin||0)-(a.lastLogin||0);}).forEach(function(u){
+      var isOnline=(now-(u.lastLogin||0))<ONLINE;
+      var timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'\u2014';
+      var cInfo=_creatorMap[u.name+'__'+u.provider];
+      var planBadge={creator:'\uD83D\uDC51',pro:'\uD83D\uDC9C'}[u.plan||'free']||'';
+      var avatar=_isImgUrl(u.avatar)
+        ?'<img src="'+esc(u.avatar)+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.onerror=null;this.outerHTML=\'<div style=\\'width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;\\'>\uD83D\uDC64</div>\'">'
+        :'<div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">\uD83D\uDC64</div>';
+
+      html+='<div onclick="_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid '+(isOnline?'var(--grn)':'var(--border)')+';background:'+(isOnline?'rgba(34,197,94,.04)':'var(--bg)')+';cursor:pointer;transition:all .15s;" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">'
+        +avatar
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+            +(isOnline?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grn);margin-right:4px;"></span>':'')
+            +esc(u.name)+' '+(planBadge||'')+(u.isMobile?' \uD83D\uDCF1':' \uD83D\uDCBB')
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(u.email||'')+'</div>'
+          +'<div style="font-size:10px;color:var(--t3);margin-top:2px;">'
+            +'\uB85C\uADF8\uC778 '+(u.loginCount||1)+'\uD68C \xB7 '+timeStr
+            +(cInfo?' \xB7 <b style="color:var(--acc3);">'+cInfo.count+'\uACE1</b>':'')
+          +'</div>'
+        +'</div>'
+      +'</div>';
+    });
+    html+='</div></div>';
+  });
+
+  wrap.innerHTML=html;
 }
 
 /* 활동 로그 로드 (bot_logs에서 로그인/로그아웃 기록) */

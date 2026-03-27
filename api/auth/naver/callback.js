@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       provider: 'naver',
       name: user.name || user.nickname || '',
       email: user.email || '',
-      avatar: user.profile_image || '',
+      avatar: (user.profile_image || '').replace(/^http:\/\//i, 'https://'),
       id: user.id || '',
     });
     res.redirect(`/?${params}`);

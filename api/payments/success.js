@@ -115,24 +115,40 @@ export default async function handler(req, res) {
       console.error("[payments/success] DB insert error:", e);
     }
 
-    /* 3) 사용자 플랜 업데이트 */
+    /* 3) 사용자 플랜 업데이트 — 결과 검증 포함 */
     if (userName && userProvider) {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const planBody = {
+        plan,
+        credits_song: PLANS[plan]?.limits?.songs || planDef.credits,
+        credits_mv: PLANS[plan]?.limits?.mv || 0,
+        credits_lyrics: PLANS[plan]?.limits?.lyrics || planDef.credits,
+        plan_expires: expiresAt.toISOString(),
+      };
       try {
-        await sb(
+        /* ilike로 먼저 시도 */
+        const patchRes = await sb(
           `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({
-              plan,
-              credits_song: PLANS[plan]?.limits?.songs || planDef.credits,
-              credits_mv: PLANS[plan]?.limits?.mv || 0,
-              credits_lyrics: PLANS[plan]?.limits?.lyrics || planDef.credits,
-              plan_expires: expiresAt.toISOString(),
-            }),
-          }
+          { method: "PATCH", body: JSON.stringify(planBody) }
         );
+        const patchData = await patchRes.json().catch(() => []);
+        /* PATCH 결과가 빈 배열이면 매칭된 유저 없음 — eq로 재시도 */
+        if (!Array.isArray(patchData) || patchData.length === 0) {
+          console.warn("[payments/success] ilike PATCH matched 0 rows, retrying with eq...");
+          const retryRes = await sb(
+            `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+            { method: "PATCH", body: JSON.stringify(planBody) }
+          );
+          const retryData = await retryRes.json().catch(() => []);
+          if (!Array.isArray(retryData) || retryData.length === 0) {
+            console.error("[payments/success] User not found for plan update:", userName, userProvider);
+          } else {
+            console.log("[payments/success] Plan updated (eq match):", retryData[0]?.plan);
+          }
+        } else {
+          console.log("[payments/success] Plan updated:", patchData[0]?.plan);
+        }
       } catch (e) {
         console.error("[payments/success] User update error:", e);
       }

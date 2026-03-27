@@ -55,6 +55,16 @@
 
 ---
 
+## Mixed Content / 인증 (Security)
+
+- 외부 이미지/아바타 URL은 반드시 `_ensureHttps()`로 `http://` → `https://` 변환
+  - 카카오 아바타(`http://k.kakaocdn.net/`)가 대표적 원인
+  - OAuth 콜백, DB 저장, 클라이언트 렌더링 3곳 모두 적용 필수
+- 일반 사용자 코드에서 **관리자 전용 API(401 반환) 호출 금지**
+  - `/api/users` GET은 관리자 전용 → 일반 코드에서는 `?action=public-names` 사용
+
+---
+
 ## API 사용 (API Usage)
 
 - 외부 API 사용 전 **폐지 여부 확인** (카카오스토리, 특정 kie.ai 모델 등)
