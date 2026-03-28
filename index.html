@@ -1426,6 +1426,7 @@ body:not(.simple-mode) .toss-step-nav{display:none;}
   cursor:pointer;font-family:inherit;transition:all .2s;
 }
 .toss-nav-skip:hover{color:var(--t2);border-color:var(--border2);}
+@keyframes toss-shake{0%,100%{transform:translateX(0);}15%{transform:translateX(-6px);}30%{transform:translateX(6px);}45%{transform:translateX(-4px);}60%{transform:translateX(4px);}75%{transform:translateX(-2px);}90%{transform:translateX(2px);}}
 
 /* 퀵 프리셋 카드 — 스와이프 큰 카드 */
 .qp-grid{
@@ -27981,7 +27982,28 @@ setTimeout(_showOnboarding, 1500);
   var _tossStep = 1;
   var _tossGenre = '';
 
+  /* 진동 + 흔들림 인터랙션 */
+  function _tossShake(el){
+    if(navigator.vibrate) navigator.vibrate(80);
+    if(!el) return;
+    el.style.animation='none';
+    el.offsetHeight; /* reflow */
+    el.style.animation='toss-shake .4s ease';
+  }
+
   window._tossGoStep = function(step){
+    /* 스텝별 유효성 검사 — 미입력 시 진동 + 흔들림 */
+    if(step===2 && !document.querySelector('#panel-simple .qp-card.on') && !($('ai-assist-input')?.value||'').trim()){
+      _tossShake($('toss-next-1'));
+      toast('장르를 선택하거나 설명을 입력해주세요','',2000);
+      return;
+    }
+    if(step===3 && !$('simple-mood')?.value){
+      _tossShake($('toss-next-2'));
+      toast('분위기를 하나 선택해주세요','',2000);
+      return;
+    }
+
     _tossStep = step;
     /* 프로그레스 바 */
     document.querySelectorAll('.toss-progress-dot').forEach(function(d){
@@ -28004,6 +28026,11 @@ setTimeout(_showOnboarding, 1500);
     if(panel) panel.scrollTop=0;
     var tgt=$('toss-step-'+step);
     if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:'smooth',block:'start'}); },100);
+    /* Step 3 진입 시 곡 제목 포커스 + 키패드 온 */
+    if(_tossStep===3){
+      var titleInp=$('simple-song-title');
+      if(titleInp){ titleInp.focus(); titleInp.click(); }
+    }
   };
 
   /* 이전 버튼 — 역방향 애니메이션 */
