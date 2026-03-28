@@ -7099,7 +7099,18 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="flex-shrink:0;"><path d="M16.273 12.845L7.376 3H3v18h7.727V11.155L19.624 21H24V3h-7.727z"/></svg>
         <span>네이버로 계속하기</span>
       </button>
-      <!-- Guest 로그인 제거됨 -->
+      <!-- 구분선 -->
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0;">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1);"></div>
+        <span style="font-size:11px;color:var(--t3);">또는</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1);"></div>
+      </div>
+      <!-- 게스트 모드 -->
+      <button onclick="startGuestMode()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--t2);width:100%;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+        <span style="font-size:16px;">👤</span>
+        <span>로그인 없이 체험하기</span>
+        <span style="font-size:10px;color:var(--acc);font-weight:700;background:rgba(124,58,237,.15);padding:2px 6px;border-radius:6px;">2곡 무료</span>
+      </button>
       <!-- 연동 가이드 -->
       <details style="margin-top:4px;">
         <summary style="font-size:11px;color:var(--t3);cursor:pointer;padding:6px 2px;list-style:none;">🔧 개발자 연동 가이드 보기 ▸</summary>
@@ -7971,6 +7982,38 @@ function socialLogin(provider){
     return;
   }
 }
+/* ── 게스트 모드 ── */
+var GUEST_SONG_LIMIT = 2;
+function _getGuestUsage(){ return parseInt(localStorage.getItem('kms_guest_songs')||'0',10); }
+function _incGuestUsage(){ localStorage.setItem('kms_guest_songs', (_getGuestUsage()+1).toString()); }
+function isGuestMode(){ return !!localStorage.getItem('kms_guest_mode'); }
+
+function startGuestMode(){
+  localStorage.setItem('kms_guest_mode','1');
+  closeLoginSheet();
+  toast('👤 게스트 모드로 시작합니다 · '+GUEST_SONG_LIMIT+'곡 무료 체험','ok',3000);
+}
+
+function _showGuestLoginPrompt(){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  ov.innerHTML='<div style="background:#1e1e2a;border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;">'
+    +'<div style="font-size:40px;margin-bottom:12px;">🎵</div>'
+    +'<div style="font-size:17px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">게스트 체험이 끝났어요</div>'
+    +'<div style="font-size:13px;color:#a09ab8;line-height:1.6;margin-bottom:6px;">'+GUEST_SONG_LIMIT+'곡 무료 체험을 모두 사용했어요</div>'
+    +'<div style="font-size:13px;color:#888;line-height:1.6;margin-bottom:22px;">로그인하면 <b style="color:var(--acc);">매월 5곡 무료</b>로<br>더 많은 음악을 만들 수 있어요!</div>'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove();openLoginSheet();" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">🚀 로그인하고 계속하기</button>'
+    +'<div style="display:flex;gap:8px;margin-top:4px;">'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove();socialLogin(\'google\');" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#fff;font-size:12px;cursor:pointer;font-family:inherit;">Google</button>'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove();socialLogin(\'kakao\');" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#FEE500;color:#3C1E1E;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;">카카오</button>'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove();socialLogin(\'naver\');" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#03C75A;color:#fff;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;">네이버</button>'
+    +'</div>'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove();" style="width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#888;font-size:13px;cursor:pointer;font-family:inherit;">닫기</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+
 function logout(){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
@@ -8789,6 +8832,9 @@ function _saveLoginUser(user){
 
     currentUser=user;
     localStorage.setItem('kms_user',JSON.stringify(user));
+    /* 게스트 모드 정리 — 로그인 전환 */
+    localStorage.removeItem('kms_guest_mode');
+    localStorage.removeItem('kms_guest_songs');
     updateLoginUI();
     /* JWT 토큰 발급 */
     fetch('/api/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:user.name,provider:user.provider,avatar:user.avatar||''})})
@@ -10958,13 +11004,20 @@ async function generate(overrideParams){
   }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
   if(!overrideParams?._afterLyrics && !checkPlanLimit('song')) return;
-  /* 로그인 체크 + 게스트 2곡 제한 */
+  /* 로그인 체크 + 게스트 모드 허용 */
   if(!overrideParams?._afterLyrics){
     if(!currentUser){
-      /* 비로그인: 로그인 유도 */
-      openLoginSheet();
-      toast('로그인 후 음악을 생성할 수 있어요','err',2500);
-      return;
+      if(isGuestMode()){
+        /* 게스트 모드: 사용량 체크 */
+        if(_getGuestUsage() >= GUEST_SONG_LIMIT){
+          _showGuestLoginPrompt();
+          return;
+        }
+      }else{
+        /* 비로그인 + 비게스트: 로그인 유도 */
+        openLoginSheet();
+        return;
+      }
     }
   }
   _globalGenerating = true; _syncGenButtons();
@@ -22448,6 +22501,13 @@ function getPlan(){ try{ return JSON.parse(localStorage.getItem('kms_plan')||'{"
 
 /* 사용량 기록 — kieRequest 호출 후 각 mode에서 호출 */
 function trackUsage(type, meta={}){
+  /* 게스트 모드: song 사용량 별도 추적 */
+  if(!currentUser && isGuestMode() && type==='song'){
+    _incGuestUsage();
+    var gRemain=GUEST_SONG_LIMIT-_getGuestUsage();
+    if(gRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
+    else toast('👤 게스트 체험 '+gRemain+'곡 남았어요','info',3000);
+  }
   const usage = getUsage();
   if(type==='song')   usage.songs=(usage.songs||0)+1;
   if(type==='mv')     usage.mv=(usage.mv||0)+1;
@@ -22469,6 +22529,17 @@ function trackUsage(type, meta={}){
 
 /* 플랜 제한 체크 — generate() 시작 전 호출 (클라이언트 즉시 + 서버 비동기 검증) */
 function checkPlanLimit(type){
+  /* 게스트 모드: 별도 한도 체크 */
+  if(!currentUser && isGuestMode()){
+    if(type==='song'){
+      var gUsed=_getGuestUsage();
+      if(gUsed >= GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return false; }
+      var gRemain=GUEST_SONG_LIMIT-gUsed;
+      if(gRemain===1) toast('⚠️ 게스트 체험 마지막 1곡이에요','warn',3000);
+    }
+    if(type==='mv'||type==='vr'){ _showGuestLoginPrompt(); return false; }
+    return true;
+  }
   /* 서버 플랜 동기화 미완료 시 백그라운드 트리거 (논블로킹) */
   if(!_planSynced && _planSyncPromise) _planSyncPromise.catch(function(){});
   const plan = getPlan();
