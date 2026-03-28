@@ -9490,7 +9490,11 @@ $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
     if(_lyricsGenCancelled) return;
     hideLyricsGenPopup();
     if(ta){ta.classList.add('flash');setTimeout(()=>ta.classList.remove('flash'),2000);}
-    toast('✨ 프롬프트 생성 완료! 확인 후 생성 버튼을 눌러주세요','ok',3000);
+    /* MV 다음 버튼 + 생성 버튼 활성화 */
+    if(typeof _enableMvStep1Next==='function') _enableMvStep1Next();
+    var _mvB=$('mv-gen-btn'),_mvW=$('mv-prompt-warn');
+    if(_mvB)_mvB.disabled=false;if(_mvW)_mvW.style.display='none';
+    toast('프롬프트 생성 완료! 확인 후 다음 버튼을 눌러주세요','ok',3000);
   }catch(e){
     hideLyricsGenPopup();
     if(!_lyricsGenCancelled) toast('프롬프트 생성 실패: '+e.message,'err');
@@ -9508,6 +9512,7 @@ $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
       var has=mvP.value.trim().length>0;
       mvB.disabled=!has;
       if(mvW) mvW.style.display=has?'none':'block';
+      if(has&&typeof _enableMvStep1Next==='function') _enableMvStep1Next();
     }
     mvP.addEventListener('input',_mvCheckPrompt);
     /* 초기 상태 */
@@ -26378,7 +26383,7 @@ window._toggleCustomColor=_toggleCustomColor;
 
 /* ═══ MV 영상 효과 ═══ */
 var _mvFxValue='';
-function _setMvFx(btn){document.querySelectorAll('.mv-fx-chip').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');_mvFxValue=btn.dataset.mvfx||'';var p=$('mv-prompt');if(p&&_mvFxValue){var c=p.value.trim();if(c&&!c.endsWith(','))c+=', ';p.value=c+_mvFxValue;toast('🎬 효과 적용','ok',1200);}}
+function _setMvFx(btn){document.querySelectorAll('.mv-fx-chip').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');_mvFxValue=btn.dataset.mvfx||'';var p=$('mv-prompt');if(p&&_mvFxValue){var c=p.value.trim();if(c&&!c.endsWith(','))c+=', ';p.value=c+_mvFxValue;toast('효과 적용','ok',1200);}if(p&&p.value.trim()&&typeof _enableMvStep1Next==='function')_enableMvStep1Next();var mb=$('mv-gen-btn'),mw=$('mv-prompt-warn');if(p&&p.value.trim()){if(mb)mb.disabled=false;if(mw)mw.style.display='none';}}
 
 /* ═══ 앨범 편집 ═══ */
 function _openAlbumEditor(idx){var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');var a=albums[idx];if(!a)return;var tks=a.tracks||[];var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';ov.innerHTML='<div style="background:var(--card);border-radius:20px;padding:24px;max-width:380px;width:90%;max-height:80vh;overflow-y:auto;"><div style="text-align:center;margin-bottom:16px;"><div class="album-cover-preview"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#1a0537,#2d1a5a);color:rgba(255,255,255,.3);">💿</div></div><input id="_ae_name" value="'+esc(a.name||'')+'" style="width:100%;text-align:center;background:none;border:none;color:var(--t1);font-size:16px;font-weight:800;font-family:inherit;outline:none;" placeholder="앨범 이름"></div><div class="album-track-list" id="_ae_tracks">'+tks.map(function(t,i){return '<div class="album-track-item"><span class="ati-num">'+(i+1)+'</span><span class="ati-title">'+esc(t.title||'무제')+'</span><button class="ati-remove" onclick="this.parentNode.remove()">✕</button></div>';}).join('')+'</div><div style="display:flex;gap:8px;margin-top:16px;"><button onclick="this.closest(\'[style*=fixed]\').remove()" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;cursor:pointer;font-family:inherit;">취소</button><button onclick="_saveAlbumEdit('+idx+')" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button></div></div>';ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});document.body.appendChild(ov);}
