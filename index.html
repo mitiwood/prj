@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <!-- Sentry Browser SDK -->
 <script src="https://browser.sentry-cdn.com/8.50.0/bundle.min.js" crossorigin="anonymous"></script>
 <script>
@@ -488,8 +488,11 @@ body.simple-mode #preset-carousel{display:none!important;}
 .form-input{
   width:100%;background:var(--bg2);border:1px solid transparent;
   border-radius:12px;padding:13px 16px;color:var(--t1);
-  font-family:inherit;font-size:14px;transition:all .25s ease;
+  font-family:inherit;font-size:16px;transition:all .25s ease;
 }
+/* iOS 확대 방지 — 모든 폼 요소 최소 16px */
+input,textarea,select,button{font-size:16px;touch-action:manipulation;}
+input[type="range"]{font-size:inherit;}
 .form-input:focus{outline:none;border-color:var(--acc);background:var(--bg);box-shadow:0 0 0 3px rgba(124,58,237,.1);}
 .form-input::placeholder{color:var(--t3);}
 textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
@@ -4191,7 +4194,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .mood-ico{font-size:15px!important;}
   .sub-genre-row{gap:4px;}
   .sub-genre-btn{font-size:10px;padding:4px 8px;}
-  .form-input{font-size:13px;padding:10px;}
+  .form-input{font-size:16px;padding:10px;}
   .lyrics-btn-row{flex-wrap:wrap;gap:4px;}
   .ai-assist-btn{font-size:11px;padding:5px 8px;}
 
