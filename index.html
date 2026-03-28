@@ -9933,7 +9933,8 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     $('yt-gen-btn').style.opacity = '1';
     $('yt-gen-txt').textContent = 'YouTube 스타일로 생성';
     /* 토스 스텝 다음 버튼 활성화 */
-    var _ytNb=$('yt-next-1'); if(_ytNb){_ytNb.disabled=false;_ytNb.textContent='다음';}
+    if(typeof _enableYtStep1Next==='function') _enableYtStep1Next();
+    var _ytNb=$('yt-next-1'); if(_ytNb) _ytNb.textContent='다음';
     toast('✅ 분석 완료! 다음 버튼을 눌러주세요','ok',3000);
 
     /* 자동 생성 플래그 */
@@ -10663,7 +10664,7 @@ function _aiAssistRecommend(){
   result.innerHTML = html;
   toast('✨ 곡 컨셉이 적용됐어요!','ok',1500);
   /* Step1 다음 버튼 활성화 */
-  var nb=$('toss-next-1'); if(nb) nb.disabled=false;
+  if(typeof _enableStep1Next==='function') _enableStep1Next();
 }
 /* 추천 결과를 심플 모드에 적용 */
 function _applyAiRecommend(desc, bpm, title){
@@ -10680,7 +10681,7 @@ function _applyAiRecommend(desc, bpm, title){
   toast('✅ 추천이 적용됐어요!','ok',1500);
   $('ai-assist-result').style.display = 'none';
   /* 다음 버튼 활성화 */
-  var nb=$('toss-next-1'); if(nb) nb.disabled=false;
+  if(typeof _enableStep1Next==='function') _enableStep1Next();
 }
 
 /* ══════════════════════════════
@@ -28212,8 +28213,7 @@ setTimeout(_showOnboarding, 1500);
     document.querySelectorAll('#panel-simple .qp-card').forEach(function(c){c.classList.remove('on');});
     if(el) el.classList.add('on');
     /* 다음 버튼 활성화 */
-    var nb=$('toss-next-1');
-    if(nb) nb.disabled=false;
+    if(typeof _enableStep1Next==='function') _enableStep1Next();
     /* 입력창 포커스 — 이미 입력 중이면 스크롤하지 않음 */
     var inp=$('ai-assist-input');
     if(inp && document.activeElement!==inp){
@@ -28232,10 +28232,10 @@ setTimeout(_showOnboarding, 1500);
   }
 
   var _oqs = window._quickAiSuggest;
-  if(_oqs){ window._quickAiSuggest = function(){ _oqs.apply(this,arguments); var nb=$('toss-next-1'); if(nb) nb.disabled=false; }; }
+  if(_oqs){ window._quickAiSuggest = function(){ _oqs.apply(this,arguments); if(typeof _enableStep1Next==='function') _enableStep1Next(); }; }
 
   document.querySelectorAll('.mtab').forEach(function(tab){
-    tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _tossGoStep(1); var nb=$('toss-next-1'); if(nb) nb.disabled=true; } });
+    tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _s1NextEnabled=false; _tossGoStep(1); } });
   });
 
   _tossGoStep(1);
@@ -28338,15 +28338,19 @@ setTimeout(_showOnboarding, 1500);
   /* ══════════════════════════
      공용 고정 하단 네비게이션
   ══════════════════════════ */
+  /* 스텝1 다음 버튼 활성화 상태 추적 */
+  var _s1NextEnabled=false;
+  var _ytS1NextEnabled=false;
+
   var _navDefs={
     simple:{
-      1:{next:'_tossGoStep(2)',nextId:'toss-next-1',nextTxt:'다음',nextDis:true},
+      1:{next:'_tossGoStep(2)',nextId:'toss-next-1',nextTxt:'다음',nextDisFn:function(){return !_s1NextEnabled;}},
       2:{back:'_tossBack(1)',next:'_tossGoStep(3)',nextTxt:'다음'},
       3:{back:'_tossBack(2)',skip:'_tossGoStep(4)',next:'_tossGoStep(4)',nextTxt:'다음'},
       4:{back:'_tossBack(3)',skip:'_simpleToCustom()',skipTxt:'커스텀 모드로'}
     },
     youtube:{
-      1:{next:'_ytStepGo(2)',nextId:'yt-next-1',nextTxt:'분석 후 다음',nextDis:true},
+      1:{next:'_ytStepGo(2)',nextId:'yt-next-1',nextTxt:'분석 후 다음',nextDisFn:function(){return !_ytS1NextEnabled;}},
       2:{back:'_ytStepBack(1)',next:'_ytStepGo(3)',nextTxt:'다음'},
       3:{back:'_ytStepBack(2)',skip:'_ytStepGo(4)',next:'_ytStepGo(4)',nextTxt:'다음'},
       4:{back:'_ytStepBack(3)'}
@@ -28362,9 +28366,16 @@ setTimeout(_showOnboarding, 1500);
     var html='';
     if(def.back) html+='<button class="toss-nav-back" onclick="'+def.back+'">이전</button>';
     if(def.skip) html+='<button class="toss-nav-skip" onclick="'+def.skip+'">'+(def.skipTxt||'건너뛰기')+'</button>';
-    if(def.next) html+='<button class="toss-nav-next" '+(def.nextId?'id="'+def.nextId+'"':'')+(def.nextDis?' disabled':'')+' onclick="'+def.next+'">'+def.nextTxt+'</button>';
+    if(def.next){
+      var isDis=def.nextDisFn?def.nextDisFn():false;
+      html+='<button class="toss-nav-next" '+(def.nextId?'id="'+def.nextId+'"':'')+(isDis?' disabled':'')+' onclick="'+def.next+'">'+def.nextTxt+'</button>';
+    }
     nav.innerHTML=html;
   };
+
+  /* 다음 버튼 활성화 헬퍼 (외부에서 호출) */
+  window._enableStep1Next=function(){_s1NextEnabled=true;var nb=$('toss-next-1');if(nb)nb.disabled=false;};
+  window._enableYtStep1Next=function(){_ytS1NextEnabled=true;var nb=$('yt-next-1');if(nb)nb.disabled=false;};
 
   /* _tossGoStep/_tossBack/_ytStepGo/_ytStepBack 호출 후 nav 갱신 */
   var _origTossGo=window._tossGoStep, _origTossBack=window._tossBack;
