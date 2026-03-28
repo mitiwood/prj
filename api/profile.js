@@ -17,7 +17,8 @@ const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const BASE = 'https://ai-music-studio-bice.vercel.app';
 const _profileRateMap = {}; /* Rate limit for profile updates */
-const _activeSessionMap = {}; /* 활성화 알림 중복 방지 (10분 쿨다운) */
+const _activeSessionMap = {}; /* 활성화 알림: 세션당 최초 1회만 (true=이미 알림 완료) */
+const _leaveNotifyCount = {}; /* 이탈 알림: 사용자당 최대 2회 카운트 */
 
 async function _tgSend(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
@@ -179,10 +180,9 @@ export default async function handler(req, res) {
         if (hbName && hbProv) {
           await sb('PATCH', `/users?name=eq.${encodeURIComponent(hbName)}&provider=eq.${encodeURIComponent(hbProv)}`,
             { last_login: now, last_active: now });
-          /* 텔레그램 활성화 알림 (10분 쿨다운) */
+          /* 텔레그램 활성화 알림 (최초 진입 시 1회만) */
           const sessionKey = hbName + '::' + hbProv;
-          const lastNotified = _activeSessionMap[sessionKey] || 0;
-          if (now - lastNotified > 600000) {
+          if (!_activeSessionMap[sessionKey]) {
             _activeSessionMap[sessionKey] = now;
             const provLabel = { google: 'Google', kakao: '카카오', naver: '네이버' }[hbProv] || hbProv;
             const time = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
@@ -197,6 +197,25 @@ export default async function handler(req, res) {
       } catch (e) {
         return res.status(200).json({ ok: true, count: 0, users: [] });
       }
+    }
+
+    /* ── 사용자 이탈 알림 (최대 2회) ── */
+    if (action === 'leave') {
+      const lName = req.query?.hbName;
+      const lProv = req.query?.hbProvider;
+      if (lName && lProv) {
+        const lKey = lName + '::' + lProv;
+        const cnt = _leaveNotifyCount[lKey] || 0;
+        if (cnt < 2) {
+          _leaveNotifyCount[lKey] = cnt + 1;
+          /* 활성화 세션 초기화 (재방문 시 다시 활성화 알림 가능) */
+          delete _activeSessionMap[lKey];
+          const provLabel = { google: 'Google', kakao: '카카오', naver: '네이버' }[lProv] || lProv;
+          const time = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+          _tgSend('🔴 사용자 이탈\n\n👤 ' + lName + '\n🔗 ' + provLabel + '\n⏰ ' + time + '\n📊 이탈 알림 ' + (cnt + 1) + '/2');
+        }
+      }
+      return res.status(200).json({ ok: true });
     }
 
     /* ── 배치 팔로우 상태 확인 (N+1 제거) ── */

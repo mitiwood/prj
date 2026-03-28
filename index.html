@@ -26764,6 +26764,22 @@ function _updateLiveSession(){
 }
 setInterval(_updateLiveSession,30000);setTimeout(_updateLiveSession,2000);
 
+/* ── 사용자 이탈 감지 → 봇 알림 (최대 2회, 서버에서 카운트) ── */
+(function(){
+  var _leaveSent=false;
+  function _sendLeave(){
+    if(_leaveSent||!currentUser||!currentUser.name)return;
+    _leaveSent=true;
+    var q='/api/profile?name=_&provider=_&action=leave&hbName='+encodeURIComponent(currentUser.name)+'&hbProvider='+encodeURIComponent(currentUser.provider);
+    try{navigator.sendBeacon(q);}catch(e){fetch(q,{keepalive:true}).catch(function(){});}
+    setTimeout(function(){_leaveSent=false;},3000);
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden) _sendLeave();
+  });
+  window.addEventListener('pagehide',function(){_sendLeave();});
+})();
+
 /* ═══ 협업 세션 ═══ */
 function _startCollabSession(collabId){
   if(!currentUser){toast('로그인 필요','err');return;}
