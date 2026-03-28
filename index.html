@@ -8752,7 +8752,7 @@ async function _ytDoGenerate(){
     saveHistory(); updateHistBadge();
     trackUsage('song',{mode:'youtube',title:songTitle});
     showCompletionPopup('youtube','');
-    /* 현재 모드에 머물고 결과로 스크롤 */
+    _hideStepsShowResults('youtube');
     setTimeout(function(){
       var resultSec=$('results-youtube');
       if(resultSec) resultSec.scrollIntoView({behavior:'smooth',block:'start'});
@@ -11393,7 +11393,8 @@ async function generate(overrideParams){
       bpm:selectedBpm||120,model:model||'',mode:currentMode||'custom'
     });
     showCompletionPopup(currentMode||'custom', '');
-    /* 현재 모드에 머물고 결과 영역으로 스크롤 */
+    /* 생성 완료 → 스텝 UI 숨기고 결과 영역으로 전환 */
+    _hideStepsShowResults(currentMode);
     setTimeout(function(){
       var resultSec=$('results-'+(currentMode||'custom'));
       if(resultSec) resultSec.scrollIntoView({behavior:'smooth',block:'start'});
@@ -12289,11 +12290,16 @@ function renderTracks(tracks,prompt,tags,mode){
     }
   });
 
-  /* ── 확인 버튼 (result-batch 하단) ── */
-  var _confirmBtn=document.createElement('div');
-  _confirmBtn.style.cssText='text-align:center;padding:16px 0 4px;';
-  _confirmBtn.innerHTML='<button class="toss-nav-next" onclick="_showPostGenFeedback()" style="width:100%;max-width:320px;padding:16px 20px;font-size:16px;">확인</button>';
-  batchWrap.appendChild(_confirmBtn);
+  /* ── 포스트 액션 카드 (result-batch 하단) ── */
+  var _postActions=document.createElement('div');
+  _postActions.style.cssText='display:flex;flex-direction:column;gap:8px;padding:16px 0 4px;';
+  _postActions.innerHTML=`
+    <button onclick="_saveAndGoLibrary()" style="width:100%;padding:15px 20px;border-radius:14px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(124,58,237,.3);transition:all .2s;">이 곡으로 저장하기</button>
+    <div style="display:flex;gap:8px;">
+      <button onclick="_showPostGenFeedback()" style="flex:1;padding:13px 12px;border-radius:14px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.06);color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">다시 작곡하기</button>
+      <button onclick="_restoreStepUI()" style="flex:1;padding:13px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">새로 만들기</button>
+    </div>`;
+  batchWrap.appendChild(_postActions);
 
   /* A/B 선택 버튼 이벤트 */
   batchWrap.querySelectorAll('.rc-select-btn').forEach(btn=>{
@@ -12636,7 +12642,35 @@ function updateFbTimeEstimate(){
   if(el)el.innerHTML=`재작곡 예상 시간: 약 <strong>${baseTime}</strong> · ${dur>180?'1곡':'2곡'} 생성 예정`;
 }
 
-/* ── 확인 버튼 → 피드백 카드 표시 (토스 스타일) ── */
+/* ── 생성 완료 → 스텝 UI 숨기고 결과만 표시 ── */
+function _hideStepsShowResults(mode){
+  /* 심플/유튜브 스텝 UI 숨기기 */
+  var panels=['panel-simple','panel-youtube'];
+  panels.forEach(function(pid){
+    var p=$(pid);if(!p) return;
+    p.querySelectorAll('.toss-step').forEach(function(s){s.classList.remove('visible','back');});
+    p.querySelectorAll('.toss-progress').forEach(function(pr){pr.style.display='none';});
+  });
+}
+
+/* ── 다시 만들기 (스텝 UI 복원) ── */
+function _restoreStepUI(){
+  var mode=currentMode||'simple';
+  if(mode==='simple'){
+    var pr=$('toss-progress');if(pr)pr.style.display='';
+    if(typeof _tossGoStep==='function') _tossGoStep(1);
+    var nb=$('toss-next-1');if(nb)nb.disabled=true;
+  } else if(mode==='youtube'){
+    var pr2=$('yt-toss-progress');if(pr2)pr2.style.display='';
+    if(typeof _ytStepGo==='function') _ytStepGo(1);
+    var nb2=$('yt-next-1');if(nb2){nb2.disabled=true;nb2.textContent='분석 후 다음';}
+  }
+  $('feedback-card').style.display='none';
+  var resultSec=$('results-'+mode);
+  if(resultSec) resultSec.style.display='none';
+}
+
+/* ── 확인 버튼 → 포스트 액션 카드 표시 ── */
 function _showPostGenFeedback(){
   showFeedbackCard();
   var fc=$('feedback-card');
@@ -12648,7 +12682,6 @@ function _saveAndGoLibrary(){
   $('feedback-card').style.display='none';
   toast('라이브러리에 저장되었어요','ok',2000);
   switchTab('history-view');
-  /* 최신 곡(첫 번째)에 포커스 */
   setTimeout(function(){
     var grid=$('history-view-grid');
     if(!grid) return;
