@@ -10803,7 +10803,12 @@ async function generate(overrideParams){
   });
 
   const prompt=lyricsText||styleStr;
-  lastLyricsInput=lyricsText;
+  /* 심플모드: simple-lyrics 실제 입력값만 가사로 저장 (설명/분위기 텍스트 제외) */
+  if(isSimple){
+    lastLyricsInput=($('simple-lyrics')?.value||'').trim();
+  } else {
+    lastLyricsInput=lyricsText;
+  }
 
   /* 가사 품질 사전 체크 */
   if(lyricsText && !overrideParams?._afterLyrics){
@@ -17092,17 +17097,40 @@ function fpRenderLyrics(h){
     if(syncBtn) syncBtn.style.display='';
     if(fpTimestampLines.length && fpSyncMode) fpTimestampLines[0].classList.add('active');
   } else {
-    /* LRC 없으면 싱크 불가 — 버튼 숨기고 싱크 모드 강제 OFF */
-    if(syncBtn) syncBtn.style.display='none';
-    fpSyncMode=false;
-    fpTimestampLines.forEach(l=>l.classList.remove('active','done'));
+    /* LRC 없어도 가사 라인이 있으면 균등 분할 싱크 시도 */
+    if(fpTimestampLines.length>=2 && fpAudio?.duration){
+      _fpAssignTimes();
+    } else if(fpTimestampLines.length>=2){
+      /* duration 아직 모르면 loadedmetadata 이벤트에서 재시도 */
+      fpAudio?.addEventListener('loadedmetadata',function _assignOnMeta(){
+        _fpAssignTimes();
+        fpAudio.removeEventListener('loadedmetadata',_assignOnMeta);
+      });
+      if(syncBtn) syncBtn.style.display='none';
+    } else {
+      if(syncBtn) syncBtn.style.display='none';
+      fpSyncMode=false;
+    }
   }
 }
 
-/* LRC 타임스탬프 없으면 싱크 불가 — 균등 분할 제거 */
+/* LRC 타임스탬프 없으면 균등 분할로 노래방 싱크 */
 function _fpAssignTimes(){
-  /* LRC 타임스탬프가 이미 있으면 그대로 사용, 없으면 아무것도 안 함 */
-  return;
+  if(_fpLrcTimes.length) return; /* 이미 LRC 있으면 스킵 */
+  if(!fpTimestampLines.length || !fpAudio?.duration) return;
+  const dur=fpAudio.duration;
+  const n=fpTimestampLines.length;
+  if(n<2) return;
+  /* 곡 앞뒤 5% 마진, 나머지 구간을 균등 분할 */
+  const t0=dur*0.05, t1=dur*0.92;
+  const gap=(t1-t0)/Math.max(n-1,1);
+  _fpLrcTimes=[];
+  for(let i=0;i<n;i++) _fpLrcTimes.push(t0+gap*i);
+  /* 싱크 모드 버튼 표시 + 자동 ON */
+  const syncBtn=$('fp-lyrics-mode-btn');
+  if(syncBtn){syncBtn.style.display='';syncBtn.textContent='싱크 모드';}
+  fpSyncMode=true;
+  if(fpTimestampLines[0]) fpTimestampLines[0].classList.add('active');
 }
 
 function fpSeekToLine(el){
