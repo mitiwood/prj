@@ -1356,26 +1356,25 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .pl-share-link input{flex:1;background:none;border:none;color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
 .pl-share-link button{padding:4px 10px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;}
 /* ━━━ 토스 스타일 스텝 플로우 (심플 모드) ━━━ */
-.toss-progress{display:flex;gap:4px;margin-bottom:20px;padding:0 2px;}
+.toss-progress{display:flex;gap:4px;margin-bottom:24px;padding:0 2px;}
 .toss-progress-dot{flex:1;height:3px;border-radius:2px;background:var(--border);transition:all .4s cubic-bezier(.4,0,.2,1);}
 .toss-progress-dot.done{background:var(--acc);}
 .toss-progress-dot.active{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 8px rgba(124,58,237,.3);}
 
 .toss-step{
-  opacity:0;max-height:0;overflow:hidden;
-  transition:opacity .45s cubic-bezier(.4,0,.2,1),max-height .45s cubic-bezier(.4,0,.2,1),margin .3s,padding .3s;
-  margin-bottom:0;padding:0;
+  display:none;
 }
 .toss-step.visible{
-  opacity:1;max-height:800px;overflow:visible;
-  margin-bottom:20px;
+  display:block;
+  animation:toss-step-in .35s ease;
 }
+@keyframes toss-step-in{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
 .toss-step-q{
-  font-size:18px;font-weight:800;color:var(--t1);
-  line-height:1.4;margin-bottom:4px;letter-spacing:-.3px;
+  font-size:22px;font-weight:800;color:var(--t1);
+  line-height:1.35;margin-bottom:6px;letter-spacing:-.5px;
 }
 .toss-step-hint{
-  font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.5;
+  font-size:13px;color:var(--t3);margin-bottom:20px;line-height:1.6;
 }
 .toss-step-badge{
   display:inline-flex;align-items:center;gap:4px;
@@ -1383,6 +1382,29 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   background:rgba(124,58,237,.08);border-radius:20px;
   padding:3px 10px;margin-bottom:10px;
 }
+/* 토스 스텝 하단 네비게이션 */
+.toss-step-nav{display:flex;gap:8px;margin-top:24px;}
+.toss-nav-back{
+  padding:14px 20px;border-radius:14px;border:1px solid var(--border);
+  background:var(--card);color:var(--t2);font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.toss-nav-back:hover{background:var(--card2);border-color:var(--border2);}
+.toss-nav-next{
+  flex:1;padding:14px 20px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;
+  font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;
+  transition:all .2s;box-shadow:0 4px 16px rgba(124,58,237,.3);
+}
+.toss-nav-next:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(124,58,237,.4);}
+.toss-nav-next:active{transform:scale(.98);}
+.toss-nav-next:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.toss-nav-skip{
+  padding:14px 20px;border-radius:14px;border:1px solid var(--border);
+  background:transparent;color:var(--t3);font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.toss-nav-skip:hover{color:var(--t2);border-color:var(--border2);}
 
 /* 퀵 프리셋 카드 (심플 모드) */
 .qp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
@@ -1401,14 +1423,10 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 
 /* 플로팅 생성 버튼 */
 .toss-floating-cta{
-  position:sticky;bottom:0;left:0;right:0;z-index:10;
-  padding:12px 0 4px;
-  background:linear-gradient(to top,var(--card) 60%,transparent);
-  pointer-events:none;
+  display:none;
 }
-.toss-floating-cta .gen-btn{pointer-events:auto;}
-.toss-floating-cta .gen-btn{
-  box-shadow:0 -4px 24px rgba(124,58,237,.2),0 4px 20px rgba(124,58,237,.3);
+.toss-floating-cta.show{
+  display:block;padding:0;
 }
 
 /* 무드 칩 개선 */
@@ -1439,12 +1457,11 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 
 /* 심플 모드 요약 카드 */
 .toss-summary{
-  padding:14px;border-radius:14px;
+  padding:16px 18px;border-radius:16px;
   background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));
-  border:1px solid rgba(124,58,237,.12);margin-bottom:12px;
-  display:none;
+  border:1px solid rgba(124,58,237,.12);margin-bottom:16px;
 }
-.toss-summary.show{display:block;animation:toss-fade-in .3s ease;}
+.toss-summary.show{animation:toss-fade-in .3s ease;}
 .toss-summary-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
 .toss-summary-label{color:var(--t3);font-weight:500;}
 .toss-summary-val{color:var(--t1);font-weight:700;}
@@ -4786,8 +4803,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- ── STEP 1: 장르 선택 ── -->
         <div class="toss-step visible" id="toss-step-1">
-          <div class="toss-step-q">어떤 음악을 만들까요?</div>
-          <div class="toss-step-hint">장르를 골라주세요. 탭 한 번이면 돼요</div>
+          <div class="toss-step-q">어떤 음악을<br>만들어 볼까요?</div>
+          <div class="toss-step-hint">장르를 하나 골라주세요</div>
           <div class="qp-grid">
             <div class="qp-card" onclick="_tossPreset('kpop',this)"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
             <div class="qp-card" onclick="_tossPreset('ballad',this)"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
@@ -4797,14 +4814,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div class="qp-card" onclick="_tossPreset('acoustic',this)"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
           </div>
           <!-- AI 어시스턴트 (직접 입력) -->
-          <div style="text-align:center;margin:8px 0 10px;font-size:11px;color:var(--t3);">또는 자유롭게 설명해주세요</div>
+          <div style="text-align:center;margin:12px 0 10px;font-size:12px;color:var(--t3);">또는 자유롭게 설명해주세요</div>
           <div id="ai-assistant-wrap" style="padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.12);border-radius:14px;">
             <div style="display:flex;gap:6px;">
-              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈 느낌의 곡" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:12px;padding:10px 12px;">
-              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
+              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:13px;padding:12px 14px;">
+              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
             </div>
             <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
-            <div class="ai-suggest-chips" id="ai-quick-suggests" style="margin-top:8px;">
+            <div class="ai-suggest-chips" id="ai-quick-suggests" style="margin-top:10px;">
               <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">🌧 비 오는 날</button>
               <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">🌙 새벽 감성</button>
               <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">🎉 파티</button>
@@ -4823,8 +4840,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- ── STEP 2: 분위기 선택 ── -->
         <div class="toss-step" id="toss-step-2">
-          <div class="toss-step-q">어떤 분위기가 좋을까요? <span class="toss-check" id="toss-check-2"></span></div>
-          <div class="toss-step-hint">하나만 골라주세요. 나중에 바꿀 수도 있어요</div>
+          <div class="toss-step-q">어떤 분위기를<br>원하세요?</div>
+          <div class="toss-step-hint">하나만 골라주세요</div>
           <select id="simple-mood" style="display:none;">
             <option value="">선택 안함</option><option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
           </select>
@@ -4842,12 +4859,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="mood-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)"><span class="mood-ico">💪</span>파워풀</button>
             <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)"><span class="mood-ico">🔮</span>신비</button>
           </div>
+          <div class="toss-step-nav">
+            <button class="toss-nav-back" onclick="_tossBack(1)">이전</button>
+            <button class="toss-nav-next" id="toss-next-2" onclick="_tossGoStep(3)">다음</button>
+          </div>
         </div>
 
         <!-- ── STEP 3: 세부 설정 (선택) ── -->
         <div class="toss-step" id="toss-step-3">
-          <div class="toss-step-q">마지막으로 다듬어볼까요? <span class="toss-check" id="toss-check-3"></span></div>
-          <div class="toss-step-hint">건너뛰어도 괜찮아요. AI가 알아서 채워줘요</div>
+          <div class="toss-step-q">세부 사항을<br>설정해 볼까요?</div>
+          <div class="toss-step-hint">건너뛰어도 괜찮아요</div>
 
           <div class="form-grp">
             <div class="form-label">
@@ -4916,31 +4937,38 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <button class="gen-count-btn" data-count="2" onclick="_setGenCount(2)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">2곡 <span style="font-size:9px;opacity:.7;">A/B비교</span></button>
             </div>
           </div>
+          <div class="toss-step-nav">
+            <button class="toss-nav-back" onclick="_tossBack(2)">이전</button>
+            <button class="toss-nav-skip" onclick="_tossGoStep(4)">건너뛰기</button>
+            <button class="toss-nav-next" onclick="_tossGoStep(4)">다음</button>
+          </div>
         </div>
 
         <!-- ── STEP 4: 요약 + 생성 ── -->
         <div class="toss-step" id="toss-step-4">
+          <div class="toss-step-q">이렇게<br>만들어 드릴게요</div>
+          <div class="toss-step-hint">설정을 확인하고 생성해 주세요</div>
           <!-- 요약 카드 -->
-          <div class="toss-summary" id="toss-summary">
-            <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">이렇게 만들게요</div>
+          <div class="toss-summary show" id="toss-summary">
             <div class="toss-summary-row"><span class="toss-summary-label">장르</span><span class="toss-summary-val" id="toss-sum-genre">-</span></div>
             <div class="toss-summary-row"><span class="toss-summary-label">분위기</span><span class="toss-summary-val" id="toss-sum-mood">-</span></div>
             <div class="toss-summary-row"><span class="toss-summary-label">BPM</span><span class="toss-summary-val" id="toss-sum-bpm">120</span></div>
             <div class="toss-summary-row"><span class="toss-summary-label">보컬</span><span class="toss-summary-val" id="toss-sum-vocal">있음</span></div>
           </div>
+          <div style="margin-top:20px;">
+            <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성" style="box-shadow:0 4px 24px rgba(124,58,237,.35);">
+              <span class="gen-spinner" id="simple-gen-spinner"></span>
+              <span id="simple-gen-txt">음악 만들기</span>
+            </button>
+          </div>
+          <div class="toss-step-nav" style="margin-top:12px;">
+            <button class="toss-nav-back" onclick="_tossBack(3)">이전</button>
+            <button class="toss-nav-skip" onclick="_simpleToCustom()" style="flex:1;">커스텀 모드로</button>
+          </div>
         </div>
 
-        <!-- 플로팅 생성 버튼 -->
-        <div class="toss-floating-cta" id="toss-cta">
-          <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성">
-            <span class="gen-spinner" id="simple-gen-spinner"></span>
-            <span id="simple-gen-txt">음악 만들기</span>
-          </button>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:4px;">
-          <button onclick="_simpleToCustom()" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">더 세밀하게 조정</button>
-          <button onclick="_compareModels()" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">퀄리티 비교</button>
-        </div>
+        <!-- 플로팅 생성 버튼 (숨김) -->
+        <div class="toss-floating-cta" id="toss-cta"></div>
       </div>
 
       <!-- ━━━ YouTube 패널 ━━━ -->
@@ -8861,8 +8889,8 @@ function _setSimpleMood(btn){
   var sel=$('simple-mood');
   if(sel.value===val){sel.value='';}
   else{btn.classList.add('on');sel.value=val;}
-  /* 토스 스텝: 분위기 선택 → step 3 오픈 */
-  if(sel.value) _tossGoStep(3);
+  /* 토스 스텝: 분위기 선택 → 0.3초 후 step 3 */
+  if(sel.value) setTimeout(function(){ _tossGoStep(3); },300);
 }
 
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
@@ -27613,32 +27641,37 @@ setTimeout(_showOnboarding, 1500);
 })();
 </script>
 <script>
-/* toss step flow logic */
+/* toss step flow logic — 한 화면에 한 스텝만 */
 (function(){
   var _tossStep = 1;
   var _tossGenre = '';
 
   window._tossGoStep = function(step){
-    _tossStep = Math.max(_tossStep, step);
+    _tossStep = step;
+    /* 프로그레스 바 */
     document.querySelectorAll('.toss-progress-dot').forEach(function(d){
       var s = parseInt(d.dataset.step);
       d.classList.remove('done','active');
       if(s < _tossStep) d.classList.add('done');
       else if(s === _tossStep) d.classList.add('active');
     });
+    /* 현재 스텝만 표시 */
     for(var i=1;i<=4;i++){
       var el=$('toss-step-'+i);
-      if(el) el.classList.toggle('visible', i<=_tossStep);
+      if(el) el.classList.toggle('visible', i===_tossStep);
     }
-    for(var j=2;j<=3;j++){
-      var ck=$('toss-check-'+j);
-      if(ck){ ck.classList.toggle('show', j<_tossStep); if(j<_tossStep) ck.textContent='\u2713'; }
-    }
-    if(_tossStep>=4) _tossUpdSum();
-    var sum=$('toss-summary');
-    if(sum) sum.classList.toggle('show', _tossStep>=4);
+    /* 스텝4 진입 시 요약 업데이트 */
+    if(_tossStep===4) _tossUpdSum();
+    /* 패널 상단으로 스크롤 */
+    var panel=$('panel-simple');
+    if(panel) panel.scrollTop=0;
     var tgt=$('toss-step-'+step);
-    if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:'smooth',block:'center'}); },200);
+    if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:'smooth',block:'start'}); },100);
+  };
+
+  /* 이전 버튼 */
+  window._tossBack = function(toStep){
+    _tossGoStep(toStep);
   };
 
   window._tossPreset = function(key, el){
@@ -27663,22 +27696,6 @@ setTimeout(_showOnboarding, 1500);
   document.querySelectorAll('.mtab').forEach(function(tab){
     tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _tossGoStep(1); } });
   });
-
-  var _s3t=null;
-  function _s3w(){ if(_s3t)clearTimeout(_s3t); _s3t=setTimeout(function(){ if(_tossStep>=3) _tossGoStep(4); },800); }
-  var a=$('simple-song-title'); if(a)a.addEventListener('input',_s3w);
-  var b=$('simple-prompt'); if(b)b.addEventListener('input',_s3w);
-  var c=$('simple-lyrics'); if(c)c.addEventListener('input',_s3w);
-  var d=$('simple-bpm-slider'); if(d)d.addEventListener('input',function(){ if(_tossStep>=3) _tossGoStep(4); });
-
-  var _mo = new MutationObserver(function(){
-    var s3=$('toss-step-3');
-    if(s3&&s3.classList.contains('visible')&&_tossStep===3){
-      setTimeout(function(){ if(_tossStep===3) _tossGoStep(4); },1200);
-    }
-  });
-  var s3=$('toss-step-3');
-  if(s3) _mo.observe(s3,{attributes:true,attributeFilter:['class']});
 
   _tossGoStep(1);
 })();
