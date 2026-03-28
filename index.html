@@ -1470,9 +1470,9 @@ body:not(.simple-mode):not(.youtube-mode) .toss-step-nav{display:none;}
   transform:scale(1.04);
   box-shadow:0 8px 36px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.3);
 }
-.qp-emoji{font-size:48px;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15));}
-.qp-title{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px;text-shadow:0 1px 4px rgba(0,0,0,.2);}
-.qp-sub{font-size:12px;color:rgba(255,255,255,.7);font-weight:600;}
+.qp-emoji{font-size:48px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));}
+.qp-title{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px;text-shadow:0 2px 8px rgba(0,0,0,.5);}
+.qp-sub{font-size:12px;color:rgba(255,255,255,.85);font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4);}
 /* 인디케이터 닷 */
 .qp-dots{display:flex;justify-content:center;gap:6px;margin-bottom:4px;flex-shrink:0;}
 .qp-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s;}
@@ -1507,32 +1507,35 @@ body:not(.simple-mode):not(.youtube-mode) .toss-step-nav{display:none;}
   text-shadow:0 1px 4px rgba(0,0,0,.2);
 }
 .mood-grid-toss .mood-chip::after{
-  content:'';position:absolute;inset:0;border-radius:22px;opacity:.08;
-  background:radial-gradient(circle at 30% 20%,#fff 0%,transparent 60%);
+  content:'';position:absolute;inset:0;border-radius:22px;opacity:0;
   pointer-events:none;
 }
+/* 인스타 감성 — 사진 배경 + 다크 오버레이 */
+.mood-grid-toss .mood-chip{background-size:cover;background-position:center;}
+.mood-grid-toss .mood-chip::before{content:'';position:absolute;inset:0;border-radius:22px;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.55) 100%);pointer-events:none;z-index:0;}
+.mood-grid-toss .mood-chip>*{position:relative;z-index:1;}
 .mood-grid-toss .mood-chip:first-child{margin-left:14%;}
 .mood-grid-toss .mood-chip:last-child{margin-right:14%;}
-.mood-grid-toss .mood-chip .mood-ico{font-size:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15));}
-.mood-grid-toss .mood-chip:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.mood-grid-toss .mood-chip .mood-ico{font-size:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.25));}
+.mood-grid-toss .mood-chip:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.3);}
 .mood-grid-toss .mood-chip:active{transform:scale(.96);}
 .mood-grid-toss .mood-chip.on{
   transform:scale(1.04);
-  box-shadow:0 8px 36px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.3);
+  box-shadow:0 8px 36px rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.4);
 }
-/* 분위기별 그라데이션 */
-.mood-grid-toss .mood-chip:nth-child(1){background:linear-gradient(145deg,#f59e0b,#f97316);}
-.mood-grid-toss .mood-chip:nth-child(2){background:linear-gradient(145deg,#6366f1,#818cf8);}
-.mood-grid-toss .mood-chip:nth-child(3){background:linear-gradient(145deg,#10b981,#34d399);}
-.mood-grid-toss .mood-chip:nth-child(4){background:linear-gradient(145deg,#1e1b4b,#312e81);}
-.mood-grid-toss .mood-chip:nth-child(5){background:linear-gradient(145deg,#ec4899,#f472b6);}
-.mood-grid-toss .mood-chip:nth-child(6){background:linear-gradient(145deg,#ef4444,#f97316);}
-.mood-grid-toss .mood-chip:nth-child(7){background:linear-gradient(145deg,#a855f7,#7c3aed);}
-.mood-grid-toss .mood-chip:nth-child(8){background:linear-gradient(145deg,#06b6d4,#67e8f9);}
-.mood-grid-toss .mood-chip:nth-child(9){background:linear-gradient(145deg,#4f46e5,#7c3aed);}
-.mood-grid-toss .mood-chip:nth-child(10){background:linear-gradient(145deg,#f59e0b,#eab308);}
-.mood-grid-toss .mood-chip:nth-child(11){background:linear-gradient(145deg,#dc2626,#991b1b);}
-.mood-grid-toss .mood-chip:nth-child(12){background:linear-gradient(145deg,#7c3aed,#6d28d9);}
+/* 분위기별 인스타 감성 사진 */
+.mood-grid-toss .mood-chip:nth-child(1){background-image:url('https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(2){background-image:url('https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(3){background-image:url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(4){background-image:url('https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(5){background-image:url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(6){background-image:url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(7){background-image:url('https://images.unsplash.com/photo-1501612780327-45045538702b?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(8){background-image:url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(9){background-image:url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(10){background-image:url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(11){background-image:url('https://images.unsplash.com/photo-1504898770365-14faca6a7320?w=400&q=80');}
+.mood-grid-toss .mood-chip:nth-child(12){background-image:url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=400&q=80');}
 /* 라이트모드에서도 색상 유지 */
 [data-theme="light"] .mood-grid-toss .mood-chip{border-color:transparent;}
 [data-theme="light"] .mood-grid-toss .mood-chip.on{box-shadow:0 8px 36px rgba(0,0,0,.15),0 0 0 3px rgba(124,58,237,.3);}
