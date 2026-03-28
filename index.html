@@ -17311,6 +17311,7 @@ window.addEventListener('popstate',function(){
 
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
 var _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */
+var _fpLrcEndTimes=[]; /* 각 가사 라인의 종료 시간(초) — 타임스탬프 API용 */
 function fpRenderLyrics(h){
   const mainBox=$('fp-lyrics-main');
   const raw=h.lyrics||h.lyric||h._inputLyrics||'';
@@ -17320,6 +17321,7 @@ function fpRenderLyrics(h){
 
   fpTimestampLines=[];
   _fpLrcTimes=[];
+  _fpLrcEndTimes=[];
   _fpPrevActiveIdx=-1;
 
   if(!plain.trim()){
@@ -17331,6 +17333,8 @@ function fpRenderLyrics(h){
       fetch('/api/tracks?id='+encodeURIComponent(_lyrFetchId)).then(function(r){return r.ok?r.json():null;}).then(function(d){
         if(d&&d.track&&(d.track.lyrics||d.track.lyric)){
           h.lyrics=d.track.lyrics||d.track.lyric||'';
+          /* 노래방 버튼 표시 */
+          var kBtn=$('fp-karaoke-btn');if(kBtn)kBtn.style.display='';
           fpRenderLyrics(h); /* 가사 있으면 재렌더 */
         } else {
           if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
@@ -17342,6 +17346,27 @@ function fpRenderLyrics(h){
     }
     if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
     return;
+  }
+
+  /* 가사가 있으면 노래방 버튼 표시 */
+  var _kBtn=$('fp-karaoke-btn');if(_kBtn)_kBtn.style.display='';
+
+  /* 타임스탬프 가사 API 시도 (노래방 모드와 동일한 정밀 싱크) */
+  var _tsTaskId=h.taskId||h._taskId||'';
+  var _tsAudioId=h.id||h._sbId||'';
+  if(_tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && !h._fpTimestampFetched){
+    h._fpTimestampFetched=true;
+    if(typeof kieRequest==='function'){
+      kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId})
+        .then(function(res){
+          var words=res&&res.data&&res.data.alignedWords?res.data.alignedWords:[];
+          if(words.length){
+            fpRenderTimestampedLyrics(words);
+            fpSyncMode=true;
+            var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
+          }
+        }).catch(function(){/* 실패 시 기존 LRC/균등 분할 유지 */});
+    }
   }
 
   /* LRC 타임스탬프 파싱: [mm:ss.xx] 또는 [mm:ss] */
@@ -17463,10 +17488,26 @@ var _fpPrevActiveIdx=-1;
 function fpSyncLyrics(currentTime){
   if(!fpTimestampLines.length||!fpAudio?.duration||!_fpLrcTimes.length)return;
   const n=fpTimestampLines.length;
+  const hasEnd=_fpLrcEndTimes.length===n;
   let activeIdx=-1;
 
-  for(let i=n-1;i>=0;i--){
-    if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
+  if(hasEnd){
+    /* 노래방 모드와 동일: start/end 구간 매칭 (정밀 싱크) */
+    for(let i=0;i<n;i++){
+      var s=_fpLrcTimes[i], e=_fpLrcEndTimes[i];
+      if(currentTime>=s&&currentTime<e){activeIdx=i;break;}
+    }
+    /* 구간 사이(간주 등)에 있으면 가장 가까운 지나간 라인 */
+    if(activeIdx<0){
+      for(let i=n-1;i>=0;i--){
+        if(currentTime>=_fpLrcEndTimes[i]){activeIdx=i;break;}
+      }
+    }
+  } else {
+    /* LRC/균등 분할: 시작 시간만으로 매칭 */
+    for(let i=n-1;i>=0;i--){
+      if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
+    }
   }
 
   /* 같은 라인이면 불필요한 DOM 업데이트/스크롤 스킵 */
@@ -17474,8 +17515,20 @@ function fpSyncLyrics(currentTime){
   _fpPrevActiveIdx=activeIdx;
 
   fpTimestampLines.forEach((el,i)=>{
-    el.classList.toggle('active',i===activeIdx);
-    el.classList.toggle('done',i<activeIdx);
+    if(hasEnd){
+      /* 노래방 스타일: 현재 구간=active, 지나간=done, 아직=기본 */
+      var s=_fpLrcTimes[i], e=_fpLrcEndTimes[i];
+      if(currentTime>=s&&currentTime<e){
+        el.classList.add('active');el.classList.remove('done');
+      } else if(currentTime>=e){
+        el.classList.remove('active');el.classList.add('done');
+      } else {
+        el.classList.remove('active','done');
+      }
+    } else {
+      el.classList.toggle('active',i===activeIdx);
+      el.classList.toggle('done',i<activeIdx);
+    }
   });
 
   /* 활성 라인 중앙으로 스크롤 */
@@ -17483,10 +17536,10 @@ function fpSyncLyrics(currentTime){
     const box=$('fp-lyrics-main');
     if(box){
       const el=fpTimestampLines[activeIdx];
-      const boxTop=box.getBoundingClientRect().top;
-      const elTop=el.getBoundingClientRect().top;
-      const offset=elTop-boxTop-(box.clientHeight/2)+(el.clientHeight/2);
-      if(Math.abs(offset)>5) box.scrollBy({top:offset,behavior:'smooth'});
+      const areaRect=box.getBoundingClientRect();
+      const elRect=el.getBoundingClientRect();
+      const targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
+      if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
     }
   }
 }
@@ -17524,13 +17577,15 @@ function fpRenderTimestampedLyrics(words){
   let html='';
   let lineIdx=0;
   const newLrcTimes=[];
+  const newLrcEndTimes=[];
   lines.forEach(function(line){
     if(line.isSec){
       html+=`<div class="fp-lm-sec">${esc(line.text||'')}</div>`;
     } else {
       const lineText=line.words.map(function(w){return w.text;}).join(' ');
-      html+=`<div class="fp-lm-line" data-li="${lineIdx}" onclick="fpSeekToLine(this)">${esc(lineText)}</div>`;
+      html+=`<div class="fp-lm-line" data-li="${lineIdx}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="fpSeekToLine(this)">${esc(lineText)}</div>`;
       newLrcTimes.push(line.startS||0);
+      newLrcEndTimes.push(line.endS||0);
       lineIdx++;
     }
   });
@@ -17538,6 +17593,7 @@ function fpRenderTimestampedLyrics(words){
   mainBox.innerHTML=html;
   fpTimestampLines=[...mainBox.querySelectorAll('.fp-lm-line')];
   _fpLrcTimes=newLrcTimes;
+  _fpLrcEndTimes=newLrcEndTimes;
   fpSyncMode=true;
   _fpPrevActiveIdx=-1;
   const syncBtn=$('fp-lyrics-mode-btn');
