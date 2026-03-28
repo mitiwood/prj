@@ -500,9 +500,10 @@ body.youtube-mode #preset-carousel{display:none!important;}
   border-radius:12px;padding:13px 16px;color:var(--t1);
   font-family:inherit;font-size:16px;transition:all .25s ease;
 }
-/* iOS 확대 방지 — 모든 폼 요소 최소 16px */
-input,textarea,select,button{font-size:16px;touch-action:manipulation;}
-input[type="range"]{font-size:inherit;}
+/* iOS 확대 방지 — 포커스 시 16px 강제 + 전체 더블탭 줌 차단 */
+*{touch-action:manipulation;-webkit-text-size-adjust:100%;}
+input,textarea,select{font-size:16px!important;}
+input[type="range"]{font-size:inherit!important;}
 .form-input:focus{outline:none;border-color:var(--acc);background:var(--bg);box-shadow:0 0 0 3px rgba(124,58,237,.1);}
 .form-input::placeholder{color:var(--t3);}
 textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
@@ -28150,25 +28151,47 @@ setTimeout(_showOnboarding, 1500);
   var _tossStep = 1;
   var _tossGenre = '';
 
-  /* 진동 + 흔들림 인터랙션 */
+  /* 진동 + 흔들림 + 입력창 하이라이트 인터랙션 */
   function _tossShake(el){
-    if(navigator.vibrate) navigator.vibrate(80);
-    if(!el) return;
-    el.style.animation='none';
-    el.offsetHeight; /* reflow */
-    el.style.animation='toss-shake .4s ease';
+    if(navigator.vibrate) navigator.vibrate([50,30,50]);
+    /* 전체 스텝 흔들림 */
+    var step=document.querySelector('.toss-step.visible');
+    if(step){
+      step.style.animation='none';step.offsetHeight;
+      step.style.animation='toss-shake .4s ease';
+    }
+    /* 버튼 흔들림 */
+    if(el){el.style.animation='none';el.offsetHeight;el.style.animation='toss-shake .4s ease';}
+  }
+  function _tossHighlight(targetEl,msg){
+    if(!targetEl) return;
+    targetEl.style.transition='box-shadow .2s, border-color .2s';
+    targetEl.style.boxShadow='0 0 0 2px rgba(239,68,68,.5)';
+    targetEl.style.borderColor='#ef4444';
+    /* 안내 메시지 표시 */
+    var hint=document.createElement('div');
+    hint.style.cssText='font-size:11px;color:#ef4444;font-weight:600;margin-top:4px;animation:toss-fade-in .2s;';
+    hint.textContent=msg;
+    hint.className='_toss-hint';
+    /* 기존 힌트 제거 */
+    targetEl.parentNode.querySelectorAll('._toss-hint').forEach(function(h){h.remove();});
+    targetEl.parentNode.appendChild(hint);
+    setTimeout(function(){
+      targetEl.style.boxShadow='';targetEl.style.borderColor='';
+      hint.remove();
+    },3000);
   }
 
   window._tossGoStep = function(step){
-    /* 스텝별 유효성 검사 — 미입력 시 진동 + 흔들림 */
+    /* 스텝별 유효성 검사 — 미입력 시 진동 + 흔들림 + 하이라이트 */
     if(step===2 && !document.querySelector('#panel-simple .qp-card.on') && !($('ai-assist-input')?.value||'').trim()){
       _tossShake($('toss-next-1'));
-      toast('장르를 선택하거나 설명을 입력해주세요','',2000);
+      _tossHighlight($('qp-grid'),'장르를 스와이프해서 선택해주세요');
       return;
     }
     if(step===3 && !$('simple-mood')?.value){
       _tossShake($('toss-next-2'));
-      toast('분위기를 하나 선택해주세요','',2000);
+      _tossHighlight($('simple-mood-grid'),'분위기를 스와이프해서 선택해주세요');
       return;
     }
 
@@ -28194,10 +28217,19 @@ setTimeout(_showOnboarding, 1500);
     if(panel) panel.scrollTop=0;
     var tgt=$('toss-step-'+step);
     if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:'smooth',block:'start'}); },100);
+    /* 카드형 스와이프를 첫 번째 카드로 초기화 */
+    if(_tossStep===1){ var g=$('qp-grid'); if(g) g.scrollLeft=0; }
+    if(_tossStep===2){ var m=$('simple-mood-grid'); if(m) m.scrollLeft=0; }
     /* Step 3 진입 시 곡 제목 포커스 + 키패드 온 */
     if(_tossStep===3){
-      var titleInp=$('simple-song-title');
-      if(titleInp){ titleInp.focus(); titleInp.click(); }
+      setTimeout(function(){
+        var titleInp=$('simple-song-title');
+        if(titleInp){
+          titleInp.setAttribute('readonly','');
+          titleInp.focus();
+          setTimeout(function(){ titleInp.removeAttribute('readonly'); },50);
+        }
+      },400);
     }
   };
 
@@ -28223,6 +28255,8 @@ setTimeout(_showOnboarding, 1500);
     if(_tossStep===4) _tossUpdSum();
     var panel=$('panel-simple');
     if(panel) panel.scrollTop=0;
+    if(_tossStep===1){ var g=$('qp-grid'); if(g) g.scrollLeft=0; }
+    if(_tossStep===2){ var m=$('simple-mood-grid'); if(m) m.scrollLeft=0; }
   };
 
   window._tossPreset = function(key, el){
@@ -28290,7 +28324,7 @@ setTimeout(_showOnboarding, 1500);
     /* 유효성 검사 */
     if(step===2 && !_lastYtAnalysis){
       _tossShake($('yt-next-1'));
-      toast('YouTube URL을 먼저 분석해주세요','',2000);
+      _tossHighlight($('yt-url'),'YouTube URL을 붙여넣고 분석 버튼을 눌러주세요');
       return;
     }
     _ytStep=step;
