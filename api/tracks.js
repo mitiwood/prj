@@ -110,7 +110,10 @@ async function _handler(req, res) {
 
     /* 경량 모드: 크리에이터 목록용 (필수 컬럼만) */
     const isLite = req.query?.mode === 'creators';
+    const isCommunity = req.query?.mode === 'community';
     const liteSelect = 'owner_name,owner_provider,owner_avatar,image_url,comm_likes,comm_plays,created_at';
+    /* 커뮤니티 목록용: lyrics 등 대용량 컬럼 제외 → 페이로드 50~70% 절감 */
+    const communitySelect = 'id,task_id,title,tags,image_url,audio_url,video_url,duration,comm_likes,comm_dislikes,comm_plays,comm_rating,comm_rating_count,owner_name,owner_avatar,owner_provider,co_owner_name,co_owner_avatar,co_owner_provider,collab_id,created_at,gen_mode';
 
     try {
       let filter;
@@ -119,7 +122,7 @@ async function _handler(req, res) {
       } else if (ownerName) {
         filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
       } else {
-        const sel = isLite ? liteSelect : '*';
+        const sel = isLite ? liteSelect : isCommunity ? communitySelect : '*';
         const sortParam = req.query?.sort || 'default';
         const orderMap = {
           'rating': 'comm_rating.desc.nullslast,comm_rating_count.desc,created_at.desc',

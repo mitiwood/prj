@@ -2541,6 +2541,12 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 @keyframes commFadeUp{from{opacity:0;transform:translateY(20px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 @keyframes commSpinDot{0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
 .comm-fade-in{animation:commFadeUp .45s cubic-bezier(.16,1,.3,1) both;}
+/* 토스 스타일: 부가 섹션 lazy load fade-in */
+.comm-lazy-reveal{opacity:0;transform:translateY(16px);transition:opacity .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1);}
+.comm-lazy-reveal.revealed{opacity:1;transform:translateY(0);}
+/* 스켈레톤 → 콘텐츠 전환 shimmer */
+@keyframes skeletonShimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.skeleton-shimmer-bar{background:linear-gradient(90deg,var(--border) 25%,rgba(255,255,255,.06) 50%,var(--border) 75%);background-size:200% 100%;animation:skeletonShimmer 1.8s ease infinite;}
 .comm-loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:14px;}
 .comm-loading-dots{display:flex;gap:6px;}
 .comm-loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:commSpinDot 1.4s ease-in-out infinite both;}
@@ -4314,8 +4320,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <!-- 모드 탭 -->
     <div class="mode-tabs">
-      <button class="mtab on" data-mode="custom"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.91 5.87H20l-4.95 3.6L16.96 18 12 14.27 7.04 18l1.91-5.53L4 8.87h6.09z"/></svg> <span data-i18n="custom">커스텀</span></button>
-      <button class="mtab" data-mode="simple"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span data-i18n="simple">심플</span></button>
+      <button class="mtab" data-mode="custom"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.91 5.87H20l-4.95 3.6L16.96 18 12 14.27 7.04 18l1.91-5.53L4 8.87h6.09z"/></svg> <span data-i18n="custom">커스텀</span></button>
+      <button class="mtab on" data-mode="simple"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span data-i18n="simple">심플</span></button>
       <button class="mtab" data-mode="youtube"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.43z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z"/></svg> <span>YouTube</span></button>
       <button class="mtab" data-mode="mv"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/><path d="M2 7h20M2 17h20"/></svg> <span>MV</span></button>
     </div>
@@ -4362,7 +4368,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div class="mode-panel-wrap">
 
       <!-- ━━━ 커스텀 패널 ━━━ -->
-      <div class="mode-panel on" id="panel-custom">
+      <div class="mode-panel" id="panel-custom">
 
         <!-- 커스텀 모드 AI 퀵 어시스턴트 -->
         <div style="margin-bottom:12px;padding:10px 12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.15);border-radius:12px;">
@@ -4771,7 +4777,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
 
       <!-- ━━━ 심플 패널 (토스 스타일 스텝 플로우) ━━━ -->
-      <div class="mode-panel" id="panel-simple">
+      <div class="mode-panel on" id="panel-simple">
 
         <!-- 프로그레스 바 -->
         <div class="toss-progress" id="toss-progress">
@@ -7380,7 +7386,7 @@ async function _pollRefreshSbTracks(){
   var changed = false;
   var currentCount = Math.max(_sbOffset, _SB_PAGE_SIZE);
   try{
-    var r = await fetch('/api/tracks?public=true&limit='+currentCount+'&offset=0');
+    var r = await fetch('/api/tracks?public=true&mode=community&limit='+currentCount+'&offset=0');
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
@@ -7638,7 +7644,7 @@ function _rowToTrack(t){
 var activeAudio=null,activeVizTimer=null;
 var _apRafPending=false,_commRafPending=false,_commHeroRafPending=false,_kpRafPending=false;
 function _destroyAudio(a){if(!a)return;try{a.pause();}catch(e){}a.removeAttribute('src');a.src='';try{a.load();}catch(e){}}
-var instOn=false,vocalGender='',currentMode='custom';
+var instOn=false,vocalGender='',currentMode='simple';
 var extendAudioId=null,toastTmr=null;
 var selectedEmotions=new Set(),makeMV=false;
 var currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
@@ -19242,12 +19248,7 @@ async function _renderCommunityInner(force){
   var cacheValid=_sbLoaded&&_sbTracks.length&&(Date.now()-_sbLoadedAt)<_SB_CACHE_TTL;
   if(cacheValid&&!force){
     _renderCommContent(heroWrap, list);
-    _renderCreatorsInline();
-    _renderDailyDiscover();
-    _renderWeeklyChart();
-    _renderCommBottom();
-    _renderActivityFeed();
-    _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
+    _commLazyInit(); /* 부가 섹션은 스크롤 시 lazy 로드 */
     _setupCommInfiniteScroll();
     return;
   }
@@ -19261,27 +19262,16 @@ async function _renderCommunityInner(force){
     list.querySelectorAll('.comm-list-item,.chart-item').forEach(function(el,i){
       el.style.animation='commFadeUp .4s cubic-bezier(.16,1,.3,1) '+(i*0.03)+'s both';
     });
-    _renderCreatorsInline();
-    _renderDailyDiscover();
-    _renderWeeklyChart();
-    _renderCommBottom();
-    _renderActivityFeed();
-    _loadChallenges().then(function(){_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));});
+    _commLazyInit(); /* 부가 섹션은 스크롤 시 lazy 로드 */
     _setupCommInfiniteScroll();
-    try{_renderFollowSuggestions();}catch(e){}
     /* 백그라운드에서 갱신 (사용자 대기 없음) */
     var _prevFp = _sbFingerprint;
     _loadSbTracks(true).then(function(){
       if(_sbFingerprint !== _prevFp){
-        /* 크리에이터/팔로잉/채팅/리더보드 모드면 일반 렌더 스킵 */
         if(_commActiveGenre==='creators'){_renderCreatorList();return;}
         if(_commActiveGenre==='following'||_commActiveGenre==='chat'||_commActiveGenre==='leaderboard')return;
         _renderCommContent(heroWrap, list);
-        _renderCreatorsInline();
-        _renderDailyDiscover();
-        _renderWeeklyChart();
-        _renderCommBottom();
-        _renderActivityFeed();
+        _commLazyInit(); /* 변경 시 부가 섹션 다시 lazy 로드 */
       }
     });
     return;
@@ -19333,27 +19323,20 @@ async function _renderCommunityInner(force){
   });
   _setupCommInfiniteScroll();
 
-  /* Phase 2: 부가 섹션 비동기 렌더 — 메인 노출 후 순차 */
-  requestAnimationFrame(function(){
-    try{_renderCreatorsInline();}catch(e){}
-    try{_renderDailyDiscover();}catch(e){}
-    try{_renderWeeklyChart();}catch(e){}
-  });
-  setTimeout(function(){
-    try{_renderCommBottom();}catch(e){}
-    try{_renderActivityFeed();}catch(e){}
-    try{_renderFollowSuggestions();}catch(e){}
-    _loadChallenges().then(function(){try{_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));}catch(e){}});
-  },100);
+  /* Phase 2: 부가 섹션 — 스크롤 시 lazy 로드 (토스 스타일) */
+  _commLazyInit();
 
   /* Phase 3: 백그라운드 — 팔로잉/좋아요 복원 (UI 블로킹 없음) */
   if(!_followingNames) _loadFollowingNames(); else _updateCommBadge();
   _restoreUserLikes().then(function(){
+    /* 부분 DOM 업데이트 — 전체 재렌더 없이 좋아요/별점 상태만 반영 */
     list.querySelectorAll('.comm-list-item').forEach(function(el){
       var sid=el.dataset.sbid;if(!sid)return;
       var t=_sbTracks.find(function(x){return x._sbId===sid;});if(!t)return;
       var likeBtn=el.querySelector('[id^="comm-like-btn-"]');
       if(likeBtn&&t.liked){likeBtn.classList.add('liked');likeBtn.innerHTML='❤️ <span>'+(t.likes>0?t.likes:'')+'</span>';}
+      var dlBtn=el.querySelector('[id^="comm-dislike-btn-"]');
+      if(dlBtn&&t.disliked){dlBtn.classList.add('disliked');}
     });
   }).catch(function(){});
   if(typeof _groupCreatorsFromTracks==='function'&&!_myFeedCreators&&_followBatchLoaded){
@@ -19429,6 +19412,42 @@ function _skeleton(type,count){
 }
 /* n개 스켈레톤을 컨테이너에 세팅 — 데이터 도착 시 innerHTML 교체로 자동 제거 */
 function _showSkel(el,type,count){if(!el)return;el.innerHTML=_skeleton(type,count||4);}
+
+/* ── 부가 섹션 Lazy Load (토스 스타일 — 보이는 것만 로드) ── */
+var _commLazyObs=null;
+var _commLazyDone=new Set();
+function _commLazyInit(){
+  if(_commLazyObs){_commLazyObs.disconnect();}
+  _commLazyDone.clear();
+  var secMap={
+    'comm-creators-section':function(){try{_renderCreatorsInline();}catch(e){}},
+    'comm-daily-discover':function(){try{_renderDailyDiscover();}catch(e){}},
+    'comm-chart-wrap':function(){try{_renderWeeklyChart();}catch(e){}},
+    'comm-challenge-wrap':function(){_loadChallenges().then(function(){try{_renderChallengeBanner($('comm-challenge-wrap')||document.createElement('div'));}catch(e){}}).catch(function(){});},
+    'comm-activity-feed':function(){try{_renderActivityFeed();}catch(e){}},
+    'comm-suggest-wrap':function(){try{_renderFollowSuggestions();}catch(e){}},
+    'comm-mood-wrap':function(){try{_renderCommBottom();}catch(e){}},
+  };
+  _commLazyObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting)return;
+      var id=entry.target.id;
+      if(_commLazyDone.has(id))return;
+      _commLazyDone.add(id);
+      /* 토스 스타일 부드러운 fade-in */
+      entry.target.classList.add('comm-lazy-reveal');
+      if(secMap[id])secMap[id]();
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){entry.target.classList.add('revealed');});
+      });
+      _commLazyObs.unobserve(entry.target);
+    });
+  },{rootMargin:'300px 0px'});
+  Object.keys(secMap).forEach(function(id){
+    var el=$(id);
+    if(el)_commLazyObs.observe(el);
+  });
+}
 
 /* 로컬 데이터 변경 후 서버 재요청 없이 부분 DOM 갱신 */
 function _commQuickRender(){
@@ -26595,7 +26614,7 @@ function _applyQuickPreset(key){
   var instTog=$('simple-inst-toggle');if(instTog)instTog.classList.toggle('on',!!p.inst);
   /* 카드 시각 선택 */
   document.querySelectorAll('.qp-card').forEach(function(c){c.classList.remove('on');});
-  event.currentTarget.classList.add('on');
+  if(typeof event!=='undefined'&&event&&event.currentTarget)event.currentTarget.classList.add('on');
   toast('✦ '+key.toUpperCase()+' 프리셋 적용!','ok',1500);
 }
 /* ── 범용 바텀시트 열기/닫기 ── */
@@ -27594,6 +27613,77 @@ setTimeout(_showOnboarding, 1500);
     _ccBusy = false;
     $('cc-send').disabled = false;
   };
+})();
+</script>
+<script>
+/* toss step flow logic */
+(function(){
+  var _tossStep = 1;
+  var _tossGenre = '';
+
+  window._tossGoStep = function(step){
+    _tossStep = Math.max(_tossStep, step);
+    document.querySelectorAll('.toss-progress-dot').forEach(function(d){
+      var s = parseInt(d.dataset.step);
+      d.classList.remove('done','active');
+      if(s < _tossStep) d.classList.add('done');
+      else if(s === _tossStep) d.classList.add('active');
+    });
+    for(var i=1;i<=4;i++){
+      var el=$('toss-step-'+i);
+      if(el) el.classList.toggle('visible', i<=_tossStep);
+    }
+    for(var j=2;j<=3;j++){
+      var ck=$('toss-check-'+j);
+      if(ck){ ck.classList.toggle('show', j<_tossStep); if(j<_tossStep) ck.textContent='\u2713'; }
+    }
+    if(_tossStep>=4) _tossUpdSum();
+    var sum=$('toss-summary');
+    if(sum) sum.classList.toggle('show', _tossStep>=4);
+    var tgt=$('toss-step-'+step);
+    if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:'smooth',block:'center'}); },200);
+  };
+
+  window._tossPreset = function(key, el){
+    _tossGenre = el ? el.querySelector('.qp-title').textContent : '';
+    _applyQuickPreset(key);
+    document.querySelectorAll('#panel-simple .qp-card').forEach(function(c){c.classList.remove('on');});
+    if(el) el.classList.add('on');
+    setTimeout(function(){ _tossGoStep(2); },300);
+  };
+
+  function _tossUpdSum(){
+    var g=$('toss-sum-genre'), m=$('toss-sum-mood'), b=$('toss-sum-bpm'), v=$('toss-sum-vocal');
+    if(g){ var s=document.querySelector('#panel-simple .qp-card.on .qp-title'); g.textContent=s?s.textContent:(_tossGenre||'AI \uCD94\uCC9C'); }
+    if(m){ var mc=document.querySelector('#simple-mood-grid .mood-chip.on'); m.textContent=mc?mc.textContent.trim():'AI \uCD94\uCC9C'; }
+    if(b){ var bs=$('simple-bpm-slider'); b.textContent=bs?(bs.value+' BPM'):'120 BPM'; }
+    if(v){ var it=$('simple-inst-toggle'); v.textContent=(it&&it.classList.contains('on'))?'\uC778\uC2A4\uD2B8\uB8E8\uBA58\uD0C8':'\uBCF4\uCEEC \uC788\uC74C'; }
+  }
+
+  var _oqs = window._quickAiSuggest;
+  if(_oqs){ window._quickAiSuggest = function(){ _oqs.apply(this,arguments); setTimeout(function(){ _tossGoStep(2); },400); }; }
+
+  document.querySelectorAll('.mtab').forEach(function(tab){
+    tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _tossGoStep(1); } });
+  });
+
+  var _s3t=null;
+  function _s3w(){ if(_s3t)clearTimeout(_s3t); _s3t=setTimeout(function(){ if(_tossStep>=3) _tossGoStep(4); },800); }
+  var a=$('simple-song-title'); if(a)a.addEventListener('input',_s3w);
+  var b=$('simple-prompt'); if(b)b.addEventListener('input',_s3w);
+  var c=$('simple-lyrics'); if(c)c.addEventListener('input',_s3w);
+  var d=$('simple-bpm-slider'); if(d)d.addEventListener('input',function(){ if(_tossStep>=3) _tossGoStep(4); });
+
+  var _mo = new MutationObserver(function(){
+    var s3=$('toss-step-3');
+    if(s3&&s3.classList.contains('visible')&&_tossStep===3){
+      setTimeout(function(){ if(_tossStep===3) _tossGoStep(4); },1200);
+    }
+  });
+  var s3=$('toss-step-3');
+  if(s3) _mo.observe(s3,{attributes:true,attributeFilter:['class']});
+
+  _tossGoStep(1);
 })();
 </script>
 <script src="js/create-enhance.js"></script>
