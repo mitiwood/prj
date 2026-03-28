@@ -6099,6 +6099,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   </div>
 </div>
 
+<!-- 게스트 고정 CTA 버튼 (하단탭 바로 위) -->
+<div id="guest-fixed-cta" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:10004;padding:0 16px 12px;box-sizing:border-box;">
+  <div style="background:var(--card2);border:1px solid var(--border2);border-radius:16px;padding:12px 16px;backdrop-filter:blur(20px);box-shadow:0 -4px 24px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;">👤</span>
+        <span style="font-size:12px;font-weight:700;color:var(--t1);">게스트 모드</span>
+      </div>
+      <div id="guest-cta-remain" style="font-size:11px;color:var(--acc);font-weight:700;background:rgba(124,58,237,.12);padding:3px 10px;border-radius:8px;"></div>
+    </div>
+    <button onclick="_guestQuickGenerate()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(124,58,237,.4);transition:all .15s;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">
+      <span style="font-size:18px;">✦</span> 음악 만들기
+    </button>
+  </div>
+</div>
+
 <nav id="bottom-nav">
   <button class="bnav-item" data-view="community-view" onclick="switchTab('community-view')" style="position:relative;">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -7994,6 +8010,30 @@ function startGuestMode(){
   localStorage.setItem('kms_guest_mode','1');
   closeLoginSheet();
   toast('👤 게스트 모드로 시작합니다 · '+GUEST_SONG_LIMIT+'곡 무료 체험','ok',3000);
+  _showGuestCTA();
+}
+
+function _showGuestCTA(){
+  var el=document.getElementById('guest-fixed-cta');
+  if(!el) return;
+  if(!isGuestMode()||currentUser){el.style.display='none';return;}
+  var remain=GUEST_SONG_LIMIT-_getGuestUsage();
+  if(remain<=0){el.style.display='none';return;}
+  el.style.display='block';
+  var badge=document.getElementById('guest-cta-remain');
+  if(badge) badge.textContent=remain+'곡 남음';
+}
+
+function _guestQuickGenerate(){
+  if(_getGuestUsage()>=GUEST_SONG_LIMIT){_showGuestLoginPrompt();return;}
+  /* 현재 보이는 탭이 create-view가 아니면 전환 */
+  var cv=document.getElementById('create-view');
+  if(!cv||!cv.classList.contains('on')) switchTab('create-view');
+  /* 심플모드의 생성 버튼 또는 커스텀 생성 버튼 클릭 */
+  var simpleBtn=document.getElementById('simple-gen-btn');
+  var genBtn=document.getElementById('gen-btn');
+  if(currentMode==='simple'&&simpleBtn){simpleBtn.click();}
+  else if(genBtn){genBtn.click();}
 }
 
 function _showGuestLoginPrompt(){
@@ -8175,6 +8215,8 @@ function updateLoginUI(){
   /* 플랜 UI 갱신 */
   if(typeof renderPlanUI === 'function') renderPlanUI();
   if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
+  /* 게스트 CTA 갱신 */
+  if(typeof _showGuestCTA === 'function') _showGuestCTA();
 }
 
 /* ── 로그인 모달 닫기 (바텀시트로 교체 - 배경 클릭은 HTML onclick 처리) ── */
@@ -22507,6 +22549,7 @@ function trackUsage(type, meta={}){
   if(!currentUser && isGuestMode() && type==='song'){
     _incGuestUsage();
     var gRemain=GUEST_SONG_LIMIT-_getGuestUsage();
+    _showGuestCTA();
     if(gRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
     else toast('👤 게스트 체험 '+gRemain+'곡 남았어요','info',3000);
   }
