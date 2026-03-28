@@ -4921,6 +4921,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">공부</button>
             <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">운동</button>
           </div>
+          <div class="toss-step-nav" style="margin-top:20px;">
+            <button class="toss-nav-next" id="toss-next-1" onclick="_tossGoStep(2)" disabled>다음</button>
+          </div>
         </div>
 
         <!-- ── STEP 2: 분위기 선택 ── -->
@@ -10444,6 +10447,8 @@ function _aiAssistRecommend(){
   </div>`;
   result.innerHTML = html;
   toast('✨ 곡 컨셉이 적용됐어요!','ok',1500);
+  /* Step1 다음 버튼 활성화 */
+  var nb=$('toss-next-1'); if(nb) nb.disabled=false;
 }
 /* 추천 결과를 심플 모드에 적용 */
 function _applyAiRecommend(desc, bpm, title){
@@ -27800,7 +27805,9 @@ setTimeout(_showOnboarding, 1500);
     _applyQuickPreset(key);
     document.querySelectorAll('#panel-simple .qp-card').forEach(function(c){c.classList.remove('on');});
     if(el) el.classList.add('on');
-    setTimeout(function(){ _tossGoStep(2); },300);
+    /* 다음 버튼 활성화 */
+    var nb=$('toss-next-1');
+    if(nb) nb.disabled=false;
   };
 
   function _tossUpdSum(){
@@ -27812,10 +27819,10 @@ setTimeout(_showOnboarding, 1500);
   }
 
   var _oqs = window._quickAiSuggest;
-  if(_oqs){ window._quickAiSuggest = function(){ _oqs.apply(this,arguments); setTimeout(function(){ _tossGoStep(2); },400); }; }
+  if(_oqs){ window._quickAiSuggest = function(){ _oqs.apply(this,arguments); var nb=$('toss-next-1'); if(nb) nb.disabled=false; }; }
 
   document.querySelectorAll('.mtab').forEach(function(tab){
-    tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _tossGoStep(1); } });
+    tab.addEventListener('click',function(){ if(tab.dataset.mode==='simple'){ _tossStep=1; _tossGoStep(1); var nb=$('toss-next-1'); if(nb) nb.disabled=true; } });
   });
 
   _tossGoStep(1);
