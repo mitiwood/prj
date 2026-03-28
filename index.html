@@ -1435,35 +1435,42 @@ body:not(.simple-mode):not(.youtube-mode) .toss-fixed-nav{display:none;}
 @keyframes toss-shake{0%,100%{transform:translateX(0);}15%{transform:translateX(-6px);}30%{transform:translateX(6px);}45%{transform:translateX(-4px);}60%{transform:translateX(4px);}75%{transform:translateX(-2px);}90%{transform:translateX(2px);}}
 /* ── 인스타 감성 카드 (Step 3) ── */
 .ig-card{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;border-radius:16px;margin-bottom:10px;
-  background:var(--card);border:1px solid var(--border);
-  transition:all .2s;
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;border-radius:20px;margin-bottom:12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);
+  transition:all .25s cubic-bezier(.4,0,.2,1);
 }
-.ig-card:hover{border-color:rgba(168,85,247,.25);}
+.ig-card:hover{border-color:rgba(168,85,247,.3);background:rgba(255,255,255,.06);}
 .ig-card-expand{flex-direction:column;align-items:stretch;}
 .ig-card-icon{
-  font-size:24px;flex-shrink:0;
-  width:40px;height:40px;border-radius:12px;
+  font-size:18px;flex-shrink:0;
+  width:44px;height:44px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(168,85,247,.06));
+  background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));
+  color:var(--acc);
 }
+.ig-card-icon svg{width:20px;height:20px;stroke:var(--acc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .ig-card-body{flex:1;min-width:0;}
-.ig-card-label{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px;}
+.ig-card-label{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px;letter-spacing:-.2px;}
 .ig-card-input{
   width:100%;background:none;border:none;outline:none;
-  color:var(--t1);font-size:14px;font-weight:600;font-family:inherit;
+  color:var(--t1);font-size:14px;font-weight:500;font-family:inherit;
   padding:0;line-height:1.5;
 }
-.ig-card-input::placeholder{color:var(--t3);font-weight:400;}
+.ig-card-input::placeholder{color:var(--t3);font-weight:400;font-size:13px;}
 .ig-card-input:focus{color:var(--t1);}
 textarea.ig-card-input{
-  background:var(--bg);border:1px solid var(--border);border-radius:12px;
-  padding:10px 12px;font-size:13px;font-weight:500;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;
+  padding:12px 14px;font-size:13px;font-weight:500;
+  transition:border-color .2s;
 }
-textarea.ig-card-input:focus{border-color:var(--acc);}
-[data-theme="light"] .ig-card{background:#fff;border-color:rgba(0,0,0,.06);}
-[data-theme="light"] .ig-card-icon{background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));}
+textarea.ig-card-input:focus{border-color:var(--acc);background:rgba(255,255,255,.06);}
+[data-theme="light"] .ig-card{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .ig-card:hover{background:rgba(0,0,0,.03);}
+[data-theme="light"] .ig-card-icon{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));}
+[data-theme="light"] textarea.ig-card-input{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.06);}
 
 /* 퀵 프리셋 카드 — 스와이프 큰 카드 */
 .qp-grid{
@@ -5018,7 +5025,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- 곡 제목 카드 -->
           <div class="ig-card">
-            <div class="ig-card-icon">✏️</div>
+            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
             <div class="ig-card-body">
               <div class="ig-card-label">곡 제목</div>
               <input class="ig-card-input" id="simple-song-title" type="text" placeholder="비워두면 AI가 자동 생성" data-i18n-ph="songTitle" autocomplete="off">
@@ -5027,7 +5034,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- 곡 설명 카드 -->
           <div class="ig-card">
-            <div class="ig-card-icon">💬</div>
+            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
             <div class="ig-card-body">
               <div class="ig-card-label">곡 설명</div>
               <textarea class="ig-card-input" id="simple-prompt" rows="2" placeholder="예: 비 오는 날 카페에 어울리는 잔잔한 재즈" style="resize:none;"></textarea>
@@ -5036,14 +5043,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- BPM 카드 -->
           <div class="ig-card">
-            <div class="ig-card-icon">⏱️</div>
+            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <div class="ig-card-body">
-              <div class="ig-card-label">곡 스피드 <span style="font-weight:600;color:var(--acc);" id="s-bpm-display">120</span> BPM</div>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                <span style="font-size:10px;color:var(--t3);">느림</span>
+              <div class="ig-card-label">곡 스피드 <span style="font-weight:700;color:var(--acc);" id="s-bpm-display">120</span> BPM</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                <span style="font-size:10px;color:var(--t3);font-weight:500;">느림</span>
                 <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
                   oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
-                <span style="font-size:10px;color:var(--t3);">빠름</span>
+                <span style="font-size:10px;color:var(--t3);font-weight:500;">빠름</span>
                 <div class="bpm-badge" id="s-bpm-badge" style="font-size:11px;min-width:56px;">120 BPM</div>
               </div>
             </div>
@@ -5051,7 +5058,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- 보컬/인스트 카드 -->
           <div class="ig-card" style="cursor:pointer;" onclick="var t=$('simple-inst-toggle');if(t)t.click();">
-            <div class="ig-card-icon">🎤</div>
+            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
             <div class="ig-card-body" style="flex:1;">
               <div class="ig-card-label">인스트루멘탈</div>
             </div>
@@ -5063,7 +5070,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <!-- 가사 카드 -->
           <div class="ig-card ig-card-expand">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div class="ig-card-icon" style="margin:0;">📝</div>
+              <div class="ig-card-icon" style="margin:0;"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
               <div class="ig-card-label" style="margin:0;">가사 <span style="font-size:10px;color:var(--t3);font-weight:500;">비우면 AI 자동 생성</span></div>
             </div>
             <textarea class="ig-card-input" id="simple-lyrics" rows="3" data-i18n-ph="lyricsPlaceholder"
@@ -5079,7 +5086,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- 곡 수 카드 -->
           <div class="ig-card">
-            <div class="ig-card-icon">🎵</div>
+            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
             <div class="ig-card-body" style="flex:1;">
               <div class="ig-card-label">생성 곡 수</div>
             </div>
