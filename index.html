@@ -1434,11 +1434,12 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .toss-step-nav{display:none!important;}
 /* 공용 고정 하단 네비게이션 */
 .toss-fixed-nav{
-  display:flex;gap:8px;padding:12px 16px;
-  position:fixed;bottom:60px;left:0;right:0;z-index:10006;
+  display:flex;gap:8px;padding:10px 16px;
+  position:fixed;bottom:var(--bnav-h,56px);left:0;right:0;z-index:10004;
   background:var(--bg);border-top:1px solid var(--border);
   max-width:480px;margin:0 auto;
   box-shadow:0 -2px 12px rgba(0,0,0,.15);
+  transition:bottom .3s cubic-bezier(.4,0,.2,1);
 }
 body:not(.simple-mode):not(.youtube-mode):not(.mv-mode) .toss-fixed-nav{display:none;}
 .toss-nav-back{
@@ -28521,9 +28522,12 @@ setTimeout(_showOnboarding, 1500);
 
   window._updateFixedNav=function(){
     var nav=$('toss-fixed-nav');if(!nav) return;
-    /* 하단 네비 실제 높이 측정 → bottom 동적 설정 */
+    /* 하단 네비 + 미니플레이어 높이 측정 → bottom 동적 설정 */
     var bnav=document.getElementById('bottom-nav');
-    if(bnav) nav.style.bottom=bnav.offsetHeight+'px';
+    var mp=document.getElementById('mini-player');
+    var base=bnav?bnav.offsetHeight:56;
+    var mpH=(mp&&mp.classList.contains('on')&&!mp.classList.contains('mp-hide'))?mp.offsetHeight:0;
+    nav.style.bottom=(base+mpH)+'px';
     var mode=(currentMode==='youtube')?'youtube':(currentMode==='mv')?'mv':'simple';
     var step=(mode==='youtube')?_ytStep:(mode==='mv')?_mvStep:_tossStep;
     var def=(_navDefs[mode]||{})[step];
@@ -28659,6 +28663,12 @@ setTimeout(_showOnboarding, 1500);
   window._tossBack=function(s){var r=_origTossBack(s);_updateFixedNav();return r;};
   window._ytStepGo=function(s){var r=_origYtGo(s);_updateFixedNav();return r;};
   window._ytStepBack=function(s){var r=_origYtBack(s);_updateFixedNav();return r;};
+
+  /* 미니플레이어 열림/닫힘 감지 → 다음 버튼 위치 갱신 */
+  var _mpEl=document.getElementById('mini-player');
+  if(_mpEl){
+    new MutationObserver(function(){_updateFixedNav();}).observe(_mpEl,{attributes:true,attributeFilter:['class']});
+  }
 
   /* 초기 nav 렌더 */
   _updateFixedNav();
