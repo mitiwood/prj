@@ -1355,19 +1355,100 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .pl-share-link{display:flex;gap:6px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);margin-top:8px;}
 .pl-share-link input{flex:1;background:none;border:none;color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
 .pl-share-link button{padding:4px 10px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;}
+/* ━━━ 토스 스타일 스텝 플로우 (심플 모드) ━━━ */
+.toss-progress{display:flex;gap:4px;margin-bottom:20px;padding:0 2px;}
+.toss-progress-dot{flex:1;height:3px;border-radius:2px;background:var(--border);transition:all .4s cubic-bezier(.4,0,.2,1);}
+.toss-progress-dot.done{background:var(--acc);}
+.toss-progress-dot.active{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 8px rgba(124,58,237,.3);}
+
+.toss-step{
+  opacity:0;max-height:0;overflow:hidden;
+  transition:opacity .45s cubic-bezier(.4,0,.2,1),max-height .45s cubic-bezier(.4,0,.2,1),margin .3s,padding .3s;
+  margin-bottom:0;padding:0;
+}
+.toss-step.visible{
+  opacity:1;max-height:800px;overflow:visible;
+  margin-bottom:20px;
+}
+.toss-step-q{
+  font-size:18px;font-weight:800;color:var(--t1);
+  line-height:1.4;margin-bottom:4px;letter-spacing:-.3px;
+}
+.toss-step-hint{
+  font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.5;
+}
+.toss-step-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;color:var(--acc);
+  background:rgba(124,58,237,.08);border-radius:20px;
+  padding:3px 10px;margin-bottom:10px;
+}
+
 /* 퀵 프리셋 카드 (심플 모드) */
-.qp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.qp-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px 10px;border-radius:14px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;}
-.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;opacity:0;transition:opacity .2s;}
-.qp-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
-.qp-card:active{transform:scale(.96);}
-.qp-card.on{border-color:var(--acc);background:rgba(124,58,237,.06);}
+.qp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.qp-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 6px 14px;border-radius:16px;background:var(--card);border:1.5px solid var(--border);cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;position:relative;overflow:hidden;}
+.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;opacity:0;transition:opacity .2s;}
+.qp-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08);}
+.qp-card:active{transform:scale(.95);}
+.qp-card.on{border-color:var(--acc);background:rgba(124,58,237,.06);transform:scale(1.02);box-shadow:0 4px 16px rgba(124,58,237,.15);}
 .qp-card.on::before{opacity:1;background:linear-gradient(90deg,var(--acc),var(--acc2));}
-.qp-emoji{font-size:24px;line-height:1;}
-.qp-title{font-size:11px;font-weight:700;color:var(--t1);}
-.qp-sub{font-size:9px;color:var(--t3);}
-[data-theme="light"] .qp-card{background:#fff;}
-[data-theme="light"] .qp-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.04);}
+.qp-emoji{font-size:28px;line-height:1;}
+.qp-title{font-size:12px;font-weight:700;color:var(--t1);}
+.qp-sub{font-size:10px;color:var(--t3);}
+[data-theme="light"] .qp-card{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .qp-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.04);}
+[data-theme="light"] .qp-card.on{background:rgba(124,58,237,.04);border-color:var(--acc);}
+
+/* 플로팅 생성 버튼 */
+.toss-floating-cta{
+  position:sticky;bottom:0;left:0;right:0;z-index:10;
+  padding:12px 0 4px;
+  background:linear-gradient(to top,var(--card) 60%,transparent);
+  pointer-events:none;
+}
+.toss-floating-cta .gen-btn{pointer-events:auto;}
+.toss-floating-cta .gen-btn{
+  box-shadow:0 -4px 24px rgba(124,58,237,.2),0 4px 20px rgba(124,58,237,.3);
+}
+
+/* 무드 칩 개선 */
+.mood-grid-toss{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.mood-grid-toss .mood-chip{
+  padding:10px 4px;font-size:11px;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  border:1.5px solid var(--border);background:var(--card);
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+}
+.mood-grid-toss .mood-chip .mood-ico{font-size:20px;}
+.mood-grid-toss .mood-chip.on{
+  border-color:var(--acc);background:rgba(124,58,237,.08);
+  transform:scale(1.03);box-shadow:0 2px 12px rgba(124,58,237,.15);
+}
+[data-theme="light"] .mood-grid-toss .mood-chip{background:#fff;border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .mood-grid-toss .mood-chip.on{background:rgba(124,58,237,.04);}
+
+/* 스텝 완료 체크 애니메이션 */
+.toss-check{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--acc);color:#fff;font-size:11px;
+  transform:scale(0);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  margin-left:6px;
+}
+.toss-check.show{transform:scale(1);}
+
+/* 심플 모드 요약 카드 */
+.toss-summary{
+  padding:14px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));
+  border:1px solid rgba(124,58,237,.12);margin-bottom:12px;
+  display:none;
+}
+.toss-summary.show{display:block;animation:toss-fade-in .3s ease;}
+.toss-summary-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
+.toss-summary-label{color:var(--t3);font-weight:500;}
+.toss-summary-val{color:var(--t1);font-weight:700;}
+@keyframes toss-fade-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 /* 포스트 프로덕션 도구 버튼 */
 .rc-tools-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
 .rc-tools-btn:hover{border-color:var(--acc);color:var(--acc);}
@@ -4689,78 +4770,62 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </button>
       </div>
 
-      <!-- ━━━ 심플 패널 ━━━ -->
+      <!-- ━━━ 심플 패널 (토스 스타일 스텝 플로우) ━━━ -->
       <div class="mode-panel" id="panel-simple">
-        <!-- 퀵 프리셋 카드 -->
-        <div style="margin-bottom:4px;font-size:12px;font-weight:700;color:var(--t2);">빠른 시작</div>
-        <div class="qp-grid">
-          <div class="qp-card" onclick="_applyQuickPreset('kpop')"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
-          <div class="qp-card" onclick="_applyQuickPreset('ballad')"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
-          <div class="qp-card" onclick="_applyQuickPreset('lofi')"><div class="qp-emoji">☕</div><div class="qp-title">Lo-Fi</div><div class="qp-sub">칠 비트</div></div>
-          <div class="qp-card" onclick="_applyQuickPreset('hiphop')"><div class="qp-emoji">🔥</div><div class="qp-title">힙합</div><div class="qp-sub">트랩 비트</div></div>
-          <div class="qp-card" onclick="_applyQuickPreset('cinematic')"><div class="qp-emoji">🎬</div><div class="qp-title">OST</div><div class="qp-sub">시네마틱</div></div>
-          <div class="qp-card" onclick="_applyQuickPreset('acoustic')"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
+
+        <!-- 프로그레스 바 -->
+        <div class="toss-progress" id="toss-progress">
+          <div class="toss-progress-dot active" data-step="1"></div>
+          <div class="toss-progress-dot" data-step="2"></div>
+          <div class="toss-progress-dot" data-step="3"></div>
+          <div class="toss-progress-dot" data-step="4"></div>
         </div>
-        <!-- AI 작곡 어시스턴트 -->
-        <div id="ai-assistant-wrap" style="margin-bottom:14px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.2);border-radius:14px;">
-          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px;">🤖 AI 작곡 어시스턴트</div>
-          <div style="font-size:11px;color:var(--t2);margin-bottom:10px;">어떤 곡을 만들고 싶은지 자유롭게 말해주세요!</div>
-          <div style="display:flex;gap:6px;">
-            <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈 느낌의 곡" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:12px;padding:10px 12px;">
-            <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
+
+        <!-- ── STEP 1: 장르 선택 ── -->
+        <div class="toss-step visible" id="toss-step-1">
+          <div class="toss-step-q">어떤 음악을 만들까요?</div>
+          <div class="toss-step-hint">장르를 골라주세요. 탭 한 번이면 돼요</div>
+          <div class="qp-grid">
+            <div class="qp-card" onclick="_tossPreset('kpop',this)"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
+            <div class="qp-card" onclick="_tossPreset('ballad',this)"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
+            <div class="qp-card" onclick="_tossPreset('lofi',this)"><div class="qp-emoji">☕</div><div class="qp-title">Lo-Fi</div><div class="qp-sub">칠 비트</div></div>
+            <div class="qp-card" onclick="_tossPreset('hiphop',this)"><div class="qp-emoji">🔥</div><div class="qp-title">힙합</div><div class="qp-sub">트랩 비트</div></div>
+            <div class="qp-card" onclick="_tossPreset('cinematic',this)"><div class="qp-emoji">🎬</div><div class="qp-title">OST</div><div class="qp-sub">시네마틱</div></div>
+            <div class="qp-card" onclick="_tossPreset('acoustic',this)"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
           </div>
-          <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
-          <div class="ai-suggest-chips" id="ai-quick-suggests">
-            <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">🌧 비 오는 날</button>
-            <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">🌙 새벽 감성</button>
-            <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">🎉 파티</button>
-            <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">🧘 집중</button>
-            <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">🚗 드라이브</button>
-            <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">💕 고백</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">🎶 트로트</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">🌊 여름</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">📚 공부</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">💪 운동</button>
-          </div>
-          <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
-          <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
-        </div>
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목
-            <span class="form-label-hint">비워두면 AI가 자동 생성</span>
-          </div>
-          <input class="form-input" id="simple-song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;">
-        </div>
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></span> 곡 설명
-            <span class="form-label-hint">장르, 스타일 자유롭게</span>
-          </div>
-          <textarea class="form-input" id="simple-prompt" rows="3"
-            placeholder="예: upbeat K-pop with bright synths, female vocals&#10;예: 비 오는 날 카페에 어울리는 잔잔한 재즈"></textarea>
-        </div>
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 곡 스피드
-            <span class="form-label-hint">현재: <span id="s-bpm-display">120</span> BPM</span>
-          </div>
-          <div class="bpm-main-row">
-            <span style="font-size:11px;color:var(--t3);">느림</span>
-            <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-              oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
-            <span style="font-size:11px;color:var(--t3);">빠름</span>
-            <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
+          <!-- AI 어시스턴트 (직접 입력) -->
+          <div style="text-align:center;margin:8px 0 10px;font-size:11px;color:var(--t3);">또는 자유롭게 설명해주세요</div>
+          <div id="ai-assistant-wrap" style="padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.12);border-radius:14px;">
+            <div style="display:flex;gap:6px;">
+              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈 느낌의 곡" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:12px;padding:10px 12px;">
+              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
+            </div>
+            <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
+            <div class="ai-suggest-chips" id="ai-quick-suggests" style="margin-top:8px;">
+              <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">🌧 비 오는 날</button>
+              <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">🌙 새벽 감성</button>
+              <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">🎉 파티</button>
+              <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">🧘 집중</button>
+              <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">🚗 드라이브</button>
+              <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">💕 고백</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">🎶 트로트</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">🌊 여름</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">📚 공부</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">💪 운동</button>
+            </div>
+            <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+            <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
           </div>
         </div>
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span> 분위기
-          </div>
+
+        <!-- ── STEP 2: 분위기 선택 ── -->
+        <div class="toss-step" id="toss-step-2">
+          <div class="toss-step-q">어떤 분위기가 좋을까요? <span class="toss-check" id="toss-check-2"></span></div>
+          <div class="toss-step-hint">하나만 골라주세요. 나중에 바꿀 수도 있어요</div>
           <select id="simple-mood" style="display:none;">
             <option value="">선택 안함</option><option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
           </select>
-          <div class="mood-grid" id="simple-mood-grid">
+          <div class="mood-grid-toss" id="simple-mood-grid">
             <button class="mood-chip" data-mood="happy, uplifting" onclick="_setSimpleMood(this)"><span class="mood-ico">😊</span>신나는</button>
             <button class="mood-chip" data-mood="sad, emotional" onclick="_setSimpleMood(this)"><span class="mood-ico">😢</span>감성적</button>
             <button class="mood-chip" data-mood="calm, relaxing" onclick="_setSimpleMood(this)"><span class="mood-ico">🍃</span>편안한</button>
@@ -4775,48 +4840,104 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)"><span class="mood-ico">🔮</span>신비</button>
           </div>
         </div>
-        <div class="options-row" style="margin-bottom:12px;">
-          <div class="opt-group">
-            <div class="opt-label">인스트루멘탈</div>
-            <div class="toggle-label-row" id="simple-inst-toggle">
-              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-              <span class="toggle-txt">보컬 없음</span>
+
+        <!-- ── STEP 3: 세부 설정 (선택) ── -->
+        <div class="toss-step" id="toss-step-3">
+          <div class="toss-step-q">마지막으로 다듬어볼까요? <span class="toss-check" id="toss-check-3"></span></div>
+          <div class="toss-step-hint">건너뛰어도 괜찮아요. AI가 알아서 채워줘요</div>
+
+          <div class="form-grp">
+            <div class="form-label">
+              <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목
+              <span class="form-label-hint">비워두면 AI가 자동 생성</span>
+            </div>
+            <input class="form-input" id="simple-song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;">
+          </div>
+
+          <div class="form-grp">
+            <div class="form-label">
+              <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></span> 곡 설명
+              <span class="form-label-hint">장르, 스타일 자유롭게</span>
+            </div>
+            <textarea class="form-input" id="simple-prompt" rows="3"
+              placeholder="예: upbeat K-pop with bright synths, female vocals&#10;예: 비 오는 날 카페에 어울리는 잔잔한 재즈"></textarea>
+          </div>
+
+          <div class="form-grp">
+            <div class="form-label">
+              <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 곡 스피드
+              <span class="form-label-hint">현재: <span id="s-bpm-display">120</span> BPM</span>
+            </div>
+            <div class="bpm-main-row">
+              <span style="font-size:11px;color:var(--t3);">느림</span>
+              <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
+                oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
+              <span style="font-size:11px;color:var(--t3);">빠름</span>
+              <div class="bpm-badge" id="s-bpm-badge">120 BPM</div>
+            </div>
+          </div>
+
+          <div class="options-row" style="margin-bottom:12px;">
+            <div class="opt-group">
+              <div class="opt-label">인스트루멘탈</div>
+              <div class="toggle-label-row" id="simple-inst-toggle">
+                <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+                <span class="toggle-txt">보컬 없음</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 가사 입력 -->
+          <div class="form-grp">
+            <div class="form-label">
+              <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> 가사
+              <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
+            </div>
+            <textarea class="form-input" id="simple-lyrics" rows="4" data-i18n-ph="lyricsPlaceholder"
+              placeholder="느낌만 적어도 OK&#10;AI가 알아서 가사를 만들어줘요&#10;&#10;직접 쓰고 싶다면&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리..."></textarea>
+            <div class="lyrics-btn-row">
+              <button class="lyrics-reset-btn" onclick="_resetLyrics('simple-lyrics')" title="가사 초기화" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;transition:all .2s;">초기화</button>
+              <span class="lyrics-hint">가사 없으면 AI가 자동 생성</span>
+              <button class="lyrics-gen-btn" id="simple-lyrics-btn">
+                <span class="lspin" id="simple-lyrics-spinner"></span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg> AI 자동 작사
+              </button>
+            </div>
+          </div>
+
+          <!-- 곡 수 선택 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:12px;font-weight:700;color:var(--t2);">생성 곡 수</span>
+            <div style="display:flex;background:var(--card2);border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+              <button class="gen-count-btn active" data-count="1" onclick="_setGenCount(1)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">1곡 <span style="font-size:9px;opacity:.7;">빠름</span></button>
+              <button class="gen-count-btn" data-count="2" onclick="_setGenCount(2)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">2곡 <span style="font-size:9px;opacity:.7;">A/B비교</span></button>
             </div>
           </div>
         </div>
-        <!-- 가사 입력 -->
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> 가사
-            <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
-          </div>
-          <textarea class="form-input" id="simple-lyrics" rows="4" data-i18n-ph="lyricsPlaceholder"
-            placeholder="느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리..."></textarea>
-          <div class="lyrics-btn-row">
-            <button class="lyrics-reset-btn" onclick="_resetLyrics('simple-lyrics')" title="가사 초기화" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;transition:all .2s;">🗑 초기화</button>
-            <span class="lyrics-hint">✦ 가사 없으면 AI가 자동 생성</span>
-            <button class="lyrics-gen-btn" id="simple-lyrics-btn">
-              <span class="lspin" id="simple-lyrics-spinner"></span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg> AI 자동 작사
-            </button>
+
+        <!-- ── STEP 4: 요약 + 생성 ── -->
+        <div class="toss-step" id="toss-step-4">
+          <!-- 요약 카드 -->
+          <div class="toss-summary" id="toss-summary">
+            <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">이렇게 만들게요</div>
+            <div class="toss-summary-row"><span class="toss-summary-label">장르</span><span class="toss-summary-val" id="toss-sum-genre">-</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">분위기</span><span class="toss-summary-val" id="toss-sum-mood">-</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">BPM</span><span class="toss-summary-val" id="toss-sum-bpm">120</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">보컬</span><span class="toss-summary-val" id="toss-sum-vocal">있음</span></div>
           </div>
         </div>
 
-        <!-- 곡 수 선택 -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-          <span style="font-size:12px;font-weight:700;color:var(--t2);">생성 곡 수</span>
-          <div style="display:flex;background:var(--card2);border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-            <button class="gen-count-btn active" data-count="1" onclick="_setGenCount(1)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">⚡ 1곡 <span style="font-size:9px;opacity:.7;">빠름</span></button>
-            <button class="gen-count-btn" data-count="2" onclick="_setGenCount(2)" style="padding:6px 16px;border:none;background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">🎧 2곡 <span style="font-size:9px;opacity:.7;">A/B비교</span></button>
-          </div>
+        <!-- 플로팅 생성 버튼 -->
+        <div class="toss-floating-cta" id="toss-cta">
+          <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성">
+            <span class="gen-spinner" id="simple-gen-spinner"></span>
+            <span id="simple-gen-txt">음악 만들기</span>
+          </button>
         </div>
-
-        <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성">
-          <span class="gen-spinner" id="simple-gen-spinner"></span>
-          <span id="simple-gen-txt">⚡ 음악 생성하기</span>
-        </button>
-        <button onclick="_simpleToCustom()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">🎛 더 세밀하게 조정하기 → 커스텀 모드</button>
-<button onclick="_compareModels()" style="width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🎧 V3.5 vs V4.5 퀄리티 비교</button>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button onclick="_simpleToCustom()" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">더 세밀하게 조정</button>
+          <button onclick="_compareModels()" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">퀄리티 비교</button>
+        </div>
       </div>
 
       <!-- ━━━ YouTube 패널 ━━━ -->
@@ -7188,7 +7309,7 @@ async function _doLoadSbTracks(){
   _sbOffset = 0;
   _sbHasMore = true;
   try{
-    const r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode);
+    const r = await fetch('/api/tracks?public=true&mode=community&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
@@ -7285,7 +7406,7 @@ async function _loadSbTracksMore(){
   _sbLoadingMore = true;
   _showCommLoadingIndicator(true);
   try{
-    var r = await fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset='+_sbOffset);
+    var r = await fetch('/api/tracks?public=true&mode=community&limit='+_SB_PAGE_SIZE+'&offset='+_sbOffset);
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
@@ -8737,6 +8858,8 @@ function _setSimpleMood(btn){
   var sel=$('simple-mood');
   if(sel.value===val){sel.value='';}
   else{btn.classList.add('on');sel.value=val;}
+  /* 토스 스텝: 분위기 선택 → step 3 오픈 */
+  if(sel.value) _tossGoStep(3);
 }
 
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
@@ -10715,10 +10838,18 @@ async function generate(overrideParams){
   const isCustom=currentMode==='custom' && !overrideParams?._ytMode;
 
   let lyricsText, moodVal, subGenre;
+  /* 심플모드: 가사 입력 여부 플래그 */
+  var _simpleHasRealLyrics=false;
   if(isSimple){
     const _simpleLyrics=($('simple-lyrics')?.value||'').trim();
     const _simpleDesc=$('simple-prompt').value.trim();
-    lyricsText=overrideParams?.prompt||_simpleLyrics||_simpleDesc;
+    /* 가사가 있으면 가사를 prompt로, 설명은 style로 분리 */
+    if(_simpleLyrics){
+      lyricsText=overrideParams?.prompt||_simpleLyrics;
+      _simpleHasRealLyrics=true;
+    } else {
+      lyricsText=overrideParams?.prompt||_simpleDesc;
+    }
     moodVal=overrideParams?.mood||$('simple-mood').value;
     subGenre='';
   } else if(isYT){
@@ -10844,13 +10975,21 @@ async function generate(overrideParams){
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
     const _ytStyleStr = overrideParams?.styleStr || styleStr;
-    /* customMode: 가사 500자 초과 시 강제 true (kie.ai 제한) */
-    const _forceCustom = (prompt||'').length > 400;
+    /* customMode: 가사 입력 시 강제 true (kie.ai가 가사로 인식하도록) */
+    const _forceCustom = (prompt||'').length > 400 || _simpleHasRealLyrics;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
     var _promptHasKo=/[\uAC00-\uD7AF]/.test(prompt);
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
     else if(isCustom && (subGenre||moodVal)){ body.style = styleStr||moodVal; }
+    /* 심플모드: 가사가 있으면 설명+분위기를 style로 전달 */
+    else if(isSimple && _simpleHasRealLyrics){
+      var _simpleStyle=[];
+      var _sd=($('simple-prompt')?.value||'').trim();
+      if(_sd) _simpleStyle.push(_sd);
+      if(moodVal) _simpleStyle.push(moodVal);
+      if(_simpleStyle.length) body.style=_simpleStyle.join(', ');
+    }
     if(_promptHasKo && !instOn && body.style && body.style.toLowerCase().indexOf('korean')===-1){
       body.style = 'Korean lyrics, Korean vocal, sung in Korean, ' + body.style;
       if(body.style.length>999) body.style=body.style.slice(0,999);
@@ -10927,7 +11066,8 @@ async function generate(overrideParams){
          커스텀모드: 입력 가사 우선, 없으면 API lyric */
       const apiLyric=t.lyric||t.lyrics||t.lrc||'';
       /* API 가사가 있으면 항상 사용 (보컬이 부르는 실제 가사) */
-      const savedLyrics = lastLyricsInput || apiLyric || (isSimple?$('simple-prompt')?.value:'') || $('prompt').value.trim() || '';
+      /* 사용자 입력 가사 우선, 없으면 API 응답 가사 (설명 텍스트는 가사로 저장 안 함) */
+      const savedLyrics = lastLyricsInput || apiLyric || '';
       const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
         id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
@@ -19153,12 +19293,11 @@ async function _renderCommunityInner(force){
   var crSec=$('comm-creators-section');if(crSec)crSec.style.opacity='.3';
 
   /* Phase 1: 트랙 + 유저 데이터 병렬 fetch → 도착 즉시 메인 렌더 */
-  var _tracksP=fetch('/api/tracks?public=true&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode).then(function(r){return r.ok?r.json():Promise.reject(r.status);});
+  var _tracksP=fetch('/api/tracks?public=true&mode=community&limit='+_SB_PAGE_SIZE+'&offset=0&sort='+_commSortMode).then(function(r){return r.ok?r.json():Promise.reject(r.status);});
   var _usersP=_loadRealUsers();
   var _loadErr=null;
   try{
-    var _d=await _tracksP;
-    await _usersP;
+    var [_d]=await Promise.all([_tracksP,_usersP]);
     if(Array.isArray(_d.tracks)){
       _sbTracks=_d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
       _sbTracks.forEach(function(t){if(t.dur&&t.dur!=='—'&&t._sbId) _durCache[t._sbId]=t.dur;});
