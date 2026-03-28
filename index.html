@@ -5376,7 +5376,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
       <div class="fb-actions">
         <button class="fb-remix-btn" id="fb-remix-btn">🔄 이걸로 다시 작곡하기</button>
-        <button class="fb-skip-btn" id="fb-skip-btn">건너뛰기</button>
+        <button class="fb-skip-btn" id="fb-skip-btn" onclick="_saveAndGoLibrary()">이 곡으로 저장하기</button>
       </div>
     </div>
 
@@ -11182,7 +11182,7 @@ async function generate(overrideParams){
 
     lastTracks=tracks.map(t=>({...t,_inputLyrics:lastLyricsInput,_taskId:taskId}));
     renderTracks(lastTracks,prompt,styleStr,currentMode);
-    showFeedbackCard();
+    /* showFeedbackCard()는 result-batch 확인 버튼에서 호출 */
 
     tracks.forEach(t=>{
       /* ✅ 생성 실패 트랙 스킵 (이중 방어) */
@@ -12119,6 +12119,12 @@ function renderTracks(tracks,prompt,tags,mode){
     }
   });
 
+  /* ── 확인 버튼 (result-batch 하단) ── */
+  var _confirmBtn=document.createElement('div');
+  _confirmBtn.style.cssText='text-align:center;padding:16px 0 4px;';
+  _confirmBtn.innerHTML='<button class="toss-nav-next" onclick="_showPostGenFeedback()" style="width:100%;max-width:320px;padding:16px 20px;font-size:16px;">확인</button>';
+  batchWrap.appendChild(_confirmBtn);
+
   /* A/B 선택 버튼 이벤트 */
   batchWrap.querySelectorAll('.rc-select-btn').forEach(btn=>{
     btn.addEventListener('click',function(){
@@ -12458,6 +12464,32 @@ function updateFbTimeEstimate(){
   const baseTime=dur<=120?'30~60초':dur<=180?'45~90초':'60~120초';
   const el=$('fb-time-txt');
   if(el)el.innerHTML=`재작곡 예상 시간: 약 <strong>${baseTime}</strong> · ${dur>180?'1곡':'2곡'} 생성 예정`;
+}
+
+/* ── 확인 버튼 → 피드백 카드 표시 (토스 스타일) ── */
+function _showPostGenFeedback(){
+  showFeedbackCard();
+  var fc=$('feedback-card');
+  if(fc) fc.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ── 이 곡으로 저장하기 → 라이브러리 이동 + 포커스 ── */
+function _saveAndGoLibrary(){
+  $('feedback-card').style.display='none';
+  toast('라이브러리에 저장되었어요','ok',2000);
+  switchTab('history-view');
+  /* 최신 곡(첫 번째)에 포커스 */
+  setTimeout(function(){
+    var grid=$('history-view-grid');
+    if(!grid) return;
+    var firstCard=grid.querySelector('.hist-card,.hist-grid-item,.hist-list-item');
+    if(firstCard){
+      firstCard.scrollIntoView({behavior:'smooth',block:'center'});
+      firstCard.style.transition='box-shadow .3s';
+      firstCard.style.boxShadow='0 0 0 3px var(--acc), 0 8px 32px rgba(124,58,237,.25)';
+      setTimeout(function(){firstCard.style.boxShadow='';},2500);
+    }
+  },400);
 }
 
 function showFeedbackCard(){
