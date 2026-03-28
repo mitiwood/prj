@@ -4032,37 +4032,48 @@ function resetTrackFilters(){
   adminToast('↩ 필터 초기화');
 }
 async function deleteSelected(){
-  const checkboxes=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')];
-  const selectedTracks=checkboxes.map(function(c){var idx=parseInt(c.dataset.idx);return _trackListForRender[idx];}).filter(Boolean);
+  var checkboxes=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')];
+  var selectedTracks=checkboxes.map(function(c){var idx=parseInt(c.dataset.idx);return {track:_trackListForRender[idx],row:c.closest('tr')};}).filter(function(o){return !!o.track;});
   if(!selectedTracks.length){adminToast('선택된 트랙이 없습니다');return;}
   if(!confirm(selectedTracks.length+'곡을 삭제할까요?'))return;
+  /* 즉시 시각 피드백: 선택된 행 흐리게 */
+  selectedTracks.forEach(function(o){if(o.row)o.row.style.opacity='0.4';});
+  adminToast('🗑 '+selectedTracks.length+'곡 삭제 중...');
   /* 서버 트랙(id 있음) 일괄 삭제 */
-  var serverTracks=selectedTracks.filter(function(t){return !!t.id;});
+  var serverTracks=selectedTracks.filter(function(o){return !!o.track.id;});
   if(serverTracks.length){
     try{
-      var ids=serverTracks.map(function(t){return t.id;}).join(',');
+      var ids=serverTracks.map(function(o){return o.track.id;}).join(',');
       var r=await adminFetch('/api/tracks?ids='+encodeURIComponent(ids),{method:'DELETE'});
       var d=await r.json();
-      if(!d.success){adminToast('❌ 서버 삭제 실패: '+(d.error||''));return;}
-    }catch(e){adminToast('❌ 오류: '+e.message);return;}
+      if(!d.success){adminToast('❌ 서버 삭제 실패: '+(d.error||''));selectedTracks.forEach(function(o){if(o.row)o.row.style.opacity='1';});return;}
+    }catch(e){adminToast('❌ 오류: '+e.message);selectedTracks.forEach(function(o){if(o.row)o.row.style.opacity='1';});return;}
   }
-  /* 클라이언트 즉시 반영 */
-  var deletedIds=new Set(serverTracks.map(function(t){return t.id;}));
+  /* 행 fade-out 후 제거 */
+  selectedTracks.forEach(function(o){
+    if(o.row){o.row.style.transition='opacity .3s,transform .3s';o.row.style.opacity='0';o.row.style.transform='translateX(30px)';}
+  });
+  /* 데이터에서 제거 */
+  var deletedIds=new Set(serverTracks.map(function(o){return o.track.id;}));
   _serverTracks=_serverTracks.filter(function(t){return !deletedIds.has(t.id);});
   _allAdminTracks=_allAdminTracks.filter(function(t){return !deletedIds.has(t.id);});
   _filteredTracks=_filteredTracks.filter(function(t){return !deletedIds.has(t.id);});
   /* 로컬 전용 트랙 삭제 */
-  var localTracks=selectedTracks.filter(function(t){return !t.id;});
+  var localTracks=selectedTracks.filter(function(o){return !o.track.id;});
   if(localTracks.length){
-    var h=getHistory();var localSet=new Set(localTracks);
+    var h=getHistory();var localSet=new Set(localTracks.map(function(o){return o.track;}));
     h=h.filter(function(t){return !localSet.has(t);});
     localStorage.setItem('kms_history',JSON.stringify(h));
   }
-  adminToast('✅ '+selectedTracks.length+'곡 삭제됨');
-  document.getElementById('chk-all').checked=false;
-  _updateTrackStats(_allAdminTracks);
-  _buildTrackMetaStats(_allAdminTracks);
-  renderTracksTable(_filteredTracks);
+  /* 애니메이션 완료 후 DOM 정리 */
+  setTimeout(function(){
+    selectedTracks.forEach(function(o){if(o.row&&o.row.parentNode)o.row.remove();});
+    document.getElementById('chk-all').checked=false;
+    _updateTrackStats(_allAdminTracks);
+    _buildTrackMetaStats(_allAdminTracks);
+    _updateSelectCount();
+    adminToast('✅ '+selectedTracks.length+'곡 삭제 완료');
+  },350);
 }
 /* \uAD00\uB9AC\uC790 \uD2B8\uB799 \uC988\uC2DC \uC7AC\uC0DD */
 var _adminCurrentAudio=null;
@@ -4111,19 +4122,29 @@ async function adminDownloadTrack(url, title){
 async function deleteTrackByIdx(i){
   var t=_trackListForRender[i];if(!t)return;
   if(!confirm('이 트랙을 삭제할까요?'))return;
+  /* 해당 행 찾아서 즉시 시각 피드백 */
+  var row=document.querySelector('#tracks-tbody tr:nth-child('+(i-(_trackPage-PAGE_SIZE<0?0:_trackPage-PAGE_SIZE)+1)+')');
+  var allRows=[...document.querySelectorAll('#tracks-tbody tr')];
+  var targetRow=allRows.find(function(r){var cb=r.querySelector('input[type=checkbox]');return cb&&parseInt(cb.dataset.idx)===i;});
+  if(targetRow){targetRow.style.opacity='0.4';}
   if(t.id){
     try{
       var r=await adminFetch('/api/tracks?id='+encodeURIComponent(t.id),{method:'DELETE'});
       var d=await r.json();
-      if(!d.success){adminToast('❌ 삭제 실패: '+(d.error||''));return;}
+      if(!d.success){adminToast('❌ 삭제 실패: '+(d.error||''));if(targetRow)targetRow.style.opacity='1';return;}
+      /* fade-out 애니메이션 */
+      if(targetRow){targetRow.style.transition='opacity .3s,transform .3s';targetRow.style.opacity='0';targetRow.style.transform='translateX(30px)';}
       _serverTracks=_serverTracks.filter(function(s){return s.id!==t.id;});
       _allAdminTracks=_allAdminTracks.filter(function(s){return s.id!==t.id;});
       _filteredTracks=_filteredTracks.filter(function(s){return s.id!==t.id;});
+      setTimeout(function(){
+        if(targetRow&&targetRow.parentNode)targetRow.remove();
+        _updateTrackStats(_allAdminTracks);
+        _buildTrackMetaStats(_allAdminTracks);
+        _updateSelectCount();
+      },350);
       adminToast('✅ 삭제됨');
-      _updateTrackStats(_allAdminTracks);
-      _buildTrackMetaStats(_allAdminTracks);
-      renderTracksTable(_filteredTracks);
-    }catch(e){adminToast('❌ 오류: '+e.message);}
+    }catch(e){adminToast('❌ 오류: '+e.message);if(targetRow)targetRow.style.opacity='1';}
   }else{
     var h=getHistory();h.splice(i,1);
     localStorage.setItem('kms_history',JSON.stringify(h));
