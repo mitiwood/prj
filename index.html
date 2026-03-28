@@ -1415,20 +1415,42 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .toss-nav-skip:hover{color:var(--t2);border-color:var(--border2);}
 
-/* 퀵 프리셋 카드 (심플 모드) */
-.qp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
-.qp-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 6px 14px;border-radius:16px;background:var(--card);border:1.5px solid var(--border);cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;position:relative;overflow:hidden;}
-.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;opacity:0;transition:opacity .2s;}
-.qp-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08);}
-.qp-card:active{transform:scale(.95);}
-.qp-card.on{border-color:var(--acc);background:rgba(124,58,237,.06);transform:scale(1.02);box-shadow:0 4px 16px rgba(124,58,237,.15);}
+/* 퀵 프리셋 카드 — 스와이프 큰 카드 */
+.qp-grid{
+  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;padding:4px 2px 16px;margin:0 -16px;
+  scrollbar-width:none;
+}
+.qp-grid::-webkit-scrollbar{display:none;}
+.qp-card{
+  flex:0 0 72%;max-width:280px;scroll-snap-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:32px 20px 28px;border-radius:24px;
+  background:var(--card);border:2px solid var(--border);
+  cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);
+  text-align:center;position:relative;overflow:hidden;
+  min-height:160px;
+}
+.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:24px 24px 0 0;opacity:0;transition:opacity .25s;}
+.qp-card:first-child{margin-left:14%;}
+.qp-card:last-child{margin-right:14%;}
+.qp-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.1);}
+.qp-card:active{transform:scale(.97);}
+.qp-card.on{
+  border-color:var(--acc);background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));
+  transform:scale(1.03);box-shadow:0 8px 32px rgba(124,58,237,.2);
+}
 .qp-card.on::before{opacity:1;background:linear-gradient(90deg,var(--acc),var(--acc2));}
-.qp-emoji{font-size:28px;line-height:1;}
-.qp-title{font-size:12px;font-weight:700;color:var(--t1);}
-.qp-sub{font-size:10px;color:var(--t3);}
+.qp-emoji{font-size:44px;line-height:1;}
+.qp-title{font-size:16px;font-weight:800;color:var(--t1);letter-spacing:-.3px;}
+.qp-sub{font-size:12px;color:var(--t3);font-weight:500;}
+/* 인디케이터 닷 */
+.qp-dots{display:flex;justify-content:center;gap:6px;margin-bottom:8px;}
+.qp-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s;}
+.qp-dot.on{width:18px;border-radius:3px;background:var(--acc);}
 [data-theme="light"] .qp-card{background:#fff;border-color:rgba(0,0,0,.06);}
-[data-theme="light"] .qp-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.04);}
-[data-theme="light"] .qp-card.on{background:rgba(124,58,237,.04);border-color:var(--acc);}
+[data-theme="light"] .qp-card:hover{box-shadow:0 8px 30px rgba(0,0,0,.04);}
+[data-theme="light"] .qp-card.on{background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(168,85,247,.02));border-color:var(--acc);}
 
 /* 플로팅 생성 버튼 */
 .toss-floating-cta{
@@ -4814,13 +4836,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="toss-step visible" id="toss-step-1">
           <div class="toss-step-q">어떤 음악을<br>만들어 볼까요?</div>
           <div class="toss-step-hint">장르를 하나 골라주세요</div>
-          <div class="qp-grid">
+          <div class="qp-grid" id="qp-grid">
             <div class="qp-card" onclick="_tossPreset('kpop',this)"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
             <div class="qp-card" onclick="_tossPreset('ballad',this)"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
             <div class="qp-card" onclick="_tossPreset('lofi',this)"><div class="qp-emoji">☕</div><div class="qp-title">Lo-Fi</div><div class="qp-sub">칠 비트</div></div>
             <div class="qp-card" onclick="_tossPreset('hiphop',this)"><div class="qp-emoji">🔥</div><div class="qp-title">힙합</div><div class="qp-sub">트랩 비트</div></div>
             <div class="qp-card" onclick="_tossPreset('cinematic',this)"><div class="qp-emoji">🎬</div><div class="qp-title">OST</div><div class="qp-sub">시네마틱</div></div>
             <div class="qp-card" onclick="_tossPreset('acoustic',this)"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
+          </div>
+          <div class="qp-dots" id="qp-dots">
+            <div class="qp-dot on"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div>
           </div>
           <!-- AI 어시스턴트 (직접 입력) -->
           <div style="text-align:center;margin:12px 0 10px;font-size:12px;color:var(--t3);">또는 자유롭게 설명해주세요</div>
@@ -27732,6 +27757,24 @@ setTimeout(_showOnboarding, 1500);
   _tossGoStep(1);
   /* 초기 로드 시 심플모드 클래스 */
   document.body.classList.add('simple-mode');
+
+  /* ── 장르 카드 스와이프 인디케이터 ── */
+  var _qpGrid=$('qp-grid');
+  if(_qpGrid){
+    var _qpDots=document.querySelectorAll('#qp-dots .qp-dot');
+    _qpGrid.addEventListener('scroll',function(){
+      if(!_qpDots.length) return;
+      var cards=_qpGrid.querySelectorAll('.qp-card');
+      var scrollCenter=_qpGrid.scrollLeft+_qpGrid.clientWidth/2;
+      var closest=0, minDist=Infinity;
+      cards.forEach(function(c,i){
+        var center=c.offsetLeft+c.offsetWidth/2;
+        var dist=Math.abs(scrollCenter-center);
+        if(dist<minDist){minDist=dist;closest=i;}
+      });
+      _qpDots.forEach(function(d,i){d.classList.toggle('on',i===closest);});
+    });
+  }
 })();
 </script>
 <script src="js/create-enhance.js"></script>
