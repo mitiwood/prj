@@ -9327,16 +9327,25 @@ function clearMvLink(){
   if(btn) btn.textContent = '🎵 생성한 음악에서 선택하기';
 }
 
+var _mvFilteredTracks = []; /* MV 트랙 리스트용 필터된 배열 */
 function mvRefreshTrackSelect(){
   const list=$('mv-track-list');
   if(!list)return;
-  const tracks=historyData.slice(0,15).filter(h=>h.audio_url&&h.type!=='video');
-  if(!tracks.length){
-    list.innerHTML='<div style="font-size:11px;color:var(--t3);padding:4px 0;">생성한 음악이 없어요</div>';return;
+  /* 내가 생성한 음악만 표시 (로그인 사용자 기준) */
+  var myName = currentUser && currentUser.name || '';
+  var myProv = currentUser && currentUser.provider || '';
+  _mvFilteredTracks = historyData.filter(function(h){
+    if(!h.audio_url || h.type==='video') return false;
+    /* owner 정보가 있으면 내 곡만, 없으면 로컬 히스토리이므로 전부 표시 */
+    if(h.owner_name) return h.owner_name===myName && (!h.owner_provider || h.owner_provider===myProv);
+    return true;
+  }).slice(0,20);
+  if(!_mvFilteredTracks.length){
+    list.innerHTML='<div style="font-size:11px;color:var(--t3);padding:4px 0;">내가 생성한 음악이 없어요</div>';return;
   }
   list.innerHTML=`
-    <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">아래에서 연결할 음악을 선택하세요</div>
-    ${tracks.map((h,i)=>`
+    <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">내 음악 중 연결할 곡을 선택하세요</div>
+    ${_mvFilteredTracks.map((h,i)=>`
       <div class="mv-track-card" onclick="mvSelectTrack(${i})" id="mv-tc-${i}">
         <div class="mv-tc-thumb">${h.image_url?`<img src="${h.image_url}" alt="">`:'🎵'}</div>
         <div class="mv-tc-info">
@@ -9350,7 +9359,7 @@ function mvRefreshTrackSelect(){
 }
 
 function mvSelectTrack(idx){
-  const h=historyData[idx];
+  const h=_mvFilteredTracks[idx];
   if(!h)return;
   /* 이전 선택 해제 */
   document.querySelectorAll('.mv-track-card').forEach((c,i)=>{
@@ -9454,9 +9463,9 @@ async function generateMV(){
   resultArea.style.display='none';
   resultArea.innerHTML='';
 
-  /* 연결 트랙 */
+  /* 연결 트랙 — _mvFilteredTracks 기반 조회 */
   const trackSelIdx=$('mv-link-track')?.value;
-  const linkedTrack=trackSelIdx!==''&&trackSelIdx!=null&&trackSelIdx!==undefined?historyData[parseInt(trackSelIdx)]:null;
+  const linkedTrack=trackSelIdx!==''&&trackSelIdx!=null&&trackSelIdx!==undefined?_mvFilteredTracks[parseInt(trackSelIdx)]:null;
 
   try{
     /* kie.ai Kling API 허용값: "16:9" | "9:16" | "1:1" */
@@ -9477,7 +9486,10 @@ async function generateMV(){
 
     /* img2vid 모드는 별도 2단계 UI로 처리 — generateMV에서는 스킵 */
     if(mvSelectedMode==='img2vid'){
-      toast('🖼 이미지→영상 모드에서는 위의 Step 1/2 버튼을 사용하세요','',2500);
+      toast('이미지→영상 모드에서는 위의 Step 1/2 버튼을 사용하세요','',2500);
+      _globalGenerating=false;_syncGenButtons();
+      btn.disabled=false;if(spinner)spinner.classList.remove('on');if(txt)txt.textContent='🎬 뮤직비디오 생성하기';
+      $('loading-card').classList.remove('on');genUnlock();
       return;
     }
 
@@ -28374,8 +28386,8 @@ setTimeout(_showOnboarding, 1500);
   };
 
   /* 다음 버튼 활성화 헬퍼 (외부에서 호출) */
-  window._enableStep1Next=function(){_s1NextEnabled=true;var nb=$('toss-next-1');if(nb)nb.disabled=false;};
-  window._enableYtStep1Next=function(){_ytS1NextEnabled=true;var nb=$('yt-next-1');if(nb)nb.disabled=false;};
+  window._enableStep1Next=function(){_s1NextEnabled=true;_updateFixedNav();};
+  window._enableYtStep1Next=function(){_ytS1NextEnabled=true;_updateFixedNav();};
 
   /* _tossGoStep/_tossBack/_ytStepGo/_ytStepBack 호출 후 nav 갱신 */
   var _origTossGo=window._tossGoStep, _origTossBack=window._tossBack;
