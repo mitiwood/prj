@@ -28284,10 +28284,17 @@ setTimeout(_showOnboarding, 1500);
 
   window._tossGoStep = function(step){
     /* 스텝별 유효성 검사 — 미입력 시 진동 + 흔들림 + 하이라이트 */
-    if(step===2 && !document.querySelector('#panel-simple .qp-card.on') && !($('ai-assist-input')?.value||'').trim()){
-      _tossShake($('toss-next-1'));
-      _tossHighlight($('qp-grid'),'장르를 스와이프해서 선택해주세요');
-      return;
+    if(step===2){
+      var hasCard=!!document.querySelector('#panel-simple .qp-card.on');
+      var hasAi=!!($('ai-assist-input')?.value||'').trim();
+      if(!hasCard && !hasAi){
+        _tossShake($('toss-next-1'));
+        _tossHighlight($('qp-grid'),'장르를 스와이프해서 선택해주세요');
+        return;
+      }
+      if(!hasCard && hasAi){
+        toast('장르 카드도 선택하면 더 정확한 곡이 만들어져요','',2500);
+      }
     }
     if(step===3 && !$('simple-mood')?.value){
       _tossShake($('toss-next-2'));
