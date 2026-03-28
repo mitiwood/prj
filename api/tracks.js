@@ -535,6 +535,21 @@ async function _handler(req, res) {
       }
     }
 
+    /* 관리자 복수건 일괄 삭제 */
+    if (isAdmin && !id && req.query?.ids) {
+      const ids = req.query.ids.split(",").map(s => s.trim()).filter(Boolean);
+      if (!ids.length) return res.status(400).json({ error: "no ids provided" });
+      try {
+        await sb(`/tracks?id=in.(${ids.map(i => encodeURIComponent(i)).join(",")})`, {
+          method: "DELETE",
+          prefer: "return=minimal",
+        });
+        return res.status(200).json({ success: true, deleted: ids.length });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     /* 본인 트랙 삭제 — owner+provider 필수 */
     if (!delOwner || !delProvider)
       return res.status(400).json({ error: "owner and provider required" });

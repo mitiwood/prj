@@ -3660,6 +3660,19 @@ async function renderTracksAdmin(){
   _buildTrackMetaStats(h);
   renderTracksTable(h);
 }
+/* 삭제 후 상단 통계 즉시 갱신 */
+function _updateTrackStats(h){
+  var loggedIn=h.filter(function(t){return t._owner&&t._owner.provider!=='guest';}).length;
+  var mv=h.filter(function(t){return t.video_url;}).length;
+  var totalLikes=h.reduce(function(s,t){return s+(t._commLikes||0);},0);
+  var todayDate=new Date();todayDate.setHours(0,0,0,0);
+  var todayTracks=h.filter(function(t){return t.created&&new Date(t.created)>=todayDate;}).length;
+  var ts=document.getElementById('tstat-total');if(ts)ts.textContent=h.length;
+  var tl=document.getElementById('tstat-loggedin');if(tl)tl.textContent=loggedIn;
+  var tm=document.getElementById('tstat-mv');if(tm)tm.textContent=mv;
+  var tlk=document.getElementById('tstat-likes');if(tlk)tlk.textContent=totalLikes;
+  var ttd=document.getElementById('tstat-today');if(ttd)ttd.textContent=todayTracks;
+}
 /* 음악관리 30초 자동 갱신 */
 let _tracksPollTimer=null;
 function _startTracksPoll(){
@@ -3991,16 +4004,38 @@ function _renderGenreStats(genreMap){
 }
 
 function toggleAll(el){document.querySelectorAll('#tracks-tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);}
-function deleteSelected(){
-  const selected=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
-  if(!selected.length){adminToast('선택된 트랙이 없습니다');return;}
-  if(!confirm(selected.length+'곡을 삭제할까요?'))return;
-  let h=getHistory();
-  const idxSet=new Set(selected);
-  h=h.filter((_,i)=>!idxSet.has(i));
-  localStorage.setItem('kms_history',JSON.stringify(h));
-  adminToast('✅ '+selected.length+'곡 삭제됨');
-  renderTracksAdmin();loadData();
+async function deleteSelected(){
+  const checkboxes=[...document.querySelectorAll('#tracks-tbody input[type=checkbox]:checked')];
+  const selectedTracks=checkboxes.map(function(c){var idx=parseInt(c.dataset.idx);return _trackListForRender[idx];}).filter(Boolean);
+  if(!selectedTracks.length){adminToast('선택된 트랙이 없습니다');return;}
+  if(!confirm(selectedTracks.length+'곡을 삭제할까요?'))return;
+  /* 서버 트랙(id 있음) 일괄 삭제 */
+  var serverTracks=selectedTracks.filter(function(t){return !!t.id;});
+  if(serverTracks.length){
+    try{
+      var ids=serverTracks.map(function(t){return t.id;}).join(',');
+      var r=await adminFetch('/api/tracks?ids='+encodeURIComponent(ids),{method:'DELETE'});
+      var d=await r.json();
+      if(!d.success){adminToast('❌ 서버 삭제 실패: '+(d.error||''));return;}
+    }catch(e){adminToast('❌ 오류: '+e.message);return;}
+  }
+  /* 클라이언트 즉시 반영 */
+  var deletedIds=new Set(serverTracks.map(function(t){return t.id;}));
+  _serverTracks=_serverTracks.filter(function(t){return !deletedIds.has(t.id);});
+  _allAdminTracks=_allAdminTracks.filter(function(t){return !deletedIds.has(t.id);});
+  _filteredTracks=_filteredTracks.filter(function(t){return !deletedIds.has(t.id);});
+  /* 로컬 전용 트랙 삭제 */
+  var localTracks=selectedTracks.filter(function(t){return !t.id;});
+  if(localTracks.length){
+    var h=getHistory();var localSet=new Set(localTracks);
+    h=h.filter(function(t){return !localSet.has(t);});
+    localStorage.setItem('kms_history',JSON.stringify(h));
+  }
+  adminToast('✅ '+selectedTracks.length+'곡 삭제됨');
+  document.getElementById('chk-all').checked=false;
+  _updateTrackStats(_allAdminTracks);
+  _buildTrackMetaStats(_allAdminTracks);
+  renderTracksTable(_filteredTracks);
 }
 /* \uAD00\uB9AC\uC790 \uD2B8\uB799 \uC988\uC2DC \uC7AC\uC0DD */
 var _adminCurrentAudio=null;
@@ -4046,11 +4081,27 @@ async function adminDownloadTrack(url, title){
     adminToast('↗ 새 탭에서 열립니다 (우클릭 → 저장)');
   }
 }
-function deleteTrackByIdx(i){
+async function deleteTrackByIdx(i){
+  var t=_trackListForRender[i];if(!t)return;
   if(!confirm('이 트랙을 삭제할까요?'))return;
-  let h=getHistory();h.splice(i,1);
-  localStorage.setItem('kms_history',JSON.stringify(h));
-  adminToast('✅ 삭제됨');renderTracksAdmin();loadData();
+  if(t.id){
+    try{
+      var r=await adminFetch('/api/tracks?id='+encodeURIComponent(t.id),{method:'DELETE'});
+      var d=await r.json();
+      if(!d.success){adminToast('❌ 삭제 실패: '+(d.error||''));return;}
+      _serverTracks=_serverTracks.filter(function(s){return s.id!==t.id;});
+      _allAdminTracks=_allAdminTracks.filter(function(s){return s.id!==t.id;});
+      _filteredTracks=_filteredTracks.filter(function(s){return s.id!==t.id;});
+      adminToast('✅ 삭제됨');
+      _updateTrackStats(_allAdminTracks);
+      _buildTrackMetaStats(_allAdminTracks);
+      renderTracksTable(_filteredTracks);
+    }catch(e){adminToast('❌ 오류: '+e.message);}
+  }else{
+    var h=getHistory();h.splice(i,1);
+    localStorage.setItem('kms_history',JSON.stringify(h));
+    adminToast('✅ 삭제됨');renderTracksAdmin();loadData();
+  }
 }
 function deleteTrack(i){deleteTrackByIdx(i);}
 async function _recentDeleteTrack(id){
