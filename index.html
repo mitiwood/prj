@@ -27906,11 +27906,12 @@ setTimeout(_showOnboarding, 1500);
     /* 다음 버튼 활성화 */
     var nb=$('toss-next-1');
     if(nb) nb.disabled=false;
-    /* 입력창 포커스 */
+    /* 입력창 즉시 포커스 + 키패드 온 (사용자 제스처 체인 내 동기 호출) */
     var inp=$('ai-assist-input');
     if(inp){
-      inp.scrollIntoView({behavior:'smooth',block:'center'});
-      setTimeout(function(){ inp.focus(); },350);
+      inp.focus();
+      inp.click();
+      setTimeout(function(){ inp.scrollIntoView({behavior:'smooth',block:'center'}); },100);
     }
   };
 
