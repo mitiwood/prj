@@ -1426,31 +1426,42 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   flex:0 0 72%;max-width:280px;scroll-snap-align:center;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;padding:32px 20px 28px;border-radius:24px;
-  background:var(--card);border:2px solid var(--border);
+  border:2px solid transparent;
   cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);
   text-align:center;position:relative;overflow:hidden;
-  min-height:160px;
+  min-height:170px;
 }
-.qp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:24px 24px 0 0;opacity:0;transition:opacity .25s;}
+.qp-card::after{
+  content:'';position:absolute;inset:0;border-radius:22px;opacity:.08;
+  background:radial-gradient(circle at 30% 20%,#fff 0%,transparent 60%);
+  pointer-events:none;
+}
+/* 카드별 MZ 그라데이션 */
+.qp-card:nth-child(1){background:linear-gradient(145deg,#7c3aed,#4f46e5);border-color:rgba(124,58,237,.3);}
+.qp-card:nth-child(2){background:linear-gradient(145deg,#ec4899,#f43f5e);border-color:rgba(236,72,153,.3);}
+.qp-card:nth-child(3){background:linear-gradient(145deg,#06b6d4,#0ea5e9);border-color:rgba(6,182,212,.3);}
+.qp-card:nth-child(4){background:linear-gradient(145deg,#f97316,#ef4444);border-color:rgba(249,115,22,.3);}
+.qp-card:nth-child(5){background:linear-gradient(145deg,#8b5cf6,#6366f1);border-color:rgba(139,92,246,.3);}
+.qp-card:nth-child(6){background:linear-gradient(145deg,#10b981,#14b8a6);border-color:rgba(16,185,129,.3);}
 .qp-card:first-child{margin-left:14%;}
 .qp-card:last-child{margin-right:14%;}
-.qp-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.1);}
-.qp-card:active{transform:scale(.97);}
+.qp-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.qp-card:active{transform:scale(.96);}
 .qp-card.on{
-  border-color:var(--acc);background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));
-  transform:scale(1.03);box-shadow:0 8px 32px rgba(124,58,237,.2);
+  transform:scale(1.04);
+  box-shadow:0 8px 36px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.3);
 }
-.qp-card.on::before{opacity:1;background:linear-gradient(90deg,var(--acc),var(--acc2));}
-.qp-emoji{font-size:44px;line-height:1;}
-.qp-title{font-size:16px;font-weight:800;color:var(--t1);letter-spacing:-.3px;}
-.qp-sub{font-size:12px;color:var(--t3);font-weight:500;}
+.qp-emoji{font-size:48px;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15));}
+.qp-title{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px;text-shadow:0 1px 4px rgba(0,0,0,.2);}
+.qp-sub{font-size:12px;color:rgba(255,255,255,.7);font-weight:600;}
 /* 인디케이터 닷 */
 .qp-dots{display:flex;justify-content:center;gap:6px;margin-bottom:8px;}
 .qp-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s;}
 .qp-dot.on{width:18px;border-radius:3px;background:var(--acc);}
-[data-theme="light"] .qp-card{background:#fff;border-color:rgba(0,0,0,.06);}
-[data-theme="light"] .qp-card:hover{box-shadow:0 8px 30px rgba(0,0,0,.04);}
-[data-theme="light"] .qp-card.on{background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(168,85,247,.02));border-color:var(--acc);}
+/* 라이트모드에서도 카드 색상 유지 */
+[data-theme="light"] .qp-card{border-color:transparent;}
+[data-theme="light"] .qp-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.12);}
+[data-theme="light"] .qp-card.on{box-shadow:0 8px 36px rgba(0,0,0,.15),0 0 0 3px rgba(124,58,237,.3);}
 
 /* 플로팅 생성 버튼 */
 .toss-floating-cta{
@@ -4847,28 +4858,33 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div class="qp-dots" id="qp-dots">
             <div class="qp-dot on"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div>
           </div>
-          <!-- AI 어시스턴트 (직접 입력) -->
-          <div style="text-align:center;margin:12px 0 10px;font-size:12px;color:var(--t3);">또는 자유롭게 설명해주세요</div>
-          <div id="ai-assistant-wrap" style="padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.12);border-radius:14px;">
+          <!-- 또는 AI 추천 입력 -->
+          <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--t3);font-weight:600;">또는 직접 입력</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+          <div id="ai-assistant-wrap" style="padding:0;">
             <div style="display:flex;gap:6px;">
-              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:13px;padding:12px 14px;">
-              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 추천</button>
+              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:13px;padding:12px 14px;border-radius:14px;">
+              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:12px 18px;border-radius:14px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">AI 추천</button>
             </div>
             <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
-            <div class="ai-suggest-chips" id="ai-quick-suggests" style="margin-top:10px;">
-              <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">🌧 비 오는 날</button>
-              <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">🌙 새벽 감성</button>
-              <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">🎉 파티</button>
-              <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">🧘 집중</button>
-              <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">🚗 드라이브</button>
-              <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">💕 고백</button>
-              <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">🎶 트로트</button>
-              <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">🌊 여름</button>
-              <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">📚 공부</button>
-              <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">💪 운동</button>
-            </div>
             <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
             <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
+          </div>
+          <!-- 빠른 추천 (숨김 - 기능 유지) -->
+          <div class="ai-suggest-chips" id="ai-quick-suggests" style="display:none;">
+            <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">비 오는 날</button>
+            <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">새벽 감성</button>
+            <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">파티</button>
+            <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">집중</button>
+            <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">드라이브</button>
+            <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">고백</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">트로트</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">여름</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">공부</button>
+            <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">운동</button>
           </div>
         </div>
 
