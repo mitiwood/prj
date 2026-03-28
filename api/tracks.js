@@ -112,8 +112,6 @@ async function _handler(req, res) {
     const isLite = req.query?.mode === 'creators';
     const isCommunity = req.query?.mode === 'community';
     const liteSelect = 'owner_name,owner_provider,owner_avatar,image_url,comm_likes,comm_plays,created_at';
-    /* 커뮤니티 목록용: lyrics 등 대용량 컬럼 제외 → 페이로드 50~70% 절감 */
-    const communitySelect = 'id,task_id,title,tags,image_url,audio_url,video_url,duration,comm_likes,comm_dislikes,comm_plays,comm_rating,comm_rating_count,owner_name,owner_avatar,owner_provider,co_owner_name,co_owner_avatar,co_owner_provider,collab_id,created_at,gen_mode';
 
     try {
       let filter;
@@ -122,7 +120,7 @@ async function _handler(req, res) {
       } else if (ownerName) {
         filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
       } else {
-        const sel = isLite ? liteSelect : isCommunity ? communitySelect : '*';
+        const sel = isLite ? liteSelect : '*';
         const sortParam = req.query?.sort || 'default';
         const orderMap = {
           'rating': 'comm_rating.desc.nullslast,comm_rating_count.desc,created_at.desc',
@@ -134,10 +132,12 @@ async function _handler(req, res) {
         filter = `/tracks?audio_url=neq.&audio_url=not.is.null&order=${order}&limit=${limit}&offset=${offset}&select=${sel}`;
       }
       const rows = await sb(filter);
-      const mapped = (rows || []).map((r) => ({
-        ...r,
-        created: r.created_at ? new Date(r.created_at).getTime() : 0,
-      }));
+      const mapped = (rows || []).map((r) => {
+        const obj = { ...r, created: r.created_at ? new Date(r.created_at).getTime() : 0 };
+        /* 커뮤니티 목록: lyrics 제거 → 페이로드 절감 */
+        if (isCommunity) delete obj.lyrics;
+        return obj;
+      });
       return res
         .status(200)
         .json({ tracks: mapped, total: mapped.length, source: "supabase" });
