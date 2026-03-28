@@ -1374,9 +1374,11 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .toss-step.visible{
   display:flex;flex-direction:column;
-  min-height:calc(100vh - 220px);
+  height:calc(100vh - 230px);overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;
   animation:toss-step-fwd .35s cubic-bezier(.4,0,.2,1);
 }
+.toss-step.visible::-webkit-scrollbar{display:none;}
 .toss-step.visible.back{
   animation:toss-step-back .35s cubic-bezier(.4,0,.2,1);
 }
@@ -1384,10 +1386,10 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 @keyframes toss-step-back{from{opacity:0;transform:translateX(-40px);}to{opacity:1;transform:translateX(0);}}
 .toss-step-q{
   font-size:22px;font-weight:800;color:var(--t1);
-  line-height:1.35;margin-bottom:6px;letter-spacing:-.5px;
+  line-height:1.35;margin-bottom:4px;letter-spacing:-.5px;flex-shrink:0;
 }
 .toss-step-hint{
-  font-size:13px;color:var(--t3);margin-bottom:20px;line-height:1.6;
+  font-size:13px;color:var(--t3);margin-bottom:12px;line-height:1.6;flex-shrink:0;
 }
 .toss-step-badge{
   display:inline-flex;align-items:center;gap:4px;
@@ -1396,7 +1398,11 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   padding:3px 10px;margin-bottom:10px;
 }
 /* 토스 스텝 하단 네비게이션 */
-.toss-step-nav{display:flex;gap:8px;margin-top:auto;padding-top:24px;padding-bottom:8px;}
+.toss-step-nav{
+  display:flex;gap:8px;margin-top:auto;padding:16px 0 8px;
+  flex-shrink:0;position:sticky;bottom:0;
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+}
 .toss-nav-back{
   padding:14px 20px;border-radius:14px;border:1px solid var(--border);
   background:var(--card);color:var(--t2);font-size:14px;font-weight:700;
@@ -1422,18 +1428,18 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* 퀵 프리셋 카드 — 스와이프 큰 카드 */
 .qp-grid{
   display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
-  -webkit-overflow-scrolling:touch;padding:4px 2px 16px;margin:0 -16px;
-  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding:4px 2px 12px;margin:0 -16px;
+  scrollbar-width:none;flex:1;align-items:center;
 }
 .qp-grid::-webkit-scrollbar{display:none;}
 .qp-card{
   flex:0 0 72%;max-width:300px;scroll-snap-align:center;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;padding:36px 20px 32px;border-radius:24px;
+  gap:12px;padding:28px 20px 24px;border-radius:24px;
   border:2px solid transparent;
   cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);
   text-align:center;position:relative;overflow:hidden;
-  min-height:200px;
+  min-height:160px;
 }
 .qp-card::after{
   content:'';position:absolute;inset:0;border-radius:22px;opacity:.08;
@@ -1459,7 +1465,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .qp-title{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px;text-shadow:0 1px 4px rgba(0,0,0,.2);}
 .qp-sub{font-size:12px;color:rgba(255,255,255,.7);font-weight:600;}
 /* 인디케이터 닷 */
-.qp-dots{display:flex;justify-content:center;gap:6px;margin-bottom:8px;}
+.qp-dots{display:flex;justify-content:center;gap:6px;margin-bottom:4px;flex-shrink:0;}
 .qp-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s;}
 .qp-dot.on{width:18px;border-radius:3px;background:var(--acc);}
 /* 라이트모드에서도 카드 색상 유지 */
@@ -1478,16 +1484,16 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* 무드 카드 — 스와이프 큰 카드 (장르와 동일) */
 .mood-grid-toss{
   display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
-  -webkit-overflow-scrolling:touch;padding:4px 2px 16px;margin:0 -16px;
-  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding:4px 2px 12px;margin:0 -16px;
+  scrollbar-width:none;flex:1;align-items:center;
 }
 .mood-grid-toss::-webkit-scrollbar{display:none;}
 .mood-grid-toss .mood-chip{
   flex:0 0 72%;max-width:300px;scroll-snap-align:center;
-  padding:32px 20px 28px;font-size:16px;font-weight:800;color:#fff;
+  padding:28px 20px 24px;font-size:16px;font-weight:800;color:#fff;
   border-radius:24px;border:2px solid transparent;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;min-height:200px;position:relative;overflow:hidden;
+  gap:10px;min-height:160px;position:relative;overflow:hidden;
   transition:all .3s cubic-bezier(.4,0,.2,1);
   text-shadow:0 1px 4px rgba(0,0,0,.2);
 }
@@ -1522,7 +1528,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 [data-theme="light"] .mood-grid-toss .mood-chip{border-color:transparent;}
 [data-theme="light"] .mood-grid-toss .mood-chip.on{box-shadow:0 8px 36px rgba(0,0,0,.15),0 0 0 3px rgba(124,58,237,.3);}
 /* 분위기 인디케이터 닷 */
-.mood-dots{display:flex;justify-content:center;gap:5px;margin-bottom:8px;}
+.mood-dots{display:flex;justify-content:center;gap:5px;margin-bottom:4px;flex-shrink:0;}
 .mood-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:all .3s;}
 .mood-dot.on{width:16px;border-radius:3px;background:var(--acc);}
 
