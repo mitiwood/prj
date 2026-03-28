@@ -467,7 +467,11 @@ html,body{
 body.simple-mode .prompt-templates,
 body.simple-mode .gen-history,
 body.simple-mode .home-widgets,
-body.simple-mode #preset-carousel{display:none!important;}
+body.simple-mode #preset-carousel,
+body.youtube-mode .prompt-templates,
+body.youtube-mode .gen-history,
+body.youtube-mode .home-widgets,
+body.youtube-mode #preset-carousel{display:none!important;}
 
 /* 폼 공통 */
 .form-grp{margin-bottom:18px;}
@@ -1404,7 +1408,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   background:linear-gradient(to top,var(--bg) 80%,transparent);
   max-width:480px;margin:0 auto;
 }
-body:not(.simple-mode) .toss-step-nav{display:none;}
+body:not(.simple-mode):not(.youtube-mode) .toss-step-nav{display:none;}
 .toss-nav-back{
   padding:14px 20px;border-radius:14px;border:1px solid var(--border);
   background:var(--card);color:var(--t2);font-size:14px;font-weight:700;
@@ -1445,17 +1449,19 @@ body:not(.simple-mode) .toss-step-nav{display:none;}
   min-height:160px;
 }
 .qp-card::after{
-  content:'';position:absolute;inset:0;border-radius:22px;opacity:.08;
-  background:radial-gradient(circle at 30% 20%,#fff 0%,transparent 60%);
+  content:'';position:absolute;inset:0;border-radius:22px;opacity:0;
   pointer-events:none;
 }
-/* 카드별 MZ 그라데이션 */
-.qp-card:nth-child(1){background:linear-gradient(145deg,#7c3aed,#4f46e5);border-color:rgba(124,58,237,.3);}
-.qp-card:nth-child(2){background:linear-gradient(145deg,#ec4899,#f43f5e);border-color:rgba(236,72,153,.3);}
-.qp-card:nth-child(3){background:linear-gradient(145deg,#06b6d4,#0ea5e9);border-color:rgba(6,182,212,.3);}
-.qp-card:nth-child(4){background:linear-gradient(145deg,#f97316,#ef4444);border-color:rgba(249,115,22,.3);}
-.qp-card:nth-child(5){background:linear-gradient(145deg,#8b5cf6,#6366f1);border-color:rgba(139,92,246,.3);}
-.qp-card:nth-child(6){background:linear-gradient(145deg,#10b981,#14b8a6);border-color:rgba(16,185,129,.3);}
+/* 카드별 인스타 감성 — Unsplash 사진 + 다크 그라데이션 오버레이 */
+.qp-card{background-size:cover;background-position:center;}
+.qp-card::before{content:'';position:absolute;inset:0;border-radius:22px;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.55) 100%);pointer-events:none;z-index:0;}
+.qp-card>*{position:relative;z-index:1;}
+.qp-card:nth-child(1){background-image:url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80');border-color:rgba(124,58,237,.15);}
+.qp-card:nth-child(2){background-image:url('https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80');border-color:rgba(236,72,153,.15);}
+.qp-card:nth-child(3){background-image:url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80');border-color:rgba(6,182,212,.15);}
+.qp-card:nth-child(4){background-image:url('https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=400&q=80');border-color:rgba(249,115,22,.15);}
+.qp-card:nth-child(5){background-image:url('https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=400&q=80');border-color:rgba(139,92,246,.15);}
+.qp-card:nth-child(6){background-image:url('https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80');border-color:rgba(16,185,129,.15);}
 .qp-card:first-child{margin-left:14%;}
 .qp-card:last-child{margin-right:14%;}
 .qp-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.2);}
@@ -5075,34 +5081,45 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="toss-floating-cta" id="toss-cta"></div>
       </div>
 
-      <!-- ━━━ YouTube 패널 ━━━ -->
+      <!-- ━━━ YouTube 패널 (토스 스타일 스텝 플로우) ━━━ -->
       <div class="mode-panel" id="panel-youtube">
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목
-            <span class="form-label-hint">비워두면 AI가 자동 생성</span>
-          </div>
-          <input class="form-input" id="yt-song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;">
+
+        <!-- 프로그레스 바 -->
+        <div class="toss-progress" id="yt-toss-progress">
+          <div class="toss-progress-dot active" data-step="1"></div>
+          <div class="toss-progress-dot" data-step="2"></div>
+          <div class="toss-progress-dot" data-step="3"></div>
+          <div class="toss-progress-dot" data-step="4"></div>
         </div>
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48"/></svg></span> YouTube URL
-            <span class="form-label-hint">영상 제목/채널 기반 분석</span>
+
+        <!-- ── YT STEP 1: URL 입력 + 분석 ── -->
+        <div class="toss-step visible" id="yt-step-1">
+          <div class="toss-step-q">어떤 YouTube 영상의<br>스타일로 만들까요?</div>
+          <div class="toss-step-hint">URL을 붙여넣으면 AI가 분석해요</div>
+          <div class="form-grp" style="flex-shrink:0;">
+            <div style="display:flex;gap:8px;">
+              <input class="form-input" id="yt-url" type="text" placeholder="https://youtube.com/watch?v=..." style="flex:1;font-size:13px;padding:12px 14px;border-radius:14px;" autocomplete="off" autocorrect="off" autocapitalize="off">
+              <button class="lyrics-gen-btn" id="yt-analyze-btn" style="white-space:nowrap;flex-shrink:0;padding:12px 18px;border-radius:14px;font-size:13px;">
+                <span class="lspin" id="yt-spinner"></span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 분석
+              </button>
+            </div>
+            <div id="yt-url-warn" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:8px;">⚠️ YouTube URL만 분석 가능합니다.</div>
           </div>
-          <div style="display:flex;gap:8px;">
-            <input class="opt-input" id="yt-url" type="text" placeholder="https://youtube.com/watch?v=..." style="flex:1;" autocomplete="off" autocorrect="off" autocapitalize="off">
-            <button class="lyrics-gen-btn" id="yt-analyze-btn" style="white-space:nowrap;flex-shrink:0;">
-              <span class="lspin" id="yt-spinner"></span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 분석
-            </button>
+          <div id="yt-result" style="display:none;flex:1;overflow-y:auto;scrollbar-width:none;margin-top:8px;"></div>
+          <div class="toss-step-nav">
+            <button class="toss-nav-next" id="yt-next-1" onclick="_ytStepGo(2)" disabled>분석 후 다음</button>
           </div>
-          <div id="yt-url-warn" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:8px;">⚠️ YouTube URL만 분석 가능합니다. (youtube.com 또는 youtu.be)</div>
         </div>
-        <div id="yt-result" style="display:none;"></div>
-        <div class="options-row" style="margin-top:10px;">
-          <div class="opt-group">
-            <div class="opt-label">분위기</div>
-            <select class="opt-select" id="yt-mood">
+
+        <!-- ── YT STEP 2: 스타일 조정 ── -->
+        <div class="toss-step" id="yt-step-2">
+          <div class="toss-step-q">스타일을<br>조정해 볼까요?</div>
+          <div class="toss-step-hint">분석된 스타일 기반으로 조정할 수 있어요</div>
+
+          <div class="form-grp">
+            <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span> 분위기</div>
+            <select class="opt-select" id="yt-mood" style="padding:12px;border-radius:14px;font-size:13px;">
               <option value="">자동 (분석 결과 사용)</option>
               <option value="happy, uplifting">밝고 신나는</option>
               <option value="sad, emotional">슬프고 감성적인</option>
@@ -5115,29 +5132,68 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <option value="mysterious, ethereal">신비롭고 몽환적</option>
             </select>
           </div>
-          <div class="opt-group">
-            <div class="opt-label">인스트루멘탈</div>
-            <div class="toggle-label-row" id="yt-inst-toggle">
-              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-              <span class="toggle-txt">보컬 없음</span>
-            </div>
-          </div>
-        </div>
-        <div class="options-row" style="margin-top:8px;">
-          <div class="opt-group" style="flex:1;">
-            <div class="opt-label">곡 길이</div>
+
+          <div class="form-grp">
+            <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 곡 길이</div>
             <div style="display:flex;gap:6px;" id="yt-duration-btns">
-              <button class="yt-dur-tab on" data-ytdur="short" onclick="_setYtDuration('short')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">짧게 ~1분</button>
-              <button class="yt-dur-tab" data-ytdur="normal" onclick="_setYtDuration('normal')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">보통 ~2분</button>
-              <button class="yt-dur-tab" data-ytdur="long" onclick="_setYtDuration('long')" style="flex:1;padding:7px 0;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">길게 ~4분</button>
+              <button class="yt-dur-tab on" data-ytdur="short" onclick="_setYtDuration('short')" style="flex:1;padding:10px 0;font-size:12px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">짧게 ~1분</button>
+              <button class="yt-dur-tab" data-ytdur="normal" onclick="_setYtDuration('normal')" style="flex:1;padding:10px 0;font-size:12px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">보통 ~2분</button>
+              <button class="yt-dur-tab" data-ytdur="long" onclick="_setYtDuration('long')" style="flex:1;padding:10px 0;font-size:12px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--t3);font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">길게 ~4분</button>
             </div>
             <div style="font-size:10px;color:var(--t3);margin-top:4px;" id="yt-dur-hint">기본 생성 (~1분). 보통/길게는 자동 연장됩니다.</div>
           </div>
+
+          <div class="options-row">
+            <div class="opt-group">
+              <div class="opt-label">인스트루멘탈</div>
+              <div class="toggle-label-row" id="yt-inst-toggle">
+                <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+                <span class="toggle-txt">보컬 없음</span>
+              </div>
+            </div>
+          </div>
+          <div class="toss-step-nav">
+            <button class="toss-nav-back" onclick="_ytStepBack(1)">이전</button>
+            <button class="toss-nav-next" onclick="_ytStepGo(3)">다음</button>
+          </div>
         </div>
-        <button class="gen-btn" id="yt-gen-btn" disabled style="opacity:.5;">
-          <span class="gen-spinner" id="yt-gen-spinner"></span>
-          <span id="yt-gen-txt">▶ 분석 후 생성 가능</span>
-        </button>
+
+        <!-- ── YT STEP 3: 세부 설정 ── -->
+        <div class="toss-step" id="yt-step-3">
+          <div class="toss-step-q">마지막으로<br>다듬어볼까요?</div>
+          <div class="toss-step-hint">건너뛰어도 괜찮아요</div>
+          <div class="form-grp">
+            <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목 <span class="form-label-hint">비워두면 AI가 자동 생성</span></div>
+            <input class="form-input" id="yt-song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:12px 14px;border-radius:14px;">
+          </div>
+          <div class="toss-step-nav">
+            <button class="toss-nav-back" onclick="_ytStepBack(2)">이전</button>
+            <button class="toss-nav-skip" onclick="_ytStepGo(4)">건너뛰기</button>
+            <button class="toss-nav-next" onclick="_ytStepGo(4)">다음</button>
+          </div>
+        </div>
+
+        <!-- ── YT STEP 4: 요약 + 생성 ── -->
+        <div class="toss-step" id="yt-step-4">
+          <div class="toss-step-q">이렇게<br>만들어 드릴게요</div>
+          <div class="toss-step-hint">설정을 확인하고 생성해 주세요</div>
+          <div class="toss-summary show" id="yt-summary">
+            <div class="toss-summary-row"><span class="toss-summary-label">YouTube</span><span class="toss-summary-val" id="yt-sum-title">-</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">장르</span><span class="toss-summary-val" id="yt-sum-genre">-</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">분위기</span><span class="toss-summary-val" id="yt-sum-mood">-</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">곡 길이</span><span class="toss-summary-val" id="yt-sum-dur">짧게</span></div>
+            <div class="toss-summary-row"><span class="toss-summary-label">보컬</span><span class="toss-summary-val" id="yt-sum-vocal">있음</span></div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="gen-btn" id="yt-gen-btn" style="box-shadow:0 4px 24px rgba(124,58,237,.35);">
+              <span class="gen-spinner" id="yt-gen-spinner"></span>
+              <span id="yt-gen-txt">YouTube 스타일로 생성</span>
+            </button>
+          </div>
+          <div class="toss-step-nav" style="margin-top:12px;">
+            <button class="toss-nav-back" onclick="_ytStepBack(3)">이전</button>
+          </div>
+        </div>
       </div>
 
 
@@ -8387,6 +8443,7 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     const panel=$('panel-'+currentMode);if(panel)panel.classList.add('on');
     /* 심플모드: 공통 영역 숨김 */
     document.body.classList.toggle('simple-mode', currentMode==='simple');
+    document.body.classList.toggle('youtube-mode', currentMode==='youtube');
     /* 현재 모드 결과 섹션만 표시, 나머지 숨김 */
     ['custom','simple','youtube','mv'].forEach(m=>{
       const s=document.getElementById('results-'+m);
@@ -9819,8 +9876,10 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* 생성 버튼 활성화 */
     $('yt-gen-btn').disabled = false;
     $('yt-gen-btn').style.opacity = '1';
-    $('yt-gen-txt').textContent = '▶ YouTube 스타일로 생성';
-    toast('✅ 분석 완료! 가사를 입력하거나 바로 생성하세요','ok',3000);
+    $('yt-gen-txt').textContent = 'YouTube 스타일로 생성';
+    /* 토스 스텝 다음 버튼 활성화 */
+    var _ytNb=$('yt-next-1'); if(_ytNb){_ytNb.disabled=false;_ytNb.textContent='다음';}
+    toast('✅ 분석 완료! 다음 버튼을 눌러주세요','ok',3000);
 
     /* 자동 생성 플래그 */
     if(window._ytAutoGenerateAfterAnalysis){
@@ -28113,6 +28172,78 @@ setTimeout(_showOnboarding, 1500);
   }
   _initSwipeDots('qp-grid','qp-dots');
   _initSwipeDots('simple-mood-grid','mood-dots');
+
+  /* ══════════════════════════════
+     YouTube 모드 토스 스텝 플로우
+  ══════════════════════════════ */
+  var _ytStep=1;
+
+  window._ytStepGo=function(step){
+    /* 유효성 검사 */
+    if(step===2 && !_lastYtAnalysis){
+      _tossShake($('yt-next-1'));
+      toast('YouTube URL을 먼저 분석해주세요','',2000);
+      return;
+    }
+    _ytStep=step;
+    /* 프로그레스 바 */
+    document.querySelectorAll('#yt-toss-progress .toss-progress-dot').forEach(function(d){
+      var s=parseInt(d.dataset.step);
+      d.classList.remove('done','active');
+      if(s<_ytStep) d.classList.add('done');
+      else if(s===_ytStep) d.classList.add('active');
+    });
+    /* 현재 스텝만 표시 */
+    for(var i=1;i<=4;i++){
+      var el=$('yt-step-'+i);
+      if(!el) continue;
+      el.classList.remove('visible','back');
+      if(i===_ytStep) el.classList.add('visible');
+    }
+    /* Step 3 진입 시 제목 포커스 */
+    if(_ytStep===3){
+      var ti=$('yt-song-title');
+      if(ti){ti.focus();ti.click();}
+    }
+    /* Step 4 요약 */
+    if(_ytStep===4) _ytUpdSum();
+    var panel=$('panel-youtube');
+    if(panel) panel.scrollTop=0;
+  };
+
+  window._ytStepBack=function(toStep){
+    _ytStep=toStep;
+    document.querySelectorAll('#yt-toss-progress .toss-progress-dot').forEach(function(d){
+      var s=parseInt(d.dataset.step);
+      d.classList.remove('done','active');
+      if(s<_ytStep) d.classList.add('done');
+      else if(s===_ytStep) d.classList.add('active');
+    });
+    for(var i=1;i<=4;i++){
+      var el=$('yt-step-'+i);
+      if(!el) continue;
+      el.classList.remove('visible','back');
+      if(i===_ytStep) el.classList.add('visible','back');
+    }
+    var panel=$('panel-youtube');
+    if(panel) panel.scrollTop=0;
+  };
+
+  function _ytUpdSum(){
+    var a=window._lastYtAnalysis||{};
+    var t=$('yt-sum-title');if(t) t.textContent=(a.title||'').slice(0,20)||(($('yt-url')?.value||'').slice(0,20))||'-';
+    var g=$('yt-sum-genre');if(g) g.textContent=a.genre||'자동';
+    var m=$('yt-sum-mood');if(m) m.textContent=$('yt-mood')?.value?$('yt-mood').selectedOptions[0]?.text:'자동';
+    var d=$('yt-sum-dur');if(d){var _dv=document.querySelector('#yt-duration-btns .on');d.textContent=_dv?_dv.textContent.trim():'짧게';}
+    var v=$('yt-sum-vocal');if(v){var it=$('yt-inst-toggle');v.textContent=(it&&it.classList.contains('on'))?'인스트루멘탈':'보컬 있음';}
+  }
+
+  /* YouTube 탭 진입 시 리셋 */
+  document.querySelectorAll('.mtab').forEach(function(tab){
+    tab.addEventListener('click',function(){
+      if(tab.dataset.mode==='youtube'){_ytStep=1;_ytStepGo(1);}
+    });
+  });
 })();
 </script>
 <script src="js/create-enhance.js"></script>
