@@ -5382,7 +5382,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
 
         <!-- 생성 버튼 -->
-        <button class="gen-btn" id="mv-gen-btn" style="background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
+        <div id="mv-prompt-warn" style="display:none;text-align:center;padding:8px;margin-bottom:8px;font-size:12px;color:var(--ylw);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;">영상 프롬프트를 입력해주세요</div>
+        <button class="gen-btn" id="mv-gen-btn" disabled style="background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);">
           <span class="gen-spinner" id="mv-gen-spinner"></span>
           <span id="mv-gen-txt">🎬 뮤직비디오 생성하기</span>
         </button>
@@ -9458,6 +9459,21 @@ $('mv-ai-prompt-btn')?.addEventListener('click',async()=>{
     if(ta)ta.placeholder='예: A dreamy cityscape at night with neon lights...';
   }
 });
+
+/* MV 프롬프트 입력 감지 → 버튼 활성화/비활성화 */
+(function(){
+  var mvP=$('mv-prompt'),mvB=$('mv-gen-btn'),mvW=$('mv-prompt-warn');
+  if(mvP&&mvB){
+    function _mvCheckPrompt(){
+      var has=mvP.value.trim().length>0;
+      mvB.disabled=!has;
+      if(mvW) mvW.style.display=has?'none':'block';
+    }
+    mvP.addEventListener('input',_mvCheckPrompt);
+    /* 초기 상태 */
+    _mvCheckPrompt();
+  }
+})();
 
 /* MV 생성 버튼 */
 $('mv-gen-btn')?.addEventListener('click',generateMV);
