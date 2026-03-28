@@ -291,7 +291,7 @@ function _ensureKakaoSDK(){
 [data-theme="light"] .fp-lyric-line.active{color:#1c1c1e;text-shadow:none;}
 [data-theme="light"] .fp-lyric-line.done{color:#c7c7cc;}
 [data-theme="light"] .fp-lyric-sec{color:#8e8e93;}
-[data-theme="light"] .fp-lyrics-main::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);}
+[data-theme="light"] .fp-lyrics-main::-webkit-scrollbar{display:none;}
 /* 데이모드 — 노래방/가사생성 UI */
 [data-theme="light"] .kp-lyrics-line{color:#8e8e93;}
 [data-theme="light"] .kp-lyrics-line.active{color:#1c1c1e;}
@@ -3531,30 +3531,28 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-ov-line,.fp-ov-empty{display:none;}
 /* ── 제목 아래 가사 영역 (노래방 스타일) ── */
 .fp-lyrics-main{
-  margin-top:12px;padding:15vh 4px;text-align:center;
-  max-height:45vh;overflow-y:scroll;scroll-behavior:smooth;
+  margin-top:12px;padding:0 16px;text-align:left;
+  max-height:45vh;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
   -webkit-overflow-scrolling:touch;
-  mask-image:linear-gradient(transparent 0%,#000 15%,#000 85%,transparent 100%);
-  -webkit-mask-image:linear-gradient(transparent 0%,#000 15%,#000 85%,transparent 100%);
+  /* 스크롤바 완전 숨김 */
+  scrollbar-width:none;-ms-overflow-style:none;
 }
-.fp-lyrics-main::-webkit-scrollbar{width:3px;}
-.fp-lyrics-main::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
+.fp-lyrics-main::-webkit-scrollbar{display:none;}
 .fp-lm-line{
   font-size:15px;font-weight:600;color:rgba(255,255,255,.28);
-  line-height:2.2;transition:color .35s ease, text-shadow .35s ease, font-size .35s ease, transform .35s ease;
-  cursor:pointer;padding:2px 12px;border-radius:8px;
+  line-height:2.2;transition:color .35s ease, text-shadow .35s ease, font-size .35s ease;
+  cursor:pointer;padding:2px 0;
 }
 .fp-lm-line.active{
-  font-size:20px;font-weight:800;color:#fff;
-  text-shadow:0 0 28px rgba(168,85,247,.8), 0 0 56px rgba(124,58,237,.4);
-  transform:scale(1.05);
+  font-size:17px;font-weight:800;color:#fff;
+  text-shadow:0 0 20px rgba(168,85,247,.6);
 }
 .fp-lm-line.done{color:rgba(255,255,255,.12);}
 .fp-lm-sec{
   font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
-  letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;
+  letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;text-align:left;
 }
-.fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;text-align:center;}
+.fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;text-align:left;}
 
 /* ── fp 버튼 Apple Music 스타일 ── */
 .fp-act-btn{color:rgba(255,255,255,.5);}
@@ -4138,9 +4136,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .fp-ctrl-btn svg{width:24px;height:24px;}
   .fp-side-actions{gap:4px;}
   .fp-side-btn{width:34px;height:34px;font-size:14px;}
-  .fp-lyrics-main{max-height:35vh;padding:0 2px;}
+  .fp-lyrics-main{max-height:35vh;padding:0 12px;}
   .fp-lm-line{font-size:13px;line-height:2;}
-  .fp-lm-line.active{font-size:17px;}
   .fp-lm-line.active{font-size:15px;}
 
   /* 히스토리 */
