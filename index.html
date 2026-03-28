@@ -1471,21 +1471,56 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   display:block;padding:0;
 }
 
-/* 무드 칩 개선 */
-.mood-grid-toss{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+/* 무드 카드 — 스와이프 큰 카드 (장르와 동일) */
+.mood-grid-toss{
+  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;padding:4px 2px 16px;margin:0 -16px;
+  scrollbar-width:none;
+}
+.mood-grid-toss::-webkit-scrollbar{display:none;}
 .mood-grid-toss .mood-chip{
-  padding:10px 4px;font-size:11px;border-radius:12px;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  border:1.5px solid var(--border);background:var(--card);
-  transition:all .25s cubic-bezier(.4,0,.2,1);
+  flex:0 0 68%;max-width:260px;scroll-snap-align:center;
+  padding:28px 16px 24px;font-size:14px;font-weight:800;color:#fff;
+  border-radius:24px;border:2px solid transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;min-height:150px;position:relative;overflow:hidden;
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  text-shadow:0 1px 4px rgba(0,0,0,.2);
 }
-.mood-grid-toss .mood-chip .mood-ico{font-size:20px;}
+.mood-grid-toss .mood-chip::after{
+  content:'';position:absolute;inset:0;border-radius:22px;opacity:.08;
+  background:radial-gradient(circle at 30% 20%,#fff 0%,transparent 60%);
+  pointer-events:none;
+}
+.mood-grid-toss .mood-chip:first-child{margin-left:16%;}
+.mood-grid-toss .mood-chip:last-child{margin-right:16%;}
+.mood-grid-toss .mood-chip .mood-ico{font-size:44px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15));}
+.mood-grid-toss .mood-chip:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.mood-grid-toss .mood-chip:active{transform:scale(.96);}
 .mood-grid-toss .mood-chip.on{
-  border-color:var(--acc);background:rgba(124,58,237,.08);
-  transform:scale(1.03);box-shadow:0 2px 12px rgba(124,58,237,.15);
+  transform:scale(1.04);
+  box-shadow:0 8px 36px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.3);
 }
-[data-theme="light"] .mood-grid-toss .mood-chip{background:#fff;border-color:rgba(0,0,0,.06);}
-[data-theme="light"] .mood-grid-toss .mood-chip.on{background:rgba(124,58,237,.04);}
+/* 분위기별 그라데이션 */
+.mood-grid-toss .mood-chip:nth-child(1){background:linear-gradient(145deg,#f59e0b,#f97316);}
+.mood-grid-toss .mood-chip:nth-child(2){background:linear-gradient(145deg,#6366f1,#818cf8);}
+.mood-grid-toss .mood-chip:nth-child(3){background:linear-gradient(145deg,#10b981,#34d399);}
+.mood-grid-toss .mood-chip:nth-child(4){background:linear-gradient(145deg,#1e1b4b,#312e81);}
+.mood-grid-toss .mood-chip:nth-child(5){background:linear-gradient(145deg,#ec4899,#f472b6);}
+.mood-grid-toss .mood-chip:nth-child(6){background:linear-gradient(145deg,#ef4444,#f97316);}
+.mood-grid-toss .mood-chip:nth-child(7){background:linear-gradient(145deg,#a855f7,#7c3aed);}
+.mood-grid-toss .mood-chip:nth-child(8){background:linear-gradient(145deg,#06b6d4,#67e8f9);}
+.mood-grid-toss .mood-chip:nth-child(9){background:linear-gradient(145deg,#4f46e5,#7c3aed);}
+.mood-grid-toss .mood-chip:nth-child(10){background:linear-gradient(145deg,#f59e0b,#eab308);}
+.mood-grid-toss .mood-chip:nth-child(11){background:linear-gradient(145deg,#dc2626,#991b1b);}
+.mood-grid-toss .mood-chip:nth-child(12){background:linear-gradient(145deg,#7c3aed,#6d28d9);}
+/* 라이트모드에서도 색상 유지 */
+[data-theme="light"] .mood-grid-toss .mood-chip{border-color:transparent;}
+[data-theme="light"] .mood-grid-toss .mood-chip.on{box-shadow:0 8px 36px rgba(0,0,0,.15),0 0 0 3px rgba(124,58,237,.3);}
+/* 분위기 인디케이터 닷 */
+.mood-dots{display:flex;justify-content:center;gap:5px;margin-bottom:8px;}
+.mood-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:all .3s;}
+.mood-dot.on{width:16px;border-radius:3px;background:var(--acc);}
 
 /* 스텝 완료 체크 애니메이션 */
 .toss-check{
@@ -4908,6 +4943,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="mood-chip" data-mood="hopeful, inspiring" onclick="_setSimpleMood(this)"><span class="mood-ico">🌅</span>영감</button>
             <button class="mood-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)"><span class="mood-ico">💪</span>파워풀</button>
             <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)"><span class="mood-ico">🔮</span>신비</button>
+          </div>
+          <div class="mood-dots" id="mood-dots">
+            <div class="mood-dot on"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div>
           </div>
           <div class="toss-step-nav">
             <button class="toss-nav-back" onclick="_tossBack(1)">이전</button>
@@ -27767,23 +27805,26 @@ setTimeout(_showOnboarding, 1500);
   /* 초기 로드 시 심플모드 클래스 */
   document.body.classList.add('simple-mode');
 
-  /* ── 장르 카드 스와이프 인디케이터 ── */
-  var _qpGrid=$('qp-grid');
-  if(_qpGrid){
-    var _qpDots=document.querySelectorAll('#qp-dots .qp-dot');
-    _qpGrid.addEventListener('scroll',function(){
-      if(!_qpDots.length) return;
-      var cards=_qpGrid.querySelectorAll('.qp-card');
-      var scrollCenter=_qpGrid.scrollLeft+_qpGrid.clientWidth/2;
+  /* ── 스와이프 인디케이터 공통 함수 ── */
+  function _initSwipeDots(gridId, dotsId){
+    var grid=$(gridId);
+    if(!grid) return;
+    var dots=document.querySelectorAll('#'+dotsId+' > *');
+    grid.addEventListener('scroll',function(){
+      if(!dots.length) return;
+      var items=grid.children;
+      var scrollCenter=grid.scrollLeft+grid.clientWidth/2;
       var closest=0, minDist=Infinity;
-      cards.forEach(function(c,i){
-        var center=c.offsetLeft+c.offsetWidth/2;
+      for(var i=0;i<items.length;i++){
+        var center=items[i].offsetLeft+items[i].offsetWidth/2;
         var dist=Math.abs(scrollCenter-center);
         if(dist<minDist){minDist=dist;closest=i;}
-      });
-      _qpDots.forEach(function(d,i){d.classList.toggle('on',i===closest);});
+      }
+      dots.forEach(function(d,i){d.classList.toggle('on',i===closest);});
     });
   }
+  _initSwipeDots('qp-grid','qp-dots');
+  _initSwipeDots('simple-mood-grid','mood-dots');
 })();
 </script>
 <script src="js/create-enhance.js"></script>
