@@ -3442,29 +3442,32 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-lyrics-overlay{display:none !important;}
 .fp-lyrics-overlay-box{display:none;}
 .fp-ov-line,.fp-ov-empty{display:none;}
-/* ── 제목 아래 가사 영역 ── */
+/* ── 제목 아래 가사 영역 (노래방 스타일) ── */
 .fp-lyrics-main{
-  margin-top:12px;padding:0 4px;text-align:left;
-  max-height:200px;overflow-y:scroll;scroll-behavior:smooth;
+  margin-top:12px;padding:15vh 4px;text-align:center;
+  max-height:45vh;overflow-y:scroll;scroll-behavior:smooth;
   -webkit-overflow-scrolling:touch;
+  mask-image:linear-gradient(transparent 0%,#000 15%,#000 85%,transparent 100%);
+  -webkit-mask-image:linear-gradient(transparent 0%,#000 15%,#000 85%,transparent 100%);
 }
 .fp-lyrics-main::-webkit-scrollbar{width:3px;}
 .fp-lyrics-main::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px;}
 .fp-lm-line{
-  font-size:14px;font-weight:600;color:rgba(255,255,255,.3);
-  line-height:2;transition:color .3s, text-shadow .3s, font-size .3s, font-weight .3s;cursor:pointer;
-  padding:0 8px;border-radius:6px;
+  font-size:15px;font-weight:600;color:rgba(255,255,255,.28);
+  line-height:2.2;transition:color .35s ease, text-shadow .35s ease, font-size .35s ease, transform .35s ease;
+  cursor:pointer;padding:2px 12px;border-radius:8px;
 }
 .fp-lm-line.active{
-  font-size:17px;font-weight:800;color:#fff;
-  text-shadow:0 0 24px rgba(168,85,247,.7);
+  font-size:20px;font-weight:800;color:#fff;
+  text-shadow:0 0 28px rgba(168,85,247,.8), 0 0 56px rgba(124,58,237,.4);
+  transform:scale(1.05);
 }
-.fp-lm-line.done{color:rgba(255,255,255,.15);}
+.fp-lm-line.done{color:rgba(255,255,255,.12);}
 .fp-lm-sec{
-  font-size:11px;font-weight:700;color:rgba(168,85,247,.5);
-  letter-spacing:1px;text-transform:uppercase;margin:8px 0 2px;
+  font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
+  letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;
 }
-.fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;}
+.fp-lm-empty{font-size:13px;color:rgba(255,255,255,.2);padding:16px 0;text-align:center;}
 
 /* ── fp 버튼 Apple Music 스타일 ── */
 .fp-act-btn{color:rgba(255,255,255,.5);}
@@ -4048,8 +4051,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .fp-ctrl-btn svg{width:24px;height:24px;}
   .fp-side-actions{gap:4px;}
   .fp-side-btn{width:34px;height:34px;font-size:14px;}
-  .fp-lyrics-main{max-height:160px;padding:0 2px;}
-  .fp-lm-line{font-size:12px;}
+  .fp-lyrics-main{max-height:35vh;padding:0 2px;}
+  .fp-lm-line{font-size:13px;line-height:2;}
+  .fp-lm-line.active{font-size:17px;}
   .fp-lm-line.active{font-size:15px;}
 
   /* 히스토리 */
@@ -10944,6 +10948,10 @@ async function generate(overrideParams){
       if(!savedLyrics && !instOn){
         _autoFillLyrics(_newTrack, apiKey);
       }
+      /* ── 타임스탬프 가사 자동 가져오기 (노래방 싱크용) ── */
+      if(savedLyrics && t.id && taskId){
+        _autoFetchTimestampedLyrics(_newTrack, taskId, t.id, apiKey);
+      }
     });
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
@@ -14479,6 +14487,38 @@ async function _autoFillLyrics(track, apiKey){
   }catch(e){ console.warn('[AutoLyrics]', e.message); }
 }
 
+/* ── 타임스탬프 가사 자동 가져오기 (생성 후 백그라운드) ── */
+async function _autoFetchTimestampedLyrics(track, taskId, audioId, apiKey){
+  if(!apiKey||!taskId||!audioId) return;
+  /* 생성 직후에는 타임스탬프가 준비 안 될 수 있으므로 딜레이 후 재시도 */
+  var _maxRetry=3, _delay=5000;
+  for(var _r=0;_r<_maxRetry;_r++){
+    await new Promise(function(ok){setTimeout(ok,_delay);});
+    try{
+      var res=await kieRequest(apiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:taskId,audioId:audioId});
+      var words=res?.data?.alignedWords||[];
+      if(words.length>3){
+        var lrcText=_wordsToLrc(words);
+        if(lrcText){
+          var idx=historyData.findIndex(function(h){return h.id===track.id;});
+          if(idx>=0){
+            historyData[idx].lyrics=lrcText;
+            historyData[idx]._hasLrc=true;
+            saveHistory();
+            console.log('[AutoTimestamp] LRC 가사 저장 완료, 트랙:', track.id);
+            /* 현재 풀플레이어에서 이 트랙을 보고 있으면 즉시 갱신 */
+            if(fpCurrentIdx===idx && $('fullplayer')?.classList.contains('on')){
+              fpRenderLyrics(historyData[idx]);
+            }
+          }
+        }
+        return; /* 성공 시 종료 */
+      }
+    }catch(e){console.warn('[AutoTimestamp] retry',_r,e.message);}
+    _delay=_delay*1.5; /* 점진적 대기 */
+  }
+}
+
 function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(historyData));}
 
 /* 서버에서 단건 트랙 삭제 (본인 소유) */
@@ -17094,23 +17134,30 @@ function fpRenderLyrics(h){
   /* LRC 타임스탬프 유무에 따라 싱크 모드 버튼 표시/숨김 */
   const syncBtn=$('fp-lyrics-mode-btn');
   if(hasLrc){
-    if(syncBtn) syncBtn.style.display='';
-    if(fpTimestampLines.length && fpSyncMode) fpTimestampLines[0].classList.add('active');
-  } else {
+    if(syncBtn){ syncBtn.style.display=''; syncBtn.textContent='싱크 모드'; }
+    fpSyncMode=true;
+    if(fpTimestampLines.length) fpTimestampLines[0].classList.add('active');
+  } else if(fpTimestampLines.length>=2){
     /* LRC 없어도 가사 라인이 있으면 균등 분할 싱크 시도 */
-    if(fpTimestampLines.length>=2 && fpAudio?.duration){
+    if(fpAudio?.duration){
       _fpAssignTimes();
-    } else if(fpTimestampLines.length>=2){
-      /* duration 아직 모르면 loadedmetadata 이벤트에서 재시도 */
+    } else {
+      /* duration 아직 모르면 loadedmetadata에서 재시도 — 싱크 모드는 미리 ON */
+      fpSyncMode=true;
+      if(syncBtn){ syncBtn.style.display=''; syncBtn.textContent='싱크 준비 중...'; }
       fpAudio?.addEventListener('loadedmetadata',function _assignOnMeta(){
         _fpAssignTimes();
         fpAudio.removeEventListener('loadedmetadata',_assignOnMeta);
       });
-      if(syncBtn) syncBtn.style.display='none';
-    } else {
-      if(syncBtn) syncBtn.style.display='none';
-      fpSyncMode=false;
+      /* canplay에서도 재시도 (loadedmetadata 누락 대비) */
+      fpAudio?.addEventListener('canplay',function _assignOnCanPlay(){
+        if(!_fpLrcTimes.length) _fpAssignTimes();
+        fpAudio.removeEventListener('canplay',_assignOnCanPlay);
+      });
     }
+  } else {
+    if(syncBtn) syncBtn.style.display='none';
+    fpSyncMode=false;
   }
 }
 
