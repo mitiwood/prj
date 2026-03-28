@@ -10948,10 +10948,6 @@ async function generate(overrideParams){
       if(!savedLyrics && !instOn){
         _autoFillLyrics(_newTrack, apiKey);
       }
-      /* ── 타임스탬프 가사 자동 가져오기 (노래방 싱크용) ── */
-      if(savedLyrics && t.id && taskId){
-        _autoFetchTimestampedLyrics(_newTrack, taskId, t.id, apiKey);
-      }
     });
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
@@ -14487,38 +14483,6 @@ async function _autoFillLyrics(track, apiKey){
   }catch(e){ console.warn('[AutoLyrics]', e.message); }
 }
 
-/* ── 타임스탬프 가사 자동 가져오기 (생성 후 백그라운드) ── */
-async function _autoFetchTimestampedLyrics(track, taskId, audioId, apiKey){
-  if(!apiKey||!taskId||!audioId) return;
-  /* 생성 직후에는 타임스탬프가 준비 안 될 수 있으므로 딜레이 후 재시도 */
-  var _maxRetry=3, _delay=5000;
-  for(var _r=0;_r<_maxRetry;_r++){
-    await new Promise(function(ok){setTimeout(ok,_delay);});
-    try{
-      var res=await kieRequest(apiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:taskId,audioId:audioId});
-      var words=res?.data?.alignedWords||[];
-      if(words.length>3){
-        var lrcText=_wordsToLrc(words);
-        if(lrcText){
-          var idx=historyData.findIndex(function(h){return h.id===track.id;});
-          if(idx>=0){
-            historyData[idx].lyrics=lrcText;
-            historyData[idx]._hasLrc=true;
-            saveHistory();
-            console.log('[AutoTimestamp] LRC 가사 저장 완료, 트랙:', track.id);
-            /* 현재 풀플레이어에서 이 트랙을 보고 있으면 즉시 갱신 */
-            if(fpCurrentIdx===idx && $('fullplayer')?.classList.contains('on')){
-              fpRenderLyrics(historyData[idx]);
-            }
-          }
-        }
-        return; /* 성공 시 종료 */
-      }
-    }catch(e){console.warn('[AutoTimestamp] retry',_r,e.message);}
-    _delay=_delay*1.5; /* 점진적 대기 */
-  }
-}
-
 function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(historyData));}
 
 /* 서버에서 단건 트랙 삭제 (본인 소유) */
@@ -14929,13 +14893,22 @@ function _doOpenFullPlayer(idx){
   audio.src=_audioUrl;
   audio.load();
 
-  /* 타임스탬프 가사 API 로드 — LRC 없을 때 노래방 모드와 동일하게 싱크 */
+  /* 타임스탬프 가사 API 로드 — LRC 없을 때 노래방 싱크용 (온디맨드) */
   if(h.taskId&&h.id&&!_fpLrcTimes.length){
     kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:h.taskId,audioId:h.id})
       .then(function(res){
         if(genId!==_fpAudioGenId)return;
         const words=res?.data?.alignedWords||[];
-        if(words.length)fpRenderTimestampedLyrics(words);
+        if(words.length){
+          fpRenderTimestampedLyrics(words);
+          /* LRC를 historyData에 저장 — 다음 재생 시 즉시 싱크 */
+          var lrc=_wordsToLrc(words);
+          if(lrc&&fpCurrentIdx>=0&&historyData[fpCurrentIdx]){
+            historyData[fpCurrentIdx].lyrics=lrc;
+            historyData[fpCurrentIdx]._hasLrc=true;
+            saveHistory();
+          }
+        }
       })
       .catch(function(){});
   }
