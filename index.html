@@ -17318,6 +17318,23 @@ function fpRenderLyrics(h){
   _fpPrevActiveIdx=-1;
 
   if(!plain.trim()){
+    /* 커뮤니티 트랙이면 서버에서 가사 온디맨드 fetch */
+    var _lyrFetchId=h.id||h._sbId||'';
+    if(_lyrFetchId && h._fromSb && !h._lyricsFetched){
+      h._lyricsFetched=true;
+      if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty" style="opacity:.5;">가사 불러오는 중...</div>';
+      fetch('/api/tracks?id='+encodeURIComponent(_lyrFetchId)).then(function(r){return r.ok?r.json():null;}).then(function(d){
+        if(d&&d.track&&(d.track.lyrics||d.track.lyric)){
+          h.lyrics=d.track.lyrics||d.track.lyric||'';
+          fpRenderLyrics(h); /* 가사 있으면 재렌더 */
+        } else {
+          if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
+        }
+      }).catch(function(){
+        if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
+      });
+      return;
+    }
     if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
     return;
   }
