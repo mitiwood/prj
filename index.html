@@ -12745,26 +12745,7 @@ function togglePlay(btn){
     else{activeAudio.pause();btn.textContent='▶';stopViz(idx);}
     return;
   }
-  /* 다른 소스가 재생 중이면 팝업으로 확인 */
-  const _tpSrc=getPlayingInfo();
-  if(_tpSrc&&!(activeAudio&&!activeAudio.paused&&activeAudio._idx!==idx)){
-    const _apTitle=btn.closest('.result-card')?.querySelector('.rc-title')?.textContent||url.slice(-20)||'트랙';
-    showAudioSwitchPopup(_tpSrc,_apTitle,()=>{
-      if(activeAudio){stopViz(activeAudio._idx);var _ob=document.querySelector('.ap-play-btn[data-idx="'+activeAudio._idx+'"]');if(_ob)_ob.textContent='\u25B6';_destroyAudio(activeAudio);activeAudio=null;}
-      btn.textContent='\u23F3';
-      var _tEl2=document.getElementById('ap-time-'+idx);
-      if(_tEl2){var _tc2=_tEl2.textContent;if(_tc2.includes('/ —')||_tc2.includes('불러오는 중'))_tEl2.textContent='0:00 / 잠시만 기다려 주세요...';}
-      var a2=new Audio();a2._idx=idx;a2._url=url;a2.preload='auto';a2._corsRetried=false;a2._retried=false;activeAudio=a2;
-      a2.addEventListener('timeupdate',function(){if(_apRafPending)return;_apRafPending=true;requestAnimationFrame(function(){_apRafPending=false;if(a2!==activeAudio)return;var pct=a2.duration?(a2.currentTime/a2.duration)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(a2.currentTime)+' / '+formatTime(a2.duration||0);updateKaraokeSync(idx,a2.currentTime);});});
-      a2.addEventListener('ended',function(){btn.textContent='\u25B6';stopViz(idx);var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width='0%';});
-      a2.addEventListener('error',function(){var code=a2.error?.code;if(!a2._corsRetried&&(code===2||code===4)){a2._corsRetried=true;a2.removeAttribute('crossorigin');a2.crossOrigin=null;a2.src=url;a2.load();a2.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});toast('오디오 재연결 중...','',2000);return;}if(!a2._retried&&code===2){a2._retried=true;a2.src=url;a2.load();a2.play().catch(function(){});toast('오디오 재연결 중...','',2000);return;}btn.textContent='\u25B6';toast('오디오 재생 오류','err',3000);});
-      var _tp2=false;function _tp2Play(){if(_tp2||a2!==activeAudio)return;_tp2=true;a2.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){_tp2=false;btn.textContent='\u25B6';toast('재생 실패: '+e.message,'err',3000);});}
-      a2.src=url;a2.addEventListener('canplay',_tp2Play,{once:true});
-      setTimeout(function(){if(a2===activeAudio&&a2.paused&&a2.readyState>=2)_tp2Play();},300);
-      setTimeout(function(){if(a2===activeAudio&&a2.paused){btn.textContent='\u25B6';toast('오디오를 불러올 수 없어요. 잠시 후 다시 시도해주세요.','err',3000);}},10000);
-    });
-    return;
-  }
+  /* 다른 소스가 재생 중이면 즉시 정지 후 새 곡 재생 */
   /* 모든 오디오 정지 후 재생 */
   stopAllAudio();
   if(activeAudio){
@@ -14441,6 +14422,8 @@ function showMiniPlayer(idx){
       setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
       toast('오디오 재연결 중...','',2000);
     } else if(code===4){
+      /* 모든 재시도 소진 후 code 4 → 진짜 재생 불가 URL */
+      if(_safeAudioUrl) _failedAudioUrls.add(_safeAudioUrl);
       toast('오디오를 재생할 수 없어요','err',3000);
     } else {
       toast(msg,'err',3000);
@@ -15362,18 +15345,8 @@ function openFullPlayer(idx){
   const h=historyData[idx];
   if(!h)return;
   /* fp 내부에서 다른 곡으로 교체 시 — 바로 허용 (fpAudio는 아래서 정지) */
-  /* 다른 소스가 재생 중이면 팝업으로 확인 */
-  const playingSrc=getPlayingInfo&&getPlayingInfo();
-  /* fpAudio는 fp 전환이므로 차단 대상 아님, 나머지만 체크 */
-  const otherPlaying=(activeAudio&&!activeAudio.paused)?getPlayingInfo()
-    :(commHeroAudio&&!commHeroAudio.paused)?getPlayingInfo()
-    :(commAudio&&!commAudio.paused)?getPlayingInfo()
-    :(kpAudio&&!kpAudio.paused)?getPlayingInfo()
-    :null;
-  if(otherPlaying){
-    showAudioSwitchPopup(otherPlaying,h.title||'무제',()=>_doOpenFullPlayer(idx));
-    return;
-  }
+  /* 다른 소스가 재생 중이면 즉시 정지 */
+  stopAllAudio();
   _doOpenFullPlayer(idx);
 }
 
@@ -19958,7 +19931,7 @@ function _buildCommItem(t,i,isMine){
   const chainLbl={extend:'🔄 연장',cover:'🎤 커버',remaster:'✨ 리마스터','style-reuse':'🎨 스타일','vocal-remove':'🎙 보컬분리'};
   const chainCls=chainMap[t._genMode]||'';
   const chainTxt=chainLbl[t._genMode]||'';
-  const _commFailed=!t.audioUrl||_failedAudioUrls.has(t.audioUrl);
+  const _commFailed=!t.audioUrl;
   return `<div class="comm-list-item${_commFailed?' comm-failed':''}" data-sbid="${sid}" data-genre="${genre}" ${_commFailed?'':'onclick="commPlaySb(\''+sid+'\')"'} style="${_commFailed?'opacity:.55;':''}">
     <div class="comm-list-top">
       <div class="comm-list-img" style="position:relative;">
@@ -20145,7 +20118,7 @@ function _renderCommContent(heroWrap, list){
   /* 좋아요 많은 순 정렬 — 상위 1개는 Featured Hero (유효한 오디오 URL 필수) */
   const sortFns={likes:(a,b)=>b.likes-a.likes,newest:(a,b)=>(b._created||0)-(a._created||0),rating:(a,b)=>(b.rating||0)-(a.rating||0),plays:(a,b)=>(b.plays||0)-(a.plays||0)};
   const sorted=[...tracks].sort(sortFns[_commSortMode]||sortFns.likes);
-  const _isValidAudioUrl=(url,t)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'))&&!_failedAudioUrls.has(url);
+  const _isValidAudioUrl=(url,t)=>url&&!url.includes('example.com')&&(url.startsWith('https://')||url.startsWith('http://'));
   /* 유효한 오디오가 있는 트랙을 hero로 선택 — 관리자 지정 우선, 재생 불가 URL 제외 */
   var _adminHeroId=_commConfig&&_commConfig.hero_track_id?_commConfig.hero_track_id:'';
   var heroIdx=-1;
@@ -20763,22 +20736,9 @@ function _loadCommDurations(tracks){
     });
     a.addEventListener('error',function(){
       clearTimeout(_timeout);_cleanup();
-      /* 재생불가 URL 등록 + UI 즉시 비활성화 */
-      if(t.audioUrl) _failedAudioUrls.add(t.audioUrl);
-      var item=document.querySelector('.comm-list-item[data-sbid="'+t._sbId+'"]');
-      if(item&&!item.classList.contains('comm-failed')){
-        item.classList.add('comm-failed');
-        item.style.opacity='.55';
-        item.removeAttribute('onclick');
-        var titleEl=item.querySelector('.comm-list-title');
-        if(titleEl&&!titleEl.querySelector('.comm-fail-tag')){
-          titleEl.style.opacity='.5';titleEl.style.textDecoration='line-through';
-          titleEl.insertAdjacentHTML('beforeend',' <span class="comm-fail-tag" style="color:var(--err,#e74c3c);font-size:10px;font-weight:600;text-decoration:none;display:inline-block;">재생불가</span>');
-        }
-        var playBtn=item.querySelector('.comm-play-sm');
-        if(playBtn){playBtn.disabled=true;playBtn.style.opacity='.3';playBtn.removeAttribute('onclick');}
-      }
-      /* 크리에이터 상세 뷰 카드는 별도 재생 시도 시 판단 — 메타데이터 로드 실패가 스트리밍 불가를 의미하지 않으므로 비활성화하지 않음 */
+      /* 메타데이터 프로브 실패 — 재생 블랙리스트에 추가하지 않음
+         (메타데이터 로드 실패 ≠ 스트리밍 불가: CORS/동시 로드 제한 등으로 실패 가능) */
+      console.warn('[CommDur] 메타데이터 로드 실패:', t._sbId, t.audioUrl?.slice(0,60));
     });
   });
 }
@@ -20990,9 +20950,7 @@ function setupHeroAudio(hero){
   });
   audio.addEventListener('error',(e)=>{
     var code=audio.error?audio.error.code:0;
-    console.warn('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src);
-    /* 재생 불가 URL 블랙리스트 등록 → 다음 렌더에서 hero/차트 제외 */
-    if(code===4||code===3) _failedAudioUrls.add(audio.src);
+    console.warn('[HeroAudio] 로드 실패 (code:'+code+'):', audio.src?.slice(0,80));
     /* code 2(네트워크) 만 재연결 — code 4(미지원)는 URL 자체 문제이므로 재시도 무의미 */
     if(code===2&&_heroRetryCount<_heroMaxRetries){
       _heroReconnect('error code '+code);
@@ -21140,7 +21098,12 @@ function commPlaySb(sbId){
     }
     toast('트랙을 찾을 수 없어요','err');return;
   }
-  if(!t.audioUrl||_failedAudioUrls.has(t.audioUrl)){toast('재생할 수 없는 곡이에요','err');return;}
+  if(!t.audioUrl){toast('재생할 수 없는 곡이에요','err');return;}
+  /* 이전에 실패했던 URL이라도 재시도 허용 (일시적 네트워크/CORS 문제일 수 있음) */
+  if(_failedAudioUrls.has(t.audioUrl)){
+    console.log('[commPlaySb] 블랙리스트 URL 재시도:', t._sbId);
+    _failedAudioUrls.delete(t.audioUrl);
+  }
 
   /* 커뮤니티 리스트에서 재생 — 컨텍스트 설정 */
   _mfPlayQueue=[];_mfPlayQueueIdx=-1;
