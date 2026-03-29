@@ -17874,22 +17874,38 @@ function fpSyncLyrics(currentTime){
   let activeIdx=-1;
 
   if(hasEnd){
-    /* 노래방 모드와 동일: start/end 구간 매칭 (정밀 싱크) */
-    for(let i=0;i<n;i++){
+    /* 노래방 모드와 동일: 매 프레임 모든 라인 클래스 업데이트 (정밀 싱크) */
+    let activeEl=null;
+    fpTimestampLines.forEach((el,i)=>{
       var s=_fpLrcTimes[i], e=_fpLrcEndTimes[i];
-      if(currentTime>=s&&currentTime<e){activeIdx=i;break;}
-    }
-    /* 구간 사이(간주 등)에 있으면 가장 가까운 지나간 라인 */
-    if(activeIdx<0){
-      for(let i=n-1;i>=0;i--){
-        if(currentTime>=_fpLrcEndTimes[i]){activeIdx=i;break;}
+      if(currentTime>=s&&currentTime<e){
+        el.classList.add('active');el.classList.remove('done');
+        activeEl=el;activeIdx=i;
+      } else if(currentTime>=e){
+        el.classList.remove('active');el.classList.add('done');
+      } else {
+        el.classList.remove('active','done');
+      }
+    });
+    /* 스크롤: activeIdx 변경 시만 */
+    if(activeIdx!==_fpPrevActiveIdx){
+      _fpPrevActiveIdx=activeIdx;
+      if(activeEl){
+        const box=$('fp-lyrics-main');
+        if(box){
+          const areaRect=box.getBoundingClientRect();
+          const elRect=activeEl.getBoundingClientRect();
+          const targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
+          if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
+        }
       }
     }
-  } else {
-    /* LRC/균등 분할: 시작 시간만으로 매칭 */
-    for(let i=n-1;i>=0;i--){
-      if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
-    }
+    return;
+  }
+
+  /* LRC/균등 분할: 시작 시간만으로 매칭 */
+  for(let i=n-1;i>=0;i--){
+    if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
   }
 
   /* 같은 라인이면 불필요한 DOM 업데이트/스크롤 스킵 */
@@ -17897,20 +17913,8 @@ function fpSyncLyrics(currentTime){
   _fpPrevActiveIdx=activeIdx;
 
   fpTimestampLines.forEach((el,i)=>{
-    if(hasEnd){
-      /* 노래방 스타일: 현재 구간=active, 지나간=done, 아직=기본 */
-      var s=_fpLrcTimes[i], e=_fpLrcEndTimes[i];
-      if(currentTime>=s&&currentTime<e){
-        el.classList.add('active');el.classList.remove('done');
-      } else if(currentTime>=e){
-        el.classList.remove('active');el.classList.add('done');
-      } else {
-        el.classList.remove('active','done');
-      }
-    } else {
-      el.classList.toggle('active',i===activeIdx);
-      el.classList.toggle('done',i<activeIdx);
-    }
+    el.classList.toggle('active',i===activeIdx);
+    el.classList.toggle('done',i<activeIdx);
   });
 
   /* 활성 라인 중앙으로 스크롤 */
