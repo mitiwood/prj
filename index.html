@@ -18825,12 +18825,8 @@ function _openFullKaraoke(idx){
 
 function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyrics){
   const player=$('karaoke-player');
-  /* 다른 소스 재생 중이면 팝업 */
-  const _kpSrc=getPlayingInfo();
-  if(_kpSrc){
-    showAudioSwitchPopup(_kpSrc,title||'노래방',()=>openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyrics));
-    return;
-  }
+  /* 다른 소스 재생 중이면 즉시 정지 */
+  stopAllAudio();
   /* 기존 노래방 오디오 정지 */
   if(kpAudio){kpAudio.pause();clearInterval(kpVizTimer);}
 
@@ -21019,14 +21015,8 @@ function setupHeroAudio(hero){
       commHeroPlaying=false;
       return;
     }
-    const _hSrc=getPlayingInfo();
-    if(_hSrc){
-      showAudioSwitchPopup(_hSrc,hero.title||'커뮤니티 트랙',()=>{
-        stopAllAudio();
-        _doPlay();
-      });
-      return;
-    }
+    /* 다른 소스 재생 중이면 즉시 정지 */
+    stopAllAudio();
     _doPlay();
   };
   const prog=$('comm-hero-prog');
@@ -21552,27 +21542,15 @@ function commPlay(i){
   /* 이미 같은 트랙 재생 중이면 토글 */
   if(commPlayingIdx===i&&commAudio){
     if(commAudio.paused){
-      /* 다른 소스 재생 중이면 팝업 */
-      const _cSrc1=getPlayingInfo();
-      if(_cSrc1){showAudioSwitchPopup(_cSrc1,t.title||'커뮤니티 곡',()=>{commAudio.play();document.getElementById(`comm-play-${i}`).textContent='⏸';});return;}
+      /* 다른 소스 재생 중이면 즉시 정지 */
+      stopAllAudio();
       commAudio.play();document.getElementById(`comm-play-${i}`).textContent='⏸';}
     else{commAudio.pause();document.getElementById(`comm-play-${i}`).textContent='▶';}
     return;
   }
   /* 이전 정지 */
   if(commAudio){commAudio.pause();}
-  /* 다른 소스 재생 중이면 팝업 */
-  const _cSrc2=getPlayingInfo();
-  if(_cSrc2){
-    showAudioSwitchPopup(_cSrc2,t.title||'커뮤니티 곡',()=>{
-      if(commPlayingIdx>=0){const old2=document.getElementById(`comm-play-${commPlayingIdx}`);if(old2)old2.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
-      const a2=new Audio(t.audioUrl);commAudio=a2;commPlayingIdx=i;
-      a2.addEventListener('timeupdate',()=>{if(!a2.duration)return;commSyncLyrics(i,a2.currentTime,a2.duration);const h2=historyData[t._hIdx];if(h2&&!a2._counted&&a2.currentTime>5){a2._counted=true;h2._commPlays=(h2._commPlays||0)+1;saveHistory();}});
-      a2.addEventListener('ended',()=>{const pb2=document.getElementById(`comm-play-${i}`);if(pb2)pb2.textContent='▶';commPlayingIdx=-1;document.getElementById(`comm-item-${i}`)?.classList.remove('playing');});
-      a2.play();document.getElementById(`comm-play-${i}`).textContent='⏸';document.getElementById(`comm-item-${i}`)?.classList.add('playing');
-    });
-    return;
-  }
+  /* 다른 소스 재생 중이면 즉시 정지 */
   if(commPlayingIdx>=0){const old=document.getElementById(`comm-play-${commPlayingIdx}`);if(old)old.textContent='▶';document.getElementById(`comm-item-${commPlayingIdx}`)?.classList.remove('playing');}
   /* 모든 오디오 정지 후 새 재생 */
   stopAllAudio();
