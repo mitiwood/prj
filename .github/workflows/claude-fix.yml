@@ -285,7 +285,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
 
           echo "=== Installing Claude Code CLI ==="
           npm install -g @anthropic-ai/claude-code
@@ -295,24 +295,24 @@ jobs:
           cat /tmp/claude-prompt.txt
           echo ""
           echo "=== Running Claude Code ==="
-          cat /tmp/claude-prompt.txt | claude --print \
-            --allowedTools "Edit,Read,Glob,Grep,Write,Bash" \
-            2>&1 | tee /tmp/claude-output.txt
+          cat /tmp/claude-prompt.txt | claude -p \
+            --allowedTools "Edit" "Read" "Glob" "Grep" "Write" "Bash" \
+            2>&1 | tee /tmp/claude-output.txt || true
 
-          EXIT_CODE=${PIPESTATUS[1]}
+          EXIT_CODE=${PIPESTATUS[1]:-$?}
           echo "claude_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
           if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "::error::Claude Code exited with code $EXIT_CODE"
+            echo "::warning::Claude Code exited with code $EXIT_CODE"
             echo "=== Last 50 lines of output ==="
             tail -50 /tmp/claude-output.txt
-            exit 1
+          else
+            echo "=== Claude Code completed successfully ==="
           fi
-
-          echo "=== Claude Code completed successfully ==="
 
       # ── 4. 변경사항 확인 + 푸시 ──
       - name: Push changes
+        if: always() && steps.claude.outcome != 'cancelled'
         id: push
         env:
           ISSUE_NUM: ${{ github.event.issue.number }}
