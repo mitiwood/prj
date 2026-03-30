@@ -110,6 +110,18 @@ TABLES = [
     "CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_name, user_provider, is_read)",
     "CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at DESC)",
     "CREATE INDEX IF NOT EXISTS idx_live_notifications_created ON public.live_notifications(created_at DESC)",
+
+    # claude_sessions (대화형 세션 관리)
+    """CREATE TABLE IF NOT EXISTS public.claude_sessions (
+      id BIGSERIAL PRIMARY KEY,
+      chat_id TEXT NOT NULL,
+      issue_number INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      closed_at TIMESTAMPTZ
+    )""",
+    "ALTER TABLE public.claude_sessions ENABLE ROW LEVEL SECURITY",
+    "CREATE INDEX IF NOT EXISTS idx_claude_sessions_active ON public.claude_sessions(chat_id, status) WHERE status = 'active'",
 ]
 
 # RLS policies
@@ -130,6 +142,7 @@ POLICIES = [
     "DO $$ BEGIN CREATE POLICY managers_service_write ON public.managers FOR ALL USING (auth.role() = 'service_role'); EXCEPTION WHEN duplicate_object THEN NULL; END $$",
     "DO $$ BEGIN CREATE POLICY attendance_public_read ON public.attendance FOR SELECT USING (true); EXCEPTION WHEN duplicate_object THEN NULL; END $$",
     "DO $$ BEGIN CREATE POLICY attendance_service_write ON public.attendance FOR ALL USING (auth.role() = 'service_role'); EXCEPTION WHEN duplicate_object THEN NULL; END $$",
+    "DO $$ BEGIN CREATE POLICY claude_sessions_service_all ON public.claude_sessions FOR ALL USING (auth.role() = 'service_role'); EXCEPTION WHEN duplicate_object THEN NULL; END $$",
 ]
 
 def run_sql(sql):

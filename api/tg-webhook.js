@@ -160,6 +160,8 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `QA — 전체 코드 점검+봇 리포트`,
     `진행상황 — GitHub Action 작업 추적`,
     `취소 — 진행 중인 Claude 작업 취소`,
+    `세션 — 현재 활성 세션 확인`,
+    `닫아/끝/완료 — 활성 세션 종료`,
     ``,
     `  📌 수정 명령어 사용법:`,
     `  수정 [화면] <하고 싶은 것을 자연어로>`,
@@ -178,6 +180,11 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `  수정 [css플레이어] 다크모드 배경색 수정`,
     `  수정 [텔레봇] 도움말 텍스트 변경`,
     `  수정 다크모드에서 텍스트 안 보임 (태그 없이도 OK)`,
+    `  `,
+    `  💬 대화형 세션:`,
+    `  수정 명령 후 후속 메시지는 같은 이슈에 자동 추가!`,
+    `  "좀 더 진하게" → Claude가 이전 맥락 읽고 재수정`,
+    `  세션 종료: 닫아 / 끝 / 완료`,
     `  `,
     `  지원 화면 태그 (65개):`,
     `  `,
@@ -532,6 +539,22 @@ COMMANDS['알림'] = COMMANDS['push'] = async (chatId, arg) => {
   }
 };
 
+/* ── 대화형 세션 관리 (Supabase claude_sessions 테이블) ── */
+async function getActiveSession(chatId) {
+  try {
+    const { data } = await sb('GET', `/claude_sessions?chat_id=eq.${chatId}&status=eq.active&order=created_at.desc&limit=1`);
+    return data?.[0] || null;
+  } catch (e) { console.warn('[session-get]', e.message); return null; }
+}
+async function createSession(chatId, issueNumber) {
+  try { await sb('POST', '/claude_sessions', { chat_id: String(chatId), issue_number: issueNumber, status: 'active' }); }
+  catch (e) { console.warn('[session-create]', e.message); }
+}
+async function closeSession(chatId) {
+  try { await sb('PATCH', `/claude_sessions?chat_id=eq.${chatId}&status=eq.active`, { status: 'closed', closed_at: new Date().toISOString() }); }
+  catch (e) { console.warn('[session-close]', e.message); }
+}
+
 /* ── GitHub API 헬퍼 ── */
 async function ghApi(method, path, body = null) {
   if (!GH_TOKEN) throw new Error('GITHUB_TOKEN 미설정');
@@ -557,6 +580,13 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
 
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
+
+  /* 기존 세션 자동 종료 */
+  const prevSession = await getActiveSession(chatId);
+  if (prevSession) {
+    await closeSession(chatId);
+    try { await ghApi('PATCH', `/issues/${prevSession.issue_number}`, { state: 'closed', state_reason: 'completed' }); } catch (e) { /* ignore */ }
+  }
 
   try {
     /* 1) 라벨이 없으면 먼저 생성 (409 = 이미 존재 → 무시) */
@@ -592,6 +622,9 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
         await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix'] });
       } catch (e2) { console.warn('[label-add]', e2.message); }
     }
+    /* 세션 등록 */
+    await createSession(chatId, issue.number);
+
     const safeArg = arg.replace(/[*_`\[]/g, '');
     await tgSend(chatId, [
       `✅ 수정 요청 등록 완료!`,
@@ -599,8 +632,11 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
       `📋 Issue #${issue.number}`,
       `📝 ${safeArg}`,
       ``,
-      `🤖 Claude Code가 자동으로 코드를 수정하고 PR을 생성합니다.`,
+      `🤖 Claude Code가 자동으로 코드를 수정합니다.`,
       `완료되면 알림이 올 거예요.`,
+      ``,
+      `💬 후속 메시지를 보내면 같은 이슈에 추가돼요.`,
+      `종료: 닫아 / 끝 / 완료`,
       ``,
       `🔗 ${issue.html_url}`,
     ].join('\n'), { parse_mode: '' });
@@ -608,6 +644,22 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
     const safeMsg = (e.message || 'unknown').replace(/[*_`\[\]]/g, '');
     await tgSend(chatId, `❌ Issue 생성 오류: ${safeMsg}`, { parse_mode: '' });
   }
+};
+
+/* 세션 종료 — 활성 세션 닫기 */
+COMMANDS['닫아'] = COMMANDS['끝'] = COMMANDS['완료'] = COMMANDS['close'] = async (chatId) => {
+  const session = await getActiveSession(chatId);
+  if (!session) return tgSend(chatId, '현재 활성 세션이 없어요.', { parse_mode: '' });
+  try { await ghApi('PATCH', `/issues/${session.issue_number}`, { state: 'closed', state_reason: 'completed' }); } catch (e) { console.warn('[close-issue]', e.message); }
+  await closeSession(chatId);
+  await tgSend(chatId, `✅ 세션 종료! Issue #${session.issue_number} 닫힘.`, { parse_mode: '' });
+};
+
+/* 세션 — 현재 활성 세션 확인 */
+COMMANDS['세션'] = COMMANDS['session'] = async (chatId) => {
+  const session = await getActiveSession(chatId);
+  if (!session) return tgSend(chatId, '현재 활성 세션이 없어요.\n"수정 [화면] 지시사항"으로 새 세션을 시작하세요.', { parse_mode: '' });
+  await tgSend(chatId, `📋 활성 세션: Issue #${session.issue_number}\n\n후속 메시지를 보내면 같은 이슈에 추가돼요.\n종료: 닫아 / 끝 / 완료`, { parse_mode: '' });
 };
 
 /* PR — 최근 PR 목록 확인 */
@@ -2438,7 +2490,20 @@ export default async function handler(req, res) {
         await tgSend(chatId, `❌ 명령 실행 오류: ${e.message}`);
       }
     } else {
-      await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
+      /* 활성 세션이 있으면 → Issue 코멘트로 추가 (대화형 세션) */
+      const session = await getActiveSession(chatId);
+      if (session && GH_TOKEN) {
+        try {
+          await ghApi('POST', `/issues/${session.issue_number}/comments`, {
+            body: `## 추가 지시\n\n${text}\n\n---\n> 텔레그램 봇 · ${ts()}`
+          });
+          await tgSend(chatId, `💬 Issue #${session.issue_number}에 추가 지시 등록!\nClaude Code가 재실행됩니다.`, { parse_mode: '' });
+        } catch (e) {
+          await tgSend(chatId, `❌ 코멘트 추가 실패: ${(e.message||'').slice(0,80)}`, { parse_mode: '' });
+        }
+      } else {
+        await tgSend(chatId, `❓ 알 수 없는 명령: \`${cmd}\`\n"도움" 을 입력하면 명령어 목록을 볼 수 있어요.`);
+      }
     }
 
     return res.status(200).json({ ok: true });

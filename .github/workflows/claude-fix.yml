@@ -3,6 +3,8 @@ name: Claude Code Auto-Fix
 on:
   issues:
     types: [opened, labeled]
+  issue_comment:
+    types: [created]
 
 concurrency:
   group: claude-fix-${{ github.event.issue.number }}
@@ -10,7 +12,10 @@ concurrency:
 
 jobs:
   claude-fix:
-    if: contains(github.event.issue.labels.*.name, 'claude-fix')
+    if: |
+      contains(github.event.issue.labels.*.name, 'claude-fix') &&
+      (github.event_name == 'issues' ||
+       (github.event_name == 'issue_comment' && !contains(github.event.comment.user.login, 'claude-bot') && !contains(github.event.comment.user.login, 'github-actions')))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -90,13 +95,39 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUM: ${{ github.event.issue.number }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body || '' }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_REPO: mitiwood/ai-music-studio
         run: |
           python3 << 'PYEOF'
-          import os, re, json
+          import os, re, json, urllib.request
 
           body = os.environ.get('ISSUE_BODY', '')
           title = os.environ.get('ISSUE_TITLE', '')
           num = os.environ.get('ISSUE_NUM', '0')
+          event_name = os.environ.get('EVENT_NAME', 'issues')
+          comment_body = os.environ.get('COMMENT_BODY', '')
+          gh_token = os.environ.get('GH_TOKEN', '')
+          gh_repo = os.environ.get('GH_REPO', '')
+
+          # issue_comment 이벤트 시 전체 스레드 가져오기
+          thread_context = ''
+          if event_name == 'issue_comment' and gh_token and gh_repo:
+              try:
+                  req = urllib.request.Request(
+                      f'https://api.github.com/repos/{gh_repo}/issues/{num}/comments?per_page=20',
+                      headers={'Authorization': f'Bearer {gh_token}', 'Accept': 'application/vnd.github+json'}
+                  )
+                  comments = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
+                  user_comments = [c for c in comments if 'bot' not in (c.get('user',{}).get('login','').lower())]
+                  if user_comments:
+                      thread_context = '\n\n## 이전 대화 맥락\n\n'
+                      for c in user_comments:
+                          thread_context += f"### 코멘트 ({c['created_at'][:10]})\n{c['body']}\n\n"
+                      print(f'Loaded {len(user_comments)} user comments for context')
+              except Exception as e:
+                  print(f'Failed to fetch comments: {e}')
 
           # [화면] 태그 파싱 — 제목이나 본문에서 추출
           tag_match = re.search(r'\[([^\]]+)\]', title) or re.search(r'\[([^\]]+)\]', body)
@@ -267,6 +298,13 @@ jobs:
           lines.append('- 수정 완료 후 git add + git commit을 직접 실행하세요')
           lines.append(f'- 커밋 메시지: "fix: [#{num}] <간결한 설명>"')
 
+          # 대화형 세션: 이전 대화 맥락 + 최신 코멘트 추가
+          if thread_context:
+              lines.append(thread_context)
+              lines.append('위 대화 맥락을 참고하여 최신 코멘트의 요청을 처리하세요.')
+              if comment_body:
+                  lines.append(f'\n최신 요청:\n{comment_body}')
+
           prompt = '\n'.join(lines)
           with open('/tmp/claude-prompt.txt', 'w') as f:
               f.write(prompt)
@@ -366,9 +404,9 @@ jobs:
           echo "status=merged" >> "$GITHUB_OUTPUT"
           echo "✅ Push successful"
 
-      # ── 5. 이슈 닫기 ──
+      # ── 5. 이슈 닫기 (대화형 세션에서는 닫지 않음) ──
       - name: Close issue
-        if: steps.push.outputs.status == 'merged'
+        if: steps.push.outputs.status == 'merged' && github.event_name != 'issue_comment'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -395,6 +433,7 @@ jobs:
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SITE_URL: https://ai-music-studio-bice.vercel.app
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           python3 << 'PYEOF'
           import urllib.request, json, os, html as html_mod
@@ -409,6 +448,8 @@ jobs:
           claude_exit = os.environ.get('CLAUDE_EXIT', '?')
           run_url = os.environ.get('RUN_URL', '')
           changed = os.environ.get('CHANGED_FILES', '').strip()
+          event_name = os.environ.get('EVENT_NAME', 'issues')
+          is_followup = event_name == 'issue_comment'
 
           # 상태 판단
           if push_status == 'merged':
@@ -417,9 +458,11 @@ jobs:
             status_line = '\u2705 main 푸시 완료! Vercel 배포 시작됨'
             if files_list:
               status_line += f'\n\n\U0001f4c1 수정된 파일:\n{files_list}'
+            if is_followup:
+              status_line += '\n\n\U0001f4ac 후속 메시지를 보내면 이어서 수정합니다.'
           elif push_status == 'no_changes':
             icon = '\u26a0\ufe0f'
-            status_line = '\u26a0\ufe0f 변경사항 없음 — Claude가 파일을 수정하지 않았습니다'
+            status_line = '\u26a0\ufe0f 변경사항 없음 \u2014 Claude가 파일을 수정하지 않았습니다'
           elif claude_out == 'failure':
             icon = '\u274c'
             status_line = f'\u274c Claude Code 실행 실패 (exit: {claude_exit})\n\n로그를 확인해주세요'
@@ -427,7 +470,8 @@ jobs:
             icon = '\u26a0\ufe0f'
             status_line = f'\u26a0\ufe0f 예상치 못한 상태 (Claude: {claude_out}, Push: {push_status or "skipped"})'
 
-          msg = f'{icon} <b>Claude Code 작업 완료</b>\n\n\U0001f4cc Issue #{num}: {title}\n\n{status_line}'
+          label = '\ud6c4\uc18d \uc791\uc5c5 \uc644\ub8cc' if is_followup else '\uc791\uc5c5 \uc644\ub8cc'
+          msg = f'{icon} <b>Claude Code {label}</b>\n\n\U0001f4cc Issue #{num}: {title}\n\n{status_line}'
           kb = {'inline_keyboard': [
             [{'text': '\U0001f310 사이트', 'url': site}, {'text': '\U0001f4cb 로그', 'url': run_url}],
             [{'text': '\U0001f517 이슈', 'url': f'https://github.com/mitiwood/ai-music-studio/issues/{num}'}],
