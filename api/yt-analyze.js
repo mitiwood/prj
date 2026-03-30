@@ -107,8 +107,9 @@ export default async function handler(req, res) {
     title = videoId ? `YouTube 영상 (${videoId})` : 'YouTube 영상';
   }
 
-  // ── Step 2: LLM 정밀 분석 (Claude Haiku → 스마트 폴백) ──
+  // ── Step 2: LLM 정밀 분석 (Gemini 무료 → Claude Haiku → 스마트 폴백) ──
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
   let analysis = null;
   let _debugError = '';
   let _analyzer = 'fallback';
@@ -126,9 +127,42 @@ export default async function handler(req, res) {
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-  // 2-a) Claude Haiku ($0.0045/회)
+  // 2-a) Gemini Flash 무료 티어 (재시도 3회, 모델 폴백)
+  if (geminiKey) {
+    const _geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    for (let _mi = 0; _mi < _geminiModels.length && !analysis; _mi++) {
+      const _gModel = _geminiModels[_mi];
+      const _geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${_gModel}:generateContent?key=${geminiKey}`;
+      for (let _retry = 0; _retry < 3 && !analysis; _retry++) {
+        try {
+          if (_retry > 0) await new Promise(r => setTimeout(r, _retry * 5000));
+          const gr = await fetch(_geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: analysisPrompt }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+            }),
+          });
+          const gd = await gr.json();
+          if (gd.error) {
+            const errMsg = gd.error.message || '';
+            if (errMsg.includes('not found') || errMsg.includes('404')) break;
+            if ((errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) && _retry < 2) continue;
+            _debugError += ` | ${_gModel}: ${errMsg.slice(0, 120)}`;
+          } else {
+            const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            analysis = _parseJsonResponse(gText);
+            if (analysis) _analyzer = 'gemini';
+            else _debugError += ` | ${_gModel} parse fail`;
+          }
+        } catch (e) { _debugError += ` | ${_gModel}: ${e.message}`; }
+      }
+    }
+  }
+
+  // 2-b) Claude Haiku 폴백 ($0.0045/회)
   if (!analysis && anthropicKey) {
-    console.log('[yt-analyze] Trying Claude Haiku... | title:', title);
     try {
       const cr = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -146,16 +180,12 @@ export default async function handler(req, res) {
       const cd = await cr.json();
       if (cd.error) {
         _debugError += ` | Haiku: ${cd.error.type} - ${cd.error.message}`;
-        console.warn('[yt-analyze] Haiku failed:', cd.error.message);
       } else {
         const text = cd.content?.find(c => c.type === 'text')?.text || '';
         analysis = _parseJsonResponse(text);
         if (analysis) _analyzer = 'claude-haiku';
       }
-    } catch (e) {
-      _debugError += ` | Haiku exception: ${e.message}`;
-      console.warn('[yt-analyze] Haiku exception:', e.message);
-    }
+    } catch (e) { _debugError += ` | Haiku: ${e.message}`; }
   }
 
   // 2-c) LLM 실패 시 메타데이터 기반 스마트 분석
@@ -175,7 +205,7 @@ export default async function handler(req, res) {
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
     _debugError: _debugError || undefined,
-    _keys: { claude: !!anthropicKey },
+    _keys: { gemini: !!geminiKey, claude: !!anthropicKey },
     ...analysis,
   });
 }
