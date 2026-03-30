@@ -1448,6 +1448,30 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   background:transparent;color:var(--t3);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;
 }
 .suno-btn-ghost:hover{border-color:var(--acc);color:var(--acc);}
+.suno-accordion-toggle{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);color:var(--t2);
+  font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.suno-accordion-toggle:hover{border-color:rgba(168,85,247,.3);background:rgba(255,255,255,.06);}
+.suno-accordion-toggle.open{border-color:var(--acc);background:rgba(124,58,237,.04);border-radius:12px 12px 0 0;}
+[data-theme="light"] .suno-accordion-toggle{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.08);}
+[data-theme="light"] .suno-accordion-toggle.open{background:rgba(124,58,237,.03);border-color:var(--acc);}
+.suno-accordion-icon{
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(124,58,237,.15);color:var(--acc);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;transition:transform .2s;flex-shrink:0;
+}
+.suno-accordion-toggle.open .suno-accordion-icon{transform:rotate(45deg);}
+.suno-accordion-body{
+  padding:12px 14px 14px;border:1px solid var(--acc);border-top:none;
+  border-radius:0 0 12px 12px;background:rgba(124,58,237,.02);
+  animation:suno-acc-open .2s ease;
+}
+@keyframes suno-acc-open{from{opacity:0;max-height:0;}to{opacity:1;max-height:400px;}}
+[data-theme="light"] .suno-accordion-body{background:rgba(124,58,237,.02);border-color:var(--acc);}
 .suno-options{
   padding:16px;border-radius:14px;
   background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
@@ -5075,55 +5099,28 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
         </div>
 
-        <!-- 장르 -->
-        <div class="suno-field">
-          <label class="suno-label">장르</label>
-          <div class="suno-chips" id="suno-genre-chips">
-            <button class="suno-chip" onclick="_sunoGenre('kpop',this)">🎵 K-Pop</button>
-            <button class="suno-chip" onclick="_sunoGenre('ballad',this)">🎤 발라드</button>
-            <button class="suno-chip" onclick="_sunoGenre('lofi',this)">☕ Lo-Fi</button>
-            <button class="suno-chip" onclick="_sunoGenre('hiphop',this)">🔥 힙합</button>
-            <button class="suno-chip" onclick="_sunoGenre('cinematic',this)">🎬 OST</button>
-            <button class="suno-chip" onclick="_sunoGenre('acoustic',this)">🪕 어쿠스틱</button>
-          </div>
-        </div>
+        <!-- 장르/분위기 hidden (AI 자동 판단) -->
+        <select id="simple-mood" style="display:none;"><option value="">선택 안함</option></select>
+        <div id="suno-genre-chips" style="display:none;"></div>
+        <div id="simple-mood-grid" style="display:none;"></div>
 
-        <!-- 분위기 -->
+        <!-- 가사 (아코디언) -->
         <div class="suno-field">
-          <label class="suno-label">분위기</label>
-          <select id="simple-mood" style="display:none;">
-            <option value="">선택 안함</option><option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
-          </select>
-          <div class="suno-chips" id="simple-mood-grid">
-            <button class="suno-chip" data-mood="happy, uplifting" onclick="_setSimpleMood(this)">😊 신나는</button>
-            <button class="suno-chip" data-mood="sad, emotional" onclick="_setSimpleMood(this)">😢 감성적</button>
-            <button class="suno-chip" data-mood="calm, relaxing" onclick="_setSimpleMood(this)">🍃 편안한</button>
-            <button class="suno-chip" data-mood="dark, intense" onclick="_setSimpleMood(this)">🌑 강렬한</button>
-            <button class="suno-chip" data-mood="romantic, dreamy" onclick="_setSimpleMood(this)">💕 로맨틱</button>
-            <button class="suno-chip" data-mood="energetic, hype" onclick="_setSimpleMood(this)">🔥 에너지</button>
-            <button class="suno-chip" data-mood="nostalgic, retro" onclick="_setSimpleMood(this)">📼 레트로</button>
-            <button class="suno-chip" data-mood="chill, lofi" onclick="_setSimpleMood(this)">☕ 로파이</button>
-            <button class="suno-chip" data-mood="epic, cinematic" onclick="_setSimpleMood(this)">🎬 시네마틱</button>
-            <button class="suno-chip" data-mood="hopeful, inspiring" onclick="_setSimpleMood(this)">🌅 영감</button>
-            <button class="suno-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)">💪 파워풀</button>
-            <button class="suno-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)">🔮 신비</button>
-          </div>
-        </div>
-
-        <!-- 가사 -->
-        <div class="suno-field">
-          <div class="suno-label-row">
-            <label class="suno-label" style="margin:0;">가사</label>
-            <span class="suno-hint">비우면 AI가 자동 생성</span>
-          </div>
-          <textarea class="suno-input" id="simple-lyrics" rows="4" data-i18n-ph="lyricsPlaceholder"
-            placeholder="[Verse 1]&#10;가사를 입력하세요..."></textarea>
-          <div class="suno-lyrics-actions">
-            <button class="suno-btn-ghost" onclick="_resetLyrics('simple-lyrics')">초기화</button>
-            <button class="lyrics-gen-btn" id="simple-lyrics-btn" style="padding:6px 12px;border-radius:8px;">
-              <span class="lspin" id="simple-lyrics-spinner"></span>
-              AI 자동 작사
-            </button>
+          <button class="suno-accordion-toggle" id="simple-lyrics-toggle" onclick="_toggleSimpleLyrics()">
+            <span class="suno-accordion-icon" id="simple-lyrics-icon">+</span>
+            <span>가사 직접 입력</span>
+            <span class="suno-hint" style="margin-left:auto;">비우면 AI가 자동 작사</span>
+          </button>
+          <div class="suno-accordion-body" id="simple-lyrics-body" style="display:none;">
+            <textarea class="suno-input" id="simple-lyrics" rows="5" data-i18n-ph="lyricsPlaceholder"
+              placeholder="[Verse 1]&#10;가사를 입력하세요..."></textarea>
+            <div class="suno-lyrics-actions">
+              <button class="suno-btn-ghost" onclick="_resetLyrics('simple-lyrics')">초기화</button>
+              <button class="lyrics-gen-btn" id="simple-lyrics-btn" style="padding:6px 12px;border-radius:8px;">
+                <span class="lspin" id="simple-lyrics-spinner"></span>
+                AI 자동 작사
+              </button>
+            </div>
           </div>
         </div>
 

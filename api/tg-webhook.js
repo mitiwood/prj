@@ -539,19 +539,23 @@ COMMANDS['알림'] = COMMANDS['push'] = async (chatId, arg) => {
   }
 };
 
-/* ── 대화형 세션 관리 (Supabase claude_sessions 테이블) ── */
+/* ── 대화형 세션 관리 (GitHub Issue = 세션 스토어) ── */
+/* 열린 claude-fix 이슈 중 가장 최근 것 = 활성 세션 */
 async function getActiveSession(chatId) {
+  if (!GH_TOKEN) return null;
   try {
-    const { data } = await sb('GET', `/claude_sessions?chat_id=eq.${chatId}&status=eq.active&order=created_at.desc&limit=1`);
-    return data?.[0] || null;
+    const issues = await ghApi('GET', '/issues?labels=claude-fix&state=open&sort=created&direction=desc&per_page=1');
+    if (Array.isArray(issues) && issues.length > 0) {
+      return { issue_number: issues[0].number, title: issues[0].title };
+    }
+    return null;
   } catch (e) { console.warn('[session-get]', e.message); return null; }
 }
-async function createSession(chatId, issueNumber) {
-  try { await sb('POST', '/claude_sessions', { chat_id: String(chatId), issue_number: issueNumber, status: 'active' }); }
-  catch (e) { console.warn('[session-create]', e.message); }
-}
-async function closeSession(chatId) {
-  try { await sb('PATCH', `/claude_sessions?chat_id=eq.${chatId}&status=eq.active`, { status: 'closed', closed_at: new Date().toISOString() }); }
+/* 세션 생성 = Issue 생성 (COMMANDS['수정']에서 직접 처리하므로 여기서는 no-op) */
+async function createSession(chatId, issueNumber) { /* Issue 생성이 곧 세션 생성 */ }
+/* 세션 종료 = Issue 닫기 */
+async function closeSession(chatId, issueNumber) {
+  try { await ghApi('PATCH', `/issues/${issueNumber}`, { state: 'closed', state_reason: 'completed' }); }
   catch (e) { console.warn('[session-close]', e.message); }
 }
 
@@ -581,11 +585,10 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
 
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
-  /* 기존 세션 자동 종료 */
+  /* 기존 세션(열린 이슈) 자동 종료 */
   const prevSession = await getActiveSession(chatId);
   if (prevSession) {
-    await closeSession(chatId);
-    try { await ghApi('PATCH', `/issues/${prevSession.issue_number}`, { state: 'closed', state_reason: 'completed' }); } catch (e) { /* ignore */ }
+    await closeSession(chatId, prevSession.issue_number);
   }
 
   try {
@@ -622,9 +625,6 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
         await ghApi('POST', `/issues/${issue.number}/labels`, { labels: ['claude-fix'] });
       } catch (e2) { console.warn('[label-add]', e2.message); }
     }
-    /* 세션 등록 */
-    await createSession(chatId, issue.number);
-
     const safeArg = arg.replace(/[*_`\[]/g, '');
     await tgSend(chatId, [
       `✅ 수정 요청 등록 완료!`,
@@ -650,8 +650,7 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) =>
 COMMANDS['닫아'] = COMMANDS['끝'] = COMMANDS['완료'] = COMMANDS['close'] = async (chatId) => {
   const session = await getActiveSession(chatId);
   if (!session) return tgSend(chatId, '현재 활성 세션이 없어요.', { parse_mode: '' });
-  try { await ghApi('PATCH', `/issues/${session.issue_number}`, { state: 'closed', state_reason: 'completed' }); } catch (e) { console.warn('[close-issue]', e.message); }
-  await closeSession(chatId);
+  await closeSession(chatId, session.issue_number);
   await tgSend(chatId, `✅ 세션 종료! Issue #${session.issue_number} 닫힘.`, { parse_mode: '' });
 };
 

@@ -1,7 +1,7 @@
 /**
  * /api/yt-analyze — YouTube URL 고도화 분석
  * 1. oEmbed + 페이지 메타데이터로 풍부한 정보 수집
- * 2. Claude Sonnet으로 정밀 음악 분석
+ * 2. Claude Sonnet → Gemini Flash 폴백으로 정밀 음악 분석
  * POST { url: string }
  * → { title, author, genre, mood, style_prompt, description, bpm_estimate, ... }
  */
@@ -107,96 +107,95 @@ export default async function handler(req, res) {
     title = videoId ? `YouTube 영상 (${videoId})` : 'YouTube 영상';
   }
 
-  // ── Step 2: Claude Sonnet으로 정밀 분석 ──
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
+  // ── Step 2: LLM 정밀 분석 (Claude → Gemini 폴백) ──
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
   let analysis = null;
   let _debugError = '';
-  let _claudeOk = false;
-  const _keyPrefix = apiKey ? apiKey.slice(0, 12) + '...' : 'NONE';
-  console.log('[yt-analyze] key:', _keyPrefix, '| title:', title, '| author:', author);
+  let _analyzer = 'fallback';
 
-  if (apiKey) {
-    // 수집된 모든 메타데이터를 Claude에 전달
-    const metaInfo = [
-      `Video title: "${title}"`,
-      `Channel/Artist: "${author}"`,
-      description ? `Video description: "${description.slice(0, 400)}"` : '',
-      tags ? `Video tags: "${tags}"` : '',
-      category ? `Category: "${category}"` : '',
-      duration ? `Duration: ${duration}` : '',
-      publishDate ? `Published: ${publishDate}` : '',
-    ].filter(Boolean).join('\n');
+  // 수집된 메타데이터 텍스트
+  const metaInfo = [
+    `Video title: "${title}"`,
+    `Channel/Artist: "${author}"`,
+    description ? `Video description: "${description.slice(0, 400)}"` : '',
+    tags ? `Video tags: "${tags}"` : '',
+    category ? `Category: "${category}"` : '',
+    duration ? `Duration: ${duration}` : '',
+    publishDate ? `Published: ${publishDate}` : '',
+  ].filter(Boolean).join('\n');
 
-    const prompt = `You are an elite music producer and audio engineer with encyclopedic knowledge of every genre, artist, and production technique. Analyze this YouTube music video and create a PRECISE music production specification.
+  const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-${metaInfo}
-
-CRITICAL INSTRUCTIONS:
-1. FIRST, parse the title to identify the ARTIST and SONG NAME separately. Titles often follow patterns like "Artist - Song", "(Year) Artist - Song [info]", etc.
-2. If you recognize the artist/song, use your EXACT knowledge of the track's production — the actual BPM, key, instrumentation, and arrangement.
-3. If unknown, analyze ALL available metadata (title, description, tags, channel) for clues.
-4. BPM must be PRECISE — for well-known songs, use the verified BPM. Do NOT default to 120.
-5. style_prompt is the MOST IMPORTANT field — it directly controls AI music generation.
-   Make it extremely specific with production details that capture the song's unique sound.
-6. Think about what makes this specific song DIFFERENT from other songs in the same genre.
-
-Answer in JSON ONLY:
-{
-  "genre": "precise sub-genre (e.g., 'Future Bass / Melodic EDM', 'Lo-fi Hip-Hop / Chillhop', '90s Boom Bap Hip-Hop')",
-  "mood": "primary mood (e.g., 'euphoric', 'melancholic', 'aggressive')",
-  "energy": "low / medium / high / very high",
-  "style_prompt": "CRITICAL: This field is fed DIRECTLY into an AI music generator's 'style' parameter. Write 60-100 words of comma-separated style tags that will reproduce this song's sound as closely as possible. Format: '[exact sub-genre], [tempo BPM], [time signature], [key instruments with specific adjectives e.g. detuned supersaws / 808 sub bass / fingerpicked nylon guitar], [vocal technique e.g. breathy falsetto / belting chest voice / auto-tuned trap vocal], [production techniques e.g. heavy sidechain / lo-fi tape saturation / crisp digital mix], [arrangement e.g. build-drop / verse-prechorus-chorus], [sonic era/aesthetic e.g. 2020s polished pop / 90s lo-fi warmth]'. Be EXTREMELY specific — generic tags like 'pop' or 'upbeat' produce generic results. NO artist names.",
-  "description": "한국어 2줄 분석: 장르+특징 요약 (60자 이내)",
-  "bpm_estimate": 128,
-  "key_signature": "e.g., 'Cm', 'F#m', 'Ab' (best guess)",
-  "mood_tags": "8-12 English mood/style/production tags, comma-separated",
-  "vocal_gender": "m or f or mixed",
-  "vocal_style": "specific vocal description (e.g., 'powerful belt with ad-libs', 'soft whisper vocal', 'auto-tuned trap vocal')",
-  "instruments": "key instruments comma-separated (e.g., 'synth pad, 808 kick, hi-hat rolls, piano, strings')",
-  "song_structure": "e.g., 'intro-verse-prechorus-chorus-verse-chorus-bridge-chorus-outro'",
-  "reference_sound": "describe the overall sonic palette in 1 sentence (e.g., 'polished modern K-pop with retro 80s synth influences and hard-hitting 808s')",
-  "lyrics_theme": "한국어로 가사의 핵심 주제/감정/스토리 (80자 이내, 구체적으로)",
-  "lyrics_style": "가사 스타일 설명 (e.g., '은유적 표현 중심', '직설적 감정 표현', '스토리텔링 형식')"
-}`;
-
+  // 2-a) Claude 시도
+  if (anthropicKey) {
+    console.log('[yt-analyze] Trying Claude... | title:', title);
     try {
       const cr = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
+          'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 1024,
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'user', content: analysisPrompt }],
         }),
       });
       let cd = await cr.json();
       /* Sonnet 실패 시 Haiku로 폴백 */
       if (cd.error) {
-        console.warn('[yt-analyze] Sonnet error:', cd.error.type, cd.error.message, '→ trying Haiku');
+        console.warn('[yt-analyze] Sonnet error:', cd.error.type, '→ trying Haiku');
         const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: analysisPrompt }] }),
         });
         cd = await cr2.json();
       }
       if (cd.error) {
-        _debugError = `Claude API: ${cd.error.type} - ${cd.error.message}`;
-        console.error('[yt-analyze] Claude API error (final):', cd.error.type, cd.error.message);
+        _debugError = `Claude: ${cd.error.type} - ${cd.error.message}`;
+        console.warn('[yt-analyze] Claude failed:', _debugError);
       } else {
         const text = cd.content?.find(c => c.type === 'text')?.text || '';
-        const clean = text.replace(/```json|```/g, '').trim();
-        analysis = JSON.parse(clean);
-        _claudeOk = true;
-        console.log('[yt-analyze] Claude OK:', analysis.genre, analysis.bpm_estimate);
+        analysis = _parseJsonResponse(text);
+        if (analysis) _analyzer = 'claude';
       }
     } catch (e) {
-      console.warn('[yt-analyze] Claude 분석 실패:', e.message, e.stack?.slice(0,200));
-      _debugError = e.message;
+      _debugError = `Claude exception: ${e.message}`;
+      console.warn('[yt-analyze] Claude exception:', e.message);
+    }
+  }
+
+  // 2-b) Gemini 폴백
+  if (!analysis && geminiKey) {
+    console.log('[yt-analyze] Trying Gemini... | title:', title);
+    try {
+      const gr = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: analysisPrompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          }),
+        }
+      );
+      const gd = await gr.json();
+      if (gd.error) {
+        _debugError += ` | Gemini: ${gd.error.message}`;
+        console.warn('[yt-analyze] Gemini error:', gd.error.message);
+      } else {
+        const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        analysis = _parseJsonResponse(gText);
+        if (analysis) _analyzer = 'gemini';
+      }
+    } catch (e) {
+      _debugError += ` | Gemini exception: ${e.message}`;
+      console.warn('[yt-analyze] Gemini exception:', e.message);
     }
   }
 
@@ -230,11 +229,58 @@ Answer in JSON ONLY:
     category,
     duration,
     videoId,
-    _analyzed: _claudeOk,
+    _analyzed: _analyzer !== 'fallback',
+    _analyzer,
     _debugError: _debugError || undefined,
-    _keyPresent: !!apiKey,
     ...analysis,
   });
+}
+
+/** LLM 분석 프롬프트 생성 */
+function _buildAnalysisPrompt(metaInfo) {
+  return `You are an elite music producer and audio engineer with encyclopedic knowledge of every genre, artist, and production technique. Analyze this YouTube music video and create a PRECISE music production specification.
+
+${metaInfo}
+
+CRITICAL INSTRUCTIONS:
+1. FIRST, parse the title to identify the ARTIST and SONG NAME separately. Titles often follow patterns like "Artist - Song", "(Year) Artist - Song [info]", etc.
+2. If you recognize the artist/song, use your EXACT knowledge of the track's production — the actual BPM, key, instrumentation, and arrangement.
+3. If unknown, analyze ALL available metadata (title, description, tags, channel) for clues.
+4. BPM must be PRECISE — for well-known songs, use the verified BPM. Do NOT default to 120.
+5. style_prompt is the MOST IMPORTANT field — it directly controls AI music generation.
+   Make it extremely specific with production details that capture the song's unique sound.
+6. Think about what makes this specific song DIFFERENT from other songs in the same genre.
+
+Answer in JSON ONLY:
+{
+  "genre": "precise sub-genre (e.g., 'Future Bass / Melodic EDM', 'Lo-fi Hip-Hop / Chillhop', '90s Boom Bap Hip-Hop')",
+  "mood": "primary mood (e.g., 'euphoric', 'melancholic', 'aggressive')",
+  "energy": "low / medium / high / very high",
+  "style_prompt": "CRITICAL: This field is fed DIRECTLY into an AI music generator's 'style' parameter. Write 60-100 words of comma-separated style tags that will reproduce this song's sound as closely as possible. Format: '[exact sub-genre], [tempo BPM], [time signature], [key instruments with specific adjectives e.g. detuned supersaws / 808 sub bass / fingerpicked nylon guitar], [vocal technique e.g. breathy falsetto / belting chest voice / auto-tuned trap vocal], [production techniques e.g. heavy sidechain / lo-fi tape saturation / crisp digital mix], [arrangement e.g. build-drop / verse-prechorus-chorus], [sonic era/aesthetic e.g. 2020s polished pop / 90s lo-fi warmth]'. Be EXTREMELY specific — generic tags like 'pop' or 'upbeat' produce generic results. NO artist names.",
+  "description": "한국어 2줄 분석: 장르+특징 요약 (60자 이내)",
+  "bpm_estimate": 128,
+  "key_signature": "e.g., 'Cm', 'F#m', 'Ab' (best guess)",
+  "mood_tags": "8-12 English mood/style/production tags, comma-separated",
+  "vocal_gender": "m or f or mixed",
+  "vocal_style": "specific vocal description (e.g., 'powerful belt with ad-libs', 'soft whisper vocal', 'auto-tuned trap vocal')",
+  "instruments": "key instruments comma-separated (e.g., 'synth pad, 808 kick, hi-hat rolls, piano, strings')",
+  "song_structure": "e.g., 'intro-verse-prechorus-chorus-verse-chorus-bridge-chorus-outro'",
+  "reference_sound": "describe the overall sonic palette in 1 sentence (e.g., 'polished modern K-pop with retro 80s synth influences and hard-hitting 808s')",
+  "lyrics_theme": "한국어로 가사의 핵심 주제/감정/스토리 (80자 이내, 구체적으로)",
+  "lyrics_style": "가사 스타일 설명 (e.g., '은유적 표현 중심', '직설적 감정 표현', '스토리텔링 형식')"
+}`;
+}
+
+/** LLM 응답에서 JSON 파싱 */
+function _parseJsonResponse(text) {
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (parsed && parsed.genre && parsed.style_prompt) return parsed;
+  } catch (e) {
+    console.warn('[yt-analyze] JSON parse failed:', e.message, '| text:', text.slice(0, 200));
+  }
+  return null;
 }
 
 function _decodeHtml(str) {
