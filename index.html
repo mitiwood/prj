@@ -5253,24 +5253,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
         </div>
 
-        <!-- ── YT STEP 3: 세부 설정 ── -->
+        <!-- ── YT STEP 3: 제목 입력 ── -->
         <div class="toss-step" id="yt-step-3">
-          <div class="toss-step-q">가사와 제목을<br>입력해 주세요</div>
-          <div class="toss-step-hint">가사를 입력하면 원곡과 더 비슷하게 만들어요</div>
-          <div class="form-grp">
-            <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> 가사 <span class="form-label-hint" style="color:var(--acc2);">입력하면 원곡 느낌 UP!</span></div>
-            <textarea id="yt-lyrics-step3" class="form-input" rows="6"
-              placeholder="원곡 가사를 붙여넣으면 가장 비슷하게 만들어요&#10;&#10;비워두면 AI가 자동 생성합니다"
-              style="font-size:12px;line-height:1.7;margin-bottom:4px;resize:vertical;"></textarea>
-            <div style="display:flex;gap:6px;margin-bottom:10px;">
-              <button id="yt-lyrics-gen-btn2" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(124,58,237,.4);background:rgba(124,58,237,.08);color:var(--acc2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">
-                AI 가사 자동 생성
-              </button>
-              <button id="yt-lyrics-clear-btn" style="flex:0 0 auto;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">
-                지우기
-              </button>
-            </div>
-          </div>
+          <div class="toss-step-q">곡 제목을<br>입력해 주세요</div>
+          <div class="toss-step-hint">비워두면 AI가 자동으로 지어줘요</div>
           <div class="form-grp">
             <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목 <span class="form-label-hint">비워두면 AI가 자동 생성</span></div>
             <input class="form-input" id="yt-song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:12px 14px;border-radius:14px;">
@@ -8707,10 +8693,9 @@ async function _ytDoGenerate(){
   /* 로그인 체크 */
   if(!currentUser){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
 
-  /* 입력값 수집 — Step3 가사 우선, 없으면 분석화면 가사 */
-  const _ytTaStep3 = document.getElementById('yt-lyrics-step3');
+  /* 입력값 수집 — 분석화면 가사 (yt-lyrics-ta) 사용 */
   const _ytTa      = document.getElementById('yt-lyrics-ta');
-  let   ytLyrics   = (_ytTaStep3?.value||'').trim() || (_ytTa?.value||'').trim();
+  let   ytLyrics   = (_ytTa?.value||'').trim();
   const ytMood  = ($('yt-mood')?.value||_lastYtAnalysis.mood||'').trim();
   const ytGenre = _lastYtAnalysis.genre || '';
   const ytStylePrompt = (_lastYtAnalysis.style_prompt||'').trim().slice(0,800);
@@ -10062,8 +10047,6 @@ $('yt-analyze-btn').addEventListener('click', async () => {
         if(lyrics){
           const ta = document.getElementById('yt-lyrics-ta');
           if(ta) ta.value = lyrics;
-          const ta3 = document.getElementById('yt-lyrics-step3');
-          if(ta3) ta3.value = lyrics;
           /* 가사에서 제목 자동 추출 → yt-song-title에 표시 */
           var ytTitleEl=$('yt-song-title');
           if(ytTitleEl && !ytTitleEl.value.trim() && typeof _extractTitleFromLyrics==='function'){
@@ -10084,32 +10067,6 @@ $('yt-analyze-btn').addEventListener('click', async () => {
         self.disabled = false; self.textContent = '✦ AI 가사 다시 생성';
       }
     });
-
-    /* Step 3 가사 생성 버튼 */
-    var _lyGenBtn2 = document.getElementById('yt-lyrics-gen-btn2');
-    if(_lyGenBtn2){
-      _lyGenBtn2.onclick = async function(){
-        if(!checkPlanLimit('lyrics')){return;}
-        var self=this; self.disabled=true; self.textContent='⏳ 가사 생성 중...';
-        try{
-          var _lang2=($('yt-vocal-lang')?.value||'').trim();
-          var _langH2=_lang2?('Write lyrics in '+_lang2+'. '):'';
-          var lp=[_langH2,analysis.description||title,analysis.mood_tags||analysis.mood||''].filter(Boolean).join(', ');
-          var lyrics=await _kieLyricsWithFallback(kieApiKey, lp);
-          if(lyrics){
-            var ta3=$('yt-lyrics-step3'); if(ta3) ta3.value=lyrics;
-            toast('✅ 가사 생성 완료!','ok',2000);
-            trackUsage('lyrics',{mode:'yt-lyrics-step3'});
-          } else { toast('가사 생성 실패. 다시 시도해주세요.','err',3000); }
-        }catch(e){ toast('가사 생성 실패: '+e.message,'err',3000); }
-        finally{ self.disabled=false; self.textContent='AI 가사 자동 생성'; }
-      };
-    }
-    /* Step 3 가사 지우기 버튼 */
-    var _lyClearBtn = document.getElementById('yt-lyrics-clear-btn');
-    if(_lyClearBtn){
-      _lyClearBtn.onclick = function(){ var ta3=$('yt-lyrics-step3'); if(ta3) ta3.value=''; };
-    }
 
     /* 생성 버튼 활성화 */
     $('yt-gen-btn').disabled = false;
@@ -11387,10 +11344,9 @@ async function generate(overrideParams){
     moodVal=overrideParams?.mood||$('simple-mood').value;
     subGenre='';
   } else if(isYT){
-    /* overrideParams.prompt 우선 → yt-lyrics-step3 → yt-lyrics-ta → prompt 텍스트에어리어 순 */
-    const _ytTaS3 = document.getElementById('yt-lyrics-step3');
+    /* overrideParams.prompt 우선 → yt-lyrics-ta (Step 1 분석 결과) → prompt 텍스트에어리어 순 */
     const _ytTa = document.getElementById('yt-lyrics-ta');
-    lyricsText=overrideParams?.prompt||(_ytTaS3?.value||'').trim()||(_ytTa?.value||'').trim()||$('prompt').value.trim();
+    lyricsText=overrideParams?.prompt||(_ytTa?.value||'').trim()||$('prompt').value.trim();
     moodVal=overrideParams?.mood||($('yt-mood')?.value||'')||$('mood').value;
     subGenre='';
   } else {
@@ -28527,10 +28483,10 @@ setTimeout(_showOnboarding, 1500);
       el.classList.remove('visible','back');
       if(i===_ytStep) el.classList.add('visible');
     }
-    /* Step 3 진입 시 가사 textarea 포커스 */
+    /* Step 3 진입 시 제목 input 포커스 */
     if(_ytStep===3){
-      var _lyTa=$('yt-lyrics-step3');
-      if(_lyTa){_lyTa.focus();_lyTa.click();}
+      var _titleIn=$('yt-song-title');
+      if(_titleIn) _titleIn.focus();
     }
     /* Step 4 요약 */
     if(_ytStep===4) _ytUpdSum();
@@ -28563,7 +28519,7 @@ setTimeout(_showOnboarding, 1500);
     var m=$('yt-sum-mood');if(m) m.textContent=$('yt-mood')?.value?$('yt-mood').selectedOptions[0]?.text:'자동';
     var d=$('yt-sum-dur');if(d){var _dv=document.querySelector('#yt-duration-btns .on');d.textContent=_dv?_dv.textContent.trim():'짧게';}
     var v=$('yt-sum-vocal');if(v){var it=$('yt-inst-toggle');v.textContent=(it&&it.classList.contains('on'))?'인스트루멘탈':'보컬 있음';}
-    var ly=$('yt-sum-lyrics');if(ly){var _lyVal=($('yt-lyrics-step3')?.value||'').trim();ly.textContent=_lyVal?('직접 입력 ('+_lyVal.split('\n').length+'줄)'):'AI 자동 생성';ly.style.color=_lyVal?'var(--acc2)':'var(--t3)';}
+    var ly=$('yt-sum-lyrics');if(ly){var _lyVal=($('yt-lyrics-ta')?.value||'').trim();ly.textContent=_lyVal?('직접 입력 ('+_lyVal.split('\n').length+'줄)'):'AI 자동 생성';ly.style.color=_lyVal?'var(--acc2)':'var(--t3)';}
   }
 
   /* YouTube 탭 진입 시 리셋 */
