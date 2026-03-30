@@ -183,9 +183,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2-b) Claude 폴백
+  // 2-b) Claude Haiku 폴백 (Sonnet 대비 1/3 비용)
   if (!analysis && anthropicKey) {
-    console.log('[yt-analyze] Trying Claude... | title:', title);
+    console.log('[yt-analyze] Trying Claude Haiku... | title:', title);
     try {
       const cr = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -195,32 +195,23 @@ export default async function handler(req, res) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 1024,
           messages: [{ role: 'user', content: analysisPrompt }],
         }),
       });
-      let cd = await cr.json();
+      const cd = await cr.json();
       if (cd.error) {
-        console.warn('[yt-analyze] Sonnet error:', cd.error.type, '→ trying Haiku');
-        const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: analysisPrompt }] }),
-        });
-        cd = await cr2.json();
-      }
-      if (cd.error) {
-        _debugError += ` | Claude: ${cd.error.type} - ${cd.error.message}`;
-        console.warn('[yt-analyze] Claude failed:', cd.error.message);
+        _debugError += ` | Haiku: ${cd.error.type} - ${cd.error.message}`;
+        console.warn('[yt-analyze] Haiku failed:', cd.error.message);
       } else {
         const text = cd.content?.find(c => c.type === 'text')?.text || '';
         analysis = _parseJsonResponse(text);
-        if (analysis) _analyzer = 'claude';
+        if (analysis) _analyzer = 'claude-haiku';
       }
     } catch (e) {
-      _debugError += ` | Claude exception: ${e.message}`;
-      console.warn('[yt-analyze] Claude exception:', e.message);
+      _debugError += ` | Haiku exception: ${e.message}`;
+      console.warn('[yt-analyze] Haiku exception:', e.message);
     }
   }
 
