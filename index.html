@@ -8975,41 +8975,8 @@ async function _ytDoGenerate(){
       }
     }
 
-    /* ── YouTube 스타일 강화: cover API로 재생성 (원곡 느낌 향상) ── */
-    if(tracks[0] && ytStylePrompt){
-      var _coverAudioUrl = tracks[0].audioUrl || tracks[0].audio_url || tracks[0].song_path || '';
-      if(_coverAudioUrl){
-        var _ldCov=$('ld-sub');if(_ldCov)_ldCov.innerHTML='스타일 보정 중... 🎨<br>원곡 느낌에 더 가깝게 다듬고 있어요';
-        try{
-          var _coverBody = {
-            uploadUrl: _coverAudioUrl,
-            prompt: ytLyrics || prompt,
-            title: songTitle || 'YouTube Cover',
-            style: _finalStyle.slice(0,500),
-            negativeTags: 'low quality, noise, distortion',
-            callBackUrl: CALLBACK,
-            model: model || 'V4_5PLUS',
-            audioWeight: 0.85,
-            styleWeight: 0.9,
-          };
-          if(ytVocalGender && !isInst) _coverBody.vocalGender = ytVocalGender;
-          var _coverData = await kieRequest(apiKey,'POST','/api/v1/generate/add-vocals',_coverBody);
-          var _coverTaskId = _coverData?.data?.taskId || _coverData?.taskId;
-          if(_coverTaskId){
-            var _svStep4 = _genStepPrev;
-            var _coverResult = await pollResult(apiKey, _coverTaskId);
-            _genStepPrev = _svStep4;
-            if(_coverResult?.length){
-              var _coverValid = _coverResult.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
-              if(_coverValid.length){
-                tracks[0] = _coverValid[0];
-                console.log('[YT] cover 재생성 성공 — 스타일 강화 적용');
-              }
-            }
-          }
-        }catch(coverErr){console.warn('[YT cover enhance]',coverErr.message);}
-      }
-    }
+    /* cover 2단계 재생성 제거 — 실패율 높고 크레딧 이중 소모 */
+    /* 대신 1단계 generate에서 styleWeight/audioWeight로 스타일 반영 극대화 */
 
     $('loading-card').classList.remove('on');
     _stopLdTips();
