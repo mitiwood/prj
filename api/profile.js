@@ -298,6 +298,25 @@ export default async function handler(req, res) {
 
   /* ── POST: 팔로우 / 신고 / 차단 ── */
   if (req.method === 'POST') {
+    /* sendBeacon은 POST로 전송 — query string의 action도 처리 */
+    const qAction = req.query?.action;
+    if (qAction === 'leave') {
+      const lName = req.query?.hbName;
+      const lProv = req.query?.hbProvider;
+      if (lName && lProv) {
+        const lKey = lName + '::' + lProv;
+        const cnt = _leaveNotifyCount[lKey] || 0;
+        if (cnt < 2) {
+          _leaveNotifyCount[lKey] = cnt + 1;
+          delete _activeSessionMap[lKey];
+          const provLabel = { google: 'Google', kakao: '카카오', naver: '네이버' }[lProv] || lProv;
+          const time = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+          _tgSend('🔴 사용자 이탈\n\n👤 ' + lName + '\n🔗 ' + provLabel + '\n⏰ ' + time + '\n📊 이탈 알림 ' + (cnt + 1) + '/2');
+        }
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     const body = req.body || {};
     const action = body.action;
 
