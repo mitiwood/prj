@@ -8870,8 +8870,10 @@ async function _ytDoGenerate(){
       }catch(e){}
     }
 
-    lastTracks      = tracks.map(t=>({...t,_inputLyrics:ytLyrics,_taskId:taskId}));
-    lastLyricsInput = ytLyrics;
+    /* 가사: 유저 입력 또는 백그라운드 자동 생성된 가사만 저장 (스타일 설명은 가사가 아님) */
+    var _ytUserLyrics = ytLyrics; /* 유저 입력 or 자동 생성된 실제 가사 */
+    lastTracks      = tracks.map(t=>({...t,_inputLyrics:_ytUserLyrics,_taskId:taskId}));
+    lastLyricsInput = _ytUserLyrics;
     renderTracks(lastTracks, prompt, ytStyle, 'youtube');
     showFeedbackCard();
 
@@ -8881,14 +8883,16 @@ async function _ytDoGenerate(){
       const _ytTags=_normTags(t.tags)||ytStyle;
       const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
+      /* 가사 우선순위: 유저 직접 입력 → API 반환 실제 가사 → 빈값 (스타일 설명은 저장 안 함) */
+      const _savedLyrics = _ytUserLyrics || (isRealLyric ? apiLyric : '') || '';
       historyData.unshift({
         id:t.id, taskId,
-        title: _autoGenerateTitle(t.title||songTitle,ytLyrics,_ytTags,'youtube'),
+        title: _autoGenerateTitle(t.title||songTitle,_ytUserLyrics,_ytTags,'youtube'),
         audio_url: _tAudioUrl,
         video_url: '',
         image_url: t.imageUrl||t.image_url||'',
         tags: _ytTags,
-        lyrics: ytLyrics||(isRealLyric?apiLyric:'')||'',
+        lyrics: _savedLyrics,
         created: Date.now(),
         type: 'audio',
         genMode: 'youtube',
@@ -12415,7 +12419,7 @@ function renderTracks(tracks,prompt,tags,mode){
           <div style="font-size:9px;font-weight:700;color:var(--acc3);background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2);border-radius:6px;padding:2px 7px;">${{custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey.toUpperCase()}</div>
         </div>
         <div class="rc-title">${esc(title)}</div>
-        <div class="rc-meta">${esc((prompt||'').slice(0,60))}${(prompt||'').length>60?'...':''} · <span id="rc-dur-${i}">${dur}</span></div>
+        <div class="rc-meta">${lyricsRaw?esc((lyricsRaw).split('\n').filter(l=>!/^\[/.test(l.trim())).join(' ').slice(0,60))+(lyricsRaw.length>60?'...':''):esc((prompt||'').slice(0,60))+((prompt||'').length>60?'...':'')} · <span id="rc-dur-${i}">${dur}</span></div>
         <div class="rc-tags">${trackTags.slice(0,6).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
         <div class="rc-tabs">
           <div class="rctab on" data-tab="pl-${i}">🎵 재생</div>
