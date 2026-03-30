@@ -13191,18 +13191,20 @@ function renderHistoryView(){
     /* MR 트랙(보컬 제거)이면서 가사가 있으면 노래방 가능 */
     const isKaraokeReady = hasLyrics && (h.genMode==='vocal-removal' || (h._vocalRemovedFrom && h.tags && h.tags.includes('instrumental')));
     const durId='hdur-'+idx;
-    const noAudio = !h.audio_url||false;
+    const noAudio = !h.audio_url;
+    const audioExpired = !noAudio && _failedAudioUrls.has(h.audio_url);
+    const unplayable = noAudio || audioExpired;
     return`
     <div class="hist-card-wrap" data-hist-wrap-idx="${idx}">
       <div class="hist-card-del-bg" data-swipe-del="${idx}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><br>삭제</div>
-      <div class="hist-card${noAudio?' hist-card-disabled':''}" data-hist-idx="${idx}" role="button" tabindex="0"${noAudio?' title="재생 불가 — 오디오 없음"':''}>
+      <div class="hist-card${unplayable?' hist-card-disabled':''}" data-hist-idx="${idx}" role="button" tabindex="0"${unplayable?' title="'+(audioExpired?'재생불가 — 오디오 만료':'재생 불가 — 오디오 없음')+'"':''}>
         <div class="hist-thumb">
           ${thumbContent}
           ${typeBadge}
           ${remixBadge}
-          ${noAudio?'<div class="hist-no-audio-badge">생성 실패</div>':''}
+          ${audioExpired?'<div class="hist-no-audio-badge">재생불가</div>':noAudio?'<div class="hist-no-audio-badge">생성 실패</div>':''}
           <span class="hist-duration" id="${durId}"></span>
-          <div class="hist-play-overlay"><div class="hist-play-icon">${noAudio?'✕':'▶'}</div></div>
+          <div class="hist-play-overlay"><div class="hist-play-icon">${unplayable?'✕':'▶'}</div></div>
         </div>
         <div class="hist-info">
           <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;margin-left:4px;font-weight:700;">🤝</span>':''}</div>
@@ -13261,7 +13263,12 @@ function renderHistoryView(){
     const card=e.target.closest('[data-hist-idx]');
     if(card){
       const hi=parseInt(card.dataset.histIdx);
-      if(historyData[hi] && (!historyData[hi].audio_url||(historyData[hi].duration!==undefined&&historyData[hi].duration!==null&&Number(historyData[hi].duration)===0))){
+      const _hd=historyData[hi];
+      if(_hd && _hd.audio_url && _failedAudioUrls.has(_hd.audio_url)){
+        toast('재생불가 — 오디오가 만료되었어요','err',2500);
+        return;
+      }
+      if(_hd && (!_hd.audio_url||(_hd.duration!==undefined&&_hd.duration!==null&&Number(_hd.duration)===0))){
         _showFailedTrackDialog(hi);
         return;
       }
@@ -13274,7 +13281,11 @@ function renderHistoryView(){
       if(e.key==='Enter'||e.key===' '){
         e.preventDefault();
         const _ki=parseInt(card.dataset.histIdx);
-        if(historyData[_ki] && (!historyData[_ki].audio_url||(historyData[_ki].duration!==undefined&&historyData[_ki].duration!==null&&Number(historyData[_ki].duration)===0))){
+        const _kd=historyData[_ki];
+        if(_kd && _kd.audio_url && _failedAudioUrls.has(_kd.audio_url)){
+          toast('재생불가 — 오디오가 만료되었어요','err',2500);return;
+        }
+        if(_kd && (!_kd.audio_url||(_kd.duration!==undefined&&_kd.duration!==null&&Number(_kd.duration)===0))){
           _showFailedTrackDialog(_ki);
           return;
         }
@@ -14484,7 +14495,7 @@ function showMiniPlayer(idx){
       toast('오디오 재연결 중...','',2000);
     } else if(code===4){
       /* 모든 재시도 소진 후 code 4 → 진짜 재생 불가 URL */
-      if(_safeAudioUrl) _failedAudioUrls.add(_safeAudioUrl);
+      if(_safeAudioUrl){ _failedAudioUrls.add(_safeAudioUrl); renderHistoryView(); }
       toast('오디오를 재생할 수 없어요','err',3000);
     } else {
       toast(msg,'err',3000);
@@ -19075,6 +19086,27 @@ var commAudio=null,commVizTimer=null,commPlayingIdx=-1,commHeroPlaying=false;
 var commHeroAudio=null,commHeroVizTimer=null;
 /* 재생 불가 오디오 URL 블랙리스트 (세션 내 캐시) */
 var _failedAudioUrls=new Set();
+var _urlCheckInFlight=false;
+/* 히스토리 오디오 URL 사전 검증 — HEAD 요청으로 404 감지 */
+function _checkAudioUrls(){
+  if(_urlCheckInFlight)return;
+  var urls=[];
+  historyData.forEach(function(h){
+    if(h.audio_url&&!_failedAudioUrls.has(h.audio_url)&&urls.indexOf(h.audio_url)<0) urls.push(h.audio_url);
+  });
+  if(!urls.length)return;
+  _urlCheckInFlight=true;
+  var changed=false;
+  var done=0;
+  urls.forEach(function(url){
+    fetch(url,{method:'HEAD',mode:'cors'}).then(function(r){
+      if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(url);changed=true;}
+    }).catch(function(){}).finally(function(){
+      done++;
+      if(done>=urls.length){_urlCheckInFlight=false;if(changed)renderHistoryView();}
+    });
+  });
+}
 
 /* ── 커뮤니티 관리자 설정 (서버에서 로드) ── */
 var _commConfig=null;
