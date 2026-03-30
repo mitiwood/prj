@@ -5132,7 +5132,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- 옵션 -->
         <div class="suno-options">
-          <div class="suno-opt" style="cursor:pointer;" onclick="var t=$('simple-inst-toggle');if(t)t.click();">
+          <div class="suno-opt" id="simple-inst-row" style="cursor:pointer;">
             <span class="suno-opt-label">인스트루멘탈</span>
             <div class="toggle-label-row" id="simple-inst-toggle" style="background:none;border:none;padding:0;">
               <div class="toggle-switch"><div class="toggle-thumb"></div></div>
@@ -8569,9 +8569,15 @@ document.querySelectorAll('.mtab').forEach(tab=>{
 
 /* ── 심플 인스트루멘탈 토글 ── */
 var simpleInstOn=false;
-$('simple-inst-toggle').addEventListener('click',function(){
-  simpleInstOn=!simpleInstOn;this.classList.toggle('on',simpleInstOn);
-});
+(function(){
+  var row=$('simple-inst-row')||$('simple-inst-toggle');
+  var tog=$('simple-inst-toggle');
+  if(row) row.addEventListener('click',function(e){
+    e.stopPropagation();
+    simpleInstOn=!simpleInstOn;
+    if(tog) tog.classList.toggle('on',simpleInstOn);
+  });
+})();
 
 /* ── 심플 모드 AI 자동 작사 ── */
 $('simple-lyrics-btn').addEventListener('click',async()=>{
