@@ -127,39 +127,49 @@ export default async function handler(req, res) {
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-  // 2-a) Gemini 우선
+  // 2-a) Gemini 우선 (쿼터 초과 시 1회 재시도)
   if (geminiKey) {
     console.log('[yt-analyze] Trying Gemini... | title:', title);
-    try {
-      const gr = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
+    const _geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const _geminiBody = JSON.stringify({
+      contents: [{ parts: [{ text: analysisPrompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+    });
+    for (let _retry = 0; _retry < 2 && !analysis; _retry++) {
+      try {
+        if (_retry > 0) {
+          console.log('[yt-analyze] Gemini retry after quota wait...');
+          await new Promise(r => setTimeout(r, 10000));
+        }
+        const gr = await fetch(_geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: analysisPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-          }),
-        }
-      );
-      const gd = await gr.json();
-      if (gd.error) {
-        _debugError += ` | Gemini: ${gd.error.message}`;
-        console.warn('[yt-analyze] Gemini error:', gd.error.message);
-      } else {
-        const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        analysis = _parseJsonResponse(gText);
-        if (analysis) {
-          _analyzer = 'gemini';
-          console.log('[yt-analyze] Gemini OK:', analysis.genre, analysis.bpm_estimate);
+          body: _geminiBody,
+        });
+        const gd = await gr.json();
+        if (gd.error) {
+          const isQuota = (gd.error.message || '').includes('quota') || (gd.error.message || '').includes('429');
+          if (isQuota && _retry === 0) {
+            console.warn('[yt-analyze] Gemini quota hit, will retry...');
+            continue;
+          }
+          _debugError += ` | Gemini: ${(gd.error.message || '').slice(0, 120)}`;
+          console.warn('[yt-analyze] Gemini error:', gd.error.message);
         } else {
-          _debugError += ` | Gemini parse fail`;
-          console.warn('[yt-analyze] Gemini parse fail:', gText.slice(0, 200));
+          const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          analysis = _parseJsonResponse(gText);
+          if (analysis) {
+            _analyzer = 'gemini';
+            console.log('[yt-analyze] Gemini OK:', analysis.genre, analysis.bpm_estimate);
+          } else {
+            _debugError += ` | Gemini parse fail`;
+            console.warn('[yt-analyze] Gemini parse fail:', gText.slice(0, 200));
+          }
         }
+      } catch (e) {
+        _debugError += ` | Gemini exception: ${e.message}`;
+        console.warn('[yt-analyze] Gemini exception:', e.message);
       }
-    } catch (e) {
-      _debugError += ` | Gemini exception: ${e.message}`;
-      console.warn('[yt-analyze] Gemini exception:', e.message);
     }
   }
 
