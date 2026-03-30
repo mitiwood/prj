@@ -5184,6 +5184,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
         </div>
 
+        <!-- 레퍼런스 아티스트 -->
+        <div class="suno-field">
+          <button class="suno-accordion-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none';this.querySelector('.suno-accordion-icon').textContent=this.nextElementSibling.style.display==='none'?'+':'-'">
+            <span class="suno-accordion-icon">+</span>
+            <span>🎤 레퍼런스 아티스트</span>
+            <span class="suno-hint" style="margin-left:auto;">아티스트 스타일 반영</span>
+          </button>
+          <div style="display:none;margin-top:8px;">
+            <div style="display:flex;gap:6px;">
+              <input class="suno-input" id="simple-ref-artist" type="text" list="artist-suggestions" placeholder="예: BTS, IU, 성시경, Billie Eilish..." style="flex:1;" autocomplete="off">
+              <button class="suno-ai-btn" id="simple-ref-artist-btn" onclick="_analyzeSimpleRefArtist()" style="flex-shrink:0;white-space:nowrap;">분석</button>
+            </div>
+            <div class="ref-artist-tags" id="simple-ref-artist-tags" style="min-height:0;margin-top:6px;"></div>
+          </div>
+        </div>
+
         <!-- 곡 제목 -->
         <div class="suno-field">
           <label class="suno-label">곡 제목</label>
@@ -11568,7 +11584,7 @@ async function generate(overrideParams){
   if(!lyricsText&&!subGenre&&!isSimple&&!isYT&&!isCustom){_globalGenerating=false;_syncGenButtons();toast('입력값을 확인해주세요','err');return;}
 
   /* ── 최적화된 프롬프트 빌드 (buildOptimalPrompt) ── */
-  const refArtist=$('ref-artist')?.value.trim()||'';
+  const refArtist=$('ref-artist')?.value.trim()||$('simple-ref-artist')?.value.trim()||'';
   const lyricsLang=$('lyrics-lang')?.value||'';
   let styleStr = overrideParams?.styleStr || buildOptimalPrompt({
     genre: subGenre, mood, songDesc, bpm: bpmAuto ? null : selectedBpm,
@@ -25732,6 +25748,33 @@ async function analyzeRefArtist(){
   }
 }
 var _refArtistStyleTags = '';
+
+/* 심플 모드 레퍼런스 아티스트 분석 (공용 _refArtistStyleTags에 저장) */
+async function _analyzeSimpleRefArtist(){
+  var artistVal=($('simple-ref-artist')?.value||'').trim();
+  if(!artistVal||!kieApiKey) return;
+  var btn=$('simple-ref-artist-btn');
+  var tagsEl=$('simple-ref-artist-tags');
+  if(btn) btn.disabled=true;
+  if(btn) btn.textContent='분석 중...';
+  try{
+    var sys='당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 구체적인 프로덕션 스타일, 보컬 특성, 악기 편성, 사운드 텍스처를 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
+    var usr='"'+artistVal+'" 아티스트의 실제 음악 사운드를 완벽히 재현하기 위한 핵심 스타일 태그를 8개 추출하세요. 다음 카테고리별 1-2개씩: (1)장르/서브장르 (2)보컬 스타일 (3)프로덕션/비트 특성 (4)악기/사운드 텍스처 (5)분위기/에너지. 쉼표 구분 영문만.';
+    var result='';
+    await callClaudeStream(sys,usr,function(p){result=p;});
+    if(result){
+      var tags=result.replace(/["""'']/g,'').split(',').map(function(s){return s.trim();}).filter(function(s){return s&&s.length>1&&s.length<50;}).slice(0,8);
+      if(tags.length&&tagsEl){
+        tagsEl.innerHTML=tags.map(function(t){return '<span class="ref-artist-tag">'+t+'</span>';}).join('');
+        _refArtistStyleTags='inspired by '+artistVal+', '+tags.join(', ');
+        /* 커스텀 모드 ref-artist에도 동기화 */
+        var customInput=$('ref-artist');if(customInput) customInput.value=artistVal;
+        toast('✅ "'+artistVal+'" 스타일이 반영됩니다','ok',2500);
+      }
+    }
+  }catch(e){toast('분석 실패 — 다시 시도해주세요','err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='분석';}}
+}
 
 /* ── 6. 입력 안내 바텀시트 ── */
 function showInputGuideSheet(missingFields){
