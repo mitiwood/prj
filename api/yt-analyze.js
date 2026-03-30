@@ -310,10 +310,12 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   // ── 유명 아티스트 DB (외부 파일에서 로드) ──
   // ══════════════════════════════════════════════════════
   const _artistDB = _artistDBData || [];
-  // ── 아티스트 DB 매칭 (정확 매칭 우선) ──
+  // ── 아티스트 DB 매칭 (정확 매칭 우선 → 제목 전문 검색 폴백) ──
   let artistMatch = null;
   const artistLower = artist.toLowerCase().trim();
   const authorLower = author.toLowerCase().replace(/\s*-\s*topic$/i, '').trim();
+  const titleLower = title.toLowerCase();
+  // 1차: artist/author 정확 매칭
   for (const entry of _artistDB) {
     for (const name of entry.names) {
       if (artistLower === name || authorLower === name || artistLower.includes(name) || authorLower.includes(name)) {
@@ -322,6 +324,18 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
       }
     }
     if (artistMatch) break;
+  }
+  // 2차: title 전문 검색 (MV 제목에 아티스트명 포함된 경우)
+  if (!artistMatch) {
+    let _bestLen = 0;
+    for (const entry of _artistDB) {
+      for (const name of entry.names) {
+        if (name.length >= 2 && titleLower.includes(name) && name.length > _bestLen) {
+          artistMatch = entry;
+          _bestLen = name.length;
+        }
+      }
+    }
   }
 
   // ══════════════════════════════════════════════
