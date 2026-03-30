@@ -9263,6 +9263,19 @@ function _setSimpleMood(btn){
 }
 /* _sunoGenre는 toss step IIFE 내부에서 window._sunoGenre로 정의 */
 
+/* 심플모드 가사 아코디언 토글 */
+function _toggleSimpleLyrics(){
+  var toggle=$('simple-lyrics-toggle');
+  var body=$('simple-lyrics-body');
+  if(!toggle||!body) return;
+  var isOpen=toggle.classList.contains('open');
+  toggle.classList.toggle('open',!isOpen);
+  body.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    setTimeout(function(){var ta=$('simple-lyrics');if(ta)ta.focus();},100);
+  }
+}
+
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
   instOn=!instOn;this.classList.toggle('on',instOn);
   if($('vocal-group')){$('vocal-group').style.opacity=instOn?'.3':'1';
