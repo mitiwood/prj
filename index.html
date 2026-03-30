@@ -23557,9 +23557,11 @@ async function _pollRealtime(){
     d.events.forEach(e => {
       switch(e.event){
         case 'plan_changed':
-          _syncPlanFromServer();
-          /* 크리에이터 카드 배지 즉시 갱신 */
-          _creatorsCacheAt=0; if(typeof _renderCreatorsInline==='function') _renderCreatorsInline();
+          /* 해당 사용자에게만 동기화 (다른 사용자에게 알림 가지 않도록) */
+          if(!e.data?.targetUser || e.data.targetUser===currentUser?.name){
+            _syncPlanFromServer();
+            _creatorsCacheAt=0; if(typeof _renderCreatorsInline==='function') _renderCreatorsInline();
+          }
           break;
         case 'new_like':
           if(e.data?.trackTitle) _addLocalNotif('like', '❤️ 좋아요!', e.data.fromUser + '님이 "' + e.data.trackTitle + '"에 좋아요');

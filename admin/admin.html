@@ -5209,11 +5209,11 @@ async function changeUserPlan(userName, provider, newPlan) {
       })
     }).catch(()=>{});
 
-    /* 3. realtime 이벤트 → 클라이언트 즉시 동기화 */
+    /* 3. realtime 이벤트 → 해당 클라이언트만 즉시 동기화 */
     fetch('/api/realtime', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: 'plan_changed', data: { userName, provider, plan: newPlan } })
+      body: JSON.stringify({ event: 'plan_changed', data: { userName, provider, plan: newPlan, targetUser: userName } })
     }).catch(()=>{});
 
   } catch(e) {
