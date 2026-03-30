@@ -5058,204 +5058,110 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </button>
       </div>
 
-      <!-- ━━━ 심플 패널 (토스 스타일 스텝 플로우) ━━━ -->
+            <!-- ━━━ 심플 패널 (Suno 스타일 원페이지) ━━━ -->
       <div class="mode-panel on" id="panel-simple">
 
-        <!-- 프로그레스 바 -->
-        <div class="toss-progress" id="toss-progress">
-          <div class="toss-progress-dot active" data-step="1"></div>
-          <div class="toss-progress-dot" data-step="2"></div>
-          <div class="toss-progress-dot" data-step="3"></div>
-          <div class="toss-progress-dot" data-step="4"></div>
+        <!-- 곡 설명 -->
+        <div class="suno-field">
+          <label class="suno-label">곡 설명</label>
+          <textarea class="suno-input" id="simple-prompt" rows="3"
+            placeholder="만들고 싶은 음악을 자유롭게 설명해주세요&#10;예: 비 오는 날 카페에서 듣는 잔잔한 재즈"></textarea>
+          <div class="suno-ai-row">
+            <input class="suno-ai-input" id="ai-assist-input" type="text" placeholder="AI에게 추천받기 (예: 새벽 감성 R&B)" data-i18n-ph="moodPlaceholder">
+            <button class="suno-ai-btn" id="ai-assist-btn" onclick="_aiAssistRecommend()">AI 추천</button>
+          </div>
+          <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
+          <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+          <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
         </div>
 
-        <!-- ── STEP 1: 장르 선택 ── -->
-        <div class="toss-step visible" id="toss-step-1">
-          <div class="toss-step-q">어떤 음악을<br>만들어 볼까요?</div>
-          <div class="toss-step-hint">장르를 하나 골라주세요</div>
-          <div class="qp-grid" id="qp-grid">
-            <div class="qp-card" onclick="_tossPreset('kpop',this)"><div class="qp-emoji">🎵</div><div class="qp-title">K-Pop</div><div class="qp-sub">댄스 팝</div></div>
-            <div class="qp-card" onclick="_tossPreset('ballad',this)"><div class="qp-emoji">🎤</div><div class="qp-title">발라드</div><div class="qp-sub">감성 피아노</div></div>
-            <div class="qp-card" onclick="_tossPreset('lofi',this)"><div class="qp-emoji">☕</div><div class="qp-title">Lo-Fi</div><div class="qp-sub">칠 비트</div></div>
-            <div class="qp-card" onclick="_tossPreset('hiphop',this)"><div class="qp-emoji">🔥</div><div class="qp-title">힙합</div><div class="qp-sub">트랩 비트</div></div>
-            <div class="qp-card" onclick="_tossPreset('cinematic',this)"><div class="qp-emoji">🎬</div><div class="qp-title">OST</div><div class="qp-sub">시네마틱</div></div>
-            <div class="qp-card" onclick="_tossPreset('acoustic',this)"><div class="qp-emoji">🪕</div><div class="qp-title">어쿠스틱</div><div class="qp-sub">포크 팝</div></div>
-          </div>
-          <div class="qp-dots" id="qp-dots">
-            <div class="qp-dot on"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div><div class="qp-dot"></div>
-          </div>
-          <!-- 또는 AI 추천 입력 -->
-          <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px;">
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:11px;color:var(--t3);font-weight:600;">또는 직접 입력</span>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-          </div>
-          <div id="ai-assistant-wrap" style="padding:0;">
-            <div style="display:flex;gap:6px;">
-              <input class="form-input" id="ai-assist-input" type="text" placeholder="예: 비 오는 날 듣기 좋은 재즈" data-i18n-ph="moodPlaceholder" style="flex:1;font-size:13px;padding:12px 14px;border-radius:14px;">
-              <button onclick="_aiAssistRecommend()" id="ai-assist-btn" style="flex-shrink:0;padding:12px 18px;border-radius:14px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">AI 추천</button>
-            </div>
-            <div id="ai-assist-result" style="display:none;margin-top:10px;padding:10px;background:var(--card);border-radius:10px;font-size:12px;color:var(--t1);line-height:1.6;"></div>
-            <div id="simple-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
-            <div id="simple-nlp-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(124,58,237,.04);border-radius:10px;"></div>
-          </div>
-          <!-- 빠른 추천 (숨김 - 기능 유지) -->
-          <div class="ai-suggest-chips" id="ai-quick-suggests" style="display:none;">
-            <button class="ai-suggest-chip" data-i18n="rainyDay" onclick="_quickAiSuggest('비 오는 날 감성 발라드')">비 오는 날</button>
-            <button class="ai-suggest-chip" data-i18n="dawnMood" onclick="_quickAiSuggest('새벽 감성 Lo-Fi')">새벽 감성</button>
-            <button class="ai-suggest-chip" data-i18n="party" onclick="_quickAiSuggest('신나는 파티 EDM')">파티</button>
-            <button class="ai-suggest-chip" data-i18n="focus" onclick="_quickAiSuggest('집중력 높이는 앰비언트')">집중</button>
-            <button class="ai-suggest-chip" data-i18n="drive" onclick="_quickAiSuggest('드라이브 할 때 듣는 록')">드라이브</button>
-            <button class="ai-suggest-chip" data-i18n="confession" onclick="_quickAiSuggest('고백할 때 부르는 노래')">고백</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 트로트 뽕짝')">트로트</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('여름 바다 시원한 팝')">여름</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('공부할 때 듣는 뉴에이지 피아노')">공부</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('운동할 때 듣는 강렬한 EDM')">운동</button>
-          </div>
-          <div class="toss-step-nav" style="margin-top:20px;">
-            <button class="toss-nav-next" id="toss-next-1" onclick="_tossGoStep(2)" disabled>다음</button>
+        <!-- 장르 -->
+        <div class="suno-field">
+          <label class="suno-label">장르</label>
+          <div class="suno-chips" id="suno-genre-chips">
+            <button class="suno-chip" onclick="_sunoGenre('kpop',this)">🎵 K-Pop</button>
+            <button class="suno-chip" onclick="_sunoGenre('ballad',this)">🎤 발라드</button>
+            <button class="suno-chip" onclick="_sunoGenre('lofi',this)">☕ Lo-Fi</button>
+            <button class="suno-chip" onclick="_sunoGenre('hiphop',this)">🔥 힙합</button>
+            <button class="suno-chip" onclick="_sunoGenre('cinematic',this)">🎬 OST</button>
+            <button class="suno-chip" onclick="_sunoGenre('acoustic',this)">🪕 어쿠스틱</button>
           </div>
         </div>
 
-        <!-- ── STEP 2: 분위기 선택 ── -->
-        <div class="toss-step" id="toss-step-2">
-          <div class="toss-step-q">어떤 분위기를<br>원하세요?</div>
-          <div class="toss-step-hint">하나만 골라주세요</div>
+        <!-- 분위기 -->
+        <div class="suno-field">
+          <label class="suno-label">분위기</label>
           <select id="simple-mood" style="display:none;">
             <option value="">선택 안함</option><option value="happy, uplifting">밝고 신나는</option><option value="sad, emotional">슬프고 감성적인</option><option value="calm, relaxing">잔잔하고 편안한</option><option value="dark, intense">어둡고 강렬한</option><option value="romantic, dreamy">로맨틱하고 몽환적인</option><option value="energetic, hype">에너지 넘치는</option><option value="nostalgic, retro">노스탤직하고 레트로</option><option value="aggressive, powerful">강렬하고 파워풀</option><option value="chill, lofi">칠하고 로파이</option><option value="hopeful, inspiring">희망차고 영감주는</option><option value="mysterious, ethereal">신비롭고 몽환적</option>
           </select>
-          <div class="mood-grid-toss" id="simple-mood-grid">
-            <button class="mood-chip" data-mood="happy, uplifting" onclick="_setSimpleMood(this)"><span class="mood-ico">😊</span>신나는</button>
-            <button class="mood-chip" data-mood="sad, emotional" onclick="_setSimpleMood(this)"><span class="mood-ico">😢</span>감성적</button>
-            <button class="mood-chip" data-mood="calm, relaxing" onclick="_setSimpleMood(this)"><span class="mood-ico">🍃</span>편안한</button>
-            <button class="mood-chip" data-mood="dark, intense" onclick="_setSimpleMood(this)"><span class="mood-ico">🌑</span>강렬한</button>
-            <button class="mood-chip" data-mood="romantic, dreamy" onclick="_setSimpleMood(this)"><span class="mood-ico">💕</span>로맨틱</button>
-            <button class="mood-chip" data-mood="energetic, hype" onclick="_setSimpleMood(this)"><span class="mood-ico">🔥</span>에너지</button>
-            <button class="mood-chip" data-mood="nostalgic, retro" onclick="_setSimpleMood(this)"><span class="mood-ico">📼</span>레트로</button>
-            <button class="mood-chip" data-mood="chill, lofi" onclick="_setSimpleMood(this)"><span class="mood-ico">☕</span>로파이</button>
-            <button class="mood-chip" data-mood="epic, cinematic" onclick="_setSimpleMood(this)"><span class="mood-ico">🎬</span>시네마틱</button>
-            <button class="mood-chip" data-mood="hopeful, inspiring" onclick="_setSimpleMood(this)"><span class="mood-ico">🌅</span>영감</button>
-            <button class="mood-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)"><span class="mood-ico">💪</span>파워풀</button>
-            <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)"><span class="mood-ico">🔮</span>신비</button>
-          </div>
-          <div class="mood-dots" id="mood-dots">
-            <div class="mood-dot on"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div><div class="mood-dot"></div>
-          </div>
-          <div class="toss-step-nav">
-            <button class="toss-nav-back" onclick="_tossBack(1)">이전</button>
-            <button class="toss-nav-next" id="toss-next-2" onclick="_tossGoStep(3)">다음</button>
+          <div class="suno-chips" id="simple-mood-grid">
+            <button class="suno-chip" data-mood="happy, uplifting" onclick="_setSimpleMood(this)">😊 신나는</button>
+            <button class="suno-chip" data-mood="sad, emotional" onclick="_setSimpleMood(this)">😢 감성적</button>
+            <button class="suno-chip" data-mood="calm, relaxing" onclick="_setSimpleMood(this)">🍃 편안한</button>
+            <button class="suno-chip" data-mood="dark, intense" onclick="_setSimpleMood(this)">🌑 강렬한</button>
+            <button class="suno-chip" data-mood="romantic, dreamy" onclick="_setSimpleMood(this)">💕 로맨틱</button>
+            <button class="suno-chip" data-mood="energetic, hype" onclick="_setSimpleMood(this)">🔥 에너지</button>
+            <button class="suno-chip" data-mood="nostalgic, retro" onclick="_setSimpleMood(this)">📼 레트로</button>
+            <button class="suno-chip" data-mood="chill, lofi" onclick="_setSimpleMood(this)">☕ 로파이</button>
+            <button class="suno-chip" data-mood="epic, cinematic" onclick="_setSimpleMood(this)">🎬 시네마틱</button>
+            <button class="suno-chip" data-mood="hopeful, inspiring" onclick="_setSimpleMood(this)">🌅 영감</button>
+            <button class="suno-chip" data-mood="aggressive, powerful" onclick="_setSimpleMood(this)">💪 파워풀</button>
+            <button class="suno-chip" data-mood="mysterious, ethereal" onclick="_setSimpleMood(this)">🔮 신비</button>
           </div>
         </div>
 
-        <!-- ── STEP 3: 세부 설정 (인스타 감성) ── -->
-        <div class="toss-step" id="toss-step-3">
-          <div class="toss-step-q">세부 사항을<br>설정해 볼까요?</div>
-          <div class="toss-step-hint">건너뛰어도 AI가 알아서 채워줘요</div>
-
-          <!-- 곡 제목 카드 -->
-          <div class="ig-card">
-            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
-            <div class="ig-card-body">
-              <div class="ig-card-label">곡 제목</div>
-              <input class="ig-card-input" id="simple-song-title" type="text" placeholder="비워두면 AI가 자동 생성" data-i18n-ph="songTitle" autocomplete="off">
-            </div>
+        <!-- 가사 -->
+        <div class="suno-field">
+          <div class="suno-label-row">
+            <label class="suno-label" style="margin:0;">가사</label>
+            <span class="suno-hint">비우면 AI가 자동 생성</span>
           </div>
-
-          <!-- 곡 설명 카드 -->
-          <div class="ig-card">
-            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-            <div class="ig-card-body">
-              <div class="ig-card-label">곡 설명</div>
-              <textarea class="ig-card-input" id="simple-prompt" rows="2" placeholder="예: 비 오는 날 카페에 어울리는 잔잔한 재즈" style="resize:none;"></textarea>
-            </div>
+          <textarea class="suno-input" id="simple-lyrics" rows="4" data-i18n-ph="lyricsPlaceholder"
+            placeholder="[Verse 1]&#10;가사를 입력하세요..."></textarea>
+          <div class="suno-lyrics-actions">
+            <button class="suno-btn-ghost" onclick="_resetLyrics('simple-lyrics')">초기화</button>
+            <button class="lyrics-gen-btn" id="simple-lyrics-btn" style="padding:6px 12px;border-radius:8px;">
+              <span class="lspin" id="simple-lyrics-spinner"></span>
+              AI 자동 작사
+            </button>
           </div>
+        </div>
 
-          <!-- BPM 카드 -->
-          <div class="ig-card">
-            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <div class="ig-card-body">
-              <div class="ig-card-label">곡 스피드 <span style="font-weight:700;color:var(--acc);" id="s-bpm-display">120</span> BPM</div>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                <span style="font-size:10px;color:var(--t3);font-weight:500;">느림</span>
-                <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-                  oninput="$('s-bpm-display').textContent=this.value;$('s-bpm-badge').textContent=this.value+' BPM';">
-                <span style="font-size:10px;color:var(--t3);font-weight:500;">빠름</span>
-                <div class="bpm-badge" id="s-bpm-badge" style="font-size:11px;min-width:56px;">120 BPM</div>
-              </div>
-            </div>
-          </div>
+        <!-- 곡 제목 -->
+        <div class="suno-field">
+          <label class="suno-label">곡 제목</label>
+          <input class="suno-input" id="simple-song-title" type="text" placeholder="비워두면 AI가 자동 생성" data-i18n-ph="songTitle" autocomplete="off">
+        </div>
 
-          <!-- 보컬/인스트 카드 -->
-          <div class="ig-card" style="cursor:pointer;" onclick="var t=$('simple-inst-toggle');if(t)t.click();">
-            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
-            <div class="ig-card-body" style="flex:1;">
-              <div class="ig-card-label">인스트루멘탈</div>
-            </div>
+        <!-- 옵션 -->
+        <div class="suno-options">
+          <div class="suno-opt" style="cursor:pointer;" onclick="var t=$('simple-inst-toggle');if(t)t.click();">
+            <span class="suno-opt-label">인스트루멘탈</span>
             <div class="toggle-label-row" id="simple-inst-toggle" style="background:none;border:none;padding:0;">
               <div class="toggle-switch"><div class="toggle-thumb"></div></div>
             </div>
           </div>
-
-          <!-- 가사 카드 -->
-          <div class="ig-card ig-card-expand">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-              <div class="ig-card-icon" style="margin:0;"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
-              <div class="ig-card-label" style="margin:0;">가사 <span style="font-size:10px;color:var(--t3);font-weight:500;">비우면 AI 자동 생성</span></div>
-            </div>
-            <textarea class="ig-card-input" id="simple-lyrics" rows="3" data-i18n-ph="lyricsPlaceholder"
-              placeholder="[Verse 1]&#10;너의 흔적이 남아있는 이 거리..." style="resize:none;"></textarea>
-            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px;">
-              <button class="lyrics-reset-btn" onclick="_resetLyrics('simple-lyrics')" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;">초기화</button>
-              <button class="lyrics-gen-btn" id="simple-lyrics-btn" style="padding:6px 12px;border-radius:8px;">
-                <span class="lspin" id="simple-lyrics-spinner"></span>
-                AI 자동 작사
-              </button>
-            </div>
+          <div class="suno-opt">
+            <span class="suno-opt-label">BPM <strong style="color:var(--acc);" id="s-bpm-display">120</strong></span>
+            <input type="range" class="bpm-slider" id="simple-bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;max-width:160px;"
+              oninput="$('s-bpm-display').textContent=this.value;">
           </div>
-
-          <!-- 곡 수 카드 -->
-          <div class="ig-card">
-            <div class="ig-card-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-            <div class="ig-card-body" style="flex:1;">
-              <div class="ig-card-label">생성 곡 수</div>
-            </div>
-            <div style="display:flex;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+          <div class="suno-opt">
+            <span class="suno-opt-label">곡 수</span>
+            <div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
               <button class="gen-count-btn active" data-count="1" onclick="_setGenCount(1)" style="padding:6px 14px;border:none;background:transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">1곡</button>
               <button class="gen-count-btn" data-count="2" onclick="_setGenCount(2)" style="padding:6px 14px;border:none;background:transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);transition:all .2s;">2곡</button>
             </div>
           </div>
-          <div class="toss-step-nav">
-            <button class="toss-nav-back" onclick="_tossBack(2)">이전</button>
-            <button class="toss-nav-skip" onclick="_tossGoStep(4)">건너뛰기</button>
-            <button class="toss-nav-next" onclick="_tossGoStep(4)">다음</button>
-          </div>
         </div>
 
-        <!-- ── STEP 4: 요약 + 생성 ── -->
-        <div class="toss-step" id="toss-step-4">
-          <div class="toss-step-q">이렇게<br>만들어 드릴게요</div>
-          <div class="toss-step-hint">설정을 확인하고 생성해 주세요</div>
-          <!-- 요약 카드 -->
-          <div class="toss-summary show" id="toss-summary">
-            <div class="toss-summary-row"><span class="toss-summary-label">장르</span><span class="toss-summary-val" id="toss-sum-genre">-</span></div>
-            <div class="toss-summary-row"><span class="toss-summary-label">분위기</span><span class="toss-summary-val" id="toss-sum-mood">-</span></div>
-            <div class="toss-summary-row"><span class="toss-summary-label">BPM</span><span class="toss-summary-val" id="toss-sum-bpm">120</span></div>
-            <div class="toss-summary-row"><span class="toss-summary-label">보컬</span><span class="toss-summary-val" id="toss-sum-vocal">있음</span></div>
-          </div>
-          <div style="margin-top:20px;">
-            <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성" style="box-shadow:0 4px 24px rgba(124,58,237,.35);">
-              <span class="gen-spinner" id="simple-gen-spinner"></span>
-              <span id="simple-gen-txt">음악 만들기</span>
-            </button>
-          </div>
-          <div class="toss-step-nav" style="margin-top:12px;">
-            <button class="toss-nav-back" onclick="_tossBack(3)">이전</button>
-            <button class="toss-nav-skip" onclick="_simpleToCustom()" style="flex:1;">커스텀 모드로</button>
-          </div>
+        <!-- 생성 버튼 -->
+        <div style="margin-top:20px;padding-bottom:80px;">
+          <button class="gen-btn" id="simple-gen-btn" aria-label="심플 모드 음악 생성" style="box-shadow:0 4px 24px rgba(124,58,237,.35);">
+            <span class="gen-spinner" id="simple-gen-spinner"></span>
+            <span id="simple-gen-txt">음악 만들기</span>
+          </button>
         </div>
-
-        <!-- 플로팅 생성 버튼 (숨김) -->
-        <div class="toss-floating-cta" id="toss-cta"></div>
       </div>
 
       <!-- toss-fixed-nav는 body 직속으로 이동 (backdrop-filter stacking context 회피) -->
@@ -8781,8 +8687,13 @@ async function _ytDoGenerate(){
   const ytInstruments = (_lastYtAnalysis.instruments||'').trim();
   const ytVocalStyle = (_lastYtAnalysis.vocal_style||'').trim();
   const ytRefSound = (_lastYtAnalysis.reference_sound||'').trim();
-  /* style: style_prompt 우선 (가장 상세) + 장르 + 분위기 (최대 999자, kie.ai 제한 1000) */
-  var _ytParts=[ytStylePrompt,ytGenre,ytMood,ytInstruments,ytVocalStyle,ytMoodTags].filter(Boolean);
+  const ytBpm = _lastYtAnalysis.bpm_estimate || 0;
+  const ytKey = (_lastYtAnalysis.key_signature||'').trim();
+  const ytSongStructure = (_lastYtAnalysis.song_structure||'').trim();
+  /* style: style_prompt 우선 (가장 상세) + 장르 + 분위기 + BPM/키 + 참고사운드 (최대 999자, kie.ai 제한 1000) */
+  var _bpmHint = ytBpm > 0 ? (ytBpm + ' BPM') : '';
+  var _keyHint = ytKey ? ('key of ' + ytKey) : '';
+  var _ytParts=[ytStylePrompt,ytGenre,ytMood,ytInstruments,ytVocalStyle,ytRefSound,_bpmHint,_keyHint,ytMoodTags].filter(Boolean);
   /* 중복 태그 제거 */
   var _seen=new Set();var _dedup=[];
   _ytParts.join(', ').split(',').forEach(function(t){var k=t.trim().toLowerCase();if(k&&!_seen.has(k)){_seen.add(k);_dedup.push(t.trim());}});
@@ -8834,8 +8745,15 @@ async function _ytDoGenerate(){
     }
   }
 
-  /* prompt: 가사가 있으면 가사, 없으면 스타일 설명 */
-  var prompt = ytLyrics || ytStyle || 'YouTube cover music';
+  /* prompt: 가사가 있으면 가사, 없으면 원곡 특성 기반 설명 */
+  var prompt;
+  if(ytLyrics){
+    prompt = ytLyrics;
+  } else {
+    /* 가사 없을 때 style과 중복 방지: 원곡 참고사운드+구조를 prompt로 사용 */
+    var _promptParts = [ytRefSound, ytSongStructure, _lastYtAnalysis.description||''].filter(Boolean);
+    prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
+  }
 
   /* 가사에 한글이 포함되면 style에 Korean vocal 힌트 추가 */
   var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
@@ -8857,7 +8775,9 @@ async function _ytDoGenerate(){
     if(songTitle) body.title = songTitle;
     if(ytVocalGender && !isInst) body.vocalGender = ytVocalGender;
     /* 스타일 가중치 높여서 원곡 느낌 강화 */
-    body.styleWeight = 0.8;
+    body.styleWeight = 0.85;
+    /* 창의성 낮춰서 원곡에 가깝게 생성 */
+    body.weirdnessConstraint = 0.15;
 
     /* debug removed */
 
@@ -9339,13 +9259,12 @@ function _syncMoodGrid(){
 /* 심플모드 분위기 그리드 */
 function _setSimpleMood(btn){
   var val=btn.dataset.mood;
-  document.querySelectorAll('#simple-mood-grid .mood-chip').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('#simple-mood-grid .suno-chip, #simple-mood-grid .mood-chip').forEach(function(b){b.classList.remove('on');});
   var sel=$('simple-mood');
-  if(sel.value===val){sel.value='';}
+  if(sel.value===val){sel.value='';btn.classList.remove('on');}
   else{btn.classList.add('on');sel.value=val;}
-  /* 토스 스텝: 분위기 선택 → 0.3초 후 step 3 */
-  if(sel.value) setTimeout(function(){ _tossGoStep(3); },300);
 }
+/* _sunoGenre는 toss step IIFE 내부에서 window._sunoGenre로 정의 */
 
 if($('inst-toggle'))$('inst-toggle').addEventListener('click',function(){
   instOn=!instOn;this.classList.toggle('on',instOn);
@@ -16830,6 +16749,7 @@ function _renderCreatorDetailView(grid,countEl){
   /* 트랙 정렬 적용 — 생성 실패 곡도 포함 (비활성화 표시) */
   var _isFailedTrack=function(t){
     if(!t.audio_url) return true;
+    if(t.audio_url&&_failedAudioUrls.has(t.audio_url)) return true;
     if(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0) return true;
     return false;
   };
@@ -16911,10 +16831,10 @@ function _renderCreatorDetailView(grid,countEl){
       var _mfIsPlaying=!isFailed&&historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
       html+='<div class="mf-trk-grid-card'+(_mfIsPlaying?' playing':'')+'" style="'+(isFailed?'opacity:.6;':'')+ '"'+(isFailed?'':' data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"')+'>'
         +'<div class="mf-trk-grid-img" style="position:relative;">'+imgHtml
-        +(isFailed?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border-radius:10px;"><span style="color:#ff6b6b;font-size:11px;font-weight:700;">생성실패</span></div>':'<div class="mf-trk-grid-play">'+(_mfIsPlaying?'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg>')+'</div>')
+        +(isFailed?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border-radius:10px;"><span style="color:#ff6b6b;font-size:11px;font-weight:700;">'+(t.audio_url&&_failedAudioUrls.has(t.audio_url)?'재생불가':'생성실패')+'</span></div>':'<div class="mf-trk-grid-play">'+(_mfIsPlaying?'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg>')+'</div>')
         +'</div>'
         +'<div class="mf-trk-grid-info"><div class="mf-trk-grid-title"'+(isFailed?' style="opacity:.5;text-decoration:line-through;"':'')+'>'+esc(t.title||'무제')+'</div>'
-        +'<div class="mf-trk-grid-meta">'+(isFailed?'<span style="color:var(--err,#e74c3c);font-size:10px;">생성실패</span>':(likes>0?'❤️ '+likes:''))+'</div></div></div>';
+        +'<div class="mf-trk-grid-meta">'+(isFailed?'<span style="color:var(--err,#e74c3c);font-size:10px;">'+(t.audio_url&&_failedAudioUrls.has(t.audio_url)?'재생불가':'생성실패')+'</span>':(likes>0?'❤️ '+likes:''))+'</div></div></div>';
     });
     html+='</div>';
   } else {
@@ -16931,7 +16851,8 @@ function _renderCreatorDetailView(grid,countEl){
       if(t.created_at){try{var dd=new Date(t.created_at);dateStr=(dd.getMonth()+1)+'/'+dd.getDate();}catch(e){}}
       var _mfIsPlaying=!isFailed&&historyData[fpCurrentIdx]&&(historyData[fpCurrentIdx].id===t.id||historyData[fpCurrentIdx]._sbId===t.id)&&fpAudio&&!fpAudio.paused;
       var isUnplayable=isFailed||_mfUnplayableIds.has(t.id);
-      var failLabel=isFailed?'생성실패':(isUnplayable?'재생불가':'');
+      var _isExpired=t.audio_url&&_failedAudioUrls.has(t.audio_url);
+      var failLabel=_isExpired?'재생불가':isFailed?'생성실패':(isUnplayable?'재생불가':'');
       html+='<div class="mf-trk-card'+(_mfIsPlaying?' playing':'')+(isUnplayable?' unplayable':'')+'" data-sbid="'+esc(t.id)+'"'+(isUnplayable?'':' data-mf-action="play-detail" data-mf-trk-idx="'+origIdx+'"')+'>'
         +'<div class="mf-trk-num">'+(isUnplayable?'<span style="color:var(--err,#e74c3c);font-size:11px;">✕</span>':(i+1))+'</div>'
         +'<div class="mf-trk-thumb">'+thumb+(hasVideo?'<span class="mf-trk-video-badge">MV</span>':'')+'</div>'
@@ -19091,13 +19012,14 @@ var commHeroAudio=null,commHeroVizTimer=null;
 /* 재생 불가 오디오 URL 블랙리스트 (세션 내 캐시) */
 var _failedAudioUrls=new Set();
 var _urlCheckInFlight=false;
-/* 히스토리 오디오 URL 사전 검증 — HEAD 요청으로 404 감지 */
+/* 오디오 URL 사전 검증 — HEAD 요청으로 404 감지 (히스토리 + 크리에이터 뷰) */
 function _checkAudioUrls(){
   if(_urlCheckInFlight)return;
   var urls=[];
-  historyData.forEach(function(h){
-    if(h.audio_url&&!_failedAudioUrls.has(h.audio_url)&&urls.indexOf(h.audio_url)<0) urls.push(h.audio_url);
-  });
+  var _addUrl=function(u){if(u&&!_failedAudioUrls.has(u)&&urls.indexOf(u)<0)urls.push(u);};
+  historyData.forEach(function(h){_addUrl(h.audio_url);});
+  if(typeof _sbTracks!=='undefined'&&_sbTracks)_sbTracks.forEach(function(t){_addUrl(t.audio_url);});
+  if(typeof _myFeedDetail!=='undefined'&&_myFeedDetail&&_myFeedDetail.tracks)_myFeedDetail.tracks.forEach(function(t){_addUrl(t.audio_url);});
   if(!urls.length)return;
   _urlCheckInFlight=true;
   var changed=false;
@@ -19107,7 +19029,17 @@ function _checkAudioUrls(){
       if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(url);changed=true;}
     }).catch(function(){}).finally(function(){
       done++;
-      if(done>=urls.length){_urlCheckInFlight=false;if(changed)renderHistoryView();}
+      if(done>=urls.length){
+        _urlCheckInFlight=false;
+        if(changed){
+          renderHistoryView();
+          if(typeof _renderCreatorDetailView==='function'&&typeof _myFeedDetail!=='undefined'&&_myFeedDetail){
+            var g=document.querySelector('.my-feed-grid');
+            var c=document.querySelector('.my-feed-count');
+            if(g)_renderCreatorDetailView(g,c);
+          }
+        }
+      }
     });
   });
 }
@@ -28394,6 +28326,14 @@ setTimeout(_showOnboarding, 1500);
       inp.click();
       setTimeout(function(){ inp.scrollIntoView({behavior:'smooth',block:'center'}); },100);
     }
+  };
+
+  /* Suno 스타일 장르 칩 선택 */
+  window._sunoGenre = function(key, el){
+    _tossGenre = el ? el.textContent.replace(/[^\w가-힣\s\-]/g,'').trim() : '';
+    _applyQuickPreset(key);
+    document.querySelectorAll('#suno-genre-chips .suno-chip').forEach(function(c){c.classList.remove('on');});
+    if(el) el.classList.add('on');
   };
 
   function _tossUpdSum(){
