@@ -8283,6 +8283,8 @@ function _guestQuickGenerate(){
 }
 
 function _showGuestLoginPrompt(){
+  /* 미니플레이어 재생 중이면 닫고 중지 */
+  if(typeof hideMiniPlayer==='function') try{hideMiniPlayer();}catch(e){}
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
