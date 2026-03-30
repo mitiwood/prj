@@ -180,7 +180,7 @@ export default async function handler(req, res) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: analysisPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+            generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
           }),
         }
       );
@@ -191,7 +191,13 @@ export default async function handler(req, res) {
       } else {
         const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
         analysis = _parseJsonResponse(gText);
-        if (analysis) _analyzer = 'gemini';
+        if (analysis) {
+          _analyzer = 'gemini';
+          console.log('[yt-analyze] Gemini OK:', analysis.genre, analysis.bpm_estimate);
+        } else {
+          _debugError += ` | Gemini parse fail`;
+          console.warn('[yt-analyze] Gemini parse fail:', gText.slice(0, 200));
+        }
       }
     } catch (e) {
       _debugError += ` | Gemini exception: ${e.message}`;
@@ -231,7 +237,6 @@ export default async function handler(req, res) {
     videoId,
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
-    _debugError: _debugError || undefined,
     ...analysis,
   });
 }
@@ -274,11 +279,22 @@ Answer in JSON ONLY:
 /** LLM 응답에서 JSON 파싱 */
 function _parseJsonResponse(text) {
   try {
-    const clean = text.replace(/```json|```/g, '').trim();
+    // 코드 블록 제거 (```json ... ``` 또는 ``` ... ```)
+    let clean = text;
+    const codeBlockMatch = clean.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      clean = codeBlockMatch[1];
+    } else {
+      clean = clean.replace(/```json|```/g, '');
+    }
+    // JSON 객체만 추출 ({ ... })
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (jsonMatch) clean = jsonMatch[0];
+    clean = clean.trim();
     const parsed = JSON.parse(clean);
     if (parsed && parsed.genre && parsed.style_prompt) return parsed;
   } catch (e) {
-    console.warn('[yt-analyze] JSON parse failed:', e.message, '| text:', text.slice(0, 200));
+    console.warn('[yt-analyze] JSON parse failed:', e.message, '| text:', text.slice(0, 300));
   }
   return null;
 }
