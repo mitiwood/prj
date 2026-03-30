@@ -127,48 +127,58 @@ export default async function handler(req, res) {
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-  // 2-a) Gemini 우선 (쿼터 초과 시 1회 재시도)
+  // 2-a) Gemini 우선 (쿼터 초과 시 3회 재시도, 모델 폴백 포함)
   if (geminiKey) {
     console.log('[yt-analyze] Trying Gemini... | title:', title);
-    const _geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
-    const _geminiBody = JSON.stringify({
-      contents: [{ parts: [{ text: analysisPrompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-    });
-    for (let _retry = 0; _retry < 2 && !analysis; _retry++) {
-      try {
-        if (_retry > 0) {
-          console.log('[yt-analyze] Gemini retry after quota wait...');
-          await new Promise(r => setTimeout(r, 10000));
-        }
-        const gr = await fetch(_geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: _geminiBody,
-        });
-        const gd = await gr.json();
-        if (gd.error) {
-          const isQuota = (gd.error.message || '').includes('quota') || (gd.error.message || '').includes('429');
-          if (isQuota && _retry === 0) {
-            console.warn('[yt-analyze] Gemini quota hit, will retry...');
-            continue;
+    const _geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    for (let _mi = 0; _mi < _geminiModels.length && !analysis; _mi++) {
+      const _gModel = _geminiModels[_mi];
+      const _geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${_gModel}:generateContent?key=${geminiKey}`;
+      const _geminiBody = JSON.stringify({
+        contents: [{ parts: [{ text: analysisPrompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+      });
+      for (let _retry = 0; _retry < 3 && !analysis; _retry++) {
+        try {
+          if (_retry > 0) {
+            console.log(`[yt-analyze] ${_gModel} retry ${_retry} after wait...`);
+            await new Promise(r => setTimeout(r, _retry * 5000));
           }
-          _debugError += ` | Gemini: ${(gd.error.message || '').slice(0, 120)}`;
-          console.warn('[yt-analyze] Gemini error:', gd.error.message);
-        } else {
-          const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          analysis = _parseJsonResponse(gText);
-          if (analysis) {
-            _analyzer = 'gemini';
-            console.log('[yt-analyze] Gemini OK:', analysis.genre, analysis.bpm_estimate);
+          const gr = await fetch(_geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: _geminiBody,
+          });
+          const gd = await gr.json();
+          if (gd.error) {
+            const errMsg = gd.error.message || '';
+            const isQuota = errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED');
+            const isModelNotFound = errMsg.includes('not found') || errMsg.includes('404');
+            if (isModelNotFound) {
+              console.warn(`[yt-analyze] ${_gModel} not found, trying next model`);
+              break; /* 다음 모델로 */
+            }
+            if (isQuota && _retry < 2) {
+              console.warn(`[yt-analyze] ${_gModel} quota hit, retry ${_retry + 1}...`);
+              continue;
+            }
+            _debugError += ` | ${_gModel}: ${errMsg.slice(0, 120)}`;
+            console.warn(`[yt-analyze] ${_gModel} error:`, errMsg);
           } else {
-            _debugError += ` | Gemini parse fail`;
-            console.warn('[yt-analyze] Gemini parse fail:', gText.slice(0, 200));
+            const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            analysis = _parseJsonResponse(gText);
+            if (analysis) {
+              _analyzer = 'gemini';
+              console.log(`[yt-analyze] ${_gModel} OK:`, analysis.genre, analysis.bpm_estimate);
+            } else {
+              _debugError += ` | ${_gModel} parse fail`;
+              console.warn(`[yt-analyze] ${_gModel} parse fail:`, gText.slice(0, 200));
+            }
           }
+        } catch (e) {
+          _debugError += ` | ${_gModel} exception: ${e.message}`;
+          console.warn(`[yt-analyze] ${_gModel} exception:`, e.message);
         }
-      } catch (e) {
-        _debugError += ` | Gemini exception: ${e.message}`;
-        console.warn('[yt-analyze] Gemini exception:', e.message);
       }
     }
   }

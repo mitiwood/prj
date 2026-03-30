@@ -9989,6 +9989,11 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* _lastYtAnalysis에 title 포함해서 저장 */
     _lastYtAnalysis = { ...analysis, title };
 
+    /* 폴백 분석(LLM 실패)이면 경고 + 자동 재시도 */
+    if(!analysis._analyzed){
+      toast('⚠️ AI 분석 실패 — 기본값 사용 중. 다시 시도해보세요.','err',4000);
+    }
+
     /* 제목 자동 설정 → yt-song-title에만 (song-title은 건드리지 않음) */
     var _ytTitleInput = $('yt-song-title');
     if(_ytTitleInput && !_ytTitleInput.value.trim()){
