@@ -24037,12 +24037,13 @@ function openCreatorProfile(name, provider){
         const _sbT = _sbTracks?.find(x=>x._sbId===t.id);
         const isLiked = _sbT?.liked || false;
         const isDisliked = _sbT?.disliked || false;
-        const _pvUnplayable = !t.audio_url;
+        const _pvExpired = t.audio_url && _failedAudioUrls.has(t.audio_url);
+        const _pvUnplayable = !t.audio_url || _pvExpired;
         return `<div class="pv-track-item${_pvPlaying?' playing':''}${_pvUnplayable?' unplayable':''}" data-sbid="${esc(t.id)}" ${_pvUnplayable?'':'onclick="commPlaySb(\''+esc(t.id)+'\')"'}>
           <div class="pv-track-info">
             <div class="pv-track-row1"${_pvUnplayable?' style="text-decoration:line-through;"':''}>${esc(t.title||'무제')}</div>
             <div class="pv-track-row2">
-              ${_pvUnplayable?'<span style="color:var(--err,#e74c3c);font-weight:600;">재생불가</span>':''}
+              ${_pvUnplayable?'<span style="color:var(--err,#e74c3c);font-weight:600;">'+(_pvExpired?'오디오 만료':'재생불가')+'</span>':''}
               ${dateStr?`<span>${dateStr}</span>`:''}
               ${tagFirst?`<span>${esc(tagFirst)}</span>`:''}
             </div>
