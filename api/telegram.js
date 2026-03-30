@@ -45,6 +45,16 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+async function sbFetch(path) {
+  if (!SB_URL || !SB_KEY) throw new Error('Supabase not configured');
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: 'application/json; charset=utf-8' },
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Supabase ${r.status}`);
+  return text ? JSON.parse(text) : null;
+}
+
 async function tgApi(method, body = null) {
   if (!BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN not configured');
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
@@ -175,6 +185,7 @@ async function handleWebhookCommand(text, chatId) {
       '',
       '/status — 시스템 상태 확인',
       '/health — 헬스체크 (= /status)',
+      '/user &lt;닉네임&gt; — 사용자 조회',
       '/site — 사이트 링크',
       '/ping — 봇 응답 테스트',
       '/help — 명령어 목록',
@@ -203,6 +214,64 @@ async function handleWebhookCommand(text, chatId) {
       chat_id: chatId,
       text: 'pong!',
     });
+    return true;
+  }
+
+  /* /user <이름> — 특정 사용자 조회 */
+  if (cmd.startsWith('/user ') || cmd === '/user') {
+    const query = (text || '').slice(6).trim();
+    if (!query) {
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: '사용법: /user <닉네임>\n예: /user 홍길동',
+      });
+      return true;
+    }
+
+    if (!SB_URL || !SB_KEY) {
+      await tgApi('sendMessage', { chat_id: chatId, text: 'DB 미연결 상태입니다.' });
+      return true;
+    }
+
+    try {
+      /* 이름에 포함된 사용자 검색 */
+      const users = await sbFetch(`/users?name=ilike.*${encodeURIComponent(query)}*&order=last_login.desc&limit=10`);
+
+      if (!users || users.length === 0) {
+        await tgApi('sendMessage', {
+          chat_id: chatId,
+          text: `"${escapeHtml(query)}" 검색 결과가 없습니다.`,
+          parse_mode: 'HTML',
+        });
+        return true;
+      }
+
+      const lines = users.map((u, i) => {
+        const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-';
+        const provider = u.provider || '-';
+        const email = u.email || '-';
+        const count = u.login_count || 0;
+        const plan = u.plan || 'free';
+        return [
+          `${i + 1}. <b>${escapeHtml(u.name || '?')}</b>`,
+          `   소셜: ${escapeHtml(provider)}`,
+          `   이메일: ${escapeHtml(email)}`,
+          `   플랜: ${escapeHtml(plan)}`,
+          `   방문: ${count}회`,
+          `   마지막 로그인: ${escapeHtml(lastLogin)}`,
+        ].join('\n');
+      });
+
+      const msg = `🔍 <b>"${escapeHtml(query)}" 검색 결과</b> (${users.length}명)\n\n${lines.join('\n\n')}`;
+
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: msg,
+        parse_mode: 'HTML',
+      });
+    } catch (e) {
+      await tgApi('sendMessage', { chat_id: chatId, text: '사용자 조회 중 오류: ' + (e.message || '').slice(0, 100) });
+    }
     return true;
   }
 
