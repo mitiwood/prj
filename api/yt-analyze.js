@@ -107,9 +107,8 @@ export default async function handler(req, res) {
     title = videoId ? `YouTube 영상 (${videoId})` : 'YouTube 영상';
   }
 
-  // ── Step 2: LLM 정밀 분석 (Gemini 우선 → Claude 폴백) ──
+  // ── Step 2: LLM 정밀 분석 (Claude Haiku → 스마트 폴백) ──
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
-  const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
   let analysis = null;
   let _debugError = '';
   let _analyzer = 'fallback';
@@ -127,63 +126,7 @@ export default async function handler(req, res) {
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-  // 2-a) Gemini 우선 (쿼터 초과 시 3회 재시도, 모델 폴백 포함)
-  if (geminiKey) {
-    console.log('[yt-analyze] Trying Gemini... | title:', title);
-    const _geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-    for (let _mi = 0; _mi < _geminiModels.length && !analysis; _mi++) {
-      const _gModel = _geminiModels[_mi];
-      const _geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${_gModel}:generateContent?key=${geminiKey}`;
-      const _geminiBody = JSON.stringify({
-        contents: [{ parts: [{ text: analysisPrompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-      });
-      for (let _retry = 0; _retry < 3 && !analysis; _retry++) {
-        try {
-          if (_retry > 0) {
-            console.log(`[yt-analyze] ${_gModel} retry ${_retry} after wait...`);
-            await new Promise(r => setTimeout(r, _retry * 5000));
-          }
-          const gr = await fetch(_geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: _geminiBody,
-          });
-          const gd = await gr.json();
-          if (gd.error) {
-            const errMsg = gd.error.message || '';
-            const isQuota = errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED');
-            const isModelNotFound = errMsg.includes('not found') || errMsg.includes('404');
-            if (isModelNotFound) {
-              console.warn(`[yt-analyze] ${_gModel} not found, trying next model`);
-              break; /* 다음 모델로 */
-            }
-            if (isQuota && _retry < 2) {
-              console.warn(`[yt-analyze] ${_gModel} quota hit, retry ${_retry + 1}...`);
-              continue;
-            }
-            _debugError += ` | ${_gModel}: ${errMsg.slice(0, 120)}`;
-            console.warn(`[yt-analyze] ${_gModel} error:`, errMsg);
-          } else {
-            const gText = gd.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            analysis = _parseJsonResponse(gText);
-            if (analysis) {
-              _analyzer = 'gemini';
-              console.log(`[yt-analyze] ${_gModel} OK:`, analysis.genre, analysis.bpm_estimate);
-            } else {
-              _debugError += ` | ${_gModel} parse fail`;
-              console.warn(`[yt-analyze] ${_gModel} parse fail:`, gText.slice(0, 200));
-            }
-          }
-        } catch (e) {
-          _debugError += ` | ${_gModel} exception: ${e.message}`;
-          console.warn(`[yt-analyze] ${_gModel} exception:`, e.message);
-        }
-      }
-    }
-  }
-
-  // 2-b) Claude Haiku 폴백 (Sonnet 대비 1/3 비용)
+  // 2-a) Claude Haiku ($0.0045/회)
   if (!analysis && anthropicKey) {
     console.log('[yt-analyze] Trying Claude Haiku... | title:', title);
     try {
@@ -232,7 +175,7 @@ export default async function handler(req, res) {
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
     _debugError: _debugError || undefined,
-    _keys: { claude: !!anthropicKey, gemini: !!geminiKey },
+    _keys: { claude: !!anthropicKey },
     ...analysis,
   });
 }
