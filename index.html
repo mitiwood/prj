@@ -24678,7 +24678,8 @@ var _liveNotifySeen = new Set();
 
 async function _pollLiveNotify(){
   try {
-    const r = await fetch('/api/live-notify?since=' + _liveNotifySince);
+    const _lnUser = currentUser?.name ? '&user=' + encodeURIComponent(currentUser.name) : '';
+    const r = await fetch('/api/live-notify?since=' + _liveNotifySince + _lnUser);
     if(!r.ok) return;
     const d = await r.json();
     if(!d.ok || !d.notifications?.length) return;

@@ -255,7 +255,7 @@ export default async function handler(req, res) {
           fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ai-music-studio-bice.vercel.app'}/api/realtime`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-            body: JSON.stringify({ event: 'plan_changed', data: { user: name, provider, plan } }),
+            body: JSON.stringify({ event: 'plan_changed', data: { user: name, provider, plan, targetUser: name } }),
           }).catch(() => {}),
         ]);
 

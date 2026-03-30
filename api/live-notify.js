@@ -86,13 +86,21 @@ export default async function handler(req, res) {
 
     /* 클라이언트 폴링: since 이후 알림 */
     const limit = Math.min(parseInt(req.query?.limit) || 10, 50);
+    const userName = req.query?.user || '';
     try {
       const sinceISO = new Date(since).toISOString();
-      const data = await sbFetch('GET', `/live_notifications?created_at=gt.${sinceISO}&order=created_at.desc&limit=${limit}`);
+      let data = await sbFetch('GET', `/live_notifications?created_at=gt.${sinceISO}&order=created_at.desc&limit=${limit}`);
+      /* target 필터링: 'all'이거나 해당 사용자에게만 전달 */
+      if (userName && Array.isArray(data)) {
+        data = data.filter(n => !n.target || n.target === 'all' || n.target === userName);
+      }
       return res.status(200).json({ ok: true, notifications: data || [], source: 'supabase' });
     } catch {
-      const filtered = _mem.filter(n => n.ts > since).slice(0, limit);
-      return res.status(200).json({ ok: true, notifications: filtered, source: 'memory' });
+      let filtered = _mem.filter(n => n.ts > since);
+      if (userName) {
+        filtered = filtered.filter(n => !n.target || n.target === 'all' || n.target === userName);
+      }
+      return res.status(200).json({ ok: true, notifications: filtered.slice(0, limit), source: 'memory' });
     }
   }
 
