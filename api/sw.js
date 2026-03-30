@@ -3,7 +3,7 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
 self.addEventListener('push', e => {
-  let data = { title:"Kenny's Music Studio", body:'새소식이 있어요 🎵', url:'/', icon:'/icon-192.png' };
+  let data = { title:"띵곡", body:'새소식이 있어요 🎵', url:'/', icon:'/icon-192.png' };
   if(e.data){ try{ data={...data,...JSON.parse(e.data.text())}; }catch{} }
   e.waitUntil(
     self.registration.showNotification(data.title,{

@@ -129,7 +129,7 @@ export default async function handler(req, res) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${safeTitle} — Kenny's Music Studio</title>
+  <title>${safeTitle} — 띵곡</title>
 
   <!-- Open Graph -->
   <meta property="og:type"         content="music.song">
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
   <meta property="og:image:width"  content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:url"          content="${_esc(shareUrl)}">
-  <meta property="og:site_name"    content="Kenny's Music Studio">
+  <meta property="og:site_name"    content="띵곡">
   ${safeAudioUrl ? `<meta property="og:audio"        content="${safeAudioUrl}">
   <meta property="og:audio:type"   content="audio/mpeg">` : ''}
 
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
     <div class="title">${safeTitle}</div>
     ${safeArtist ? `<div class="artist">${safeArtist}</div>` : ''}
     ${safeTags ? `<div class="tags">${safeTags}</div>` : ''}
-    <div class="sub">Kenny's Music Studio</div>
+    <div class="sub">띵곡</div>
     <a href="${_esc(appUrl)}" class="btn btn-primary">▶ 음악 듣기 &amp; 나도 만들기</a>
     <div class="spinner">앱으로 이동 중...</div>
   </div>

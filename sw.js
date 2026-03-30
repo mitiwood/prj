@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
 /* 오프라인 폴백 HTML */
 const OFFLINE_HTML = `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>오프라인 - Kenny's Music Studio</title>
+<title>오프라인 - 띵곡</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e0e0e0;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}
@@ -154,7 +154,7 @@ async function trimCache(cacheName, maxItems) {
 
 /* ── Push Notification ── */
 self.addEventListener('push', e => {
-  let data = { title: "Kenny's Music Studio", body: '새소식이 있어요', url: '/', icon: '/icon-192.png' };
+  let data = { title: "띵곡", body: '새소식이 있어요', url: '/', icon: '/icon-192.png' };
   if (e.data) { try { data = { ...data, ...JSON.parse(e.data.text()) }; } catch {} }
   e.waitUntil(
     self.registration.showNotification(data.title, {

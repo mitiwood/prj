@@ -36,13 +36,13 @@ export default async function handler(req, res) {
   const htmlBody = `
 <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:520px;margin:0 auto;padding:20px;">
   <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:12px;padding:20px 24px;color:#fff;margin-bottom:20px;">
-    <div style="font-size:18px;font-weight:800;">🎵 Kenny's Music Studio</div>
+    <div style="font-size:18px;font-weight:800;">🎵 띵곡</div>
     <div style="font-size:12px;opacity:0.9;margin-top:4px;">매니저 계정 생성 알림</div>
   </div>
   <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin-bottom:16px;">
     <p style="font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">안녕하세요, ${name}님!</p>
     <p style="font-size:13px;color:#555;margin:0 0 16px;line-height:1.6;">
-      Kenny's Music Studio 관리자 페이지의 매니저 계정이 생성되었습니다.
+      띵곡 관리자 페이지의 매니저 계정이 생성되었습니다.
     </p>
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:16px;">
       <table style="width:100%;font-size:13px;color:#333;">

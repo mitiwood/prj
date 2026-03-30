@@ -17,7 +17,7 @@ function truncate(s, max) {
 }
 
 function generateSvg(title, artist, tags) {
-  const safeTitle = escapeXml(truncate(title || "Kenny's Music Studio", 30));
+  const safeTitle = escapeXml(truncate(title || "띵곡", 30));
   const safeArtist = escapeXml(truncate(artist || 'AI Music', 20));
   const safeTags = escapeXml(truncate(tags || 'AI Generated', 40));
 
