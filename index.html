@@ -13312,6 +13312,9 @@ function renderHistoryView(){
   /* 고도화 — now-playing, 스와이프 힌트, 크레딧 */
   _updateNowPlaying();_addSwipeHint();_updateCreditBadge();_updateCreditWarn();
 
+  /* ── 오디오 URL 사전 검증 (404 감지) ── */
+  if(typeof _checkAudioUrls==='function') _checkAudioUrls();
+
   /* ── 스와이프 삭제 (리스트 모드) ── */
   _initHistSwipeDelete(wrap);
 }
@@ -14491,8 +14494,9 @@ function showMiniPlayer(idx){
     }
     if(!audio._retried && code===2){
       audio._retried=true;
-      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
-      toast('오디오 재연결 중...','',2000);
+      /* HEAD로 404 사전 확인 — 404면 재시도 없이 즉시 실패 처리 */
+      if(_safeAudioUrl){fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오가 만료되었어요','err',3000);}else{if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);}}).catch(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);});}
+      else{setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);toast('오디오 재연결 중...','',2000);}
     } else if(code===4){
       /* 모든 재시도 소진 후 code 4 → 진짜 재생 불가 URL */
       if(_safeAudioUrl){ _failedAudioUrls.add(_safeAudioUrl); renderHistoryView(); }
