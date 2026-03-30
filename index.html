@@ -8747,15 +8747,26 @@ async function _ytDoGenerate(){
   var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent='0%';
   var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent='예상 ~1분';
 
-  /* ── 가사 비어있고 인스트루멘탈 아니면 → 가사 생성을 백그라운드로 시작 (음악 생성과 병렬) ── */
-  var _ytLyricsPromise = null;
+  /* ── 가사 비어있고 인스트루멘탈 아니면 → 가사 먼저 생성 후 prompt로 사용 ── */
   if(!ytLyrics && !isInst){
     var _autoLang = ($('yt-vocal-lang')?.value || '').trim();
     var _langHint = _autoLang ? ('Write lyrics in ' + _autoLang + '. ') : '';
     var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
     var lyricsStyle = _lastYtAnalysis.lyrics_style || '';
     var lyricsPrompt = _langHint + [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
-    _ytLyricsPromise = _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300)).catch(function(e){ console.warn('[YT auto-lyrics]', e.message); return ''; });
+    var _ldSub=$('ld-sub');if(_ldSub)_ldSub.innerHTML='가사 생성 중... ✍️';
+    try{
+      var _autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300));
+      if(_autoLyrics && _autoLyrics.length > 30){
+        ytLyrics = _autoLyrics;
+        var _ytTaStep3Auto = document.getElementById('yt-lyrics-step3');
+        if(_ytTaStep3Auto) _ytTaStep3Auto.value = _autoLyrics;
+        var _ytTaAuto = document.getElementById('yt-lyrics-ta');
+        if(_ytTaAuto) _ytTaAuto.value = _autoLyrics;
+        trackUsage('lyrics',{mode:'yt-auto-lyrics'});
+      }
+    }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
+    if(_ldSub)_ldSub.innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
   }
 
   /* ── 제목 미입력/자동 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
@@ -8767,12 +8778,12 @@ async function _ytDoGenerate(){
     }
   }
 
-  /* prompt: 가사가 있으면 가사, 없으면 원곡 특성 기반 설명 */
+  /* prompt: 가사가 있으면 가사를 prompt로, 없으면 스타일 설명 */
   var prompt;
   if(ytLyrics){
     prompt = ytLyrics;
   } else {
-    /* 가사 없을 때 style과 중복 방지: 원곡 참고사운드+구조를 prompt로 사용 */
+    /* 인스트루멘탈이거나 가사 생성 실패 시 스타일 설명 사용 */
     var _promptParts = [ytRefSound, ytSongStructure, _lastYtAnalysis.description||''].filter(Boolean);
     prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
   }
@@ -8862,19 +8873,7 @@ async function _ytDoGenerate(){
     /* 취소된 경우 결과 저장하지 않음 */
     if(_genCancelled){ toast('생성이 취소되었어요','',2000); return; }
 
-    /* 백그라운드 가사 생성 결과 적용 */
-    if(_ytLyricsPromise && !ytLyrics){
-      try{
-        var _bgLyrics = await _ytLyricsPromise;
-        if(_bgLyrics && _bgLyrics.length > 30){
-          ytLyrics = _bgLyrics;
-          if(_ytTa) _ytTa.value = _bgLyrics;
-          trackUsage('lyrics',{mode:'yt-auto-lyrics'});
-        }
-      }catch(e){}
-    }
-
-    /* 가사: 유저 입력 또는 백그라운드 자동 생성된 가사만 저장 (스타일 설명은 가사가 아님) */
+    /* 가사 우선순위: kie.ai 반환 가사 > 유저 입력/자동 생성 가사 (실제 노래와 일치하는 가사 우선) */
     var _ytUserLyrics = ytLyrics; /* 유저 입력 or 자동 생성된 실제 가사 */
     lastTracks      = tracks.map(t=>({...t,_inputLyrics:_ytUserLyrics,_taskId:taskId}));
     lastLyricsInput = _ytUserLyrics;
@@ -8887,8 +8886,8 @@ async function _ytDoGenerate(){
       const _ytTags=_normTags(t.tags)||ytStyle;
       const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
-      /* 가사 우선순위: 유저 직접 입력 → API 반환 실제 가사 → 빈값 (스타일 설명은 저장 안 함) */
-      const _savedLyrics = _ytUserLyrics || (isRealLyric ? apiLyric : '') || '';
+      /* 가사 우선순위: kie.ai 실제 가사(노래와 일치) → 유저 직접 입력 → 빈값 */
+      const _savedLyrics = (isRealLyric ? apiLyric : '') || _ytUserLyrics || '';
       historyData.unshift({
         id:t.id, taskId,
         title: _autoGenerateTitle(t.title||songTitle,_ytUserLyrics,_ytTags,'youtube'),
@@ -8923,7 +8922,7 @@ async function _ytDoGenerate(){
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:_ytSTags,
-        lyrics:ytLyrics||'',
+        lyrics:(t.lyric||t.lyrics||t.lrc||'').includes('\n') ? (t.lyric||t.lyrics||t.lrc) : (ytLyrics||''),
         genMode:'youtube',
         owner_name:currentUser?.name||'익명',
         owner_avatar:currentUser?.avatar||'',
