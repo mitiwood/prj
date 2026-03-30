@@ -23683,18 +23683,21 @@ function openProfileSheet(name, provider){
         $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">공개된 곡이 없어요</div>';
         return;
       }
-      $('pf-track-list').innerHTML = d.tracks.map(t => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--card);border-radius:10px;cursor:pointer;" onclick="closeProfileSheet();commPlaySb('${esc(t.id)}')">
+      $('pf-track-list').innerHTML = d.tracks.map(t => {
+        const _pfExp = t.audio_url && _failedAudioUrls.has(t.audio_url);
+        const _pfNo = !t.audio_url || _pfExp;
+        return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--card);border-radius:10px;${_pfNo?'opacity:.5;cursor:not-allowed;':'cursor:pointer;'}" ${_pfNo?'':'onclick="closeProfileSheet();commPlaySb(\''+esc(t.id)+'\')"'}>
           <div style="width:36px;height:36px;border-radius:8px;background:var(--bg);overflow:hidden;flex-shrink:0;">
-            ${t.image_url ? `<img src="${esc(t.image_url)}" style="width:100%;height:100%;object-fit:cover;">` : '🎵'}
+            ${t.image_url ? `<img src="${esc(t.image_url)}" style="width:100%;height:100%;object-fit:cover;${_pfNo?'filter:grayscale(1);opacity:.5;':''}">` : '🎵'}
           </div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.title||'무제')}</div>
-            <div style="font-size:10px;color:var(--t3);">${esc((t.tags||'').split(',')[0])} · ❤️${t.comm_likes||0}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${_pfNo?'text-decoration:line-through;opacity:.6;':''}">${esc(t.title||'무제')}</div>
+            <div style="font-size:10px;color:var(--t3);">${_pfNo?'<span style="color:var(--err,#e74c3c);font-weight:600;">'+(_pfExp?'오디오 만료':'재생불가')+'</span>':esc((t.tags||'').split(',')[0])+' · ❤️'+(t.comm_likes||0)}</div>
           </div>
-          <div style="font-size:16px;color:var(--acc3);">▶</div>
-        </div>
-      `).join('');
+          <div style="font-size:16px;color:${_pfNo?'var(--t3)':'var(--acc3)'};">${_pfNo?'✕':'▶'}</div>
+        </div>`;
+      }).join('');
     }).catch(()=>{
       $('pf-track-list').innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);">로드 실패</div>';
     });
