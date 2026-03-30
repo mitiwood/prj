@@ -5,6 +5,7 @@
  * POST { url: string }
  * → { title, author, genre, mood, style_prompt, description, bpm_estimate, ... }
  */
+import _artistDBData from './artist-db.js';
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -308,8 +309,7 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   // ══════════════════════════════════════════════════════
   // ── 유명 아티스트 DB (외부 파일에서 로드) ──
   // ══════════════════════════════════════════════════════
-  let _artistDB = [];
-  try { _artistDB = require('./artist-db.js'); } catch (e) { console.warn('[yt-analyze] artist-db load fail:', e.message); }
+  const _artistDB = _artistDBData || [];
   // ── 아티스트 DB 매칭 (정확 매칭 우선) ──
   let artistMatch = null;
   const artistLower = artist.toLowerCase().trim();

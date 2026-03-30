@@ -7,7 +7,7 @@
  *          moodTags, lyricsTheme, lyricsStyle
  */
 
-module.exports = [
+export default [
   // ════════════════════════════════════════
   // ── 2000s K-R&B / 소울 발라드 ──
   // ════════════════════════════════════════
