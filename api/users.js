@@ -168,6 +168,7 @@ export default async function handler(req, res) {
           login_count: existingCount + 1,
           ...(clientIp ? { last_ip: clientIp } : {}),
           ...(location ? { last_location: location } : {}),
+          ...(isNew ? { plan: 'free' } : {}),
         };
 
         /* upsert: email+provider 기준 (email 있으면), 없으면 name+provider 폴백 */
