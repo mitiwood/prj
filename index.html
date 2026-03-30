@@ -11372,8 +11372,13 @@ async function generate(overrideParams){
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
   if(!overrideParams?._afterLyrics) _retryCount = 0;
-  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기) */
+  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기, 게스트는 큐 비활성) */
   if(_globalGenerating && !overrideParams?._afterLyrics){
+    /* 게스트 모드: 큐 없이 바로 차단 */
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+      toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
+      return;
+    }
     if(_genQueue.length>=1){
       toast('대기 큐가 가득 찼어요 (최대 1곡 대기)','err',3000);
       return;
@@ -11772,6 +11777,8 @@ async function generate(overrideParams){
     $('loading-card').classList.remove('on'); /* 로딩카드 확실히 제거 */
     /* 취소 시 큐 실행 금지 + 큐 클리어 */
     if(_wasCancelled){_genQueue=[];return;}
+    /* 게스트 모드: 큐 자동 실행 금지 */
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){_genQueue=[];return;}
     /* 큐에 대기 중인 곡이 있으면 자동 실행 */
     if(_genQueue.length>0){
       var _next=_genQueue.shift();
