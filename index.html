@@ -22950,29 +22950,33 @@ function checkPlanLimit(type){
   const used = usage[key]||0;
   const limit = limits[key];
 
-  /* 프리미엄 미끼: 첫 곡 V4.5 무료 + MV 1회 무료 */
-  if(plan.type==='free' && limit < 999 && used >= limit){
-    const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
-    if(type==='song' && !freeTrials.v45_used){
-      freeTrials.v45_used = true;
-      localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-      toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
-      return true; /* 한도 초과지만 1회 허용 */
+  /* 한도 초과 시: 서버에서 최신 플랜 확인 후 재판정 (비동기 → 즉시 서버 동기화 트리거) */
+  if(limit < 999 && used >= limit){
+    /* 로그인 사용자면 서버에 최신 플랜 확인 — 서버 플랜이 더 높으면 즉시 갱신 후 통과 */
+    if(currentUser?.name){
+      _syncPlanAndRetry(type);
+      return false; /* 일단 차단, _syncPlanAndRetry에서 서버 확인 후 재실행 */
     }
-    if(type==='mv' && !freeTrials.mv_used){
-      freeTrials.mv_used = true;
-      localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-      toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
-      return true;
+    /* 프리미엄 미끼: 첫 곡 V4.5 무료 + MV 1회 무료 */
+    if(plan.type==='free'){
+      const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
+      if(type==='song' && !freeTrials.v45_used){
+        freeTrials.v45_used = true;
+        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+        toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
+        return true;
+      }
+      if(type==='mv' && !freeTrials.mv_used){
+        freeTrials.mv_used = true;
+        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+        toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
+        return true;
+      }
     }
     showUpgradePrompt(type, used, limit, plan.type);
     return false;
   }
 
-  if(limit < 999 && used >= limit){
-    showUpgradePrompt(type, used, limit, plan.type);
-    return false;
-  }
   /* 잔여 크레딧 경고 */
   const remain = limit >= 999 ? 99 : limit - used;
   if(remain <= 2 && remain > 0){
@@ -22985,6 +22989,60 @@ function checkPlanLimit(type){
     _serverCreditCheck(type).catch(()=>{});
   }
   return true;
+}
+
+/* 한도 초과 시 서버 플랜 확인 후 재판정 */
+async function _syncPlanAndRetry(type){
+  try {
+    toast('플랜 정보 확인 중...','',2000);
+    const r = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+    const d = await r.json();
+    if(d.ok && d.profile){
+      const serverPlan = d.profile.plan || 'free';
+      const localPlan = getPlan().type;
+      if(serverPlan !== localPlan){
+        /* 서버 플랜으로 localStorage 갱신 */
+        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
+        localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
+        if(typeof renderPlanUI === 'function') renderPlanUI();
+        if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
+        /* 갱신된 플랜으로 재확인 */
+        const newLimits = PLAN_LIMITS[serverPlan]||PLAN_LIMITS.free;
+        const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
+        const newLimit = newLimits[key];
+        if(newLimit >= 999 || (getUsage()[key]||0) < newLimit){
+          const planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑'};
+          toast('🎫 플랜이 '+(planNames[serverPlan]||serverPlan)+'으로 확인됐어요! 다시 시도해주세요','ok',3000);
+          return;
+        }
+      }
+    }
+  } catch(e){ console.warn('[PlanRetry]', e.message); }
+  /* 서버 확인 후에도 한도 초과면 업그레이드 유도 */
+  const plan = getPlan();
+  const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
+  const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
+  const used = getUsage()[key]||0;
+  const limit = limits[key];
+  if(limit < 999 && used >= limit){
+    /* 프리미엄 미끼 */
+    if(plan.type==='free'){
+      const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
+      if(type==='song' && !freeTrials.v45_used){
+        freeTrials.v45_used = true;
+        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+        toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
+        return;
+      }
+      if(type==='mv' && !freeTrials.mv_used){
+        freeTrials.mv_used = true;
+        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
+        toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
+        return;
+      }
+    }
+    showUpgradePrompt(type, used, limit, plan.type);
+  }
 }
 
 /* 서버 크레딧 검증 — 서버 응답이 limit_exceeded면 강제 차단 */
