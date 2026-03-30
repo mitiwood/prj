@@ -1,6 +1,6 @@
 // api/auth/kakao/index.js
 // 카카오 OAuth 시작 — 카카오 인증 페이지로 리디렉트
-const APP_URL = 'https://ai-music-studio-bice.vercel.app';
+const APP_URL = 'https://ddinggok.com';
 
 export default function handler(req, res) {
   const clientId = process.env.KAKAO_CLIENT_ID;

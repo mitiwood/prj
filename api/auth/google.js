@@ -1,6 +1,7 @@
 export default function handler(req, res) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = 'https://ai-music-studio-bice.vercel.app/api/auth/google/callback';
+  const redirectUri = 'https://ddinggok.com/api/auth/google/callback';
+  /* google.js — google/index.js와 동일 역할 (폴백) */
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,

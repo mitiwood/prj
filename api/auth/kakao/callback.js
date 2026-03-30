@@ -1,6 +1,6 @@
 // api/auth/kakao/callback.js
 // 카카오 OAuth 콜백 — 코드 교환 → 사용자 정보 → /?login=ok 리디렉트
-const APP_URL = 'https://ai-music-studio-bice.vercel.app';
+const APP_URL = 'https://ddinggok.com';
 
 export default async function handler(req, res) {
   const { code, error } = req.query;

@@ -1,6 +1,6 @@
 export default function handler(req, res) {
   const clientId = process.env.NAVER_CLIENT_ID;
-  const redirectUri = 'https://ai-music-studio-bice.vercel.app/api/auth/naver/callback';
+  const redirectUri = 'https://ddinggok.com/api/auth/naver/callback';
   const state = Math.random().toString(36).substring(2);
 
   const params = new URLSearchParams({
