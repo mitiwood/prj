@@ -15457,6 +15457,13 @@ function _doOpenFullPlayer(idx){
   if(_fpCreatorEl){
     var _cName=h._owner?.name||h.owner_name||'';
     var _cAvatar=h._owner?.avatar||h.owner_avatar||'';
+    /* _owner 없으면 서버 트랙에서 찾기 */
+    if(!_cName&&h.id&&typeof _sbTracks!=='undefined'){
+      var _sbMatch=_sbTracks.find(function(t){return t.id===h.id||t._sbId===h.id;});
+      if(_sbMatch&&_sbMatch._owner){_cName=_sbMatch._owner.name||'';_cAvatar=_sbMatch._owner.avatar||'';}
+    }
+    /* 그래도 없으면 currentUser 폴백 (내 곡) */
+    if(!_cName&&typeof currentUser!=='undefined'&&currentUser&&currentUser.name){_cName=currentUser.name;_cAvatar=currentUser.avatar||'';}
     if(_cName){
       _fpCreatorEl.innerHTML=(_cAvatar?'<img class="fp-creator-avatar" src="'+_ensureHttps(_cAvatar)+'" alt="" onerror="this.style.display=\'none\'">':'')+'<span>'+_cName.replace(/</g,'&lt;')+'</span>';
       _fpCreatorEl.style.display='';
