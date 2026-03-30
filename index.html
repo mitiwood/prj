@@ -10309,7 +10309,7 @@ function sleep(ms){
 /* ── 다운로드 (CORS-safe blob) ── */
 async function downloadFile(url,filename){
   /* 플랜별 다운로드 형식 안내 */
-  const plan = getPlan().type;
+  const plan = _serverCreditsCache?.plan || 'free';
   const ext = (filename||'').split('.').pop()?.toLowerCase();
   if(ext==='wav' && plan==='free'){ toast('WAV 다운로드는 Pro 플랜부터 지원해요','',3000); return; }
   if(ext==='flac' && plan!=='creator'){ toast('FLAC 다운로드는 Creator 플랜에서 지원해요','',3000); return; }
@@ -18447,22 +18447,28 @@ function _addCreditHistory(type,title){
 /* ── 크레딧 뱃지 업데이트 ── */
 function _updateCreditBadge(){
   var badge=$('nav-credit-badge');if(!badge)return;
-  var plan=typeof getPlan==='function'?getPlan():{type:'free'};
-  var limits=typeof PLAN_LIMITS!=='undefined'?PLAN_LIMITS[plan.type]||PLAN_LIMITS.free:{songs:5};
-  var usage=typeof getUsage==='function'?getUsage():{songs:0};
-  var remain=limits.songs>=999?99:Math.max(0,limits.songs-(usage.songs||0));
+  var remain=99;
+  if(_serverCreditsCache){
+    remain=_serverCreditsCache.credits_song??0;
+    var plan=_serverCreditsCache.plan||'free';
+    var limits=PLAN_LIMITS[plan]||PLAN_LIMITS.free;
+    if(limits.songs>=999) remain=99;
+  }
   if(remain<=0){badge.textContent='0';badge.className='credit-badge empty';badge.style.display='flex';}
   else if(remain<=2){badge.textContent=remain;badge.className='credit-badge low';badge.style.display='flex';}
-  else if(remain<limits.songs){badge.textContent=remain;badge.className='credit-badge';badge.style.display='flex';}
+  else if(remain<99){badge.textContent=remain;badge.className='credit-badge';badge.style.display='flex';}
   else{badge.style.display='none';}
 }
 /* ── 크레딧 경고 배너 ── */
 function _updateCreditWarn(){
   var banner=$('credit-warn-banner');if(!banner)return;
-  var plan=typeof getPlan==='function'?getPlan():{type:'free'};
-  var limits=typeof PLAN_LIMITS!=='undefined'?PLAN_LIMITS[plan.type]||PLAN_LIMITS.free:{songs:5};
-  var usage=typeof getUsage==='function'?getUsage():{songs:0};
-  var remain=limits.songs>=999?99:Math.max(0,limits.songs-(usage.songs||0));
+  var remain=99;
+  if(_serverCreditsCache){
+    remain=_serverCreditsCache.credits_song??0;
+    var plan=_serverCreditsCache.plan||'free';
+    var limits=PLAN_LIMITS[plan]||PLAN_LIMITS.free;
+    if(limits.songs>=999) remain=99;
+  }
   var txt=$('cwb-text');
   if(remain<=0){banner.classList.add('show');if(txt)txt.textContent='이번 달 크레딧을 모두 사용했어요!';}
   else if(remain<=2){banner.classList.add('show');if(txt)txt.textContent='크레딧이 '+remain+'곡 남았어요';}
@@ -22950,26 +22956,15 @@ function trackUsage(type, meta={}){
     if(gRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
     else toast('👤 게스트 체험 '+gRemain+'곡 남았어요','info',3000);
   }
-  const usage = getUsage();
-  if(type==='song')   usage.songs=(usage.songs||0)+1;
-  if(type==='mv')     usage.mv=(usage.mv||0)+1;
-  if(type==='lyrics') usage.lyrics=(usage.lyrics||0)+1;
-  if(type==='vr')     usage.vr=(usage.vr||0)+1;
-  saveUsage(usage);
-  /* 로그 */
-  const log = getUsageLog();
-  const cost = COST_PER[type]||{usd:0,label:type};
-  log.unshift({ type, cost_usd:cost.usd, cost_krw:Math.round(cost.usd*USD_KRW), label:cost.label, ts:Date.now(), ...meta });
-  localStorage.setItem('kms_usage_log', JSON.stringify(log.slice(0,200)));
   /* 크레딧 사용 내역 기록 */
   try{_addCreditHistory(type,meta.title||meta.mode||type);}catch(e){}
-  /* 서버 크레딧 차감 (song/mv만 — lyrics는 빈도 높아 서버 부하 방지) */
-  if(type==='song' || type==='mv') _serverCreditDeduct(type);
+  /* 서버 크레딧 차감 (모든 타입) */
+  _serverCreditDeduct(type);
   /* 크레딧 뱃지 즉시 업데이트 */
   try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
 }
 
-/* 플랜 제한 체크 — generate() 시작 전 호출 (클라이언트 즉시 + 서버 비동기 검증) */
+/* 플랜 제한 체크 — generate() 시작 전 호출 (서버 크레딧 기반) */
 function checkPlanLimit(type){
   /* 게스트 모드: 별도 한도 체크 */
   if(!currentUser && isGuestMode()){
@@ -22983,14 +22978,21 @@ function checkPlanLimit(type){
     return true;
   }
 
-  /* 로그인 사용자: 서버 크레딧 캐시 우선 확인 */
-  if(currentUser?.name && _serverCreditsCache){
+  /* 비로그인 사용자 */
+  if(!currentUser?.name){
+    toast('로그인이 필요해요','err',2500);
+    openLoginSheet();
+    return false;
+  }
+
+  /* 로그인 사용자: 서버 크레딧 캐시 확인 */
+  if(_serverCreditsCache){
     var _sKey = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':type==='vr'?'credits_song':'credits_song';
     var _sRemain = _serverCreditsCache[_sKey];
     if(typeof _sRemain === 'number' && _sRemain > 0){
-      if(_sRemain <= 2) toast('⚠️ 서버 크레딧 '+_sRemain+'회 남았어요','warn',3000);
+      if(_sRemain <= 2) toast('⚠️ 크레딧 '+_sRemain+'회 남았어요','warn',3000);
       try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
-      return true; /* 서버에 크레딧 남아있으면 통과 */
+      return true;
     }
     if(typeof _sRemain === 'number' && _sRemain <= 0){
       /* 서버 크레딧 0 → 최신 정보 재확인 후 차단 */
@@ -22999,106 +23001,36 @@ function checkPlanLimit(type){
     }
   }
 
-  /* 서버 캐시 없으면 로컬 체크 (기존 로직) */
-  if(!_planSynced && _planSyncPromise) _planSyncPromise.catch(function(){});
-  const plan = getPlan();
-  const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
-  const usage = getUsage();
-  const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
-  const used = usage[key]||0;
-  const limit = limits[key];
-
-  /* 한도 초과 시: 서버에서 최신 플랜 확인 후 재판정 */
-  if(limit < 999 && used >= limit){
-    if(currentUser?.name){
-      _syncPlanAndRetry(type);
-      return false;
-    }
-    /* 프리미엄 미끼: 첫 곡 V4.5 무료 + MV 1회 무료 */
-    if(plan.type==='free'){
-      const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
-      if(type==='song' && !freeTrials.v45_used){
-        freeTrials.v45_used = true;
-        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-        toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
-        return true;
-      }
-      if(type==='mv' && !freeTrials.mv_used){
-        freeTrials.mv_used = true;
-        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-        toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
-        return true;
-      }
-    }
-    showUpgradePrompt(type, used, limit, plan.type);
-    return false;
-  }
-
-  /* 잔여 크레딧 경고 */
-  const remain = limit >= 999 ? 99 : limit - used;
-  if(remain <= 2 && remain > 0){
-    toast('⚠️ 크레딧 '+remain+'곡 남았어요','warn',3000);
-  }
-  try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
-  /* 서버 검증 (비동기) */
-  if(currentUser){
-    _serverCreditCheck(type).catch(()=>{});
-  }
-  return true;
+  /* 서버 캐시 없으면 서버에서 동기화 후 재시도 */
+  _syncPlanAndRetry(type);
+  return false;
 }
 
 /* 한도 초과 시 서버 플랜 확인 후 재판정 */
 async function _syncPlanAndRetry(type){
   try {
-    toast('플랜 정보 확인 중...','',2000);
-    const r = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
-    const d = await r.json();
-    if(d.ok && d.profile){
-      const serverPlan = d.profile.plan || 'free';
-      const localPlan = getPlan().type;
-      if(serverPlan !== localPlan){
-        /* 서버 플랜으로 localStorage 갱신 */
-        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
-        localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
+    toast('크레딧 확인 중...','',2000);
+    await _fetchServerCredits();
+    if(_serverCreditsCache){
+      var _sKey = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':type==='vr'?'credits_song':'credits_song';
+      var _sRemain = _serverCreditsCache[_sKey];
+      if(typeof _sRemain === 'number' && _sRemain > 0){
+        var planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑'};
+        toast('크레딧 '+_sRemain+'회 남았어요! 다시 시도해주세요','ok',3000);
+        try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
         if(typeof renderPlanUI === 'function') renderPlanUI();
-        if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
-        /* 갱신된 플랜으로 재확인 */
-        const newLimits = PLAN_LIMITS[serverPlan]||PLAN_LIMITS.free;
-        const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
-        const newLimit = newLimits[key];
-        if(newLimit >= 999 || (getUsage()[key]||0) < newLimit){
-          const planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑'};
-          toast('🎫 플랜이 '+(planNames[serverPlan]||serverPlan)+'으로 확인됐어요! 다시 시도해주세요','ok',3000);
-          return;
-        }
+        return;
       }
     }
   } catch(e){ console.warn('[PlanRetry]', e.message); }
   /* 서버 확인 후에도 한도 초과면 업그레이드 유도 */
-  const plan = getPlan();
-  const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
-  const key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
-  const used = getUsage()[key]||0;
-  const limit = limits[key];
-  if(limit < 999 && used >= limit){
-    /* 프리미엄 미끼 */
-    if(plan.type==='free'){
-      const freeTrials = JSON.parse(localStorage.getItem('kms_free_trials')||'{}');
-      if(type==='song' && !freeTrials.v45_used){
-        freeTrials.v45_used = true;
-        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-        toast('🎁 첫 곡 V4.5 무료 체험! 이번 한 번만 특별히 생성해드릴게요','ok',4000);
-        return;
-      }
-      if(type==='mv' && !freeTrials.mv_used){
-        freeTrials.mv_used = true;
-        localStorage.setItem('kms_free_trials', JSON.stringify(freeTrials));
-        toast('🎬 첫 뮤직비디오 무료 체험! Pro에서 더 많이 만들 수 있어요','ok',4000);
-        return;
-      }
-    }
-    showUpgradePrompt(type, used, limit, plan.type);
-  }
+  var serverPlan = _serverCreditsCache?.plan || 'free';
+  var limits = PLAN_LIMITS[serverPlan]||PLAN_LIMITS.free;
+  var key = type==='song'?'songs':type==='mv'?'mv':type==='vr'?'vr':'lyrics';
+  var limit = limits[key]||0;
+  var _sKey2 = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':'credits_song';
+  var used = limit - (_serverCreditsCache?.[_sKey2]||0);
+  showUpgradePrompt(type, Math.max(0,used), limit, serverPlan);
 }
 
 /* 서버 크레딧 검증 — 서버 응답이 limit_exceeded면 강제 차단 */
@@ -23112,22 +23044,16 @@ async function _serverCreditCheck(type){
     });
     const d = await r.json();
     if(d.ok === false && d.reason === 'limit_exceeded'){
-      /* 서버가 한도 초과 판정 → 클라이언트 사용량 동기화 */
-      const usage = getUsage();
-      const key = type==='song'?'songs':type;
-      usage[key] = d.used || usage[key];
-      saveUsage(usage);
-      /* localStorage plan도 동기화 */
-      if(d.plan && d.plan !== getPlan().type){
-        localStorage.setItem('kms_plan', JSON.stringify({type: d.plan}));
-      }
+      /* 서버 크레딧 캐시 갱신 */
+      await _fetchServerCredits();
     }
     if(d.ok === false && d.reason === 'plan_expired'){
-      localStorage.setItem('kms_plan', JSON.stringify({type:'free'}));
+      _serverCreditsCache = _serverCreditsCache||{};
+      _serverCreditsCache.plan = 'free';
       toast('플랜이 만료되어 무료 플랜으로 변경됐어요','',3000);
-      renderPlanUI();
+      if(typeof renderPlanUI === 'function') renderPlanUI();
     }
-  } catch(e){ /* 서버 장애 시 클라이언트 체크만으로 동작 */ }
+  } catch(e){ /* 서버 장애 시 캐시 기반 동작 */ }
 }
 
 /* 서버 크레딧 캐시 갱신 — 로그인 시 + checkPlanLimit에서 참조 */
@@ -23143,21 +23069,8 @@ async function _fetchServerCredits(){
         credits_lyrics: d.profile.credits_lyrics ?? 0,
         plan: d.profile.plan || 'free',
       };
-      /* 서버 플랜이 로컬과 다르면 동기화 */
-      var localPlan = getPlan().type;
-      if(_serverCreditsCache.plan !== localPlan){
-        localStorage.setItem('kms_plan', JSON.stringify({type: _serverCreditsCache.plan, startDate: new Date().toISOString()}));
-        if(typeof renderPlanUI === 'function') renderPlanUI();
-      }
-      /* 로컬 사용량도 서버 기준으로 동기화 */
-      var limits = PLAN_LIMITS[_serverCreditsCache.plan]||PLAN_LIMITS.free;
-      var usage = getUsage();
-      usage.songs = Math.max(0, limits.songs - _serverCreditsCache.credits_song);
-      usage.mv = Math.max(0, limits.mv - _serverCreditsCache.credits_mv);
-      usage.lyrics = Math.max(0, limits.lyrics - _serverCreditsCache.credits_lyrics);
-      saveUsage(usage);
       try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
-      console.log('[Credits] 서버 동기화:', _serverCreditsCache);
+      if(typeof renderPlanUI === 'function') renderPlanUI();
     }
   }catch(e){ console.warn('[Credits] fetch fail:', e.message); }
 }
@@ -23201,35 +23114,42 @@ function showUpgradePrompt(type, used, limit, currentPlan){
 
 /* 설정 탭 렌더링 시 플랜 정보 갱신 */
 function renderPlanUI(){
-  const plan = getPlan();
-  const planInfo = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
-  const usage = getUsage();
+  var planType = _serverCreditsCache?.plan || 'free';
+  const planInfo = PLAN_LIMITS[planType]||PLAN_LIMITS.free;
   const today = new Date();
   const monthEnd = new Date(today.getFullYear(), today.getMonth()+1, 0);
 
+  /* 서버 크레딧에서 사용량 계산 */
+  var cSong = _serverCreditsCache?.credits_song ?? planInfo.songs;
+  var cMv = _serverCreditsCache?.credits_mv ?? planInfo.mv;
+  var cLyrics = _serverCreditsCache?.credits_lyrics ?? planInfo.lyrics;
+  var usedSongs = Math.max(0, planInfo.songs - cSong);
+  var usedMv = Math.max(0, planInfo.mv - cMv);
+  var usedLyrics = Math.max(0, planInfo.lyrics - cLyrics);
+
   /* 배너 */
-  const badge=$('plan-badge'); if(badge){ badge.textContent=planInfo.icon+' '+plan.type.toUpperCase(); badge.style.background=plan.type==='free'?'rgba(255,255,255,.15)':'linear-gradient(135deg,var(--acc),var(--acc2))'; }
+  const badge=$('plan-badge'); if(badge){ badge.textContent=planInfo.icon+' '+planType.toUpperCase(); badge.style.background=planType==='free'?'rgba(255,255,255,.15)':'linear-gradient(135deg,var(--acc),var(--acc2))'; }
   const pname=$('plan-name'); if(pname) pname.textContent=planInfo.label;
   const pdesc=$('plan-desc'); if(pdesc){
-    if(plan.type==='free') pdesc.textContent=`월 ${planInfo.songs}곡까지 무료로 생성할 수 있어요`;
-    else if(plan.type==='creator') pdesc.textContent=`Creator 플랜 사용 중 · 무제한 생성 가능`;
+    if(planType==='free') pdesc.textContent=`월 ${planInfo.songs}곡까지 무료로 생성할 수 있어요`;
+    else if(planType==='creator') pdesc.textContent=`Creator 플랜 사용 중 · 무제한 생성 가능`;
     else pdesc.textContent=`${planInfo.label||'Pro 플랜'} 사용 중 · ${monthEnd.getMonth()+1}월 ${monthEnd.getDate()}일 갱신`;
   }
 
   /* 사용량 바 */
   const limit = planInfo.songs;
-  const pct = limit>=999?100:Math.min(100,Math.round((usage.songs||0)/limit*100));
+  const pct = limit>=999?100:Math.min(100,Math.round(usedSongs/limit*100));
   const fill=$('plan-usage-fill'); if(fill){ fill.style.width=pct+'%'; fill.style.background=pct>=90?'linear-gradient(90deg,#ef4444,#f87171)':pct>=70?'linear-gradient(90deg,#f59e0b,#fcd34d)':'linear-gradient(90deg,var(--acc),var(--acc2))'; }
-  const utxt=$('plan-usage-text'); if(utxt) utxt.textContent=`${usage.songs||0} / ${limit>=999?'∞':limit}곡`;
+  const utxt=$('plan-usage-text'); if(utxt) utxt.textContent=`${usedSongs} / ${limit>=999?'∞':limit}곡`;
 
   /* 통계 */
-  const us=$('us-songs'); if(us) us.textContent=usage.songs||0;
-  const um=$('us-mv');    if(um) um.textContent=usage.mv||0;
-  const ul=$('us-lyrics');if(ul) ul.textContent=usage.lyrics||0;
+  const us=$('us-songs'); if(us) us.textContent=usedSongs;
+  const um=$('us-mv');    if(um) um.textContent=usedMv;
+  const ul=$('us-lyrics');if(ul) ul.textContent=usedLyrics;
 
   /* 이번 달 예상 비용 계산 */
   const _costUsd = Math.round(
-    ((usage.songs||0)*0.05 + (usage.mv||0)*0.25 + (usage.lyrics||0)*0.005) * 1000
+    (usedSongs*0.05 + usedMv*0.25 + usedLyrics*0.005) * 1000
   ) / 1000;
   const _costKrw = Math.round(_costUsd * 1340);
   const uck=$('us-cost-krw'); if(uck) uck.textContent='₩'+_costKrw.toLocaleString('ko-KR');
@@ -23295,7 +23215,8 @@ function _confirmDowngrade(targetPlan){
 async function _doDowngrade(targetPlan){
   const startDate=new Date().toISOString();
   const endDate=targetPlan==='free'?null:new Date(Date.now()+30*24*60*60*1000).toISOString();
-  localStorage.setItem('kms_plan',JSON.stringify({type:targetPlan,startDate,endDate}));
+  _serverCreditsCache = _serverCreditsCache||{};
+  _serverCreditsCache.plan = targetPlan;
   /* 서버 DB도 업데이트 */
   if(currentUser?.name && currentUser?.provider){
     try{
@@ -23470,12 +23391,11 @@ async function _handlePaymentResult(){
     const planLabels = {pro:'Pro',creator:'Creator',free:'Free'};
     const label = planLabels[plan] || PLAN_LIMITS[plan]?.label || _TOSS_PLANS[plan]?.label || plan;
 
-    const startDate = new Date().toISOString();
-    const endDate = new Date(Date.now()+30*24*60*60*1000).toISOString();
-    localStorage.setItem('kms_plan', JSON.stringify({type:plan, startDate, endDate}));
-    /* 사용량 초기화 — 새 플랜 시작 */
-    const mk = getMonthKey();
-    localStorage.setItem('kms_usage_'+mk, JSON.stringify({songs:0,mv:0,lyrics:0,lastUpdated:Date.now()}));
+    /* 서버 크레딧 캐시 갱신 */
+    _serverCreditsCache = _serverCreditsCache||{};
+    _serverCreditsCache.plan = plan;
+    /* 서버에서 최신 크레딧 동기화 */
+    _fetchServerCredits();
 
     /* 즉시 UI 갱신 */
     toast(`✅ ${label} 플랜이 활성화됐습니다!`,'ok',4000);
@@ -23600,7 +23520,7 @@ window._deleteAlbum=typeof _deleteAlbum!=="undefined"?_deleteAlbum:window._delet
 /* 상업 라이선스 */
 function _downloadLicense(){
   if(!currentUser){openLoginSheet();return;}
-  if(getPlan().type!=='creator'){
+  if((_serverCreditsCache?.plan||'free')!=='creator'){
     toast('📜 상업 라이선스는 Creator 플랜에서 사용할 수 있어요','',3000);
     var btn=document.querySelector('#bottom-nav [data-view="settings-view"]');if(btn)btn.click();
     setTimeout(function(){var sec=document.getElementById('plan-section');if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});},300);
@@ -23628,7 +23548,10 @@ function _checkAttendance(){
   else if(streak>=30){bonus=10;msg="👑 30일 연속! +10곡";}
   else if(streak>=7){bonus=5;msg="🔥 7일 연속! +5곡";}
   else if(streak>=3){bonus=2;msg="✨ 3일 연속! +2곡";}
-  const usage=getUsage();usage.songs=Math.max(0,(usage.songs||0)-bonus);saveUsage(usage);
+  /* 서버에 보너스 크레딧 추가 요청 */
+  if(currentUser?.name){
+    fetch('/api/check-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:currentUser.name,userProvider:currentUser.provider,type:'bonus',bonus:bonus})}).then(function(){_fetchServerCredits();}).catch(function(){});
+  }
   att.lastDate=today;att.streak=streak;att.totalDays=(att.totalDays||0)+1;
   localStorage.setItem("kms_attendance",JSON.stringify(att));
   setTimeout(function(){
@@ -23655,20 +23578,16 @@ async function _syncPlanFromServer(){
     const ud = await ur.json();
     if(ud.ok && ud.profile){
       const serverPlan = ud.profile.plan || 'free';
-      const localPlan = getPlan();
-      if(localPlan.type !== serverPlan){
-        /* 결제 가드: 로컬이 유료인데 서버가 free면 → 결제 직후엔 덮어쓰지 않음 */
-        if(_paymentGuardActive && localPlan.type !== 'free' && serverPlan === 'free'){
-          console.log('[PlanSync] 결제 직후 가드 — 서버 free 무시 (local:', localPlan.type, ')');
+      var cachedPlan = _serverCreditsCache?.plan || 'free';
+      if(cachedPlan !== serverPlan){
+        /* 결제 가드: 캐시가 유료인데 서버가 free면 → 결제 직후엔 덮어쓰지 않음 */
+        if(_paymentGuardActive && cachedPlan !== 'free' && serverPlan === 'free'){
+          console.log('[PlanSync] 결제 직후 가드 — 서버 free 무시 (cached:', cachedPlan, ')');
           return;
         }
-        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
-        localStorage.setItem('kms_plan', JSON.stringify({type: serverPlan, startDate: new Date().toISOString(), endDate}));
-        /* 플랜 업그레이드 시 사용량 리셋 (올바른 월별 키 사용) */
-        if(serverPlan !== 'free' && localPlan.type === 'free'){
-          var _mk = getMonthKey();
-          localStorage.setItem('kms_usage_'+_mk, JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
-        }
+        _serverCreditsCache = _serverCreditsCache||{};
+        _serverCreditsCache.plan = serverPlan;
+        _fetchServerCredits();
         if(typeof renderPlanUI === 'function') renderPlanUI();
         if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
         if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
@@ -23701,15 +23620,11 @@ async function _syncUserDataFromServer(){
       const p = profRes.value.profile;
       /* 플랜 동기화 — 결제 가드 포함 */
       const serverPlan = p.plan || 'free';
-      const localPlan = getPlan();
+      var _cachedP = _serverCreditsCache?.plan || 'free';
       var _pgActive = (typeof _paymentJustDone !== 'undefined') && _paymentJustDone && (Date.now() - _paymentJustDone < 30000);
-      if(localPlan.type !== serverPlan && !(_pgActive && localPlan.type !== 'free' && serverPlan === 'free')){
-        const endDate = serverPlan === 'free' ? null : new Date(Date.now()+30*24*60*60*1000).toISOString();
-        localStorage.setItem('kms_plan', JSON.stringify({type:serverPlan, startDate:new Date().toISOString(), endDate}));
-        if(serverPlan !== 'free' && localPlan.type === 'free'){
-          var _mk2 = getMonthKey();
-          localStorage.setItem('kms_usage_'+_mk2, JSON.stringify({songs:0,mv:0,lyrics:0,vr:0,resetDate:new Date().toISOString()}));
-        }
+      if(_cachedP !== serverPlan && !(_pgActive && _cachedP !== 'free' && serverPlan === 'free')){
+        _serverCreditsCache = _serverCreditsCache||{};
+        _serverCreditsCache.plan = serverPlan;
       }
       /* 크레딧 동기화 */
       if(p.credits_song != null || p.credits_mv != null || p.credits_lyrics != null){
