@@ -23186,13 +23186,13 @@ function renderPlanUI(){
 
   /* 플랜 카드 current / 업그레이드 / 다운그레이드 표시 */
   const _planRank = {free:0, pro:1, creator:2};
-  const curRank = _planRank[plan.type] || 0;
+  const curRank = _planRank[planType] || 0;
   ['free','pro','creator'].forEach(p=>{
     const card=document.getElementById('plan-card-'+p);
     const btn=document.getElementById('btn-'+p);
     if(!card||!btn) return;
     const rank = _planRank[p] || 0;
-    if(p===plan.type){
+    if(p===planType){
       card.classList.add('current');
       btn.textContent='현재 플랜'; btn.disabled=true; btn.className='plan-upgrade-btn current-btn';
       btn.onclick=null;
