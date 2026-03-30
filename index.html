@@ -28020,7 +28020,10 @@ setTimeout(_renderGenHistory,600);
 
 /* ── 주간 TOP 10 차트 ── */
 var _lastChartHash=''; /* ✅ 차트 변경 감지용 해시 — 동일하면 재렌더링 스킵 */
+var _chartRenderedOnce=false; /* ✅ 차트 최초 1회 렌더 플래그 */
 function _renderWeeklyChart(){
+  /* ✅ FIX: 이미 렌더된 차트는 다시 그리지 않음 — 실시간 갱신 제거 */
+  if(_chartRenderedOnce) return;
   var wrap=$('comm-chart-wrap'),listEl=$('comm-chart-list');
   if(!wrap||!listEl)return;
   if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
@@ -28082,6 +28085,7 @@ function _renderWeeklyChart(){
   listEl.querySelectorAll('.chart-item').forEach(function(el,i){
     el.style.animation='commFadeIn .3s ease-out '+(i*0.04)+'s both';
   });
+  _chartRenderedOnce=true; /* ✅ 최초 1회 렌더 완료 — 이후 실시간 갱신 안 함 */
 }
 
 /* ── 무드 플레이리스트 ── */
