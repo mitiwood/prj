@@ -12455,6 +12455,7 @@ function renderTracks(tracks,prompt,tags,mode){
           <div class="dl-row" style="margin-top:6px;">
             <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
             <button class="rc-tools-btn" data-pt-url="${esc(audioUrl)}" data-pt-id="${esc(audioId)}" data-pt-title="${esc(title)}" data-pt-task="${esc(trackTaskId)}">🛠 도구</button>
+            <button class="dl-btn" style="color:#ef4444;border-color:rgba(239,68,68,.3);" data-rc-delete="${esc(audioId)}" data-rc-delete-title="${esc(title)}">🗑 삭제</button>
           </div>
           <div class="rc-share-row">
             <button class="rc-share-btn" data-rc-open-share="${i}">↗ 공유</button>
@@ -12561,6 +12562,32 @@ function renderTracks(tracks,prompt,tags,mode){
       this.classList.add('on');
       const panel=document.getElementById(panelId);
       if(panel)panel.classList.add('on');
+    });
+  });
+  /* 삭제 버튼 이벤트 */
+  batchWrap.querySelectorAll('[data-rc-delete]').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const audioId=this.dataset.rcDelete;
+      const title=this.dataset.rcDeleteTitle||'이 곡';
+      if(!confirm('「'+title+'」을(를) 삭제하시겠어요?\n라이브러리에서도 제거됩니다.')){return;}
+      /* 히스토리에서 제거 */
+      const hIdx=historyData.findIndex(h=>h.id===audioId||h.audio_url===audioId);
+      if(hIdx>=0){ historyData.splice(hIdx,1); saveHistory(); updateHistBadge(); }
+      /* 서버에서도 삭제 */
+      if(audioId){ _deleteTrackFromServer(audioId).catch(function(){}); }
+      /* 현재 재생 중이면 정지 */
+      if(activeAudio && activeAudio._trackId===audioId){ stopAllAudio(); hideMiniPlayer(); }
+      /* 카드 UI 제거 (애니메이션) */
+      const card=this.closest('.result-card');
+      if(card){
+        card.style.transition='all .3s ease';
+        card.style.opacity='0';card.style.transform='scale(.95)';card.style.maxHeight=card.offsetHeight+'px';
+        setTimeout(function(){
+          card.style.maxHeight='0';card.style.padding='0';card.style.margin='0';card.style.border='none';
+          setTimeout(function(){ card.remove(); },300);
+        },300);
+      }
+      toast('🗑 삭제되었어요','ok',2000);
     });
   });
   /* ✅ FIX: batchWrap 스코프로 이벤트 바인딩 — 이전 배치 중복 리스너 방지 */
