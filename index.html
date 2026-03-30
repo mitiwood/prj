@@ -8714,8 +8714,9 @@ async function _ytDoGenerate(){
   var apiKey = kieApiKey;
   if(!apiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도','err'); return; }
   if(!_lastYtAnalysis){ toast('먼저 YouTube URL을 분석해주세요','err',2500); return; }
-  /* 로그인 체크 */
-  if(!currentUser){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
+  /* 로그인 체크 (게스트 모드 허용) */
+  if(!currentUser && !isGuestMode()){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
+  if(!currentUser && isGuestMode() && _getGuestUsage()>=GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
 
   /* 입력값 수집 — 분석화면 가사 (yt-lyrics-ta) 사용 */
   const _ytTa      = document.getElementById('yt-lyrics-ta');
