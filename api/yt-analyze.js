@@ -310,7 +310,22 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   // ── 유명 아티스트 DB (외부 파일에서 로드) ──
   // ══════════════════════════════════════════════════════
   const _artistDB = _artistDBData || [];
-  // ── 아티스트 DB 매칭 (정확 매칭 우선 → 제목 전문 검색 폴백) ──
+  // ── 아티스트 DB 매칭 (정확 매칭 → 제목 전문 검색) ──
+  // 단어 경계 매칭 헬퍼: "yb"가 "hybe"에 포함되는 오탐 방지
+  function _wordMatch(haystack, needle) {
+    const idx = haystack.indexOf(needle);
+    if (idx === -1) return false;
+    // 한국어는 단어 경계 체크 불필요 (한 글자씩 의미 있음)
+    if (/[\uAC00-\uD7AF\u3131-\u318F]/.test(needle)) return true;
+    // 영문 3자 이하는 단어 경계 필수
+    if (needle.length <= 3) {
+      const before = idx > 0 ? haystack[idx - 1] : ' ';
+      const after = idx + needle.length < haystack.length ? haystack[idx + needle.length] : ' ';
+      const isWordBoundary = (c) => !c || /[\s\-_()[\]'",.!?/]/.test(c);
+      return isWordBoundary(before) && isWordBoundary(after);
+    }
+    return true;
+  }
   let artistMatch = null;
   const artistLower = artist.toLowerCase().trim();
   const authorLower = author.toLowerCase().replace(/\s*-\s*topic$/i, '').trim();
@@ -318,7 +333,7 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   // 1차: artist/author 정확 매칭
   for (const entry of _artistDB) {
     for (const name of entry.names) {
-      if (artistLower === name || authorLower === name || artistLower.includes(name) || authorLower.includes(name)) {
+      if (artistLower === name || authorLower === name || _wordMatch(artistLower, name) || _wordMatch(authorLower, name)) {
         artistMatch = entry;
         break;
       }
@@ -330,7 +345,7 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
     let _bestLen = 0;
     for (const entry of _artistDB) {
       for (const name of entry.names) {
-        if (name.length >= 2 && titleLower.includes(name) && name.length > _bestLen) {
+        if (name.length >= 2 && _wordMatch(titleLower, name) && name.length > _bestLen) {
           artistMatch = entry;
           _bestLen = name.length;
         }
