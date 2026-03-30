@@ -17960,65 +17960,63 @@ function fpToggleLyricsMode(){
 }
 
 var _fpPrevActiveIdx=-1;
+/* 전체모드 가사 싱크 — syncKpLyrics와 완전 동일한 로직 (DOM data-start/end 직접 읽기) */
 function fpSyncLyrics(currentTime){
-  if(!fpTimestampLines.length||!fpAudio?.duration||!_fpLrcTimes.length)return;
-  const n=fpTimestampLines.length;
-  const hasEnd=_fpLrcEndTimes.length===n;
-  let activeIdx=-1;
-
-  if(hasEnd){
-    /* 노래방 모드와 동일: 매 프레임 모든 라인 클래스 업데이트 (정밀 싱크) */
-    let activeEl=null;
-    fpTimestampLines.forEach((el,i)=>{
-      var s=_fpLrcTimes[i], e=_fpLrcEndTimes[i];
-      if(currentTime>=s&&currentTime<e){
+  if(!fpTimestampLines.length||!fpAudio?.duration)return;
+  /* data-start/data-end가 있으면 노래방과 동일한 정밀 싱크 */
+  var firstEl=fpTimestampLines[0];
+  var hasDataEnd=firstEl&&firstEl.dataset.start!==undefined&&firstEl.dataset.end!==undefined&&parseFloat(firstEl.dataset.end)>0;
+  if(hasDataEnd){
+    var activeEl=null;
+    fpTimestampLines.forEach(function(el){
+      var start=parseFloat(el.dataset.start)||0;
+      var end=parseFloat(el.dataset.end)||0;
+      if(currentTime>=start&&currentTime<end){
         el.classList.add('active');el.classList.remove('done');
-        activeEl=el;activeIdx=i;
-      } else if(currentTime>=e){
+        activeEl=el;
+      } else if(currentTime>=end){
         el.classList.remove('active');el.classList.add('done');
       } else {
         el.classList.remove('active','done');
       }
     });
-    /* 스크롤: activeIdx 변경 시만 */
-    if(activeIdx!==_fpPrevActiveIdx){
-      _fpPrevActiveIdx=activeIdx;
-      if(activeEl){
-        const box=$('fp-lyrics-main');
+    /* 스크롤 */
+    if(activeEl){
+      var _newIdx=fpTimestampLines.indexOf(activeEl);
+      if(_newIdx!==_fpPrevActiveIdx){
+        _fpPrevActiveIdx=_newIdx;
+        var box=$('fp-lyrics-main');
         if(box){
-          const areaRect=box.getBoundingClientRect();
-          const elRect=activeEl.getBoundingClientRect();
-          const targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
+          var areaRect=box.getBoundingClientRect();
+          var elRect=activeEl.getBoundingClientRect();
+          var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
           if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
         }
       }
     }
     return;
   }
-
-  /* LRC/균등 분할: 시작 시간만으로 매칭 */
-  for(let i=n-1;i>=0;i--){
+  /* LRC/균등 분할: 시작 시간 배열 기반 매칭 */
+  if(!_fpLrcTimes.length)return;
+  var n=fpTimestampLines.length;
+  var activeIdx=-1;
+  for(var i=n-1;i>=0;i--){
     if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
   }
-
-  /* 같은 라인이면 불필요한 DOM 업데이트/스크롤 스킵 */
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
-
-  fpTimestampLines.forEach((el,i)=>{
+  fpTimestampLines.forEach(function(el,i){
     el.classList.toggle('active',i===activeIdx);
     el.classList.toggle('done',i<activeIdx);
   });
-
-  /* 활성 라인 중앙으로 스크롤 */
   if(activeIdx>=0){
-    const box=$('fp-lyrics-main');
-    if(box){
-      const el=fpTimestampLines[activeIdx];
-      const areaRect=box.getBoundingClientRect();
-      const elRect=el.getBoundingClientRect();
-      const targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
-      if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
+    var box2=$('fp-lyrics-main');
+    if(box2){
+      var el2=fpTimestampLines[activeIdx];
+      var areaRect2=box2.getBoundingClientRect();
+      var elRect2=el2.getBoundingClientRect();
+      var targetScroll2=box2.scrollTop+(elRect2.top-areaRect2.top)-(areaRect2.height/2)+(elRect2.height/2);
+      if(Math.abs(box2.scrollTop-targetScroll2)>5) box2.scrollTo({top:targetScroll2,behavior:'smooth'});
     }
   }
 }
