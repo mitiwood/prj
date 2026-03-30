@@ -12282,14 +12282,45 @@ $('extend-submit-btn').addEventListener('click',async()=>{
     const tracks=await pollResult(apiKey,taskId);
     $('loading-card').classList.remove('on');
     if(tracks?.length){
-      lastTracks=tracks.map(t=>({...t,_inputLyrics:'',_extendedFrom:extendAudioId,_extendChain:true}));
+      /* 원본 트랙의 가사 찾기 */
+      var _origTrack = historyData.find(function(h){ return h.id===extendAudioId; });
+      var _origLyrics = _origTrack ? (_origTrack.lyrics||_origTrack.lyric||_origTrack._inputLyrics||'') : '';
+      /* 원본 가사에서 LRC 타임스탬프 제거 (합칠 때 깔끔하게) */
+      var _origPlain = _origLyrics.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
+
+      lastTracks=tracks.map(function(t){
+        /* 연장된 트랙의 API 반환 가사 */
+        var _extApiLyric = t.lyric||t.lyrics||t.lrc||'';
+        var _extPlain = _extApiLyric.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
+        /* 원본 + 연장 가사 합치기 */
+        var _combined = '';
+        if(_origPlain.trim() && _extPlain.trim()){
+          _combined = _origPlain.trim() + '\n\n[Extended]\n' + _extPlain.trim();
+        } else if(_extPlain.trim()){
+          _combined = _extPlain.trim();
+        } else if(_origPlain.trim()){
+          _combined = _origPlain.trim();
+        }
+        return {...t, _inputLyrics:_combined, _extendedFrom:extendAudioId, _extendChain:true, _origLyrics:_origPlain.trim()};
+      });
       renderTracks(lastTracks,'연장된 트랙','extend',currentMode);
       toast('🎵 연장 완료! 더 길게 만들려면 다시 연장하세요','ok',3000);
       /* 연장된 트랙을 히스토리에 저장 */
-      tracks.forEach(t=>{
+      tracks.forEach(function(t){
+        var _extApiLyric = t.lyric||t.lyrics||t.lrc||'';
+        var _extPlain = _extApiLyric.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
+        var _combined = '';
+        if(_origPlain.trim() && _extPlain.trim()){
+          _combined = _origPlain.trim() + '\n\n[Extended]\n' + _extPlain.trim();
+        } else if(_extPlain.trim()){
+          _combined = _extPlain.trim();
+        } else if(_origPlain.trim()){
+          _combined = _origPlain.trim();
+        }
         historyData.unshift({
           id:t.id, title:(t.title||'연장된 트랙'), audio_url:t.audioUrl||t.audio_url||t.song_path||'',
-          image_url:t.imageUrl||t.image_url||'', tags:'extend', lyrics:'', created:Date.now(),
+          image_url:t.imageUrl||t.image_url||'', tags:_origTrack?.tags||'extend',
+          lyrics:_combined, created:Date.now(),
           type:'audio', genMode:'extend', _extendedFrom:extendAudioId,
           _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
         });
@@ -17789,7 +17820,18 @@ var _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */
 var _fpLrcEndTimes=[]; /* 각 가사 라인의 종료 시간(초) — 타임스탬프 API용 */
 function fpRenderLyrics(h){
   const mainBox=$('fp-lyrics-main');
-  const raw=h.lyrics||h.lyric||h._inputLyrics||'';
+  var raw=h.lyrics||h.lyric||h._inputLyrics||'';
+  /* 연장 곡: 가사 없으면 원본 트랙에서 가사 복원 */
+  if(!raw.trim() && h._extendedFrom){
+    var _origH = historyData.find(function(o){ return o.id===h._extendedFrom; });
+    if(_origH){
+      var _origL = _origH.lyrics||_origH.lyric||_origH._inputLyrics||'';
+      if(_origL.trim()){
+        raw = _origL;
+        h.lyrics = raw; /* 캐시하여 다음 렌더 시 재활용 */
+      }
+    }
+  }
   /* 스타일 태그만 있는 경우만 제외 (영어 콤마 구분 짧은 문자열, 한글 없음) */
   const isStyleStr = raw && !raw.includes('\n') && raw.length < 80 && !/[\uac00-\ud7a3]/.test(raw) && /^[a-zA-Z0-9,\s\-_&]+$/.test(raw);
   const plain = isStyleStr ? '' : raw;
