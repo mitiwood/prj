@@ -1,10 +1,11 @@
 export default async function handler(req, res) {
   const { code, error } = req.query;
-  if (error || !code) return res.redirect('/?login=fail');
+  const APP_URL = 'https://ddinggok.com';
+  if (error || !code) return res.redirect(`${APP_URL}/?login=fail`);
 
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
-  const redirectUri = 'https://ai-music-studio-bice.vercel.app/api/auth/naver/callback';
+  const redirectUri = 'https://ddinggok.com/api/auth/naver/callback';
 
   try {
     const tokenRes = await fetch('https://nid.naver.com/oauth2.0/token', {
@@ -35,9 +36,9 @@ export default async function handler(req, res) {
       avatar: (user.profile_image || '').replace(/^http:\/\//i, 'https://'),
       id: user.id || '',
     });
-    res.redirect(`/?${params}`);
+    res.redirect(`${APP_URL}/?${params}`);
   } catch(e) {
     console.error('Naver callback error:', e);
-    res.redirect('/?login=fail');
+    res.redirect(`${APP_URL}/?login=fail`);
   }
 }
