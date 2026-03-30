@@ -7760,7 +7760,8 @@ async function _restoreUserLikes(){
 /* 변경 감지용 핑거프린트 */
 var _sbFingerprint = '';
 function _calcFingerprint(tracks){
-  return tracks.map(function(t){return (t._sbId||t.id)+'_'+(t.likes||0)+'_'+(t.plays||0);}).join('|');
+  /* ✅ FIX: ID+순서만 비교 — likes/plays 변경으로 인한 불필요한 재렌더링(깜빡임) 방지 */
+  return tracks.map(function(t){return t._sbId||t.id;}).join('|');
 }
 async function _pollRefreshSbTracks(){
   if(_sbLoading) return false;
@@ -20312,14 +20313,16 @@ async function _renderCommunityInner(force){
     });
     _commLazyInit(); /* 부가 섹션은 스크롤 시 lazy 로드 */
     _setupCommInfiniteScroll();
-    /* 백그라운드에서 갱신 (사용자 대기 없음) */
-    var _prevFp = _sbFingerprint;
+    /* ✅ FIX: 백그라운드 갱신 — 트랙 목록 자체가 변경(추가/삭제)된 경우만 재렌더링 */
+    /* likes/plays 변경은 무시 → 깜빡임(이중 로드) 방지 */
+    var _prevIds = _sbTracks.map(function(t){return t._sbId||t.id;}).join(',');
     _loadSbTracks(true).then(function(){
-      if(_sbFingerprint !== _prevFp){
+      var _newIds = _sbTracks.map(function(t){return t._sbId||t.id;}).join(',');
+      if(_newIds !== _prevIds){
         if(_commActiveGenre==='creators'){_renderCreatorList();return;}
         if(_commActiveGenre==='following'||_commActiveGenre==='chat'||_commActiveGenre==='leaderboard')return;
         _renderCommContent(heroWrap, list);
-        _commLazyInit(); /* 변경 시 부가 섹션 다시 lazy 로드 */
+        _commLazyInit();
       }
     });
     return;
