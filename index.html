@@ -22919,6 +22919,7 @@ async function _syncPlansFromServer(){
 }
 var _planSynced = false;
 var _planSyncPromise = null;
+var _serverCreditsCache = null; /* {credits_song, credits_mv, credits_lyrics, plan} */
 /* 플랜 동기화 — Promise로 래핑하여 생성 시 await 가능 */
 _planSyncPromise = new Promise(function(ok){ setTimeout(function(){ _syncPlansFromServer().then(function(){ _planSynced=true; ok(); }).catch(function(e){ _planSynced=true; ok(); }); }, 500); });
 /* kie.ai 예상 단가 (USD → KRW 1,300 환산) */
@@ -22981,7 +22982,24 @@ function checkPlanLimit(type){
     if(type==='mv'||type==='vr'){ _showGuestLoginPrompt(); return false; }
     return true;
   }
-  /* 서버 플랜 동기화 미완료 시 백그라운드 트리거 (논블로킹) */
+
+  /* 로그인 사용자: 서버 크레딧 캐시 우선 확인 */
+  if(currentUser?.name && _serverCreditsCache){
+    var _sKey = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':type==='vr'?'credits_song':'credits_song';
+    var _sRemain = _serverCreditsCache[_sKey];
+    if(typeof _sRemain === 'number' && _sRemain > 0){
+      if(_sRemain <= 2) toast('⚠️ 서버 크레딧 '+_sRemain+'회 남았어요','warn',3000);
+      try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
+      return true; /* 서버에 크레딧 남아있으면 통과 */
+    }
+    if(typeof _sRemain === 'number' && _sRemain <= 0){
+      /* 서버 크레딧 0 → 최신 정보 재확인 후 차단 */
+      _syncPlanAndRetry(type);
+      return false;
+    }
+  }
+
+  /* 서버 캐시 없으면 로컬 체크 (기존 로직) */
   if(!_planSynced && _planSyncPromise) _planSyncPromise.catch(function(){});
   const plan = getPlan();
   const limits = PLAN_LIMITS[plan.type]||PLAN_LIMITS.free;
@@ -22990,12 +23008,11 @@ function checkPlanLimit(type){
   const used = usage[key]||0;
   const limit = limits[key];
 
-  /* 한도 초과 시: 서버에서 최신 플랜 확인 후 재판정 (비동기 → 즉시 서버 동기화 트리거) */
+  /* 한도 초과 시: 서버에서 최신 플랜 확인 후 재판정 */
   if(limit < 999 && used >= limit){
-    /* 로그인 사용자면 서버에 최신 플랜 확인 — 서버 플랜이 더 높으면 즉시 갱신 후 통과 */
     if(currentUser?.name){
       _syncPlanAndRetry(type);
-      return false; /* 일단 차단, _syncPlanAndRetry에서 서버 확인 후 재실행 */
+      return false;
     }
     /* 프리미엄 미끼: 첫 곡 V4.5 무료 + MV 1회 무료 */
     if(plan.type==='free'){
@@ -23022,9 +23039,8 @@ function checkPlanLimit(type){
   if(remain <= 2 && remain > 0){
     toast('⚠️ 크레딧 '+remain+'곡 남았어요','warn',3000);
   }
-  /* 크레딧 뱃지 업데이트 */
   try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
-  /* 서버 검증 (비동기 — 결과 불문 클라이언트 체크 우선) */
+  /* 서버 검증 (비동기) */
   if(currentUser){
     _serverCreditCheck(type).catch(()=>{});
   }
@@ -23114,6 +23130,42 @@ async function _serverCreditCheck(type){
   } catch(e){ /* 서버 장애 시 클라이언트 체크만으로 동작 */ }
 }
 
+/* 서버 크레딧 캐시 갱신 — 로그인 시 + checkPlanLimit에서 참조 */
+async function _fetchServerCredits(){
+  if(!currentUser?.name) return;
+  try{
+    var r = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
+    var d = await r.json();
+    if(d.ok && d.profile){
+      _serverCreditsCache = {
+        credits_song: d.profile.credits_song ?? 0,
+        credits_mv: d.profile.credits_mv ?? 0,
+        credits_lyrics: d.profile.credits_lyrics ?? 0,
+        plan: d.profile.plan || 'free',
+      };
+      /* 서버 플랜이 로컬과 다르면 동기화 */
+      var localPlan = getPlan().type;
+      if(_serverCreditsCache.plan !== localPlan){
+        localStorage.setItem('kms_plan', JSON.stringify({type: _serverCreditsCache.plan, startDate: new Date().toISOString()}));
+        if(typeof renderPlanUI === 'function') renderPlanUI();
+      }
+      /* 로컬 사용량도 서버 기준으로 동기화 */
+      var limits = PLAN_LIMITS[_serverCreditsCache.plan]||PLAN_LIMITS.free;
+      var usage = getUsage();
+      usage.songs = Math.max(0, limits.songs - _serverCreditsCache.credits_song);
+      usage.mv = Math.max(0, limits.mv - _serverCreditsCache.credits_mv);
+      usage.lyrics = Math.max(0, limits.lyrics - _serverCreditsCache.credits_lyrics);
+      saveUsage(usage);
+      try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
+      console.log('[Credits] 서버 동기화:', _serverCreditsCache);
+    }
+  }catch(e){ console.warn('[Credits] fetch fail:', e.message); }
+}
+/* 로그인 완료 시 서버 크레딧 자동 갱신 */
+document.addEventListener('kms-login', function(){ setTimeout(_fetchServerCredits, 1000); });
+/* 페이지 로드 시에도 갱신 */
+setTimeout(_fetchServerCredits, 2000);
+
 /* 생성 완료 후 서버에 사용량 차감 요청 */
 async function _serverCreditDeduct(type){
   if(!currentUser?.name) return;
@@ -23124,6 +23176,8 @@ async function _serverCreditDeduct(type){
       headers: {'Content-Type':'application/json','Authorization':'Bearer '+jwt},
       body: JSON.stringify({ userName: currentUser.name, userProvider: currentUser.provider, type, action:'deduct' })
     });
+    /* 차감 후 서버 크레딧 캐시 갱신 */
+    _fetchServerCredits();
   } catch(e){ /* 실패해도 클라이언트에서 이미 차감됨 */ }
 }
 
