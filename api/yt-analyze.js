@@ -224,26 +224,10 @@ export default async function handler(req, res) {
     }
   }
 
-  // 분석 실패 시 폴백
+  // 2-c) LLM 실패 시 메타데이터 기반 스마트 분석
   if (!analysis) {
-    const cleanTitle = title.replace(/[\(\[\]].*/g, '').trim();
-    analysis = {
-      genre:           'Pop',
-      mood:            'uplifting',
-      energy:          'medium',
-      style_prompt:    `${cleanTitle} style, melodic, emotional vocal, polished pop production, catchy hooks, modern arrangement, crisp drums, layered synths`,
-      description:     `${cleanTitle} 스타일의 음악`,
-      bpm_estimate:    120,
-      key_signature:   '',
-      mood_tags:       'uplifting, melodic, emotional, polished, modern',
-      vocal_gender:    '',
-      vocal_style:     '',
-      instruments:     '',
-      song_structure:  '',
-      reference_sound: '',
-      lyrics_theme:    `${cleanTitle} 주제의 감성적인 노래`,
-      lyrics_style:    '',
-    };
+    analysis = _smartFallbackAnalysis(title, author, description, tags, category, duration);
+    if (analysis) _analyzer = 'smart-fallback';
   }
 
   return res.status(200).json({
@@ -318,6 +302,125 @@ function _parseJsonResponse(text) {
     console.warn('[yt-analyze] JSON parse failed:', e.message, '| text:', text.slice(0, 300));
   }
   return null;
+}
+
+/** 메타데이터 기반 스마트 분석 (LLM 없이) */
+function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
+  const all = `${title} ${author} ${desc} ${tags}`.toLowerCase();
+  const cleanTitle = title.replace(/[\(\[\]].*/g, '').replace(/\/\s*가사.*$/i, '').trim();
+
+  // 아티스트 - 곡명 파싱
+  let artist = '', songName = cleanTitle;
+  const dashMatch = cleanTitle.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if (dashMatch) { artist = dashMatch[1].trim(); songName = dashMatch[2].trim(); }
+
+  // 한국어 감지
+  const isKorean = /[\uAC00-\uD7AF]/.test(title);
+  const isJapanese = /[\u3040-\u309F\u30A0-\u30FF]/.test(title);
+  const isEnglish = !isKorean && !isJapanese;
+
+  // ── 장르 판별 (키워드 기반) ──
+  const genreRules = [
+    { keys: ['ballad', '발라드', '사랑', '이별', '눈물', '그리움', '보고싶', '슬픈', '아프', '미안', '잊을', '기억', '추억', '연습', '고백', '마지막', '편지', '한숨', '울다'], genre: 'K-Ballad', mood: 'melancholic', energy: 'low', bpm: 68, instruments: 'grand piano, orchestral strings, acoustic guitar, soft drums, bass guitar', vocalStyle: 'emotional vocal with controlled vibrato, tender to powerful dynamics', structure: 'intro-verse-prechorus-chorus-verse-prechorus-chorus-bridge-chorus-outro', ref: 'emotional Korean ballad with piano and orchestral strings' },
+    { keys: ['hip hop', 'hip-hop', '힙합', 'rap', '랩', 'trap', '트랩'], genre: 'K-Hip-Hop', mood: 'aggressive', energy: 'high', bpm: 140, instruments: '808 bass, hi-hat rolls, synth pads, trap snare, vocal chops', vocalStyle: 'rhythmic rap delivery with melodic hooks', structure: 'intro-verse-hook-verse-hook-bridge-hook-outro', ref: 'modern Korean hip-hop with trap beats and 808s' },
+    { keys: ['rock', '록', 'band', '밴드', 'guitar', '기타'], genre: 'K-Rock', mood: 'energetic', energy: 'high', bpm: 130, instruments: 'electric guitar, bass guitar, drums, distortion pedal, rhythm guitar', vocalStyle: 'powerful rock vocal with grit and intensity', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'Korean rock with distorted guitars and driving drums' },
+    { keys: ['edm', 'electronic', '일렉', 'dance', '댄스', 'club', '클럽', 'house', 'techno', 'trance', 'remix'], genre: 'K-Pop / EDM', mood: 'euphoric', energy: 'very high', bpm: 128, instruments: 'synth lead, supersaws, sub bass, clap, hi-hats, sidechain pad', vocalStyle: 'catchy pop vocal with auto-tune processing', structure: 'intro-verse-buildup-drop-verse-buildup-drop-bridge-drop-outro', ref: 'energetic K-pop dance track with EDM production' },
+    { keys: ['r&b', 'rnb', '알앤비', 'soul', '소울', 'groovy', 'smooth'], genre: 'K-R&B', mood: 'sensual', energy: 'medium', bpm: 90, instruments: 'rhodes piano, smooth bass, snare, hi-hat, synth pad, strings', vocalStyle: 'smooth R&B vocal with runs and falsetto', structure: 'intro-verse-prechorus-chorus-verse-chorus-bridge-chorus-outro', ref: 'modern Korean R&B with smooth grooves' },
+    { keys: ['indie', '인디', 'folk', '포크', 'acoustic', '어쿠스틱'], genre: 'K-Indie / Folk', mood: 'nostalgic', energy: 'low', bpm: 100, instruments: 'acoustic guitar, cajon, harmonica, light percussion, upright bass', vocalStyle: 'warm breathy vocal with natural tone', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'warm Korean indie folk with acoustic instruments' },
+    { keys: ['trot', '트로트', '뽕짝'], genre: 'Trot', mood: 'cheerful', energy: 'high', bpm: 120, instruments: 'synth brass, accordion, electric guitar, bass, drums', vocalStyle: 'vibrato-heavy trot vocal with ornamental runs', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'classic Korean trot with brass and rhythmic bounce' },
+    { keys: ['ost', 'drama', '드라마', 'soundtrack'], genre: 'K-Drama OST / Ballad', mood: 'emotional', energy: 'medium', bpm: 75, instruments: 'piano, strings, cello, acoustic guitar, soft percussion', vocalStyle: 'emotional vocal building from soft to powerful', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'cinematic Korean drama OST ballad' },
+    { keys: ['lofi', 'lo-fi', '로파이', 'chill', '칠'], genre: 'Lo-fi / Chill', mood: 'relaxing', energy: 'low', bpm: 85, instruments: 'lofi piano, vinyl crackle, muted drums, warm bass, ambient pad', vocalStyle: 'soft dreamy vocal or instrumental', structure: 'intro-verse-chorus-verse-chorus-outro', ref: 'lo-fi chill beats with warm analog texture' },
+  ];
+
+  // K-Pop 기본 (아이돌/그룹곡 감지)
+  const kpopKeys = ['idol', '아이돌', 'comeback', '컴백', 'mv', 'music video', 'choreography', '안무', 'teaser', 'performance'];
+
+  let matched = null;
+  let maxScore = 0;
+  for (const rule of genreRules) {
+    let score = 0;
+    for (const k of rule.keys) {
+      if (all.includes(k)) score += (k.length > 3 ? 2 : 1);
+    }
+    if (score > maxScore) { maxScore = score; matched = rule; }
+  }
+
+  // K-Pop 아이돌 감지
+  if (!matched || maxScore < 2) {
+    let kpopScore = 0;
+    for (const k of kpopKeys) { if (all.includes(k)) kpopScore++; }
+    if (kpopScore >= 1 || (category === 'Music' && isKorean && !matched)) {
+      matched = { genre: 'K-Pop', mood: 'energetic', energy: 'high', bpm: 118, instruments: 'synth, bass, drums, keyboard, vocal chops, strings', vocalStyle: 'polished pop vocal with harmonies', structure: 'intro-verse-prechorus-chorus-verse-prechorus-chorus-bridge-chorus-outro', ref: 'polished modern K-pop with dynamic arrangement' };
+    }
+  }
+
+  // 매칭 실패 시 기본값
+  if (!matched) {
+    if (isKorean) {
+      matched = { genre: 'K-Pop / Ballad', mood: 'emotional', energy: 'medium', bpm: 90, instruments: 'piano, strings, drums, bass, synth pad', vocalStyle: 'emotional Korean vocal', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'Korean pop with emotional vocal delivery' };
+    } else if (isJapanese) {
+      matched = { genre: 'J-Pop', mood: 'uplifting', energy: 'medium', bpm: 110, instruments: 'guitar, bass, drums, keyboard, strings', vocalStyle: 'clear Japanese vocal', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'modern J-pop with clean production' };
+    } else {
+      matched = { genre: 'Pop', mood: 'uplifting', energy: 'medium', bpm: 110, instruments: 'synth, guitar, bass, drums, piano', vocalStyle: 'clean pop vocal', structure: 'intro-verse-chorus-verse-chorus-bridge-chorus-outro', ref: 'contemporary pop with modern production' };
+    }
+  }
+
+  // 보컬 성별 추정 (한국 이름 기반)
+  const maleNames = ['현', '준', '민', '석', '우', '진', '호', '성', '훈', '철', '영', '태'];
+  const femaleNames = ['은', '지', '서', '연', '수', '미', '혜', '유', '린', '아', '나', '하'];
+  let genderScore = 0;
+  for (const c of artist) {
+    if (maleNames.includes(c)) genderScore++;
+    if (femaleNames.includes(c)) genderScore--;
+  }
+  const vocalGender = genderScore > 0 ? 'm' : genderScore < 0 ? 'f' : '';
+  const genderDesc = vocalGender === 'm' ? 'male' : vocalGender === 'f' ? 'female' : '';
+
+  // 언어별 태그
+  const langTag = isKorean ? 'Korean' : isJapanese ? 'Japanese' : 'English';
+
+  // 스타일 프롬프트 조합
+  const stylePrompt = [
+    matched.genre,
+    `${matched.bpm} BPM`,
+    '4/4 time signature',
+    matched.instruments,
+    genderDesc ? `${genderDesc} ${matched.vocalStyle}` : matched.vocalStyle,
+    `${langTag} lyrics`,
+    `${matched.mood} mood`,
+    matched.ref,
+  ].join(', ');
+
+  // 무드 태그
+  const moodMap = {
+    melancholic: 'melancholic, heartfelt, sentimental, emotional, yearning, poignant, sorrowful, bittersweet, reflective, tender, lush, acoustic',
+    aggressive: 'aggressive, intense, hard-hitting, raw, powerful, gritty, bold, fierce, edgy, dynamic',
+    euphoric: 'euphoric, energetic, uplifting, bright, danceable, vibrant, electrifying, festival, anthem, pulsating',
+    energetic: 'energetic, dynamic, catchy, vibrant, groovy, polished, upbeat, rhythmic, bright, anthemic',
+    sensual: 'sensual, smooth, sultry, warm, intimate, velvety, groovy, dreamy, laid-back, sophisticated',
+    nostalgic: 'nostalgic, warm, gentle, wistful, organic, intimate, sincere, folk, cozy, breezy',
+    emotional: 'emotional, heartfelt, powerful, dramatic, soaring, cinematic, touching, moving, expressive, lush',
+    relaxing: 'relaxing, chill, mellow, dreamy, ambient, lo-fi, hazy, warm, floating, peaceful',
+    cheerful: 'cheerful, bouncy, festive, lively, fun, bright, retro, catchy, groovy, playful',
+  };
+
+  return {
+    genre: matched.genre,
+    mood: matched.mood,
+    energy: matched.energy,
+    style_prompt: stylePrompt.slice(0, 999),
+    description: `${songName || cleanTitle} - ${matched.genre} 스타일 분석`,
+    bpm_estimate: matched.bpm,
+    key_signature: '',
+    mood_tags: moodMap[matched.mood] || moodMap.emotional,
+    vocal_gender: vocalGender,
+    vocal_style: (genderDesc ? genderDesc + ' ' : '') + matched.vocalStyle,
+    instruments: matched.instruments,
+    song_structure: matched.structure,
+    reference_sound: matched.ref,
+    lyrics_theme: `${songName || cleanTitle} 관련 감성적인 노래`,
+    lyrics_style: isKorean ? '한국어 감성 표현' : '',
+  };
 }
 
 function _decodeHtml(str) {
