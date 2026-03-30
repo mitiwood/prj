@@ -19086,6 +19086,23 @@ function _checkAudioUrls(){
     });
   });
 }
+/* 프로필 뷰 트랙 URL 검증 — 완료 시 pv-tracks-list 리렌더 */
+function _checkPvAudioUrls(tracks){
+  if(!tracks||!tracks.length)return;
+  var urls=[],changed=false,done=0;
+  tracks.forEach(function(t){var u=t.audio_url;if(u&&!_failedAudioUrls.has(u)&&urls.indexOf(u)<0)urls.push(u);});
+  if(!urls.length)return;
+  urls.forEach(function(url){
+    fetch(url,{method:'HEAD',mode:'cors'}).then(function(r){
+      if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(url);changed=true;}
+    }).catch(function(){}).finally(function(){
+      done++;
+      if(done>=urls.length&&changed&&typeof openCreatorProfile==='function'&&window._pvTarget){
+        openCreatorProfile(window._pvTarget.name,window._pvTarget.provider);
+      }
+    });
+  });
+}
 
 /* ── 커뮤니티 관리자 설정 (서버에서 로드) ── */
 var _commConfig=null;
@@ -24087,6 +24104,8 @@ function openCreatorProfile(name, provider){
       $('pv-likes').textContent = totalLikes;
       $('pv-tracks').textContent = tracks.length;
       const tcEl=$('pv-track-count');if(tcEl) tcEl.textContent=tracks.length+'곡';
+      /* 프로필 뷰 트랙 오디오 URL 사전 검증 */
+      _checkPvAudioUrls(tracks);
     }).catch(()=>{
       $('pv-tracks-list').innerHTML = '<div class="pv-empty">프로필을 불러오지 못했어요</div>';
     });
