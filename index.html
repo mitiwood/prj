@@ -8378,6 +8378,23 @@ function updateLoginUI(){
       loginBtn.onclick=openLoginSheet;
     }
   }
+  /* 설정탭 게스트 모드 표시 */
+  var _nameEl=$('settings-user-name');
+  var _subEl=$('settings-user-sub');
+  var _avatarEl=$('settings-avatar');
+  if(!currentUser && isGuestMode()){
+    if(_nameEl) _nameEl.textContent='게스트 모드';
+    if(_subEl){
+      var _gRemain=GUEST_SONG_LIMIT-_getGuestUsage();
+      _subEl.innerHTML='로그인하면 곡이 내 계정에 저장돼요 · <b style="color:var(--acc);">'+Math.max(0,_gRemain)+'곡 남음</b>';
+    }
+    if(_avatarEl) _avatarEl.textContent='👤';
+    if(loginBtn){ loginBtn.textContent='로그인'; loginBtn.onclick=openLoginSheet; }
+  } else if(!currentUser){
+    if(_nameEl) _nameEl.textContent='로그인하세요';
+    if(_subEl) _subEl.textContent='소셜 계정으로 간편 로그인';
+    if(_avatarEl) _avatarEl.textContent='👤';
+  }
   /* 구 헤더 login-area (있을 경우) */
   const area=$('login-area');
   if(area){
@@ -9106,6 +9123,21 @@ function _saveLoginUser(user){
     localStorage.setItem('kms_user',JSON.stringify(user));
     /* 게스트 모드 정리 — 로그인 전환 (생성 중이면 상태 보존) */
     var _wasGenerating = _globalGenerating;
+    /* 게스트 트랙 → 로그인 유저 계정으로 DB 이관 */
+    var _guestTracks=[];
+    try{ _guestTracks=JSON.parse(localStorage.getItem('kms_guest_tracks')||'[]'); }catch(e){}
+    if(_guestTracks.length>0){
+      console.log('[Guest→Login] 게스트 트랙 '+_guestTracks.length+'개 이관 시작');
+      _guestTracks.forEach(function(gt){
+        gt.owner_name=user.name;
+        gt.owner_avatar=user.avatar||'';
+        gt.owner_provider=user.provider||'';
+        gt.owner_email=user.email||'';
+        _saveTrackToServer(gt);
+      });
+      toast('🎵 게스트 모드에서 만든 '+_guestTracks.length+'곡이 내 계정에 저장됐어요!','ok',4000);
+    }
+    localStorage.removeItem('kms_guest_tracks');
     localStorage.removeItem('kms_guest_mode');
     localStorage.removeItem('kms_guest_songs');
     _showGuestCTA(); /* 게스트 CTA 숨김 */
@@ -15336,6 +15368,16 @@ function _saveTrackToServer(track){
     _is_public:     _commAutoPublish,
     ...(track._sync ? {_sync:true} : {}),
   };
+  /* 게스트 모드: DB 대신 localStorage에 임시 저장 */
+  if(!currentUser && isGuestMode()){
+    try{
+      var _gt=JSON.parse(localStorage.getItem('kms_guest_tracks')||'[]');
+      _gt.push(payload);
+      localStorage.setItem('kms_guest_tracks',JSON.stringify(_gt));
+      console.log('[SaveTrack] 게스트 트랙 임시 저장:',payload.title);
+    }catch(e){}
+    return;
+  }
   /* 콜라보 트랙이면 co-owner 정보 추가 */
   if(window._collabPending){
     payload.collab_id = window._collabPending.collabId;
