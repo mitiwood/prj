@@ -111,6 +111,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
   let analysis = null;
   let _debugError = '';
+  let _claudeOk = false;
   const _keyPrefix = apiKey ? apiKey.slice(0, 12) + '...' : 'NONE';
   console.log('[yt-analyze] key:', _keyPrefix, '| title:', title, '| author:', author);
 
@@ -144,7 +145,7 @@ Answer in JSON ONLY:
   "genre": "precise sub-genre (e.g., 'Future Bass / Melodic EDM', 'Lo-fi Hip-Hop / Chillhop', '90s Boom Bap Hip-Hop')",
   "mood": "primary mood (e.g., 'euphoric', 'melancholic', 'aggressive')",
   "energy": "low / medium / high / very high",
-  "style_prompt": "DETAILED Suno-compatible style tags (50-80 words). Include: exact sub-genre, tempo descriptor, key instruments (e.g., 'detuned supersaws', '808 sub bass', 'fingerpicked acoustic guitar'), vocal style (e.g., 'breathy female vocal', 'raspy male rap'), production techniques (e.g., 'heavy sidechain compression', 'lo-fi tape saturation', 'reverb-drenched'), arrangement pattern (e.g., 'build-drop structure', 'verse-chorus-bridge'), mixing style. NO artist names.",
+  "style_prompt": "CRITICAL: This field is fed DIRECTLY into an AI music generator's 'style' parameter. Write 60-100 words of comma-separated style tags that will reproduce this song's sound as closely as possible. Format: '[exact sub-genre], [tempo BPM], [time signature], [key instruments with specific adjectives e.g. detuned supersaws / 808 sub bass / fingerpicked nylon guitar], [vocal technique e.g. breathy falsetto / belting chest voice / auto-tuned trap vocal], [production techniques e.g. heavy sidechain / lo-fi tape saturation / crisp digital mix], [arrangement e.g. build-drop / verse-prechorus-chorus], [sonic era/aesthetic e.g. 2020s polished pop / 90s lo-fi warmth]'. Be EXTREMELY specific — generic tags like 'pop' or 'upbeat' produce generic results. NO artist names.",
   "description": "한국어 2줄 분석: 장르+특징 요약 (60자 이내)",
   "bpm_estimate": 128,
   "key_signature": "e.g., 'Cm', 'F#m', 'Ab' (best guess)",
@@ -189,6 +190,7 @@ Answer in JSON ONLY:
         const text = cd.content?.find(c => c.type === 'text')?.text || '';
         const clean = text.replace(/```json|```/g, '').trim();
         analysis = JSON.parse(clean);
+        _claudeOk = true;
         console.log('[yt-analyze] Claude OK:', analysis.genre, analysis.bpm_estimate);
       }
     } catch (e) {
@@ -227,7 +229,9 @@ Answer in JSON ONLY:
     category,
     duration,
     videoId,
-    _analyzed: !!apiKey && analysis && analysis.genre !== 'Pop',
+    _analyzed: _claudeOk,
+    _debugError: _debugError || undefined,
+    _keyPresent: !!apiKey,
     ...analysis,
   });
 }
