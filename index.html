@@ -3381,6 +3381,14 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-lyric-sec{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:2px;text-transform:uppercase;display:block;margin:14px 0 4px;opacity:.8;}
 .fp-lyric-sec:first-child{margin-top:0;}
 .fp-lyrics-mode-btn{padding:4px 10px;border-radius:var(--rx);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* 싱크 오프셋 조절 */
+.sync-offset-ctrl{display:inline-flex;align-items:center;gap:4px;margin-left:8px;}
+.sync-offset-btn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent;padding:0;line-height:1;}
+.sync-offset-btn:active{background:rgba(168,85,247,.3);border-color:rgba(168,85,247,.5);color:#fff;}
+.sync-offset-val{font-size:10px;font-weight:700;color:rgba(255,255,255,.5);min-width:40px;text-align:center;font-variant-numeric:tabular-nums;}
+[data-theme="light"] .sync-offset-btn{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:#48484a;}
+[data-theme="light"] .sync-offset-btn:active{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3);color:#7c3aed;}
+[data-theme="light"] .sync-offset-val{color:#48484a;}
 /* 가사 싱크 카라오케 스타일 */
 .fp-lline.active{color:#fff;font-weight:700;font-size:16px;text-shadow:0 0 20px rgba(168,85,247,.5);transition:all .3s ease;}
 .fp-lyrics-box{scroll-behavior:smooth;}
@@ -6466,6 +6474,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="fp-lyrics-header">
           <span>가사 전체</span>
           <button class="fp-lyrics-toggle" id="fp-lyrics-mode-btn" onclick="fpToggleLyricsMode()">싱크 모드</button>
+          <div class="sync-offset-ctrl" id="fp-sync-offset-ctrl" style="display:none;">
+            <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.5,'fp')" title="-0.5초">−</button>
+            <span class="sync-offset-val" id="fp-sync-offset-val">0.0s</span>
+            <button class="sync-offset-btn" onclick="adjustSyncOffset(0.5,'fp')" title="+0.5초">+</button>
+          </div>
         </div>
         <div class="fp-lyrics-box" id="fp-lyrics-box">
           <div class="fp-lyrics-empty">가사 없음</div>
@@ -7195,7 +7208,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <div id="karaoke-player">
   <div class="kp-header">
     <div class="kp-header-title">🎤 노래방 모드</div>
-    <button class="kp-close" id="kp-close-btn">✕ 닫기</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="sync-offset-ctrl" id="kp-sync-offset-ctrl">
+        <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.5,'kp')" title="-0.5초">−</button>
+        <span class="sync-offset-val" id="kp-sync-offset-val">0.0s</span>
+        <button class="sync-offset-btn" onclick="adjustSyncOffset(0.5,'kp')" title="+0.5초">+</button>
+      </div>
+      <button class="kp-close" id="kp-close-btn">✕ 닫기</button>
+    </div>
   </div>
   <div class="kp-body">
     <div class="kp-left">
@@ -17948,6 +17968,7 @@ function fpRenderLyrics(h){
   const syncBtn=$('fp-lyrics-mode-btn');
   if(hasLrc){
     if(syncBtn){ syncBtn.style.display=''; syncBtn.textContent='싱크 모드'; }
+    var _soCtrl2=$('fp-sync-offset-ctrl');if(_soCtrl2)_soCtrl2.style.display='';
     fpSyncMode=true;
     if(fpTimestampLines.length) fpTimestampLines[0].classList.add('active');
   } else if(fpTimestampLines.length>=2){
@@ -18012,13 +18033,32 @@ function fpToggleLyricsMode(){
   }
   fpSyncMode=!fpSyncMode;
   $('fp-lyrics-mode-btn').textContent=fpSyncMode?'싱크 모드':'일반 모드';
+  var _soCtrl=$('fp-sync-offset-ctrl');if(_soCtrl)_soCtrl.style.display=fpSyncMode?'':'none';
   if(!fpSyncMode)fpTimestampLines.forEach(l=>l.classList.remove('active','done'));
   toast(fpSyncMode?'🎤 싱크 모드 ON':'📝 일반 모드','',1500);
+}
+
+/* ── 싱크 오프셋 (가사가 빠르면 +, 느리면 -) ── */
+var _syncOffset=0;
+function adjustSyncOffset(delta,target){
+  _syncOffset=Math.round((_syncOffset+delta)*10)/10;
+  if(_syncOffset>5)_syncOffset=5;
+  if(_syncOffset<-5)_syncOffset=-5;
+  var label=(_syncOffset>=0?'+':'')+_syncOffset.toFixed(1)+'s';
+  var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent=label;
+  var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent=label;
+  toast('싱크 오프셋: '+label,'',1200);
+}
+function resetSyncOffset(){
+  _syncOffset=0;
+  var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent='0.0s';
+  var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent='0.0s';
 }
 
 var _fpPrevActiveIdx=-1;
 /* 전체모드 가사 싱크 — syncKpLyrics와 완전 동일한 로직 (DOM data-start/end 직접 읽기) */
 function fpSyncLyrics(currentTime){
+  currentTime=currentTime+_syncOffset;
   if(!fpTimestampLines.length||!fpAudio?.duration)return;
   /* data-start/data-end가 있으면 노래방과 동일한 정밀 싱크 */
   var firstEl=fpTimestampLines[0];
@@ -19128,6 +19168,7 @@ function renderKpPlainLyrics(plain){
 }
 
 function syncKpLyrics(currentTime){
+  currentTime=currentTime+_syncOffset;
   const lines=$('kp-lyrics-area').querySelectorAll('.kp-lyrics-line:not(.no-sync)');
   let activeEl=null;
   lines.forEach(el=>{
@@ -22488,6 +22529,8 @@ window.fpShareFacebook=typeof fpShareFacebook!=="undefined"?fpShareFacebook:wind
 window.fpShareInstagram=typeof fpShareInstagram!=="undefined"?fpShareInstagram:window.fpShareInstagram||function(){};
 window.fpDownload=typeof fpDownload!=="undefined"?fpDownload:window.fpDownload||function(){};
 window.fpToggleLyricsMode=typeof fpToggleLyricsMode!=="undefined"?fpToggleLyricsMode:window.fpToggleLyricsMode||function(){};
+window.adjustSyncOffset=typeof adjustSyncOffset!=="undefined"?adjustSyncOffset:window.adjustSyncOffset||function(){};
+window.resetSyncOffset=typeof resetSyncOffset!=="undefined"?resetSyncOffset:window.resetSyncOffset||function(){};
 window.fpSeekToLine=typeof fpSeekToLine!=="undefined"?fpSeekToLine:window.fpSeekToLine||function(){};
 window.fpDeleteCurrent=typeof fpDeleteCurrent!=="undefined"?fpDeleteCurrent:window.fpDeleteCurrent||function(){};
 window.fpShowDeleteConfirm=typeof fpShowDeleteConfirm!=="undefined"?fpShowDeleteConfirm:window.fpShowDeleteConfirm||function(){};
