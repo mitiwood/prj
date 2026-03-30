@@ -555,8 +555,14 @@ async function getActiveSession(chatId) {
 async function createSession(chatId, issueNumber) { /* Issue 생성이 곧 세션 생성 */ }
 /* 세션 종료 = Issue 닫기 */
 async function closeSession(chatId, issueNumber) {
-  try { await ghApi('PATCH', `/issues/${issueNumber}`, { state: 'closed', state_reason: 'completed' }); }
-  catch (e) { console.warn('[session-close]', e.message); }
+  try {
+    await ghApi('PATCH', `/issues/${issueNumber}`, { state: 'closed', state_reason: 'completed' });
+    console.log(`[session-close] Issue #${issueNumber} closed`);
+  } catch (e) {
+    console.error('[session-close] FAILED:', issueNumber, e.message);
+    /* 에러 발생 시 사용자에게 알림 */
+    if (chatId) await tgSend(chatId, `⚠️ Issue #${issueNumber} 닫기 실패: ${e.message?.slice(0,60)}`, { parse_mode: '' }).catch(() => {});
+  }
 }
 
 /* ── GitHub API 헬퍼 ── */
