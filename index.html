@@ -11620,15 +11620,16 @@ async function generate(overrideParams){
     /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
     var _promptHasKo=/[\uAC00-\uD7AF]/.test(prompt);
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
-    else if(isCustom && (subGenre||moodVal)){ body.style = styleStr||moodVal; }
-    /* 심플모드: 가사가 있으면 설명+분위기를 style로 전달 */
     else if(isSimple && _simpleHasRealLyrics){
+      /* 심플모드(가사 있음): 설명+분위기+아티스트 스타일 태그 합산 */
       var _simpleStyle=[];
       var _sd=($('simple-prompt')?.value||'').trim();
       if(_sd) _simpleStyle.push(_sd);
       if(moodVal) _simpleStyle.push(moodVal);
+      if(styleStr) _simpleStyle.push(styleStr);
       if(_simpleStyle.length) body.style=_simpleStyle.join(', ');
     }
+    else if(styleStr){ body.style = styleStr; }
     if(_promptHasKo && !instOn && body.style && body.style.toLowerCase().indexOf('korean')===-1){
       body.style = 'Korean lyrics, Korean vocal, sung in Korean, ' + body.style;
       if(body.style.length>999) body.style=body.style.slice(0,999);
