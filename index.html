@@ -8721,6 +8721,9 @@ async function _ytDoGenerate(){
   /* 로그인 체크 (게스트 모드 허용) */
   if(!currentUser && !isGuestMode()){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
   if(!currentUser && isGuestMode() && _getGuestUsage()>=GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
+  /* 게스트 선차감 */
+  var _ytGuestPreDeducted=false;
+  if(!currentUser && isGuestMode()){ _incGuestUsage(); _ytGuestPreDeducted=true; }
 
   /* 입력값 수집 — 분석화면 가사 (yt-lyrics-ta) 사용 */
   const _ytTa      = document.getElementById('yt-lyrics-ta');
@@ -8939,13 +8942,9 @@ async function _ytDoGenerate(){
     });
     historyData = historyData.slice(0,30);
     saveHistory(); updateHistBadge();
-    /* 게스트 모드: 실제 생성된 트랙 수만큼 사용량 증가 */
-    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
-      var _ytAddedCount=tracks.filter(t=>!!(t.audioUrl||t.audio_url||t.song_path)).length;
-      for(var _ygi=0;_ygi<_ytAddedCount;_ygi++) _incGuestUsage();
-      var _ygRemain=GUEST_SONG_LIMIT-_getGuestUsage();
-      if(_ygRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
-      else toast('👤 게스트 체험 '+_ygRemain+'곡 남았어요','info',3000);
+    /* 게스트 모드: 사용량은 선차감됨 — 한도 도달 시 로그인 유도 */
+    if(_ytGuestPreDeducted && _getGuestUsage()>=GUEST_SONG_LIMIT){
+      setTimeout(function(){_showGuestLoginPrompt();},2000);
     }
     trackUsage('song',{mode:'youtube',title:songTitle});
     showCompletionPopup('youtube','');
@@ -8974,6 +8973,8 @@ async function _ytDoGenerate(){
     _notifyMusicCreated(tracks, 'youtube', ytStyle);
 
   }catch(e){
+    /* 게스트 선차감 되돌리기 */
+    if(_ytGuestPreDeducted){var _ytCur=_getGuestUsage();if(_ytCur>0) localStorage.setItem('kms_guest_songs',(_ytCur-1).toString());}
     _stopLdTips();
     $('loading-card').classList.remove('on');
     console.error('%c[Generate] %cYT-ERROR%c '+e.message+' ('+(Date.now()-_ytT0)+'ms)','color:#a78bfa;font-weight:bold','color:#ef4444;font-weight:bold','color:inherit');
@@ -11412,8 +11413,16 @@ async function generate(overrideParams){
     }
   }
   _globalGenerating = true; _syncGenButtons();
-  /* 게스트 모드: 강제 1곡 생성 */
-  if(!currentUser && typeof isGuestMode==='function' && isGuestMode()) _genCount=1;
+  /* 게스트 모드: 강제 1곡 생성 + 사용량 즉시 선차감 */
+  var _guestPreDeducted=false;
+  if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+    _genCount=1;
+    _incGuestUsage();
+    _guestPreDeducted=true;
+    var _gRemainPre=GUEST_SONG_LIMIT-_getGuestUsage();
+    if(_gRemainPre>0) toast('👤 게스트 체험 '+_gRemainPre+'곡 남았어요','info',3000);
+    else if(_gRemainPre===0) toast('⚠️ 게스트 체험 마지막 곡이에요','warn',3000);
+  }
   /* 모드별 입력값 수집 */
   const isSimple=currentMode==='simple';
   const isYT=currentMode==='youtube' || !!overrideParams?._ytMode;
@@ -11673,13 +11682,9 @@ async function generate(overrideParams){
     });
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
-    /* 게스트 모드: 실제 생성된 트랙 수만큼 사용량 증가 (trackUsage에서는 스킵) */
-    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
-      var _addedCount=tracks.filter(t=>!!(t.audioUrl||t.audio_url||t.song_path)).length;
-      for(var _gi=0;_gi<_addedCount;_gi++) _incGuestUsage();
-      var _gRemain2=GUEST_SONG_LIMIT-_getGuestUsage();
-      if(_gRemain2<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
-      else toast('👤 게스트 체험 '+_gRemain2+'곡 남았어요','info',3000);
+    /* 게스트 모드: 사용량은 생성 시작 시 선차감됨 — 완료 후 한도 도달 시 로그인 유도 */
+    if(_guestPreDeducted && _getGuestUsage()>=GUEST_SONG_LIMIT){
+      setTimeout(function(){_showGuestLoginPrompt();},2000);
     }
     /* 생성 설정 히스토리 저장 */
     _addGenHistory(songTitle||lastTracks[0]?.title||'무제',styleStr||'',{
@@ -11729,6 +11734,10 @@ async function generate(overrideParams){
     }
   }catch(e){
     _clearGenSession();
+    /* 게스트 선차감 되돌리기 (생성 실패 시) */
+    if(_guestPreDeducted){
+      var _cur=_getGuestUsage();if(_cur>0) localStorage.setItem('kms_guest_songs',(_cur-1).toString());
+    }
     /* gp-steps 제거됨 */
     if(typeof _stopLdTips==='function') _stopLdTips();
     $('loading-card').classList.remove('on');
