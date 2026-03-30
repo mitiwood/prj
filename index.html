@@ -7324,7 +7324,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button onclick="startGuestMode()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--t2);width:100%;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
         <span style="font-size:16px;">👤</span>
         <span>로그인 없이 체험하기</span>
-        <span style="font-size:10px;color:var(--acc);font-weight:700;background:rgba(124,58,237,.15);padding:2px 6px;border-radius:6px;">2곡 무료</span>
+        <span style="font-size:10px;color:var(--acc);font-weight:700;background:rgba(124,58,237,.15);padding:2px 6px;border-radius:6px;">5곡 무료</span>
       </button>
     </div>
   </div>
@@ -8171,7 +8171,7 @@ function socialLogin(provider){
   }
 }
 /* ── 게스트 모드 ── */
-var GUEST_SONG_LIMIT = 2;
+var GUEST_SONG_LIMIT = 5;
 function _getGuestUsage(){ return parseInt(localStorage.getItem('kms_guest_songs')||'0',10); }
 function _incGuestUsage(){ localStorage.setItem('kms_guest_songs', (_getGuestUsage()+1).toString()); }
 function isGuestMode(){ return !!localStorage.getItem('kms_guest_mode'); }
@@ -8935,6 +8935,14 @@ async function _ytDoGenerate(){
     });
     historyData = historyData.slice(0,30);
     saveHistory(); updateHistBadge();
+    /* 게스트 모드: 실제 생성된 트랙 수만큼 사용량 증가 */
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+      var _ytAddedCount=tracks.filter(t=>!!(t.audioUrl||t.audio_url||t.song_path)).length;
+      for(var _ygi=0;_ygi<_ytAddedCount;_ygi++) _incGuestUsage();
+      var _ygRemain=GUEST_SONG_LIMIT-_getGuestUsage();
+      if(_ygRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
+      else toast('👤 게스트 체험 '+_ygRemain+'곡 남았어요','info',3000);
+    }
     trackUsage('song',{mode:'youtube',title:songTitle});
     showCompletionPopup('youtube','');
     _hideStepsShowResults('youtube');
@@ -11656,6 +11664,14 @@ async function generate(overrideParams){
     });
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
+    /* 게스트 모드: 실제 생성된 트랙 수만큼 사용량 증가 (trackUsage에서는 스킵) */
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+      var _addedCount=tracks.filter(t=>!!(t.audioUrl||t.audio_url||t.song_path)).length;
+      for(var _gi=0;_gi<_addedCount;_gi++) _incGuestUsage();
+      var _gRemain2=GUEST_SONG_LIMIT-_getGuestUsage();
+      if(_gRemain2<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
+      else toast('👤 게스트 체험 '+_gRemain2+'곡 남았어요','info',3000);
+    }
     /* 생성 설정 히스토리 저장 */
     _addGenHistory(songTitle||lastTracks[0]?.title||'무제',styleStr||'',{
       lyrics:lastLyricsInput||'',genre:subGenre||'',mood:moodVal||'',
@@ -23047,14 +23063,7 @@ function getPlan(){ try{ return JSON.parse(localStorage.getItem('kms_plan')||'{"
 
 /* 사용량 기록 — kieRequest 호출 후 각 mode에서 호출 */
 function trackUsage(type, meta={}){
-  /* 게스트 모드: song 사용량 별도 추적 */
-  if(!currentUser && isGuestMode() && type==='song'){
-    _incGuestUsage();
-    var gRemain=GUEST_SONG_LIMIT-_getGuestUsage();
-    _showGuestCTA();
-    if(gRemain<=0) setTimeout(function(){_showGuestLoginPrompt();},2000);
-    else toast('👤 게스트 체험 '+gRemain+'곡 남았어요','info',3000);
-  }
+  /* 게스트 모드: song 사용량은 generate() 완료 시 트랙 수 기준으로 이미 카운트됨 — 여기서는 스킵 */
   /* 크레딧 사용 내역 기록 */
   try{_addCreditHistory(type,meta.title||meta.mode||type);}catch(e){}
   /* 서버 크레딧 차감 (모든 타입) */
