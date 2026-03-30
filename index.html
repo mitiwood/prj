@@ -5225,6 +5225,19 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div style="font-size:10px;color:var(--t3);margin-top:4px;" id="yt-dur-hint">기본 생성 (~1분). 보통/길게는 자동 연장됩니다.</div>
           </div>
 
+          <div class="form-grp">
+            <div class="form-label"><span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> 보컬 언어</div>
+            <select class="opt-select" id="yt-vocal-lang" style="padding:12px;border-radius:14px;font-size:13px;">
+              <option value="Korean" selected>한국어 (기본)</option>
+              <option value="English">영어</option>
+              <option value="Japanese">일본어</option>
+              <option value="Chinese">중국어</option>
+              <option value="Spanish">스페인어</option>
+              <option value="French">프랑스어</option>
+              <option value="">자동 (분석 결과 따름)</option>
+            </select>
+          </div>
+
           <div class="options-row">
             <div class="opt-group">
               <div class="opt-label">인스트루멘탈</div>
@@ -8733,9 +8746,11 @@ async function _ytDoGenerate(){
   /* ── 가사 비어있고 인스트루멘탈 아니면 → 가사 생성을 백그라운드로 시작 (음악 생성과 병렬) ── */
   var _ytLyricsPromise = null;
   if(!ytLyrics && !isInst){
+    var _autoLang = ($('yt-vocal-lang')?.value || '').trim();
+    var _langHint = _autoLang ? ('Write lyrics in ' + _autoLang + '. ') : '';
     var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
     var lyricsStyle = _lastYtAnalysis.lyrics_style || '';
-    var lyricsPrompt = [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
+    var lyricsPrompt = _langHint + [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
     _ytLyricsPromise = _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300)).catch(function(e){ console.warn('[YT auto-lyrics]', e.message); return ''; });
   }
 
@@ -8758,12 +8773,22 @@ async function _ytDoGenerate(){
     prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
   }
 
-  /* 가사에 한글이 포함되면 style에 Korean vocal 힌트 추가 */
-  var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
+  /* 보컬 언어 선택 반영 */
+  var _ytVocalLang = ($('yt-vocal-lang')?.value || '').trim();
   var _finalStyle = ytStyle || ytMood || '';
-  if(_hasKorean && !isInst && _finalStyle.toLowerCase().indexOf('korean')===-1){
-    _finalStyle = 'Korean lyrics, Korean vocal, sung in Korean, ' + _finalStyle;
-    if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
+  if(!isInst && _ytVocalLang){
+    var _langTag = _ytVocalLang + ' lyrics, ' + _ytVocalLang + ' vocal, sung in ' + _ytVocalLang;
+    if(_finalStyle.toLowerCase().indexOf(_ytVocalLang.toLowerCase())===-1){
+      _finalStyle = _langTag + ', ' + _finalStyle;
+      if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
+    }
+  } else if(!isInst){
+    /* 언어 미선택(자동) + 가사에 한글 포함 시 Korean 힌트 */
+    var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
+    if(_hasKorean && _finalStyle.toLowerCase().indexOf('korean')===-1){
+      _finalStyle = 'Korean lyrics, Korean vocal, sung in Korean, ' + _finalStyle;
+      if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
+    }
   }
 
   try{
