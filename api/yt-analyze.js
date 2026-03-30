@@ -272,20 +272,22 @@ function _parseJsonResponse(text) {
 /** 메타데이터 기반 스마트 분석 (LLM 없이) — 고도화 v2 */
 function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   const all = `${title} ${author} ${desc} ${tags}`.toLowerCase();
-  const cleanTitle = title.replace(/[\(\[\]].*/g, '').replace(/\/\s*가사.*$/i, '').trim();
+  // 제목 정리: [가사/Lyrics] 등 접미 제거하되, 아티스트-곡명 파싱 전에는 괄호 유지
+  const titleForParse = title.replace(/\s*[\[\(](?:가사|lyrics|lyric|mv|official|music video|audio|live).*$/i, '').trim();
+  const cleanTitle = titleForParse.replace(/[\(\[][^\)\]]*[\)\]]/g, '').trim();
 
   // ── 아티스트·곡명 파싱 (YouTube "- Topic" 채널 처리 포함) ──
   let artist = '', songName = cleanTitle;
   // "Artist - Topic" 채널에서 아티스트 추출
   const topicMatch = author.match(/^(.+?)\s*-\s*Topic$/i);
   if (topicMatch) artist = topicMatch[1].trim();
-  // 제목에서 "Artist - Song" 파싱
-  const dashMatch = cleanTitle.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  // 제목에서 "Artist - Song" 파싱 (괄호 포함 원본에서 먼저 시도)
+  const dashMatch = titleForParse.match(/^(.+?)\s*[-–—]\s*(.+)$/);
   if (dashMatch) {
-    if (!artist) artist = dashMatch[1].trim();
-    songName = dashMatch[2].trim();
+    if (!artist) artist = dashMatch[1].replace(/[\(\[][^\)\]]*[\)\]]/g, '').trim();
+    songName = dashMatch[2].replace(/[\(\[][^\)\]]*[\)\]]/g, '').trim();
   }
-  // author 폴백
+  // author 폴백 (가사 채널 등 비음악 채널이면 제목에서 추출한 아티스트 우선)
   if (!artist && author) artist = author.replace(/\s*-\s*Topic$/i, '').trim();
 
   // 한국어/일본어/영어 감지
