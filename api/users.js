@@ -18,7 +18,7 @@ let _memStore = [];
 
 async function _kakaoNotify(event, data) {
   try {
-    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+    await fetch('https://ddinggok.com/api/kakao-notify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, data }),
     });
@@ -119,10 +119,42 @@ export default async function handler(req, res) {
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
       body = body || {};
 
-      const { name, provider, email, avatar, id, ua, isMobile, lastLogin, loginCount } = body;
+      const { name, provider, email, avatar, id, ua, isMobile, lastLogin, loginCount, guestAction, guestUsage } = body;
       if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
 
       const now = typeof lastLogin === 'number' ? lastLogin : Date.now();
+
+      /* ── 게스트 사용자 추적 ── */
+      if (provider === 'guest') {
+        const clientIp = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+        let guestLocation = '';
+        if (clientIp && clientIp !== '127.0.0.1' && clientIp !== '::1') {
+          try {
+            const geoRes = await fetch(`http://ip-api.com/json/${clientIp}?fields=status,regionName,city&lang=ko`);
+            const geo = await geoRes.json();
+            if (geo.status === 'success') guestLocation = [geo.regionName, geo.city].filter(Boolean).join(' ');
+          } catch {}
+        }
+        try {
+          let existingGuest = [];
+          try { existingGuest = await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.guest&select=login_count,credits_song`); } catch {}
+          const gVisits = (existingGuest?.[0]?.login_count || 0) + (guestAction === 'start' ? 1 : 0);
+          const gSongs = typeof guestUsage === 'number' ? guestUsage : (existingGuest?.[0]?.credits_song || 0);
+          const gEntry = {
+            name, provider: 'guest', email: '', avatar: '',
+            ua: (ua || '').slice(0, 250), is_mobile: !!isMobile,
+            last_login: Date.now(), login_count: Math.max(gVisits, 1),
+            credits_song: gSongs, plan: 'guest',
+            ...(clientIp ? { last_ip: clientIp } : {}),
+            ...(guestLocation ? { last_location: guestLocation } : {}),
+          };
+          await sbFetch('/users?on_conflict=name,provider', {
+            method: 'POST', prefer: 'resolution=merge-duplicates',
+            body: JSON.stringify(gEntry),
+          });
+        } catch (e) { console.warn('[guest track]', e.message); }
+        return res.status(200).json({ ok: true, guest: true });
+      }
 
       /* IP 추출 + 위치 조회 */
       const clientIp = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '').split(',')[0].trim();
@@ -253,7 +285,7 @@ export default async function handler(req, res) {
           _tgNotify('plan_change', { name, provider, plan }),
           _kakaoNotify('plan_change', { name, provider, plan }),
           /* plan_changed 이벤트 브로드캐스트 → 클라이언트 배지 즉시 갱신 */
-          fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ai-music-studio-bice.vercel.app'}/api/realtime`, {
+          fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ddinggok.com'}/api/realtime`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
             body: JSON.stringify({ event: 'plan_changed', data: { user: name, provider, plan, targetUser: name } }),
@@ -274,7 +306,7 @@ export default async function handler(req, res) {
                 if (raw.length === 91) vapidPub = raw.slice(26).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
               } catch {}
               webpush.setVapidDetails('mailto:admin@ai-music-studio.app', vapidPub, vapidPrv);
-              const payload = JSON.stringify({ title: '🎫 플랜이 변경되었어요!', body: planLabel + ' 플랜으로 업그레이드되었습니다', icon: '/icon-192.png', url: 'https://ai-music-studio-bice.vercel.app' });
+              const payload = JSON.stringify({ title: '🎫 플랜이 변경되었어요!', body: planLabel + ' 플랜으로 업그레이드되었습니다', icon: '/icon-192.png', url: 'https://ddinggok.com' });
               for (const row of subs) {
                 if (row.subscription?.endpoint) {
                   try { await webpush.sendNotification(row.subscription, payload); } catch {}

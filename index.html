@@ -8178,9 +8178,26 @@ function isGuestMode(){ return !!localStorage.getItem('kms_guest_mode'); }
 
 function startGuestMode(){
   localStorage.setItem('kms_guest_mode','1');
+  /* 게스트 고유 ID 생성 (세션 추적용) */
+  if(!localStorage.getItem('kms_guest_id')){
+    localStorage.setItem('kms_guest_id','guest_'+Date.now()+'_'+Math.random().toString(36).slice(2,8));
+  }
   closeLoginSheet();
   toast('👤 게스트 모드로 시작합니다 · '+GUEST_SONG_LIMIT+'곡 무료 체험','ok',3000);
   _showGuestCTA();
+  /* 서버에 게스트 세션 기록 */
+  _trackGuestActivity('start');
+}
+function _trackGuestActivity(action){
+  try{
+    var gid=localStorage.getItem('kms_guest_id')||'unknown';
+    var usage=_getGuestUsage();
+    fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name:gid,provider:'guest',email:'',avatar:'',
+      ua:navigator.userAgent||'',isMobile:/Mobi|Android/i.test(navigator.userAgent),
+      guestAction:action,guestUsage:usage
+    })}).catch(function(){});
+  }catch(e){}
 }
 
 function _showGuestCTA(){
@@ -11683,8 +11700,9 @@ async function generate(overrideParams){
     historyData=historyData.slice(0,30);
     saveHistory();updateHistBadge();
     /* 게스트 모드: 사용량은 생성 시작 시 선차감됨 — 완료 후 한도 도달 시 로그인 유도 */
-    if(_guestPreDeducted && _getGuestUsage()>=GUEST_SONG_LIMIT){
-      setTimeout(function(){_showGuestLoginPrompt();},2000);
+    if(_guestPreDeducted){
+      if(typeof _trackGuestActivity==='function') _trackGuestActivity('generate');
+      if(_getGuestUsage()>=GUEST_SONG_LIMIT) setTimeout(function(){_showGuestLoginPrompt();},2000);
     }
     /* 생성 설정 히스토리 저장 */
     _addGenHistory(songTitle||lastTracks[0]?.title||'무제',styleStr||'',{

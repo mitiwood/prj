@@ -1043,6 +1043,7 @@ textarea.form-input{line-height:1.5;}
           <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
           <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-val" id="ustat-mobile">0%</div><div class="stat-label">모바일 비율</div></div>
           <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
+          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-guest">0</div><div class="stat-label">게스트</div></div>
         </div>
 
         <!-- 소셜 분포 미니 바 -->
@@ -1055,6 +1056,21 @@ textarea.form-input{line-height:1.5;}
           <button class="btn" id="utab-provider" onclick="switchUserTab('provider')" style="font-size:12px;padding:7px 16px;">📊 소셜별 분류</button>
           <button class="btn" id="utab-creator" onclick="switchUserTab('creator')" style="font-size:12px;padding:7px 16px;">🎵 생성 기여자</button>
           <button class="btn" id="utab-activity" onclick="switchUserTab('activity')" style="font-size:12px;padding:7px 16px;">📝 활동 로그</button>
+          <button class="btn" id="utab-guest" onclick="switchUserTab('guest')" style="font-size:12px;padding:7px 16px;">👤 게스트</button>
+        </div>
+
+        <!-- 게스트 사용자 뷰 -->
+        <div id="utab-panel-guest" style="display:none;">
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <h3>게스트 사용자 <span id="guest-user-count" style="font-size:11px;color:var(--t3);font-weight:400;"></span></h3>
+              <button class="btn btn-acc" onclick="_loadGuestUsers()" style="font-size:11px;">🔄 새로고침</button>
+            </div>
+            <table>
+              <thead><tr><th>ID</th><th>디바이스</th><th>위치</th><th>생성곡</th><th>방문수</th><th>마지막 접속</th><th>관리</th></tr></thead>
+              <tbody id="guest-users-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- 소셜별 분류 뷰 -->
@@ -1729,7 +1745,7 @@ textarea.form-input{line-height:1.5;}
               <!-- 이동 URL -->
               <div>
                 <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">클릭 URL</div>
-                <input class="settings-input" id="ann-url" value="https://ai-music-studio-bice.vercel.app" style="width:100%;" placeholder="https://...">
+                <input class="settings-input" id="ann-url" value="https://ddinggok.com" style="width:100%;" placeholder="https://...">
               </div>
               <!-- 노출 대상 -->
               <div>
@@ -1843,7 +1859,7 @@ textarea.form-input{line-height:1.5;}
             <!-- 이동 URL -->
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">클릭 시 이동 URL</div>
-              <input class="settings-input" id="push-url" placeholder="https://ai-music-studio-bice.vercel.app" style="width:100%;max-width:500px;" value="https://ai-music-studio-bice.vercel.app">
+              <input class="settings-input" id="push-url" placeholder="https://ddinggok.com" style="width:100%;max-width:500px;" value="https://ddinggok.com">
             </div>
 
             <!-- 미리보기 -->
@@ -1854,7 +1870,7 @@ textarea.form-input{line-height:1.5;}
                 <div style="flex:1;min-width:0;">
                   <div style="font-size:13px;font-weight:700;color:var(--t1);" id="prev-title">띵곡</div>
                   <div style="font-size:12px;color:var(--t2);margin-top:3px;line-height:1.4;" id="prev-body">알림 내용이 여기에 표시됩니다</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:4px;">지금 · ai-music-studio-bice.vercel.app</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:4px;">지금 · ddinggok.com</div>
                 </div>
               </div>
             </div>
@@ -1946,7 +1962,7 @@ textarea.form-input{line-height:1.5;}
         <div class="chart-card" style="margin-bottom:16px;border:1px solid rgba(168,85,247,.3);">
           <h4 style="margin-bottom:8px;">🔗 매니저 로그인 페이지</h4>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input class="settings-input" value="https://ai-music-studio-bice.vercel.app/admin/login.html" readonly style="flex:1;min-width:200px;font-size:11px;" onclick="this.select();document.execCommand('copy');adminToast('📋 URL 복사됨')">
+            <input class="settings-input" value="https://ddinggok.com/admin/login.html" readonly style="flex:1;min-width:200px;font-size:11px;" onclick="this.select();document.execCommand('copy');adminToast('📋 URL 복사됨')">
             <a href="login.html" target="_blank" class="btn btn-acc" style="font-size:12px;text-decoration:none;">열기 →</a>
           </div>
           <div style="font-size:11px;color:var(--t3);margin-top:6px;">매니저에게 이 URL과 아이디/비밀번호를 전달하세요</div>
@@ -4891,7 +4907,7 @@ let _creatorMap = {};
 
 function switchUserTab(tab){
   _uTabCurrent = tab;
-  ['login','provider','creator','activity'].forEach(function(t){
+  ['login','provider','creator','activity','guest'].forEach(function(t){
     var panel=document.getElementById('utab-panel-'+t);
     var btn=document.getElementById('utab-'+t);
     if(panel) panel.style.display = t===tab ? '' : 'none';
@@ -4899,6 +4915,55 @@ function switchUserTab(tab){
   });
   if(tab==='activity') _loadActivityLogs();
   if(tab==='provider') _renderProviderGroupView();
+  if(tab==='guest') _loadGuestUsers();
+}
+
+/* ── 게스트 사용자 조회/렌더 ── */
+var _guestUsers=[];
+async function _loadGuestUsers(){
+  var tbody=document.getElementById('guest-users-tbody');
+  var countEl=document.getElementById('guest-user-count');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3);">로딩 중...</td></tr>';
+  try{
+    var r=await adminFetch('/api/users');
+    var d=await r.json();
+    _guestUsers=(d.users||[]).filter(function(u){return u.provider==='guest';});
+    _guestUsers.sort(function(a,b){return (b.last_login||0)-(a.last_login||0);});
+  }catch(e){_guestUsers=[];console.warn('[Guest]',e.message);}
+  if(countEl) countEl.textContent='('+_guestUsers.length+'명)';
+  if(!_guestUsers.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t3);">게스트 사용자가 없습니다</td></tr>';
+    return;
+  }
+  var now=Date.now();
+  tbody.innerHTML=_guestUsers.map(function(g,i){
+    var id=(g.name||'').replace('guest_','').slice(0,12);
+    var device=g.is_mobile?'📱 모바일':'💻 PC';
+    var loc=g.last_location||'-';
+    var songs=g.credits_song||0;
+    var visits=g.login_count||1;
+    var lastT=g.last_login?_timeAgo(g.last_login):'알 수 없음';
+    var isOnline=g.last_login&&(now-g.last_login<5*60*1000);
+    var onlineDot=isOnline?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>':'';
+    return '<tr>'
+      +'<td style="font-size:11px;font-family:monospace;">'+onlineDot+id+'</td>'
+      +'<td>'+device+'</td>'
+      +'<td style="font-size:11px;">'+_esc(loc)+'</td>'
+      +'<td style="font-weight:700;">'+songs+'/5</td>'
+      +'<td>'+visits+'회</td>'
+      +'<td style="font-size:11px;">'+lastT+'</td>'
+      +'<td><button class="btn" onclick="_deleteGuestUser(\''+_esc(g.name)+'\')" style="font-size:10px;padding:4px 8px;color:#ef4444;">삭제</button></td>'
+      +'</tr>';
+  }).join('');
+}
+async function _deleteGuestUser(name){
+  if(!confirm('게스트 "'+name+'" 데이터를 삭제할까요?')) return;
+  try{
+    await adminFetch('/api/users?name='+encodeURIComponent(name)+'&provider=guest',{method:'DELETE'});
+    toast('삭제 완료','ok');
+    _loadGuestUsers();
+  }catch(e){toast('삭제 실패: '+e.message,'err');}
 }
 
 /* ── 소셜별 분류 뷰 ── */
@@ -5044,6 +5109,9 @@ async function renderUsersAdmin(showToast=false){
     }
   }catch(e){ console.warn('[Admin] 사용자 조회 실패:',e.message); }
   if(!loginUsers.length) loginUsers=getLoginUsers();
+  /* 게스트 분리 */
+  var guestCount=loginUsers.filter(function(u){return u.provider==='guest';}).length;
+  loginUsers=loginUsers.filter(function(u){return u.provider!=='guest';});
   _allLoginUsers = loginUsers;
 
   const now=Date.now(), ONLINE=5*60*1000;
@@ -5076,6 +5144,7 @@ async function renderUsersAdmin(showToast=false){
   if(_s('ustat-creator')) _s('ustat-creator').textContent=creators.length;
   if(_s('ustat-mobile')) _s('ustat-mobile').textContent=mobilePct+'%';
   if(_s('ustat-push')) _s('ustat-push').textContent=pushSubs;
+  if(_s('ustat-guest')) _s('ustat-guest').textContent=guestCount;
 
   /* 소셜 분포 바 */
   const provCnt={google:0,kakao:0,naver:0,other:0};
@@ -5344,7 +5413,7 @@ async function checkTelegramBot(){
 }
 async function testTelegramMsg(){
   try{
-    const r=await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify({event:'test',data:{message:'🧪 Kenny Music Studio 텔레그램 연동 테스트'}})});
+    const r=await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAdminPw()},body:JSON.stringify({event:'test',data:{message:'🧪 띵곡 텔레그램 연동 테스트'}})});
     const d=await r.json();
     if(d.ok) adminToast('✅ 텔레그램 메시지 전송 성공!');
     else adminToast('❌ 전송 실패: '+(d.error||''));
@@ -5386,7 +5455,7 @@ function adminToast(msg){
 
 // ── 푸시 알림 ──
 const PUSH_HISTORY_KEY = 'kms_push_history';
-const ADMIN_APP_URL = 'https://ai-music-studio-bice.vercel.app';
+const ADMIN_APP_URL = 'https://ddinggok.com';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    인앱 팝업 공지 시스템
@@ -6738,7 +6807,7 @@ async function saveManager(){
           if(nd.method==='resend') adminToast('✅ 매니저 추가 + 이메일 발송 완료!');
           else if(nd.method==='manual'){
             /* Resend 미설정 → mailto 열기 */
-            const loginUrl = 'https://ai-music-studio-bice.vercel.app/admin/login.html';
+            const loginUrl = 'https://ddinggok.com/admin/login.html';
             const mailBody = `안녕하세요 ${name}님,\n\n띵곡 매니저 계정이 생성되었습니다.\n\n아이디: ${id}\n권한: ${role}\n\n로그인: ${loginUrl}\n비밀번호는 관리자에게 문의하세요.`;
             const mailUrl = 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('[띵곡] 매니저 계정 생성 안내')+'&body='+encodeURIComponent(mailBody);
             window.open(mailUrl,'_blank');
@@ -7509,7 +7578,7 @@ function _liveTemplate(type){
     feature:     { icon:'🆕', title:'신기능 출시', body:'새로운 기능을 만나보세요!' },
     maintenance: { icon:'🔧', title:'점검 안내', body:'잠시 후 서비스 점검이 예정되어 있어요.' },
     challenge:   { icon:'🔥', title:'챌린지 공개', body:'새로운 챌린지에 참여해보세요!' },
-    welcome:     { icon:'👋', title:'환영합니다!', body:'Kenny\'s Music Studio에 오신 것을 환영합니다!' },
+    welcome:     { icon:'👋', title:'환영합니다!', body:'띵곡에 오신 것을 환영합니다!' },
     credit:      { icon:'💎', title:'크레딧 지급', body:'무료 크레딧이 지급됐어요! 지금 곡을 만들어보세요.' },
   };
   const t = templates[type] || templates.update;
