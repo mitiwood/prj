@@ -4936,6 +4936,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
                   <option value="V4_5" selected>V4.5 (권장)</option>
                   <option value="V4_5PLUS">V4.5+ (8분)</option>
                   <option value="V5">V5 (최신)</option>
+                  <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
+                  <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
                 </select>
               </div>
               <div class="opt-group">
@@ -6937,6 +6939,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <option value="V4_5">V4.5 (권장)</option>
         <option value="V4_5PLUS">V4.5+</option>
         <option value="V5">V5 (최신)</option>
+                  <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
+                  <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
         <option value="V4">V4</option>
       </select>
     </div>
@@ -7008,6 +7012,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <option value="V4_5">V4.5 (권장)</option>
         <option value="V4_5PLUS">V4.5+</option>
         <option value="V5">V5 (최신)</option>
+                  <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
+                  <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
       </select>
     </div>
 
@@ -7077,6 +7083,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <option value="V4_5">V4.5 (권장)</option>
           <option value="V4_5PLUS">V4.5+</option>
           <option value="V5">V5 (최신)</option>
+                  <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
+                  <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
         </select>
       </div>
     </div>
@@ -7140,6 +7148,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <option value="V4_5">V4.5 (권장)</option>
           <option value="V4_5PLUS">V4.5+</option>
           <option value="V5">V5 (최신)</option>
+                  <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
+                  <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
         </select>
       </div>
     </div>
@@ -8936,18 +8946,44 @@ async function _ytDoGenerate(){
 
     /* debug removed */
 
-    const genData = await kieRequest(apiKey,'POST','/api/v1/generate',body);
-    const taskId  = genData?.data?.taskId || genData?.taskId;
-    if(!taskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
+    /* ── Lyria 모델 감지 → 별도 생성 흐름 ── */
+    var _isLyria = model.startsWith('LYRIA');
+    var tracks;
+    if(_isLyria){
+      if($('ld-sub'))$('ld-sub').innerHTML='🌐 Google Lyria로 생성 중...<br>1~2분 소요될 수 있어요';
+      var _lyriaBody = {
+        prompt: prompt,
+        style: _finalStyle,
+        instrumental: isInst,
+        title: songTitle,
+        vocalGender: ytVocalGender || '',
+        model: model === 'LYRIA_CLIP' ? 'clip' : 'pro',
+        userName: currentUser?.name || (isGuestMode() ? 'guest' : ''),
+        userProvider: currentUser?.provider || (isGuestMode() ? 'guest' : ''),
+      };
+      var _lyriaRes = await fetch('/api/lyria-generate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(_lyriaBody),
+      });
+      var _lyriaData = await _lyriaRes.json();
+      if(!_lyriaRes.ok) throw new Error(_lyriaData?.error || 'Lyria 생성 실패');
+      tracks = _lyriaData?.tracks || _lyriaData?.data?.response?.sunoData || [];
+      if(!tracks.length) throw new Error('Lyria 트랙을 받지 못했어요');
+    } else {
+      const genData = await kieRequest(apiKey,'POST','/api/v1/generate',body);
+      const taskId  = genData?.data?.taskId || genData?.taskId;
+      if(!taskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
 
-    lastTaskId = taskId;
-    if($('ld-task')) $('ld-task').textContent='';
-    $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
+      lastTaskId = taskId;
+      if($('ld-task')) $('ld-task').textContent='';
+      $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
-    const _rawYtTracks = await pollResult(apiKey, taskId);
-    if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
-    /* ✅ FIX: 생성 실패 트랙 필터링 */
-    var tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+      const _rawYtTracks = await pollResult(apiKey, taskId);
+      if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
+      /* ✅ FIX: 생성 실패 트랙 필터링 */
+      tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+    }
     if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
 
     /* ── 곡 길이 옵션: normal/long이면 자동 연장 ── */
@@ -11671,23 +11707,54 @@ async function generate(overrideParams){
     /* kie.ai generate API는 duration을 지원하지 않음 — 제거 */
 
     _genLog('API','POST /api/v1/generate',{model:body.model,inst:body.instrumental,style:(body.style||'').slice(0,60),prompt:(body.prompt||'').slice(0,40)});
-    const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
-    const taskId=genData?.data?.taskId||genData?.taskId;
-    _genLog('TASK',taskId?'taskId='+taskId:'taskId 없음!');
-    if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
-    lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
-    _saveGenSession(taskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
-    $('ld-task').textContent='';
+    /* ── Lyria 모델 감지 → 별도 생성 흐름 ── */
+    var _isLyriaMain = model.startsWith('LYRIA');
+    var tracks;
+    if(_isLyriaMain){
+      var _ldSubLyria=$('ld-sub');if(_ldSubLyria)_ldSubLyria.innerHTML='🌐 Google Lyria로 생성 중...<br>1~2분 소요될 수 있어요';
+      var _lyriaBodyMain = {
+        prompt: body.prompt || prompt,
+        style: body.style || styleStr || '',
+        instrumental: instOn,
+        title: body.title || '',
+        vocalGender: body.vocalGender || '',
+        model: model === 'LYRIA_CLIP' ? 'clip' : 'pro',
+        userName: currentUser?.name || (isGuestMode() ? 'guest' : ''),
+        userProvider: currentUser?.provider || (isGuestMode() ? 'guest' : ''),
+      };
+      var _lyriaResMain = await fetch('/api/lyria-generate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(_lyriaBodyMain),
+      });
+      var _lyriaDataMain = await _lyriaResMain.json();
+      if(!_lyriaResMain.ok){
+        if(_lyriaDataMain?.error === 'credit_exceeded') throw new Error('이번 달 사용량을 초과했어요.');
+        throw new Error(_lyriaDataMain?.error || 'Lyria 생성 실패');
+      }
+      tracks = _lyriaDataMain?.tracks || _lyriaDataMain?.data?.response?.sunoData || [];
+      lastTaskId = _lyriaDataMain?.data?.taskId || '';
+      _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
+      if(!tracks.length) throw new Error('Lyria 트랙을 받지 못했어요');
+    } else {
+      const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+      const taskId=genData?.data?.taskId||genData?.taskId;
+      _genLog('TASK',taskId?'taskId='+taskId:'taskId 없음!');
+      if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
+      lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
+      _saveGenSession(taskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
+      $('ld-task').textContent='';
 
-    _genLog('POLL','폴링 시작 taskId='+taskId);
-    const _rawTracks=await pollResult(apiKey,taskId);
-    _genLog('POLL','폴링 완료 '+(Date.now()-_genT0)+'ms, 트랙 '+(_rawTracks?.length||0)+'개');
-    _clearGenSession();
-    if(!_rawTracks?.length)throw new Error('트랙을 받지 못했어요');
-    /* ✅ FIX: 생성 실패 트랙(audio_url 없음) 필터링 — A/B 중 한쪽 실패 방어 */
-    const tracks=_rawTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
-    if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
-    if(tracks.length<_rawTracks.length) console.warn('[generate] A/B 중 '+ (_rawTracks.length-tracks.length)+'곡 실패 제외');
+      _genLog('POLL','폴링 시작 taskId='+taskId);
+      const _rawTracks=await pollResult(apiKey,taskId);
+      _genLog('POLL','폴링 완료 '+(Date.now()-_genT0)+'ms, 트랙 '+(_rawTracks?.length||0)+'개');
+      _clearGenSession();
+      if(!_rawTracks?.length)throw new Error('트랙을 받지 못했어요');
+      /* ✅ FIX: 생성 실패 트랙(audio_url 없음) 필터링 — A/B 중 한쪽 실패 방어 */
+      tracks=_rawTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
+      if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
+      if(tracks.length<_rawTracks.length) console.warn('[generate] A/B 중 '+ (_rawTracks.length-tracks.length)+'곡 실패 제외');
+    }
 
     /* ── 곡 길이 옵션: 사용자가 명시적으로 120초 초과 선택 시에만 자동 연장 ── */
     var _durExtRounds = selectedDuration>120 ? 1 : 0;
