@@ -9109,7 +9109,7 @@ function _saveLoginUser(user){
     const _prevUser = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
     if(_prevUser && _prevUser.provider && _prevUser.provider !== user.provider){
       /* 다른 소셜 계정으로 전환 — 인증 관련 데이터만 초기화 (히스토리는 유지) */
-      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession'];
+      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession','kms_playlists','kms_playlist','kms_guest_tracks'];
       const _saved = {};
       _keepKeys.forEach(k=>{ const v=localStorage.getItem(k); if(v) _saved[k]=v; });
       /* 쿠키 초기화 (OAuth 세션) */
@@ -16149,7 +16149,7 @@ function fpAddToPlaylist(){
   if(fpCurrentIdx<0)return;
   const h=historyData[fpCurrentIdx];
   if(!h){toast('곡 정보 없음','err');return;}
-  if(!currentUser){toast('로그인이 필요해요','err',2000);return;}
+  if(!currentUser && !(typeof isGuestMode==='function'&&isGuestMode())){toast('로그인이 필요해요','err',2000);return;}
   _fpClosePlSheet();
   const imgHtml=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:28px;">🎵</span>';
   var overlay=document.createElement('div');
