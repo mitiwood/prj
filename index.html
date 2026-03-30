@@ -8663,6 +8663,10 @@ $('yt-song-title').addEventListener('input',function(){delete this.dataset.autoF
 
 /* ── 심플 모드 생성 버튼 ── */
 $('simple-gen-btn').addEventListener('click',async()=>{
+  /* 게스트 모드: 사전 한도 체크 */
+  if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+    if(_getGuestUsage() >= GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
+  }
   const desc=$('simple-prompt').value.trim();
   const simpleLyrics=($('simple-lyrics')?.value||'').trim();
   const moodVal=$('simple-mood').value;
