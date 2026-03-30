@@ -14428,6 +14428,10 @@ function showMiniPlayer(idx){
     } else {
       toast(msg,'err',3000);
     }
+    /* 에러 후 상태 정리 — paused=false 상태 방지 + UI 리셋 */
+    audio.pause();
+    _syncAllPlayBtns(false);
+    clearTimeout(_canplayTimer);
     /* 크리에이터 큐 재생 중 에러 → 재생불가 표시 + 다음 곡 스킵 */
     _mfHandlePlayError();
   },_sig);
@@ -14441,6 +14445,9 @@ function showMiniPlayer(idx){
     if(_stallRetryCount>_maxStallRetries){
       console.warn('[Audio] 재시도 '+_maxStallRetries+'회 초과 — 다음 곡');
       toast('네트워크 불안정 — 다음 곡으로 넘어갑니다','err',3000);
+      audio.pause();
+      _syncAllPlayBtns(false);
+      clearTimeout(_canplayTimer);
       _mfHandlePlayError(); return;
     }
     console.warn('[Audio] '+reason+' — 재연결 시도 '+_stallRetryCount+'/'+_maxStallRetries);
@@ -15514,6 +15521,8 @@ function _doOpenFullPlayer(idx){
     if(code===4){
       console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
       toast('오디오를 재생할 수 없어요','err',3000);
+      audio.pause();
+      _syncAllPlayBtns(false);
       return;
     }
     console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
@@ -15522,6 +15531,8 @@ function _doOpenFullPlayer(idx){
       setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
       toast('오디오 재연결 중...','',2000);
     } else {
+      audio.pause();
+      _syncAllPlayBtns(false);
       toast(msg,'err',4000);
     }
   });
