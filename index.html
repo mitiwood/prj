@@ -8191,14 +8191,24 @@ function startGuestMode(){
 function _showGuestCTA(){
   var el=document.getElementById('guest-fixed-cta');
   if(!el) return;
-  /* 로그인 완료, 게스트 아님, 크레딧 소진, 심플모드 스텝 진행 중이면 숨김 */
-  var isSimpleStep=document.body.classList.contains('simple-mode');
-  if(!isGuestMode()||currentUser||isSimpleStep){el.style.display='none';return;}
+  /* 로그인 완료 또는 게스트 아니면 숨김 */
+  if(!isGuestMode()||currentUser){el.style.display='none';return;}
   var remain=GUEST_SONG_LIMIT-_getGuestUsage();
-  if(remain<=0){el.style.display='none';return;}
+  /* 체험 소진 시 로그인 유도 버튼으로 전환 */
+  if(remain<=0){
+    el.style.display='block';
+    var badge=document.getElementById('guest-cta-remain');
+    if(badge) badge.textContent='체험 완료';
+    var ctaBtn=el.querySelector('button');
+    if(ctaBtn){ctaBtn.textContent='🔓 로그인하고 계속 만들기';ctaBtn.onclick=function(){openLoginSheet();};}
+    return;
+  }
   el.style.display='block';
   var badge=document.getElementById('guest-cta-remain');
   if(badge) badge.textContent=remain+'곡 남음';
+  /* 버튼 원래 상태 복원 */
+  var ctaBtn=el.querySelector('button');
+  if(ctaBtn&&ctaBtn.textContent.includes('로그인')){ctaBtn.innerHTML='<span style="font-size:18px;">✦</span> 음악 만들기';ctaBtn.onclick=function(){_guestQuickGenerate();};}
 }
 
 function _guestQuickGenerate(){
@@ -9079,7 +9089,7 @@ function _saveLoginUser(user){
     const _prevUser = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
     if(_prevUser && _prevUser.provider && _prevUser.provider !== user.provider){
       /* 다른 소셜 계정으로 전환 — 인증 관련 데이터만 초기화 (히스토리는 유지) */
-      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement'];
+      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession'];
       const _saved = {};
       _keepKeys.forEach(k=>{ const v=localStorage.getItem(k); if(v) _saved[k]=v; });
       /* 쿠키 초기화 (OAuth 세션) */
@@ -9092,10 +9102,15 @@ function _saveLoginUser(user){
 
     currentUser=user;
     localStorage.setItem('kms_user',JSON.stringify(user));
-    /* 게스트 모드 정리 — 로그인 전환 */
+    /* 게스트 모드 정리 — 로그인 전환 (생성 중이면 상태 보존) */
+    var _wasGenerating = _globalGenerating;
     localStorage.removeItem('kms_guest_mode');
     localStorage.removeItem('kms_guest_songs');
+    _showGuestCTA(); /* 게스트 CTA 숨김 */
     updateLoginUI();
+    if(_wasGenerating){
+      toast('🎵 생성 중인 곡은 계속 진행됩니다','ok',3000);
+    }
     /* JWT 토큰 발급 */
     fetch('/api/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:user.name,provider:user.provider,avatar:user.avatar||''})})
       .then(r=>r.json()).then(d=>{if(d.ok&&d.token)localStorage.setItem('kms_jwt',d.token);}).catch(()=>{});
