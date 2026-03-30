@@ -4610,7 +4610,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   <!-- ── 헤더 ── -->
   <header class="app-header">
-    <div class="logo">Kenny's <span>Music</span> Studio<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.1</span></div>
+    <div class="logo">띵곡<span id="app-version-badge" style="font-size:9px;font-weight:600;color:var(--acc);background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.3px;">v3.1</span></div>
     <button onclick="openNotifSheet()" style="background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:6px;position:relative;" title="알림" data-i18n-title="notifications">🔔<span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ef4444;border-radius:50%;"></span></button>
   </header>
 
@@ -6040,7 +6040,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <div class="settings-item-icon">✦</div>
             <div>
               <div class="settings-item-label">띵곡</div>
-              <div class="settings-item-sub">v2.1 · Powered by Suno AI</div>
+              <div class="settings-item-sub">v3.1 · Powered by kie.ai</div>
             </div>
           </div>
           <div class="settings-item-right"></div>
@@ -7450,7 +7450,7 @@ async function _getSystemStatus() {
 👥 사용자: ${stats.users}명
 🎵 생성된 곡: ${stats.songs}곡  
 ⏱️ 가동시간: ${stats.uptime}분
-🔧 버전: v2.0 (고도화)
+🔧 버전: v3.1
 
 ✅ 정상 작동 중`;
 }
@@ -15299,8 +15299,8 @@ function saveHistory(){localStorage.setItem('kms_history',JSON.stringify(history
 
 /* 서버에서 단건 트랙 삭제 (본인 소유) */
 function _deleteTrackFromServer(trackId){
-  if(!trackId||!currentUser?.name) return;
-  fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||'guest'),{method:'DELETE'}).catch(function(){});
+  if(!trackId||!currentUser?.name) return Promise.resolve();
+  return fetch('/api/tracks?id='+encodeURIComponent(trackId)+'&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||'guest'),{method:'DELETE'}).catch(function(){});
 }
 /* 서버에서 본인 트랙 전체 삭제 */
 function _deleteAllTracksFromServer(){
