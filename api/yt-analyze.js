@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     title = videoId ? `YouTube 영상 (${videoId})` : 'YouTube 영상';
   }
 
-  // ── Step 2: LLM 정밀 분석 (Claude → Gemini 폴백) ──
+  // ── Step 2: LLM 정밀 분석 (Gemini 우선 → Claude 폴백) ──
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '';
   const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
   let analysis = null;
@@ -127,50 +127,8 @@ export default async function handler(req, res) {
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
 
-  // 2-a) Claude 시도
-  if (anthropicKey) {
-    console.log('[yt-analyze] Trying Claude... | title:', title);
-    try {
-      const cr = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
-          messages: [{ role: 'user', content: analysisPrompt }],
-        }),
-      });
-      let cd = await cr.json();
-      /* Sonnet 실패 시 Haiku로 폴백 */
-      if (cd.error) {
-        console.warn('[yt-analyze] Sonnet error:', cd.error.type, '→ trying Haiku');
-        const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: analysisPrompt }] }),
-        });
-        cd = await cr2.json();
-      }
-      if (cd.error) {
-        _debugError = `Claude: ${cd.error.type} - ${cd.error.message}`;
-        console.warn('[yt-analyze] Claude failed:', _debugError);
-      } else {
-        const text = cd.content?.find(c => c.type === 'text')?.text || '';
-        analysis = _parseJsonResponse(text);
-        if (analysis) _analyzer = 'claude';
-      }
-    } catch (e) {
-      _debugError = `Claude exception: ${e.message}`;
-      console.warn('[yt-analyze] Claude exception:', e.message);
-    }
-  }
-
-  // 2-b) Gemini 폴백
-  if (!analysis && geminiKey) {
+  // 2-a) Gemini 우선
+  if (geminiKey) {
     console.log('[yt-analyze] Trying Gemini... | title:', title);
     try {
       const gr = await fetch(
@@ -202,6 +160,47 @@ export default async function handler(req, res) {
     } catch (e) {
       _debugError += ` | Gemini exception: ${e.message}`;
       console.warn('[yt-analyze] Gemini exception:', e.message);
+    }
+  }
+
+  // 2-b) Claude 폴백
+  if (!analysis && anthropicKey) {
+    console.log('[yt-analyze] Trying Claude... | title:', title);
+    try {
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: analysisPrompt }],
+        }),
+      });
+      let cd = await cr.json();
+      if (cd.error) {
+        console.warn('[yt-analyze] Sonnet error:', cd.error.type, '→ trying Haiku');
+        const cr2 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: analysisPrompt }] }),
+        });
+        cd = await cr2.json();
+      }
+      if (cd.error) {
+        _debugError += ` | Claude: ${cd.error.type} - ${cd.error.message}`;
+        console.warn('[yt-analyze] Claude failed:', cd.error.message);
+      } else {
+        const text = cd.content?.find(c => c.type === 'text')?.text || '';
+        analysis = _parseJsonResponse(text);
+        if (analysis) _analyzer = 'claude';
+      }
+    } catch (e) {
+      _debugError += ` | Claude exception: ${e.message}`;
+      console.warn('[yt-analyze] Claude exception:', e.message);
     }
   }
 
