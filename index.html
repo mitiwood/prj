@@ -25,12 +25,12 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="띵곡 — AI 음악 생성기">
 <meta property="og:description" content="AI로 나만의 음악을 만들어보세요. 커스텀 가사, 심플 모드, YouTube 커버, 뮤직비디오까지!">
-<meta property="og:image" id="og-image" content="https://ai-music-studio-bice.vercel.app/api/og-image?title=AI+Music+Studio&artist=Kenny">
-<meta property="og:url" id="og-url" content="https://ai-music-studio-bice.vercel.app">
+<meta property="og:image" id="og-image" content="https://ddinggok.com/api/og-image?title=AI+Music+Studio&artist=Kenny">
+<meta property="og:url" id="og-url" content="https://ddinggok.com">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="띵곡">
 <meta name="twitter:description" content="AI로 나만의 음악을 만들어보세요">
-<meta name="twitter:image" id="tw-image" content="https://ai-music-studio-bice.vercel.app/api/og-image?title=AI+Music+Studio&artist=Kenny">
+<meta name="twitter:image" id="tw-image" content="https://ddinggok.com/api/og-image?title=AI+Music+Studio&artist=Kenny">
 <title>띵곡 — AI 음악 생성기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -7573,7 +7573,7 @@ function switchTab(viewId){
 }
 /* 즉시 전역 노출 — 인라인 onclick에서 사용 */
 window.switchTab=typeof switchTab!=="undefined"?switchTab:window.switchTab||function(){};
-var CALLBACK = 'https://ai-music-studio-bice.vercel.app/api/callback';
+var CALLBACK = 'https://ddinggok.com/api/callback';
 var POLL_INTERVAL = 1500;  /* 1.5초 간격 */
 var MAX_POLLS = 160;        /* 최대 ~5분 대기 */
 
@@ -18360,7 +18360,7 @@ function fpOpenKaraoke(){
 /* 공유 */
 function _updateOgTags(title,imageUrl,shareUrl,trackId){
   try{
-    const BASE='https://ai-music-studio-bice.vercel.app';
+    const BASE='https://ddinggok.com';
     const safeTitle=(title||'나의 노래').slice(0,28);
     var ogImgUrl=BASE+'/api/og-image?title='+encodeURIComponent(safeTitle)+'&artist='+encodeURIComponent('AI 아티스트');
     if(trackId) ogImgUrl+='&trackId='+encodeURIComponent(trackId);
@@ -18601,7 +18601,7 @@ async function fpShareKakao(){
   const sdkOk = await _ensureKakaoSDK();
   if(sdkOk && window.Kakao?.Share){
     try{
-      Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
+      Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ddinggok.com/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
       fpCloseShare();toast('💬 카카오톡 공유','ok',1500);
       return;
     }catch(e){ console.warn('[KakaoShare]',e.message); }
@@ -21605,7 +21605,7 @@ function commShareSheet(sbId){
     const sdkReady = await _ensureKakaoSDK();
     if(sdkReady && window.Kakao?.Share){
       try{
-        Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
+        Kakao.Share.sendDefault({objectType:'feed',content:{title,description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ddinggok.com/og-image.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]});
         overlay.remove();
         return;
       }catch(e){ console.warn('[KakaoShare] SDK 오류:', e.message); }
@@ -27324,14 +27324,14 @@ function _applyLang(){
   var loginBtn=document.getElementById('settings-login-btn');
   var editBtn=document.getElementById('settings-edit-btn');
   if(typeof currentUser!=='undefined'&&currentUser){
-    if(loginBtn) loginBtn.textContent=t('logoutText');
-    if(editBtn) editBtn.textContent=t('editProfile');
+    if(loginBtn) loginBtn.textContent=t['logoutText']||'로그아웃';
+    if(editBtn) editBtn.textContent=t['editProfile']||'편집';
   } else {
     var nameEl=document.getElementById('settings-user-name');
     var subEl=document.getElementById('settings-user-sub');
-    if(nameEl&&(!currentUser)) nameEl.textContent=t('loginPrompt');
-    if(subEl&&(!currentUser)) subEl.textContent=t('loginWithSocial');
-    if(loginBtn) loginBtn.textContent=t('loginText');
+    if(nameEl&&(!currentUser)) nameEl.textContent=t['loginPrompt']||'로그인하세요';
+    if(subEl&&(!currentUser)) subEl.textContent=t['loginWithSocial']||'소셜 계정으로 간편 로그인';
+    if(loginBtn) loginBtn.textContent=t['loginText']||'로그인';
   }
 
   /* ── 7) 알림 설명 ── */
