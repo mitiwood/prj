@@ -236,6 +236,8 @@ export default async function handler(req, res) {
     videoId,
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
+    _debugError: _debugError || undefined,
+    _keys: { claude: !!anthropicKey, gemini: !!geminiKey },
     ...analysis,
   });
 }
