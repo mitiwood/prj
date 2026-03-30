@@ -185,6 +185,7 @@ Answer in JSON ONLY:
         cd = await cr2.json();
       }
       if (cd.error) {
+        _debugError = `Claude API: ${cd.error.type} - ${cd.error.message}`;
         console.error('[yt-analyze] Claude API error (final):', cd.error.type, cd.error.message);
       } else {
         const text = cd.content?.find(c => c.type === 'text')?.text || '';
