@@ -11394,6 +11394,8 @@ async function generate(overrideParams){
     }
   }
   _globalGenerating = true; _syncGenButtons();
+  /* 게스트 모드: 강제 1곡 생성 */
+  if(!currentUser && typeof isGuestMode==='function' && isGuestMode()) _genCount=1;
   /* 모드별 입력값 수집 */
   const isSimple=currentMode==='simple';
   const isYT=currentMode==='youtube' || !!overrideParams?._ytMode;
