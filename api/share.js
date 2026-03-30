@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
-  const appBase = 'https://ai-music-studio-bice.vercel.app';
+  const appBase = 'https://ddinggok.com';
 
   // --- 트랙 데이터 가져오기 ---
   let title = '';
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
   if (tags) descParts.push(tags);
   const ogDescription = descParts.length > 0
     ? `${descParts.join(' · ')} — AI로 만든 음악을 들어보세요!`
-    : 'AI로 만든 음악을 들어보세요! Kenny\'s Music Studio에서 생성됐어요 🎵';
+    : 'AI로 만든 음악을 들어보세요! 띵곡에서 생성됐어요 🎵';
 
   // 앱 URL — trackId + play/img 폴백 모두 포함 (Supabase 조회 실패 대비)
   const appParams = new URLSearchParams();

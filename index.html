@@ -9183,27 +9183,28 @@ function _saveLoginUser(user){
   /* 페이지 로드 완료 후 처리 */
   window.addEventListener('load', ()=>{
     setTimeout(()=>{
-      /* 트랙 ID로 서버 조회 후 재생 */
-      if(sharedTrackId){
+      /* play 파라미터가 있으면 바로 재생 (게스트 공유 등 서버에 없는 트랙) */
+      if(sharedAudio){
+        _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+      }
+      /* trackId만 있고 play 없는 경우: 서버 조회 */
+      else if(sharedTrackId){
         fetch('/api/tracks?id='+encodeURIComponent(sharedTrackId)).then(r=>r.json()).then(d=>{
           var track=d.track||(Array.isArray(d.tracks)&&d.tracks[0])||(Array.isArray(d.data)&&d.data[0])||null;
           if(!track){
-            /* id가 숫자/문자 불일치 대비: 전체에서 느슨 비교 */
             var tracks=d.tracks||d.data||[];
             track=tracks.find(function(t){return String(t.id)===String(sharedTrackId);});
           }
           if(track&&track.audio_url){
             _showSharedPlayer(track.title||sharedTitle||'공유된 노래', track.audio_url, track.image_url||sharedImg||'');
-          } else if(sharedAudio){
-            _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
           } else {
             toast('공유된 곡을 찾을 수 없어요','',2000);
           }
         }).catch(function(){
-          if(sharedAudio) _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+          toast('공유된 곡을 찾을 수 없어요','',2000);
         });
-      } else if(sharedAudio){
-        _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
+      } else if(sharedTitle){
+        toast('공유된 곡의 오디오를 찾을 수 없어요','',2000);
       }
       /* URL 클린업 */
       window.history.replaceState({},'','/');
@@ -18653,11 +18654,13 @@ function _fpShareUrl(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
   const trackId=h.id||h._sbId||'';
+  const isGuest=!currentUser&&typeof isGuestMode==='function'&&isGuestMode();
   const params=new URLSearchParams({t:title});
-  if(trackId) params.set('trackId',trackId);
+  /* 게스트 트랙은 서버에 없으므로 trackId 제외, play/img만 전달 */
+  if(trackId&&!isGuest) params.set('trackId',trackId);
   if(h.audio_url) params.set('play',h.audio_url);
   if(h.image_url) params.set('img',h.image_url);
-  return window.location.origin+'/api/share?'+params.toString();
+  return 'https://ddinggok.com/api/share?'+params.toString();
 }
 function fpShareFacebook(){
   const h=historyData[fpCurrentIdx]||{};
