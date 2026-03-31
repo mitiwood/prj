@@ -11782,9 +11782,25 @@ async function generate(overrideParams){
   _genLog('START','mode='+_modeKey+', genCount='+_genCount);
   /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
   if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
-  /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
-  if(_QueueManager.isBusy('music') && !overrideParams?._afterLyrics){
-    toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
+  const apiKey=kieApiKey;
+  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
+  /* 새 생성 시작 시 재시도 플래그 초기화 (재시도 호출이면 리셋 금지) */
+  if(!overrideParams?._afterLyrics && !overrideParams?._isRetry) _retryCount = 0;
+  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기, 게스트는 큐 비활성) */
+  if(_globalGenerating && !overrideParams?._afterLyrics){
+    /* 게스트 모드: 큐 없이 바로 차단 */
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
+      toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
+      return;
+    }
+    if(_genQueue.length>=1){
+      toast('대기 큐가 가득 찼어요 (최대 1곡 대기)','err',3000);
+      return;
+    }
+    _genQueue.push({params:overrideParams||{},mode:currentMode});
+    toast('🎵 현재 곡 완료 후 자동 생성됩니다 (대기 1곡)','ok',3000);
+    /* 로딩카드에 큐 표시 */
+    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 다음 곡 대기 중...';}
     return;
   }
   /* ★ 즉시 busy 설정 — 이후 await 전에 잠금 확보 */
@@ -12243,10 +12259,10 @@ async function generate(overrideParams){
     /* 자동 재시도 (최대 2회, 카테고리별 대기 시간) */
     if(_isRetryable){
       _retryCount++;
-      var retryDelay = _classified.delay * _retryCount;
-      toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(retryDelay/1000)+'초 후)','',3000);
-      console.warn('[generate] auto-retry #'+_retryCount+' ('+_classified.cat+'):', e.message);
-      _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, retryDelay);
+      var retryDelay = _retryCount * 2000;
+      toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
+      console.warn('[generate] auto-retry #'+_retryCount+':', errMsg);
+      _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(Object.assign({},overrideParams||{},{_isRetry:true})); }, retryDelay);
       return;
     }
     _retryCount = 0;
