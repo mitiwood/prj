@@ -15242,8 +15242,29 @@ function showMiniPlayer(idx){
     }
     if(!audio._retried && code===2){
       audio._retried=true;
-      /* HEAD로 404 사전 확인 — 404면 재시도 없이 즉시 실패 처리 */
-      if(_safeAudioUrl){fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오가 만료되었어요','err',3000);}else{if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);}}).catch(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);});}
+      /* HEAD로 404 사전 확인 — 만료 시 record-info로 URL 갱신 시도 */
+      if(_safeAudioUrl){fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){if(r.status===404||r.status===410||r.status===403){
+        /* ★ taskId가 있으면 record-info로 최신 URL 재조회 */
+        var _h=historyData[fpCurrentIdx];
+        var _tid=_h?.taskId||_h?._taskId||'';
+        if(_tid&&typeof kieRequest==='function'&&typeof kieApiKey!=='undefined'&&kieApiKey){
+          toast('오디오 URL 갱신 중...','',2000);
+          kieRequest(kieApiKey,'GET','/api/v1/generate/record-info?taskId='+_tid).then(function(rd){
+            var st=rd?.data;var tracks=st?.response?.sunoData||st?.sunoData||st?.tracks||[];
+            var newUrl=tracks[0]?.audioUrl||tracks[0]?.audio_url||tracks[0]?.song_path||'';
+            if(newUrl&&newUrl!==_safeAudioUrl){
+              /* 히스토리 + 서버 업데이트 */
+              _h.audio_url=newUrl;saveHistory();
+              if(typeof _saveTrackToServer==='function')_saveTrackToServer({id:_h.id,audio_url:newUrl});
+              /* 새 URL로 재생 */
+              if(genId===_fpAudioGenId){audio.src=newUrl;audio.load();audio.play().catch(function(){});}
+              toast('오디오 URL 갱신 완료!','ok',2000);
+              return;
+            }
+            _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오가 만료되었어요','err',3000);
+          }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오가 만료되었어요','err',3000);});
+        } else {_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오가 만료되었어요','err',3000);}
+      }else{if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);}}).catch(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);});}
       else{setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);toast('오디오 재연결 중...','',2000);}
     } else if(code===4){
       /* 모든 재시도 소진 후 code 4 → 진짜 재생 불가 URL */
