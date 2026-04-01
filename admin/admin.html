@@ -4284,10 +4284,23 @@ function _adminPlayInAccordion(url, title, btn){
   audio.addEventListener('error',function(){
     clearTimeout(_failTimeout);_adminCurrentAudio=null;
     var code=audio.error?audio.error.code:0;
+    /* HEAD로 Content-Type 확인 → 만료 여부 정확 판별 */
+    if((code===4||code===2)&&url){
+      fetch(url,{method:'HEAD',mode:'cors'}).then(function(r){
+        var ct=(r.headers.get('content-type')||'').toLowerCase();
+        var isAudio=ct.indexOf('audio')>=0||ct.indexOf('octet-stream')>=0;
+        var reason=(!r.ok)?'URL 만료 ('+r.status+')':(!isAudio)?'URL 만료 (비오디오 응답)':code===2?'네트워크 오류':'포맷 미지원';
+        var color=reason.indexOf('만료')>=0?'#f59e0b':'#ef4444';
+        var bg=reason.indexOf('만료')>=0?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)';
+        if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:'+bg+';color:'+color+';font-weight:600;">'+reason+'</span>';}
+        adminToast('⚠️ '+title+': '+reason,'err');
+      }).catch(function(){
+        if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;">네트워크 오류</span>';}
+      });
+      return;
+    }
     var reason='재생 불가';
-    if(code===2) reason='네트워크 오류';
-    else if(code===3) reason='디코딩 실패';
-    else if(code===4) reason='포맷 미지원';
+    if(code===3) reason='디코딩 실패';
     if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;">'+reason+'</span>';}
     adminToast('⚠️ '+title+': '+reason,'err');
   },{once:true});

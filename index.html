@@ -15267,8 +15267,40 @@ function showMiniPlayer(idx){
       }else{if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);}}).catch(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}toast('오디오 재연결 중...','',2000);});}
       else{setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);toast('오디오 재연결 중...','',2000);}
     } else if(code===4){
-      /* 모든 재시도 소진 후 code 4 → 진짜 재생 불가 URL */
-      if(_safeAudioUrl){ _failedAudioUrls.add(_safeAudioUrl); renderHistoryView(); }
+      /* code 4: HEAD로 Content-Type 확인 → 만료/비오디오 판별 후 URL 갱신 시도 */
+      if(_safeAudioUrl){
+        fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){
+          var ct=(r.headers.get('content-type')||'').toLowerCase();
+          var isAudio=ct.indexOf('audio')>=0||ct.indexOf('octet-stream')>=0;
+          if(!r.ok||!isAudio){
+            /* URL 만료 또는 비오디오 응답 → record-info로 갱신 시도 */
+            var _h4=historyData[fpCurrentIdx];
+            var _tid4=_h4?.taskId||_h4?._taskId||'';
+            if(_tid4&&typeof kieRequest==='function'&&kieApiKey){
+              toast('오디오 URL이 만료됨 — 갱신 시도 중...','',2500);
+              kieRequest(kieApiKey,'GET','/api/v1/generate/record-info?taskId='+_tid4).then(function(rd){
+                var st=rd?.data;var tracks=st?.response?.sunoData||st?.sunoData||st?.tracks||[];
+                var newUrl=tracks[0]?.audioUrl||tracks[0]?.audio_url||tracks[0]?.song_path||'';
+                if(newUrl&&newUrl!==_safeAudioUrl){
+                  _h4.audio_url=newUrl;saveHistory();
+                  if(typeof _saveTrackToServer==='function')_saveTrackToServer({id:_h4.id,audio_url:newUrl});
+                  if(genId===_fpAudioGenId){audio.src=newUrl;audio.load();audio.play().catch(function(){});}
+                  toast('오디오 URL 갱신 완료!','ok',2000);return;
+                }
+                _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
+                toast('오디오 URL이 만료되었어요 — 다시 생성해주세요','err',4000);
+              }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오 URL이 만료되었어요','err',3000);});
+            } else {
+              _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
+              toast('오디오 URL이 만료되었어요'+(r.ok?'':' ('+r.status+')'),'err',3000);
+            }
+          } else {
+            _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
+            toast('오디오 포맷을 재생할 수 없어요','err',3000);
+          }
+        }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오를 재생할 수 없어요','err',3000);});
+        return; /* HEAD 비동기 처리이므로 아래 동기 정리는 건너뜀 */
+      }
       toast('오디오를 재생할 수 없어요','err',3000);
     } else {
       toast(msg,'err',3000);
@@ -16407,23 +16439,63 @@ function _doOpenFullPlayer(idx){
     const code=ev.target?.error?.code;
     const msgs={1:'로딩 중단됨',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};
     const msg=msgs[code]||'재생 오류';
-    if(code===4){
+    if(code===4||code===2){
       console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
-      toast('오디오를 재생할 수 없어요','err',3000);
-      audio.pause();
-      _syncAllPlayBtns(false);
+      /* HEAD로 Content-Type 확인 → 만료 판별 + record-info 갱신 시도 */
+      fetch(_audioUrl,{method:'HEAD',mode:'cors'}).then(function(r){
+        var ct=(r.headers.get('content-type')||'').toLowerCase();
+        var isAudio=ct.indexOf('audio')>=0||ct.indexOf('octet-stream')>=0;
+        if(!r.ok||!isAudio){
+          var _hFp=historyData[fpCurrentIdx];
+          var _tidFp=_hFp?.taskId||_hFp?._taskId||'';
+          if(_tidFp&&typeof kieRequest==='function'&&kieApiKey){
+            toast('오디오 URL이 만료됨 — 갱신 시도 중...','',2500);
+            kieRequest(kieApiKey,'GET','/api/v1/generate/record-info?taskId='+_tidFp).then(function(rd){
+              var st=rd?.data;var tracks=st?.response?.sunoData||st?.sunoData||st?.tracks||[];
+              var newUrl=tracks[0]?.audioUrl||tracks[0]?.audio_url||tracks[0]?.song_path||'';
+              if(newUrl&&newUrl!==_audioUrl){
+                _hFp.audio_url=newUrl;saveHistory();
+                if(typeof _saveTrackToServer==='function')_saveTrackToServer({id:_hFp.id,audio_url:newUrl});
+                if(genId===_fpAudioGenId){audio.src=newUrl;audio.load();audio.play().catch(function(){});}
+                toast('오디오 URL 갱신 완료!','ok',2000);return;
+              }
+              _failedAudioUrls.add(_audioUrl);renderHistoryView();
+              toast('오디오 URL이 만료되었어요 — 다시 생성해주세요','err',4000);
+              audio.pause();_syncAllPlayBtns(false);
+            }).catch(function(){
+              _failedAudioUrls.add(_audioUrl);renderHistoryView();
+              toast('오디오 URL이 만료되었어요','err',3000);
+              audio.pause();_syncAllPlayBtns(false);
+            });
+          } else {
+            _failedAudioUrls.add(_audioUrl);renderHistoryView();
+            toast('오디오 URL이 만료되었어요','err',3000);
+            audio.pause();_syncAllPlayBtns(false);
+          }
+        } else if(code===2&&!audio._fpRetried){
+          /* 진짜 네트워크 오류 → 1회 재시도 */
+          audio._fpRetried=true;
+          setTimeout(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}},1500);
+          toast('오디오 재연결 중...','',2000);
+        } else {
+          toast(code===4?'오디오 포맷을 재생할 수 없어요':msg,'err',3000);
+          audio.pause();_syncAllPlayBtns(false);
+        }
+      }).catch(function(){
+        if(code===2&&!audio._fpRetried){
+          audio._fpRetried=true;
+          setTimeout(function(){if(genId===_fpAudioGenId){audio.load();audio.play().catch(function(){});}},1500);
+          toast('오디오 재연결 중...','',2000);
+        } else {
+          toast(msg,'err',4000);
+          audio.pause();_syncAllPlayBtns(false);
+        }
+      });
       return;
     }
     console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
-    if(!audio._fpRetried&&code===2){
-      audio._fpRetried=true;
-      setTimeout(()=>{if(genId===_fpAudioGenId){audio.load();audio.play().catch(()=>{});}},1500);
-      toast('오디오 재연결 중...','',2000);
-    } else {
-      audio.pause();
-      _syncAllPlayBtns(false);
-      toast(msg,'err',4000);
-    }
+    audio.pause();_syncAllPlayBtns(false);
+    toast(msg,'err',4000);
   });
   /* canplay 대기 후 재생 */
   audio.addEventListener('canplay',function _onCanPlay(){
@@ -23981,12 +24053,15 @@ async function _fetchServerCredits(){
     var r = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
     var d = await r.json();
     if(d.ok && d.profile){
+      var _plan = d.profile.plan || 'free';
+      var _isSupervisor = _plan === 'supervisor';
       _serverCreditsCache = {
-        credits_song: d.profile.credits_song ?? 0,
-        credits_mv: d.profile.credits_mv ?? 0,
-        credits_lyrics: d.profile.credits_lyrics ?? 0,
-        plan: d.profile.plan || 'free',
+        credits_song: _isSupervisor ? 9999 : (d.profile.credits_song ?? 0),
+        credits_mv: _isSupervisor ? 9999 : (d.profile.credits_mv ?? 0),
+        credits_lyrics: _isSupervisor ? 9999 : (d.profile.credits_lyrics ?? 0),
+        plan: _plan,
       };
+      if(currentUser) currentUser.plan = _plan;
       try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
       if(typeof renderPlanUI === 'function') renderPlanUI();
     }
