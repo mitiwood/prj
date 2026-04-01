@@ -19613,9 +19613,12 @@ function fpSyncLyrics(currentTime){
     for(var di=n-1;di>=0;di--){
       var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
-      if(currentTime>=ds&&currentTime<de){activeIdx=di;break;}
+      /* 보컬 실제 duration 추정: 글자 수 × 0.15초 + 1초 (최소 2초, 최대 6초) */
+      var _txt=(fpTimestampLines[di].textContent||'').trim();
+      var _estDur=Math.min(6,Math.max(2,_txt.length*0.15+1));
+      var _realEnd=(de-ds>_estDur+2)?ds+_estDur:de;
+      if(currentTime>=ds&&currentTime<_realEnd){activeIdx=di;break;}
     }
-    /* 간주 감지: 어떤 줄의 end ~ 다음 줄의 start 사이 → activeIdx=-1 유지 */
   } else if(_fpLrcTimes.length){
     /* LRC/균등 분할 — endTime도 고려 */
     for(var i=n-1;i>=0;i--){
