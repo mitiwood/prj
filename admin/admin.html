@@ -9301,8 +9301,11 @@ function _addScheduledNotice(){
   if(document.getElementById('ops-ch-push').checked) channels.push('push');
   if(document.getElementById('ops-ch-tg').checked) channels.push('telegram');
   if(document.getElementById('ops-ch-kakao').checked) channels.push('kakao');
-  _scheduledNotices.push({id:Date.now(),title:title,body:body,time:time,icon:icon,channels:channels,status:'pending'});
+  var notice={id:Date.now(),title:title,body:body,time:time,icon:icon,channels:channels,status:'pending'};
+  _scheduledNotices.push(notice);
   localStorage.setItem('kms_scheduled_notices',JSON.stringify(_scheduledNotices));
+  /* 서버에도 저장 (cron 실행용) */
+  adminFetch('/api/error-logs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:'scheduled_notice',method:'POST',status:0,error_message:JSON.stringify({id:notice.id,title:title,body:body,time:time,icon:icon,channels:channels})})}).catch(function(){});
   document.getElementById('ops-sched-title').value='';
   document.getElementById('ops-sched-body').value='';
   adminToast('📅 예약 공지 등록됨');

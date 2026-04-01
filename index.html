@@ -13467,12 +13467,23 @@ function togglePlay(btn){
   if(!url){toast('오디오 URL이 없어요','err');return;}
   /* 같은 트랙: 토글 (idx + URL 모두 일치해야 동일 트랙) */
   if(activeAudio&&activeAudio._idx===idx&&activeAudio._url===url){
-    if(activeAudio.paused){stopAllAudio();activeAudio.play().catch(e=>{toast('재생 실패: '+e.message,'err',3000);});btn.textContent='⏸';startViz(idx);}
+    if(activeAudio.paused){activeAudio.play().catch(e=>{toast('재생 실패: '+e.message,'err',3000);});btn.textContent='⏸';startViz(idx);}
     else{activeAudio.pause();btn.textContent='▶';stopViz(idx);}
     return;
   }
-  /* 다른 소스가 재생 중이면 즉시 정지 후 새 곡 재생 */
-  /* 모든 오디오 정지 후 재생 */
+  /* 다른 곡 재생 중이면 확인 팝업 */
+  var _playing=isAnyAudioPlaying();
+  if(_playing){
+    var _title=btn.closest('.result-card')?.querySelector('.rc-title')?.textContent||'새 곡';
+    showAudioSwitchPopup(_playing,_title,function(){
+      stopAllAudio();
+      _doTogglePlay(btn,idx,url);
+    });
+    return;
+  }
+  _doTogglePlay(btn,idx,url);
+}
+function _doTogglePlay(btn,idx,url){
   stopAllAudio();
   if(activeAudio){
     stopViz(activeAudio._idx);
@@ -16080,8 +16091,14 @@ function _setPlayIcon(el, playing, isFp){
 function openFullPlayer(idx){
   const h=historyData[idx];
   if(!h)return;
-  /* fp 내부에서 다른 곡으로 교체 시 — 바로 허용 (fpAudio는 아래서 정지) */
-  /* 다른 소스가 재생 중이면 즉시 정지 */
+  /* 다른 소스가 재생 중이면 확인 팝업 */
+  var _playing=isAnyAudioPlaying();
+  if(_playing){
+    showAudioSwitchPopup(_playing,h.title||'선택한 곡',function(){
+      stopAllAudio();_doOpenFullPlayer(idx);
+    });
+    return;
+  }
   stopAllAudio();
   _doOpenFullPlayer(idx);
 }
@@ -21963,7 +21980,17 @@ function commPlaySb(sbId){
     return;
   }
 
-  /* 다른 곡 → 히스토리에 추가/갱신 후 재생 */
+  /* 다른 곡 → 재생 중이면 확인 팝업 */
+  var _playingCS=isAnyAudioPlaying();
+  if(_playingCS){
+    showAudioSwitchPopup(_playingCS,t.title||'커뮤니티 곡',function(){
+      stopAllAudio();_doCommPlaySb(sbId,t);
+    });
+    return;
+  }
+  _doCommPlaySb(sbId,t);
+}
+function _doCommPlaySb(sbId,t){
   let hIdx=historyData.findIndex(h=>h.id===sbId||h._sbId===sbId);
   if(hIdx<0){
     historyData.unshift({id:sbId,taskId:t.taskId||'',title:t.title,audio_url:t.audioUrl,video_url:t.videoUrl||'',image_url:t.img||'',tags:t.allTags,lyrics:t.lyrics||'',created:t._created,type:'audio',genMode:t._genMode,_owner:t._owner,_fromSb:true});
