@@ -3914,37 +3914,29 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-lyrics-overlay-box{display:none;}
 .fp-ov-line,.fp-ov-empty{display:none;}
 /* ── 제목 아래 가사 영역 (노래방 스타일) ── */
+/* ── Apple Music 스타일 가사 ── */
 .fp-lyrics-main{
-  margin-top:12px;padding:0 20px;text-align:left;
-  max-height:45vh;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
+  margin-top:0;padding:24px 24px 40vh;text-align:left;
+  flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;-ms-overflow-style:none;
   position:relative;
 }
-.fp-lyrics-bg{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:240px;height:240px;border-radius:50%;
-  background-size:cover;background-position:center;
-  opacity:.12;filter:blur(30px);
-  pointer-events:none;z-index:0;
-}
 .fp-lyrics-main::-webkit-scrollbar{display:none;}
-/* 스크롤 모드 (기본) */
-.fp-lyrics-main.scroll-mode{
-  max-height:45vh;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;
-  display:block;text-align:left;
-}
 .fp-lm-line{
-  font-size:18px;font-weight:600;color:rgba(255,255,255,.28);
-  line-height:2;transition:color .35s ease, text-shadow .35s ease, font-size .35s ease;
-  cursor:pointer;padding:2px 0;
+  font-size:22px;font-weight:800;color:rgba(255,255,255,.2);
+  line-height:1.7;cursor:pointer;padding:6px 0;
+  transition:color .4s ease,opacity .4s ease,transform .4s ease;
+  transform:scale(0.97);transform-origin:left center;
 }
 .fp-lm-line.active{
-  font-size:21px;font-weight:800;color:#fff;
-  text-shadow:0 0 20px rgba(168,85,247,.6);
+  color:#fff;opacity:1;
+  transform:scale(1);
 }
-.fp-lm-line.done{color:rgba(255,255,255,.12);}
+.fp-lm-line.done{color:rgba(255,255,255,.12);transform:scale(0.97);}
+[data-theme="light"] .fp-lm-line{color:rgba(0,0,0,.15);}
+[data-theme="light"] .fp-lm-line.active{color:rgba(0,0,0,.9);}
+[data-theme="light"] .fp-lm-line.done{color:rgba(0,0,0,.08);}
 .fp-lm-sec{
   font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
   letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;text-align:left;
@@ -4534,9 +4526,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .fp-ctrl-btn svg{width:24px;height:24px;}
   .fp-side-actions{gap:8px;}
   .fp-side-btn{width:34px;height:34px;font-size:14px;}
-  .fp-lyrics-main{max-height:35vh;padding:0 12px;}
-  .fp-lm-line{font-size:16px;line-height:2;}
-  .fp-lm-line.active{font-size:15px;}
+  .fp-lyrics-main{padding:0 16px;}
+  .fp-lm-line{font-size:20px;}
+  .fp-lm-line.active{font-size:20px;}
 
   /* 히스토리 */
   .hist-tabs{gap:6px;}
@@ -16862,18 +16854,7 @@ async function _doOpenFullPlayer(idx){
     const linkedAudio = historyData.find(x=>x.audio_url===h.audio_url && x.lyrics && x.id!==h.id);
     if(linkedAudio) h.lyrics = linkedAudio.lyrics;
   }
-  /* 가사 영역 배경에 커버 이미지 워터마크 */
-  var _lyrMain=$('fp-lyrics-main');
-  if(_lyrMain){
-    var _existBg=_lyrMain.querySelector('.fp-lyrics-bg');
-    if(_existBg) _existBg.remove();
-    if(h.image_url){
-      var _bgEl=document.createElement('div');
-      _bgEl.className='fp-lyrics-bg';
-      _bgEl.style.backgroundImage='url('+h.image_url+')';
-      _lyrMain.prepend(_bgEl);
-    }
-  }
+  /* 배경은 fp-bg (커버 블러 풀스크린)가 이미 처리 */
   await fpRenderLyrics(h);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
