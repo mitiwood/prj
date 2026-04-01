@@ -15728,7 +15728,7 @@ function showMiniPlayer(idx){
     if(!audio._retried && code===2){
       audio._retried=true;
       /* HEAD로 404 사전 확인 — 만료 시 record-info로 URL 갱신 시도 */
-      if(_safeAudioUrl){fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){if(r.status===404||r.status===410||r.status===403){
+      if(_safeAudioUrl){fetch(_safeAudioUrl,{method:'HEAD'}).then(function(r){if(r.status===404||r.status===410||r.status===403){
         /* ★ taskId가 있으면 record-info로 최신 URL 재조회 */
         var _h=historyData[fpCurrentIdx];
         var _tid=_h?.taskId||_h?._taskId||'';
@@ -15754,7 +15754,7 @@ function showMiniPlayer(idx){
     } else if(code===4){
       /* code 4: HEAD로 Content-Type 확인 → 만료/비오디오 판별 후 URL 갱신 시도 */
       if(_safeAudioUrl){
-        fetch(_safeAudioUrl,{method:'HEAD',mode:'cors'}).then(function(r){
+        fetch(_safeAudioUrl,{method:'HEAD'}).then(function(r){
           var ct=(r.headers.get('content-type')||'').toLowerCase();
           var isAudio=ct.indexOf('audio')>=0||ct.indexOf('octet-stream')>=0;
           if(!r.ok||!isAudio){
@@ -16928,7 +16928,7 @@ async function _doOpenFullPlayer(idx){
     if(code===4||code===2){
       console.warn('[FP Audio Error]',code,_audioUrl.slice(-40));
       /* HEAD로 Content-Type 확인 → 만료 판별 + record-info 갱신 시도 */
-      fetch(_audioUrl,{method:'HEAD',mode:'cors'}).then(function(r){
+      fetch(_audioUrl,{method:'HEAD'}).then(function(r){
         var ct=(r.headers.get('content-type')||'').toLowerCase();
         var isAudio=ct.indexOf('audio')>=0||ct.indexOf('octet-stream')>=0;
         if(!r.ok||!isAudio){
@@ -20742,7 +20742,7 @@ function _checkAudioUrls(){
   var changed=false;
   var done=0;
   urls.forEach(function(url){
-    fetch(url,{method:'HEAD',mode:'cors'}).then(function(r){
+    fetch(url,{method:'HEAD'}).then(function(r){
       if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(url);changed=true;}
     }).catch(function(){}).finally(function(){
       done++;
@@ -20769,7 +20769,7 @@ function _checkPvAudioUrls(tracks){
   tracks.forEach(function(t){var u=t.audio_url;if(u&&!_failedAudioUrls.has(u)&&urls.indexOf(u)<0)urls.push(u);});
   if(!urls.length)return;
   urls.forEach(function(url){
-    fetch(url,{method:'HEAD',mode:'cors'}).then(function(r){
+    fetch(url,{method:'HEAD'}).then(function(r){
       if(r.status===404||r.status===410||r.status===403){_failedAudioUrls.add(url);changed=true;}
     }).catch(function(){}).finally(function(){
       done++;
