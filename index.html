@@ -3921,6 +3921,14 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   scrollbar-width:none;-ms-overflow-style:none;
   position:relative;
 }
+.fp-lyrics-main::before{
+  content:'';position:sticky;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:block;width:200px;height:200px;margin:-100px auto -100px;
+  background:var(--fp-lyrics-bg) center/cover no-repeat;
+  opacity:.07;filter:blur(20px);border-radius:50%;
+  pointer-events:none;z-index:0;
+}
+.fp-lyrics-main>*{position:relative;z-index:1;}
 .fp-lyrics-main::-webkit-scrollbar{display:none;}
 /* 스크롤 모드 (기본) */
 .fp-lyrics-main.scroll-mode{
@@ -16855,6 +16863,9 @@ async function _doOpenFullPlayer(idx){
     const linkedAudio = historyData.find(x=>x.audio_url===h.audio_url && x.lyrics && x.id!==h.id);
     if(linkedAudio) h.lyrics = linkedAudio.lyrics;
   }
+  /* 가사 영역 배경에 커버 이미지 설정 */
+  var _lyrMain=$('fp-lyrics-main');
+  if(_lyrMain) _lyrMain.style.setProperty('--fp-lyrics-bg',h.image_url?'url('+h.image_url+')':'none');
   await fpRenderLyrics(h);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
