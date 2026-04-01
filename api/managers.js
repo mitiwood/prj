@@ -4,6 +4,8 @@
  * 별도 managers 테이블 불필요!
  */
 
+import { signJWT, verifyJWT } from './_jwt.js';
+
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
@@ -11,6 +13,31 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET;
 /* 인메모리 폴백 (Supabase 미연결 시) */
 let _memManagers = [];
 const _useMem = !SB_URL || !SB_KEY;
+
+/* 로그인 실패 추적 (IP별 15분 내 5회 제한) */
+const _loginFails = new Map();
+function _checkLoginRate(ip) {
+  const now = Date.now();
+  const key = ip || 'unknown';
+  const fails = (_loginFails.get(key) || []).filter(t => now - t < 15 * 60 * 1000);
+  _loginFails.set(key, fails);
+  return fails.length >= 5;
+}
+function _recordLoginFail(ip) {
+  const key = ip || 'unknown';
+  const fails = _loginFails.get(key) || [];
+  fails.push(Date.now());
+  _loginFails.set(key, fails);
+}
+async function _logLoginAttempt(mgr_id, ip, success) {
+  if (_useMem) return;
+  try {
+    await sb('/bot_logs', {
+      method: 'POST', prefer: 'return=minimal',
+      body: JSON.stringify({ platform: 'admin_login', command: success ? 'login_ok' : 'login_fail', user_name: mgr_id, message: ip || '', created_at: new Date().toISOString() }),
+    });
+  } catch { /* ignore */ }
+}
 
 async function sb(path, opts = {}) {
   if (!SB_URL || !SB_KEY) throw new Error('no_supabase');
@@ -41,7 +68,24 @@ async function sb(path, opts = {}) {
 
 function isAdmin(req) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
-  return auth === ADMIN_SECRET;
+  if (auth === ADMIN_SECRET) return true;
+  const jwt = verifyJWT(req);
+  return !!jwt;
+}
+
+/* JWT에서 역할 추출 — admin/super만 쓰기 허용 */
+function getRole(req) {
+  const auth = (req.headers.authorization || '').replace('Bearer ', '');
+  if (auth === ADMIN_SECRET) return 'admin';
+  const jwt = verifyJWT(req);
+  return jwt?.role || null;
+}
+
+function requireWrite(req, res) {
+  const role = getRole(req);
+  if (!role) { res.status(401).json({ error: 'Unauthorized' }); return false; }
+  if (role !== 'admin' && role !== 'super') { res.status(403).json({ error: 'Forbidden: admin/super only' }); return false; }
+  return true;
 }
 
 /* users 테이블의 매니저 행을 매니저 객체로 변환 */
@@ -99,9 +143,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — 매니저 추가/수정
+  // POST — 매니저 추가/수�� (admin/super만)
   if (req.method === 'POST') {
-    if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
+    if (!requireWrite(req, res)) return;
     let body = req.body || {};
     if (typeof body === 'string') try { body = JSON.parse(body); } catch { body = {}; }
     const { name, mgr_id, pw_hash, email, role, memo, edit_id } = body;
@@ -160,27 +204,33 @@ export default async function handler(req, res) {
     if (body.action === 'login') {
       const { mgr_id, pw_hash } = body;
       if (!mgr_id || !pw_hash) return res.status(400).json({ error: 'mgr_id, pw_hash required' });
+      const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+      if (_checkLoginRate(clientIp)) return res.status(429).json({ error: '로그인 시도 횟수 초과. 15분 후 다시 시도하세요.' });
       if (_useMem) {
         const m = _memManagers.find(x=>x.mgr_id===mgr_id && x.active && x.pw_hash===pw_hash);
-        if (!m) return res.status(401).json({ error: 'Invalid credentials' });
+        if (!m) { _recordLoginFail(clientIp); return res.status(401).json({ error: 'Invalid credentials' }); }
         m.lastAccess = Date.now();
-        return res.status(200).json({ success:true, manager:{name:m.name,id:m.mgr_id,role:m.role,email:m.email} });
+        const token = signJWT({ name: m.name, mgr_id: m.mgr_id, role: m.role });
+        return res.status(200).json({ success:true, token, manager:{name:m.name,id:m.mgr_id,role:m.role,email:m.email} });
       }
       try {
         // uid로 매니저 조회 (active = is_mobile=false)
         const data = await sb(`/users?uid=eq.${encodeURIComponent(mgr_id)}&provider=like.mgr_*&is_mobile=eq.false&limit=1`);
         const row = Array.isArray(data) ? data[0] : null;
-        if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+        if (!row) { _recordLoginFail(clientIp); _logLoginAttempt(mgr_id, clientIp, false); return res.status(401).json({ error: 'Invalid credentials' }); }
         const mgr = userToMgr(row);
-        if (mgr.pw_hash !== pw_hash) return res.status(401).json({ error: 'Invalid credentials' });
+        if (mgr.pw_hash !== pw_hash) { _recordLoginFail(clientIp); _logLoginAttempt(mgr_id, clientIp, false); return res.status(401).json({ error: 'Invalid credentials' }); }
 
         // 접속 시간 업데이트
         await sb(`/users?id=eq.${row.id}`, {
           method: 'PATCH', prefer: 'return=minimal',
           body: JSON.stringify({ last_login: Date.now() }),
         });
+        const token = signJWT({ name: mgr.name, mgr_id: mgr.mgr_id, role: mgr.role });
+        _logLoginAttempt(mgr_id, clientIp, true);
         return res.status(200).json({
           success: true,
+          token,
           manager: { name: mgr.name, id: mgr.mgr_id, role: mgr.role, email: mgr.email },
         });
       } catch (e) {
@@ -207,9 +257,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // DELETE
+  // DELETE (admin/super만)
   if (req.method === 'DELETE') {
-    if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
+    if (!requireWrite(req, res)) return;
     const { id } = req.query || {};
     if (!id) return res.status(400).json({ error: 'id required' });
     if (_useMem) {

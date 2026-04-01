@@ -429,12 +429,12 @@ textarea.form-input{line-height:1.5;}
       <!-- 대시보드 -->
       <div class="admin-section on" id="sec-dashboard">
         <div class="stats-grid" id="stats-grid">
-          <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">전체 곡 수</div></div>
-          <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="stat-likes">0</div><div class="stat-label">총 좋아요</div></div>
-          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">로그인 사용자</div></div>
-          <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="stat-mv">0</div><div class="stat-label">뮤직비디오</div></div>
+          <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">전체 곡 수</div><div id="kpi-total-delta" style="font-size:10px;margin-top:2px;"></div></div>
+          <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-val" id="stat-likes">0</div><div class="stat-label">총 좋아요</div><div id="kpi-likes-delta" style="font-size:10px;margin-top:2px;"></div></div>
+          <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="stat-users">0</div><div class="stat-label">로그인 사용자</div><div id="kpi-users-delta" style="font-size:10px;margin-top:2px;"></div></div>
+          <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-val" id="stat-mv">0</div><div class="stat-label">뮤직비디오</div><div id="kpi-mv-delta" style="font-size:10px;margin-top:2px;"></div></div>
           <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="stat-today">0</div><div class="stat-label">오늘 생성</div></div>
-          <div class="stat-card"><div class="stat-icon">▶️</div><div class="stat-val" id="stat-plays">0</div><div class="stat-label">총 재생</div></div>
+          <div class="stat-card"><div class="stat-icon">▶️</div><div class="stat-val" id="stat-plays">0</div><div class="stat-label">총 재생</div><div id="kpi-plays-delta" style="font-size:10px;margin-top:2px;"></div></div>
           <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-val" id="stat-comm">0</div><div class="stat-label">커뮤니티 공개</div></div>
           <div class="stat-card" style="border-color:rgba(255,208,0,.2);"><div class="stat-icon">💰</div><div class="stat-val" id="stat-cost" style="color:var(--ylw);font-size:18px;">₩0</div><div class="stat-label">예상 API 비용</div><div class="stat-change up" id="stat-cost-detail" style="font-size:9px;"></div></div>
           <div class="stat-card" style="border-color:rgba(0,221,160,.2);"><div class="stat-icon">🔔</div><div class="stat-val" id="stat-subs">0</div><div class="stat-label">푸시 구독자</div></div>
@@ -638,10 +638,11 @@ textarea.form-input{line-height:1.5;}
 
         <!-- 자동 갱신 상태 바 -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--t3);">
-          <span>🔄 10초마다 실시간 갱신</span>
+          <span><span id="sync-pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--grn);margin-right:6px;animation:pulse 2s infinite;"></span>실시간 갱신 <span id="auto-refresh-countdown" style="color:var(--t2);font-weight:600;"></span></span>
           <span>마지막: <b id="dash-last-sync" style="color:var(--t2);">-</b></span>
           <button class="btn" onclick="loadData().then(()=>adminToast('✅ 갱신됨')).catch(()=>{});" style="font-size:11px;padding:3px 10px;">수동 갱신</button>
         </div>
+        <style>@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}</style>
 
         <!-- kie.ai 외부 링크 카드 -->
         <div class="chart-card" style="margin-bottom:16px;">
@@ -705,7 +706,10 @@ textarea.form-input{line-height:1.5;}
       <div class="admin-section" id="sec-tracks">
         <div class="sec-hdr">
           <h2>음악 관리</h2>
-          <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄 새로고침</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" onclick="_exportTracksCsv()" style="font-size:12px;">📥 CSV</button>
+            <button class="btn btn-acc" onclick="renderTracksAdmin()" style="font-size:12px;">🔄 새로고침</button>
+          </div>
         </div>
         <div class="stats-grid" style="margin-bottom:16px;">
           <div class="stat-card"><div class="stat-icon">🎵</div><div class="stat-val" id="tstat-total">0</div><div class="stat-label">전체 곡</div></div>
@@ -1037,10 +1041,10 @@ textarea.form-input{line-height:1.5;}
 
         <!-- 통계 요약 -->
         <div class="stats-grid" style="margin-bottom:16px;" id="user-stats-grid">
-          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-total">0</div><div class="stat-label">전체 사용자</div></div>
+          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-total">0</div><div class="stat-label">전체 사용자</div><div id="ustat-total-delta" style="font-size:10px;margin-top:2px;"></div></div>
           <div class="stat-card" style="border-left:3px solid var(--grn);"><div class="stat-icon">🟢</div><div class="stat-val" id="ustat-online" style="color:var(--grn);">0</div><div class="stat-label">현재 온라인</div></div>
-          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div></div>
-          <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div></div>
+          <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-val" id="ustat-today">0</div><div class="stat-label">오늘 로그인</div><div id="ustat-today-delta" style="font-size:10px;margin-top:2px;"></div></div>
+          <div class="stat-card"><div class="stat-icon">🌟</div><div class="stat-val" id="ustat-creator">0</div><div class="stat-label">곡 생성자</div><div id="ustat-creator-delta" style="font-size:10px;margin-top:2px;"></div></div>
           <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-val" id="ustat-mobile">0%</div><div class="stat-label">모바일 비율</div></div>
           <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-val" id="ustat-push">0</div><div class="stat-label">푸시 구독</div></div>
           <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-val" id="ustat-guest">0</div><div class="stat-label">게스트</div></div>
@@ -1129,7 +1133,7 @@ textarea.form-input{line-height:1.5;}
                 </select>
               </div>
             </div>
-            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>플랜</th><th>로그인</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
+            <table><thead><tr><th>프로필</th><th>이름</th><th>프로바이더</th><th>플랜</th><th>크레딧</th><th>로그인</th><th>마지막 로그인</th><th>생성 곡</th><th>관리</th></tr></thead>
             <tbody id="users-login-tbody"></tbody></table>
           </div>
         </div>
@@ -1777,6 +1781,9 @@ textarea.form-input{line-height:1.5;}
                 <select id="ann-target" class="settings-input" style="width:100%;">
                   <option value="all">전체 방문자</option>
                   <option value="logged">로그인 사용자</option>
+                  <option value="plan:free">Free 플랜 사용자</option>
+                  <option value="plan:pro">Pro 플랜 사용자</option>
+                  <option value="plan:creator">Creator 플랜 사용자</option>
                 </select>
               </div>
               <!-- 만료 -->
@@ -2937,12 +2944,26 @@ function _showConfirmPopup(title,details,onConfirm){
   box.querySelector('#_cp-confirm').addEventListener('click',function(){overlay.remove();onConfirm();});
 }
 
-/* 인증 헤더 포함 fetch — 401이면 DEFAULT_PW로 재시도 */
+/* 세션 만료 체크 (4시간) */
+function _checkSessionExpiry(){
+  var ts = sessionStorage.getItem('kms_session_ts');
+  if(ts && (Date.now() - Number(ts)) > 4*60*60*1000){
+    adminToast('세션이 만료되었습니다. 다시 로그인해주세요.','err');
+    adminLogout();
+    return true;
+  }
+  return false;
+}
+
+/* 인증 헤더 포함 fetch — JWT 우선, 폴백으로 ADMIN_SECRET */
 async function adminFetch(url, options={}){
+  if(_checkSessionExpiry()) return new Response('{}',{status:401});
+  const jwt = sessionStorage.getItem('kms_mgr_jwt');
   const pw = getAdminPw();
-  const headers = {...(options.headers||{}), 'Authorization':'Bearer '+pw};
+  const token = jwt || pw;
+  const headers = {...(options.headers||{}), 'Authorization':'Bearer '+token};
   let r = await fetch(url, {...options, headers, signal:options.signal||AbortSignal.timeout(8000)});
-  if(r.status===401 && pw !== DEFAULT_PW){
+  if(r.status===401 && token !== DEFAULT_PW){
     headers['Authorization'] = 'Bearer '+DEFAULT_PW;
     r = await fetch(url, {...options, headers, signal:AbortSignal.timeout(8000)});
   }
@@ -2957,6 +2978,7 @@ async function gateLogin(){
   if(inputPw===DEFAULT_PW || (savedPw && inputPw===savedPw)){
     localStorage.setItem('kms_admin_auth','1');
     sessionStorage.setItem('kms_admin_session', inputPw);
+    sessionStorage.setItem('kms_session_ts', String(Date.now()));
     document.getElementById('admin-gate').style.display='none';
     document.getElementById('admin-app').style.display='flex';
     currentAccount={role:'admin',name:'관리자',id:'admin'};
@@ -2975,6 +2997,7 @@ async function gateLogin(){
     if(mgr){
       document.getElementById('admin-gate').style.display='none';
       document.getElementById('admin-app').style.display='flex';
+      sessionStorage.setItem('kms_session_ts', String(Date.now()));
       currentAccount={role:mgr.role,name:mgr.name,id:mgr.id};
       sessionStorage.setItem(CURRENT_ACCOUNT_KEY,JSON.stringify(currentAccount));
       switchSec('dashboard');
@@ -2988,6 +3011,8 @@ async function gateLogin(){
 }
 function adminLogout(){
   localStorage.removeItem('kms_admin_auth');
+  sessionStorage.removeItem('kms_mgr_jwt');
+  sessionStorage.removeItem('kms_session_ts');
   location.reload();
 }
 document.getElementById('gate-pw').addEventListener('keydown',e=>{if(e.key==='Enter')gateLogin();});
@@ -3000,6 +3025,7 @@ if(localStorage.getItem('kms_admin_auth')==='1'){
   if(!_sess || _sess==='manager_session'){
     sessionStorage.setItem('kms_admin_session', localStorage.getItem(ADMIN_PW_KEY)||DEFAULT_PW);
   }
+  if(!sessionStorage.getItem('kms_session_ts')) sessionStorage.setItem('kms_session_ts', String(Date.now()));
   /* 프리페치: 인증 후 즉시 모든 데이터를 백그라운드 로딩 */
   _fetchServerData().then(()=>{
     _buildCommCacheFromServer(); /* 커뮤니티 캐시도 미리 빌드 */
@@ -3442,6 +3468,19 @@ async function loadData(){
   document.getElementById('stat-today').textContent=todayCount;
   document.getElementById('stat-comm').textContent=commCount;
 
+  /* KPI 주간 비교 (최근 7일 vs 이전 7일) */
+  var _now=Date.now(), _7d=7*24*60*60*1000;
+  var _thisWeekTracks=h.filter(function(t){return t.created&&(_now-t.created)<_7d;});
+  var _prevWeekTracks=h.filter(function(t){return t.created&&(_now-t.created)>=_7d&&(_now-t.created)<_7d*2;});
+  var _kpiDelta=function(id,cur,prev){var el=document.getElementById(id);if(!el)return;var d=cur-prev;el.innerHTML=d>0?'<span style="color:var(--grn);">+'+d+' 이번주</span>':d<0?'<span style="color:#ef4444;">'+d+' 이번주</span>':'';};
+  _kpiDelta('kpi-total-delta',_thisWeekTracks.length,_prevWeekTracks.length);
+  _kpiDelta('kpi-likes-delta',_thisWeekTracks.reduce(function(a,t){return a+(t._commLikes||0);},0),_prevWeekTracks.reduce(function(a,t){return a+(t._commLikes||0);},0));
+  _kpiDelta('kpi-plays-delta',_thisWeekTracks.reduce(function(a,t){return a+(t._commPlays||0);},0),_prevWeekTracks.reduce(function(a,t){return a+(t._commPlays||0);},0));
+  _kpiDelta('kpi-mv-delta',_thisWeekTracks.filter(function(t){return t.video_url;}).length,_prevWeekTracks.filter(function(t){return t.video_url;}).length);
+  var _thisWeekUsers=_serverUsers.filter(function(u){return u.created_at&&(_now-new Date(u.created_at).getTime())<_7d;}).length;
+  var _prevWeekUsers=_serverUsers.filter(function(u){return u.created_at&&(_now-new Date(u.created_at).getTime())>=_7d&&(_now-new Date(u.created_at).getTime())<_7d*2;}).length;
+  _kpiDelta('kpi-users-delta',_thisWeekUsers,_prevWeekUsers);
+
   const subs=getPushSubscriptions();
   const subEl=document.getElementById('stat-subs');
   if(subEl)subEl.textContent=subs.length;
@@ -3595,11 +3634,19 @@ async function renderDashboardCharts() {
     var sumEl = document.getElementById('chart-daily-summary');
     if(sumEl) sumEl.innerHTML = '합계 <b style="color:var(--acc);">'+dailyTotal+'</b>곡 · 일평균 <b style="color:var(--t2);">'+dailyAvg+'</b>곡 · 최대 <b style="color:var(--grn);">'+dailyMax+'</b>곡';
     var dailyColors = dailyVals.map(function(_,idx){ return idx === dailyVals.length-1 ? 'rgba(168,85,247,.9)' : 'rgba(124,58,237,.45)'; });
+    /* 이전 14일 비교선 데이터 */
+    var prevCounts = {};
+    for (var pi = 27; pi >= 14; pi--) { var pd = new Date(now - pi * DAY); prevCounts[pd.toISOString().split('T')[0]] = 0; }
+    tracks.forEach(function(t) { if (t.created) { var pday = new Date(t.created).toISOString().split('T')[0]; if (prevCounts[pday] !== undefined) prevCounts[pday]++; } });
+    var prevVals = Object.values(prevCounts);
     _renderChart('chart-daily-tracks', 'bar', {
       labels: Object.keys(dailyCounts).map(function(d){ var p=d.split('-'); return parseInt(p[1])+'/'+parseInt(p[2]); }),
-      datasets: [{ label:'트랙 생성', data:dailyVals, backgroundColor:dailyColors, borderColor:dailyColors.map(function(_,i){return i===dailyVals.length-1?'#a855f7':'transparent';}), borderWidth:2, borderRadius:6, borderSkipped:false, maxBarThickness:40 }]
+      datasets: [
+        { label:'트랙 생성', data:dailyVals, backgroundColor:dailyColors, borderColor:dailyColors.map(function(_,i){return i===dailyVals.length-1?'#a855f7':'transparent';}), borderWidth:2, borderRadius:6, borderSkipped:false, maxBarThickness:40 },
+        { label:'이전 14일', data:prevVals, type:'line', borderColor:'rgba(255,255,255,.25)', borderDash:[5,5], borderWidth:1.5, pointRadius:0, fill:false, tension:0.3 }
+      ]
     }, {
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(30,30,42,.95)', titleFont:{size:13,weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{label:function(c){return c.parsed.y+'곡 생성';}} } },
+      plugins:{ legend:{display:true,labels:{color:'#aaa',font:{size:10},boxWidth:12}}, tooltip:{ backgroundColor:'rgba(30,30,42,.95)', titleFont:{size:13,weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+'곡';}} } },
       scales:{ x:{ticks:{color:'#aaa',font:{size:11}},grid:{display:false}}, y:{beginAtZero:true,ticks:{color:'#888',font:{size:11},stepSize:Math.max(1,Math.ceil(dailyMax/5))},grid:{color:'rgba(255,255,255,.06)',drawBorder:false}} }
     });
 
@@ -5239,6 +5286,7 @@ async function renderUsersAdmin(showToast=false){
           name:u.name, provider:u.provider, email:u.email||'',
           avatar:u.avatar||'', ua:u.ua||'', isMobile:u.is_mobile||false,
           plan:u.plan||'free', credits_song:u.credits_song||0, credits_mv:u.credits_mv||0, credits_lyrics:u.credits_lyrics||0,
+          plan_expires:u.plan_expires||null,
           loginCount:u.login_count||1, lastLogin:u.last_login||0,
           created_at:u.created_at||0,
           lastIp:u.last_ip||'', lastLocation:u.last_location||'',
@@ -5283,6 +5331,18 @@ async function renderUsersAdmin(showToast=false){
   if(_s('ustat-mobile')) _s('ustat-mobile').textContent=mobilePct+'%';
   if(_s('ustat-push')) _s('ustat-push').textContent=pushSubs;
   if(_s('ustat-guest')) _s('ustat-guest').textContent=guestCount;
+
+  /* 주간 비교 (7일 전 가입자 기준) */
+  var weekAgo=Date.now()-7*24*60*60*1000;
+  var usersLastWeek=loginUsers.filter(function(u){return !u.created_at||new Date(u.created_at).getTime()<weekAgo;}).length;
+  var newThisWeek=loginUsers.length-usersLastWeek;
+  var _delta=function(id,val){var el=document.getElementById(id);if(el)el.innerHTML=val>0?'<span style="color:var(--grn);">+'+val+' 이번주</span>':val===0?'':'<span style="color:#ef4444;">'+val+'</span>';};
+  _delta('ustat-total-delta',newThisWeek);
+  var loginsLastWeek=loginUsers.filter(function(u){var t=u.lastLogin||0;return t>=weekAgo&&t<weekAgo+24*60*60*1000;}).length;
+  var todayDelta=todayLogins-loginsLastWeek;
+  _delta('ustat-today-delta',todayDelta);
+  var creatorsLastWeek=Object.values(_creatorMap).filter(function(c){return !c.last||c.last<weekAgo;}).length;
+  _delta('ustat-creator-delta',creators.length-creatorsLastWeek);
 
   /* 소셜 분포 바 */
   const provCnt={google:0,kakao:0,naver:0,other:0};
@@ -5344,7 +5404,7 @@ function _sortAndRenderUsers(){
   const loginTbody=document.getElementById('users-login-tbody');
   if(!loginTbody) return;
   if(!users.length){
-    loginTbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--t3);">'+(q||pf||plf?'검색 결과 없음':'로그인 기록이 없습니다')+'</td></tr>';
+    loginTbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--t3);">'+(q||pf||plf?'검색 결과 없음':'로그인 기록이 없습니다')+'</td></tr>';
     return;
   }
   const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',guest:'badge-acc'};
@@ -5365,8 +5425,9 @@ function _sortAndRenderUsers(){
         +'<option value="pro"'+(u.plan==='pro'?' selected':'')+'>Pro</option>'
         +'<option value="creator"'+(u.plan==='creator'?' selected':'')+'>Creator</option>'
       +'</select></td>'
+      +'<td style="text-align:center;font-size:11px;"><span title="곡/MV/가사" style="cursor:pointer;" onclick="event.stopPropagation();_editUserCredits(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\','+(u.credits_song||0)+','+(u.credits_mv||0)+','+(u.credits_lyrics||0)+')">🎵'+(u.credits_song||0)+' 🎬'+(u.credits_mv||0)+' ✍️'+(u.credits_lyrics||0)+'</span></td>'
       +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'<span style="font-size:9px;color:var(--t3);font-weight:400;">회</span></td>'
-      +'<td style="font-size:11px;color:var(--t3);">'+timeStr+'</td>'
+      +'<td style="font-size:11px;color:var(--t3);">'+timeStr+(u.plan_expires?'<div style="font-size:9px;color:'+(new Date(u.plan_expires)<new Date()?'#ef4444':'var(--t3)')+';">만료: '+new Date(u.plan_expires).toLocaleDateString('ko-KR')+'</div>':'')+'</td>'
       +'<td style="text-align:center;">'+(cInfo?'<b style="color:var(--acc3);">'+cInfo.count+'</b>곡':'—')+'</td>'
       +'<td><div style="display:flex;gap:4px;">'
         +'<button class="btn" onclick="event.stopPropagation();sendPushToUser(\''+esc(u.name)+'\')" style="font-size:11px;padding:4px 8px;" title="푸시 알림">🔔</button>'
@@ -5387,6 +5448,22 @@ function _exportUsersCsv(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='kms_users_'+new Date().toISOString().split('T')[0]+'.csv';
   a.click();URL.revokeObjectURL(a.href);adminToast('📥 CSV 다운로드 완료');
+}
+
+/* 트랙 CSV 내보내기 */
+function _exportTracksCsv(){
+  var tracks=_allAdminTracks||[];
+  if(!tracks.length){adminToast('트랙 데이터 없음','err');return;}
+  var header='제목,아티스트,장르,모드,좋아요,재생,MV,소유자,프로바이더,생성일\n';
+  var rows=tracks.map(function(t){
+    var owner=t._owner||{};
+    return ['"'+esc(t.title||'무제')+'"','"'+esc(t.artist||'')+'"','"'+esc(t.tags||'')+'"',t.genMode||'custom',t._commLikes||0,t._commPlays||0,t.video_url?'Y':'N','"'+esc(owner.name||'게스트')+'"',owner.provider||'guest',t.created?new Date(t.created).toISOString():''].join(',');
+  }).join('\n');
+  var blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='kms_tracks_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(a.href);adminToast('📥 트랙 CSV 다운로드 완료');
+  addAudit('export','트랙 CSV 내보내기',tracks.length+'곡');
 }
 
 async function changeUserPlan(userName, provider, newPlan) {
@@ -5426,6 +5503,42 @@ async function changeUserPlan(userName, provider, newPlan) {
   } catch(e) {
     adminToast('⚠️ 플랜 변경 실패: ' + e.message, 'err');
   }
+}
+
+/* 크레딧 인라인 편집 */
+function _editUserCredits(name, provider, song, mv, lyrics){
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInUp .2s ease;';
+  var box=document.createElement('div');
+  box.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);';
+  box.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:16px;">🎫 크레딧 수정 — '+name+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;">'
+    +'<label style="font-size:12px;color:var(--t2);">🎵 곡 생성 <input id="_cr-song" type="number" min="0" value="'+song+'" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:14px;font-family:inherit;"></label>'
+    +'<label style="font-size:12px;color:var(--t2);">🎬 MV 생성 <input id="_cr-mv" type="number" min="0" value="'+mv+'" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:14px;font-family:inherit;"></label>'
+    +'<label style="font-size:12px;color:var(--t2);">✍️ 가사 생성 <input id="_cr-lyrics" type="number" min="0" value="'+lyrics+'" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:14px;font-family:inherit;"></label>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button id="_cr-cancel" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">취소</button>'
+    +'<button id="_cr-save" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button>'
+    +'</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  box.querySelector('#_cr-cancel').addEventListener('click',function(){overlay.remove();});
+  box.querySelector('#_cr-save').addEventListener('click',async function(){
+    var s=parseInt(document.getElementById('_cr-song').value)||0;
+    var m=parseInt(document.getElementById('_cr-mv').value)||0;
+    var l=parseInt(document.getElementById('_cr-lyrics').value)||0;
+    try{
+      var r=await adminFetch('/api/users',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,provider:provider,credits_song:s,credits_mv:m,credits_lyrics:l})});
+      if(!r.ok){adminToast('크레딧 수정 실패','err');return;}
+      adminToast('✅ '+name+' 크레딧 수정 완료');
+      addAudit('setting','크레딧 수정',name+': 곡='+s+' MV='+m+' 가사='+l);
+      overlay.remove();
+      await _fetchServerData();
+      _sortAndRenderUsers();
+    }catch(e){adminToast('오류: '+e.message,'err');}
+  });
 }
 
 function sendPushToUser(name){
@@ -6997,7 +7110,10 @@ async function tryManagerLogin(loginId, pw){
     });
     if(!r.ok) return null;
     const d = await r.json();
-    if(d.success && d.manager) return d.manager;
+    if(d.success && d.manager){
+      if(d.token) sessionStorage.setItem('kms_mgr_jwt', d.token);
+      return d.manager;
+    }
   }catch(e){ console.warn('[MgrLogin]', e.message); }
   /* 폴백: localStorage */
   const managers = getManagers();
@@ -7029,9 +7145,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   /* 카운트다운 표시 */
   let _autoRefreshTick = 10;
   const _autoLabel = document.getElementById('auto-refresh-label');
+  const _autoCountdown = document.getElementById('auto-refresh-countdown');
   setInterval(()=>{
-    _autoRefreshTick = _autoRefreshTick <= 1 ? 30 : _autoRefreshTick - 1;
+    _autoRefreshTick = _autoRefreshTick <= 1 ? 10 : _autoRefreshTick - 1;
     if(_autoLabel) _autoLabel.textContent = _autoRefreshTick + '초 후 갱신';
+    if(_autoCountdown) _autoCountdown.textContent = _autoRefreshTick + 's';
   }, 1000);
   
   /* 게이트 힌트 업데이트 */
@@ -7069,8 +7187,15 @@ function addAudit(type, action, detail=''){
   const log = getAuditLog();
   const actor = currentAccount?.name || '관리자';
   const role = currentAccount?.role || 'admin';
-  log.unshift({ type, action, detail, actor, role, ts: Date.now() });
+  var entry = { type, action, detail, actor, role, ts: Date.now() };
+  log.unshift(entry);
   saveAuditLog(log);
+  /* 서버에도 비동기 저장 (실패해도 무시) */
+  adminFetch('/api/error-logs',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({endpoint:'admin_audit',method:type,status:0,error_message:action+' | '+detail+' | '+actor+'('+role+')'})
+  }).catch(function(){});
 }
 
 function renderAuditLog(){

@@ -11,6 +11,7 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+import { verifyJWT } from './_jwt.js';
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 
@@ -166,10 +167,12 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST/DELETE — 인증 필요
+  // POST/DELETE — 인증 필요 (admin/super만)
   const auth = (req.headers.authorization || '').replace('Bearer ', '');
-  if (auth !== ADMIN_SECRET) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const jwt = verifyJWT(req);
+  const role = (auth === ADMIN_SECRET) ? 'admin' : jwt?.role || null;
+  if (!role || (role !== 'admin' && role !== 'super')) {
+    return res.status(role ? 403 : 401).json({ success: false, error: role ? 'Forbidden' : 'Unauthorized' });
   }
 
   // POST — 공지 등록

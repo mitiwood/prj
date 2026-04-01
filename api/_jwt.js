@@ -10,6 +10,14 @@ function hmac(data) {
   return crypto.createHmac('sha256', SECRET).update(data).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
+export function signJWT(payload, expiresIn = 14400) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const now = Math.floor(Date.now() / 1000);
+  const body = Buffer.from(JSON.stringify({ ...payload, iat: now, exp: now + expiresIn })).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const sig = hmac(header + '.' + body);
+  return header + '.' + body + '.' + sig;
+}
+
 export function verifyJWT(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return null;

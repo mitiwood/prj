@@ -6,9 +6,23 @@
  * Supabase 연동 우선, 실패 시 in-memory fallback
  */
 
+import { verifyJWT } from './_jwt.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service_role key
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+function _checkAdmin(req) {
+  const auth = (req.headers.authorization || '').replace('Bearer ', '');
+  if (auth === ADMIN_SECRET) return 'admin';
+  const jwt = verifyJWT(req);
+  return jwt?.role || null;
+}
+
+function _checkWrite(req) {
+  const role = _checkAdmin(req);
+  return role === 'admin' || role === 'super';
+}
 
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
@@ -86,8 +100,7 @@ export default async function handler(req, res) {
 
   /* ── GET: 관리자 조회 ── */
   if (req.method === 'GET') {
-    const auth = req.headers.authorization || '';
-    if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
+    if (!_checkAdmin(req)) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -248,11 +261,10 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ── PATCH: 사용자 정보 수정 (관리자 전용) ── */
+  /* ── PATCH: 사용자 정보 수정 (admin/super만) ── */
   if (req.method === 'PATCH') {
-    const auth = req.headers.authorization || '';
-    if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!_checkWrite(req)) {
+      return res.status(403).json({ error: 'Forbidden: admin/super only' });
     }
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
@@ -323,11 +335,10 @@ export default async function handler(req, res) {
     }
   }
 
-  /* ── DELETE: 사용자 삭제 (관리자 전용) ── */
+  /* ── DELETE: 사용자 삭제 (admin/super만) ── */
   if (req.method === 'DELETE') {
-    const auth = req.headers.authorization || '';
-    if (!auth || auth !== `Bearer ${ADMIN_SECRET}`) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!_checkWrite(req)) {
+      return res.status(403).json({ error: 'Forbidden: admin/super only' });
     }
     const { name, provider, id } = req.query || {};
     if (!name && !id) return res.status(400).json({ error: 'name or id required' });
