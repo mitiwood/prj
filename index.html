@@ -19325,7 +19325,6 @@ async function fpRenderLyrics(h){
   if(_tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     /* 캐시 있으면 즉시 적용 */
     if(h._fpAlignedWords && h._fpAlignedWords.length){
-      console.log('%c[LyricSync] TS 캐시 히트 — '+h._fpAlignedWords.length+'단어','color:#a78bfa;font-weight:bold');
       fpRenderTimestampedLyrics(h._fpAlignedWords);
       fpSyncMode=true;
     } else {
@@ -19336,13 +19335,12 @@ async function fpRenderLyrics(h){
         ]);
         var _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
         if(_tsWords.length){
-          console.log('%c[LyricSync] TS 성공 — '+_tsWords.length+'단어 ['+(_tsWords[0].startS||0).toFixed(1)+'s~'+(_tsWords[_tsWords.length-1].endS||0).toFixed(1)+'s]','color:#4ade80;font-weight:bold');
           h._fpAlignedWords=_tsWords; /* 캐시 */
           fpRenderTimestampedLyrics(_tsWords);
           fpSyncMode=true;
           var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
-        } else { console.warn('[LyricSync] TS 응답 비어있음 → LRC/추정 폴백'); }
-      }catch(e){console.warn('[LyricSync] TS 실패:',e.message,'→ LRC/추정 폴백');}
+        }
+      }catch(e){/* 타임아웃/실패 → 균등 분할로 폴백 */}
     }
   }
 
@@ -19449,7 +19447,6 @@ function _fpAssignTimes(){
     _fpLrcTimes.push(cursor);
     cursor+=usable*(weights[ti]/totalW);
   }
-  console.log('%c[LyricSync] 추정 모드 — '+n+'줄, dur='+dur.toFixed(1)+'s, 시작='+_fpLrcTimes[0].toFixed(1)+'s, 끝='+_fpLrcTimes[n-1].toFixed(1)+'s','color:#f59e0b;font-weight:bold');
   console.table(_fpLrcTimes.map(function(t,i){return{line:i+1,time:t.toFixed(2)+'s',text:(fpTimestampLines[i]?.textContent||'').trim().slice(0,30)};}));
   var syncBtn=$('fp-lyrics-mode-btn');
   if(syncBtn){syncBtn.style.display='';syncBtn.textContent='싱크 모드 (추정)';}
@@ -19555,16 +19552,6 @@ function fpSyncLyrics(currentTime){
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
   /* 디버그: LRC/균등 분할 싱크 로그 */
-  if(activeIdx>=0){
-    var _dbgLrc=_fpLrcTimes[activeIdx]||0;
-    var _dbgNextLrc=activeIdx<n-1?_fpLrcTimes[activeIdx+1]:fpAudio.duration;
-    var _dbgLrcText=(fpTimestampLines[activeIdx]?.textContent||'').trim().slice(0,40);
-    var _dbgLrcRate=fpAudio?.playbackRate||1;
-    var _dbgMode=hasDataEnd?'TS':'LRC';
-    if(!_fpLrcTimes._isLrc) _dbgMode='EST'; /* 추정 모드 */
-    console.log('%c[LyricSync] %c#'+activeIdx+'/'+n+' %c'+_rawTime.toFixed(2)+'s (offset:'+_syncOffset+', rate:'+_dbgLrcRate+'x) %c['+_dbgLrc.toFixed(2)+'~'+_dbgNextLrc.toFixed(2)+'] %c'+_dbgLrcText+' %c('+_dbgMode+')',
-      'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#fff','color:#888');
-  }
   /* 한 줄 모드: 현재 가사 텍스트만 페이드 전환 */
   var _oneEl=$('fp-oneline');
   if(_oneEl && window._fpLyricTexts && activeIdx>=0){
@@ -20665,12 +20652,6 @@ function syncKpLyrics(currentTime){
   });
   /* 현재 라인 자동 스크롤 + 디버그 */
   if(activeEl){
-    var _kIdx=[...lines].indexOf(activeEl);
-    var _kS=parseFloat(activeEl.dataset.start)||0;
-    var _kE=parseFloat(activeEl.dataset.end)||0;
-    var _kT=(activeEl.textContent||'').trim().slice(0,30);
-    console.log('%c[KP-Sync] %c#'+_kIdx+' %c'+currentTime.toFixed(2)+'s %c['+_kS.toFixed(2)+'~'+_kE.toFixed(2)+'] %c'+_kT,
-      'color:#ec4899;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#fff');
     const area=$('kp-lyrics-area');
     const areaRect=area.getBoundingClientRect();
     const elRect=activeEl.getBoundingClientRect();
