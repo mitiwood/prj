@@ -19585,6 +19585,11 @@ function fpSyncLyrics(currentTime){
   }
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
+  /* 간주 구간: active 해제 */
+  if(activeIdx<0){
+    fpTimestampLines.forEach(function(el){el.classList.remove('active');});
+    return;
+  }
   /* 디버그 로그 */
   if(activeIdx>=0){
     var _s=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.start)||0):(_fpLrcTimes[activeIdx]||0);
