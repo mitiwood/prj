@@ -9696,7 +9696,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
       <button id="ssp-play" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(124,58,237,.5);transition:transform .15s;" onmousedown="this.style.transform='scale(.94)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(.94)'" ontouchend="this.style.transform=''">
         <svg id="ssp-play-icon" width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg>
       </button>
-      <button id="ssp-next" style="background:none;border:none;cursor:pointer;color:#7c5cbf;padding:8px;" onclick="document.getElementById('ssp-audio').currentTime=Math.min(document.getElementById('ssp-audio').duration||0,document.getElementById('ssp-audio').currentTime+10)">
+      <button id="ssp-next" style="background:none;border:none;cursor:pointer;color:#7c5cbf;padding:8px;" onclick="var _a=document.getElementById('ssp-audio');if(_a&&_a.duration&&isFinite(_a.duration))_a.currentTime=Math.min(_a.duration,_a.currentTime+10)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM14 6h2v12h-2z"/></svg>
       </button>
     </div>
@@ -9717,7 +9717,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
   const dur=document.getElementById('ssp-dur');
   const prog=document.getElementById('ssp-prog');
 
-  const fmtT=s=>isNaN(s)?'0:00':Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60);
+  const fmtT=s=>(!s||isNaN(s)||!isFinite(s))?'0:00':Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60);
   const setPause=()=>{playIcon.innerHTML='<polygon points="6 3 20 12 6 21 6 3"/>';};
   const setPlay=()=>{playIcon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';};
 
@@ -9745,7 +9745,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
     if(audio.paused){stopAllAudio();audio.play().catch(e=>{if(e.name==='NotAllowedError')toast('재생 버튼을 한번 더 눌러주세요','',2000);});}else{audio.pause();}
   };
   prog.onclick=e=>{
-    if(!audio.duration)return;
+    if(!audio.duration||!isFinite(audio.duration))return;
     const r=prog.getBoundingClientRect();
     audio.currentTime=audio.duration*Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
   };
@@ -10298,7 +10298,8 @@ function _mvMergeSetTrack(idx){
   $('mv-merge-pick-btn').style.display = 'none';
   if(_mvMergeAudio){ _mvMergeAudio.pause(); }
   _mvMergeAudio = new Audio(h.audio_url);
-  _mvMergeAudio.addEventListener('loadedmetadata', function(){ $('mv-merge-dur').textContent = _fmtTime(_mvMergeAudio.duration); });
+  _mvMergeAudio.addEventListener('loadedmetadata', function(){ if(_mvMergeAudio.duration&&isFinite(_mvMergeAudio.duration))$('mv-merge-dur').textContent = _fmtTime(_mvMergeAudio.duration); });
+  _mvMergeAudio.addEventListener('durationchange', function(){ if(_mvMergeAudio.duration&&isFinite(_mvMergeAudio.duration))$('mv-merge-dur').textContent = _fmtTime(_mvMergeAudio.duration); });
   _mvMergeAudio.addEventListener('timeupdate', _mvMergeOnTime);
   _mvMergeAudio.addEventListener('ended', function(){
     _mvMergePlaying = false; $('mv-merge-play-btn').textContent = '▶';
@@ -10381,12 +10382,12 @@ function mvMergeSeekRel(sec){
   _mvMergeAudio.currentTime = Math.max(0, Math.min(_mvMergeAudio.duration||0, _mvMergeAudio.currentTime + sec));
 }
 function mvMergeSeek(e){
-  if(!_mvMergeAudio?.duration) return;
+  if(!_mvMergeAudio?.duration||!isFinite(_mvMergeAudio.duration)) return;
   var rect = $('mv-merge-prog-wrap').getBoundingClientRect();
   _mvMergeAudio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * _mvMergeAudio.duration;
 }
 function _mvMergeOnTime(){
-  if(!_mvMergeAudio?.duration) return;
+  if(!_mvMergeAudio?.duration||!isFinite(_mvMergeAudio.duration)) return;
   $('mv-merge-prog').style.width = (_mvMergeAudio.currentTime / _mvMergeAudio.duration) * 100 + '%';
   $('mv-merge-cur').textContent = _fmtTime(_mvMergeAudio.currentTime);
 }
@@ -10416,7 +10417,7 @@ function mvMergeDownload(){
   var title = _mvMergeLinkedIdx !== null ? (historyData[_mvMergeLinkedIdx]?.title||'mv') : 'mv';
   downloadFile(_mvMergeVideoUrl, title + '_MV.mp4');
 }
-function _fmtTime(s){ if(!s||isNaN(s))return '0:00'; var m=Math.floor(s/60); return m+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+function _fmtTime(s){ if(!s||isNaN(s)||!isFinite(s))return '0:00'; var m=Math.floor(s/60); return m+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 
 /* 악기 버튼 멀티셀렉트 */
 var selectedInstruments=[];
@@ -13740,7 +13741,7 @@ function _syncPlainLyrics(idx,currentTime){
   const lines=plainEl.querySelectorAll('.lyric-line');
   if(!lines.length)return;
   const audio=activeAudio;
-  if(!audio||audio._idx!==idx||!audio.duration)return;
+  if(!audio||audio._idx!==idx||!audio.duration||!isFinite(audio.duration))return;
   const total=lines.length;
   const activeIdx=Math.min(Math.floor((currentTime/audio.duration)*total),total-1);
   /* 같은 라인이면 DOM 업데이트 스킵 */
@@ -13804,7 +13805,7 @@ function _doTogglePlay(btn,idx,url){
   setTimeout(function(){if(audio===activeAudio&&audio.paused){btn.textContent='\u25B6';toast('오디오를 불러올 수 없어요. 잠시 후 다시 시도해주세요.','err',3000);}},10000);
 }
 function seekAudio(e,wrap){
-  if(!activeAudio||activeAudio._idx!==+wrap.dataset.idx)return;
+  if(!activeAudio||activeAudio._idx!==+wrap.dataset.idx||!activeAudio.duration||!isFinite(activeAudio.duration))return;
   const rect=wrap.querySelector('.ap-prog-track').getBoundingClientRect();
   activeAudio.currentTime=activeAudio.duration*Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
 }
@@ -15259,7 +15260,7 @@ function _updateMediaSession(h){
   }catch(e){/* 미지원 액션 무시 */}
 }
 function _updateMediaSessionPosition(){
-  if(!('mediaSession' in navigator)||!fpAudio||!fpAudio.duration) return;
+  if(!('mediaSession' in navigator)||!fpAudio||!fpAudio.duration||!isFinite(fpAudio.duration)) return;
   try{
     navigator.mediaSession.setPositionState({
       duration: fpAudio.duration,
@@ -22424,7 +22425,7 @@ function setupHeroAudio(hero){
   };
   const prog=$('comm-hero-prog');
   if(prog)prog.onclick=e=>{
-    if(!audio.duration)return;
+    if(!audio.duration||!isFinite(audio.duration))return;
     const r=prog.getBoundingClientRect();
     audio.currentTime=audio.duration*Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
   };
