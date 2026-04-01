@@ -15578,6 +15578,13 @@ function showMiniPlayer(idx){
   if(!h) return;
   fpCurrentIdx = idx;
 
+  /* 컨텍스트 없으면 히스토리 전체를 자동 설정 → 다음/이전 곡 동작 */
+  if(_playContext==='single'||_playContextIds.length===0){
+    var _autoIds=historyData.filter(function(t){return !!t.audio_url;}).map(function(t){return t.id||t._sbId||'';}).filter(Boolean);
+    var _autoIdx=_autoIds.indexOf(h.id||h._sbId||'');
+    if(_autoIds.length>1) _setPlayContext('history',_autoIds,_autoIdx>=0?_autoIdx:0);
+  }
+
   /* 미니플레이어 위치 보장 — 하단탭 높이 재계산 */
   if(typeof updateNavHeight==='function') updateNavHeight();
 
@@ -15891,6 +15898,8 @@ function showMiniPlayer(idx){
       /* Media Session — 백그라운드 재생 + 잠금화면 컨트롤 */
       _updateMediaSession(historyData[fpCurrentIdx]);
       if('mediaSession' in navigator) navigator.mediaSession.playbackState='playing';
+      /* 다음 곡 프리로드 시작 (즉시) */
+      if(typeof _preloadNextTrack==='function') setTimeout(_preloadNextTrack,1000);
       try{
         var fp=_ensureMpDom().fpEl;
         if(fp&&fp.classList.contains('on')){
