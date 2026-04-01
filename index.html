@@ -3935,11 +3935,11 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   text-shadow:0 0 20px rgba(168,85,247,.4);
 }
 .fp-lm-line.done{font-size:16px;color:rgba(255,255,255,.1);transform:scale(0.95);}
-.fp-lm-line.upcoming{color:rgba(255,255,255,.06);transform:scale(0.93);}
+.fp-lm-line.upcoming{color:transparent;transform:scale(0.93);}
 [data-theme="light"] .fp-lm-line{color:rgba(0,0,0,.15);}
 [data-theme="light"] .fp-lm-line.active{color:rgba(0,0,0,.9);}
 [data-theme="light"] .fp-lm-line.done{color:rgba(0,0,0,.08);}
-[data-theme="light"] .fp-lm-line.upcoming{color:rgba(0,0,0,.04);}
+[data-theme="light"] .fp-lm-line.upcoming{color:transparent;}
 .fp-lm-sec{
   font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
   letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;text-align:left;
@@ -19638,7 +19638,7 @@ function fpSyncLyrics(currentTime){
     el.classList.remove('active','done','upcoming');
     if(i===activeIdx) el.classList.add('active');
     else if(i<activeIdx) el.classList.add('done');
-    else if(i>activeIdx+1) el.classList.add('upcoming');
+    else el.classList.add('upcoming');
   });
   if(activeIdx>=0){
     var box=$('fp-lyrics-main');
@@ -19646,7 +19646,8 @@ function fpSyncLyrics(currentTime){
       var el=fpTimestampLines[activeIdx];
       var areaRect=box.getBoundingClientRect();
       var elRect=el.getBoundingClientRect();
-      var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
+      /* 활성 줄을 영역 하단 75% 지점에 배치 — 미래 가사 화면 밖 */
+      var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height*0.75)+(elRect.height/2);
       if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
     }
   }
