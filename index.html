@@ -19530,11 +19530,13 @@ function fpSyncLyrics(currentTime){
   if(_oneEl && window._fpLyricTexts && activeIdx>=0){
     var _newText=window._fpLyricTexts[activeIdx]||'';
     if(_newText && _oneEl.textContent!==_newText){
+      _oneEl.classList.remove('loading');
       _oneEl.classList.add('fade');
       setTimeout(function(){_oneEl.textContent=_newText;_oneEl.classList.remove('fade');},200);
     }
   } else if(_oneEl && activeIdx<0){
-    _oneEl.textContent='♪';
+    _oneEl.classList.add('loading');
+    _oneEl.textContent='가사 싱크 준비 중...';
   }
 }
 
