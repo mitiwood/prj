@@ -7485,6 +7485,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 <script>
 'use strict';
+/* ── 햅틱 피드백 유틸 ── */
+var _haptic={
+  tap:function(){try{navigator.vibrate(10);}catch(e){}},
+  medium:function(){try{navigator.vibrate(25);}catch(e){}},
+  success:function(){try{navigator.vibrate([30,50,80]);}catch(e){}},
+  error:function(){try{navigator.vibrate([40,30,40]);}catch(e){}},
+  heavy:function(){try{navigator.vibrate(50);}catch(e){}}
+};
 var fpAudio=null,fpVizTimer=null,fpCurrentIdx=-1,fpLiked=false,fpDisliked=false,fpSyncMode=true,fpTimestampLines=[];
 /* 글로벌 에러 캐처 — 런타임 에러를 콘솔 + 텔레봇(한국어)으로 전송 */
 var _errKo = (m) => {
@@ -7645,6 +7653,7 @@ var KIE_BASE = 'https://api.kie.ai';
 
 /* ── 탭 전환 ── */
 function switchTab(viewId){
+  _haptic.tap();
   /* ── 1단계: 탭 전환 (UI) — 에러와 무관하게 반드시 실행 ── */
   try{
     document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
@@ -8285,6 +8294,7 @@ var $=id=>document.getElementById(id);
 
 /* ── toast ── */
 function toast(msg,type='',dur=2800){
+  if(type==='err') _haptic.error(); else if(type==='ok') _haptic.tap();
   const el=$('toast');el.textContent=msg;
   el.className='on'+(type?' '+type:'');
   clearTimeout(toastTmr);toastTmr=setTimeout(()=>el.className='',dur);
@@ -11878,6 +11888,7 @@ async function generate(overrideParams){
     return;
   }
   /* ★ 즉시 busy 설정 + 호출 시각 기록 */
+  _haptic.medium();
   _genLastCallTime=_genT0;
   _globalGenerating = true; _syncGenButtons();
   const apiKey=kieApiKey;
@@ -13543,6 +13554,7 @@ function _syncPlainLyrics(idx,currentTime){
 }
 
 function togglePlay(btn){
+  _haptic.tap();
   const idx=+btn.dataset.idx,url=btn.dataset.url;
   if(!url){toast('오디오 URL이 없어요','err');return;}
   /* 같은 트랙: 토글 (idx + URL 모두 일치해야 동일 트랙) */
@@ -14151,6 +14163,7 @@ function _histDeleteTrack(idx){
   var h=historyData[idx];
   if(!h) return;
   _showSettingsConfirm('곡 삭제','"'+(h.title||'이 곡')+'"을 삭제할까요?<br>삭제 후 복구할 수 없습니다.','삭제',function(){
+    _haptic.heavy();
     var wasPlaying=fpCurrentIdx===idx;
     if(h.id&&typeof _deleteTrackFromServer==='function') _deleteTrackFromServer(h.id);
     historyData.splice(idx,1);
@@ -16204,6 +16217,7 @@ function genUnlock(){
   if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
 }
 function showCompletionPopup(mode, title){
+  _haptic.success();
   /* 사용량 기록 */
   trackUsage('song', {mode:mode||'custom', title:title||''});
   const modal = $('glp-modal');
@@ -22449,6 +22463,7 @@ function _syncMfPlayBtns(sbId, isPlaying){
 
 /* Supabase sbId로 좋아요 */
 function commLikeSb(sbId){
+  _haptic.tap();
   if(_actionLocks['like_'+sbId])return;
   _throttleAction('like_'+sbId,function(){},800);
   const t=_sbTracks.find(x=>x._sbId===sbId);
@@ -22464,6 +22479,7 @@ function commLikeSb(sbId){
 
 /* Supabase sbId로 싫어요 */
 function commDislikeSb(sbId){
+  _haptic.tap();
   if(_actionLocks['dislike_'+sbId])return;
   _throttleAction('dislike_'+sbId,function(){},800);
   const t=_sbTracks.find(x=>x._sbId===sbId);
