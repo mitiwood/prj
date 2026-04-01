@@ -445,7 +445,7 @@ COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (arg) => {
     await fetch(`${BASE}/api/telegram`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${ADMIN_SECRET}` },
-      body: JSON.stringify({ text: tgMsg, parse_mode: '' }),
+      body: JSON.stringify({ text: tgMsg }),
     });
   } catch(e) { console.warn('[kakao-fix-tg]', e.message); }
 
@@ -509,7 +509,7 @@ COMMANDS['머지'] = COMMANDS['merge'] = async (arg) => {
       await fetch(`${BASE}/api/telegram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${ADMIN_SECRET}` },
-        body: JSON.stringify({ text: `✅ PR #${prNum} 머지 완료\n\n${pr.title}\n\n🚀 Vercel 배포 시작`, parse_mode: '' }),
+        body: JSON.stringify({ text: `✅ PR #${prNum} 머지 완료\n\n${pr.title}\n\n🚀 Vercel 배포 시작` }),
       });
     } catch(e) {}
     return card(
@@ -1072,7 +1072,7 @@ async function pollKie(taskId, maxPolls = 60) {
 
 async function notifyResult(msg) {
   try {
-    const payload = JSON.stringify({ text: msg, parse_mode: '' });
+    const payload = JSON.stringify({ text: msg });
     const bytes = Buffer.from(payload, 'utf-8');
     await fetch(`${BASE}/api/telegram`, {
       method: 'POST',

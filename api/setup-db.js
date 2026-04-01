@@ -85,6 +85,7 @@ const ALL_TABLE_SQL = {
   error_logs: `CREATE TABLE IF NOT EXISTS public.error_logs (id BIGSERIAL PRIMARY KEY, endpoint TEXT NOT NULL, method TEXT DEFAULT 'GET', status INTEGER DEFAULT 500, error_message TEXT DEFAULT '', user_agent TEXT DEFAULT '', ip TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`,
   daily_missions: `CREATE TABLE IF NOT EXISTS public.daily_missions (id BIGSERIAL PRIMARY KEY, user_name TEXT NOT NULL, user_provider TEXT NOT NULL, mission_date DATE NOT NULL DEFAULT CURRENT_DATE, track_ids JSONB DEFAULT '[]', discovered_ids JSONB DEFAULT '[]', completed_count INTEGER DEFAULT 0, reward_claimed BOOLEAN DEFAULT FALSE, streak INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_name, user_provider, mission_date))`,
   collabs: `CREATE TABLE IF NOT EXISTS public.collabs (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, from_name TEXT NOT NULL, from_provider TEXT NOT NULL, from_avatar TEXT DEFAULT '', to_name TEXT NOT NULL, to_provider TEXT NOT NULL, status TEXT DEFAULT 'pending', message TEXT DEFAULT '', collab_data JSONB DEFAULT '{}', track_id TEXT DEFAULT NULL, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`,
+  yt_analysis_cache: `CREATE TABLE IF NOT EXISTS public.yt_analysis_cache (video_id TEXT PRIMARY KEY, url TEXT NOT NULL DEFAULT '', result JSONB NOT NULL DEFAULT '{}', analyzer TEXT DEFAULT 'fallback', created_at TIMESTAMPTZ DEFAULT NOW(), expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'))`,
 };
 
 export default async function handler(req, res) {

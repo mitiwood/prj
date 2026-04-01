@@ -92,6 +92,51 @@ async function _handler(req, res) {
 
   /* ─── GET ─── */
   if (req.method === "GET") {
+    /* 검색: ?action=search&owner=X&provider=Y&q=키워드&genre=pop&date_from=2026-01-01&gen_mode=custom */
+    if (req.query?.action === 'search' && ownerName) {
+      try {
+        let f = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
+        const q = req.query?.q || '';
+        if (q) f += `&or=(title.ilike.*${encodeURIComponent(q)}*,tags.ilike.*${encodeURIComponent(q)}*)`;
+        const genre = req.query?.genre || '';
+        if (genre) f += `&tags=ilike.*${encodeURIComponent(genre)}*`;
+        const genMode = req.query?.gen_mode || '';
+        if (genMode) f += `&gen_mode=eq.${encodeURIComponent(genMode)}`;
+        const dateFrom = req.query?.date_from || '';
+        if (dateFrom) f += `&created_at=gte.${encodeURIComponent(dateFrom)}`;
+        const dateTo = req.query?.date_to || '';
+        if (dateTo) f += `&created_at=lte.${encodeURIComponent(dateTo)}`;
+        const rows = await sb(f);
+        const mapped = (rows || []).map(r => ({ ...r, created: r.created_at ? new Date(r.created_at).getTime() : 0 }));
+        return res.status(200).json({ ok: true, tracks: mapped, total: mapped.length });
+      } catch (e) {
+        return res.status(200).json({ ok: false, tracks: [], error: e.message });
+      }
+    }
+
+    /* 통계: ?action=stats&owner=X&provider=Y */
+    if (req.query?.action === 'stats' && ownerName) {
+      try {
+        const rows = await sb(`/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&select=created_at,tags,gen_mode,model,comm_likes,comm_plays&order=created_at.desc&limit=500`);
+        const data = rows || [];
+        const byGenre = {}, byMode = {}, byMonth = {};
+        let totalPlays = 0, totalLikes = 0;
+        data.forEach(r => {
+          const genre = (r.tags || '').split(',')[0].trim();
+          if (genre) byGenre[genre] = (byGenre[genre] || 0) + 1;
+          const mode = r.gen_mode || 'unknown';
+          byMode[mode] = (byMode[mode] || 0) + 1;
+          const ym = r.created_at ? r.created_at.slice(0, 7) : 'unknown';
+          byMonth[ym] = (byMonth[ym] || 0) + 1;
+          totalPlays += r.comm_plays || 0;
+          totalLikes += r.comm_likes || 0;
+        });
+        return res.status(200).json({ ok: true, total: data.length, byGenre, byMode, byMonth, totalPlays, totalLikes });
+      } catch (e) {
+        return res.status(200).json({ ok: false, error: e.message });
+      }
+    }
+
     /* 단건 조회: ?id=xxx (공유 링크 재생용) */
     const singleId = req.query?.id;
     if (singleId && !req.query?.action) {

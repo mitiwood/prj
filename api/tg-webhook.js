@@ -540,6 +540,97 @@ COMMANDS['알림'] = COMMANDS['push'] = async (chatId, arg) => {
   }
 };
 
+/* ── 경량 직접 수정 (Anthropic API + GitHub Contents API) ── */
+const _LIGHT_FIX_FILES = {
+  'css': ['index.html'],
+  '테마': ['index.html'],
+  'api': [], /* API 파일은 경량 수정 가능하지만 index.html은 너무 큼 */
+  'js': ['js/create-enhance.js','js/model-profiles.js','js/prompt-engine.js','js/stem-mixer.js','js/history-manager.js'],
+};
+
+async function ghReadFile(path) {
+  const data = await ghApi('GET', `/contents/${encodeURIComponent(path)}?ref=main`);
+  if (!data || !data.content) return null;
+  return { content: Buffer.from(data.content, 'base64').toString('utf-8'), sha: data.sha, size: data.size || 0 };
+}
+
+async function ghWriteFile(path, content, sha, message) {
+  return ghApi('PUT', `/contents/${encodeURIComponent(path)}`, {
+    message, content: Buffer.from(content, 'utf-8').toString('base64'), sha, branch: 'main',
+  });
+}
+
+async function claudeQuickFix(fileContent, instruction, fileName) {
+  if (!ANTHROPIC_KEY) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 40000); /* 40초 타임아웃 */
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8192,
+        messages: [{ role: 'user', content: `파일: ${fileName}\n\n수정 지시: ${instruction}\n\n현재 코드:\n\`\`\`\n${fileContent.slice(0, 30000)}\n\`\`\`\n\n수정된 전체 코드만 반환해주세요. 설명 없이 코드만. 기존 기능을 절대 제거하지 마세요.` }],
+      }),
+      signal: ctrl.signal,
+    });
+    const d = await r.json();
+    if (d.error) return null;
+    const text = d.content?.find(c => c.type === 'text')?.text || '';
+    /* 코드블록 추출 */
+    const codeMatch = text.match(/```(?:\w+)?\s*\n([\s\S]*?)```/);
+    return codeMatch ? codeMatch[1] : text;
+  } catch (e) { console.warn('[claudeQuickFix]', e.message); return null; }
+  finally { clearTimeout(timer); }
+}
+
+async function directFix(chatId, arg, fileName) {
+  await tgSend(chatId, '⚡ 경량 수정 모드\n\n📄 ' + fileName + '\n📝 ' + arg.replace(/[*_`\[]/g, '').slice(0, 60) + '\n\n🤖 Claude가 직접 수정 중...', { parse_mode: '' });
+  try {
+    /* 1. 파일 읽기 */
+    const file = await ghReadFile(fileName);
+    if (!file) throw new Error('파일을 읽을 수 없어요: ' + fileName);
+    if (file.size > 500000) throw new Error('파일이 너무 커요 (' + Math.round(file.size/1024) + 'KB). Actions로 전환합니다.');
+
+    /* 2. Claude 수정 */
+    const fixed = await claudeQuickFix(file.content, arg, fileName);
+    if (!fixed) throw new Error('Claude 수정 실패. Actions로 전환합니다.');
+    if (fixed.length < file.content.length * 0.5) throw new Error('수정 결과가 너무 짧아요. 안전을 위해 Actions로 전환합니다.');
+
+    /* 3. 커밋 */
+    const commitMsg = 'fix: ' + arg.replace(/[*_`\[\]]/g, '').slice(0, 50) + ' (텔레봇 경량수정)';
+    await ghWriteFile(fileName, fixed, file.sha, commitMsg);
+
+    await tgSend(chatId, '✅ 경량 수정 완료!\n\n📄 ' + fileName + '\n📝 ' + commitMsg + '\n🚀 Vercel 배포 시작\n🔗 https://ddinggok.com', { parse_mode: '' });
+    return true;
+  } catch (e) {
+    console.warn('[directFix]', e.message);
+    await tgSend(chatId, '⚠️ 경량 수정 실패: ' + e.message.slice(0, 80) + '\n\n🔄 GitHub Actions로 전환합니다...', { parse_mode: '' });
+    return false;
+  }
+}
+
+function _isLightFixable(arg) {
+  const tagMatch = arg.match(/^\[([^\]]+)\]/);
+  if (!tagMatch) return null;
+  const screen = tagMatch[1].trim().toLowerCase();
+  /* API 파일 직접 수정 */
+  if (screen === 'api') {
+    const fileMatch = arg.match(/api\/[\w-]+\.js/);
+    if (fileMatch) return fileMatch[0];
+  }
+  /* JS 모듈 직접 수정 */
+  if (screen === 'js') {
+    const fileMatch = arg.match(/js\/[\w-]+\.js/);
+    if (fileMatch) return fileMatch[0];
+  }
+  /* 작은 JS 파일 매핑 */
+  const jsFiles = _LIGHT_FIX_FILES[screen];
+  if (jsFiles && jsFiles.length === 1 && !jsFiles[0].includes('index.html')) return jsFiles[0];
+  return null;
+}
+
 /* ── 대화형 세션 관리 (GitHub Issue = 세션 스토어) ── */
 /* 열린 claude-fix 이슈 중 가장 최근 것 = 활성 세션 */
 async function getActiveSession(chatId) {
@@ -586,9 +677,26 @@ async function ghApi(method, path, body = null) {
 }
 
 /* 수정 <지시사항> — GitHub Issue 생성 → Claude Code Action 트리거 */
-COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = async (chatId, arg) => {
+COMMANDS['수정'] = COMMANDS['fix'] = COMMANDS['edit'] = COMMANDS['고쳐'] = COMMANDS['변경'] = COMMANDS['바꿔'] = COMMANDS['수정해'] = COMMANDS['수정해줘'] = async (chatId, arg) => {
   if (!arg) return tgSend(chatId, '⚠️ 사용법: 수정 [화면] <지시사항>\n\n[화면] 태그를 붙이면 해당 영역만 수정해서 빠르고 저렴해요!\n\n예시:\n수정 [설정] 이용약관 링크 수정\n수정 [플레이어] 볼륨 슬라이더 추가\n수정 [커뮤니티] 댓글 정렬 최신순으로\n수정 [css] 다크모드 배경색 변경\n수정 [봇] 도움말 텍스트 수정\n\n지원 화면: 생성, 히스토리, 커뮤니티, 설정, 플레이어, 공유, 로그인, 리믹스, 노래방, 보컬, 공지, 알림, 프로필, 채팅, 플랜, css, js, api, 봇\n\n태그 없이도 사용 가능 (전체 탐색, 비용 높음)');
   if (!GH_TOKEN) return tgSend(chatId, '⚠️ GITHUB\\_TOKEN 환경변수가 설정되지 않았어요.\nVercel 환경변수에 추가해주세요.');
+
+  /* ── 경량 수정 시도 (작은 파일 + Anthropic API 직접) ── */
+  const _lightFile = ANTHROPIC_KEY ? _isLightFixable(arg) : null;
+  if (_lightFile) {
+    /* 활성 Actions 워크플로우가 있으면 경량 수정 거부 */
+    let _actionsRunning = false;
+    try {
+      const runs = await ghApi('GET', '/actions/runs?status=in_progress&per_page=1');
+      if (runs?.workflow_runs?.length) _actionsRunning = true;
+    } catch (e) {}
+
+    if (!_actionsRunning) {
+      const ok = await directFix(chatId, arg, _lightFile);
+      if (ok) return; /* 성공 → 완료 */
+    }
+    /* 실패 또는 Actions 실행 중 → 아래 중량 경로로 폴백 */
+  }
 
   await tgSend(chatId, `🔄 수정 요청을 처리 중...\n\n📝 "${arg.replace(/[*_`\[]/g, '')}"`, { parse_mode: '' });
 
@@ -2627,6 +2735,31 @@ export default async function handler(req, res) {
   /* POST — 텔레그램 webhook 수신 */
   if (req.method === 'POST') {
     const update = req.body;
+
+    /* ── callback_query 처리 (인라인 키보드 버튼 클릭) ── */
+    if (update?.callback_query) {
+      const cbData = update.callback_query.data || '';
+      const cbChatId = update.callback_query.message?.chat?.id;
+      const cbId = update.callback_query.id;
+      /* answerCallbackQuery (버튼 로딩 해제) */
+      try { await tgApi('answerCallbackQuery', { callback_query_id: cbId }); } catch (e) {}
+
+      if (cbData.startsWith('retry:') && GH_TOKEN) {
+        const issueNum = cbData.split(':')[1];
+        try {
+          await ghApi('POST', `/issues/${issueNum}/comments`, { body: '## 재시도\n\n이전 수정을 재시도합니다.\n\n---\n> 텔레그램 인라인 버튼 · ' + ts() });
+          await tgSend(cbChatId, '🔄 Issue #' + issueNum + ' 재시도 요청! Claude Code가 다시 실행됩니다.', { parse_mode: '' });
+        } catch (e) { await tgSend(cbChatId, '❌ 재시도 실패: ' + (e.message || '').slice(0, 60), { parse_mode: '' }); }
+      } else if (cbData.startsWith('cancel:') && GH_TOKEN) {
+        const issueNum = cbData.split(':')[1];
+        try {
+          await ghApi('PATCH', `/issues/${issueNum}`, { state: 'closed', state_reason: 'not_planned' });
+          await tgSend(cbChatId, '❌ Issue #' + issueNum + ' 취소됨.', { parse_mode: '' });
+        } catch (e) { await tgSend(cbChatId, '❌ 취소 실패: ' + (e.message || '').slice(0, 60), { parse_mode: '' }); }
+      }
+      return res.status(200).json({ ok: true, callback: cbData });
+    }
+
     if (!update?.message?.text) return res.status(200).json({ ok: true, skip: 'no text' });
 
     const chatId = update.message.chat.id;
@@ -2656,7 +2789,7 @@ export default async function handler(req, res) {
 
     /* 자연어 → 명령 매핑 */
     const NL_MAP = [
-      { re: /진행.*(어때|어디|상황|상태|됐|됨|완료|얼마)|어디.*까지|다\s*됐|끝났|작업.*추적/i, cmd: '진행상황' },
+      { re: /진행.*(어때|어디|상황|상태|됐|됨|완료|얼마)|어디.*까지|다\s*됐|끝났|작업.*추적|수정.*(됐|완료|끝)|어떻게.*됐/i, cmd: '진행상황' },
       { re: /취소|중지|cancel|작업.*멈|그만|stop/i, cmd: '취소' },
       { re: /PR.*(있|목록|확인|열린|리스트)|풀리퀘/i, cmd: 'PR' },
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
@@ -2668,11 +2801,14 @@ export default async function handler(req, res) {
       { re: /인기.*곡|핫|유행|트렌드|trending/i, cmd: '인기곡' },
       { re: /순위|랭킹|탑|리더보드|ranking/i, cmd: '순위' },
       { re: /플랫폼|인사이트|성장|대시보드|insight/i, cmd: '플랫폼' },
+      /* 수정 의도 자연어 감지 */
+      { re: /(?:바꿔|변경|수정|고쳐|추가|넣어|삭제|제거|빼).*(줘|해|주|요|좀)|(?:색상|크기|폰트|버튼|이미지|텍스트|문구).*(바꿔|변경|수정)/i, cmd: '수정', extractArg: true },
+      { re: /(?:안\s*[되보나돼]|깨져|안\s*나[와옴]|오류|에러|빈\s*화면|작동.*안|클릭.*안|로딩.*안)/i, cmd: '수정', extractArg: true },
     ];
     if (!COMMANDS[cmd]) {
       const full = text.toLowerCase();
       for (const nl of NL_MAP) {
-        if (nl.re.test(full)) { cmd = nl.cmd; arg = ''; break; }
+        if (nl.re.test(full)) { cmd = nl.cmd; arg = nl.extractArg ? text : ''; break; }
       }
     }
 

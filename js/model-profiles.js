@@ -206,3 +206,112 @@ function initModelProfiles() {
     });
   }
 }
+
+/**
+ * A/B 테스트 — 동일 프롬프트를 현재 모델 + 추천 모델로 동시 생성
+ */
+function _abTestGenerate() {
+  var sel = document.getElementById('model-sel');
+  if (!sel) return;
+  var currentModel = sel.value;
+
+  /* 추천 모델 또는 대비 모델 선택 */
+  var genreSel = document.getElementById('genre-sub');
+  var moodSel = document.getElementById('mood');
+  var rec = recommendModel(
+    genreSel ? genreSel.value : '',
+    moodSel ? moodSel.value : ''
+  );
+  var altModel = rec ? rec.model : null;
+
+  /* 현재 모델과 같으면 다른 모델 선택 */
+  if (!altModel || altModel === currentModel) {
+    var fallbacks = ['V4', 'V4_5', 'V5', 'V4_5PLUS'];
+    for (var i = 0; i < fallbacks.length; i++) {
+      if (fallbacks[i] !== currentModel) { altModel = fallbacks[i]; break; }
+    }
+  }
+
+  if (typeof toast === 'function') {
+    toast('🔬 A/B 테스트: ' + MODEL_PROFILES[currentModel].name + ' vs ' + MODEL_PROFILES[altModel].name, 'ok', 3000);
+  }
+
+  /* 첫 번째 생성 (현재 모델) */
+  if (typeof generate === 'function') {
+    generate({ _abTest: true, _abModel: currentModel });
+  }
+
+  /* A/B 결과 저장소 초기화 */
+  window._abResults = { modelA: currentModel, modelB: altModel, trackA: null, trackB: null };
+
+  /* 두 번째 생성을 큐에 추가 (다른 모델) */
+  if (typeof _QueueManager !== 'undefined') {
+    _QueueManager.enqueue('music', { params: { _abTest: true, _abModel: altModel }, mode: 'custom' });
+  }
+}
+
+/**
+ * A/B 결과 수집 — generate 완료 후 호출
+ */
+function _collectABResult(model, track) {
+  if (!window._abResults) return;
+  if (model === window._abResults.modelA && !window._abResults.trackA) {
+    window._abResults.trackA = track;
+  } else if (!window._abResults.trackB) {
+    window._abResults.trackB = track;
+  }
+  /* 양쪽 모두 완료되면 비교 UI 표시 */
+  if (window._abResults.trackA && window._abResults.trackB) {
+    _renderABComparison(window._abResults);
+  }
+}
+
+/**
+ * A/B 비교 UI 렌더링
+ */
+function _renderABComparison(ab) {
+  var container = document.getElementById('results');
+  if (!container) return;
+  var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var profA = MODEL_PROFILES[ab.modelA] || { name: ab.modelA };
+  var profB = MODEL_PROFILES[ab.modelB] || { name: ab.modelB };
+
+  var html = '<div style="margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(59,130,246,.08));border:1px solid rgba(124,58,237,.2);border-radius:14px;">';
+  html += '<div style="text-align:center;font-size:14px;font-weight:800;color:var(--t1);margin-bottom:12px;">🔬 A/B 모델 비교</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+
+  /* Model A */
+  html += '<div style="padding:12px;background:var(--card);border-radius:10px;border:2px solid rgba(124,58,237,.3);">';
+  html += '<div style="text-align:center;font-size:12px;font-weight:700;color:var(--acc);margin-bottom:8px;">A: ' + esc(profA.name) + '</div>';
+  html += '<div style="font-size:12px;color:var(--t1);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(ab.trackA.title || '트랙 A') + '</div>';
+  var urlA = ab.trackA.audioUrl || ab.trackA.audio_url || ab.trackA.song_path || '';
+  html += '<audio controls src="' + esc(urlA) + '" style="width:100%;height:36px;border-radius:6px;"></audio>';
+  html += '<button onclick="_voteAB(\'A\')" class="stem-btn" style="width:100%;margin-top:8px;padding:8px;font-size:12px;">👍 A가 더 좋아요</button>';
+  html += '</div>';
+
+  /* Model B */
+  html += '<div style="padding:12px;background:var(--card);border-radius:10px;border:2px solid rgba(59,130,246,.3);">';
+  html += '<div style="text-align:center;font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:8px;">B: ' + esc(profB.name) + '</div>';
+  html += '<div style="font-size:12px;color:var(--t1);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(ab.trackB.title || '트랙 B') + '</div>';
+  var urlB = ab.trackB.audioUrl || ab.trackB.audio_url || ab.trackB.song_path || '';
+  html += '<audio controls src="' + esc(urlB) + '" style="width:100%;height:36px;border-radius:6px;"></audio>';
+  html += '<button onclick="_voteAB(\'B\')" class="stem-btn" style="width:100%;margin-top:8px;padding:8px;font-size:12px;">👍 B가 더 좋아요</button>';
+  html += '</div>';
+
+  html += '</div></div>';
+  container.insertAdjacentHTML('beforeend', html);
+}
+
+function _voteAB(choice) {
+  if (!window._abResults) return;
+  var winner = choice === 'A' ? window._abResults.modelA : window._abResults.modelB;
+  /* localStorage에 투표 기록 */
+  try {
+    var votes = JSON.parse(localStorage.getItem('kms_ab_votes') || '[]');
+    votes.push({ winner: winner, loser: choice === 'A' ? window._abResults.modelB : window._abResults.modelA, ts: Date.now() });
+    if (votes.length > 50) votes = votes.slice(-50);
+    localStorage.setItem('kms_ab_votes', JSON.stringify(votes));
+  } catch (e) {}
+  if (typeof toast === 'function') toast('👍 ' + MODEL_PROFILES[winner].name + ' 선택! 다음 추천에 반영됩니다', 'ok', 2500);
+  window._abResults = null;
+}

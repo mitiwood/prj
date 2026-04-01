@@ -8,6 +8,7 @@ var _histSearchQuery = '';
 var _histFilterGenre = '';
 var _histFilterMode = '';
 var _histFilterDate = '';
+var _histFilterModel = '';
 
 function histSearch(query) {
   _histSearchQuery = (query || '').toLowerCase().trim();
@@ -26,6 +27,11 @@ function histFilterMode(mode) {
 
 function histFilterDate(range) {
   _histFilterDate = range || '';
+  if (typeof renderHistoryView === 'function') renderHistoryView();
+}
+
+function histFilterModel(model) {
+  _histFilterModel = model || '';
   if (typeof renderHistoryView === 'function') renderHistoryView();
 }
 
@@ -57,6 +63,13 @@ function getFilteredHistory(data) {
   if (_histFilterMode) {
     result = result.filter(function (h) {
       return h.genMode === _histFilterMode;
+    });
+  }
+
+  /* 모델 필터 */
+  if (_histFilterModel) {
+    result = result.filter(function (h) {
+      return (h.model || '') === _histFilterModel;
     });
   }
 
@@ -274,6 +287,8 @@ function renderHistSearchBar() {
     '<option value="">전체 기간</option><option value="today">오늘</option><option value="week">이번 주</option><option value="month">이번 달</option></select>' +
     '<select style="padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;" onchange="histFilterMode(this.value)">' +
     '<option value="">모든 모드</option><option value="custom">커스텀</option><option value="simple">심플</option><option value="youtube">YouTube</option><option value="extend">연장</option><option value="vocal-removal">보컬분리</option></select>' +
+    '<select style="padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;" onchange="histFilterModel(this.value)">' +
+    '<option value="">모든 모델</option><option value="V3_5">V3.5</option><option value="V4">V4</option><option value="V4_5">V4.5</option><option value="V4_5PLUS">V4.5+</option><option value="V5">V5</option><option value="LYRIA_PRO">Lyria Pro</option></select>' +
     '</div>' +
     '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
     '<button onclick="exportHistory()" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;cursor:pointer;">📦 내보내기</button>' +
@@ -281,4 +296,76 @@ function renderHistSearchBar() {
     '<button onclick="renderHistStats(typeof historyData!==\'undefined\'?historyData:[])" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;cursor:pointer;">📊 통계</button>' +
     '</div>' +
     '<div id="hist-stats-panel"></div>';
+}
+
+/* ── 4. 무한 스크롤 서버 로드 ── */
+var _histServerOffset = 0;
+var _histServerLoading = false;
+var _histServerDone = false;
+
+function initHistInfiniteScroll() {
+  var listEl = document.getElementById('history-list');
+  if (!listEl) return;
+  var scrollParent = listEl.closest('.tab-content') || listEl.parentElement || window;
+
+  function onScroll() {
+    if (_histServerLoading || _histServerDone) return;
+    var rect = listEl.getBoundingClientRect();
+    var parentH = scrollParent === window ? window.innerHeight : scrollParent.clientHeight;
+    /* 하단 200px 이내 도달 시 */
+    if (rect.bottom - parentH < 200) {
+      _loadMoreFromServer();
+    }
+  }
+
+  if (scrollParent === window) window.addEventListener('scroll', onScroll, { passive: true });
+  else scrollParent.addEventListener('scroll', onScroll, { passive: true });
+}
+
+async function _loadMoreFromServer() {
+  if (_histServerLoading || _histServerDone) return;
+  if (typeof currentUser === 'undefined' || !currentUser) return;
+  _histServerLoading = true;
+
+  var loader = document.getElementById('hist-load-more');
+  if (loader) loader.style.display = 'block';
+
+  try {
+    var url = '/api/tracks?owner=' + encodeURIComponent(currentUser.name) +
+      '&provider=' + encodeURIComponent(currentUser.provider) +
+      '&limit=20&offset=' + _histServerOffset;
+    var res = await fetch(url);
+    var data = await res.json();
+    var tracks = data.tracks || [];
+
+    if (tracks.length === 0) {
+      _histServerDone = true;
+    } else {
+      var existingIds = {};
+      historyData.forEach(function (h) { if (h.id) existingIds[h.id] = true; });
+
+      var added = 0;
+      tracks.forEach(function (t) {
+        if (t.id && !existingIds[t.id]) {
+          historyData.push(t);
+          added++;
+        }
+      });
+      _histServerOffset += tracks.length;
+      if (added > 0 && typeof renderHistoryView === 'function') renderHistoryView();
+      if (tracks.length < 20) _histServerDone = true;
+    }
+  } catch (e) {
+    console.warn('[hist-scroll]', e.message);
+  } finally {
+    _histServerLoading = false;
+    var loader2 = document.getElementById('hist-load-more');
+    if (loader2) loader2.style.display = 'none';
+  }
+}
+
+function resetHistScroll() {
+  _histServerOffset = 0;
+  _histServerDone = false;
+  _histServerLoading = false;
 }

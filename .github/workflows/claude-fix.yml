@@ -316,6 +316,27 @@ jobs:
               f.write(f"screen={screen}\n")
           PYEOF
 
+      # ── 3.5. 분석 시작 알림 ──
+      - name: Notify analysis start
+        continue-on-error: true
+        env:
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          START_MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+        run: |
+          python3 -c "
+          import urllib.request, json, os
+          site = os.environ.get('SITE_URL', '')
+          secret = os.environ.get('ADMIN_SECRET', '')
+          num = os.environ.get('ISSUE_NUM', '?')
+          mid = os.environ.get('START_MSG_ID', '')
+          if mid:
+            payload = json.dumps({'action':'edit','message_id':int(mid),'text':'\U0001f50d Issue #'+num+' 코드 분석 완료\n\n\u270f\ufe0f Claude Code가 수정을 시작합니다...'}, ensure_ascii=False).encode('utf-8')
+            try: urllib.request.urlopen(urllib.request.Request(site+'/api/telegram', data=payload, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer '+secret}))
+            except: pass
+          "
+
       # ── 4. Claude Code 실행 ──
       - name: Run Claude Code
         id: claude
@@ -348,7 +369,29 @@ jobs:
             echo "=== Claude Code completed successfully ==="
           fi
 
-      # ── 4. 변경사항 확인 + 푸시 ──
+      # ── 4.5. 수정 완료 알림 ──
+      - name: Notify fix done
+        if: always() && steps.claude.outcome == 'success'
+        continue-on-error: true
+        env:
+          SITE_URL: https://ai-music-studio-bice.vercel.app
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          START_MSG_ID: ${{ steps.tg_start.outputs.msg_id }}
+        run: |
+          python3 -c "
+          import urllib.request, json, os
+          site = os.environ.get('SITE_URL', '')
+          secret = os.environ.get('ADMIN_SECRET', '')
+          num = os.environ.get('ISSUE_NUM', '?')
+          mid = os.environ.get('START_MSG_ID', '')
+          if mid:
+            payload = json.dumps({'action':'edit','message_id':int(mid),'text':'\u2705 Issue #'+num+' 수정 완료!\n\n\U0001f680 Git Push 및 배포 중...'}, ensure_ascii=False).encode('utf-8')
+            try: urllib.request.urlopen(urllib.request.Request(site+'/api/telegram', data=payload, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer '+secret}))
+            except: pass
+          "
+
+      # ── 5. 변경사항 확인 + 푸시 ──
       - name: Push changes
         if: always() && steps.claude.outcome != 'cancelled'
         id: push
