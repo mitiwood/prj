@@ -26299,19 +26299,19 @@ function _openNasPanel(){
   var userEl=document.getElementById('nas-user');
   var passEl=document.getElementById('nas-pass');
   var pathEl=document.getElementById('nas-path');
-  if(cfg.qcId) qcEl.value=cfg.qcId;
-  if(cfg.user) userEl.value=cfg.user;
-  if(cfg.path) pathEl.value=cfg.path;
-  document.getElementById('nas-overlay').style.display='block';
-  document.getElementById('nas-panel').style.display='block';
+  if(cfg.qcId&&qcEl) qcEl.value=cfg.qcId;
+  if(cfg.user&&userEl) userEl.value=cfg.user;
+  if(cfg.path&&pathEl) pathEl.value=cfg.path;
+  var ov=document.getElementById('nas-overlay');if(ov)ov.style.display='block';
+  var pn=document.getElementById('nas-panel');if(pn)pn.style.display='block';
   var dc=document.getElementById('nas-disconnect-btn');
-  if(cfg.qcId&&cfg.user){dc.style.display='flex';}else{dc.style.display='none';}
+  if(dc){if(cfg.qcId&&cfg.user){dc.style.display='flex';}else{dc.style.display='none';}}
   _nasStatusMsg('');
 }
 
 function _closeNasPanel(){
-  document.getElementById('nas-overlay').style.display='none';
-  document.getElementById('nas-panel').style.display='none';
+  var ov=document.getElementById('nas-overlay');if(ov)ov.style.display='none';
+  var pn=document.getElementById('nas-panel');if(pn)pn.style.display='none';
 }
 
 function _nasStatusMsg(msg,type){
