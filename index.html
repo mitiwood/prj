@@ -10832,6 +10832,7 @@ function sleep(ms){
 
 /* ── 다운로드 (CORS-safe blob) ── */
 async function downloadFile(url,filename){
+  if(typeof _logUserAction==='function')_logUserAction('download',{url:(url||'').slice(0,80),filename:filename});
   /* 플랜별 다운로드 형식 안내 */
   const plan = _serverCreditsCache?.plan || 'free';
   const ext = (filename||'').split('.').pop()?.toLowerCase();
@@ -18934,6 +18935,7 @@ function _mfTrkAction(action,idx){
     });
   } else if(action==='share'){
     var shareUrl=location.origin+'/?play='+encodeURIComponent(t.id);
+    if(typeof _logUserAction==='function')_logUserAction('share',{trackId:t.id,title:t.title});
     if(navigator.share){navigator.share({title:t.title||'AI Music',url:shareUrl}).catch(function(){});}
     else{navigator.clipboard.writeText(shareUrl).then(function(){toast('링크를 복사했어요','ok',1500);}).catch(function(){toast('공유 실패','err');});}
   } else if(action==='profile'){
@@ -30426,10 +30428,33 @@ function _showQRCard(idx){
   var h=historyData[idx];if(!h)return;
   _showQRCardDirect(h.title||'무제',h.image_url||'',h.id||h.taskId||'');
 }
+function _logUserAction(action,data){
+  try{
+    var log={action:action,data:data||{},ts:Date.now(),user:currentUser?.name||'guest',provider:currentUser?.provider||''};
+    /* localStorage 기록 (최근 100개) */
+    var logs=JSON.parse(localStorage.getItem('kms_action_log')||'[]');
+    logs.unshift(log);if(logs.length>100)logs=logs.slice(0,100);
+    localStorage.setItem('kms_action_log',JSON.stringify(logs));
+    /* 서버 기록 (fire-and-forget) */
+    if(currentUser){
+      fetch('/api/tracks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        id:'act_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+        title:'[action] '+action,
+        tags:JSON.stringify(data||{}).slice(0,200),
+        gen_mode:'action',
+        owner_name:currentUser.name,owner_provider:currentUser.provider,
+        audio_url:'',is_public:false
+      })}).catch(function(){});
+    }
+  }catch(e){}
+}
+
 function _showQRCardDirect(title,imageUrl,trackId){
   var shareUrl='https://ddinggok.com'+(trackId?'/?play='+encodeURIComponent(trackId):'');
   var qrImg=_generateQR(shareUrl,5);
   if(!qrImg){toast('QR 생성 실패','err');return;}
+  /* QR 생성 액션 기록 */
+  _logUserAction('qr_generate',{trackId:trackId,title:title});
   var ov=document.createElement('div');
   ov.id='_qr_overlay';
   ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
@@ -30490,6 +30515,7 @@ function _showQRCardDirect(title,imageUrl,trackId){
 
   /* 이미지 저장 — Canvas → Blob → 실제 디바이스 저장 */
   document.getElementById('_qr_save').addEventListener('click',function(){
+    _logUserAction('qr_save',{trackId:trackId,title:title});
     _renderQRCanvas(function(cvs){
       if(!cvs){toast('이미지 생성 실패','err');return;}
       cvs.toBlob(function(blob){
@@ -30514,6 +30540,7 @@ function _showQRCardDirect(title,imageUrl,trackId){
 
   /* 링크 복사 — 클립보드에 텍스트 + 이미지 동시 복사 */
   document.getElementById('_qr_copy').addEventListener('click',function(){
+    _logUserAction('qr_copy_link',{trackId:trackId,title:title,url:shareUrl});
     /* 1. 이미지 클립보드 복사 시도 (Chrome, Edge) */
     _renderQRCanvas(function(cvs){
       if(cvs && navigator.clipboard && typeof ClipboardItem!=='undefined'){
