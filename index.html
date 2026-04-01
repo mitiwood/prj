@@ -4939,6 +4939,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
                   <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
                 </select>
+                <span id="model-rec-badge" style="display:none;align-items:center;gap:3px;font-size:11px;color:var(--acc);cursor:pointer;margin-top:4px;padding:2px 8px;background:rgba(124,58,237,.1);border-radius:10px;white-space:nowrap;" title="클릭하면 추천 모델로 변경"></span>
+                <div id="audio-weight-group" style="display:none;margin-top:8px;">
+                  <div style="font-size:11px;color:#a09ab8;margin-bottom:4px;">🎛 Audio Weight (V5)</div>
+                  <input type="range" id="audio-weight" min="0" max="1" step="0.05" value="0.5" class="opt-range" style="width:100%;">
+                  <span id="aw-val" style="font-size:11px;color:#a09ab8;">0.5</span>
+                </div>
               </div>
               <div class="opt-group">
                 <div class="adv-section-title">🌏 가사 언어</div>
@@ -5566,6 +5572,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
 
       <div class="ld-task" id="ld-task"></div>
+
+      <!-- 대기 큐 뱃지 -->
+      <span id="queue-badge" style="display:none;margin-top:8px;padding:4px 12px;background:rgba(124,58,237,.15);border-radius:12px;font-size:12px;color:var(--acc);font-weight:600;"></span>
 
       <!-- 취소 버튼 -->
       <button id="ld-cancel-btn" class="ld-cancel-btn" onclick="_cancelGeneration()">작곡취소</button>
@@ -9106,6 +9115,7 @@ async function _ytDoGenerate(){
         created: Date.now(),
         type: 'audio',
         genMode: 'youtube',
+        model: model,
         _ytAnalysis: _lastYtAnalysis,
         _owner: currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
@@ -9805,10 +9815,10 @@ async function generateMV(){
   if(!checkPlanLimit('mv')) return;
   const apiKey=kieApiKey;
   if(!apiKey){toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
-  if(_globalGenerating){_showGeneratingPopup();return;}
+  if(_QueueManager.isBusy('video')){_showGeneratingPopup();return;}
   const _mvPromptRaw=($('mv-prompt')?.value||'').trim();
   if(!_mvPromptRaw){toast('영상 프롬프트를 입력해주세요','err',2500);return;}
-  _globalGenerating = true; _syncGenButtons();
+  _QueueManager.setBusy('video',true); _syncGenButtons();
   const prompt=_mvPromptRaw;
   genLock();
   const btn=$('mv-gen-btn'),spinner=$('mv-gen-spinner'),txt=$('mv-gen-txt');
@@ -9972,7 +9982,7 @@ async function generateMV(){
   }finally{
     $('loading-card').classList.remove('on');
     _stopLdTips();
-    _globalGenerating = false; _syncGenButtons();
+    _QueueManager.setBusy('video',false); _syncGenButtons();
     btn.disabled=false;
     if(spinner)spinner.classList.remove('on');
     if(txt)txt.textContent='🎬 뮤직비디오 생성하기';
@@ -11462,23 +11472,75 @@ function _logErrorToServer(endpoint,errMsg,statusCode,severity){
 }
 
 var _modeLocked={custom:false,simple:false,youtube:false,mv:false};
-var _globalGenerating = false; /* 전역 생성 잠금 */
+
+/* ── 생성 큐 매니저 (music/video 독립 채널) ── */
+var _QueueManager={
+  channels:{
+    music:{busy:false,queue:[],maxQueue:1},
+    video:{busy:false,queue:[],maxQueue:2},
+  },
+  enqueue:function(channel,item){
+    var ch=this.channels[channel];
+    if(!ch)return false;
+    if(ch.queue.length>=ch.maxQueue){toast('⚠️ 대기열이 가득 찼어요 (최대 '+ch.maxQueue+'곡)','err',3000);return false;}
+    item.status='waiting';item.createdAt=Date.now();item.channel=channel;
+    ch.queue.push(item);
+    _updateQueueBadge();
+    return true;
+  },
+  dequeue:function(channel){
+    var ch=this.channels[channel];
+    if(!ch||ch.queue.length===0)return null;
+    var item=ch.queue.shift();
+    item.status='generating';
+    _updateQueueBadge();
+    return item;
+  },
+  clear:function(channel){
+    if(channel){var ch=this.channels[channel];if(ch)ch.queue=[];}
+    else{this.channels.music.queue=[];this.channels.video.queue=[];}
+    _updateQueueBadge();
+  },
+  setBusy:function(channel,val){var ch=this.channels[channel];if(ch)ch.busy=!!val;},
+  isBusy:function(channel){var ch=this.channels[channel];return ch?ch.busy:false;},
+  totalQueued:function(){return this.channels.music.queue.length+this.channels.video.queue.length;},
+};
+
+/* 레거시 호환: _globalGenerating getter/setter */
+var _globalGenerating=false;
+Object.defineProperty(window,'_globalGenerating',{
+  get:function(){return _QueueManager.channels.music.busy||_QueueManager.channels.video.busy;},
+  set:function(v){/* 레거시 set → music 채널에 반영 */_QueueManager.channels.music.busy=!!v;},
+  configurable:true
+});
+
+function _updateQueueBadge(){
+  var badge=$('queue-badge');
+  var total=_QueueManager.totalQueued();
+  if(badge){
+    badge.textContent=total>0?'대기 '+total+'곡':'';
+    badge.style.display=total>0?'inline-block':'none';
+  }
+}
+
 var _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
-var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[];
+var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[]; /* 레거시 호환 */
 var _genCancelled=typeof _genCancelled!=='undefined'?_genCancelled:false;
 var _genRetryTimer=null; /* 재시도 타이머 */
 /* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
-var _cancelGeneration=function(){
+var _cancelGeneration=function(channel){
   _genCancelled=true;
-  _globalGenerating=false;
+  _QueueManager.setBusy('music',false);
+  _QueueManager.setBusy('video',false);
   if(typeof _ytGenerating!=='undefined') _ytGenerating=false;
   /* 예약된 재시도 타이머 즉시 취소 */
   if(_genRetryTimer){clearTimeout(_genRetryTimer);_genRetryTimer=null;}
   _syncGenButtons();
   _stopLdTips();
   $('loading-card').classList.remove('on');
-  _genQueue=[]; /* 대기 큐 즉시 클리어 */
+  _QueueManager.clear(); /* 대기 큐 즉시 클리어 */
+  _genQueue=[]; /* 레거시 큐도 클리어 */
   /* 로딩 UI 완전 정리 */
   var _ldt=$('ld-task');if(_ldt){_ldt.style.display='none';_ldt.textContent='';}
   /* 백그라운드 리소스 정리 */
@@ -11618,21 +11680,17 @@ async function generate(overrideParams){
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
   if(!overrideParams?._afterLyrics) _retryCount = 0;
-  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기, 게스트는 큐 비활성) */
-  if(_globalGenerating && !overrideParams?._afterLyrics){
+  /* 음악 채널 생성 중 — 큐에 추가 (최대 3곡 대기, 게스트는 큐 비활성) */
+  if(_QueueManager.isBusy('music') && !overrideParams?._afterLyrics){
     /* 게스트 모드: 큐 없이 바로 차단 */
     if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
       toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
       return;
     }
-    if(_genQueue.length>=1){
-      toast('대기 큐가 가득 찼어요 (최대 1곡 대기)','err',3000);
-      return;
-    }
-    _genQueue.push({params:overrideParams||{},mode:currentMode});
-    toast('🎵 현재 곡 완료 후 자동 생성됩니다 (대기 1곡)','ok',3000);
-    /* 로딩카드에 큐 표시 */
-    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 다음 곡 대기 중...';}
+    var _enqueued=_QueueManager.enqueue('music',{params:overrideParams||{},mode:currentMode});
+    if(!_enqueued) return;
+    toast('🎵 대기열에 추가됐어요 ('+_QueueManager.channels.music.queue.length+'곡 대기)','ok',3000);
+    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 대기 중 '+_QueueManager.channels.music.queue.length+'곡';}
     return;
   }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
@@ -11810,6 +11868,8 @@ async function generate(overrideParams){
     /* customMode: 가사 입력 시 강제 true (kie.ai가 가사로 인식하도록) */
     const _forceCustom = (prompt||'').length > 400 || _simpleHasRealLyrics;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
+    /* V5 모델: audioWeight 파라미터 추가 */
+    if(model==='V5'){var _aw=$('audio-weight');if(_aw)body.audioWeight=parseFloat(_aw.value)||0.5;}
     /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
     var _promptHasKo=/[\uAC00-\uD7AF]/.test(prompt);
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
@@ -11944,6 +12004,7 @@ async function generate(overrideParams){
         created:Date.now(),
         type:'audio',
         genMode:currentMode,
+        model:model,
         _ytAnalysis:currentMode==='youtube'?_lastYtAnalysis:null,
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       };
@@ -11991,6 +12052,7 @@ async function generate(overrideParams){
         tags:_sTags,
         lyrics:_lyrics,
         genMode:currentMode,
+        model:model,
         owner_name:currentUser?.name||'익명',
         owner_avatar:currentUser?.avatar||'',
         owner_provider:currentUser?.provider||'',
@@ -12008,6 +12070,8 @@ async function generate(overrideParams){
     }
   }catch(e){
     _clearGenSession();
+    /* 에러 시 대기 큐 클리어 — 연속 실패 방지 */
+    _QueueManager.clear('music'); _genQueue=[];
     /* 게스트 선차감 되돌리기 (생성 실패 시) */
     if(_guestPreDeducted){
       var _cur=_getGuestUsage();if(_cur>0) localStorage.setItem('kms_guest_songs',(_cur-1).toString());
@@ -12040,18 +12104,23 @@ async function generate(overrideParams){
   }finally{
     var _wasCancelled=_genCancelled; /* 취소 여부 보존 */
     _stopLdTips();
-    _globalGenerating = false; _genCancelled=false; _syncGenButtons();
+    _QueueManager.setBusy('music',false); _genCancelled=false; _syncGenButtons();
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
     if(activeSpinner){activeSpinner.style.display='none';}
     if(activeTxt){activeTxt.textContent=isSimple?'⚡ 음악 생성하기':isYT?'▶ YouTube로 생성':' ✦ 음악 생성하기';}
     $('gen-btn').disabled=false;$('gen-spinner').style.display='none';$('gen-txt').textContent='✦ 음악 생성하기';$('simple-gen-btn').disabled=false;var _spn=$('simple-gen-spinner');if(_spn)_spn.style.display='none';var _stx=$('simple-gen-txt');if(_stx)_stx.textContent='⚡ 음악 생성하기';var _ldt=$('ld-task');if(_ldt){_ldt.style.display='none';_ldt.textContent='';}
     $('loading-card').classList.remove('on'); /* 로딩카드 확실히 제거 */
+    _updateQueueBadge();
     /* 취소 시 큐 실행 금지 + 큐 클리어 */
-    if(_wasCancelled){_genQueue=[];return;}
+    if(_wasCancelled){_QueueManager.clear('music');_genQueue=[];return;}
     /* 게스트 모드: 큐 자동 실행 금지 */
-    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){_genQueue=[];return;}
+    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){_QueueManager.clear('music');_genQueue=[];return;}
     /* 큐에 대기 중인 곡이 있으면 자동 실행 */
-    if(_genQueue.length>0){
+    var _nextQ=_QueueManager.dequeue('music');
+    if(_nextQ){
+      toast('🎵 대기 곡 생성 시작!','ok',2000);
+      setTimeout(function(){generate(_nextQ.params);},1500);
+    } else if(_genQueue.length>0){
       var _next=_genQueue.shift();
       toast('🎵 대기 곡 생성 시작!','ok',2000);
       setTimeout(function(){generate(_next.params);},1500);
@@ -12072,7 +12141,7 @@ function _applyResumedTracks(tracks, taskId, params) {
   tracks.forEach(function(t) {
     var apiLyric = t.lyric || t.lyrics || t.lrc || '';
     var _tTags = _normTags(t.tags) || styleStr;
-    historyData.unshift({ id: t.id, taskId: taskId, title: _autoGenerateTitle(t.title, apiLyric, _tTags, mode), audio_url: t.audioUrl || t.audio_url || t.song_path || '', video_url: '', image_url: t.imageUrl || t.image_url || '', tags: _tTags, lyrics: apiLyric, created: Date.now(), type: 'audio', genMode: mode, _owner: currentUser ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider } : null });
+    historyData.unshift({ id: t.id, taskId: taskId, title: _autoGenerateTitle(t.title, apiLyric, _tTags, mode), audio_url: t.audioUrl || t.audio_url || t.song_path || '', video_url: '', image_url: t.imageUrl || t.image_url || '', tags: _tTags, lyrics: apiLyric, created: Date.now(), type: 'audio', genMode: mode, model: (typeof model!=='undefined'?model:''), _owner: currentUser ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider } : null });
   });
   historyData = historyData.slice(0, 30);
   saveHistory(); updateHistBadge();
@@ -12566,13 +12635,44 @@ function _updateExtSlider(val){
     $('extend-at').value=String(v);
   }
 }
+/* ── Extend 체인 메타 + 가사 중복 제거 ── */
+var MAX_EXTEND_CHAIN=5;
+
+function _deduplicateLyrics(origLines,extLines){
+  for(var n=Math.min(4,origLines.length,extLines.length);n>=2;n--){
+    if(origLines.slice(-n).join('\n').trim()===extLines.slice(0,n).join('\n').trim()) return n;
+  }
+  return 0;
+}
+
+function _buildExtendMeta(origTrack){
+  var prev=origTrack?._extendMeta;
+  return {
+    chainDepth: prev? prev.chainDepth+1 : 1,
+    rootId: prev? prev.rootId : (origTrack?.id||''),
+    parentId: origTrack?.id||'',
+    chainIds: prev? prev.chainIds.concat([]) : [origTrack?.id||''],
+  };
+}
+
 function openExtendModal(audioId){
   extendAudioId=audioId;
   $('extend-prompt').value='';$('extend-at').value='';$('extend-lyrics').value='';
   _extDuration=0;
 
+  /* 최대 연장 횟수 체크 */
+  var _extOrigTrack=historyData.find(function(x){return (x.id||x.taskId)===audioId;});
+  var _chainDepth=_extOrigTrack?._extendMeta?.chainDepth||0;
+  if(_chainDepth>=MAX_EXTEND_CHAIN){
+    toast('최대 연장 횟수에 도달했어요 ('+MAX_EXTEND_CHAIN+'회)','err',3000);
+    return;
+  }
+  if(_chainDepth>=MAX_EXTEND_CHAIN-1){
+    toast('⚠️ 마지막 연장이에요 (최대 '+MAX_EXTEND_CHAIN+'회)','',3000);
+  }
+
   /* 원곡 정보 채우기 */
-  const h=historyData.find(x=>(x.id||x.taskId)===audioId);
+  const h=_extOrigTrack;
   if(h){
     const thumb=$('ext-thumb');
     if(thumb) thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
@@ -12643,15 +12743,20 @@ $('extend-submit-btn').addEventListener('click',async()=>{
       var _origLyrics = _origTrack ? (_origTrack.lyrics||_origTrack.lyric||_origTrack._inputLyrics||'') : '';
       /* 원본 가사에서 LRC 타임스탬프 제거 (합칠 때 깔끔하게) */
       var _origPlain = _origLyrics.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
+      /* Extend 메타데이터 빌드 */
+      var _newExtMeta = _buildExtendMeta(_origTrack);
 
       lastTracks=tracks.map(function(t){
         /* 연장된 트랙의 API 반환 가사 */
         var _extApiLyric = t.lyric||t.lyrics||t.lrc||'';
         var _extPlain = _extApiLyric.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
-        /* 원본 + 연장 가사 합치기 */
+        /* 원본 + 연장 가사 합치기 (중복 제거) */
         var _combined = '';
         if(_origPlain.trim() && _extPlain.trim()){
-          _combined = _origPlain.trim() + '\n\n[Extended]\n' + _extPlain.trim();
+          var _origLines=_origPlain.trim().split('\n');
+          var _extLines=_extPlain.trim().split('\n');
+          var _overlap=_deduplicateLyrics(_origLines,_extLines);
+          _combined = _origLines.join('\n') + '\n\n[Extended]\n' + (_overlap>0?_extLines.slice(_overlap):_extLines).join('\n');
         } else if(_extPlain.trim()){
           _combined = _extPlain.trim();
         } else if(_origPlain.trim()){
@@ -12660,24 +12765,29 @@ $('extend-submit-btn').addEventListener('click',async()=>{
         return {...t, _inputLyrics:_combined, _extendedFrom:extendAudioId, _extendChain:true, _origLyrics:_origPlain.trim()};
       });
       renderTracks(lastTracks,'연장된 트랙','extend',currentMode);
-      toast('🎵 연장 완료! 더 길게 만들려면 다시 연장하세요','ok',3000);
+      var _chainMsg=_newExtMeta.chainDepth>=MAX_EXTEND_CHAIN?'(최대 연장 도달)':'더 길게 만들려면 다시 연장하세요';
+      toast('🎵 연장 완료! '+_chainMsg,'ok',3000);
       /* 연장된 트랙을 히스토리에 저장 */
       tracks.forEach(function(t){
         var _extApiLyric = t.lyric||t.lyrics||t.lrc||'';
         var _extPlain = _extApiLyric.replace(/^\[\d{1,2}:\d{2}[.:]\d+\]\s*/gm, '');
         var _combined = '';
         if(_origPlain.trim() && _extPlain.trim()){
-          _combined = _origPlain.trim() + '\n\n[Extended]\n' + _extPlain.trim();
+          var _ol=_origPlain.trim().split('\n');var _el=_extPlain.trim().split('\n');
+          var _ov=_deduplicateLyrics(_ol,_el);
+          _combined = _ol.join('\n') + '\n\n[Extended]\n' + (_ov>0?_el.slice(_ov):_el).join('\n');
         } else if(_extPlain.trim()){
           _combined = _extPlain.trim();
         } else if(_origPlain.trim()){
           _combined = _origPlain.trim();
         }
+        _newExtMeta.chainIds.push(t.id);
         historyData.unshift({
           id:t.id, title:(t.title||'연장된 트랙'), audio_url:t.audioUrl||t.audio_url||t.song_path||'',
           image_url:t.imageUrl||t.image_url||'', tags:_origTrack?.tags||'extend',
           lyrics:_combined, created:Date.now(),
-          type:'audio', genMode:'extend', _extendedFrom:extendAudioId,
+          type:'audio', genMode:'extend', model:model, _extendedFrom:extendAudioId,
+          _extendMeta:_newExtMeta,
           _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
         });
       });
@@ -13574,8 +13684,9 @@ function renderHistoryView(){
     const timeAgo=formatTimeAgo(h.created);
     const tagLabel=_normTags(h.tags).split(',')[0]?.trim()||'';
     const typeBadge=hasVideo?'<div class="hist-type-badge">🎬</div>':'';
+    const _extChainBadge=h._extendMeta?'<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:rgba(59,130,246,.15);border-radius:8px;font-size:10px;color:#60a5fa;">🔗 ×'+h._extendMeta.chainDepth+'</span>':'';
     const remixBadge=h._extendedFrom?'<div class="hist-type-badge" style="background:rgba(59,130,246,.8);">🔄</div>':h._coveredFrom?'<div class="hist-type-badge" style="background:rgba(245,158,11,.8);">🎤</div>':h._remasteredFrom?'<div class="hist-type-badge" style="background:rgba(16,185,129,.8);">✨</div>':h._styleFrom?'<div class="hist-type-badge" style="background:rgba(168,85,247,.8);">🎨</div>':h._vocalRemovedFrom?'<div class="hist-type-badge" style="background:rgba(239,68,68,.8);">🎙</div>':'';
-    const remixLabel=h._extendedFrom?'연장':h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
+    const remixLabel=h._extendedFrom?'연장'+_extChainBadge:h._coveredFrom?'커버':h._remasteredFrom?'리마스터':h._styleFrom?'스타일':h._vocalRemovedFrom?'보컬분리':'';
     const _ownLyrics = h._inputLyrics || h.lyric || h.lyrics || h.lrc || '';
     /* MR 트랙이면 원본 트랙에서 가사 가져오기 */
     const _originLyrics = (!_ownLyrics.trim() && h._vocalRemovedFrom) ? (function(){var orig=historyData.find(function(o){return o.id===h._vocalRemovedFrom;});return orig?(orig._inputLyrics||orig.lyric||orig.lyrics||orig.lrc||''):'';})() : '';
@@ -29391,6 +29502,8 @@ setTimeout(_showOnboarding, 1500);
 })();
 </script>
 <script src="js/create-enhance.js"></script>
+<script src="js/model-profiles.js"></script>
+<script>initModelProfiles();</script>
 
 </body>
 </html>
