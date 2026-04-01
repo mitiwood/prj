@@ -7853,7 +7853,7 @@ function switchTab(viewId){
     if(viewId==='history-view')try{renderHistoryView();}catch(e){console.error(e);}
     if(viewId==='create-view'){try{_loadCommConfig().then(function(){_applyGenModeConfig();});}catch(e){}}
     if(viewId==='community-view'){localStorage.setItem('kms_comm_last_visit',String(Date.now()));try{_startCommPoll();}catch(e){console.error(e);}try{_updateCommBadge();}catch(e){console.error(e);}if(typeof _preloadFollowStates==='function')try{_preloadFollowStates();}catch(e){console.error(e);}try{renderCommunity(false);}catch(e){console.error(e);}}
-    if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();}
+    if(viewId==='settings-view'){try{renderSettings();}catch(e){console.error(e);}setTimeout(_updatePushSettingsUI,100);if(typeof _syncPlanFromServer==='function')_syncPlanFromServer();if(typeof _renderAttendanceSettings==='function')_renderAttendanceSettings();}
     if(typeof _applyLang==='function') setTimeout(_applyLang,50);
   }catch(e){console.error('[switchTab] post-switch',e);}
 }
@@ -29671,11 +29671,12 @@ async function _initAttendance(){
   } catch(e){ console.warn('[attendance]', e); }
 }
 async function _doAttendance(){
-  if(_attendChecked) return;
+  if(_attendChecked){toast('오늘 이미 출석했어요! 🔥','',1500);return;}
   var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
-  if(!u){ toast('로그인 후 이용할 수 있어요','info'); return; }
-  var btn = $('attend-btn');
-  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  if(!u){ if(typeof openLoginSheet==='function')openLoginSheet(); else toast('로그인 후 이용할 수 있어요','info'); return; }
+  /* 모든 출석 버튼 로딩 */
+  var btns = [document.getElementById('attend-btn'), document.getElementById('att-check-btn')];
+  btns.forEach(function(b){if(b){b.textContent='...';b.disabled=true;}});
   try {
     var r = await fetch('/api/attendance', {
       method:'POST',
@@ -29685,27 +29686,118 @@ async function _doAttendance(){
     var d = await r.json();
     if(d.ok){
       _attendChecked = true;
-      if(btn){ btn.textContent = '완료'; btn.classList.add('done'); btn.disabled = false; }
-      $('attend-title').textContent = d.streak + '일 연속 출석!';
-      var msg = d.message || '출석 체크 완료!';
-      if(d.bonus > 0) msg += ' (+' + d.bonus + '곡 보너스)';
-      toast(msg, 'ok');
+      var msg = d.already ? '오늘 이미 출석했어요!' : (d.message || '🔥 출석 체크 완료!');
+      if(d.bonus > 0 && !d.already) msg += ' (+' + d.bonus + '곡 보너스!)';
+      toast(msg, d.already ? '' : 'ok', 3000);
       /* 배지 달성 축하 */
-      var _badgeMilestones = [{d:3,ico:'🔥',label:'3일 연속'},{d:7,ico:'⚡',label:'7일 연속'},{d:14,ico:'💎',label:'14일 연속'},{d:30,ico:'👑',label:'30일 연속'}];
-      _badgeMilestones.forEach(function(m){
-        if(d.streak === m.d) setTimeout(function(){toast(m.ico+' '+m.label+' 달성! 배지를 획득했어요','ok',4000);},1500);
-      });
+      if(!d.already){
+        var _badgeMilestones = [{d:3,ico:'🔥',label:'3일 연속'},{d:7,ico:'⚡',label:'7일 연속'},{d:14,ico:'💎',label:'14일 연속'},{d:30,ico:'👑',label:'30일 연속'}];
+        _badgeMilestones.forEach(function(m){
+          if(d.streak === m.d) setTimeout(function(){toast(m.ico+' '+m.label+' 달성! 배지를 획득했어요','ok',4000);},1500);
+        });
+      }
+      /* 모든 UI 갱신 */
       _initAttendance();
+      _renderAttendanceSettings();
     } else {
       toast(d.error || '출석 체크 실패','err');
-      if(btn){ btn.textContent = '출석하기'; btn.disabled = false; }
+      btns.forEach(function(b){if(b){b.textContent='출석하기';b.disabled=false;}});
     }
   } catch(e){
     toast('출석 체크 중 오류 발생','err');
-    if(btn){ btn.textContent = '출석하기'; btn.disabled = false; }
+    btns.forEach(function(b){if(b){b.textContent='출석하기';b.disabled=false;}});
   }
 }
+
+/* ── 설정 뷰 출석 UI 렌더링 (캘린더 + 배지 + 스트릭) ── */
+async function _renderAttendanceSettings(){
+  var u = (typeof currentUser!=='undefined'&&currentUser)?currentUser:null;
+  var streakEl=$('att-streak-num');
+  var calEl=$('att-calendar');
+  var badgeEl=$('reward-badges');
+  var checkBtn=$('att-check-btn');
+
+  if(!u){
+    if(streakEl)streakEl.textContent='0';
+    if(calEl)calEl.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:10px;">로그인하면 출석 체크할 수 있어요</div>';
+    if(checkBtn){checkBtn.textContent='로그인';checkBtn.onclick=function(){if(typeof openLoginSheet==='function')openLoginSheet();};}
+    return;
+  }
+
+  try{
+    var r = await fetch('/api/attendance?userName='+encodeURIComponent(u.name)+'&userProvider='+encodeURIComponent(u.provider));
+    var d = await r.json();
+    if(!d.ok) return;
+
+    _attendChecked = d.todayChecked;
+    var streak = d.currentStreak||0;
+
+    /* 스트릭 숫자 */
+    if(streakEl)streakEl.textContent=streak;
+
+    /* 출석 버튼 상태 */
+    if(checkBtn){
+      if(d.todayChecked){
+        checkBtn.textContent='✅ 완료';checkBtn.style.background='rgba(34,197,94,.2)';checkBtn.style.color='#16a34a';
+      } else {
+        checkBtn.textContent='출석하기';checkBtn.style.background='linear-gradient(135deg,var(--acc),var(--acc2))';checkBtn.style.color='#fff';
+      }
+      checkBtn.disabled=false;
+    }
+
+    /* 캘린더 렌더링 (이번 달) */
+    if(calEl){
+      var now=new Date();
+      var year=now.getFullYear(),month=now.getMonth();
+      var firstDay=new Date(year,month,1).getDay();
+      var daysInMonth=new Date(year,month+1,0).getDate();
+      var today=now.getDate();
+      var checkedDays=(d.monthDays||[]).map(function(ds){return parseInt(ds.split('-')[2]);});
+
+      var html='<div style="text-align:center;font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px;">'+(month+1)+'월 출석 현황 ('+d.monthCount+'일)</div>';
+      html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:10px;">';
+      ['일','월','화','수','목','금','토'].forEach(function(d){html+='<div style="color:var(--t3);font-weight:600;padding:4px 0;">'+d+'</div>';});
+      for(var i=0;i<firstDay;i++) html+='<div></div>';
+      for(var day=1;day<=daysInMonth;day++){
+        var isChecked=checkedDays.indexOf(day)>=0;
+        var isToday=day===today;
+        var bg=isChecked?'linear-gradient(135deg,var(--acc),var(--acc2))':isToday?'rgba(124,58,237,.15)':'transparent';
+        var color=isChecked?'#fff':isToday?'var(--acc)':'var(--t3)';
+        var border=isToday&&!isChecked?'1px solid var(--acc)':'1px solid transparent';
+        html+='<div style="padding:5px 0;border-radius:6px;background:'+bg+';color:'+color+';border:'+border+';font-weight:'+(isChecked||isToday?'700':'400')+';">'+day+'</div>';
+      }
+      html+='</div>';
+      calEl.innerHTML=html;
+    }
+
+    /* 보상 배지 */
+    if(badgeEl){
+      var milestones=[
+        {d:3,ico:'🔥',label:'3일',bonus:'+1곡'},
+        {d:7,ico:'⚡',label:'7일',bonus:'+3곡'},
+        {d:14,ico:'💎',label:'14일',bonus:'+5곡'},
+        {d:30,ico:'👑',label:'30일',bonus:'+10곡'},
+      ];
+      badgeEl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--t2);margin:10px 0 6px;">마일스톤 보상</div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+milestones.map(function(m){
+        var earned=streak>=m.d;
+        var progress=Math.min(100,Math.round(streak/m.d*100));
+        return '<div style="flex:1;min-width:60px;padding:8px 6px;border-radius:10px;text-align:center;background:'+(earned?'rgba(124,58,237,.12)':'rgba(255,255,255,.03)')+';border:1px solid '+(earned?'var(--acc)':'var(--border)')+';transition:all .2s;">'
+          +'<div style="font-size:20px;">'+m.ico+'</div>'
+          +'<div style="font-size:10px;font-weight:700;color:'+(earned?'var(--acc)':'var(--t3)')+';">'+m.label+'</div>'
+          +'<div style="font-size:9px;color:var(--t3);margin-top:2px;">'+m.bonus+'</div>'
+          +(earned?'<div style="font-size:8px;color:#16a34a;margin-top:2px;">달성!</div>':'<div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;"><div style="height:100%;width:'+progress+'%;background:var(--acc);border-radius:2px;"></div></div>')
+          +'</div>';
+      }).join('')+'</div>';
+    }
+
+    /* 통계 요약 */
+    var sub=$('attend-sub');
+    if(sub)sub.textContent='이번 달 '+d.monthCount+'일 출석 · 총 보너스 '+(d.totalBonus||0)+'곡';
+
+  }catch(e){console.warn('[attendance-settings]',e);}
+}
 setTimeout(_initAttendance, 2000);
+setTimeout(_renderAttendanceSettings, 2500);
 setTimeout(_showOnboarding, 1500);
 
 /* ══════════════════════════════
