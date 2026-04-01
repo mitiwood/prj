@@ -79,14 +79,14 @@ export default async function handler(req, res) {
     if (action === 'following') {
       try {
         const { data: follows } = await sb('GET',
-          `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&order=created_at.desc&limit=50`);
+          `/follows?follower_name=eq.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&order=created_at.desc&limit=50`);
         const list = Array.isArray(follows) ? follows : [];
         const following = await Promise.all(list.map(async f => {
           try {
             const [tc, fc, av] = await Promise.all([
-              sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&is_public=eq.true&select=id&limit=0`),
-              sb('GET', `/follows?following_name=ilike.${encodeURIComponent(f.following_name)}&following_provider=eq.${encodeURIComponent(f.following_provider)}&select=id&limit=0`),
-              sb('GET', `/users?name=ilike.${encodeURIComponent(f.following_name)}&provider=ilike.${encodeURIComponent(f.following_provider)}&select=avatar&limit=1`),
+              sb('GET', `/tracks?owner_name=eq.${encodeURIComponent(f.following_name)}&owner_provider=eq.${encodeURIComponent(f.following_provider)}&is_public=eq.true&select=id&limit=0`),
+              sb('GET', `/follows?following_name=eq.${encodeURIComponent(f.following_name)}&following_provider=eq.${encodeURIComponent(f.following_provider)}&select=id&limit=0`),
+              sb('GET', `/users?name=eq.${encodeURIComponent(f.following_name)}&provider=eq.${encodeURIComponent(f.following_provider)}&select=avatar&limit=1`),
             ]);
             const avatar = Array.isArray(av.data) && av.data[0] ? av.data[0].avatar : '';
             return { name: f.following_name, provider: f.following_provider, avatar, trackCount: tc.count || 0, followerCount: fc.count || 0 };
@@ -104,14 +104,14 @@ export default async function handler(req, res) {
     if (action === 'followers') {
       try {
         const { data: follows } = await sb('GET',
-          `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=follower_name,follower_provider&order=created_at.desc&limit=50`);
+          `/follows?following_name=eq.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=follower_name,follower_provider&order=created_at.desc&limit=50`);
         const list = Array.isArray(follows) ? follows : [];
         const followers = await Promise.all(list.map(async f => {
           try {
             const [tc, fc, av] = await Promise.all([
-              sb('GET', `/tracks?owner_name=ilike.${encodeURIComponent(f.follower_name)}&owner_provider=ilike.${encodeURIComponent(f.follower_provider)}&is_public=eq.true&select=id&limit=0`),
-              sb('GET', `/follows?following_name=ilike.${encodeURIComponent(f.follower_name)}&following_provider=eq.${encodeURIComponent(f.follower_provider)}&select=id&limit=0`),
-              sb('GET', `/users?name=ilike.${encodeURIComponent(f.follower_name)}&provider=ilike.${encodeURIComponent(f.follower_provider)}&select=avatar&limit=1`),
+              sb('GET', `/tracks?owner_name=eq.${encodeURIComponent(f.follower_name)}&owner_provider=eq.${encodeURIComponent(f.follower_provider)}&is_public=eq.true&select=id&limit=0`),
+              sb('GET', `/follows?following_name=eq.${encodeURIComponent(f.follower_name)}&following_provider=eq.${encodeURIComponent(f.follower_provider)}&select=id&limit=0`),
+              sb('GET', `/users?name=eq.${encodeURIComponent(f.follower_name)}&provider=eq.${encodeURIComponent(f.follower_provider)}&select=avatar&limit=1`),
             ]);
             const avatar = Array.isArray(av.data) && av.data[0] ? av.data[0].avatar : '';
             return { name: f.follower_name, provider: f.follower_provider, avatar, trackCount: tc.count || 0, followerCount: fc.count || 0 };
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
           const [n, p] = pair.split('::');
           if (!n) return;
           try {
-            const { data } = await sb('GET', `/users?name=ilike.${encodeURIComponent(n)}&provider=ilike.${encodeURIComponent(p || '')}&select=name,provider,avatar&limit=1`);
+            const { data } = await sb('GET', `/users?name=eq.${encodeURIComponent(n)}&provider=eq.${encodeURIComponent(p || '')}&select=name,provider,avatar&limit=1`);
             if (Array.isArray(data) && data[0]) {
               avatarMap[pair] = data[0].avatar || '';
             }
@@ -225,7 +225,7 @@ export default async function handler(req, res) {
       if (!viewerName || !viewerProvider) return res.status(400).json({ error: 'viewerName, viewerProvider 필요' });
       try {
         const { data: allFollows } = await sb('GET',
-          `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&select=following_name,following_provider&limit=200`);
+          `/follows?follower_name=eq.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&select=following_name,following_provider&limit=200`);
         const set = {};
         (allFollows || []).forEach(f => { set[f.following_name + '__' + f.following_provider] = true; });
         return res.status(200).json({ ok: true, followingSet: set });
@@ -252,20 +252,20 @@ export default async function handler(req, res) {
       /* 병렬로 모든 쿼리 실행 — email 기반 매칭 우선 */
       const qEmail = req.query?.email;
       const userFilter = qEmail
-        ? `email=ilike.${encodeURIComponent(qEmail)}&provider=ilike.${encodeURIComponent(provider)}`
-        : `name=ilike.${encodeURIComponent(name)}&provider=ilike.${encodeURIComponent(provider)}`;
+        ? `email=eq.${encodeURIComponent(qEmail)}&provider=eq.${encodeURIComponent(provider)}`
+        : `name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`;
       const trackFilter = qEmail
-        ? `owner_email=ilike.${encodeURIComponent(qEmail)}&owner_provider=ilike.${encodeURIComponent(provider)}`
-        : `owner_name=ilike.${encodeURIComponent(name)}&owner_provider=ilike.${encodeURIComponent(provider)}`;
+        ? `owner_email=eq.${encodeURIComponent(qEmail)}&owner_provider=eq.${encodeURIComponent(provider)}`
+        : `owner_name=eq.${encodeURIComponent(name)}&owner_provider=eq.${encodeURIComponent(provider)}`;
       const promises = [
         sb('GET', `/users?${userFilter}&select=name,provider,email,avatar,plan,credits_song,credits_mv,credits_lyrics,login_count,created_at&limit=1`),
         sb('GET', `/tracks?${trackFilter}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_dislikes,comm_plays,comm_rating,duration,created_at,is_public&limit=50`),
-        sb('GET', `/follows?following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
-        sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
+        sb('GET', `/follows?following_name=eq.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
+        sb('GET', `/follows?follower_name=eq.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=id&limit=0`).catch(() => ({ count: 0 })),
       ];
       if (viewerName && viewerProvider) {
         promises.push(
-          sb('GET', `/follows?follower_name=ilike.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=ilike.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`).catch(() => ({ data: [] }))
+          sb('GET', `/follows?follower_name=eq.${encodeURIComponent(viewerName)}&follower_provider=eq.${encodeURIComponent(viewerProvider)}&following_name=eq.${encodeURIComponent(name)}&following_provider=eq.${encodeURIComponent(provider)}&select=id&limit=1`).catch(() => ({ data: [] }))
         );
       }
 
@@ -331,12 +331,12 @@ export default async function handler(req, res) {
       try {
         if (action === 'unfollow') {
           await sb('DELETE',
-            `/follows?follower_name=ilike.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=ilike.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}`);
+            `/follows?follower_name=eq.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=eq.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}`);
           return res.status(200).json({ ok: true, action: 'unfollowed' });
         }
         /* 중복 체크 */
         const { data: existing } = await sb('GET',
-          `/follows?follower_name=ilike.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=ilike.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}&select=id&limit=1`);
+          `/follows?follower_name=eq.${encodeURIComponent(followerName)}&follower_provider=eq.${encodeURIComponent(followerProvider)}&following_name=eq.${encodeURIComponent(followingName)}&following_provider=eq.${encodeURIComponent(followingProvider)}&select=id&limit=1`);
         if (existing?.length > 0) return res.status(200).json({ ok: true, already: true });
 
         await sb('POST', '/follows', {
@@ -404,8 +404,8 @@ export default async function handler(req, res) {
       try {
         /* email+provider로 사용자 매칭 (email 없으면 oldName 폴백) */
         const userFilter = userEmail
-          ? `email=ilike.${encodeURIComponent(userEmail)}&provider=ilike.${encodeURIComponent(prov)}`
-          : `name=ilike.${encodeURIComponent(oldName || trimmed)}&provider=ilike.${encodeURIComponent(prov)}`;
+          ? `email=eq.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(prov)}`
+          : `name=eq.${encodeURIComponent(oldName || trimmed)}&provider=eq.${encodeURIComponent(prov)}`;
         const updateData = { name: trimmed };
         if (typeof bio === 'string') {
           let existingUa = {};
@@ -419,8 +419,8 @@ export default async function handler(req, res) {
         /* tracks 테이블: email 기반 매칭 우선, 없으면 oldName 폴백 */
         try {
           const trackFilter = userEmail
-            ? `owner_email=ilike.${encodeURIComponent(userEmail)}&owner_provider=ilike.${encodeURIComponent(prov)}`
-            : `owner_name=ilike.${encodeURIComponent(oldName || trimmed)}&owner_provider=ilike.${encodeURIComponent(prov)}`;
+            ? `owner_email=eq.${encodeURIComponent(userEmail)}&owner_provider=eq.${encodeURIComponent(prov)}`
+            : `owner_name=eq.${encodeURIComponent(oldName || trimmed)}&owner_provider=eq.${encodeURIComponent(prov)}`;
           await sb('PATCH', `/tracks?${trackFilter}`, { owner_name: trimmed });
         } catch (e) { console.warn('[update-profile] tracks update:', e.message); }
         return res.status(200).json({ ok: true, name: trimmed });

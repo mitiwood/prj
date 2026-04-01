@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   try {
     /* 1) 내가 팔로우하는 사람 목록 */
     const { data: follows } = await sb('GET',
-      `/follows?follower_name=ilike.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&limit=100`);
+      `/follows?follower_name=eq.${encodeURIComponent(name)}&follower_provider=eq.${encodeURIComponent(provider)}&select=following_name,following_provider&limit=100`);
 
     if (!follows || !follows.length) {
       return res.status(200).json({ ok: true, tracks: [], artists: [] });
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
       try {
         const { data: tracks } = await sb('GET',
-          `/tracks?owner_name=ilike.${encodeURIComponent(f.following_name)}&owner_provider=ilike.${encodeURIComponent(f.following_provider)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,owner_name,owner_provider,created_at&limit=10`);
+          `/tracks?owner_name=eq.${encodeURIComponent(f.following_name)}&owner_provider=eq.${encodeURIComponent(f.following_provider)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&select=id,title,audio_url,image_url,video_url,tags,comm_likes,comm_plays,owner_name,owner_provider,created_at&limit=10`);
 
         if (tracks?.length) {
           artists.push({ name: f.following_name, provider: f.following_provider, trackCount: tracks.length });

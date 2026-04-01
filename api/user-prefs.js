@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     if (!name || !provider) return res.status(400).json({ error: 'name, provider required' });
 
     try {
-      const rows = await sb('GET', `/user_prefs?user_name=ilike.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}&limit=1`);
+      const rows = await sb('GET', `/user_prefs?user_name=eq.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}&limit=1`);
       const prefs = rows?.[0] || null;
       return res.status(200).json({ ok: true, prefs });
     } catch (e) {
@@ -60,9 +60,9 @@ export default async function handler(req, res) {
 
     try {
       /* upsert */
-      const existing = await sb('GET', `/user_prefs?user_name=ilike.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}&limit=1`);
+      const existing = await sb('GET', `/user_prefs?user_name=eq.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}&limit=1`);
       if (existing?.[0]) {
-        await sb('PATCH', `/user_prefs?user_name=ilike.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}`, data);
+        await sb('PATCH', `/user_prefs?user_name=eq.${encodeURIComponent(name)}&user_provider=eq.${encodeURIComponent(provider)}`, data);
       } else {
         await sb('POST', '/user_prefs', data);
       }
