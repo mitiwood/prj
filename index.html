@@ -8886,6 +8886,8 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   const simpleLyrics=($('simple-lyrics')?.value||'').trim();
   const moodVal=$('simple-mood').value;
   currentMode='simple';window.currentMode=currentMode;
+  /* ★ 심플 모드: 항상 1곡만 생성 (2곡 선택 무시) */
+  _setGenCount(1);
   const simpleBpm=parseInt($('simple-bpm-slider')?.value||120);
   bpmAuto=false;selectedBpm=simpleBpm;
   instOn=simpleInstOn;
@@ -11852,7 +11854,9 @@ async function generate(overrideParams){
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
   _genLog('START','mode='+_modeKey+', genCount='+_genCount, new Error().stack?.split('\n').slice(1,4).join(' < '));
-  const _localGenCount = _genCount; /* 생성 시작 시점의 곡 수 고정 — 폴링 중 외부 변경 차단 */
+  /* 심플 모드: 항상 1곡만 (2곡 선택 무시) */
+  var _localGenCount = _genCount;
+  if(currentMode==='simple') _localGenCount=1;
   /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
   if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
     _genLog('BLOCK','5초 이내 중복 호출 차단');
