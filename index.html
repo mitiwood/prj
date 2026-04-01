@@ -23577,11 +23577,21 @@ function _editProfile() {
       var r = await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update-profile',name:newName,provider:currentUser.provider,oldName:oldName,email:currentUser.email||'',bio:newBio})});
       var d = await r.json();
       if(d.ok){
+        var _prevName=currentUser.name;
         currentUser.name=newName;currentUser.bio=newBio;
+        window.currentUser=currentUser;
         localStorage.setItem('kms_user',JSON.stringify(currentUser));
+        /* 히스토리 owner 이름 즉시 갱신 */
+        historyData.forEach(function(h){
+          if(h._owner&&h._owner.name===_prevName&&h._owner.provider===currentUser.provider) h._owner.name=newName;
+        });
+        saveHistory();
         /* 모든 UI 즉시 갱신 */
         renderSettings();
         updateLoginUI();
+        if(typeof renderHistoryView==='function') renderHistoryView();
+        if(typeof renderCommunity==='function') renderCommunity();
+        if(typeof _syncPlanFromServer==='function') _syncPlanFromServer();
         toast('프로필이 업데이트되었어요','ok',2000);
         overlay.remove();
       } else {toast(d.error||'업데이트 실패','err');this.disabled=false;this.textContent='저장';}
