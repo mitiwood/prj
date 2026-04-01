@@ -9540,7 +9540,7 @@ function _saveLoginUser(user){
     const _prevUser = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
     if(_prevUser && _prevUser.provider && _prevUser.provider !== user.provider){
       /* 다른 소셜 계정으로 전환 — 인증 관련 데이터만 초기화 (히스토리는 유지) */
-      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession','kms_playlists','kms_playlist','kms_guest_tracks'];
+      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession','kms_playlists','kms_playlist','kms_guest_tracks','kms_onboarded','kms_tips_done','kms_volume','kms_failed_urls'];
       const _saved = {};
       _keepKeys.forEach(k=>{ const v=localStorage.getItem(k); if(v) _saved[k]=v; });
       /* 쿠키 초기화 (OAuth 세션) */
@@ -27470,6 +27470,7 @@ window.kmsRequestPush = async function(){
     <div style="flex:1;display:flex;align-items:center;justify-content:center;" id="onboard-content"></div>
     <div style="display:flex;gap:8px;padding:20px 0;">
       <div style="flex:1;display:flex;align-items:center;gap:6px;" id="onboard-dots"></div>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t3);cursor:pointer;"><input type="checkbox" id="onboard-nevershow" checked style="accent-color:var(--acc);"> 다시 보지 않기</label>
       <button id="onboard-skip" onclick="_skipOnboarding()" style="padding:8px 16px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;">건너뛰기</button>
       <button id="onboard-next" onclick="_nextOnboarding()" style="padding:8px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">다음</button>
     </div>
@@ -27528,7 +27529,8 @@ function _nextOnboarding() {
 }
 
 function _skipOnboarding() {
-  localStorage.setItem('kms_onboarded', '1');
+  var neverShow = document.getElementById('onboard-nevershow');
+  if(!neverShow || neverShow.checked) localStorage.setItem('kms_onboarded', '1');
   var overlay = document.getElementById('onboarding-overlay');
   if (overlay) {
     overlay.style.opacity = '0';
