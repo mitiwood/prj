@@ -3921,14 +3921,13 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   scrollbar-width:none;-ms-overflow-style:none;
   position:relative;
 }
-.fp-lyrics-main::before{
-  content:'';position:sticky;top:50%;left:50%;transform:translate(-50%,-50%);
-  display:block;width:200px;height:200px;margin:-100px auto -100px;
-  background:var(--fp-lyrics-bg) center/cover no-repeat;
-  opacity:.07;filter:blur(20px);border-radius:50%;
+.fp-lyrics-bg{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:240px;height:240px;border-radius:50%;
+  background-size:cover;background-position:center;
+  opacity:.12;filter:blur(30px);
   pointer-events:none;z-index:0;
 }
-.fp-lyrics-main>*{position:relative;z-index:1;}
 .fp-lyrics-main::-webkit-scrollbar{display:none;}
 /* 스크롤 모드 (기본) */
 .fp-lyrics-main.scroll-mode{
@@ -16863,9 +16862,18 @@ async function _doOpenFullPlayer(idx){
     const linkedAudio = historyData.find(x=>x.audio_url===h.audio_url && x.lyrics && x.id!==h.id);
     if(linkedAudio) h.lyrics = linkedAudio.lyrics;
   }
-  /* 가사 영역 배경에 커버 이미지 설정 */
+  /* 가사 영역 배경에 커버 이미지 워터마크 */
   var _lyrMain=$('fp-lyrics-main');
-  if(_lyrMain) _lyrMain.style.setProperty('--fp-lyrics-bg',h.image_url?'url('+h.image_url+')':'none');
+  if(_lyrMain){
+    var _existBg=_lyrMain.querySelector('.fp-lyrics-bg');
+    if(_existBg) _existBg.remove();
+    if(h.image_url){
+      var _bgEl=document.createElement('div');
+      _bgEl.className='fp-lyrics-bg';
+      _bgEl.style.backgroundImage='url('+h.image_url+')';
+      _lyrMain.prepend(_bgEl);
+    }
+  }
   await fpRenderLyrics(h);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
