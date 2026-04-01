@@ -5198,7 +5198,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- 레퍼런스 아티스트 -->
         <div class="suno-field">
-          <button class="suno-accordion-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none';this.querySelector('.suno-accordion-icon').textContent=this.nextElementSibling.style.display==='none'?'+':'-'">
+          <button class="suno-accordion-toggle" onclick="var d=this.nextElementSibling;d.style.display=(d.style.display==='none')?'':'none';this.querySelector('.suno-accordion-icon').textContent=(d.style.display==='none')?'+':'-'">
             <span class="suno-accordion-icon">+</span>
             <span>🎤 레퍼런스 아티스트</span>
             <span class="suno-hint" style="margin-left:auto;">아티스트 스타일 반영</span>
@@ -8721,7 +8721,7 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('on'));
     document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('on'));
     this.classList.add('on');
-    currentMode=this.dataset.mode;
+    currentMode=this.dataset.mode;window.currentMode=currentMode;
     /* 커스텀 모드 진입 시 — 다른 모드가 채운 데이터 초기화 */
     if(currentMode==='custom' && prevMode!=='custom' && _autoFilledFromOtherMode){
       const titleEl=$('song-title'), descEl=$('song-desc');
@@ -8785,7 +8785,7 @@ $('simple-lyrics-btn').addEventListener('click',async()=>{
       const ltid=ld?.data?.taskId||ld?.taskId;
       if(ltid){
         for(let i=0;i<40;i++){
-          await sleep(i<3?800:i<10?1500:2500);
+          await sleep(i<3?300:i<10?800:1500);
           let d=null;
           try{ const lr=await kieRequest(kieApiKey,'GET','/api/v1/lyrics/record-info?taskId='+ltid); d=lr?.data; }
           catch(e){ try{ const r2=await kieRequest(kieApiKey,'GET','/api/v1/jobs/recordInfo?taskId='+ltid); d=r2?.data; }catch(e2){} }
@@ -8822,7 +8822,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   const desc=$('simple-prompt').value.trim();
   const simpleLyrics=($('simple-lyrics')?.value||'').trim();
   const moodVal=$('simple-mood').value;
-  currentMode='simple';
+  currentMode='simple';window.currentMode=currentMode;
   const simpleBpm=parseInt($('simple-bpm-slider')?.value||120);
   bpmAuto=false;selectedBpm=simpleBpm;
   instOn=simpleInstOn;
@@ -9896,7 +9896,7 @@ async function generateMV(){
     /* Step 2: 폴링 */
     let pct=5;
     for(let i=0;i<90;i++){
-      await sleep(i<5?1500:i<20?2500:3500);
+      await sleep(i<5?1000:i<20?2000:3000);
       pct=Math.min(92,5+Math.round((i/90)*87));
       /* 통합 로딩 UI 업데이트 */
       var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent=pct+'%';
@@ -10443,7 +10443,14 @@ async function kieRequest(apiKey,method,path,body){
 }
 
 async function pollResult(apiKey,taskId){
-  /* 폴링: 초기 3회(500ms) → 다음 7회(1초) → 이후(2초) → 80초 이후(3초) */
+  /* SSE 우선 시도 → 실패 시 기존 폴링 폴백 */
+  if(typeof EventSource!=='undefined'){
+    try{
+      var _sseResult=await _pollViaSSE(taskId);
+      if(_sseResult&&_sseResult.length) return _sseResult;
+    }catch(sseErr){console.warn('[SSE] 폴백 → 클라이언트 폴링:',sseErr.message);}
+  }
+  /* 폴링: 초기 3회(300ms) → 다음 7회(800ms) → 이후(1.5초) → 80초 이후(2.5초) */
   let elapsed = 0;
   let _noDataCount = 0;
   /* ── 진행률 UI (단조증가 — 절대 뒤로 안 감) ── */
@@ -10484,7 +10491,7 @@ async function pollResult(apiKey,taskId){
   const _maxNetFails=10; /* 연속 10회 실패 시 중단 */
   for(let i=0;i<MAX_POLLS;i++){
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
-    const interval = i < 3 ? 500 : i < 8 ? 1000 : i < 20 ? 1500 : elapsed < 80000 ? 2000 : 2500;
+    const interval = i < 3 ? 300 : i < 10 ? 800 : i < 20 ? 1500 : elapsed < 80000 ? 2000 : 2500;
     await sleep(interval);
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
     elapsed += interval;
@@ -10800,7 +10807,7 @@ async function _autoLyricsAndGenerate(){
       const taskId=data?.data?.taskId||data?.taskId;
       if(taskId){
         for(let i=0;i<30;i++){
-          await sleep(i<3?500:i<10?1000:2000);
+          await sleep(i<3?300:i<10?800:1500);
           let d=null;
           try{ const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`); d=res?.data; }
           catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${taskId}`); d=r2?.data; }catch(e2){} }
@@ -11474,6 +11481,26 @@ function _showErrorGuideSheet(classified,retryFn){
   document.body.appendChild(overlay);
 }
 
+/* ── 중복 생성 방지 (최근 5분 이내 동일 프롬프트+모델) ── */
+var _recentGenCache=[];
+function _genCacheKey(prompt,model,mode){return (prompt||'').slice(0,100)+'|'+(model||'')+'|'+(mode||'');}
+function _checkDuplicateGen(prompt,model,mode){
+  var key=_genCacheKey(prompt,model,mode);
+  var now=Date.now();
+  _recentGenCache=_recentGenCache.filter(function(c){return now-c.ts<300000;}); /* 5분 유지 */
+  var found=_recentGenCache.find(function(c){return c.key===key;});
+  if(found && found.tracks && found.tracks.length){
+    return found.tracks;
+  }
+  return null;
+}
+function _addToGenCache(prompt,model,mode,tracks){
+  var key=_genCacheKey(prompt,model,mode);
+  _recentGenCache=_recentGenCache.filter(function(c){return c.key!==key;});
+  _recentGenCache.push({key:key,ts:Date.now(),tracks:tracks});
+  if(_recentGenCache.length>10) _recentGenCache=_recentGenCache.slice(-10);
+}
+
 function _logErrorToServer(endpoint,errMsg,statusCode,severity){
   try{
     fetch('/api/error-logs',{
@@ -11685,7 +11712,33 @@ var _setGenStep=function(step){
     else a.classList.remove('passed');
   });
 };
-var _updateGenEta=function(elapsed){};
+/* ── 진행률 예측 (과거 생성 시간 기반) ── */
+var _genTimingHistory=[];
+try{_genTimingHistory=JSON.parse(localStorage.getItem('kms_gen_timings')||'[]');}catch(e){}
+function _recordGenTiming(mode,model,durationMs){
+  _genTimingHistory.push({mode:mode,model:model,ms:durationMs,ts:Date.now()});
+  if(_genTimingHistory.length>30)_genTimingHistory=_genTimingHistory.slice(-30);
+  try{localStorage.setItem('kms_gen_timings',JSON.stringify(_genTimingHistory));}catch(e){}
+}
+function _estimateGenTime(mode,model){
+  var relevant=_genTimingHistory.filter(function(t){return t.model===model||t.mode===mode;});
+  if(relevant.length>=3){
+    var sum=0;relevant.slice(-5).forEach(function(t){sum+=t.ms;});
+    return Math.round(sum/Math.min(relevant.length,5));
+  }
+  /* 기본 예측값 */
+  var defaults={V3_5:35000,V4:45000,V4_5:50000,V4_5PLUS:80000,V5:55000,LYRIA_PRO:60000,LYRIA_CLIP:30000};
+  return defaults[model]||50000;
+}
+var _updateGenEta=function(elapsed){
+  var etaEl=$('ld-eta');if(!etaEl)return;
+  var model=$('model-sel')?.value||'V4';
+  var est=_estimateGenTime(currentMode||'custom',model);
+  var remain=Math.max(0,est-elapsed);
+  if(remain<=0){etaEl.textContent='거의 완성됐어요!';return;}
+  var sec=Math.round(remain/1000);
+  etaEl.textContent=sec>60?'약 '+Math.ceil(sec/60)+'분 남음':'약 '+sec+'초 남음';
+};
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
 var _genCount = 1;
 function _setGenCount(n){
@@ -11937,6 +11990,18 @@ async function generate(overrideParams){
     if(songTitle)body.title=songTitle;
     /* kie.ai generate API는 duration을 지원하지 않음 — 제거 */
 
+    /* 중복 생성 방지 — 5분 이내 동일 프롬프트+모델이면 캐시 반환 */
+    if(!overrideParams?._abTest && !overrideParams?._afterLyrics){
+      var _dupTracks=_checkDuplicateGen(prompt,model,currentMode);
+      if(_dupTracks){
+        _genLog('CACHE','중복 감지 — 캐시된 결과 반환 ('+_dupTracks.length+'곡)');
+        toast('같은 설정으로 최근 생성한 곡이 있어요!','ok',2000);
+        $('loading-card').classList.remove('on');
+        lastTracks=_dupTracks.map(function(t){return Object.assign({},t);});
+        renderTracks(lastTracks,prompt,styleStr,currentMode);
+        return;
+      }
+    }
     _genLog('API','POST /api/v1/generate',{model:body.model,inst:body.instrumental,style:(body.style||'').slice(0,60),prompt:(body.prompt||'').slice(0,40)});
     /* ── Lyria 모델 감지 → 별도 생성 흐름 ── */
     var _isLyriaMain = model.startsWith('LYRIA');
@@ -11959,14 +12024,31 @@ async function generate(overrideParams){
         body:JSON.stringify(_lyriaBodyMain),
       });
       var _lyriaDataMain = await _lyriaResMain.json();
-      if(!_lyriaResMain.ok){
-        if(_lyriaDataMain?.error === 'credit_exceeded') throw new Error('이번 달 사용량을 초과했어요.');
-        throw new Error(_lyriaDataMain?.error || 'Lyria 생성 실패');
+      var _lyriaFailed = !_lyriaResMain.ok || !(_lyriaDataMain?.tracks?.length || _lyriaDataMain?.data?.response?.sunoData?.length);
+      if(_lyriaResMain.ok && !_lyriaFailed){
+        tracks = _lyriaDataMain?.tracks || _lyriaDataMain?.data?.response?.sunoData || [];
+        lastTaskId = _lyriaDataMain?.data?.taskId || '';
+        _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
       }
-      tracks = _lyriaDataMain?.tracks || _lyriaDataMain?.data?.response?.sunoData || [];
-      lastTaskId = _lyriaDataMain?.data?.taskId || '';
-      _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
-      if(!tracks.length) throw new Error('Lyria 트랙을 받지 못했어요');
+      if(!_lyriaResMain.ok && _lyriaDataMain?.error === 'credit_exceeded') throw new Error('이번 달 사용량을 초과했어요.');
+      /* Lyria 실패 → kie.ai V4 자동 폴백 */
+      if(_lyriaFailed){
+        _genLog('FALLBACK','Lyria 실패 → V4 폴백: '+(_lyriaDataMain?.error||'트랙 없음'));
+        toast('Lyria 생성 실패 — V4 모델로 자동 전환합니다','',3000);
+        var _ldSubFb=$('ld-sub');if(_ldSubFb)_ldSubFb.textContent='V4 모델로 전환 중...';
+        body.model='V4';delete body.audioWeight;
+        _isLyriaMain=false;
+        /* kie.ai로 폴백 — 아래 else 블록과 동일 로직 */
+        var _fbGenData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+        var _fbTaskId=_fbGenData?.data?.taskId||_fbGenData?.taskId;
+        if(!_fbTaskId)throw new Error('폴백 taskId 없음');
+        lastTaskId=_fbTaskId;
+        _saveGenSession(_fbTaskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
+        $('ld-task').textContent='';
+        var _fbTracks=await pollResult(apiKey,_fbTaskId);
+        tracks=(_fbTracks||[]).filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
+        if(!tracks.length)throw new Error('폴백 생성 실패 — 트랙을 받지 못했어요');
+      }
     } else {
       var genData;
       try{
@@ -12116,6 +12198,11 @@ async function generate(overrideParams){
         owner_provider:currentUser?.provider||'',
       });
     });
+
+    /* 생성 시간 기록 (ETA 예측용) */
+    _recordGenTiming(currentMode,model,Date.now()-_genT0);
+    /* 중복 방지 캐시에 저장 */
+    _addToGenCache(prompt,model,currentMode,tracks);
 
     /* 음악 생성 알림 — 텔레그램 + 카카오 동시 전송 */
     _notifyMusicCreated(tracks, currentMode, styleStr);
@@ -12366,7 +12453,7 @@ async function _mvGenerateImage(){
     var tid=gd?.data?.taskId||gd?.taskId;
     if(!tid)throw new Error('영상 taskId 없음');
     for(var i=0;i<90;i++){
-      await sleep(i<5?1500:i<20?2500:3500);
+      await sleep(i<5?1000:i<20?2000:3000);
       var pct=Math.min(92,5+Math.round((i/90)*87));var pb=$('mv-ai-pbar');if(pb)pb.style.width=pct+'%';var ptx=$('mv-ai-ptxt');if(ptx)ptx.textContent='영상 생성 중... '+pct+'%';
       try{var res=await kieRequest(apiKey,'GET','/api/v1/jobs/recordInfo?taskId='+tid);var d=res?.data;if(!d)continue;
         var st=(d.state||d.status||'').toLowerCase();
@@ -12905,6 +12992,15 @@ function parseLyrics(text){
 
 /* ── RENDER TRACKS ── */
 function renderTracks(tracks,prompt,tags,mode){
+  /* 오디오 프리로드 — 렌더링 전 미리 로드 시작 */
+  tracks.forEach(function(t){
+    var url=t.audioUrl||t.audio_url||t.song_path||'';
+    if(url&&url.startsWith('http')){
+      var link=document.createElement('link');
+      link.rel='prefetch';link.as='audio';link.href=url;
+      document.head.appendChild(link);
+    }
+  });
   /* 모드별 섹션 컨테이너 선택 */
   var modeKey=mode||currentMode||'custom';
   var sectionId='results-'+modeKey;
@@ -13597,7 +13693,7 @@ async function doRecompose(){
   if(customTab)customTab.classList.add('on');
   const customPanel=$('panel-custom');
   if(customPanel)customPanel.classList.add('on');
-  currentMode='custom';
+  currentMode='custom';window.currentMode=currentMode;
   /* 폼 채우기 (재작곡은 사용자가 명시적으로 선택한 것 — autoFilled 안 붙임) */
   if($('song-title')){ $('song-title').value=title; delete $('song-title').dataset.autoFilled; }
   if($('song-desc')){ $('song-desc').value=desc; delete $('song-desc').dataset.autoFilled; }
@@ -15328,7 +15424,7 @@ function mdsCreateWithStyle(){
   if(customTab) customTab.classList.add('on');
   const customPanel=$('panel-custom');
   if(customPanel) customPanel.classList.add('on');
-  currentMode='custom';
+  currentMode='custom';window.currentMode=currentMode;
 
   /* 기존 스타일/태그 채우기 */
   const tags=_normTags(h.tags).split(',');
@@ -15735,7 +15831,7 @@ async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
     const ltid=ld?.data?.taskId||ld?.taskId;
     if(ltid){
       for(let i=0;i<25;i++){
-        await sleep(i<3?500:i<8?1000:2000);
+        await sleep(i<3?300:i<10?800:1500);
         let d=null;
         try{ const r=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${ltid}`); d=r?.data; }
         catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${ltid}`); d=r2?.data; }catch(e2){} }
@@ -23189,6 +23285,7 @@ function cancelLyricsEdit(idx){
 }
 /* ── cross-block 참조 보장: 전역 window 노출 ── */
 window.currentUser=currentUser;
+window.currentMode=currentMode;
 window._getCreditHistory=_getCreditHistory;
 window._saveCreditHistory=_saveCreditHistory;
 window._addCreditHistory=_addCreditHistory;
@@ -29414,7 +29511,7 @@ setTimeout(_showOnboarding, 1500);
     var base=bnav?bnav.offsetHeight:56;
     var mpH=(mp&&mp.classList.contains('on')&&!mp.classList.contains('mp-hide'))?mp.offsetHeight:0;
     nav.style.bottom=(base+mpH)+'px';
-    var mode=(currentMode==='youtube')?'youtube':(currentMode==='mv')?'mv':'simple';
+    var _cm=window.currentMode||'simple';var mode=(_cm==='youtube')?'youtube':(_cm==='mv')?'mv':'simple';
     var step=(mode==='youtube')?_ytStep:(mode==='mv')?_mvStep:_tossStep;
     var def=(_navDefs[mode]||{})[step];
     if(!def){nav.innerHTML='';return;}
