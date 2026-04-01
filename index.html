@@ -172,6 +172,7 @@ input,select,textarea{font-size:16px!important;}
   --rm: 12px;
   --rs: 10px;
   --rx: 20px;
+  --sheet-max: 480px;
   /* 레거시 호환 */
   --bdr: rgba(255,255,255,0.07);
   --bdr2: rgba(255,255,255,0.07);
@@ -353,7 +354,7 @@ html,body{
 ::-webkit-scrollbar-thumb{background:var(--acc);border-radius:3px;}
 
 /* ── 레이아웃 ── */
-.app-wrap{max-width:480px;margin:0 auto;position:relative;}
+.app-wrap{max-width:var(--sheet-max,480px);margin:0 auto;position:relative;}
 
 /* ── 헤더 ── */
 .app-header{
@@ -1321,7 +1322,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .mp-queue-btn{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:4px;display:flex;align-items:center;}
 #queue-sheet{position:fixed;inset:0;z-index:100003;display:none;background:rgba(0,0,0,.6);}
 #queue-sheet.on{display:block;}
-.queue-panel{position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:60vh;display:flex;flex-direction:column;padding:16px;}
+.queue-panel{position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:60vh;display:flex;flex-direction:column;padding:16px;}
 .queue-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;transition:background .15s;}
 .queue-item:hover,.queue-item.active{background:rgba(124,58,237,.1);}
 .queue-item-num{width:20px;text-align:center;font-size:11px;font-weight:700;color:var(--t3);}
@@ -1408,7 +1409,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 /* DM 시스템 */
 #dm-sheet{position:fixed;inset:0;z-index:100002;display:none;background:rgba(0,0,0,.6);}
 #dm-sheet.on{display:block;}
-.dm-panel{position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:85vh;display:flex;flex-direction:column;}
+.dm-panel{position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:85vh;display:flex;flex-direction:column;}
 .dm-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .dm-back{background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;}
 .dm-user{flex:1;font-size:14px;font-weight:700;color:var(--t1);}
@@ -1555,7 +1556,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   display:flex;gap:8px;padding:10px 16px;
   position:fixed;bottom:var(--bnav-h,56px);left:0;right:0;z-index:10004;
   background:var(--bg);border-top:1px solid var(--border);
-  max-width:480px;margin:0 auto;
+  max-width:var(--sheet-max,480px);margin:0 auto;
   box-shadow:0 -2px 12px rgba(0,0,0,.15);
   transition:bottom .3s cubic-bezier(.4,0,.2,1);
 }
@@ -1878,7 +1879,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 
 #claude-chat-panel{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
-  width:100%;max-width:480px;height:70vh;max-height:600px;
+  width:100%;max-width:var(--sheet-max,480px);height:70vh;max-height:600px;
   background:var(--bg);border-radius:20px 20px 0 0;
   border:1px solid var(--border);border-bottom:none;
   z-index:100005;display:flex;flex-direction:column;
@@ -2488,7 +2489,7 @@ body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
   position:absolute;bottom:0;left:50%;
   transform:translate(-50%,100%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   background:var(--card2);
   border-radius:20px 20px 0 0;
   border-top:1px solid var(--border2);
@@ -2580,7 +2581,7 @@ body.mp-on #hist-edit-sheet{bottom:calc(56px + 62px);}
 #remix-cover-modal,#remix-style-modal,#remaster-modal,#vocal-remove-modal{position:fixed;top:0;left:0;right:0;bottom:56px;z-index:10009;pointer-events:none;opacity:0;transition:opacity .22s;}
 body.mp-on #remix-cover-modal,body.mp-on #remix-style-modal,body.mp-on #remaster-modal,body.mp-on #vocal-remove-modal{bottom:calc(56px + 62px);}
 #remix-cover-modal.on,#remix-style-modal.on,#remaster-modal.on,#vocal-remove-modal.on{pointer-events:auto;opacity:1;}
-#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{position:absolute;bottom:0;left:50%;width:100%;max-width:480px;background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);transform:translate(-50%,100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:70vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(12px + env(safe-area-inset-bottom,8px));}
+#remix-cover-modal .hes-panel,#remix-style-modal .hes-panel,#remaster-modal .hes-panel,#vocal-remove-modal .hes-panel{position:absolute;bottom:0;left:50%;width:100%;max-width:var(--sheet-max,480px);background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);transform:translate(-50%,100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:70vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(12px + env(safe-area-inset-bottom,8px));}
 #remix-cover-modal.on .hes-panel,#remix-style-modal.on .hes-panel,#remaster-modal.on .hes-panel,#vocal-remove-modal.on .hes-panel{transform:translate(-50%,0);}
 
 /* 2차 바텀시트: 리믹스 & 도구 */
@@ -2588,7 +2589,7 @@ body.mp-on #remix-cover-modal,body.mp-on #remix-style-modal,body.mp-on #remaster
 body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 #hes-tools-sheet.on{pointer-events:auto;opacity:1;}
 #hes-tools-sheet .hes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);}
-#hes-tools-sheet .hes-panel{position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);transition:transform .35s cubic-bezier(.4,0,.2,1);width:100%;max-width:480px;background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);max-height:80vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,20px);}
+#hes-tools-sheet .hes-panel{position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);transition:transform .35s cubic-bezier(.4,0,.2,1);width:100%;max-width:var(--sheet-max,480px);background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);max-height:80vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,20px);}
 #hes-tools-sheet.on .hes-panel{transform:translate(-50%,0);}
 .hist-list{display:flex;flex-direction:column;gap:2px;}
 
@@ -3106,7 +3107,7 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 /* 공유 바텀시트 */
 .comm-share-overlay{position:fixed;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);z-index:10006;display:flex;align-items:flex-end;justify-content:center;}
 body.mp-on .comm-share-overlay{bottom:calc(56px + 62px);}
-.comm-share-box{width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 20px;border-top:1px solid rgba(255,255,255,.1);}
+.comm-share-box{width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 20px;border-top:1px solid rgba(255,255,255,.1);}
 .comm-share-title{font-size:16px;font-weight:800;color:#f1f0f5;text-align:center;margin-bottom:4px;}
 .comm-share-sub{font-size:12px;color:#a09ab8;text-align:center;margin-bottom:16px;}
 .comm-share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
@@ -3120,7 +3121,7 @@ body.mp-on .comm-share-overlay{bottom:calc(56px + 62px);}
 /* ── 신고 바텀시트 ── */
 .report-overlay{position:fixed;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);z-index:10006;display:flex;align-items:flex-end;justify-content:center;}
 body.mp-on .report-overlay{bottom:calc(56px + 62px);}
-.report-sheet{width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 24px;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;}
+.report-sheet{width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:20px 20px 24px;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;}
 .report-title{font-size:16px;font-weight:800;color:#f1f0f5;text-align:center;margin-bottom:4px;}
 .report-sub{font-size:12px;color:#a09ab8;text-align:center;margin-bottom:16px;}
 .report-option{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:8px;transition:all .15s;font-size:14px;color:var(--t1);font-family:inherit;width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);}
@@ -3134,7 +3135,7 @@ body.mp-on .report-overlay{bottom:calc(56px + 62px);}
 [data-theme="light"] .report-option:hover{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);}
 /* ── 댓글 바텀시트 (앱 공통 바텀시트 스타일 통일) ── */
 .comment-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;}
-.comment-sheet{width:100%;max-width:480px;max-height:70vh;background:#1e1e2a;border-radius:20px 20px 0 0;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;margin-bottom:56px;}
+.comment-sheet{width:100%;max-width:var(--sheet-max,480px);max-height:70vh;background:#1e1e2a;border-radius:20px 20px 0 0;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.1);animation:sheet-up .25s ease;margin-bottom:56px;}
 body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .comment-handle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;}
 .comment-header{display:flex;align-items:center;padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
@@ -3275,7 +3276,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 ══════════════════════════════ */
 #bottom-nav{
   position:fixed;bottom:0;left:0;right:0;margin:0 auto;
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
   border-top:1px solid var(--border);
   display:flex;z-index:10005;
@@ -3333,7 +3334,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-handle-bar{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.3);margin:0 auto;}
 [data-theme="light"] .fp-handle-bar{background:rgba(0,0,0,.15);}
 .fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(80px) brightness(.2) saturate(1.6);transform:scale(1.3);opacity:.8;}
-.fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;width:100%;}
+.fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:var(--sheet-max,480px);margin:0 auto;width:100%;}
 .fp-header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,50px) 20px 8px;}
 .fp-back{
   width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);
@@ -3489,7 +3490,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .share-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
 .share-panel{
   position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px calc(3px + 12px + env(safe-area-inset-bottom,0px));
 }
 .share-handle{width:36px;height:3px;background:var(--t3);border-radius:2px;margin:0 auto 16px;}
@@ -3511,7 +3512,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .modal-backdrop.on{display:flex;}
 .modal{
   background:var(--bg2);border-radius:20px 20px 0 0;
-  width:100%;max-width:480px;padding:24px 20px 20px;
+  width:100%;max-width:var(--sheet-max,480px);padding:24px 20px 20px;
   max-height:70vh;overflow-y:auto;position:relative;
   margin-bottom:56px;
 }
@@ -3606,7 +3607,7 @@ body.mp-on .modal{margin-bottom:calc(56px + 62px);max-height:60vh;}
 .rc-sheet-panel{
   position:relative;z-index:1;
   background:var(--bg2);border-radius:20px 20px 0 0;
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   padding:20px 20px 36px;max-height:90vh;overflow-y:auto;
 }
 .rc-sheet-handle{width:36px;height:3px;background:var(--t3);border-radius:2px;margin:0 auto 16px;}
@@ -3707,7 +3708,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .rc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .ptag{padding:3px 9px;border-radius:var(--rx);background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--acc3);font-size:10px;font-weight:700;}
 /* rc-sheet */
-.rc-sheet-box{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 20px;max-height:70vh;overflow-y:auto;position:relative;z-index:1;margin-bottom:56px;}
+.rc-sheet-box{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:var(--sheet-max,480px);padding:20px 20px 20px;max-height:70vh;overflow-y:auto;position:relative;z-index:1;margin-bottom:56px;}
 body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .rc-sheet-header{margin-bottom:16px;}
 .rc-sheet-body{display:flex;flex-direction:column;gap:12px;}
@@ -3981,7 +3982,7 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   position:fixed !important;
   bottom:var(--bnav-h, 56px) !important;
   left:0;right:0;
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   margin:0 auto;
   background:rgba(18,18,26,.98);
   border:1px solid rgba(168,85,247,.18);
@@ -4086,7 +4087,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   position:absolute;bottom:56px;left:50%;
   transform:translate(-50%,100%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   background:var(--card2);
   border-radius:20px 20px 0 0;
   border-top:1px solid var(--border2);
@@ -4206,7 +4207,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .fes-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);}
 .fes-panel{
   position:absolute;bottom:56px;left:50%;transform:translate(-50%,100%);
-  width:100%;max-width:480px;
+  width:100%;max-width:var(--sheet-max,480px);
   background:var(--card2);border-radius:20px 20px 0 0;
   border-top:1px solid var(--border2);
   padding:0 0 env(safe-area-inset-bottom,16px);
@@ -4405,7 +4406,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 /* ── AI 어시스트 바텀시트 ── */
 .ai-sheet-overlay{position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;}
-.ai-sheet-box{background:#1a1a28;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 36px;max-height:80vh;overflow-y:auto;animation:sheet-up .25s ease;}
+.ai-sheet-box{background:#1a1a28;border-radius:20px 20px 0 0;width:100%;max-width:var(--sheet-max,480px);padding:20px 20px 36px;max-height:80vh;overflow-y:auto;animation:sheet-up .25s ease;}
 @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 /* 카드 등장 애니메이션 */
 @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -4463,7 +4464,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    모바일 반응형 — 깨짐 방지
    ══════════════════════════════════════ */
 /* 기본: 모든 모바일 (480px 이하) */
-@media(max-width:480px){
+@media(max-width:var(--sheet-max,480px)){
   .app-wrap{max-width:100vw;}
   .app-header{padding:14px 12px 10px;}
   .view{padding:12px 10px 80px;}
@@ -4611,23 +4612,17 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    반응형 — 태블릿 (744px+ : iPad mini 대응)
 ══════════════════════════════ */
 @media(min-width:600px){
+  :root{--sheet-max:560px;}
   .app-wrap{max-width:580px;}
   #bottom-nav{max-width:580px;}
   #mini-player{max-width:580px;left:0;right:0;margin:0 auto;}
-  /* 바텀시트/모달 태블릿 확장 */
-  .ai-sheet-box,.report-sheet,.comment-sheet,.rc-sheet-box,.queue-panel,.dm-panel,
-  .hes-panel,.modal,.login-sheet-box,#nas-panel,
-  [style*="max-width:480px"]{max-width:560px!important;}
   #fullplayer .fp-inner{max-width:560px;}
 }
 @media(min-width:744px){
+  :root{--sheet-max:680px;}
   .app-wrap{max-width:720px;}
   #bottom-nav{max-width:720px;}
   #mini-player{max-width:720px;left:0;right:0;margin:0 auto;}
-  /* 바텀시트/모달 */
-  .ai-sheet-box,.report-sheet,.comment-sheet,.rc-sheet-box,.queue-panel,.dm-panel,
-  .hes-panel,.modal,.login-sheet-box,#nas-panel,
-  [style*="max-width:480px"]{max-width:680px!important;}
   #fullplayer .fp-inner{max-width:680px;}
   /* 생성 폼: 2열 그리드 */
   .adv-grid{grid-template-columns:1fr 1fr;}
@@ -4701,6 +4696,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    반응형 — 데스크탑 (1024px+)
 ══════════════════════════════ */
 @media(min-width:1024px){
+  :root{--sheet-max:800px;}
   .app-wrap{max-width:960px;padding:0 20px;}
   #bottom-nav{max-width:960px;}
   #mini-player{max-width:960px;left:0;right:0;margin:0 auto;}
@@ -4752,6 +4748,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    반응형 — 와이드 데스크탑 (1440px+)
 ══════════════════════════════ */
 @media(min-width:1440px){
+  :root{--sheet-max:900px;}
   .app-wrap{max-width:1200px;}
   #bottom-nav{max-width:1200px;}
   #mini-player{max-width:1200px;left:0;right:0;margin:0 auto;}
@@ -6000,7 +5997,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   <!-- ─────────── NAS 연결 패널 ─────────── -->
   <div id="nas-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;" onclick="_closeNasPanel()"></div>
-  <div id="nas-panel" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;z-index:9999;padding:20px 16px 32px;box-shadow:0 -4px 24px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto;">
+  <div id="nas-panel" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--sheet-max,480px);background:var(--card);border-radius:20px 20px 0 0;z-index:9999;padding:20px 16px 32px;box-shadow:0 -4px 24px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto;">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
     <div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px;">🗄️ NAS 연결</div>
     <div style="font-size:12px;color:var(--t3);margin-bottom:16px;">Synology NAS에 음악을 백업하거나 가져올 수 있습니다</div>
@@ -7049,7 +7046,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 <!-- ── MV 음악 트랙 피커 ── -->
 <div id="mv-track-picker" style="position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .22s;">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);" onclick="closeMvTrackPicker()"></div>
-  <div id="mv-picker-panel" style="position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:0 0 env(safe-area-inset-bottom,20px);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:70vh;display:flex;flex-direction:column;">
+  <div id="mv-picker-panel" style="position:absolute;bottom:0;left:50%;transform:translate(-50%,100%);width:100%;max-width:var(--sheet-max,480px);background:var(--card2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:0 0 env(safe-area-inset-bottom,20px);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:70vh;display:flex;flex-direction:column;">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
     <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="font-size:15px;font-weight:800;color:var(--t1);">🎵 음악 선택</div>
@@ -7779,7 +7776,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     position:absolute;bottom:56px;left:50%;
     transform:translate(-50%,100%);
     transition:transform .35s cubic-bezier(.4,0,.2,1);
-    width:100%;max-width:480px;
+    width:100%;max-width:var(--sheet-max,480px);
     background:var(--card2);
     border-radius:20px 20px 0 0;
     border-top:1px solid var(--border2);
@@ -8808,7 +8805,7 @@ function _doForceLogout(){
 function logout(){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 36px;border-top:1px solid rgba(255,255,255,.1);">
+  overlay.innerHTML=`<div style="width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 36px;border-top:1px solid rgba(255,255,255,.1);">
     <div style="text-align:center;margin-bottom:20px;">
       <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">로그아웃</div>
       <div style="font-size:13px;color:#a09ab8;">정말 로그아웃 하시겠습니까?</div>
@@ -8880,7 +8877,7 @@ function _showLogoutDonePopup(){
 function _showSettingsConfirm(title, desc, actionLabel, onConfirm, isDanger=true){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:56px;background:rgba(0,0,0,.6);z-index:10003;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
-  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 20px;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
+  overlay.innerHTML=`<div style="width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px 20px;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px;"></div>
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${title}</div>
@@ -8910,7 +8907,7 @@ function _showSettingsConfirm(title, desc, actionLabel, onConfirm, isDanger=true
 function _showSettingsAlert(title, desc, onDone){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
-  overlay.innerHTML=`<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px env(safe-area-inset-bottom,32px);border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
+  overlay.innerHTML=`<div style="width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:28px 20px env(safe-area-inset-bottom,32px);border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 20px;"></div>
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:18px;font-weight:800;color:#f1f0f5;margin-bottom:8px;">${title}</div>
@@ -13245,7 +13242,7 @@ function _showExtendOptions(trackId, currentDuration) {
 
   var modal = document.createElement('div');
   modal.id = '_extend_modal';
-  modal.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;z-index:99998;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.3);';
+  modal.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:var(--sheet-max,480px);width:100%;z-index:99998;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.3);';
   modal.innerHTML = '<div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:8px auto;"></div>' + html;
 
   var backdrop = document.createElement('div');
@@ -17496,7 +17493,7 @@ function fpAddToPlaylist(){
   overlay.id='fp-pl-overlay';
   overlay.style.cssText='position:fixed;inset:0;z-index:100010;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;';
   overlay.onclick=function(e){if(e.target===overlay)_fpClosePlSheet();};
-  overlay.innerHTML='<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:var(--sheet-max,480px);background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -19164,7 +19161,7 @@ function _mfOpenTrackMenu(idx){
   sheet.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;';
   var imgHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:24px;">🎵</span>';
   sheet.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="document.getElementById(\'mf-trk-sheet\').remove()"></div>'
-    +'<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
+    +'<div style="position:relative;width:100%;max-width:var(--sheet-max,480px);background:var(--card);border-radius:20px 20px 0 0;padding:20px;animation:sheet-up .25s ease-out;">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(128,128,128,.3);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -19715,7 +19712,7 @@ function fpShowDeleteConfirm(){
   overlay.id='fp-del-overlay';
   overlay.style.cssText='position:fixed;inset:0;z-index:100010;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;';
   overlay.onclick=function(e){if(e.target===overlay)_fpCloseDelSheet();};
-  overlay.innerHTML='<div style="position:relative;width:100%;max-width:480px;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:var(--sheet-max,480px);background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:sheet-up .25s ease-out;" onclick="event.stopPropagation()">'
     +'<div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px;"></div>'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'
     +'<div style="width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+imgHtml+'</div>'
@@ -23165,7 +23162,7 @@ function commDeleteSb(sbId){
   if(!t)return;
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML='<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 숨기기</div><div style="font-size:13px;color:#a09ab8;">"'+esc(t.title||'이 곡')+'" 을 내 화면에서 숨길까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">숨기기</button></div></div>';
+  overlay.innerHTML='<div style="width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 숨기기</div><div style="font-size:13px;color:#a09ab8;">"'+esc(t.title||'이 곡')+'" 을 내 화면에서 숨길까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">숨기기</button></div></div>';
   document.body.appendChild(overlay);
   overlay.querySelector('#_del_cancel').onclick=()=>overlay.remove();
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
@@ -23399,7 +23396,7 @@ function commDeleteByHIdx(hIdx){
   const h=historyData[hIdx];if(!h)return;
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML='<div style="width:100%;max-width:480px;background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 삭제</div><div style="font-size:13px;color:#a09ab8;">"'+esc(h.title||'이 곡')+'" 을 삭제할까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">삭제</button></div></div>';
+  overlay.innerHTML='<div style="width:100%;max-width:var(--sheet-max,480px);background:#1e1e2a;border-radius:20px 20px 0 0;padding:24px 20px 36px;border-top:1px solid rgba(255,255,255,.1);"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:800;color:#f1f0f5;margin-bottom:6px;">🗑 삭제</div><div style="font-size:13px;color:#a09ab8;">"'+esc(h.title||'이 곡')+'" 을 삭제할까요?</div></div><div style="display:flex;gap:10px;"><button id="_del_cancel" style="flex:1;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#a09ab8;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">취소</button><button id="_del_confirm" style="flex:1;padding:13px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">삭제</button></div></div>';
   document.body.appendChild(overlay);
   overlay.querySelector('#_del_cancel').onclick=()=>overlay.remove();
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
@@ -23859,7 +23856,7 @@ function _editProfile() {
   var bio = currentUser.bio || '';
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;';
-  overlay.innerHTML = '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));">' +
+  overlay.innerHTML = '<div style="width:100%;max-width:var(--sheet-max,480px);background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));">' +
     '<div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>' +
     '<div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:16px;">프로필 편집</div>' +
     '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--t2);display:block;margin-bottom:4px;">닉네임</label>' +
@@ -24255,7 +24252,7 @@ window._updateCreditWarn=_updateCreditWarn;
 
 <!-- ── 프로필 시트 ── -->
 <div id="profile-sheet" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);;">
-  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:85vh;overflow-y:auto;padding:20px 16px 36px;" id="profile-sheet-inner">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:85vh;overflow-y:auto;padding:20px 16px 36px;" id="profile-sheet-inner">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
     <!-- 프로필 헤더 -->
     <div style="text-align:center;margin-bottom:16px;">
@@ -24315,7 +24312,7 @@ window._updateCreditWarn=_updateCreditWarn;
 
 <!-- ── 콜라보 요청 시트 ── -->
 <div id="collab-request-sheet" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);" onclick="if(event.target===this)this.style.display='none'">
-  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 32px;">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 32px;">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
     <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:16px;">🤝 콜라보 요청</div>
     <div id="collab-req-target" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border-radius:12px;margin-bottom:16px;">
@@ -24329,7 +24326,7 @@ window._updateCreditWarn=_updateCreditWarn;
 
 <!-- ── 콜라보 워크스페이스 시트 ── -->
 <div id="collab-workspace-sheet" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);" onclick="if(event.target===this)_closeCollabWs()">
-  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;padding:20px 16px 32px;">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;padding:20px 16px 32px;">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:17px;font-weight:800;color:var(--t1);">🎵 콜라보 스튜디오</div>
@@ -24397,7 +24394,7 @@ window._updateCreditWarn=_updateCreditWarn;
 
 <!-- ── 알림 인박스 (고도화) ── -->
 <div id="notif-sheet" style="display:none;position:fixed;top:0;left:0;right:0;bottom:56px;z-index:100001;background:rgba(0,0,0,.6);" onclick="if(event.target===this)this.style.display='none'">
-  <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:calc(85vh - 56px);display:flex;flex-direction:column;">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--bg2);border-radius:20px 20px 0 0;max-height:calc(85vh - 56px);display:flex;flex-direction:column;">
     <div style="padding:20px 16px 0;flex-shrink:0;">
       <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:3px;margin:0 auto 16px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -24944,7 +24941,7 @@ async function upgradePlan(type){
   const _ov = document.createElement('div');
   _ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20000;display:flex;align-items:flex-end;justify-content:center;;';
   _ov.onclick = e => { if(e.target===_ov) _ov.remove(); };
-  _ov.innerHTML = `<div style="width:100%;max-width:480px;background:var(--card2,#1e1e2a);border-radius:20px 20px 0 0;padding:24px 20px calc(56px + env(safe-area-inset-bottom) + 16px);">
+  _ov.innerHTML = `<div style="width:100%;max-width:var(--sheet-max,480px);background:var(--card2,#1e1e2a);border-radius:20px 20px 0 0;padding:24px 20px calc(56px + env(safe-area-inset-bottom) + 16px);">
     <div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px;"></div>
     <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:4px;">${planDef.label} 플랜 결제</div>
     <div style="font-size:13px;color:var(--t3);margin-bottom:20px;">₩${planDef.price.toLocaleString()}/월 · 결제수단을 선택하세요</div>
@@ -27778,7 +27775,7 @@ window.kmsRequestPush = async function(){
 
 <!-- 온보딩 -->
 <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);overflow:hidden;">
-  <div style="max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:20px;">
+  <div style="max-width:var(--sheet-max,480px);margin:0 auto;height:100%;display:flex;flex-direction:column;padding:20px;">
     <div style="flex:1;display:flex;align-items:center;justify-content:center;" id="onboard-content"></div>
     <div style="display:flex;gap:8px;padding:20px 0;">
       <div style="flex:1;display:flex;align-items:center;gap:6px;" id="onboard-dots"></div>
@@ -29197,7 +29194,7 @@ function openBottomSheet(html){
   var ov=document.createElement('div');
   ov.id='_bs_overlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10010;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;';
-  ov.innerHTML='<div style="width:100%;max-width:480px;background:var(--card,#1e1e2a);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto;"><div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;"></div>'+html+'</div>';
+  ov.innerHTML='<div style="width:100%;max-width:var(--sheet-max,480px);background:var(--card,#1e1e2a);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto;"><div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;"></div>'+html+'</div>';
   ov.addEventListener('click',function(e){if(e.target===ov)closeBottomSheet();});
   document.body.appendChild(ov);
   _bsOverlayEl=ov;
