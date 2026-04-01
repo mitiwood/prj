@@ -10442,6 +10442,19 @@ async function kieRequest(apiKey,method,path,body){
   throw _lastErr||new Error('kieRequest 재시도 한도 초과');
 }
 
+/* ── SSE 기반 실시간 폴링 ── */
+function _pollViaSSE(tid){
+  return new Promise(function(ok,ng){
+    var s=new EventSource('/api/sse-poll?taskId='+encodeURIComponent(tid));
+    var pe=$('ld-percent'),fe=$('ld-fill'),ee=$('ld-eta');
+    var tm=setTimeout(function(){s.close();ng(new Error('SSE timeout'));},55000);
+    s.addEventListener('status',function(e){try{var d=JSON.parse(e.data);if(pe)pe.textContent=d.progress+'%';if(fe)fe.style.width=d.progress+'%';var sm={'PENDING':1,'CREATE':1,'GENERATE':2,'TEXT_SUCCESS':2,'FIRST_SUCCESS':3,'SUCCESS':4};if(typeof _setGenStep==='function')_setGenStep(sm[d.status]||1);}catch(x){}});
+    s.addEventListener('complete',function(e){clearTimeout(tm);s.close();try{var d=JSON.parse(e.data);if(pe)pe.textContent='100%';if(fe)fe.style.width='100%';if(ee)ee.textContent='완료!';ok(d.tracks||[]);}catch(x){ng(x);}});
+    s.addEventListener('error',function(e){if(e.data){try{var d=JSON.parse(e.data);if(!d.retryable){clearTimeout(tm);s.close();ng(new Error(d.message));return;}}catch(x){}}clearTimeout(tm);s.close();ng(new Error('SSE error'));});
+    s.addEventListener('timeout',function(){clearTimeout(tm);s.close();ng(new Error('SSE server timeout'));});
+  });
+}
+
 async function pollResult(apiKey,taskId){
   /* SSE 우선 시도 → 실패 시 기존 폴링 폴백 */
   if(typeof EventSource!=='undefined'){
@@ -12862,7 +12875,7 @@ function openExtendModal(audioId){
     var _tlHtml='';
     meta.chainIds.forEach(function(cid,ci){
       var ch=historyData.find(function(hh){return hh.id===cid;});
-      var label=ch?(ch.title||'').slice(0,12)||(ci===0?'원곡':'연장'+ci);
+      var label=ch?(ch.title||'').slice(0,12):(ci===0?'원곡':'연장'+ci);
       _tlHtml+='<div style="padding:4px 8px;background:'+(ci===meta.chainIds.length-1?'rgba(124,58,237,.2)':'rgba(255,255,255,.05)')+';border-radius:6px;font-size:10px;color:var(--t2);white-space:nowrap;">'+label+'</div>';
       if(ci<meta.chainIds.length-1) _tlHtml+='<span style="color:var(--t3);font-size:10px;">→</span>';
     });
