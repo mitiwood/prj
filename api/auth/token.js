@@ -38,20 +38,58 @@ function verifyToken(token) {
   } catch { return null; }
 }
 
-export default function handler(req, res) {
+function _parseDevice(ua) {
+  if (!ua) return 'Unknown';
+  let os = 'Unknown', browser = 'Unknown';
+  if (/iPhone/i.test(ua)) os = 'iPhone';
+  else if (/iPad/i.test(ua)) os = 'iPad';
+  else if (/Android/i.test(ua)) os = 'Android';
+  else if (/Windows/i.test(ua)) os = 'Windows';
+  else if (/Mac/i.test(ua)) os = 'Mac';
+  else if (/Linux/i.test(ua)) os = 'Linux';
+  if (/Chrome\/\d/i.test(ua) && !/Edg/i.test(ua)) browser = 'Chrome';
+  else if (/Safari\/\d/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Firefox\/\d/i.test(ua)) browser = 'Firefox';
+  else if (/Edg\/\d/i.test(ua)) browser = 'Edge';
+  return os + ' / ' + browser;
+}
+
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* POST: 토큰 발급 */
+  /* POST: 토큰 발급 (세션 ID 포함) */
   if (req.method === 'POST') {
     const { name, provider, avatar } = req.body || {};
     if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
 
-    const token = createToken({ name, provider, avatar: avatar || '' });
-    return res.status(200).json({ ok: true, token, expiresIn: '30d' });
+    /* 고유 세션 ID 생성 */
+    const sessionId = crypto.randomBytes(16).toString('hex');
+    const ua = req.headers['user-agent'] || '';
+    const ip = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '').split(',')[0].trim();
+    const isMobile = /iPhone|iPad|Android|Mobile/i.test(ua);
+    const deviceInfo = _parseDevice(ua);
+
+    const token = createToken({ name, provider, avatar: avatar || '', sid: sessionId });
+
+    /* Supabase에 세션 정보 저장 (이전 세션 무효화) */
+    const SB_URL = process.env.SUPABASE_URL;
+    const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+    if (SB_URL && SB_KEY) {
+      try {
+        const body = JSON.stringify({ session_id: sessionId, session_device: deviceInfo, session_ip: ip, session_at: Date.now() });
+        await fetch(`${SB_URL}/rest/v1/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`, {
+          method: 'PATCH',
+          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body,
+        });
+      } catch (e) { console.warn('[token] session save:', e.message); }
+    }
+
+    return res.status(200).json({ ok: true, token, sessionId, expiresIn: '30d' });
   }
 
   /* GET: 토큰 검증 */

@@ -8407,6 +8407,48 @@ function _showGuestLoginPrompt(){
   document.body.appendChild(ov);
 }
 
+/* ── 세션 유효성 검증 (다중 디바이스 차단) ── */
+function _checkSessionValid(){
+  if(!currentUser) return;
+  var sid=localStorage.getItem('kms_session_id');
+  if(!sid) return;
+  fetch('/api/auth/session-check?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider)+'&sid='+encodeURIComponent(sid))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.ok && d.valid===false){
+        /* 다른 디바이스에서 로그인됨 → 강제 로그아웃 */
+        if(window._sessionCheckInterval){clearInterval(window._sessionCheckInterval);window._sessionCheckInterval=null;}
+        var device=d.device||'다른 기기';
+        var when=d.loginAt?new Date(d.loginAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'방금';
+        _showForceLogoutSheet(device,when);
+      }
+    }).catch(function(){});
+}
+
+function _showForceLogoutSheet(device,when){
+  var overlay=document.createElement('div');
+  overlay.className='ai-sheet-overlay';
+  overlay.innerHTML='<div class="ai-sheet-box" style="text-align:center;">'+
+    '<div class="ai-sheet-handle"></div>'+
+    '<div style="font-size:48px;margin:8px 0;">🔒</div>'+
+    '<div class="ai-sheet-title" style="font-size:16px;">다른 기기에서 로그인됨</div>'+
+    '<div style="font-size:13px;color:#a09ab8;margin:8px 0 4px;line-height:1.5;">'+device+'에서 '+when+'에 로그인했어요.</div>'+
+    '<div style="font-size:12px;color:#ef4444;margin-bottom:16px;">보안을 위해 이 기기에서 자동 로그아웃됩니다.</div>'+
+    '<button class="ai-sheet-apply-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove();_doForceLogout();" style="margin-top:8px;">확인</button>'+
+  '</div>';
+  document.body.appendChild(overlay);
+}
+
+function _doForceLogout(){
+  currentUser=null;
+  localStorage.removeItem('kms_user');
+  localStorage.removeItem('kms_jwt');
+  localStorage.removeItem('kms_session_id');
+  sessionStorage.clear();
+  toast('🔒 다른 기기에서 로그인되어 자동 로그아웃되었습니다','err',4000);
+  setTimeout(function(){location.reload();},1500);
+}
+
 function logout(){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
@@ -9373,7 +9415,10 @@ function _saveLoginUser(user){
     }
     /* JWT 토큰 발급 */
     fetch('/api/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:user.name,provider:user.provider,avatar:user.avatar||''})})
-      .then(r=>r.json()).then(d=>{if(d.ok&&d.token)localStorage.setItem('kms_jwt',d.token);}).catch(()=>{});
+      .then(r=>r.json()).then(d=>{
+        if(d.ok&&d.token)localStorage.setItem('kms_jwt',d.token);
+        if(d.sessionId)localStorage.setItem('kms_session_id',d.sessionId);
+      }).catch(()=>{});
     const providerNames={google:'Google',kakao:'카카오',naver:'네이버'};
     const pName=providerNames[user.provider]||user.provider;
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
@@ -9387,6 +9432,11 @@ function _saveLoginUser(user){
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
     /* 푸시 구독 요청 */
     setTimeout(()=>{ if(window.kmsRequestPush) window.kmsRequestPush(); }, 1500);
+    /* 세션 유효성 주기적 검증 (5분마다) */
+    if(!window._sessionCheckInterval){
+      window._sessionCheckInterval=setInterval(_checkSessionValid,5*60*1000);
+      setTimeout(_checkSessionValid,3000); /* 3초 후 첫 체크 */
+    }
     /* URL 파라미터 제거 */
     window.history.replaceState({},'','/');
   } else if(p.get('login')==='fail'){

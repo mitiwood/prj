@@ -2810,6 +2810,14 @@ textarea.form-input{line-height:1.5;}
         <div id="ud-device" style="font-size:12px;font-weight:600;"></div>
       </div>
     </div>
+    <!-- 현재 세션 정보 -->
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px;">현재 세션</div>
+      <div id="ud-session-device" style="font-size:12px;font-weight:600;margin-bottom:2px;"></div>
+      <div id="ud-session-ip" style="font-size:11px;color:var(--t3);"></div>
+      <div id="ud-session-at" style="font-size:11px;color:var(--t3);margin-bottom:6px;"></div>
+      <button onclick="_forceLogoutUser()" id="ud-force-logout-btn" style="display:none;padding:6px 14px;border-radius:8px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.08);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;">🔒 강제 로그아웃</button>
+    </div>
     <!-- 사용자 세그먼트 태그 -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="ud-segments"></div>
     <!-- 플랜/크레딧 정보 -->
@@ -7453,6 +7461,16 @@ function openUserDetail(userName, provider){
   else if(/Mac/i.test(ua)) device='Mac';
   document.getElementById('ud-device').textContent = device;
 
+  /* 현재 세션 정보 표시 */
+  var sdEl=document.getElementById('ud-session-device');
+  var siEl=document.getElementById('ud-session-ip');
+  var saEl=document.getElementById('ud-session-at');
+  var flBtn=document.getElementById('ud-force-logout-btn');
+  if(sdEl){sdEl.textContent=user.session_device||'정보 없음';}
+  if(siEl){siEl.textContent='IP: '+(user.session_ip||'-');}
+  if(saEl){saEl.textContent=user.session_at?'접속: '+new Date(user.session_at).toLocaleString('ko-KR'):'';}
+  if(flBtn){flBtn.style.display=user.session_id?'inline-block':'none';flBtn.dataset.userName=user.name;flBtn.dataset.userProvider=user.provider;}
+
   const tracksList = document.getElementById('ud-tracks-list');
   if(userTracks.length){
     tracksList.innerHTML = userTracks.slice(0,10).map(t=>`
@@ -10553,6 +10571,21 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.cc-dropdown').forEach(function(d){d.style.display='none';});
   }
 });
+
+/* ── 강제 로그아웃 (관리자 → 사용자 세션 무효화) ── */
+function _forceLogoutUser(){
+  var btn=document.getElementById('ud-force-logout-btn');
+  var name=btn?.dataset.userName;
+  var provider=btn?.dataset.userProvider;
+  if(!name||!provider){toast('사용자 정보 없음','err');return;}
+  if(!confirm(name+'('+provider+')을(를) 강제 로그아웃 하시겠습니까?'))return;
+  /* session_id를 빈 값으로 업데이트 → 클라이언트 세션 체크 시 강제 로그아웃 */
+  fetchAPI('PATCH','/users?name=ilike.'+encodeURIComponent(name)+'&provider=eq.'+encodeURIComponent(provider),{session_id:'',session_device:'',session_at:0})
+    .then(function(){
+      toast('강제 로그아웃 완료 — 다음 세션 체크 시 로그아웃됩니다','ok',3000);
+      if(btn)btn.style.display='none';
+    }).catch(function(e){toast('실패: '+e.message,'err');});
+}
 </script>
 </body>
 </html>
