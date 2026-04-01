@@ -183,18 +183,27 @@ export default async function handler(req, res) {
       }
 
       try {
-        /* 기존 유저 조회 → email+provider로 매칭 (닉네임 변경에 안전) */
+        /* 기존 유저 조회 — 같은 이름(다른 provider 포함) 검색 */
         let existingCount = 0;
         let isNew = true;
+        let existingProvider = null;
         const userEmail = email || '';
         try {
           let existing = null;
+          /* 1) 같은 email+provider 매칭 */
           if (userEmail) {
-            existing = await sbFetch(`/users?email=ilike.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name`);
+            existing = await sbFetch(`/users?email=ilike.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
           }
-          /* email 없는 경우 기존 name+provider 폴백 */
+          /* 2) 같은 name+provider 폴백 */
           if (!existing?.length) {
-            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name`);
+            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
+          }
+          /* 3) 같은 이름인데 다른 provider로 등록된 기존 유저 (provider 전환 감지) */
+          if (!existing?.length) {
+            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=neq.guest&select=login_count,name,provider`);
+            if (existing?.length > 0) {
+              existingProvider = existing[0].provider; /* 기존 provider 기록 */
+            }
           }
           if (existing?.length > 0) {
             existingCount = existing[0].login_count || 0;
@@ -216,13 +225,25 @@ export default async function handler(req, res) {
           ...(isNew ? { plan: 'free' } : {}),
         };
 
-        /* upsert: email+provider 기준 (email 있으면), 없으면 name+provider 폴백 */
-        const conflictKey = userEmail ? 'email,provider' : 'name,provider';
-        await sbFetch(`/users?on_conflict=${conflictKey}`, {
-          method: 'POST',
-          prefer: 'resolution=merge-duplicates',
-          body: JSON.stringify(entry),
-        });
+        /* 기존 provider가 다르면 → 기존 레코드를 새 provider로 업데이트 */
+        if (existingProvider && existingProvider !== provider) {
+          try {
+            await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(existingProvider)}`, {
+              method: 'PATCH',
+              body: JSON.stringify(entry),
+            });
+            console.log(`[users] provider 전환: ${name} ${existingProvider} → ${provider}`);
+          } catch (e) {
+            console.warn('[users] provider 전환 실패:', e.message);
+          }
+        } else {
+          /* upsert: name+provider 기준 */
+          await sbFetch(`/users?on_conflict=name,provider`, {
+            method: 'POST',
+            prefer: 'resolution=merge-duplicates',
+            body: JSON.stringify(entry),
+          });
+        }
         const isLogout = now === 1;
         const eventType = isLogout ? 'logout' : (isNew ? 'new_user' : 'login');
         const eventData = { name, provider, email, isMobile: !!isMobile, loginCount: entry.login_count };
