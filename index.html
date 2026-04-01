@@ -1779,6 +1779,7 @@ textarea.ig-card-input:focus{border-color:var(--acc);background:rgba(255,255,255
 /* 포스트 프로덕션 도구 버튼 */
 .rc-tools-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
 .rc-tools-btn:hover{border-color:var(--acc);color:var(--acc);}
+.rc-tools-cover{position:absolute;bottom:6px;right:6px;z-index:3;padding:4px 8px;font-size:14px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(4px);}
 /* 프롬프트 템플릿 */
 .prompt-templates{margin-bottom:12px;}
 .pt-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0;-webkit-overflow-scrolling:touch;}
@@ -4366,6 +4367,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 /* 카드 등장 애니메이션 */
 @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
 .comm-creator-item, .comm-list-item, .comm-creator-group { animation: fadeInUp .3s ease both; }
 .comm-creator-item:nth-child(1) { animation-delay: 0s; }
 .comm-creator-item:nth-child(2) { animation-delay: .05s; }
@@ -13088,6 +13090,7 @@ function renderTracks(tracks,prompt,tags,mode){
       <div class="rc-cover" style="cursor:pointer;" title="🎤 노래방 모드로 열기" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">
         ${imageUrl?`<img class="rc-cover-img" src="${imageUrl}" alt="">`:`<div class="rc-cover-placeholder">🎵</div>`}
         <div class="rc-cover-overlay"></div>
+        <button class="rc-tools-btn rc-tools-cover" data-pt-url="${esc(audioUrl)}" data-pt-id="${esc(audioId)}" data-pt-title="${esc(title)}" data-pt-task="${esc(trackTaskId)}">🛠</button>
         ${_abBadge}
       </div>
       <div class="rc-body">
@@ -13115,7 +13118,6 @@ function renderTracks(tracks,prompt,tags,mode){
           <div class="dl-row">
             <button class="dl-btn audio" data-dl-audio="${esc(audioUrl)}" data-dl-name="${esc(title)}.mp3">⬇ MP3</button>
             <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
-            <button class="rc-tools-btn" data-pt-url="${esc(audioUrl)}" data-pt-id="${esc(audioId)}" data-pt-title="${esc(title)}" data-pt-task="${esc(trackTaskId)}">🛠 도구</button>
           </div>
           ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
         </div>
@@ -13364,7 +13366,8 @@ function renderTracks(tracks,prompt,tags,mode){
 
   /* 🛠 도구 버튼 — 이벤트 위임 (인라인 onclick 제거) */
   batchWrap.querySelectorAll('.rc-tools-btn[data-pt-url]').forEach(function(btn){
-    btn.addEventListener('click',function(){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
       var url=this.dataset.ptUrl||'';
       var id=this.dataset.ptId||'';
       var title=this.dataset.ptTitle||'';
@@ -28265,59 +28268,68 @@ function _ensureHistIdx(audioUrl,audioId,title){
   }
   return idx;
 }
+var _ptPanelEl=null;
+function _closePostTools(){if(_ptPanelEl&&_ptPanelEl.parentNode)_ptPanelEl.remove();_ptPanelEl=null;}
 function _showPostTools(audioUrl,audioId,title,taskId){
-  var btnStyle='display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:14px;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;';
+  _closePostTools();
   var tools=[
-    {icon:'🎙',name:'보컬 제거',desc:'보컬/MR 분리 또는 14개 스템 추출',action:'vocal-removal'},
-    {icon:'🎤',name:'AI 커버',desc:'다른 스타일의 보컬로 커버 생성',action:'cover'},
-    {icon:'🎵',name:'보컬 추가',desc:'인스트루멘탈에 AI 보컬 입히기',action:'vocal-add'},
-    {icon:'✨',name:'리마스터 V5',desc:'최신 V5 엔진으로 음질 업그레이드',action:'remaster'},
+    {icon:'🎙',name:'보컬 제거',action:'vocal-removal'},
+    {icon:'🎤',name:'AI 커버',action:'cover'},
+    {icon:'🎵',name:'보컬 추가',action:'vocal-add'},
+    {icon:'✨',name:'리마스터',action:'remaster'},
   ];
-  var html='<div style="padding:20px 16px 24px;">'
-    +'<div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px;">🛠 포스트 프로덕션 도구</div>'
-    +'<div style="font-size:11px;color:var(--t3);margin-bottom:16px;">'+esc(title)+'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:8px;">';
-  tools.forEach(function(t){
-    html+='<button class="_pt-action" data-action="'+t.action+'" style="'+btnStyle+'"><span style="font-size:20px;">'+t.icon+'</span><div><div style="font-weight:700;">'+t.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">'+t.desc+'</div></div></button>';
-  });
-  html+='</div></div>';
-  openBottomSheet(html);
+  /* bottom 계산: 하단탭 + 미니플레이어 높이 */
+  var bnav=document.getElementById('bottom-nav');
+  var mp=document.getElementById('mini-player');
+  var bnavH=bnav?bnav.offsetHeight:56;
+  var mpH=(mp&&mp.classList.contains('on')&&!mp.classList.contains('mp-hide'))?mp.offsetHeight:0;
+  var bottomPx=bnavH+mpH+8;
+  var panel=document.createElement('div');
+  panel.id='_pt_float';
+  panel.style.cssText='position:fixed;bottom:'+bottomPx+'px;left:50%;transform:translateX(-50%);z-index:9999;max-width:460px;width:calc(100% - 24px);background:var(--card,#1e1e2a);border-radius:16px;padding:12px;box-shadow:0 -4px 24px rgba(0,0,0,.4);border:1px solid var(--border,rgba(255,255,255,.08));animation:slideUp .2s ease;';
+  var btnsHtml=tools.map(function(t){
+    return '<button class="_pt-action" data-action="'+t.action+'" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;"><span style="font-size:20px;">'+t.icon+'</span>'+t.name+'</button>';
+  }).join('');
+  panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:12px;font-weight:700;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80%;">🛠 '+esc(title)+'</div><button onclick="_closePostTools()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:4px;">✕</button></div><div style="display:flex;gap:8px;">'+btnsHtml+'</div>';
+  document.body.appendChild(panel);
+  _ptPanelEl=panel;
+  /* 배경 클릭 시 닫기 */
+  var backdrop=document.createElement('div');
+  backdrop.style.cssText='position:fixed;inset:0;z-index:9998;';
+  backdrop.onclick=function(){_closePostTools();this.remove();};
+  document.body.appendChild(backdrop);
+  panel._backdrop=backdrop;
+  var origClose=_closePostTools;
+  _closePostTools=function(){if(panel._backdrop&&panel._backdrop.parentNode)panel._backdrop.remove();if(panel.parentNode)panel.remove();_ptPanelEl=null;_closePostTools=origClose;};
   /* 이벤트 바인딩 */
-  setTimeout(function(){
-    document.querySelectorAll('._pt-action').forEach(function(btn){
-      btn.addEventListener('click',function(){
-        var act=this.dataset.action;
-        /* 바텀시트 즉시 제거 — 애니메이션 충돌 방지 */
-        var ov=document.getElementById('_bs_overlay');
-        if(ov&&ov.parentNode) ov.remove();
-        _bsOverlayEl=null;
-        /* historyData 인덱스 확보 */
-        var hIdx=_ensureHistIdx(audioUrl,audioId,title);
-        setTimeout(function(){
-          if(act==='vocal-removal'){
-            /* 보컬 제거 모달 직접 열기 */
-            _vrSourceIdx=hIdx;
-            _vrMode='separate_vocal';
-            document.querySelectorAll('.vr-mode-btn').forEach(function(x){
-              var v=x.dataset.vrmode==='separate_vocal';
-              x.style.background=v?'rgba(239,68,68,.08)':'var(--bg2)';
-              x.style.borderColor=v?'#ef4444':'var(--border)';
-              x.style.color=v?'#ef4444':'var(--t2)';
-            });
-            var stemDesc=$('vr-stem-desc');if(stemDesc) stemDesc.style.display='none';
-            var vrBtn=$('vr-btn-txt');if(vrBtn) vrBtn.textContent='🎤 보컬 제거 시작';
-            $('vocal-remove-modal').classList.add('on');
-          } else if(act==='cover'){
-            _openCoverModal(audioUrl,audioId,title);
-          } else if(act==='vocal-add'){
-            _openVocalAddModal(audioUrl,audioId,title);
-          } else if(act==='remaster'){
-            _remasterV5(audioUrl,audioId,title);
-          }
-        },50);
-      });
+  panel.querySelectorAll('._pt-action').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var act=this.dataset.action;
+      _closePostTools();
+      var hIdx=_ensureHistIdx(audioUrl,audioId,title);
+      setTimeout(function(){
+        if(act==='vocal-removal'){
+          _vrSourceIdx=hIdx;
+          _vrMode='separate_vocal';
+          document.querySelectorAll('.vr-mode-btn').forEach(function(x){
+            var v=x.dataset.vrmode==='separate_vocal';
+            x.style.background=v?'rgba(239,68,68,.08)':'var(--bg2)';
+            x.style.borderColor=v?'#ef4444':'var(--border)';
+            x.style.color=v?'#ef4444':'var(--t2)';
+          });
+          var stemDesc=$('vr-stem-desc');if(stemDesc) stemDesc.style.display='none';
+          var vrBtn=$('vr-btn-txt');if(vrBtn) vrBtn.textContent='🎤 보컬 제거 시작';
+          $('vocal-remove-modal').classList.add('on');
+        } else if(act==='cover'){
+          _openCoverModal(audioUrl,audioId,title);
+        } else if(act==='vocal-add'){
+          _openVocalAddModal(audioUrl,audioId,title);
+        } else if(act==='remaster'){
+          _remasterV5(audioUrl,audioId,title);
+        }
+      },50);
     });
-  },50);
+  });
 }
 /* ── 결과 카드용 포스트 프로덕션 함수 ── */
 
