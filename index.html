@@ -19521,39 +19521,25 @@ function fpSyncLyrics(currentTime){
   var firstEl=fpTimestampLines[0];
   var hasDataEnd=firstEl&&firstEl.dataset.start!==undefined&&firstEl.dataset.end!==undefined&&parseFloat(firstEl.dataset.end)>0;
   if(hasDataEnd){
-    var activeEl=null;
-    fpTimestampLines.forEach(function(el){
-      var start=parseFloat(el.dataset.start)||0;
-      var end=parseFloat(el.dataset.end)||0;
-      if(currentTime>=start&&currentTime<end){
-        el.classList.add('active');el.classList.remove('done');
-        activeEl=el;
-      } else if(currentTime>=end){
-        el.classList.remove('active');el.classList.add('done');
-      } else {
-        el.classList.remove('active','done');
+    /* 한 줄 모드: start/end 정밀 싱크 (노래방과 동일 로직) */
+    var _deIdx=-1;
+    for(var di=fpTimestampLines.length-1;di>=0;di--){
+      var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
+      var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
+      if(currentTime>=ds&&currentTime<de){_deIdx=di;break;}
+    }
+    if(_deIdx===_fpPrevActiveIdx) return;
+    _fpPrevActiveIdx=_deIdx;
+    var _oneDE=$('fp-oneline');
+    if(_oneDE && window._fpLyricTexts && _deIdx>=0){
+      var _t=window._fpLyricTexts[_deIdx]||'';
+      if(_t && _oneDE.textContent!==_t){
+        _oneDE.classList.remove('loading');
+        _oneDE.classList.add('fade');
+        setTimeout(function(){_oneDE.textContent=_t;_oneDE.classList.remove('fade');},150);
       }
-    });
-    /* 스크롤 */
-    if(activeEl){
-      var _newIdx=fpTimestampLines.indexOf(activeEl);
-      if(_newIdx!==_fpPrevActiveIdx){
-        _fpPrevActiveIdx=_newIdx;
-        /* 디버그: 가사 싱크 로그 */
-        var _dbgStart=parseFloat(activeEl.dataset.start)||0;
-        var _dbgEnd=parseFloat(activeEl.dataset.end)||0;
-        var _dbgText=(activeEl.textContent||'').trim().slice(0,40);
-        var _dbgRate=fpAudio?.playbackRate||1;
-        console.log('%c[LyricSync] %c#'+_newIdx+' %c'+_rawTime.toFixed(2)+'s (offset:'+_syncOffset+', rate:'+_dbgRate+'x) %c['+_dbgStart.toFixed(2)+'~'+_dbgEnd.toFixed(2)+'] %c'+_dbgText,
-          'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#fff');
-        var box=$('fp-lyrics-main');
-        if(box){
-          var areaRect=box.getBoundingClientRect();
-          var elRect=activeEl.getBoundingClientRect();
-          var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height/2)+(elRect.height/2);
-          if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
-        }
-      }
+    } else if(_oneDE && _deIdx<0){
+      /* 간주 구간: 가사 비움 */
     }
     return;
   }
