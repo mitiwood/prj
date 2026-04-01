@@ -6818,7 +6818,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="fp-header-title" id="fp-header-title">재생 중</div>
       <span id="fp-live-badge"></span>
-      <div style="width:32px;"></div>
+      <button class="fp-back" id="fp-mute-btn" onclick="_fpToggleMute()" title="음소거"><svg id="fp-mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
     </div>
     <div class="fp-scroll" id="fp-scroll">
       <div class="fp-layout">
@@ -17533,6 +17533,23 @@ function fpUpdateLikeUI(){
     }
   }
 }
+/* ── 음소거 토글 ── */
+var _fpMuted=false;
+function _fpToggleMute(){
+  if(!fpAudio) return;
+  _fpMuted=!_fpMuted;
+  fpAudio.muted=_fpMuted;
+  var icon=$('fp-mute-icon');
+  if(icon){
+    icon.innerHTML=_fpMuted
+      ?'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'
+      :'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+  }
+  var btn=$('fp-mute-btn');
+  if(btn) btn.style.color=_fpMuted?'#ef4444':'rgba(255,255,255,.8)';
+  toast(_fpMuted?'🔇 음소거':'🔊 소리 켜짐','',1200);
+}
+
 function fpToggleLike(){
   fpLiked=!fpLiked;if(fpLiked)fpDisliked=false;
   var h=fpCurrentIdx>=0?historyData[fpCurrentIdx]:null;
