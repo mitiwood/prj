@@ -19255,26 +19255,24 @@ async function fpRenderLyrics(h){
   if(typeof loadSyncOffsetForTrack==='function') loadSyncOffsetForTrack();
 
   if(!plain.trim()){
-    /* 커뮤니티 트랙이면 서버에서 가사 온디맨드 fetch */
+    /* 서버에서 가사 조회 시도 (id 또는 sbId로) */
     var _lyrFetchId=h.id||h._sbId||'';
-    if(_lyrFetchId && h._fromSb && !h._lyricsFetched){
+    if(_lyrFetchId && !h._lyricsFetched){
       h._lyricsFetched=true;
-      if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty" style="opacity:.5;">가사 불러오는 중...</div>';
-      fetch('/api/tracks?id='+encodeURIComponent(_lyrFetchId)).then(function(r){return r.ok?r.json():null;}).then(function(d){
-        if(d&&d.track&&(d.track.lyrics||d.track.lyric)){
-          h.lyrics=d.track.lyrics||d.track.lyric||'';
-          /* 노래방 버튼 표시 */
-          var kBtn=$('fp-karaoke-btn');if(kBtn)kBtn.style.display='';
-          fpRenderLyrics(h); /* 가사 있으면 재렌더 */
-        } else {
-          if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
+      try{
+        var _lyrRes=await fetch('/api/tracks?id='+encodeURIComponent(_lyrFetchId));
+        if(_lyrRes.ok){
+          var _lyrData=await _lyrRes.json();
+          if(_lyrData&&_lyrData.track&&(_lyrData.track.lyrics||_lyrData.track.lyric)){
+            h.lyrics=_lyrData.track.lyrics||_lyrData.track.lyric||'';
+            var kBtn=$('fp-karaoke-btn');if(kBtn)kBtn.style.display='';
+            return fpRenderLyrics(h);
+          }
         }
-      }).catch(function(){
-        if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
-      });
-      return;
+      }catch(e){}
     }
-    if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty">🎵<br><button onclick="_lyricsExtractFromAudio()" style="margin-top:12px;padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
+    /* 가사 없음 → AI 추출 버튼 */
+    if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty"><button onclick="_lyricsExtractFromAudio()" style="padding:8px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit;">🎤 AI 가사 추출</button></div>';
     return;
   }
 
