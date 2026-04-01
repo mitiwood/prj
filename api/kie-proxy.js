@@ -75,9 +75,19 @@ async function checkServerCredit(userName, userProvider, creditType) {
     const users = await sbFetch('GET',
       `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
-    if (!users || !users[0]) return { ok: true, fallback: true };
-    const user = users[0];
+    let user = users?.[0];
+    /* provider 전환 대응 — name+provider 매칭 실패 시 name만으로 재검색 */
+    if (!user) {
+      try {
+        const byName = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
+        user = byName?.[0];
+      } catch {}
+    }
+    if (!user) return { ok: true, fallback: true };
     let plan = user.plan || 'free';
+
+    /* supervisor: 무제한 즉시 통과 */
+    if (plan === 'supervisor') return { ok: true, plan: 'supervisor' };
 
     /* 만료 체크 */
     if (plan !== 'free' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
