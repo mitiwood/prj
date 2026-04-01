@@ -15941,6 +15941,8 @@ function showMiniPlayer(idx){
     if(err&&err.name==='AbortError') return;
     /* canplay/loadeddata 이벤트에서 재시도 (이미 등록됨) */
   });
+  /* 풀플레이어 UI 동기화 — 제목/커버/가사 즉시 갱신 */
+  if(typeof _updateFpUI==='function') _updateFpUI(idx);
 }
 
 function hideMiniPlayer(){
