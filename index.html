@@ -19468,11 +19468,14 @@ function _fpAssignTimes(){
 }
 
 function fpSeekToLine(el){
-  if(!fpAudio?.duration||!fpTimestampLines.length||!_fpLrcTimes.length)return;
-  const li=parseInt(el.dataset.li);
-  if(!isNaN(li)&&li>=0&&li<_fpLrcTimes.length) fpAudio.currentTime=_fpLrcTimes[li];
-  if(fpAudio.paused){fpAudio.play();_setPlayIcon($('fp-play-btn'),true,true);fpStartViz();}
-  fpTimestampLines.forEach((l,i)=>{
+  if(!fpAudio?.duration||!fpTimestampLines.length)return;
+  var li=parseInt(el.dataset.li);
+  /* data-start 우선 (타임스탬프 API), 없으면 _fpLrcTimes */
+  var seekTime=parseFloat(el.dataset.start);
+  if(isNaN(seekTime)&&!isNaN(li)&&li>=0&&li<_fpLrcTimes.length) seekTime=_fpLrcTimes[li];
+  if(!isNaN(seekTime)&&seekTime>=0) fpAudio.currentTime=seekTime;
+  if(fpAudio.paused){fpAudio.play();_setPlayIcon($('fp-play-btn'),true,true);if(typeof fpStartViz==='function')fpStartViz();}
+  fpTimestampLines.forEach(function(l,i){
     l.classList.toggle('active',i===li);
     l.classList.toggle('done',i<li);
   });
