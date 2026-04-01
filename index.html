@@ -19624,13 +19624,27 @@ function fpRenderTimestampedLyrics(words){
       lineIdx++;
     }
   });
-  if(!html)return;
-  mainBox.classList.remove('scroll-mode');
-  mainBox.innerHTML='<div class="fp-lyrics-oneline loading" id="fp-oneline"></div><div style="display:none;" id="fp-lines-hidden">'+html+'</div>';
-  fpTimestampLines=[...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
-  window._fpLyricTexts=fpTimestampLines.map(function(el){return el.textContent;});
-  _fpLrcTimes=newLrcTimes;
-  _fpLrcEndTimes=newLrcEndTimes;
+  if(!newLrcTimes.length)return;
+  /* 시간 데이터만 적용 — 기존 _fpLyricTexts(h.lyrics 파싱) 유지 */
+  var _prevTexts=window._fpLyricTexts||[];
+  if(_prevTexts.length>0 && Math.abs(_prevTexts.length-newLrcTimes.length)<=2){
+    /* 기존 가사 텍스트 유지 + 시간만 업데이트 */
+    _fpLrcTimes=newLrcTimes;
+    _fpLrcEndTimes=newLrcEndTimes;
+    /* 기존 hidden DOM에 data-start/end 속성 추가 */
+    fpTimestampLines.forEach(function(el,i){
+      if(newLrcTimes[i]!==undefined) el.dataset.start=newLrcTimes[i];
+      if(newLrcEndTimes[i]!==undefined) el.dataset.end=newLrcEndTimes[i];
+    });
+  } else {
+    /* 줄 수 차이가 크면 API 가사 사용 (기존 가사가 없거나 전혀 다름) */
+    mainBox.classList.remove('scroll-mode');
+    mainBox.innerHTML='<div class="fp-lyrics-oneline loading" id="fp-oneline"></div><div style="display:none;" id="fp-lines-hidden">'+html+'</div>';
+    fpTimestampLines=[...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
+    window._fpLyricTexts=fpTimestampLines.map(function(el){return el.textContent;});
+    _fpLrcTimes=newLrcTimes;
+    _fpLrcEndTimes=newLrcEndTimes;
+  }
   fpSyncMode=true;
   _fpPrevActiveIdx=-1;
   const syncBtn=$('fp-lyrics-mode-btn');
