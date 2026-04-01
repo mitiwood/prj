@@ -19350,7 +19350,7 @@ async function fpRenderLyrics(h){
       fpSyncMode=true;
       var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
       /* h.lyrics도 실제 보컬 가사로 업데이트 (AI 생성 가사 덮어쓰기) */
-      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\n{3,}/g,'\n\n').trim();
+      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\n{3,}/g,'\n\n').replace(/^\[.*?\]\s*$/gm,'').replace(/\n{3,}/g,'\n\n').trim();
       if(_realLyrics.length>20){
         h.lyrics=_realLyrics;
         var _hIdx=historyData.findIndex(function(hh){return hh.id===h.id;});
@@ -19382,8 +19382,8 @@ async function fpRenderLyrics(h){
       parsedLines.push({time:timeSec, text, isSection:false});
       html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(text)}</div>`;
       lyricLineIdx++;
-    } else if(/^\[.+\]$/.test(trimmed)){
-      /* 섹션 태그 [Verse], [Chorus] 등 — 표시하지 않음 */
+    } else if(/^\[.+\]$/i.test(trimmed)){
+      /* 섹션 태그 [Verse], [verse], [Chorus 1] 등 — 표시하지 않음 */
       return;
     } else {
       parsedLines.push({time:null, text:trimmed, isSection:false});
