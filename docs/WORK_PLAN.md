@@ -101,11 +101,42 @@
 
 | # | 작업 | 예상 |
 |---|------|------|
-| 19 | index.html 모듈 분리 (CSS/JS 외부 파일) | 8h |
+| 19 | index.html 모듈 분리 (아래 상세 계획 참조) | 12h |
 | 20 | 네이티브 앱 (Flutter/PWA 강화) | 16h |
 | 21 | 멀티 트랙 믹싱 (보컬/반주 분리) | 8h |
 | 22 | 협업 모드 (API 이미 존재, Supabase Realtime) | 8h |
 | 23 | 앨범 모드 (5곡 묶어 생성) | 6h |
+
+---
+
+## #19 index.html 모듈 분리 상세 계획
+
+현재 30,831줄 단일 파일 → 화면별/기능별 분리
+
+### 단계별 진행 (리스크 낮은 순서)
+
+| 단계 | 작업 | 대상 | 예상 | 리스크 |
+|------|------|------|------|--------|
+| 1 | CSS 분리 | `css/main.css` (~2,000줄) | 1h | 거의 없음 |
+| 2 | 유틸 JS 분리 | `js/utils.js` (esc, toast, $, formatTime 등) | 1h | 낮음 |
+| 3 | 오디오 플레이어 분리 | `js/audio-player.js` (togglePlay, stopAll, viz) | 2h | 중간 |
+| 4 | 커뮤니티 JS 분리 | `js/community.js` (commPlaySb, 좋아요, 댓글) | 2h | 중간 |
+| 5 | 설정 JS 분리 | `js/settings.js` (renderSettings, 테마, 플랜) | 2h | 중간 |
+| 6 | 생성 로직 분리 | `js/generate.js` (generate, pollResult, 에러분류) | 3h | 높음 |
+| 7 | _exportGlobals 제거 | window 직접 할당으로 전환 | 1h | 중간 |
+
+### 주의사항
+- `_exportGlobals` 의존성 정리가 선행 필수 (7단계를 2단계 이후 바로 할 수도 있음)
+- 각 단계 완료 후 iOS Safari + Android Chrome 테스트 필수
+- script 블록 간 변수 공유 → `window.` 명시적 할당으로 전환 필요
+- 한 단계씩 커밋 → 문제 시 즉시 롤백 가능
+
+### 현재 외부 JS 파일 (이미 분리됨)
+- `js/create-enhance.js` — 프롬프트 UI 강화
+- `js/prompt-engine.js` — 모델별 프롬프트 최적화
+- `js/stem-mixer.js` — Web Audio 스템 믹서
+- `js/history-manager.js` — 히스토리 검색/필터
+- `js/model-profiles.js` — AI 모델 프로필
 
 ---
 
