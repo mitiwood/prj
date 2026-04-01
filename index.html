@@ -13641,14 +13641,14 @@ function renderTracks(tracks,prompt,tags,mode){
           if(_timeEl&&(_curText.includes('불러오는 중')||_curText.includes('/ —')))
             _timeEl.textContent='0:00 / '+formatTime(_probe.duration);
         }
-        _probe.src='';_probe.load();
+        try{_probe.removeAttribute('src');}catch(e){}
       });
       _probe.addEventListener('error',()=>{
         if(_timeEl&&_timeEl.textContent.includes('불러오는 중'))
           _timeEl.textContent='0:00 / —';
-        _probe.src='';_probe.load();
+        try{_probe.removeAttribute('src');}catch(e){}
       });
-      setTimeout(()=>{if(_timeEl&&_timeEl.textContent.includes('불러오는 중'))_timeEl.textContent='0:00 / —';try{_probe.src='';_probe.load();}catch(e){}},10000);
+      setTimeout(()=>{if(_timeEl&&_timeEl.textContent.includes('불러오는 중'))_timeEl.textContent='0:00 / —';try{try{_probe.removeAttribute('src');}catch(e){}}catch(e){}},10000);
       _probe.src=_pUrl;
     }
   });
@@ -14345,7 +14345,7 @@ function renderHistoryView(){
     if(_durCache[h.id||h.taskId]){el.textContent=_durCache[h.id||h.taskId];return;}
     if(h.duration&&h.duration>0){var _hd=formatTime(h.duration);_durCache[h.id||h.taskId]=_hd;el.textContent=_hd;return;}
     var _da=new Audio();_da.preload='metadata';_da.src=h.audio_url;
-    var _dClean=function(){try{_da.pause();_da.removeAttribute('src');_da.load();}catch(e){}};
+    var _dClean=function(){try{_da.pause();_da.removeAttribute('src');}catch(e){}};
     var _dTimer=setTimeout(_dClean,8000);
     _da.addEventListener('loadedmetadata',function(){
       clearTimeout(_dTimer);
@@ -15360,7 +15360,7 @@ function _destroyFpAudio(){
   if(_eqSource){try{_eqSource.disconnect();}catch(e){}_eqSource=null;}
   _eqConnected=false;
   fpAudio.pause();
-  fpAudio.src='about:blank';
+  try{fpAudio.removeAttribute('src');}catch(e){}
   fpAudio=null;
   clearInterval(fpVizTimer);
   mpStopViz(); fpStopViz();
@@ -16358,9 +16358,9 @@ function _checkAudioPlayable(url){
     if(!/^https?:\/\//i.test(url)){resolve(false);return;}
     var a=new Audio();
     a.preload='metadata';
-    var timer=setTimeout(function(){a.src='';resolve(false);},8000);
-    a.addEventListener('loadedmetadata',function(){clearTimeout(timer);a.src='';resolve(true);});
-    a.addEventListener('error',function(){clearTimeout(timer);a.src='';resolve(false);});
+    var timer=setTimeout(function(){try{a.removeAttribute('src');}catch(e){}resolve(false);},8000);
+    a.addEventListener('loadedmetadata',function(){clearTimeout(timer);try{a.removeAttribute('src');}catch(e){}resolve(true);});
+    a.addEventListener('error',function(){clearTimeout(timer);try{a.removeAttribute('src');}catch(e){}resolve(false);});
     a.src=url;
   });
 }
@@ -16946,7 +16946,7 @@ function _checkSleepOnEnd(){if(_sleepMode==='endoftrack'){fpCancelSleep();if(fpA
 /* ═══ 4. 크로스페이드 ═══ */
 var _fpXfadeEnabled=false,_fpXfadeDur=3;
 function fpToggleCrossfade(){_fpXfadeEnabled=!_fpXfadeEnabled;var b=$('fp-crossfade-toggle');if(b)b.classList.toggle('on',_fpXfadeEnabled);var l=$('fp-xfade-label');if(l)l.textContent=_fpXfadeEnabled?'ON':'크로스';toast(_fpXfadeEnabled?'크로스페이드 ON ('+_fpXfadeDur+'초)':'크로스페이드 OFF','',1500);}
-function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.src='about:blank';}catch(e){}}fpAudio=nA;if(typeof _fpSavedVolume!=='undefined')fpAudio.volume=_fpSavedVolume;if(typeof _fpSpeedOptions!=='undefined'&&typeof _fpSpeedIdx!=='undefined')fpAudio.playbackRate=_fpSpeedOptions[_fpSpeedIdx];fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId||!fpAudio||!fpAudio.duration)return;if(_mpRafPending)return;_mpRafPending=true;requestAnimationFrame(function(){_mpRafPending=false;if(gid!==_fpAudioGenId)return;var d=_ensureMpDom();var ratio=fpAudio.currentTime/fpAudio.duration;var p=ratio*100;if(d.fpFill)d.fpFill.style.width=p+'%';if(d.fpThumb)d.fpThumb.style.left=p+'%';if(d.fpCur)d.fpCur.textContent=formatTime(fpAudio.currentTime);if(d.fpDur)d.fpDur.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function'&&fpAudio)fpSyncLyrics(fpAudio.currentTime);if(d.fill)d.fill.style.transform='scaleX('+ratio+')';});});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
+function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.removeAttribute('src');}catch(e){}}fpAudio=nA;if(typeof _fpSavedVolume!=='undefined')fpAudio.volume=_fpSavedVolume;if(typeof _fpSpeedOptions!=='undefined'&&typeof _fpSpeedIdx!=='undefined')fpAudio.playbackRate=_fpSpeedOptions[_fpSpeedIdx];fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId||!fpAudio||!fpAudio.duration)return;if(_mpRafPending)return;_mpRafPending=true;requestAnimationFrame(function(){_mpRafPending=false;if(gid!==_fpAudioGenId)return;var d=_ensureMpDom();var ratio=fpAudio.currentTime/fpAudio.duration;var p=ratio*100;if(d.fpFill)d.fpFill.style.width=p+'%';if(d.fpThumb)d.fpThumb.style.left=p+'%';if(d.fpCur)d.fpCur.textContent=formatTime(fpAudio.currentTime);if(d.fpDur)d.fpDur.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function'&&fpAudio)fpSyncLyrics(fpAudio.currentTime);if(d.fill)d.fill.style.transform='scaleX('+ratio+')';});});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
 function _updateFpUI(idx){var h=historyData[idx];if(!h)return;var t=$('fp-title');if(t)t.textContent=h.title||'무제';var tg=$('fp-tags');if(tg)tg.textContent=h.tags?.split(',')[0]?.trim()||'';var cv=$('fp-cover');if(cv)cv.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;">🎵</div>';var bg=$('fp-bg');if(bg&&h.image_url)bg.style.backgroundImage='url('+h.image_url+')';var mt=$('mp-title');if(mt)mt.textContent=h.title||'무제';var ms=$('mp-sub');if(ms)ms.textContent=h.tags?.split(',')[0]?.trim()||'';var mth=$('mp-thumb');if(mth)mth.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'🎵';if(typeof fpRenderLyrics==='function'&&h)fpRenderLyrics(h);if(typeof fpUpdateLikeUI==='function')fpUpdateLikeUI();}
 
 /* ═══ 5. 셔플 모드 ═══ */
@@ -16998,14 +16998,14 @@ function _preloadNextTrack(){
   if(!next||next.type==='creator') return;
   var h=historyData[next.hIdx];
   if(!h||!h.audio_url||next.hIdx===_preloadedIdx) return;
-  if(_preloadedAudio){try{_preloadedAudio.src='about:blank';_preloadedAudio=null;}catch(e){}}
+  if(_preloadedAudio){try{_preloadedAudio.removeAttribute('src');_preloadedAudio=null;}catch(e){}}
   _preloadedAudio=new Audio();
   _preloadedAudio.preload='auto';
   _preloadedAudio.src=h.audio_url;
   _preloadedIdx=next.hIdx;
 }
 function _clearPreload(){
-  if(_preloadedAudio){try{_preloadedAudio.src='about:blank';}catch(e){}_preloadedAudio=null;}_preloadedIdx=-1;
+  if(_preloadedAudio){try{_preloadedAudio.removeAttribute('src');}catch(e){}_preloadedAudio=null;}_preloadedIdx=-1;
 }
 
 /* ═══ 10. 키보드 단축키 (재생 관련) ═══ */
