@@ -5205,8 +5205,9 @@ function _renderProviderGroupView(){
 
     /* 사용자 카드 리스트 */
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px;">';
-    list.sort(function(a,b){return (b.lastLogin||0)-(a.lastLogin||0);}).forEach(function(u){
-      var isOnline=(now-(u.lastLogin||0))<ONLINE;
+    list.sort(function(a,b){return (b.session_at||b.lastLogin||0)-(a.session_at||a.lastLogin||0);}).forEach(function(u){
+      var _activeAt=u.session_at||u.lastLogin||0;
+      var isOnline=(_activeAt>0)&&(now-_activeAt)<ONLINE;
       var timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'\u2014';
       var cInfo=_creatorMap[u.name+'__'+u.provider];
       var planBadge={creator:'\uD83D\uDC51',pro:'\uD83D\uDC9C'}[u.plan||'free']||'';
@@ -5218,7 +5219,7 @@ function _renderProviderGroupView(){
         +avatar
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-            +(isOnline?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grn);margin-right:4px;"></span>':'')
+            +(isOnline?'<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,.15);color:#16a34a;font-size:9px;font-weight:800;margin-right:4px;">ON</span>':'<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,.06);color:var(--t3);font-size:9px;font-weight:800;margin-right:4px;">OFF</span>')
             +esc(u.name)+' '+(planBadge||'')+(u.isMobile?' \uD83D\uDCF1':' \uD83D\uDCBB')
           +'</div>'
           +'<div style="font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(u.email||'')+'</div>'
@@ -5298,6 +5299,7 @@ async function renderUsersAdmin(showToast=false){
           loginCount:u.login_count||1, lastLogin:u.last_login||0,
           created_at:u.created_at||0,
           lastIp:u.last_ip||'', lastLocation:u.last_location||'',
+          session_id:u.session_id||'', session_device:u.session_device||'', session_ip:u.session_ip||'', session_at:u.session_at||0,
         }));
       }
     }
@@ -5310,7 +5312,7 @@ async function renderUsersAdmin(showToast=false){
 
   const now=Date.now(), ONLINE=5*60*1000;
   const today=new Date(); today.setHours(0,0,0,0);
-  const onlineCount=loginUsers.filter(u=>(now-(u.lastLogin||0))<ONLINE).length;
+  const onlineCount=loginUsers.filter(u=>{var at=u.session_at||u.lastLogin||0;return at>0&&(now-at)<ONLINE;}).length;
   if(showToast) adminToast('✅ '+loginUsers.length+'명 조회 (온라인: '+onlineCount+'명)');
 
   /* 트랙 기여자 집계 */
@@ -5418,15 +5420,18 @@ function _sortAndRenderUsers(){
   const provColors={google:'badge-red',kakao:'badge-ylw',naver:'badge-grn',guest:'badge-acc'};
   loginTbody.innerHTML=users.map(u=>{
     const pc=provColors[u.provider||'']||'badge-acc';
-    const isOnline=(now-(u.lastLogin||0))<ONLINE;
-    const timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    var _tActiveAt=u.session_at||u.lastLogin||0;
+    const isOnline=(_tActiveAt>0)&&(now-_tActiveAt)<ONLINE;
+    const timeStr=_tActiveAt?new Date(_tActiveAt).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const cInfo=_creatorMap[u.name+'__'+u.provider];
     const planBadge={creator:'<span style="color:#f59e0b;font-weight:700;">👑</span>',pro:'<span style="color:var(--acc2);font-weight:700;">💜</span>',supervisor:'<span style="color:#ef4444;font-weight:700;">⭐</span>'}[u.plan||'free']||'';
+    const onBadge=isOnline?'<span style="display:inline-block;padding:1px 5px;border-radius:4px;background:rgba(34,197,94,.15);color:#16a34a;font-size:9px;font-weight:800;margin-right:3px;">ON</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.06);color:var(--t3);font-size:9px;font-weight:800;margin-right:3px;">OFF</span>';
+    const deviceInfo=u.session_device?'<div style="font-size:9px;color:var(--t3);">🖥 '+esc(u.session_device)+'</div>':'';
     return '<tr style="cursor:pointer;'+(isOnline?'background:rgba(34,197,94,.04);':'')+'" onclick="if(!event.target.closest(\'select,button,.btn\')){_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\');}">'
       +'<td>'
         +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
       +'</td>'
-      +'<td style="font-weight:600;color:var(--acc);">'+(isOnline?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--grn);margin-right:4px;vertical-align:middle;" title="온라인"></span>':'')+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div>'+(u.lastLocation?'<div style="font-size:9px;color:var(--t3);">📍 '+esc(u.lastLocation)+'</div>':'')+'</td>'
+      +'<td style="font-weight:600;color:var(--acc);">'+onBadge+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div>'+deviceInfo+(u.lastLocation?'<div style="font-size:9px;color:var(--t3);">📍 '+esc(u.lastLocation)+'</div>':'')+'</td>'
       +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
       +'<td><select onclick="event.stopPropagation()" onchange="_changePlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'+planBadge
         +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'

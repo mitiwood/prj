@@ -41,6 +41,12 @@ export default async function handler(req, res) {
     }
 
     if (user.session_id === sid) {
+      /* 활동 시간 갱신 (온라인 상태 추적용, fire-and-forget) */
+      fetch(`${SB_URL}/rest/v1/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`, {
+        method: 'PATCH',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_at: Date.now() }),
+      }).catch(() => {});
       return res.status(200).json({ ok: true, valid: true });
     }
 
