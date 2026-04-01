@@ -19313,23 +19313,33 @@ async function fpRenderLyrics(h){
   var _tsAudioId=h.id||h._sbId||'';
   if(_tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     /* 캐시 있으면 즉시 적용 */
+    /* 기존 가사 첫 줄 저장 (API 가사 검증용) */
+    var _origFirstLine=(plain||'').split('\n').find(function(l){return l.trim()&&!/^\[/.test(l.trim());})||'';
+    var _tsWords=[];
     if(h._fpAlignedWords && h._fpAlignedWords.length){
-      fpRenderTimestampedLyrics(h._fpAlignedWords);
-      fpSyncMode=true;
+      _tsWords=h._fpAlignedWords;
     } else {
       try{
         var _tsRes=await Promise.race([
           kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId}),
           new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
         ]);
-        var _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
-        if(_tsWords.length){
-          h._fpAlignedWords=_tsWords; /* 캐시 */
-          fpRenderTimestampedLyrics(_tsWords);
-          fpSyncMode=true;
-          var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
-        }
-      }catch(e){/* 타임아웃/실패 → 균등 분할로 폴백 */}
+        _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
+        if(_tsWords.length) h._fpAlignedWords=_tsWords;
+      }catch(e){}
+    }
+    if(_tsWords.length){
+      /* API 가사 첫 줄과 기존 가사 비교 — 다른 곡이면 무시 */
+      var _apiFirstText=_tsWords.slice(0,5).map(function(w){return w.word||'';}).join(' ').trim().slice(0,20);
+      var _origCheck=_origFirstLine.trim().slice(0,20);
+      if(_origCheck && _apiFirstText && _origCheck!==_apiFirstText && _origCheck.indexOf(_apiFirstText)<0 && _apiFirstText.indexOf(_origCheck)<0){
+        console.warn('[LyricSync] API 가사 불일치 — 기존 가사 유지. API:"'+_apiFirstText+'" vs 기존:"'+_origCheck+'"');
+        /* API 가사 무시 — 기존 h.lyrics로 시간만 균등 분할 */
+      } else {
+        fpRenderTimestampedLyrics(_tsWords);
+        fpSyncMode=true;
+        var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
+      }
     }
   }
 
