@@ -30335,13 +30335,97 @@ function _showQRCardDirect(title,imageUrl,trackId){
     +'</div></div>';
   ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
+
+  /* QR 카드 전체를 Canvas로 렌더링 → 이미지 저장/복사 */
+  function _renderQRCanvas(cb){
+    var card=document.getElementById('_qr_card');
+    if(!card)return cb(null);
+    /* html2canvas 없이 직접 Canvas 생성 */
+    var cvs=document.createElement('canvas');
+    var W=640,H=800;
+    cvs.width=W;cvs.height=H;
+    var ctx=cvs.getContext('2d');
+    /* 배경 그라데이션 */
+    var grad=ctx.createLinearGradient(0,0,W,H);
+    grad.addColorStop(0,'#1a0a2e');grad.addColorStop(1,'#2d1a4a');
+    ctx.fillStyle=grad;
+    _roundRect(ctx,0,0,W,H,24);ctx.fill();
+    /* 제목 */
+    ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';
+    ctx.fillText((title||'무제').slice(0,20),W/2,imageUrl?200:120);
+    ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='16px sans-serif';
+    ctx.fillText('띵곡 AI Music Studio',W/2,imageUrl?230:150);
+    /* QR 코드 */
+    var qrImage=new Image();
+    qrImage.onload=function(){
+      var qrSize=260;
+      var qrX=(W-qrSize)/2,qrY=imageUrl?260:180;
+      /* 흰 배경 */
+      ctx.fillStyle='#fff';
+      _roundRect(ctx,qrX-20,qrY-20,qrSize+40,qrSize+40,16);ctx.fill();
+      ctx.drawImage(qrImage,qrX,qrY,qrSize,qrSize);
+      /* 안내 텍스트 */
+      ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='14px sans-serif';
+      ctx.fillText('QR을 스캔하면 이 곡을 바로 들을 수 있어요',W/2,qrY+qrSize+50);
+      ctx.fillText(shareUrl,W/2,qrY+qrSize+75);
+      cb(cvs);
+    };
+    qrImage.onerror=function(){cb(null);};
+    qrImage.src=qrImg;
+  }
+  function _roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+  /* 이미지 저장 — Canvas → Blob → 실제 디바이스 저장 */
   document.getElementById('_qr_save').addEventListener('click',function(){
-    var a=document.createElement('a');a.href=qrImg;a.download=(title||'track')+'-qr.png';
-    document.body.appendChild(a);a.click();a.remove();
-    toast('QR 이미지 저장됨!','ok',2000);
+    _renderQRCanvas(function(cvs){
+      if(!cvs){toast('이미지 생성 실패','err');return;}
+      cvs.toBlob(function(blob){
+        if(!blob){toast('이미지 변환 실패','err');return;}
+        var fileName=(title||'track').replace(/[^가-힣a-zA-Z0-9 ]/g,'')+'-QR.png';
+        /* iOS/Android: share API로 실제 저장 */
+        if(navigator.share && navigator.canShare && navigator.canShare({files:[new File([blob],fileName,{type:'image/png'})]})){
+          navigator.share({files:[new File([blob],fileName,{type:'image/png'})],title:title+' QR코드'}).then(function(){
+            toast('✅ 공유/저장 완료!','ok',2000);
+          }).catch(function(){});
+        } else {
+          /* PC: 다운로드 */
+          var url=URL.createObjectURL(blob);
+          var a=document.createElement('a');a.href=url;a.download=fileName;
+          document.body.appendChild(a);a.click();a.remove();
+          URL.revokeObjectURL(url);
+          toast('✅ QR 이미지가 저장되었습니다!','ok',2000);
+        }
+      },'image/png');
+    });
   });
+
+  /* 링크 복사 — 클립보드에 텍스트 + 이미지 동시 복사 */
   document.getElementById('_qr_copy').addEventListener('click',function(){
-    navigator.clipboard.writeText(shareUrl).then(function(){toast('링크 복사됨!','ok',2000);}).catch(function(){toast('복사 실패','err');});
+    /* 1. 이미지 클립보드 복사 시도 (Chrome, Edge) */
+    _renderQRCanvas(function(cvs){
+      if(cvs && navigator.clipboard && typeof ClipboardItem!=='undefined'){
+        cvs.toBlob(function(blob){
+          if(!blob){_fallbackCopyLink();return;}
+          try{
+            navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){
+              toast('✅ QR 이미지가 클립보드에 복사되었습니다!\n카톡/메시지에 붙여넣기 하세요','ok',3000);
+            }).catch(function(){_fallbackCopyLink();});
+          }catch(e){_fallbackCopyLink();}
+        },'image/png');
+      } else {
+        _fallbackCopyLink();
+      }
+    });
+    function _fallbackCopyLink(){
+      navigator.clipboard.writeText(shareUrl).then(function(){
+        toast('✅ 링크가 복사되었습니다!\n'+shareUrl,'ok',3000);
+      }).catch(function(){
+        /* 최후 폴백: textarea 복사 */
+        var ta=document.createElement('textarea');ta.value=shareUrl;ta.style.cssText='position:fixed;opacity:0;';
+        document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+        toast('✅ 링크가 복사되었습니다!','ok',2000);
+      });
+    }
   });
 }
 </script>
