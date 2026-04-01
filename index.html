@@ -920,7 +920,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .rsec-icon{font-size:14px;}
 .rsec-label{flex:1;}
 .rsec-count{font-size:11px;color:var(--acc3);}
-.results-inner{display:flex;flex-direction:column;gap:10px;}
+.results-inner{display:flex;flex-direction:column;gap:10px;width:100%;}
 
 /* 결과 카드 */
 .result-card{
@@ -928,6 +928,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
   border-radius:16px;overflow:hidden;
   margin-bottom:12px;
   display:flex;flex-direction:column;
+  width:100%;box-sizing:border-box;
 }
 .result-card:last-child{margin-bottom:0;}
 .rc-cover{
@@ -4607,9 +4608,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .genre-btn-grid,.mood-grid{grid-template-columns:repeat(5,1fr);}
   /* 악기 그리드: 5열 */
   .adv-instrument-grid{grid-template-columns:repeat(5,1fr);}
-  /* 결과 카드: 세로 레이아웃 — 1열 유지 (커버 상단 배치) + 최대폭 제한 */
-  .results-inner{display:flex;flex-direction:column;gap:12px;max-width:560px;margin:0 auto;}
-  .batch-cards-wrap{max-width:560px;margin:0 auto;}
+  /* 결과 카드: 세로 레이아웃 — 1열 꽉 차게 */
+  .results-inner{display:flex;flex-direction:column;gap:12px;width:100%;}
+  .batch-cards-wrap{width:100%;}
   .rc-cover{height:200px;}
   /* 바텀시트/모달/레이어팝업 폭 확장 — 전체 대응 */
   .ai-sheet-box,.hes-sheet,.modal,.rc-sheet-box,
@@ -4717,7 +4718,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   #mini-player{max-width:1200px;left:0;right:0;margin:0 auto;}
   .hist-view-grid.grid-mode{grid-template-columns:repeat(5,1fr)!important;}
   .comm-list{grid-template-columns:repeat(4,1fr);}
-  .batch-cards-wrap{grid-template-columns:repeat(4,1fr);}
+  .batch-cards-wrap{grid-template-columns:repeat(3,1fr);}
   /* 바텀시트/모달 — 와이드 */
   .ai-sheet-box,.hes-sheet,.modal,.rc-sheet-box,
   .hes-panel,.fes-panel,.mds-panel,.queue-panel,.dm-panel,
@@ -13508,7 +13509,7 @@ function renderTracks(tracks,prompt,tags,mode){
   batchWrap.className='result-batch';
   batchWrap.dataset.batchId=batchId;
   batchWrap.dataset.batchTime=Date.now();
-  batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:16px;padding:14px;margin-bottom:16px;';
+  batchWrap.style.cssText='border:1px solid rgba(168,85,247,.15);border-radius:16px;padding:10px;margin-bottom:16px;width:100%;box-sizing:border-box;';
   const batchHdr=document.createElement('div');
   const _isAB = tracks.length >= 2;
   const _batchModeLabel={custom:'커스텀',simple:'심플',youtube:'YouTube',mv:'MV'}[modeKey]||modeKey;
