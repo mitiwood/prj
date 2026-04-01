@@ -3894,13 +3894,29 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .fp-ov-line,.fp-ov-empty{display:none;}
 /* ── 제목 아래 가사 영역 (노래방 스타일) ── */
 .fp-lyrics-main{
-  margin-top:12px;padding:0 16px;text-align:left;
-  max-height:45vh;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
-  -webkit-overflow-scrolling:touch;
-  /* 스크롤바 완전 숨김 */
-  scrollbar-width:none;-ms-overflow-style:none;
+  margin-top:12px;padding:0 16px;text-align:center;
+  height:60px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
 }
 .fp-lyrics-main::-webkit-scrollbar{display:none;}
+/* 한 줄 모드: 현재 줄만 페이드 표시 */
+.fp-lyrics-oneline{
+  font-size:17px;font-weight:800;color:#fff;
+  text-shadow:0 0 24px rgba(168,85,247,.5);
+  opacity:1;transition:opacity .3s ease;
+  text-align:center;line-height:1.6;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fp-lyrics-oneline.fade{opacity:0;}
+[data-theme="light"] .fp-lyrics-oneline{color:var(--t1);text-shadow:0 0 16px rgba(124,58,237,.2);}
+/* 스크롤 모드 (토글 시) */
+.fp-lyrics-main.scroll-mode{
+  height:auto;max-height:45vh;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;
+  display:block;text-align:left;
+}
 .fp-lm-line{
   font-size:15px;font-weight:600;color:rgba(255,255,255,.28);
   line-height:2.2;transition:color .35s ease, text-shadow .35s ease, font-size .35s ease;
@@ -19314,8 +19330,12 @@ function fpRenderLyrics(h){
   });
 
   if(mainBox){
-    mainBox.innerHTML = html;
-    fpTimestampLines = [...mainBox.querySelectorAll('.fp-lm-line')];
+    /* 한 줄 모드: 모든 가사 라인을 숨기고 oneline 요소만 표시 */
+    mainBox.classList.remove('scroll-mode');
+    mainBox.innerHTML = '<div class="fp-lyrics-oneline" id="fp-oneline">♪</div><div style="display:none;" id="fp-lines-hidden">' + html + '</div>';
+    fpTimestampLines = [...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
+    /* 가사 텍스트 배열 저장 (싱크용) */
+    window._fpLyricTexts = fpTimestampLines.map(function(el){return el.textContent;});
   }
 
   /* LRC 타임스탬프가 있으면 그대로 사용 */
@@ -19488,19 +19508,16 @@ function fpSyncLyrics(currentTime){
   }
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
-  fpTimestampLines.forEach(function(el,i){
-    el.classList.toggle('active',i===activeIdx);
-    el.classList.toggle('done',i<activeIdx);
-  });
-  if(activeIdx>=0){
-    var box2=$('fp-lyrics-main');
-    if(box2){
-      var el2=fpTimestampLines[activeIdx];
-      var areaRect2=box2.getBoundingClientRect();
-      var elRect2=el2.getBoundingClientRect();
-      var targetScroll2=box2.scrollTop+(elRect2.top-areaRect2.top)-(areaRect2.height/2)+(elRect2.height/2);
-      if(Math.abs(box2.scrollTop-targetScroll2)>5) box2.scrollTo({top:targetScroll2,behavior:'smooth'});
+  /* 한 줄 모드: 현재 가사 텍스트만 페이드 전환 */
+  var _oneEl=$('fp-oneline');
+  if(_oneEl && window._fpLyricTexts && activeIdx>=0){
+    var _newText=window._fpLyricTexts[activeIdx]||'';
+    if(_newText && _oneEl.textContent!==_newText){
+      _oneEl.classList.add('fade');
+      setTimeout(function(){_oneEl.textContent=_newText;_oneEl.classList.remove('fade');},200);
     }
+  } else if(_oneEl && activeIdx<0){
+    _oneEl.textContent='♪';
   }
 }
 
@@ -19550,8 +19567,10 @@ function fpRenderTimestampedLyrics(words){
     }
   });
   if(!html)return;
-  mainBox.innerHTML=html;
-  fpTimestampLines=[...mainBox.querySelectorAll('.fp-lm-line')];
+  mainBox.classList.remove('scroll-mode');
+  mainBox.innerHTML='<div class="fp-lyrics-oneline" id="fp-oneline">♪</div><div style="display:none;" id="fp-lines-hidden">'+html+'</div>';
+  fpTimestampLines=[...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
+  window._fpLyricTexts=fpTimestampLines.map(function(el){return el.textContent;});
   _fpLrcTimes=newLrcTimes;
   _fpLrcEndTimes=newLrcEndTimes;
   fpSyncMode=true;
