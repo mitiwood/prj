@@ -12519,7 +12519,7 @@ async function generate(overrideParams){
       const savedLyrics = lastLyricsInput || apiLyric || '';
       const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
-        id:t.id,taskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
+        id:t.id,taskId:lastTaskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
         audio_url:_tAudioUrl,
         video_url:'',
         image_url:t.imageUrl||t.image_url||'',
@@ -12601,7 +12601,7 @@ async function generate(overrideParams){
       const mvTrack=tracks[0];
       const mvAudioId=mvTrack?.id||mvTrack?.audioId||'';
       /* debug removed */
-      requestMusicVideo(apiKey,taskId,mvAudioId,0);
+      requestMusicVideo(apiKey,lastTaskId,mvAudioId,0);
     }
   }catch(e){
     _clearGenSession();
