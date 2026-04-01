@@ -3951,8 +3951,8 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
    미니 플로팅 플레이어 (PIP)
 ══════════════════════════════ */
 #mini-player{
-  position:fixed;
-  bottom:var(--bnav-h, 56px);
+  position:fixed !important;
+  bottom:var(--bnav-h, 56px) !important;
   left:0;right:0;
   width:100%;max-width:480px;
   margin:0 auto;
@@ -15280,6 +15280,9 @@ function showMiniPlayer(idx){
   if(!h) return;
   fpCurrentIdx = idx;
 
+  /* 미니플레이어 위치 보장 — 하단탭 높이 재계산 */
+  if(typeof updateNavHeight==='function') updateNavHeight();
+
   /* 재생수 카운팅 — 커뮤니티 트랙인 경우 (세션당 1회) */
   if(h.id && h._fromSb) _countTrackPlay(h.id);
 
@@ -15298,10 +15301,14 @@ function showMiniPlayer(idx){
   const titleEl=$('mp-title'); if(titleEl) titleEl.textContent = h.title || '무제';
   const subEl=$('mp-sub'); if(subEl) subEl.textContent = _normTags(h.tags).split(',')[0]?.trim() || '';
 
-  /* 미니플레이어 표시 */
+  /* 미니플레이어 표시 — 하단탭 바로 위 고정 */
   const _mpEl=$('mini-player');
   _mpEl.classList.remove('mp-hide');
   _mpEl.style.transition='';
+  /* 위치 강제 보장: 인라인 스타일 제거 후 CSS 규칙에 의존 */
+  _mpEl.style.removeProperty('top');
+  _mpEl.style.removeProperty('position');
+  _mpEl.style.removeProperty('bottom');
   _mpEl.classList.add('on');
   document.body.classList.add('mp-on');
   _syncMpLikeBtn();
