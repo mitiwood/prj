@@ -5270,7 +5270,7 @@ function _startUsersPoll(){
     var sec=document.getElementById('sec-users');
     if(!sec||!sec.classList.contains('on')){_stopUsersPoll();return;}
     renderUsersAdmin();
-  },30000);
+  },10000);
 }
 function _stopUsersPoll(){if(_usersPollTimer){clearInterval(_usersPollTimer);_usersPollTimer=null;}}
 
@@ -5413,17 +5413,18 @@ function _sortAndRenderUsers(){
     const isOnline=(now-(u.lastLogin||0))<ONLINE;
     const timeStr=u.lastLogin?new Date(u.lastLogin).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
     const cInfo=_creatorMap[u.name+'__'+u.provider];
-    const planBadge={creator:'<span style="color:#f59e0b;font-weight:700;">👑</span>',pro:'<span style="color:var(--acc2);font-weight:700;">💜</span>'}[u.plan||'free']||'';
+    const planBadge={creator:'<span style="color:#f59e0b;font-weight:700;">👑</span>',pro:'<span style="color:var(--acc2);font-weight:700;">💜</span>',supervisor:'<span style="color:#ef4444;font-weight:700;">⭐</span>'}[u.plan||'free']||'';
     return '<tr style="cursor:pointer;'+(isOnline?'background:rgba(34,197,94,.04);':'')+'" onclick="if(!event.target.closest(\'select,button,.btn\')){_showUserDetail(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\');}">'
       +'<td>'
         +(_isImgUrl(u.avatar)?'<img src="'+esc(u.avatar)+'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.style.display=\'none\'">':'<div style="width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>')
       +'</td>'
       +'<td style="font-weight:600;color:var(--acc);">'+(isOnline?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--grn);margin-right:4px;vertical-align:middle;" title="온라인"></span>':'')+esc(u.name)+' <span style="font-size:11px;" title="'+(u.isMobile?'모바일':'PC')+'">'+(u.isMobile?'📱':'💻')+'</span><div style="font-size:10px;color:var(--t3);">'+esc(u.email||'')+'</div>'+(u.lastLocation?'<div style="font-size:9px;color:var(--t3);">📍 '+esc(u.lastLocation)+'</div>':'')+'</td>'
       +'<td><span class="badge '+pc+'">'+esc(u.provider||'?')+'</span></td>'
-      +'<td><select onclick="event.stopPropagation()" onchange="changeUserPlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'+planBadge
+      +'<td><select onclick="event.stopPropagation()" onchange="_changePlan(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\',this.value)" style="background:var(--bg3);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;cursor:pointer;">'+planBadge
         +'<option value="free"'+(!(u.plan)||u.plan==='free'?' selected':'')+'>Free</option>'
         +'<option value="pro"'+(u.plan==='pro'?' selected':'')+'>Pro</option>'
         +'<option value="creator"'+(u.plan==='creator'?' selected':'')+'>Creator</option>'
+        +'<option value="supervisor"'+(u.plan==='supervisor'?' selected':'')+'>⭐ Supervisor</option>'
       +'</select></td>'
       +'<td style="text-align:center;font-size:11px;"><span title="곡/MV/가사" style="cursor:pointer;" onclick="event.stopPropagation();_editUserCredits(\''+esc(u.name)+'\',\''+esc(u.provider||'')+'\','+(u.credits_song||0)+','+(u.credits_mv||0)+','+(u.credits_lyrics||0)+')">🎵'+(u.credits_song||0)+' 🎬'+(u.credits_mv||0)+' ✍️'+(u.credits_lyrics||0)+'</span></td>'
       +'<td style="text-align:center;font-weight:700;">'+(u.loginCount||1)+'<span style="font-size:9px;color:var(--t3);font-weight:400;">회</span></td>'
