@@ -11530,7 +11530,7 @@ var _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 /* ── 생성 큐 매니저 (music/video 독립 채널) ── */
 var _QueueManager={
   channels:{
-    music:{busy:false,queue:[],maxQueue:3},
+    music:{busy:false,queue:[],maxQueue:1},
     video:{busy:false,queue:[],maxQueue:2},
   },
   enqueue:function(channel,item){
@@ -11576,8 +11576,8 @@ var _QueueManager={
     }catch(e){}
   },
 };
-/* 페이지 로드 시 큐 복구 */
-try{_QueueManager._restoreFromSession();}catch(e){}
+/* 페이지 로드 시 음악 큐 초기화 (세션 복원으로 인한 의도치 않은 자동 생성 방지) */
+try{sessionStorage.removeItem('kms_gen_queue');}catch(e){}
 
 /* 레거시 호환: _globalGenerating getter/setter */
 Object.defineProperty(window,'_globalGenerating',{
@@ -11784,17 +11784,9 @@ async function generate(overrideParams){
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
   /* 새 생성 시작 시 재시도 플래그 초기화 */
   if(!overrideParams?._afterLyrics) _retryCount = 0;
-  /* 음악 채널 생성 중 — 큐에 추가 (최대 3곡 대기, 게스트는 큐 비활성) */
+  /* 음악 채널 생성 중 — 큐 없이 바로 차단 (1곡씩만 생성) */
   if(_QueueManager.isBusy('music') && !overrideParams?._afterLyrics){
-    /* 게스트 모드: 큐 없이 바로 차단 */
-    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
-      toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
-      return;
-    }
-    var _enqueued=_QueueManager.enqueue('music',{params:overrideParams||{},mode:currentMode});
-    if(!_enqueued) return;
-    toast('🎵 대기열에 추가됐어요 ('+_QueueManager.channels.music.queue.length+'곡 대기)','ok',3000);
-    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 대기 중 '+_QueueManager.channels.music.queue.length+'곡';}
+    toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
     return;
   }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
@@ -12272,16 +12264,8 @@ async function generate(overrideParams){
     if(_wasCancelled){_QueueManager.clear('music');_genQueue=[];return;}
     /* 게스트 모드: 큐 자동 실행 금지 */
     if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){_QueueManager.clear('music');_genQueue=[];return;}
-    /* 큐에 대기 중인 곡이 있으면 자동 실행 */
-    var _nextQ=_QueueManager.dequeue('music');
-    if(_nextQ){
-      toast('🎵 대기 곡 생성 시작!','ok',2000);
-      setTimeout(function(){generate(_nextQ.params);},1500);
-    } else if(_genQueue.length>0){
-      var _next=_genQueue.shift();
-      toast('🎵 대기 곡 생성 시작!','ok',2000);
-      setTimeout(function(){generate(_next.params);},1500);
-    }
+    /* 큐 자동 실행 비활성화 — 1곡씩만 생성 (의도치 않은 연속 생성 방지) */
+    _QueueManager.clear('music');_genQueue=[];
   }
 }
 
