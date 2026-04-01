@@ -9346,7 +9346,7 @@ async function _ytDoGenerate(){
       /* 가사 우선순위: kie.ai 실제 가사(노래와 일치) → 유저 직접 입력 → 빈값 */
       const _savedLyrics = (isRealLyric ? apiLyric : '') || _ytUserLyrics || '';
       historyData.unshift({
-        id:t.id, taskId,
+        id:t.id, taskId:_ytTaskId,
         title: _autoGenerateTitle(t.title||songTitle,_ytUserLyrics,_ytTags,'youtube'),
         audio_url: _tAudioUrl,
         video_url: '',
@@ -9380,7 +9380,7 @@ async function _ytDoGenerate(){
     tracks.forEach(t=>{
       const _ytSTags=_normTags(t.tags)||ytStyle;
       _saveTrackToServer({
-        id:t.id, taskId,
+        id:t.id, taskId:_ytTaskId,
         title:_autoGenerateTitle(t.title||songTitle,ytLyrics,_ytSTags,'youtube'),
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
