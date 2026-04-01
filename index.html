@@ -20590,8 +20590,9 @@ function renderKpTimestampedLyrics(words){
   words.forEach(w=>{
     const text=w.word||'';
     if(/^\[.+\]$/.test(text.trim())){
+      /* 섹션 태그 스킵 */
       if(curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false,text:''};}
-      lines.push({isSec:true,text:text.replace(/[\[\]]/g,'').trim(),startS:w.startS||0});
+      return;
     } else if(text.includes('\n')){
       const parts=text.split('\n');
       parts.forEach((p,pi)=>{
@@ -20617,11 +20618,10 @@ function renderKpTimestampedLyrics(words){
 
   let html='';
   lines.forEach((line,li)=>{
-    if(line.isSec){
-      html+=`<div class="kp-lyrics-sec">${esc(line.text)}</div>`;
-    } else {
-      const lineText=line.words.map(w=>w.text).join(' ');
-      html+=`<div class="kp-lyrics-line" id="kpl-${li}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="kpSeekToLine(${line.startS||0})">${esc(lineText)}</div>`;
+    if(line.isSec) return; /* 섹션 태그 표시 안 함 */
+    const lineText=line.words?line.words.map(w=>w.text).join(' '):(line.text||'');
+    if(!lineText.trim()) return;
+    html+=`<div class="kp-lyrics-line" id="kpl-${li}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="kpSeekToLine(${line.startS||0})">${esc(lineText)}</div>`;
     }
   });
 
