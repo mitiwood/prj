@@ -2519,31 +2519,70 @@ const TC_DATA = {
   음악: {
     label: '🎵 음악 생성',
     file: 'qa/tc-music-generation.md',
-    total: 21,
-    categories: ['커스텀', '심플', 'YouTube', 'MV', '연장', '다시작곡', 'A/B', '오류'],
-    p1: 11, p2: 8, p3: 2,
+    total: 45,
+    categories: ['커스텀', '심플', 'YouTube', 'MV', '연장', '다시작곡', 'A/B', '오류', '모델', '엣지케이스'],
+    p1: 18, p2: 18, p3: 9,
     list: [
-      { id:'M01', p:'P1', title:'커스텀 기본 생성 (가사+스타일)', pass:null },
-      { id:'M02', p:'P1', title:'가사 없이 생성 (instrumental)', pass:null },
-      { id:'M03', p:'P2', title:'섹션 태그 파싱 ([Verse] 등)', pass:null },
-      { id:'M04', p:'P2', title:'제목 자동 생성', pass:null },
-      { id:'M05', p:'P1', title:'크레딧 부족 시 차단', pass:null },
-      { id:'M06', p:'P1', title:'심플 모드 기본 생성', pass:null },
-      { id:'M07', p:'P2', title:'가사 자동완성 타이밍', pass:null },
-      { id:'M08', p:'P2', title:'1단어 설명 생성', pass:null },
-      { id:'M09', p:'P1', title:'YouTube URL 분석 → 생성', pass:null },
-      { id:'M10', p:'P1', title:'잘못된 URL 에러 처리', pass:null },
-      { id:'M11', p:'P2', title:'비공개 영상 URL 에러', pass:null },
-      { id:'M12', p:'P1', title:'MV 기본 생성', pass:null },
-      { id:'M13', p:'P2', title:'MV 생성 중 상태 표시', pass:null },
-      { id:'M14', p:'P1', title:'연장 기본 동작', pass:null },
-      { id:'M15', p:'P2', title:'연장 가사 입력', pass:null },
-      { id:'M16', p:'P3', title:'연장 슬라이더 경계값', pass:null },
-      { id:'M17', p:'P1', title:'다시 작곡 기본 동작', pass:null },
-      { id:'M18', p:'P1', title:'A/B 2곡 생성 레이아웃', pass:null },
-      { id:'M19', p:'P1', title:'A/B 버전 선택', pass:null },
-      { id:'M20', p:'P1', title:'API 오류 시 UI 복원', pass:null },
-      { id:'M21', p:'P2', title:'동시 생성 방지', pass:null },
+      /* ── 커스텀 모드 (실제값) ── */
+      { id:'M01', p:'P1', title:'커스텀: K-Pop 걸그룹', pass:null, params:{mode:'custom',genre:'K-Pop Dance',mood:'energetic, hype',bpm:128,model:'V4',vocal:'f',inst:false,instruments:'Synth,Bass'} },
+      { id:'M02', p:'P1', title:'커스텀: 감성 발라드', pass:null, params:{mode:'custom',genre:'Ballad',mood:'sad, emotional',bpm:72,model:'V4_5',vocal:'f',inst:false,instruments:'Piano,Violin'} },
+      { id:'M03', p:'P1', title:'커스텀: 힙합 트랩', pass:null, params:{mode:'custom',genre:'Trap',mood:'dark, intense',bpm:140,model:'V4',vocal:'m',inst:false,instruments:'808 Bass,Hi-Hat'} },
+      { id:'M04', p:'P2', title:'커스텀: 로파이 인스트', pass:null, params:{mode:'custom',genre:'Lo-Fi Hip Hop',mood:'chill, lofi',bpm:85,model:'V4_5',vocal:'',inst:true,instruments:'Piano,Guitar'} },
+      { id:'M05', p:'P2', title:'커스텀: 시네마틱 오케스트라', pass:null, params:{mode:'custom',genre:'Cinematic',mood:'epic, cinematic',bpm:95,model:'V4_5PLUS',vocal:'',inst:true,instruments:'Violin,Piano,Choir'} },
+      { id:'M06', p:'P2', title:'커스텀: R&B 소울', pass:null, params:{mode:'custom',genre:'R&B',mood:'romantic, dreamy',bpm:90,model:'V4_5',vocal:'m',inst:false,instruments:'Piano,Bass'} },
+      { id:'M07', p:'P3', title:'커스텀: 트로트', pass:null, params:{mode:'custom',genre:'Trot',mood:'happy, uplifting',bpm:130,model:'V4',vocal:'m',inst:false,instruments:'Guitar,Drums'} },
+      { id:'M08', p:'P1', title:'커스텀: 크레딧 부족 차단', pass:null, params:{mode:'custom',genre:'Pop',expect:'차단'} },
+
+      /* ── 심플 모드 (실제값) ── */
+      { id:'M09', p:'P1', title:'심플: 신나는 댄스곡', pass:null, params:{mode:'simple',desc:'신나는 댄스 파티 음악'} },
+      { id:'M10', p:'P1', title:'심플: 슬픈 이별 노래', pass:null, params:{mode:'simple',desc:'비 오는 날 이별을 그리워하는 감성 발라드'} },
+      { id:'M11', p:'P2', title:'심플: 1단어 (카페)', pass:null, params:{mode:'simple',desc:'카페'} },
+      { id:'M12', p:'P2', title:'심플: 영어 설명', pass:null, params:{mode:'simple',desc:'upbeat pop with female vocals'} },
+      { id:'M13', p:'P3', title:'심플: 가사 직접 입력', pass:null, params:{mode:'simple',desc:'로맨틱한 사랑 노래',lyrics:'[Verse]\n너를 처음 본 순간\n세상이 멈춘 것 같았어'} },
+
+      /* ── YouTube 모드 ── */
+      { id:'M14', p:'P1', title:'YouTube: 유명 K-Pop 분석', pass:null, params:{mode:'youtube',url:'https://youtube.com/watch?v=dQw4w9WgXcQ'} },
+      { id:'M15', p:'P1', title:'YouTube: 잘못된 URL 에러', pass:null, params:{mode:'youtube',url:'https://not-youtube.com/abc',expect:'에러'} },
+      { id:'M16', p:'P2', title:'YouTube: Shorts URL', pass:null, params:{mode:'youtube',url:'https://youtube.com/shorts/abc123'} },
+      { id:'M17', p:'P2', title:'YouTube: 비공개 영상', pass:null, params:{mode:'youtube',url:'https://youtube.com/watch?v=private123',expect:'에러'} },
+
+      /* ── MV 모드 ── */
+      { id:'M18', p:'P1', title:'MV: 기본 text-to-video', pass:null, params:{mode:'mv',prompt:'네온 조명의 밤거리를 걷는 여성 가수',ratio:'9:16',duration:'5s'} },
+      { id:'M19', p:'P2', title:'MV: 가로 비율 16:9', pass:null, params:{mode:'mv',prompt:'넓은 초원 위 일몰 풍경',ratio:'16:9',duration:'10s'} },
+      { id:'M20', p:'P2', title:'MV: 크레딧 부족 차단', pass:null, params:{mode:'mv',expect:'차단'} },
+
+      /* ── 연장 ── */
+      { id:'M21', p:'P1', title:'연장: 기본 연장', pass:null, params:{mode:'extend',model:'V4_5'} },
+      { id:'M22', p:'P2', title:'연장: 가사 추가 연장', pass:null, params:{mode:'extend',lyrics:'[Chorus]\n다시 만나자 우리',model:'V4_5'} },
+      { id:'M23', p:'P2', title:'연장: 최대 횟수(5회) 제한', pass:null, params:{mode:'extend',expect:'5회 제한 경고'} },
+      { id:'M24', p:'P3', title:'연장: 슬라이더 경계값 0/300', pass:null, params:{mode:'extend',continueAt:0} },
+
+      /* ── 다시 작곡 / A/B ── */
+      { id:'M25', p:'P1', title:'다시 작곡: 동일 입력 재생성', pass:null, params:{mode:'custom',genre:'Pop',recompose:true} },
+      { id:'M26', p:'P1', title:'A/B: 2개 모델 비교 (V4 vs V4.5)', pass:null, params:{mode:'ab',modelA:'V4',modelB:'V4_5'} },
+      { id:'M27', p:'P2', title:'A/B: 선호도 투표 저장', pass:null, params:{mode:'ab',expect:'투표 기록'} },
+
+      /* ── 모델별 테스트 ── */
+      { id:'M28', p:'P1', title:'모델: V3.5 (빠른 생성)', pass:null, params:{mode:'custom',genre:'Pop',model:'V3_5',mood:'happy, uplifting',bpm:120} },
+      { id:'M29', p:'P1', title:'모델: V4.5+ 8분 장곡', pass:null, params:{mode:'custom',genre:'Cinematic',model:'V4_5PLUS',mood:'epic, cinematic',bpm:95} },
+      { id:'M30', p:'P1', title:'모델: V5 + audioWeight', pass:null, params:{mode:'custom',genre:'Ballad',model:'V5',mood:'sad, emotional',bpm:72,audioWeight:0.7} },
+      { id:'M31', p:'P2', title:'모델: V5 실패 → V4.5 폴백', pass:null, params:{mode:'custom',model:'V5',expect:'폴백'} },
+      { id:'M32', p:'P2', title:'모델: Lyria Pro (Google)', pass:null, params:{mode:'custom',model:'LYRIA_PRO',genre:'Pop',mood:'energetic',bpm:128} },
+      { id:'M33', p:'P3', title:'모델: Lyria Clip 30초', pass:null, params:{mode:'custom',model:'LYRIA_CLIP',genre:'Electronic'} },
+      { id:'M34', p:'P2', title:'모델: Lyria 실패 → V4 폴백', pass:null, params:{mode:'custom',model:'LYRIA_PRO',expect:'폴백'} },
+
+      /* ── 오류/엣지케이스 ── */
+      { id:'M35', p:'P1', title:'오류: API 오류 시 UI 복원', pass:null, params:{expect:'버튼 복원+에러 바텀시트'} },
+      { id:'M36', p:'P1', title:'오류: 동시 생성 방지 (큐)', pass:null, params:{expect:'큐 대기 표시'} },
+      { id:'M37', p:'P2', title:'오류: 부적절 가사 차단', pass:null, params:{mode:'custom',lyrics:'SENSITIVE_WORD_TEST',expect:'차단'} },
+      { id:'M38', p:'P2', title:'엣지: 빈 가사로 생성', pass:null, params:{mode:'custom',genre:'Pop',lyrics:'',expect:'가사 자동생성 또는 인스트'} },
+      { id:'M39', p:'P3', title:'엣지: 5000자 초과 가사', pass:null, params:{mode:'custom',lyrics:'(5000자 초과)',expect:'잘림 또는 경고'} },
+      { id:'M40', p:'P3', title:'엣지: 특수문자 제목', pass:null, params:{mode:'custom',title:'<script>alert(1)</script>',expect:'이스케이프'} },
+      { id:'M41', p:'P3', title:'엣지: BPM 0', pass:null, params:{mode:'custom',bpm:0,expect:'기본값 적용'} },
+      { id:'M42', p:'P3', title:'엣지: BPM 300', pass:null, params:{mode:'custom',bpm:300,expect:'정상 또는 경고'} },
+      { id:'M43', p:'P2', title:'엣지: 중복 생성 방지 (5분 캐시)', pass:null, params:{mode:'custom',genre:'Pop',expect:'캐시 반환'} },
+      { id:'M44', p:'P1', title:'엣지: 게스트 5곡 제한', pass:null, params:{mode:'custom',expect:'5곡 후 로그인 유도'} },
+      { id:'M45', p:'P3', title:'엣지: 오프라인 시 에러 처리', pass:null, params:{expect:'오프라인 메시지'} },
     ]
   },
   디자인: {
@@ -2673,10 +2712,15 @@ COMMANDS['tc'] = COMMANDS['테케'] = COMMANDS['테스트케이스'] = async (ch
       `${d.label} — TC-${tc.id}`,
       `우선순위: ${tc.p}`,
       `제목: ${tc.title}`,
-      '',
-      `📄 상세 내용은 GitHub 저장소의`,
-      `  ${d.file}  TC-${tc.id} 항목을 확인하세요.`,
+      `상태: ${tc.pass === true ? '✅ Pass' : tc.pass === false ? '❌ Fail' : '⬜ 미검증'}`,
     ];
+    if (tc.params) {
+      detail.push('', '━━ 테스트 파라미터 ━━');
+      for (const [pk, pv] of Object.entries(tc.params)) {
+        if (pv !== undefined && pv !== null && pv !== '') detail.push(`  ${pk}: ${pv}`);
+      }
+      detail.push('', '실행: tc실행 ' + cat + ' ' + num);
+    }
     return tgSend(chatId, detail.join('\n'), { parse_mode: '' });
   }
 
@@ -2700,6 +2744,157 @@ COMMANDS['tc'] = COMMANDS['테케'] = COMMANDS['테스트케이스'] = async (ch
     '',
     `상세: tc ${key} [번호]  예) tc ${key} 1`,
   ];
+  await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+};
+
+/* ── TC 실행 명령 — 실제 파라미터로 생성 테스트 ── */
+COMMANDS['tc실행'] = COMMANDS['tcrun'] = COMMANDS['tc테스트'] = async (chatId, arg) => {
+  const parts = (arg || '').trim().split(/\s+/);
+  const cat = parts[0]?.toLowerCase() || '';
+  const num = parseInt(parts[1]) || 0;
+  const keyMap = { '음악': '음악', 'music': '음악', 'm': '음악', '생성': '음악' };
+  const key = keyMap[cat];
+  if (!key || !num) return tgSend(chatId, '⚠️ 사용법: tc실행 음악 1\n\n카테고리와 번호를 입력해주세요.', { parse_mode: '' });
+
+  const d = TC_DATA[key];
+  const tc = d?.list[num - 1];
+  if (!tc) return tgSend(chatId, `❓ TC #${num} 없음 (범위: 1~${d.total})`, { parse_mode: '' });
+  if (!tc.params) return tgSend(chatId, `⚠️ TC-${tc.id}는 파라미터가 없어 자동 실행이 불가합니다.`, { parse_mode: '' });
+
+  const p = tc.params;
+  await tgSend(chatId, [
+    `🧪 TC-${tc.id} 실행`,
+    `📝 ${tc.title}`,
+    '',
+    '━━ 파라미터 ━━',
+    ...Object.entries(p).filter(([,v]) => v !== undefined && v !== '').map(([k,v]) => `  ${k}: ${v}`),
+    '',
+    p.expect ? `⚡ 예상 결과: ${p.expect}` : '⚡ 예상: 정상 생성 + 오디오 URL 반환',
+    '',
+    '🤖 Claude Code QA 검증을 시작합니다...',
+  ].join('\n'), { parse_mode: '' });
+
+  /* GitHub Issue 생성 → Claude Code 자동 실행 (QA 모드) */
+  if (GH_TOKEN) {
+    try {
+      /* 라벨 생성 */
+      try { await ghApi('POST', '/labels', { name: 'claude-fix', color: '7c3aed' }); } catch {}
+
+      const paramStr = Object.entries(p).map(([k,v]) => `- ${k}: ${v}`).join('\n');
+      const issue = await ghApi('POST', '/issues', {
+        title: `[QA] TC-${tc.id}: ${tc.title}`,
+        body: [
+          '## QA 테스트 실행',
+          '',
+          `TC ID: ${tc.id}`,
+          `제목: ${tc.title}`,
+          `우선순위: ${tc.p}`,
+          '',
+          '### 테스트 파라미터',
+          paramStr,
+          '',
+          '### 검증 항목',
+          p.expect ? `- 예상 결과: ${p.expect}` : '- 정상 생성 확인 (오디오 URL, 히스토리 저장, 크레딧 차감)',
+          '- UI 상태 복원 확인 (로딩카드 해제, 버튼 활성화)',
+          '- 에러 처리 확인',
+          '',
+          '### 지시사항',
+          '이 TC의 파라미터로 생성 흐름을 코드 레벨에서 검증하세요.',
+          '실제 API 호출 없이 코드 흐름 + 파라미터 전달 + 에러 처리를 확인합니다.',
+          '결과를 텔레그램으로 보고해주세요.',
+          '',
+          `---`,
+          `> 텔레그램 봇 TC실행 · ${ts()}`,
+        ].join('\n'),
+        labels: ['claude-fix'],
+      });
+      await tgSend(chatId, `✅ TC-${tc.id} QA Issue 생성 완료!\n\n📋 Issue #${issue.number}\n🤖 Claude Code가 코드 레벨 검증을 시작합니다.\n\n🔗 ${issue.html_url}`, { parse_mode: '' });
+    } catch (e) {
+      await tgSend(chatId, `❌ Issue 생성 실패: ${(e.message || '').slice(0, 80)}`, { parse_mode: '' });
+    }
+  } else {
+    await tgSend(chatId, '⚠️ GITHUB_TOKEN이 없어 자동 실행이 불가합니다.\n수동으로 테스트해주세요.', { parse_mode: '' });
+  }
+};
+
+/* ── TC 결과 기록 ── */
+COMMANDS['tc결과'] = COMMANDS['tcresult'] = async (chatId, arg) => {
+  const parts = (arg || '').trim().split(/\s+/);
+  const tcId = (parts[0] || '').toUpperCase();
+  const result = (parts[1] || '').toLowerCase();
+
+  if (!tcId || !['pass', 'fail', 'p', 'f', '성공', '실패'].includes(result)) {
+    return tgSend(chatId, '⚠️ 사용법: tc결과 M01 pass\n\n  tc결과 [TC_ID] [pass/fail]\n  예: tc결과 M03 fail', { parse_mode: '' });
+  }
+
+  const isPass = ['pass', 'p', '성공'].includes(result);
+
+  /* TC_DATA에서 해당 TC 찾기 */
+  let found = null;
+  for (const [, d] of Object.entries(TC_DATA)) {
+    const tc = d.list.find(t => t.id === tcId);
+    if (tc) { found = tc; break; }
+  }
+
+  if (!found) return tgSend(chatId, `❓ TC-${tcId}를 찾을 수 없어요.`, { parse_mode: '' });
+
+  found.pass = isPass;
+
+  /* Supabase에 기록 (settings 테이블 활용) */
+  if (SB_URL && SB_KEY) {
+    try {
+      const existing = await sb('GET', `/settings?key=eq.tc_results`);
+      const results = existing?.[0]?.value || {};
+      results[tcId] = { pass: isPass, ts: Date.now(), by: 'telegram' };
+      if (existing?.[0]) {
+        await sb('PATCH', `/settings?key=eq.tc_results`, { value: results });
+      } else {
+        await sb('POST', `/settings`, { key: 'tc_results', value: results });
+      }
+    } catch (e) { console.warn('[tc-result]', e.message); }
+  }
+
+  await tgSend(chatId, `${isPass ? '✅' : '❌'} TC-${tcId}: ${found.title}\n결과: ${isPass ? 'PASS' : 'FAIL'}\n기록 완료!`, { parse_mode: '' });
+};
+
+/* ── TC 리포트 — 전체 현황 요약 ── */
+COMMANDS['tc리포트'] = COMMANDS['tcreport'] = COMMANDS['tc현황'] = async (chatId) => {
+  /* Supabase에서 결과 로드 */
+  let savedResults = {};
+  if (SB_URL && SB_KEY) {
+    try {
+      const existing = await sb('GET', `/settings?key=eq.tc_results`);
+      savedResults = existing?.[0]?.value || {};
+    } catch {}
+  }
+
+  const lines = ['📊 QA TC 전체 현황', ''];
+  let totalPass = 0, totalFail = 0, totalPending = 0;
+
+  for (const [key, d] of Object.entries(TC_DATA)) {
+    let pass = 0, fail = 0, pending = 0;
+    d.list.forEach(tc => {
+      const saved = savedResults[tc.id];
+      if (saved) tc.pass = saved.pass;
+      if (tc.pass === true) pass++;
+      else if (tc.pass === false) fail++;
+      else pending++;
+    });
+    totalPass += pass; totalFail += fail; totalPending += pending;
+    const pct = d.total > 0 ? Math.round((pass / d.total) * 100) : 0;
+    const bar = '█'.repeat(Math.round(pct / 10)) + '░'.repeat(10 - Math.round(pct / 10));
+    lines.push(`${d.label}`);
+    lines.push(`  ${bar} ${pct}% (${pass}/${d.total})`);
+    lines.push(`  ✅${pass} ❌${fail} ⬜${pending}`);
+    lines.push('');
+  }
+
+  const totalAll = totalPass + totalFail + totalPending;
+  const totalPct = totalAll > 0 ? Math.round((totalPass / totalAll) * 100) : 0;
+  lines.push('━━ 종합 ━━');
+  lines.push(`✅ Pass: ${totalPass}  ❌ Fail: ${totalFail}  ⬜ 미검증: ${totalPending}`);
+  lines.push(`통과율: ${totalPct}% (${totalPass}/${totalAll})`);
+
   await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
 };
 
