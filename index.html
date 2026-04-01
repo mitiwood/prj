@@ -12038,7 +12038,7 @@ function _syncGenButtons(){
     mvBtn.style.cursor=_videoBusy?'not-allowed':'';
   }
 }
-var _genLastCallTime=0; /* 마지막 generate 호출 시각 */
+/* generate 이중 호출은 _globalGenerating + _QueueManager.isBusy로 방어 */
 async function generate(overrideParams){
   var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
   var _genT0=Date.now();
@@ -12048,12 +12048,6 @@ async function generate(overrideParams){
   var _localGenCount = _genCount;
   if(currentMode==='simple'||currentMode==='youtube') _localGenCount=1;
   if(_localGenCount!==1&&_localGenCount!==2) _localGenCount=1; /* 안전장치 */
-  /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
-  if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
-    _genLog('BLOCK','5초 이내 중복 호출 차단');
-    toast('⏳ 잠시만 기다려주세요 (5초)','',2500);
-    return;
-  }
   /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
   if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
   /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
@@ -12064,7 +12058,6 @@ async function generate(overrideParams){
   }
   /* ★ 즉시 busy 설정 + 호출 시각 기록 */
   _haptic.medium();
-  _genLastCallTime=_genT0;
   _globalGenerating = true; _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
