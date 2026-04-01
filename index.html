@@ -20618,11 +20618,10 @@ function renderKpTimestampedLyrics(words){
 
   let html='';
   lines.forEach((line,li)=>{
-    if(line.isSec) return; /* 섹션 태그 표시 안 함 */
+    if(line.isSec) return;
     const lineText=line.words?line.words.map(w=>w.text).join(' '):(line.text||'');
     if(!lineText.trim()) return;
     html+=`<div class="kp-lyrics-line" id="kpl-${li}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="kpSeekToLine(${line.startS||0})">${esc(lineText)}</div>`;
-    }
   });
 
   lyricsArea.innerHTML=html||'<div class="kp-lyrics-empty">가사 데이터가 없어요</div>';
