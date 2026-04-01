@@ -78,13 +78,13 @@ async function checkServerCredit(userName, userProvider, creditType) {
   if (SUPERVISOR_NAMES.includes((userName || '').toLowerCase())) return { ok: true, plan: 'supervisor' };
   try {
     const users = await sbFetch('GET',
-      `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     let user = users?.[0];
     if (!user) {
       /* name+provider 매칭 실패 → name만으로 재검색 */
       try {
-        const byName = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
+        const byName = await sbFetch('GET', `/users?name=eq.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
         user = byName?.[0];
       } catch {}
     }
@@ -97,10 +97,10 @@ async function checkServerCredit(userName, userProvider, creditType) {
     /* 같은 email의 supervisor 계정이 있으면 승격 (멀티 소셜 대응) */
     if (user.email) {
       try {
-        const byEmail = await sbFetch('GET', `/users?email=ilike.${encodeURIComponent(user.email)}&plan=eq.supervisor&select=plan&limit=1`);
+        const byEmail = await sbFetch('GET', `/users?email=eq.${encodeURIComponent(user.email)}&plan=eq.supervisor&select=plan&limit=1`);
         if (byEmail?.[0]) {
           /* 현재 계정도 supervisor로 자동 승격 */
-          try { await sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
           return { ok: true, plan: 'supervisor' };
         }
       } catch {}
@@ -114,7 +114,7 @@ async function checkServerCredit(userName, userProvider, creditType) {
         const userEmail = user.email || '';
         const match = svAll.find(sv => sv.email && userEmail && sv.email.toLowerCase() === userEmail.toLowerCase());
         if (match) {
-          try { await sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
           return { ok: true, plan: 'supervisor' };
         }
       }
@@ -138,12 +138,12 @@ async function checkServerCredit(userName, userProvider, creditType) {
     let used = 0;
     if (creditType === 'song' || creditType === 'vr') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks ? tracks.length : 0;
     } else if (creditType === 'mv') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks ? tracks.length : 0;
     }

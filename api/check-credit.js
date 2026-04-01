@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       const patchData = { plan: newPlan, credits_song: limits.songs, credits_mv: limits.mv, credits_lyrics: limits.lyrics };
       if (newPlan === 'free') patchData.plan_expires = null;
       await sbFetch('PATCH',
-        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
+        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
         patchData
       );
       return res.status(200).json({ ok: true, plan: newPlan });
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
   try {
     /* 1. 유저 조회 → plan 확인 */
     const users = await sbFetch('GET',
-      `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=name,provider,plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=name,provider,plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     const user = users[0];
     const plan = user?.plan || 'free';
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       if (new Date(user.plan_expires) < new Date()) {
         const freeLimits = getPlanLimits('free');
         await sbFetch('PATCH',
-          `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
+          `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
           { plan: 'free', credits_song: freeLimits.songs, credits_mv: freeLimits.mv, credits_lyrics: freeLimits.lyrics, plan_expires: null }
         );
         return res.status(200).json({ ok: false, reason: 'plan_expired', plan: 'free' });
@@ -115,12 +115,12 @@ export default async function handler(req, res) {
     let used = 0;
     if (type === 'song') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks.length;
     } else if (type === 'mv') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks.length;
     } else {
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
       const setLimits = getPlanLimits(setPlan);
       const expires = setPlan === 'free' ? null : new Date(Date.now() + 30*24*60*60*1000).toISOString();
       await sbFetch('PATCH',
-        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
+        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
         { plan: setPlan, credits_song: setLimits.songs, credits_mv: setLimits.mv, credits_lyrics: setLimits.lyrics, plan_expires: expires }
       );
       /* plan_changed 이벤트 브로드캐스트 → 클라이언트 배지 즉시 갱신 */
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
       const currentCredits = user?.[creditCol] || 0;
       const newCredits = Math.max(0, currentCredits - 1);
       await sbFetch('PATCH',
-        `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
+        `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
         { [creditCol]: newCredits }
       );
       return res.status(200).json({ ok: true, credits: newCredits, creditType: creditCol });
