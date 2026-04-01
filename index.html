@@ -3915,12 +3915,13 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 /* ── 제목 아래 가사 영역 (노래방 스타일) ── */
 /* ── Apple Music 스타일 가사 ── */
 .fp-lyrics-main{
-  margin-top:0;padding:12px 20px 20px;text-align:left;
-  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:12px 20px 40px;text-align:left;
+  height:100%;overflow-y:auto;overflow-x:hidden;
   scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
   scrollbar-width:none;-ms-overflow-style:none;
   position:relative;z-index:1;
 }
+.fp-lyrics-main::-webkit-scrollbar{display:none;}
 .fp-lm-line{
   font-size:22px;font-weight:800;color:rgba(255,255,255,.2);
   line-height:1.7;cursor:pointer;padding:6px 0;
@@ -6846,10 +6847,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </button>
         </div>
       </div>
-      <!-- 스펙트럼 + 가사 — 전체 너비 -->
-      <div id="fp-spectrum" class="spectrum-bars" style="width:100%;padding:0 20px;box-sizing:border-box;"></div>
-      <div class="fp-lyrics-main" id="fp-lyrics-main">
-        <div class="fp-lm-empty">🎵</div>
+      <!-- 스펙트럼 + 가사 — 겹쳐서 표시 -->
+      <div style="position:relative;flex:1;overflow:hidden;">
+        <div id="fp-spectrum" class="spectrum-bars" style="width:100%;padding:0 20px;box-sizing:border-box;position:absolute;bottom:0;left:0;right:0;z-index:0;opacity:.5;"></div>
+        <div class="fp-lyrics-main" id="fp-lyrics-main">
+          <div class="fp-lm-empty">🎵</div>
+        </div>
       </div>
       <div class="fp-prog-section">
         <div class="fp-prog-wrap" id="fp-prog-wrap">
