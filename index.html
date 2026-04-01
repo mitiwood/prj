@@ -16727,7 +16727,7 @@ function openFullPlayer(idx){
   _doOpenFullPlayer(idx);
 }
 
-function _doOpenFullPlayer(idx){
+async function _doOpenFullPlayer(idx){
   const h=historyData[idx];
   if(!h)return;
   fpCurrentIdx=idx;
@@ -16831,7 +16831,7 @@ function _doOpenFullPlayer(idx){
     const linkedAudio = historyData.find(x=>x.audio_url===h.audio_url && x.lyrics && x.id!==h.id);
     if(linkedAudio) h.lyrics = linkedAudio.lyrics;
   }
-  fpRenderLyrics(h);
+  await fpRenderLyrics(h);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
   $('fullplayer').classList.add('on');
@@ -19228,7 +19228,7 @@ window.addEventListener('popstate',function(){
 /* 가사 렌더 — LRC 타임스탬프 파싱 + 스마트 싱크 */
 var _fpLrcTimes=[]; /* 각 가사 라인의 시작 시간(초) */
 var _fpLrcEndTimes=[]; /* 각 가사 라인의 종료 시간(초) — 타임스탬프 API용 */
-function fpRenderLyrics(h){
+async function fpRenderLyrics(h){
   const mainBox=$('fp-lyrics-main');
   var raw=h.lyrics||h.lyric||h._inputLyrics||'';
   /* 연장 곡: 가사 없으면 원본 트랙에서 가사 복원 */
@@ -19280,33 +19280,28 @@ function fpRenderLyrics(h){
   /* 가사가 있으면 노래방 버튼 표시 */
   var _kBtn=$('fp-karaoke-btn');if(_kBtn)_kBtn.style.display='';
 
-  /* 타임스탬프 가사 API 시도 (노래방 모드와 동일한 정밀 싱크) */
+  /* 타임스탬프 가사 선로딩 (재생 전 await — 5초 타임아웃) */
   var _tsTaskId=h.taskId||h._taskId||'';
   var _tsAudioId=h.id||h._sbId||'';
-  if(_tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && !h._fpTimestampFetched){
-    h._fpTimestampFetched=true;
-    if(typeof kieRequest==='function'){
-      var _tryTsLyrics=function(attempt){
-        kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId})
-          .then(function(res){
-            var words=res&&res.data&&res.data.alignedWords?res.data.alignedWords:[];
-            if(words.length){
-              fpRenderTimestampedLyrics(words);
-              fpSyncMode=true;
-              var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
-            } else if(attempt<2){
-              setTimeout(function(){_tryTsLyrics(attempt+1);},3000);
-            } else {
-              /* 2회 시도 후에도 데이터 없음 → 사용자 알림 */
-              var _soCtrl=$('fp-sync-offset-ctrl');if(_soCtrl)_soCtrl.style.display='';
-              toast('자동 싱크 불가 — 오프셋(±)으로 수동 조정하세요','',3000);
-            }
-          }).catch(function(){
-            if(attempt<2) setTimeout(function(){_tryTsLyrics(attempt+1);},3000);
-            else toast('가사 싱크 로드 실패 — 오프셋으로 조정하세요','',3000);
-          });
-      };
-      _tryTsLyrics(1);
+  if(_tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
+    /* 캐시 있으면 즉시 적용 */
+    if(h._fpAlignedWords && h._fpAlignedWords.length){
+      fpRenderTimestampedLyrics(h._fpAlignedWords);
+      fpSyncMode=true;
+    } else {
+      try{
+        var _tsRes=await Promise.race([
+          kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId}),
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
+        ]);
+        var _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
+        if(_tsWords.length){
+          h._fpAlignedWords=_tsWords; /* 캐시 */
+          fpRenderTimestampedLyrics(_tsWords);
+          fpSyncMode=true;
+          var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
+        }
+      }catch(e){/* 타임아웃/실패 → 균등 분할로 폴백 (아래에서 처리) */}
     }
   }
 
@@ -19346,7 +19341,7 @@ function fpRenderLyrics(h){
   if(mainBox){
     /* 한 줄 모드: 모든 가사 라인을 숨기고 oneline 요소만 표시 */
     mainBox.classList.remove('scroll-mode');
-    mainBox.innerHTML = '<div class="fp-lyrics-oneline loading" id="fp-oneline">가사 싱크 준비 중...</div><div style="display:none;" id="fp-lines-hidden">' + html + '</div>';
+    mainBox.innerHTML = '<div class="fp-lyrics-oneline loading" id="fp-oneline"></div><div style="display:none;" id="fp-lines-hidden">' + html + '</div>';
     fpTimestampLines = [...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
     /* 가사 텍스트 배열 저장 (싱크용) */
     window._fpLyricTexts = fpTimestampLines.map(function(el){return el.textContent;});
@@ -19533,7 +19528,7 @@ function fpSyncLyrics(currentTime){
     }
   } else if(_oneEl && activeIdx<0){
     _oneEl.classList.add('loading');
-    _oneEl.textContent='가사 싱크 준비 중...';
+    _oneEl.textContent='';
   }
 }
 
@@ -19584,7 +19579,7 @@ function fpRenderTimestampedLyrics(words){
   });
   if(!html)return;
   mainBox.classList.remove('scroll-mode');
-  mainBox.innerHTML='<div class="fp-lyrics-oneline loading" id="fp-oneline">가사 싱크 준비 중...</div><div style="display:none;" id="fp-lines-hidden">'+html+'</div>';
+  mainBox.innerHTML='<div class="fp-lyrics-oneline loading" id="fp-oneline"></div><div style="display:none;" id="fp-lines-hidden">'+html+'</div>';
   fpTimestampLines=[...mainBox.querySelectorAll('#fp-lines-hidden .fp-lm-line')];
   window._fpLyricTexts=fpTimestampLines.map(function(el){return el.textContent;});
   _fpLrcTimes=newLrcTimes;
