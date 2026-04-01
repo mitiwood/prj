@@ -931,7 +931,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 }
 .result-card:last-child{margin-bottom:0;}
 .rc-cover{
-  width:100%;height:180px;flex-shrink:0;
+  width:100%;height:clamp(140px,30vw,220px);flex-shrink:0;
   background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
   display:flex;align-items:center;justify-content:center;
   font-size:28px;position:relative;overflow:hidden;
@@ -4476,7 +4476,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   /* 결과 카드 */
   .result-card{padding:0;}
-  .rc-cover{height:200px;}
+  .rc-cover{height:160px;}
   .rc-actions{flex-wrap:wrap;gap:6px;}
 
   /* 미니플레이어 */
@@ -4607,9 +4607,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .genre-btn-grid,.mood-grid{grid-template-columns:repeat(5,1fr);}
   /* 악기 그리드: 5열 */
   .adv-instrument-grid{grid-template-columns:repeat(5,1fr);}
-  /* 결과 카드: 2열 */
-  .results-inner{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .batch-cards-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  /* 결과 카드: 세로 레이아웃 — 1열 유지 (커버 상단 배치) + 최대폭 제한 */
+  .results-inner{display:flex;flex-direction:column;gap:12px;max-width:560px;margin:0 auto;}
+  .batch-cards-wrap{max-width:560px;margin:0 auto;}
+  .rc-cover{height:200px;}
   /* 바텀시트/모달/레이어팝업 폭 확장 — 전체 대응 */
   .ai-sheet-box,.hes-sheet,.modal,.rc-sheet-box,
   .hes-panel,.fes-panel,.mds-panel,.queue-panel,.dm-panel,
@@ -4670,8 +4671,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   /* 장르: 6열 */
   .genre-btn-grid,.mood-grid{grid-template-columns:repeat(6,1fr);}
   .adv-instrument-grid{grid-template-columns:repeat(6,1fr);}
-  /* 결과 카드 */
-  .batch-cards-wrap{grid-template-columns:1fr 1fr 1fr;}
+  /* 결과 카드: 2열 (세로 카드) */
+  .results-inner{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:none;}
+  .batch-cards-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:none;}
+  .rc-cover{height:220px;}
   /* 설정 2열 */
   #settings-view .settings-section{max-width:none;}
   /* 바텀시트/모달/레이어팝업 폭 확장 — 전체 대응 */
