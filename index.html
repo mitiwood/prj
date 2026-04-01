@@ -16663,13 +16663,29 @@ function fpStopViz(){
   _stopBpmDetection();
 }
 
-/* ── 페이지 비가시 시 시각화 중지 (블루투스 끊김 방지 + CPU 절약) ── */
+/* ── 페이지 비가시/복귀 시 시각화 + 오디오 복원 ── */
+var _wasPlayingBeforeBg = false;
 document.addEventListener('visibilitychange',function(){
   if(!fpAudio) return;
   if(document.hidden){
+    /* 백그라운드 진입 — 재생 상태 기억 */
+    _wasPlayingBeforeBg = !fpAudio.paused;
     if(typeof _stopBpmDetection==='function') _stopBpmDetection();
     if(typeof _stopSpectrum==='function') _stopSpectrum();
   } else {
+    /* 포그라운드 복귀 — AudioContext resume + 재생 이어하기 */
+    try{
+      if(_eqCtx && _eqCtx.state==='suspended') _eqCtx.resume();
+      if(_bpmCtx && _bpmCtx.state==='suspended') _bpmCtx.resume();
+    }catch(e){console.warn('[FG] AudioContext resume:', e.message);}
+    if(_wasPlayingBeforeBg && fpAudio.paused){
+      console.log('[FG] 포그라운드 복귀 — 오디오 재생 이어하기');
+      fpAudio.play().catch(function(e){
+        console.warn('[FG] play resume failed:', e.message);
+        setTimeout(function(){ fpAudio.play().catch(function(){}); }, 500);
+      });
+    }
+    _wasPlayingBeforeBg = false;
     if(!fpAudio.paused && $('fullplayer')?.classList.contains('on')){
       if(typeof _startBpmDetection==='function') _startBpmDetection();
       if(typeof _initSpectrum==='function') _initSpectrum();
