@@ -9661,7 +9661,7 @@ function _saveLoginUser(user){
     _saveLoginUser(user);
     /* DB에서 사용자 전체 데이터 최신화 (플랜+크레딧+트랙+출석) */
     setTimeout(()=>{ _syncPlanFromServer(); }, 300);
-    setTimeout(()=>{ _userSyncDone=false; _syncUserDataFromServer(); }, 600);
+    setTimeout(()=>{ _syncUserDataFromServer(true); }, 600); /* 로그인 직후: force */
     /* Supabase에서 내 트랙 로드 */
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
     /* 푸시 구독 요청 */
@@ -25171,8 +25171,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   /* 로그인 상태면 전체 데이터 최신화 */
   if(currentUser) setTimeout(_syncUserDataFromServer, 1200);
 });
-/* 탭 복귀 시 즉시 동기화 */
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); _userSyncDone=false; _syncUserDataFromServer(); } });
+/* 탭 복귀 시 동기화 (60초 쿨다운) */
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ _syncPlanFromServer(); _pollRealtime(); _syncUserDataFromServer(); } });
 
 /* ══════════════════════════════
    Realtime 통합 폴링 (30초) — 플랜/좋아요/댓글/알림 통합
