@@ -19416,6 +19416,14 @@ async function fpRenderLyrics(h){
         ]);
         _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
         if(_tsWords.length) h._fpAlignedWords=_tsWords;
+        /* 디버그: API 전체 응답 로그 — 간주 마커/waveform 확인용 */
+        console.log('%c[TS-API] 응답 키:','color:#f59e0b;font-weight:bold',Object.keys(_tsRes?.data||{}));
+        console.log('%c[TS-API] waveform:','color:#f59e0b',(_tsRes?.data?.waveform||[]).length+'프레임');
+        console.log('%c[TS-API] hootCer:','color:#f59e0b',_tsRes?.data?.hootCer);
+        /* 간주 마커 탐색 */
+        var _interludeWords=_tsWords.filter(function(w){return /^\[/.test(w.word||'');});
+        if(_interludeWords.length) console.log('%c[TS-API] 마커 발견:','color:#22c55e;font-weight:bold',_interludeWords.map(function(w){return w.word+' @'+w.startS+'s';}));
+        else console.log('%c[TS-API] 간주 마커 없음','color:#ef4444');
       }catch(e){}
     }
     if(_tsWords.length){
