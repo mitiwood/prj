@@ -76,11 +76,13 @@ async function checkServerCredit(userName, userProvider, creditType) {
       `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     let user = users?.[0];
-    /* provider 전환 대응 — name+provider 매칭 실패 시 name만으로 재검색 */
-    if (!user) {
+    /* 같은 이름의 supervisor 레코드가 있으면 즉시 통과 (멀티 소셜 계정 대응) */
+    if (!user || (user.plan !== 'supervisor')) {
       try {
-        const byName = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
-        user = byName?.[0];
+        const byNameAll = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=5`);
+        const svUser = byNameAll?.find(u => u.plan === 'supervisor');
+        if (svUser) return { ok: true, plan: 'supervisor' };
+        if (!user && byNameAll?.[0]) user = byNameAll[0];
       } catch {}
     }
     if (!user) return { ok: true, fallback: true };
