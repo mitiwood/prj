@@ -9717,7 +9717,7 @@ function _saveLoginUser(user){
     const _prevUser = (() => { try{ return JSON.parse(localStorage.getItem('kms_user')||'null'); }catch{ return null; } })();
     if(_prevUser && _prevUser.provider && _prevUser.provider !== user.provider){
       /* 다른 소셜 계정으로 전환 — 인증 관련 데이터만 초기화 (히스토리는 유지) */
-      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession','kms_playlists','kms_playlist','kms_guest_tracks','kms_onboarded','kms_tips_done','kms_volume','kms_failed_urls'];
+      const _keepKeys = ['kms_history','kms_usage_log','kms_settings','kms_push_sub','kms_push_subs','kms_announcement','_pendingGenSession','kms_playlists','kms_playlist','kms_guest_tracks','kms_onboarded','kms_tips_done','kms_volume','kms_failed_urls','kms_sync_offsets'];
       const _saved = {};
       _keepKeys.forEach(k=>{ const v=localStorage.getItem(k); if(v) _saved[k]=v; });
       /* 쿠키 초기화 (OAuth 세션) */
@@ -19220,6 +19220,8 @@ function fpRenderLyrics(h){
   _fpLrcTimes=[];
   _fpLrcEndTimes=[];
   _fpPrevActiveIdx=-1;
+  /* 트랙별 싱크 오프셋 복원 */
+  if(typeof loadSyncOffsetForTrack==='function') loadSyncOffsetForTrack();
 
   if(!plain.trim()){
     /* 커뮤니티 트랙이면 서버에서 가사 온디맨드 fetch */
@@ -19407,8 +19409,19 @@ function fpToggleLyricsMode(){
   toast(fpSyncMode?'🎤 싱크 모드 ON':'📝 일반 모드','',1500);
 }
 
-/* ── 싱크 오프셋 (가사가 빠르면 +, 느리면 -) ── */
+/* ── 싱크 오프셋 (가사가 빠르면 +, 느리면 -) — 트랙별 저장 ── */
 var _syncOffset=0;
+var _syncOffsetCache={};
+try{_syncOffsetCache=JSON.parse(localStorage.getItem('kms_sync_offsets')||'{}');}catch(e){_syncOffsetCache={};}
+function _getSyncTrackKey(){var h=historyData[fpCurrentIdx];return h?(h.id||h._sbId||h.taskId||''):'';}
+function _saveSyncOffsets(){try{var keys=Object.keys(_syncOffsetCache);if(keys.length>100){var o={};keys.slice(-100).forEach(function(k){o[k]=_syncOffsetCache[k];});_syncOffsetCache=o;}localStorage.setItem('kms_sync_offsets',JSON.stringify(_syncOffsetCache));}catch(e){}}
+function loadSyncOffsetForTrack(){
+  var key=_getSyncTrackKey();
+  _syncOffset=(key&&_syncOffsetCache[key]!==undefined)?_syncOffsetCache[key]:0;
+  var label=(_syncOffset>=0?'+':'')+_syncOffset.toFixed(1)+'s';
+  var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent=label;
+  var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent=label;
+}
 function adjustSyncOffset(delta,target){
   _syncOffset=Math.round((_syncOffset+delta)*10)/10;
   if(_syncOffset>5)_syncOffset=5;
@@ -19416,12 +19429,16 @@ function adjustSyncOffset(delta,target){
   var label=(_syncOffset>=0?'+':'')+_syncOffset.toFixed(1)+'s';
   var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent=label;
   var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent=label;
+  var key=_getSyncTrackKey();
+  if(key){_syncOffsetCache[key]=_syncOffset;_saveSyncOffsets();}
   toast('싱크 오프셋: '+label,'',1200);
 }
 function resetSyncOffset(){
   _syncOffset=0;
   var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent='0.0s';
   var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent='0.0s';
+  var key=_getSyncTrackKey();
+  if(key){delete _syncOffsetCache[key];_saveSyncOffsets();}
 }
 
 var _fpPrevActiveIdx=-1;
