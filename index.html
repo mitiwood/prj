@@ -12262,7 +12262,7 @@ async function generate(overrideParams){
       _retryCount++;
       var retryDelay = _retryCount * 2000;
       toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
-      console.warn('[generate] auto-retry #'+_retryCount+':', errMsg);
+      console.warn('[generate] auto-retry #'+_retryCount+':', e.message);
       _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(Object.assign({},overrideParams||{},{_isRetry:true})); }, retryDelay);
       return;
     }
