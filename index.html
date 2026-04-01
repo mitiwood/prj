@@ -9134,7 +9134,7 @@ async function _ytDoGenerate(){
       if($('ld-task')) $('ld-task').textContent='';
       $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
-      const _rawYtTracks = await pollResult(apiKey, taskId, _localGenCount);
+      const _rawYtTracks = await pollResult(apiKey, taskId, 1); /* YouTube 모드는 항상 1곡 */
       if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
       /* ✅ FIX: 생성 실패 트랙 필터링 */
       tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
@@ -11869,7 +11869,7 @@ async function generate(overrideParams){
   var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
-  _genLog('START','mode='+_modeKey+', genCount='+_genCount, new Error().stack?.split('\n').slice(1,4).join(' < '));
+  _genLog('START','mode='+_modeKey+', genCount='+_genCount);
   /* 심플 모드: 항상 1곡만 (2곡 선택 무시) */
   var _localGenCount = _genCount;
   if(currentMode==='simple') _localGenCount=1;
@@ -24090,6 +24090,9 @@ async function _fetchServerCredits(){
     var d = await r.json();
     if(d.ok && d.profile){
       var _plan = d.profile.plan || 'free';
+      /* 최고 권한 이메일 — 서버 플랜과 무관하게 supervisor 강제 부여 */
+      var _ownerEmails=['altosax7@gmail.com'];
+      if(_ownerEmails.indexOf((currentUser?.email||'').toLowerCase())>=0) _plan='supervisor';
       var _isSupervisor = _plan === 'supervisor';
       _serverCreditsCache = {
         credits_song: _isSupervisor ? 9999 : (d.profile.credits_song ?? 0),
@@ -24613,7 +24616,9 @@ async function _syncPlanFromServer(){
     const ur = await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider));
     const ud = await ur.json();
     if(ud.ok && ud.profile){
-      const serverPlan = ud.profile.plan || 'free';
+      var serverPlan = ud.profile.plan || 'free';
+      /* 최고 권한 이메일 강제 supervisor */
+      if(['altosax7@gmail.com'].indexOf((currentUser?.email||'').toLowerCase())>=0) serverPlan='supervisor';
       var cachedPlan = _serverCreditsCache?.plan || 'free';
       if(cachedPlan !== serverPlan){
         /* 결제 가드: 캐시가 유료인데 서버가 free면 → 결제 직후엔 덮어쓰지 않음 */
