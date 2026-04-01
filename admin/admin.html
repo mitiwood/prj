@@ -4110,17 +4110,38 @@ function _toggleOwnerTracks(ownerName,oi){
   row.style.display='';
   var inner=document.getElementById('owner-tracks-inner-'+oi);
   if(!inner) return;
-  var tracks=(_allAdminTracks||[]).filter(function(t){return t.audio_url&&t._owner&&t._owner.name===ownerName;});
-  if(!tracks.length){inner.innerHTML='<div style="font-size:11px;color:var(--t3);padding:8px;">\uC7AC\uC0DD \uAC00\uB2A5\uD55C \uACE1\uC774 \uC5C6\uC2B5\uB2C8\uB2E4</div>';return;}
+  var tracks=(_allAdminTracks||[]).filter(function(t){return t._owner&&t._owner.name===ownerName;});
+  if(!tracks.length){inner.innerHTML='<div style="font-size:11px;color:var(--t3);padding:8px;">생성된 곡이 없습니다</div>';return;}
   var h='';
   tracks.forEach(function(t){
-    var thumbHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;" loading="lazy" onerror="this.style.display=\'none\'">':'<div style="width:32px;height:32px;border-radius:6px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;">\uD83C\uDFB5</div>';
-    var isPlaying=_adminCurrentAudio&&!_adminCurrentAudio.paused&&_adminCurrentAudio._srcUrl===t.audio_url;
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;cursor:pointer;'+(isPlaying?'background:rgba(124,58,237,.15);':'')+'" onclick="adminPlayTrack(\''+esc(t.audio_url)+'\',\''+esc(t.title||'track')+'\',null,-1)">';
+    var thumbHtml=t.image_url?'<img src="'+esc(t.image_url)+'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;" loading="lazy" onerror="this.style.display=\'none\'">':'<div style="width:32px;height:32px;border-radius:6px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;">🎵</div>';
+    var url=t.audio_url||'';
+    var canPlay=!!(url&&/^https?:\/\//i.test(url));
+    var isPlaying=canPlay&&_adminCurrentAudio&&!_adminCurrentAudio.paused&&_adminCurrentAudio._srcUrl===url;
+    /* 재생 불가 원인 판별 */
+    var failTag='';
+    if(!canPlay){
+      if(!url) failTag='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;white-space:nowrap;">오디오 없음</span>';
+      else if(/expired|만료/i.test(url)) failTag='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;font-weight:600;white-space:nowrap;">URL 만료</span>';
+      else failTag='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,.15);color:#a855f7;font-weight:600;white-space:nowrap;">잘못된 URL</span>';
+    }
+    /* 에러 상태 체크 (생성 실패 등) */
+    if(canPlay&&t._playError) failTag='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;white-space:nowrap;">디코딩 실패</span>';
+    var modeLabel={custom:'커스텀',simple:'심플',youtube:'YT',mv:'MV'}[t.genMode||'custom']||'';
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;'+(isPlaying?'background:rgba(124,58,237,.15);':'')+(canPlay?'cursor:pointer;':'')+'" '+(canPlay?'onclick="adminPlayTrack(\''+esc(url)+'\',\''+esc(t.title||'track')+'\',null,-1)"':'')+'>';
     h+=thumbHtml;
-    h+='<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(t.title||'\uBB34\uC81C')+'</div>';
-    h+='<div style="font-size:10px;color:var(--t3);">\u2764\uFE0F'+(t._commLikes||0)+' \u25B6'+(t._commPlays||0)+'</div></div>';
-    h+='<button class="btn btn-acc" onclick="event.stopPropagation();adminPlayTrack(\''+esc(t.audio_url)+'\',\''+esc(t.title||'track')+'\',this,-1)" style="padding:4px 10px;font-size:11px;flex-shrink:0;">'+(isPlaying?'\u23F8':'\u25B6')+'</button>';
+    h+='<div style="flex:1;min-width:0;">';
+    h+='<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">'+esc(t.title||'무제')+'</span>';
+    if(modeLabel) h+='<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(124,58,237,.12);color:var(--acc);font-weight:600;">'+modeLabel+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;">❤️'+(t._commLikes||0)+' ▶'+(t._commPlays||0);
+    if(t.created) h+=' · '+new Date(t.created).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
+    h+='</div></div>';
+    if(canPlay){
+      h+='<button class="btn btn-acc" onclick="event.stopPropagation();_adminPlayInAccordion(\''+esc(url)+'\',\''+esc(t.title||'track')+'\',this)" style="padding:4px 10px;font-size:11px;flex-shrink:0;">'+(isPlaying?'⏸':'▶')+'</button>';
+    } else {
+      h+=failTag;
+    }
     h+='</div>';
   });
   inner.innerHTML=h;
@@ -4237,6 +4258,58 @@ function adminPlayTrack(url,title,btn,idx){
   audio.addEventListener('ended',function(){if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';if(_adminCurrentBtn)_adminCurrentBtn.textContent='\u25B6 \uC7AC\uC0DD';_adminCurrentAudio=null;},{once:true});
   audio.addEventListener('pause',function(){if(audio.ended)return;if(btn)btn.textContent='\u25B6 \uC7AC\uC0DD';});
   audio.addEventListener('play',function(){if(btn)btn.textContent='\u23F8 \uC815\uC9C0';});
+}
+
+/* 아코디언 내부 재생 — 실패 시 원인 태그 표시 */
+function _adminPlayInAccordion(url, title, btn){
+  if(_adminCurrentAudio&&_adminCurrentAudio._srcUrl===url){
+    if(_adminCurrentAudio.paused){_adminCurrentAudio.play();if(btn)btn.textContent='⏸';}
+    else{_adminCurrentAudio.pause();if(btn)btn.textContent='▶';}
+    return;
+  }
+  if(_adminCurrentAudio){_adminCurrentAudio.pause();_adminCurrentAudio=null;}
+  if(_adminCurrentBtn){_adminCurrentBtn.textContent='▶';}
+  var audio=new Audio();
+  audio._srcUrl=url;
+  _adminCurrentAudio=audio;
+  _adminCurrentBtn=btn;
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  audio.src=url;
+  var _failTimeout=setTimeout(function(){
+    if(!audio.readyState){
+      audio.pause();_adminCurrentAudio=null;
+      if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;font-weight:600;">타임아웃</span>';}
+    }
+  },15000);
+  audio.addEventListener('error',function(){
+    clearTimeout(_failTimeout);_adminCurrentAudio=null;
+    var code=audio.error?audio.error.code:0;
+    var reason='재생 불가';
+    if(code===2) reason='네트워크 오류';
+    else if(code===3) reason='디코딩 실패';
+    else if(code===4) reason='포맷 미지원';
+    if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;">'+reason+'</span>';}
+    adminToast('⚠️ '+title+': '+reason,'err');
+  },{once:true});
+  audio.addEventListener('canplay',function(){
+    clearTimeout(_failTimeout);
+    if(btn){btn.disabled=false;btn.textContent='⏸';}
+  },{once:true});
+  audio.play().then(function(){
+    clearTimeout(_failTimeout);
+    if(btn){btn.disabled=false;btn.textContent='⏸';}
+    adminToast('▶ '+title,'',1500);
+  }).catch(function(e){
+    clearTimeout(_failTimeout);_adminCurrentAudio=null;
+    if(e.name==='AbortError') return;
+    var reason='재생 실패';
+    if(e.name==='NotAllowedError') reason='자동재생 차단';
+    else if(e.name==='NotSupportedError') reason='포맷 미지원';
+    if(btn){btn.outerHTML='<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;font-weight:600;">'+reason+'</span>';}
+  });
+  audio.addEventListener('ended',function(){if(btn)btn.textContent='▶';_adminCurrentAudio=null;},{once:true});
+  audio.addEventListener('pause',function(){if(!audio.ended&&btn)btn.textContent='▶';});
+  audio.addEventListener('play',function(){if(btn)btn.textContent='⏸';});
 }
 
 async function adminDownloadTrack(url, title){
