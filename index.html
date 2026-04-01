@@ -16891,6 +16891,8 @@ async function _doOpenFullPlayer(idx){
   }
   /* 배경은 fp-bg (커버 블러 풀스크린)가 이미 처리 */
   await fpRenderLyrics(h);
+  /* 보컬 감지 분석 (백그라운드) */
+  if(h.audio_url && typeof _analyzeVocalMap==='function') _analyzeVocalMap(h.audio_url);
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
   $('fullplayer').classList.add('on');
@@ -19597,7 +19599,81 @@ function resetSyncOffset(){
 }
 
 var _fpPrevActiveIdx=-1;
-/* 전체모드 가사 싱크 — syncKpLyrics와 완전 동일한 로직 (DOM data-start/end 직접 읽기) */
+
+/* ── Web Audio 보컬 감지 엔진 ── */
+var _fpVocalMap=[]; /* 0.1초 단위 보컬 유무 배열: true=보컬, false=간주 */
+var _fpVocalAnalyzing=false;
+
+function _isVocalAt(timeSec){
+  if(!_fpVocalMap.length) return true; /* 분석 전이면 보컬 있다고 가정 */
+  var idx=Math.floor(timeSec*10);
+  if(idx<0) return true;
+  if(idx>=_fpVocalMap.length) return false;
+  return _fpVocalMap[idx];
+}
+
+async function _analyzeVocalMap(audioUrl){
+  if(_fpVocalAnalyzing) return;
+  _fpVocalAnalyzing=true;
+  _fpVocalMap=[];
+  try{
+    var res=await fetch(audioUrl);
+    var buf=await res.arrayBuffer();
+    var offCtx=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,44100);
+    var decoded=await offCtx.decodeAudioData(buf);
+    var sr=decoded.sampleRate;
+    var data=decoded.getChannelData(0);
+    var stepSize=Math.floor(sr*0.1); /* 0.1초 단위 */
+    var totalSteps=Math.floor(data.length/stepSize);
+    /* 주파수 분석: 300Hz~3kHz 밴드 에너지 (보컬 대역) */
+    var fftSize=2048;
+    var offCtx2=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,decoded.length,sr);
+    var source=offCtx2.createBufferSource();
+    var analyser=offCtx2.createAnalyser();
+    analyser.fftSize=fftSize;
+    /* 밴드패스 필터: 300Hz ~ 3kHz */
+    var bpf=offCtx2.createBiquadFilter();
+    bpf.type='bandpass';
+    bpf.frequency.value=1200;
+    bpf.Q.value=0.5;
+    source.buffer=decoded;
+    source.connect(bpf);
+    bpf.connect(analyser);
+    analyser.connect(offCtx2.destination);
+    source.start(0);
+    /* ScriptProcessor 대신 직접 PCM 데이터에서 RMS 계산 (더 빠름) */
+    /* 밴드패스 필터 없이 간단 RMS로 대체 (OfflineAudioContext 렌더 시간 절약) */
+    offCtx2=null;source=null;analyser=null;bpf=null; /* 위 방식 취소 */
+    /* 직접 PCM에서 0.1초 단위 RMS 에너지 계산 */
+    var rmsArr=[];
+    for(var s=0;s<totalSteps;s++){
+      var start=s*stepSize;
+      var end=Math.min(start+stepSize,data.length);
+      var sum=0;
+      for(var j=start;j<end;j++) sum+=data[j]*data[j];
+      rmsArr.push(Math.sqrt(sum/(end-start)));
+    }
+    /* 전체 평균 RMS 계산 */
+    var avgRms=rmsArr.reduce(function(a,b){return a+b;},0)/rmsArr.length;
+    /* 임계값: 평균의 30% 이하 → 간주 (보컬 없음) */
+    var threshold=avgRms*0.3;
+    _fpVocalMap=rmsArr.map(function(rms){return rms>threshold;});
+    /* 스무딩: 0.3초(3샘플) 연속 false여야 간주로 판정 (짧은 무음 무시) */
+    var smoothed=_fpVocalMap.slice();
+    for(var si=1;si<smoothed.length-1;si++){
+      if(!smoothed[si]&&(smoothed[si-1]||smoothed[si+1])) smoothed[si]=true;
+    }
+    _fpVocalMap=smoothed;
+    console.log('[VocalMap] 분석 완료: '+_fpVocalMap.length+'프레임, 보컬='+_fpVocalMap.filter(Boolean).length+', 간주='+_fpVocalMap.filter(function(v){return !v;}).length);
+  }catch(e){
+    console.warn('[VocalMap] 분석 실패:',e.message);
+    _fpVocalMap=[];
+  }finally{
+    _fpVocalAnalyzing=false;
+  }
+}
+
+/* 전체모드 가사 싱크 */
 function fpSyncLyrics(currentTime){
   var _rawTime=currentTime;
   currentTime=currentTime+_syncOffset;
@@ -19608,19 +19684,18 @@ function fpSyncLyrics(currentTime){
   if(hasDataEnd) currentTime-=0.2;
   var n=fpTimestampLines.length;
   var activeIdx=-1;
-  /* start/end 정밀 싱크 — 간주 구간 감지 */
+  /* start/end 정밀 싱크 + Web Audio 보컬 감지 */
   if(hasDataEnd){
     for(var di=n-1;di>=0;di--){
       var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
-      var _lineDur=de-ds;
-      var _realEnd=de;
-      /* 간주 보정: 줄이 5초 이상이면 보컬 부분만 (글자수 기반) */
-      if(_lineDur>5){
-        var _txt=(fpTimestampLines[di].textContent||'').trim();
-        _realEnd=ds+Math.min(_lineDur,Math.max(2.5,_txt.length*0.2+1));
+      if(currentTime>=ds&&currentTime<de){
+        /* 보컬 감지: 현재 구간에 보컬 없으면 간주 → 스킵 */
+        if(_fpVocalMap&&_fpVocalMap.length&&!_isVocalAt(currentTime)){
+          continue; /* 보컬 없는 구간 → 이 줄 매칭 안 함 */
+        }
+        activeIdx=di;break;
       }
-      if(currentTime>=ds&&currentTime<_realEnd){activeIdx=di;break;}
     }
   } else if(_fpLrcTimes.length){
     /* LRC/균등 분할 — endTime도 고려 */
