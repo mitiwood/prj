@@ -1321,8 +1321,8 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .home-widget-icon{font-size:24px;margin-bottom:6px;}
 .home-widget-label{font-size:11px;font-weight:700;color:var(--t1);}
 .home-widget-sub{font-size:9px;color:var(--t3);margin-top:2px;}
-.spectrum-bars{display:flex;align-items:flex-end;gap:1px;height:40px;justify-content:center;margin:8px 0;}
-.spectrum-bar{width:3px;background:linear-gradient(to top,var(--acc),var(--acc2));border-radius:1px;transition:height 80ms ease-out;}
+.spectrum-bars{display:flex;align-items:flex-end;gap:1px;height:40px;justify-content:flex-start;margin:8px 0;}
+.spectrum-bar{width:2px;background:linear-gradient(to top,var(--acc),var(--acc2));border-radius:1px;transition:height 60ms ease-out;}
 .lyrics-edit-toolbar{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
 .lyrics-edit-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:3px;}
 .lyrics-edit-btn:hover{border-color:var(--acc);color:var(--acc);}
@@ -28083,8 +28083,9 @@ function _applyAttendBannerToggle(){
 _applyAttendBannerToggle();
 window._toggleAttendBanner=_toggleAttendBanner;
 
-/* ═══ 3. 스펙트럼 시각화 ═══ */
-var _spectrumBars=32;
+/* ═══ 3. 스펙트럼 시각화 (오디오 데이터 기반 웨이브) ═══ */
+var _spectrumBars=48;
+var _spectrumAudioCtx=null,_spectrumAnalyser=null,_spectrumSource=null,_spectrumRafId=0;
 function _initSpectrum(){
   var el=$('fp-spectrum');if(!el||el.children.length)return;
   var html='';for(var i=0;i<_spectrumBars;i++)html+='<div class="spectrum-bar" style="height:2px;"></div>';
@@ -28095,14 +28096,51 @@ function _startSpectrum(){
   _initSpectrum();
   var el=$('fp-spectrum');if(!el)return;
   var bars=el.children;
-  _spectrumTimer=setInterval(function(){
+  /* 오디오 분석기 연결 */
+  if(fpAudio&&!_spectrumAnalyser){
+    try{
+      if(!_spectrumAudioCtx) _spectrumAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(_spectrumAudioCtx.state==='suspended') _spectrumAudioCtx.resume();
+      if(!fpAudio._specSrc){
+        _spectrumSource=_spectrumAudioCtx.createMediaElementSource(fpAudio);
+        fpAudio._specSrc=_spectrumSource;
+      } else { _spectrumSource=fpAudio._specSrc; }
+      _spectrumAnalyser=_spectrumAudioCtx.createAnalyser();
+      _spectrumAnalyser.fftSize=128;
+      _spectrumSource.connect(_spectrumAnalyser);
+      _spectrumAnalyser.connect(_spectrumAudioCtx.destination);
+    }catch(e){_spectrumAnalyser=null;}
+  }
+  /* 실시간 웨이브 렌더링 */
+  function _drawWave(){
+    _spectrumRafId=requestAnimationFrame(_drawWave);
     if(!fpAudio||fpAudio.paused){for(var i=0;i<bars.length;i++)bars[i].style.height='2px';return;}
-    for(var i=0;i<bars.length;i++){
-      var h=Math.random()*35+5;bars[i].style.height=h+'px';
+    if(_spectrumAnalyser){
+      var data=new Uint8Array(_spectrumAnalyser.frequencyBinCount);
+      _spectrumAnalyser.getByteFrequencyData(data);
+      var step=Math.floor(data.length/_spectrumBars);
+      for(var i=0;i<bars.length;i++){
+        var val=data[i*step]||0;
+        bars[i].style.height=Math.max(2,val/255*38)+'px';
+      }
+    } else {
+      /* 폴백: 오디오 분석 불가 시 심플 웨이브 */
+      var t=Date.now()/200;
+      for(var i=0;i<bars.length;i++){
+        var h=Math.sin(t+i*0.3)*12+14+Math.sin(t*1.7+i*0.5)*8;
+        bars[i].style.height=Math.max(2,h)+'px';
+      }
     }
-  },100);
+  }
+  if(_spectrumRafId) cancelAnimationFrame(_spectrumRafId);
+  _drawWave();
 }
-function _stopSpectrum(){clearInterval(_spectrumTimer);var el=$('fp-spectrum');if(el){var bars=el.children;for(var i=0;i<bars.length;i++)bars[i].style.height='2px';}}
+function _stopSpectrum(){
+  if(_spectrumRafId){cancelAnimationFrame(_spectrumRafId);_spectrumRafId=0;}
+  clearInterval(_spectrumTimer);
+  if(_spectrumAnalyser){try{_spectrumSource.disconnect(_spectrumAnalyser);_spectrumAnalyser.disconnect();}catch(e){}_spectrumAnalyser=null;}
+  var el=$('fp-spectrum');if(el){var bars=el.children;for(var i=0;i<bars.length;i++)bars[i].style.height='2px';}
+}
 
 /* ═══ 4. AI 가사 편집 도구 ═══ */
 function _lyricsAnalyze(){
