@@ -2999,11 +2999,39 @@ export default async function handler(req, res) {
       /* 수정 의도 자연어 감지 */
       { re: /(?:바꿔|변경|수정|고쳐|추가|넣어|삭제|제거|빼).*(줘|해|주|요|좀)|(?:색상|크기|폰트|버튼|이미지|텍스트|문구).*(바꿔|변경|수정)/i, cmd: '수정', extractArg: true },
       { re: /(?:안\s*[되보나돼]|깨져|안\s*나[와옴]|오류|에러|빈\s*화면|작동.*안|클릭.*안|로딩.*안)/i, cmd: '수정', extractArg: true },
+      /* QA/TC 자연어 */
+      { re: /M\d{2}\s*(테스트|검증|돌려|실행|해봐|해줘|확인)/i, cmd: 'tc실행', extractArg: true, transform: 'tc_id' },
+      { re: /(테스트|검증|돌려|실행|해봐|해줘|확인).*M\d{2}/i, cmd: 'tc실행', extractArg: true, transform: 'tc_id' },
+      { re: /M\d{2}\s*(통과|성공|패스|pass|됐|됨|ok)/i, cmd: 'tc결과', extractArg: true, transform: 'tc_pass' },
+      { re: /M\d{2}\s*(실패|fail|안\s*[되돼]|깨|에러)/i, cmd: 'tc결과', extractArg: true, transform: 'tc_fail' },
+      { re: /tc.*(현황|리포트|결과.*보|통과율|몇.*개|얼마나)/i, cmd: 'tc리포트' },
+      { re: /테스트.*(현황|결과|리포트|얼마|몇)|QA.*(현황|결과|리포트)/i, cmd: 'tc리포트' },
+      { re: /(커스텀|심플|유튜브|MV|연장).*(테스트|검증|확인|돌려)/i, cmd: 'tc', extractArg: true, transform: 'tc_mode' },
     ];
     if (!COMMANDS[cmd]) {
       const full = text.toLowerCase();
       for (const nl of NL_MAP) {
-        if (nl.re.test(full)) { cmd = nl.cmd; arg = nl.extractArg ? text : ''; break; }
+        if (nl.re.test(full)) {
+          cmd = nl.cmd;
+          if (nl.extractArg) {
+            arg = text;
+            /* 자연어 변환 */
+            if (nl.transform === 'tc_id') {
+              const m = text.match(/M(\d{2})/i);
+              if (m) arg = '음악 ' + parseInt(m[1]);
+            } else if (nl.transform === 'tc_pass') {
+              const m = text.match(/M(\d{2})/i);
+              if (m) arg = m[0].toUpperCase() + ' pass';
+            } else if (nl.transform === 'tc_fail') {
+              const m = text.match(/M(\d{2})/i);
+              if (m) arg = m[0].toUpperCase() + ' fail';
+            } else if (nl.transform === 'tc_mode') {
+              const modeMap = { '커스텀': '음악', '심플': '음악', '유튜브': '음악', 'mv': '음악', '연장': '음악' };
+              for (const [k, v] of Object.entries(modeMap)) { if (full.includes(k)) { arg = v; break; } }
+            }
+          } else { arg = ''; }
+          break;
+        }
       }
     }
 
