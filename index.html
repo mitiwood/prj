@@ -9151,16 +9151,19 @@ async function _ytDoGenerate(){
     _stopLdTips();
     $('loading-card').classList.remove('on');
     console.error('%c[Generate] %cYT-ERROR%c '+e.message+' ('+(Date.now()-_ytT0)+'ms)','color:#a78bfa;font-weight:bold','color:#ef4444;font-weight:bold','color:inherit');
-    var ytErrMsg = e.message;
-    const _ytIsSensitive = ytErrMsg.includes('SENSITIVE_WORD')||ytErrMsg.includes('부적절한 단어');
-    const _ytIsRetryable = !_ytIsSensitive && !_genCancelled && !ytErrMsg.includes('취소') && !ytErrMsg.includes('credit') && !ytErrMsg.includes('사용량') && _ytRetryCount < 2;
 
-    /* 자동 재시도 (최대 2회, 지수 백오프) — 취소 시 재시도 안 함 */
+    var _ytClassified = _classifyError(e.message);
+    var _ytIsRetryable = _ytClassified.retry && !_genCancelled && !e.message.includes('취소') && _ytRetryCount < 2;
+
+    /* 서버 에러 로깅 */
+    _logErrorToServer('/api/v1/generate','[YT] '+e.message,null,_ytClassified.cat==='server'||_ytClassified.cat==='unknown'?'critical':'warn');
+
+    /* 자동 재시도 (최대 2회, 카테고리별 대기 시간) */
     if(_ytIsRetryable){
       _ytRetryCount++;
-      var _ytRetryDelay = _ytRetryCount * 2000;
-      toast('⏳ YouTube 생성 오류 — 자동 재시도 '+_ytRetryCount+'/2 ('+(_ytRetryCount*2)+'초 후)','',3000);
-      console.warn('[YT Generate] auto-retry #'+_ytRetryCount+':', ytErrMsg);
+      var _ytRetryDelay = _ytClassified.delay * _ytRetryCount;
+      toast('⏳ YouTube 생성 오류 — 자동 재시도 '+_ytRetryCount+'/2 ('+(_ytRetryDelay/1000)+'초 후)','',3000);
+      console.warn('[YT Generate] auto-retry #'+_ytRetryCount+' ('+_ytClassified.cat+'):', e.message);
       _ytGenerating=false; _globalGenerating=false; _syncGenButtons();
       if(ytBtn){ytBtn.disabled=false;ytBtn.style.opacity='1';}
       if(ytSpin)ytSpin.style.display='none';
@@ -9170,24 +9173,9 @@ async function _ytDoGenerate(){
     }
     _ytRetryCount=0;
 
-    if(_ytIsSensitive){
-      ytErrMsg='가사에 부적절한 단어가 있어요 — 가사를 수정해주세요';
-    } else if(ytErrMsg.includes('시간 초과')){
-      ytErrMsg='생성 시간이 초과됐어요 — 잠시 후 다시 시도해주세요';
-    } else if(ytErrMsg.includes('taskId')){
-      ytErrMsg='kie.ai 요청 오류 — 잠시 후 다시 시도해주세요';
-    } else if(ytErrMsg.includes('네트워크')||ytErrMsg.includes('fetch')||ytErrMsg.includes('Failed to fetch')){
-      ytErrMsg='네트워크 오류 — 인터넷 연결을 확인해주세요';
-    } else if(ytErrMsg.includes('503')||ytErrMsg.includes('502')||ytErrMsg.includes('overload')){
-      ytErrMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
-    }
-    toast('❌ '+ytErrMsg,'err',5000);
-    /* 다시 시도 플로팅 버튼 */
-    var _ytRetryToast=document.createElement('div');
-    _ytRetryToast.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;';
-    _ytRetryToast.innerHTML='<button onclick="this.parentNode.remove();_ytDoGenerate()" style="padding:10px 24px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(124,58,237,.3);">🔄 다시 시도</button>';
-    document.body.appendChild(_ytRetryToast);
-    setTimeout(()=>{if(_ytRetryToast.parentNode)_ytRetryToast.remove();},8000);
+    /* 에러 가이드 바텀시트 */
+    _showErrorGuideSheet(_ytClassified,function(){_ytDoGenerate();});
+    toast(_ytClassified.icon+' '+_ytClassified.msg,'err',4000);
   }finally{
     var _ytWasCancelled=_genCancelled;
     _ytGenerating     = false;
@@ -9974,10 +9962,13 @@ async function generateMV(){
 
   }catch(e){
     console.error('[MV Grok]',e);
-    let msg='❌ '+e.message;
-    if(/credit|Credit|insufficient|balance.*too low/i.test(e.message))msg='❌ '+_t('errCreditKie');
-    else if(/403|permission|plan/i.test(e.message))msg='❌ 유료 플랜에서 지원됩니다';
-    resultArea.innerHTML=`<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">${esc(msg)}</div></div>`;
+    var _mvClassified = _classifyError(e.message);
+    /* MV 특수 에러 */
+    if(/403|permission|plan/i.test(e.message)){
+      _mvClassified={cat:'credit',msg:'유료 플랜에서 지원됩니다',guide:'MV 생성은 Pro 이상 플랜에서 이용 가능해요.',retry:false,icon:'💎',action:'upgrade'};
+    }
+    _logErrorToServer('/api/v1/generate/mv',e.message,null,_mvClassified.cat==='server'?'critical':'warn');
+    resultArea.innerHTML=`<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">${esc(_mvClassified.icon+' '+_mvClassified.msg)}</div><div style="color:#a09ab8;font-size:11px;margin-top:4px;">${esc(_mvClassified.guide)}</div></div>`;
   }finally{
     $('loading-card').classList.remove('on');
     _stopLdTips();
@@ -11404,6 +11395,72 @@ function _checkLyricsQuality(text){
   return null;
 }
 
+/* ── 에러 분류 시스템 ── */
+var _ERR_RULES=[
+  {cat:'content',  test:function(m){return m.includes('SENSITIVE_WORD')||m.includes('부적절한 단어');},
+    msg:'가사에 부적절한 단어가 있어요',guide:'가사를 수정한 후 다시 시도해주세요.',retry:false,icon:'🚫'},
+  {cat:'credit',   test:function(m,s){return m.includes('credit')||m.includes('Credit')||m.includes('크레딧')||m.includes('사용량')||m.includes('limit')||m.includes('exceed')||s===402;},
+    msg:'이번 달 사용량을 모두 사용했어요',guide:'플랜을 업그레이드하면 더 많은 곡을 만들 수 있어요.',retry:false,icon:'💳',action:'upgrade'},
+  {cat:'input',    test:function(m,s){return m.includes('422')||m.includes('callBackUrl')||s===422;},
+    msg:'요청 형식에 오류가 있어요',guide:'설정을 확인하고 다시 시도해주세요.',retry:false,icon:'⚠️'},
+  {cat:'model',    test:function(m){return m.includes('model error')||m.includes('model is empty');},
+    msg:'AI 모델에 일시적 오류가 발생했어요',guide:'다른 모델을 선택하거나 잠시 후 다시 시도해주세요.',retry:true,icon:'🤖',delay:2000},
+  {cat:'timeout',  test:function(m,s){return m.includes('시간 초과')||m.includes('AbortError')||m.includes('timeout')||s===504;},
+    msg:'생성 시간이 초과됐어요',guide:'서버가 바빠서 시간이 오래 걸렸어요. 잠시 후 다시 시도해주세요.',retry:true,icon:'⏱',delay:5000},
+  {cat:'network',  test:function(m){return m.includes('network')||m.includes('fetch')||m.includes('Failed to fetch')||m.includes('NetworkError');},
+    msg:navigator.onLine?'네트워크 오류가 발생했어요':'오프라인 상태입니다',guide:navigator.onLine?'잠시 후 다시 시도해주세요.':'인터넷 연결을 확인해주세요.',retry:true,icon:'📡',delay:1500},
+  {cat:'server',   test:function(m,s){return m.includes('503')||m.includes('502')||m.includes('overload')||s===502||s===503;},
+    msg:'서버가 바빠요',guide:'1~2분 후에 다시 시도해주세요.',retry:true,icon:'🔧',delay:3000},
+];
+function _classifyError(errMsg,statusCode){
+  var m=(errMsg||'').toLowerCase();
+  for(var i=0;i<_ERR_RULES.length;i++){
+    var r=_ERR_RULES[i];
+    if(r.test(m,statusCode)) return {cat:r.cat,msg:r.msg,guide:r.guide,retry:r.retry,icon:r.icon,delay:r.delay||2000,action:r.action||null};
+  }
+  return {cat:'unknown',msg:'알 수 없는 오류가 발생했어요',guide:'잠시 후 다시 시도해주세요.',retry:true,icon:'❌',delay:2000,action:null};
+}
+
+function _showErrorGuideSheet(classified,retryFn){
+  var overlay=document.createElement('div');
+  overlay.className='ai-sheet-overlay';
+  var actionHtml='';
+  if(classified.action==='upgrade'){
+    actionHtml='<button class="ai-sheet-apply-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove();if(typeof openPlanSheet===\'function\')openPlanSheet();" style="margin-top:8px;">💎 플랜 업그레이드</button>';
+  }
+  var retryHtml='';
+  if(classified.retry && retryFn){
+    retryHtml='<button class="ai-sheet-apply-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove();('+retryFn.toString()+')()" style="margin-top:8px;">🔄 다시 시도하기</button>';
+  }
+  overlay.innerHTML='<div class="ai-sheet-box" style="text-align:center;">'+
+    '<div class="ai-sheet-handle"></div>'+
+    '<div style="font-size:48px;margin:8px 0;">'+classified.icon+'</div>'+
+    '<div class="ai-sheet-title" style="font-size:16px;">'+classified.msg+'</div>'+
+    '<div style="font-size:13px;color:#a09ab8;margin:8px 0 16px;line-height:1.5;">'+classified.guide+'</div>'+
+    actionHtml+retryHtml+
+    '<button class="ai-sheet-cancel-btn" onclick="this.closest(\'.ai-sheet-overlay\').remove()" style="margin-top:8px;">닫기</button>'+
+  '</div>';
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+}
+
+function _logErrorToServer(endpoint,errMsg,statusCode,severity){
+  try{
+    fetch('/api/error-logs',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        endpoint:endpoint||'/api/v1/generate',
+        method:'POST',
+        status:statusCode||500,
+        error_message:String(errMsg||'').slice(0,500),
+        user_agent:navigator.userAgent,
+        notify:severity==='critical'
+      })
+    }).catch(function(){});
+  }catch(ex){}
+}
+
 var _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 var _globalGenerating = false; /* 전역 생성 잠금 */
 var _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
@@ -11955,47 +12012,31 @@ async function generate(overrideParams){
     if(_guestPreDeducted){
       var _cur=_getGuestUsage();if(_cur>0) localStorage.setItem('kms_guest_songs',(_cur-1).toString());
     }
-    /* gp-steps 제거됨 */
     if(typeof _stopLdTips==='function') _stopLdTips();
     $('loading-card').classList.remove('on');
     _genLog('ERROR',e.message,{elapsed:(Date.now()-_genT0)+'ms'});
-    var errMsg = e.message;
-    var isSensitive = errMsg.includes('SENSITIVE_WORD')||errMsg.includes('부적절한 단어');
-    var isRetryable = !isSensitive && !_genCancelled && !errMsg.includes('취소') && !errMsg.includes('credit') && !errMsg.includes('limit') && !errMsg.includes('422') && !errMsg.includes('exceed') && _retryCount < 2;
 
-    /* 자동 재시도 (최대 2회, 지수 백오프) */
-    if(isRetryable){
+    var _classified = _classifyError(e.message);
+    var _isRetryable = _classified.retry && !_genCancelled && !e.message.includes('취소') && _retryCount < 2;
+
+    /* 서버 에러 로깅 */
+    _logErrorToServer('/api/v1/generate',e.message,null,_classified.cat==='server'||_classified.cat==='unknown'?'critical':'warn');
+
+    /* 자동 재시도 (최대 2회, 카테고리별 대기 시간) */
+    if(_isRetryable){
       _retryCount++;
-      var retryDelay = _retryCount * 2000;
-      toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
-      console.warn('[generate] auto-retry #'+_retryCount+':', errMsg);
+      var retryDelay = _classified.delay * _retryCount;
+      toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(retryDelay/1000)+'초 후)','',3000);
+      console.warn('[generate] auto-retry #'+_retryCount+' ('+_classified.cat+'):', e.message);
       _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(overrideParams); }, retryDelay);
       return;
     }
     _retryCount = 0;
 
-    /* 에러 유형별 구체적 안내 */
-    if(isSensitive){
-      errMsg='가사에 부적절한 단어가 있어요 — 가사를 수정해주세요';
-    } else if(errMsg.includes('callBackUrl')||errMsg.includes('422')){
-      errMsg='요청 오류 — 잠시 후 다시 시도해주세요';
-    } else if(errMsg.includes('시간 초과')){
-      errMsg='생성 시간이 초과됐어요 — 잠시 후 다시 시도해주세요';
-    } else if(errMsg.includes('model error')||errMsg.includes('model is empty')){
-      errMsg='AI 모델 오류 — 다른 모델을 선택하거나 다시 시도해주세요';
-    } else if(errMsg.includes('network')||errMsg.includes('fetch')||errMsg.includes('Failed to fetch')){
-      errMsg=navigator.onLine?'네트워크 오류 — 잠시 후 다시 시도해주세요':'오프라인 상태입니다 — 인터넷 연결을 확인해주세요';
-    } else if(errMsg.includes('503')||errMsg.includes('502')||errMsg.includes('overload')){
-      errMsg='서버가 바빠요 — 잠시 후 다시 시도해주세요';
-    }
-    toast('❌ '+errMsg,'err',5000);
-    /* "다시 시도" 버튼 표시 */
-    var _retryToast=document.createElement('div');
-    _retryToast.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;';
-    _retryToast.innerHTML='<button onclick="this.parentNode.remove();generate()" style="padding:10px 24px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(124,58,237,.3);">🔄 다시 시도</button>';
-    document.body.appendChild(_retryToast);
-    setTimeout(()=>{if(_retryToast.parentNode)_retryToast.remove();},8000);
-    console.error('[generateMusic error]',e.message);
+    /* 에러 가이드 바텀시트 */
+    _showErrorGuideSheet(_classified,function(){generate();});
+    toast(_classified.icon+' '+_classified.msg,'err',4000);
+    console.error('[generateMusic error] ('+_classified.cat+')',e.message);
   }finally{
     var _wasCancelled=_genCancelled; /* 취소 여부 보존 */
     _stopLdTips();
