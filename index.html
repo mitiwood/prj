@@ -19350,7 +19350,7 @@ async function fpRenderLyrics(h){
       fpSyncMode=true;
       var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
       /* h.lyrics도 실제 보컬 가사로 업데이트 (AI 생성 가사 덮어쓰기) */
-      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\n{3,}/g,'\n\n').replace(/^\[.*?\]\s*$/gm,'').replace(/\n{3,}/g,'\n\n').trim();
+      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
       if(_realLyrics.length>20){
         h.lyrics=_realLyrics;
         var _hIdx=historyData.findIndex(function(hh){return hh.id===h.id;});
@@ -19587,14 +19587,17 @@ function fpRenderTimestampedLyrics(words){
   let curLine={words:[],startS:null,endS:null,isSec:false};
   words.forEach(function(w){
     const text=w.word||'';
-    if(/^\[.+\]$/.test(text.trim())){
-      /* 섹션 태그 스킵 */
+    /* 섹션 태그 제거: [verse], [Chorus 1], [Bridge] 등 */
+    if(/^\[.+\]$/i.test(text.trim())){
       if(curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};}
       return;
-    } else if(text.includes('\n')){
+    }
+    if(text.includes('\n')){
       const parts=text.split('\n');
       parts.forEach(function(p,pi){
-        if(p.trim()){curLine.words.push({text:p,startS:w.startS||0,endS:w.endS||0});if(curLine.startS===null)curLine.startS=w.startS||0;curLine.endS=w.endS||0;}
+        var pt=p.trim();
+        if(/^\[.+\]$/i.test(pt)) return; /* 줄바꿈 내 섹션 태그도 제거 */
+        if(pt){curLine.words.push({text:pt,startS:w.startS||0,endS:w.endS||0});if(curLine.startS===null)curLine.startS=w.startS||0;curLine.endS=w.endS||0;}
         if(pi<parts.length-1&&curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};}
       });
     } else {
@@ -19618,7 +19621,8 @@ function fpRenderTimestampedLyrics(words){
     if(line.isSec){
       return; /* 섹션 태그 표시 안 함 */
     } else {
-      const lineText=line.words.map(function(w){return w.text;}).join(' ');
+      var lineText=line.words.map(function(w){return w.text;}).join(' ').replace(/\[.*?\]/g,'').trim();
+      if(!lineText) return; /* 빈 줄 스킵 */
       html+=`<div class="fp-lm-line" data-li="${lineIdx}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="fpSeekToLine(this)">${esc(lineText)}</div>`;
       newLrcTimes.push(line.startS||0);
       newLrcEndTimes.push(line.endS||0);
