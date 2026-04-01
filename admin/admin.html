@@ -3834,7 +3834,10 @@ function _appendTrackRows(tbody, fromIdx){
       +'<td><span class="badge '+(t.audio_url?'badge-grn':'badge-red')+'">'+(t.audio_url?'있음':'없음')+'</span></td>'
       +'<td style="font-size:11px;">'+timeStr+'</td>'
       +'<td><div class="table-action-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'+audioHtml
+      +'<div style="display:flex;gap:4px;margin-top:4px;">'
       +'<button class="btn btn-red" onclick="deleteTrackByIdx('+i+')" style="font-size:11px;padding:3px 8px;">🗑 삭제</button>'
+      +'<button class="btn" onclick="_shareTrackAdmin('+i+')" style="font-size:11px;padding:3px 8px;">📤 공유</button>'
+      +'</div>'
       +'</div></td>';
     fragment.appendChild(tr);
   }
@@ -3849,6 +3852,45 @@ function _appendTrackRows(tbody, fromIdx){
     tbody.appendChild(moreRow);
   }
   _trackPage = end;
+}
+
+function _shareTrackAdmin(idx){
+  var t=_trackListForRender[idx];if(!t)return;
+  var trackId=t.id||t.taskId||'';
+  var title=t.title||'무제';
+  var shareUrl='https://ddinggok.com'+(trackId?'/?play='+encodeURIComponent(trackId):'');
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  ov.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;max-width:380px;width:100%;text-align:center;">'
+    +'<div style="font-size:28px;margin-bottom:12px;">📤</div>'
+    +'<div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px;">곡 공유</div>'
+    +'<div style="font-size:12px;color:var(--t3);margin-bottom:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_esc(title)+'</div>'
+    +'<input id="_share-url-input" value="'+_esc(shareUrl)+'" readonly style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--t1);font-size:12px;margin-bottom:12px;box-sizing:border-box;font-family:monospace;text-align:center;">'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button id="_share-copy" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🔗 링크 복사</button>'
+    +'<button id="_share-kakao" style="flex:1;padding:12px;border-radius:12px;border:none;background:#FEE500;color:#3C1E1E;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💬 카카오톡</button>'
+    +'</div>'
+    +(t.audio_url?'<button id="_share-comm" style="width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🌐 커뮤니티에 공유</button>':'')
+    +'</div>';
+  document.body.appendChild(ov);
+  document.getElementById('_share-copy').onclick=function(){
+    navigator.clipboard.writeText(shareUrl).then(function(){adminToast('🔗 링크 복사됨!');}).catch(function(){
+      var inp=document.getElementById('_share-url-input');inp.select();document.execCommand('copy');adminToast('🔗 링크 복사됨!');
+    });
+  };
+  document.getElementById('_share-kakao').onclick=function(){
+    window.open('https://sharer.kakao.com/talk/friends/picker/link?url='+encodeURIComponent(shareUrl)+'&text='+encodeURIComponent(title+' - 띵곡 AI Music'),'_blank','width=600,height=700');
+  };
+  var commBtn=document.getElementById('_share-comm');
+  if(commBtn){commBtn.onclick=async function(){
+    try{
+      var r=await adminFetch('/api/tracks',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:trackId,is_public:true})});
+      if(r.ok) adminToast('🌐 커뮤니티에 공개됨!');
+      else adminToast('공유 실패','err');
+    }catch(e){adminToast('공유 실패: '+e.message,'err');}
+    ov.remove();
+  };}
 }
 
 function _loadMoreTracks(){
