@@ -158,6 +158,7 @@ COMMANDS['도움'] = COMMANDS['help'] = async (chatId) => {
     `머지 [번호] — PR 머지 (번호 없으면 자동탐색)`,
     `청소 [일수] — stale 브랜치 정리 (기본 7일)`,
     `QA — 전체 코드 점검+봇 리포트`,
+    `tc [카테고리] [번호] — QA 테스트케이스 조회 (음악/디자인/커뮤니티)`,
     `진행상황 — GitHub Action 작업 추적`,
     `취소 — 진행 중인 Claude 작업 취소`,
     `세션 — 현재 활성 세션 확인`,
@@ -2405,6 +2406,195 @@ COMMANDS['커밋'] = COMMANDS['commits'] = COMMANDS['log'] = async (chatId, arg)
   } catch (e) { await tgSend(chatId, '❌ ' + e.message, { parse_mode: '' }); }
 };
 
+/* ── 테스트 케이스 조회 (/tc) ── */
+const TC_DATA = {
+  음악: {
+    label: '🎵 음악 생성',
+    file: 'qa/tc-music-generation.md',
+    total: 21,
+    categories: ['커스텀', '심플', 'YouTube', 'MV', '연장', '다시작곡', 'A/B', '오류'],
+    p1: 11, p2: 8, p3: 2,
+    list: [
+      { id:'M01', p:'P1', title:'커스텀 기본 생성 (가사+스타일)', pass:null },
+      { id:'M02', p:'P1', title:'가사 없이 생성 (instrumental)', pass:null },
+      { id:'M03', p:'P2', title:'섹션 태그 파싱 ([Verse] 등)', pass:null },
+      { id:'M04', p:'P2', title:'제목 자동 생성', pass:null },
+      { id:'M05', p:'P1', title:'크레딧 부족 시 차단', pass:null },
+      { id:'M06', p:'P1', title:'심플 모드 기본 생성', pass:null },
+      { id:'M07', p:'P2', title:'가사 자동완성 타이밍', pass:null },
+      { id:'M08', p:'P2', title:'1단어 설명 생성', pass:null },
+      { id:'M09', p:'P1', title:'YouTube URL 분석 → 생성', pass:null },
+      { id:'M10', p:'P1', title:'잘못된 URL 에러 처리', pass:null },
+      { id:'M11', p:'P2', title:'비공개 영상 URL 에러', pass:null },
+      { id:'M12', p:'P1', title:'MV 기본 생성', pass:null },
+      { id:'M13', p:'P2', title:'MV 생성 중 상태 표시', pass:null },
+      { id:'M14', p:'P1', title:'연장 기본 동작', pass:null },
+      { id:'M15', p:'P2', title:'연장 가사 입력', pass:null },
+      { id:'M16', p:'P3', title:'연장 슬라이더 경계값', pass:null },
+      { id:'M17', p:'P1', title:'다시 작곡 기본 동작', pass:null },
+      { id:'M18', p:'P1', title:'A/B 2곡 생성 레이아웃', pass:null },
+      { id:'M19', p:'P1', title:'A/B 버전 선택', pass:null },
+      { id:'M20', p:'P1', title:'API 오류 시 UI 복원', pass:null },
+      { id:'M21', p:'P2', title:'동시 생성 방지', pass:null },
+    ]
+  },
+  디자인: {
+    label: '🎨 디자인/UI',
+    file: 'qa/tc-design-ui.md',
+    total: 28,
+    categories: ['테마', '반응형', '카드', '플레이어', '모달', '로딩', '탭', '배치', '가사', '접근성'],
+    p1: 13, p2: 12, p3: 3,
+    list: [
+      { id:'D01', p:'P1', title:'다크/라이트 모드 전환', pass:null },
+      { id:'D02', p:'P2', title:'테마 유지 (새로고침)', pass:null },
+      { id:'D03', p:'P2', title:'시스템 다크모드 감지', pass:null },
+      { id:'D04', p:'P1', title:'모바일 폭 레이아웃 (375~480px)', pass:null },
+      { id:'D05', p:'P2', title:'데스크탑 폭 레이아웃', pass:null },
+      { id:'D06', p:'P1', title:'결과 카드 가로 레이아웃', pass:null },
+      { id:'D07', p:'P2', title:'커버 이미지 없을 때 플레이스홀더', pass:null },
+      { id:'D08', p:'P1', title:'재생 버튼 동작', pass:null },
+      { id:'D09', p:'P1', title:'진행 바 클릭 탐색', pass:null },
+      { id:'D10', p:'P2', title:'비주얼라이저 애니메이션', pass:null },
+      { id:'D11', p:'P1', title:'미니 플레이어 표시', pass:null },
+      { id:'D12', p:'P1', title:'풀 플레이어 열기/닫기', pass:null },
+      { id:'D13', p:'P1', title:'모달 오버레이 닫기', pass:null },
+      { id:'D14', p:'P1', title:'바텀시트 스와이프 닫기', pass:null },
+      { id:'D15', p:'P2', title:'바텀시트 Z-index 충돌', pass:null },
+      { id:'D16', p:'P2', title:'연장 모달 슬라이더', pass:null },
+      { id:'D17', p:'P1', title:'생성 중 로딩 카드 (모드별 색상)', pass:null },
+      { id:'D18', p:'P2', title:'이미지 로드 실패 처리', pass:null },
+      { id:'D19', p:'P2', title:'토스트 메시지 자동 사라짐', pass:null },
+      { id:'D20', p:'P1', title:'탭 전환 (생성/히스토리/커뮤/설정)', pass:null },
+      { id:'D21', p:'P1', title:'결과 카드 재생/가사 탭', pass:null },
+      { id:'D22', p:'P2', title:'배치 접기/펼치기 애니메이션', pass:null },
+      { id:'D23', p:'P2', title:'배치 삭제', pass:null },
+      { id:'D24', p:'P2', title:'가사 편집 토글', pass:null },
+      { id:'D25', p:'P1', title:'가사 노래방 모드', pass:null },
+      { id:'D26', p:'P2', title:'가사 복사', pass:null },
+      { id:'D27', p:'P3', title:'버튼 최소 터치 영역 44px', pass:null },
+      { id:'D28', p:'P3', title:'색상 대비 WCAG AA', pass:null },
+    ]
+  },
+  커뮤니티: {
+    label: '👥 커뮤니티',
+    file: 'qa/tc-community.md',
+    total: 34,
+    categories: ['좋아요', '댓글', '팔로우', '프로필', '피드', '공유', '채팅', '별점', '추천', '콜라보', '신고'],
+    p1: 12, p2: 17, p3: 5,
+    list: [
+      { id:'C01', p:'P1', title:'좋아요 추가', pass:null },
+      { id:'C02', p:'P1', title:'좋아요 취소 (toggle)', pass:null },
+      { id:'C03', p:'P2', title:'좋아요+싫어요 동시 방지', pass:null },
+      { id:'C04', p:'P2', title:'비로그인 좋아요 차단', pass:null },
+      { id:'C05', p:'P2', title:'좋아요 순위 반영', pass:null },
+      { id:'C06', p:'P1', title:'댓글 작성', pass:null },
+      { id:'C07', p:'P1', title:'댓글 목록 조회', pass:null },
+      { id:'C08', p:'P2', title:'대댓글 (답글)', pass:null },
+      { id:'C09', p:'P2', title:'댓글 300자 제한', pass:null },
+      { id:'C10', p:'P2', title:'빈 댓글 전송 방지', pass:null },
+      { id:'C11', p:'P3', title:'댓글 Rate Limit', pass:null },
+      { id:'C12', p:'P1', title:'팔로우/언팔로우', pass:null },
+      { id:'C13', p:'P2', title:'자기 자신 팔로우 방지', pass:null },
+      { id:'C14', p:'P2', title:'팔로잉 피드 반영', pass:null },
+      { id:'C15', p:'P1', title:'크리에이터 프로필 기본 정보', pass:null },
+      { id:'C16', p:'P2', title:'크리에이터 레벨 뱃지', pass:null },
+      { id:'C17', p:'P2', title:'프로필 이름 수정', pass:null },
+      { id:'C18', p:'P1', title:'피드 기본 로딩', pass:null },
+      { id:'C19', p:'P1', title:'정렬 변경 (최신/인기/별점)', pass:null },
+      { id:'C20', p:'P2', title:'내 피드 (팔로잉 필터)', pass:null },
+      { id:'C21', p:'P2', title:'무한 스크롤/페이징', pass:null },
+      { id:'C22', p:'P1', title:'공유 링크 생성', pass:null },
+      { id:'C23', p:'P2', title:'OG 메타태그 미리보기', pass:null },
+      { id:'C24', p:'P2', title:'삭제 트랙 공유 링크 접근', pass:null },
+      { id:'C25', p:'P1', title:'채팅 메시지 전송', pass:null },
+      { id:'C26', p:'P2', title:'채팅 100자 제한', pass:null },
+      { id:'C27', p:'P2', title:'비속어 필터', pass:null },
+      { id:'C28', p:'P2', title:'별점 부여', pass:null },
+      { id:'C29', p:'P2', title:'별점 중복 방지', pass:null },
+      { id:'C30', p:'P3', title:'데일리 디스커버 로딩', pass:null },
+      { id:'C31', p:'P3', title:'출석 체크', pass:null },
+      { id:'C32', p:'P2', title:'콜라보 요청 전송', pass:null },
+      { id:'C33', p:'P2', title:'콜라보 수락/거절', pass:null },
+      { id:'C34', p:'P3', title:'트랙/댓글 신고', pass:null },
+    ]
+  }
+};
+
+COMMANDS['tc'] = COMMANDS['테케'] = COMMANDS['테스트케이스'] = async (chatId, arg) => {
+  const parts = (arg || '').trim().split(/\s+/);
+  const cat = parts[0].toLowerCase();
+  const num = parts[1] || '';
+
+  /* /tc 단독 → 카테고리 목록 */
+  if (!cat) {
+    const lines = [
+      '📋 QA 테스트 케이스',
+      '',
+      '사용법: tc [카테고리] [번호]',
+      '예시: tc 음악  |  tc 디자인 6  |  tc 커뮤니티',
+      '',
+      '━━ 카테고리 (총 83개 TC) ━━',
+    ];
+    for (const [key, d] of Object.entries(TC_DATA)) {
+      lines.push(`${d.label} — ${d.total}개 (P1:${d.p1} P2:${d.p2} P3:${d.p3})`);
+      lines.push(`  /${key}  |  서브카테고리: ${d.categories.slice(0,4).join(', ')} 외`);
+    }
+    lines.push('', `📄 상세 파일: qa/tc-*.md (GitHub 저장소)`);
+    return tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+  }
+
+  /* 카테고리 매핑 */
+  const keyMap = {
+    '음악': '음악', 'music': '음악', 'm': '음악', '생성': '음악',
+    '디자인': '디자인', 'design': '디자인', 'd': '디자인', 'ui': '디자인',
+    '커뮤니티': '커뮤니티', 'community': '커뮤니티', 'c': '커뮤니티', '커뮤': '커뮤니티',
+  };
+  const key = keyMap[cat];
+  if (!key) {
+    return tgSend(chatId, `❓ 카테고리 없음: "${cat}"\n사용 가능: 음악, 디자인, 커뮤니티`, { parse_mode: '' });
+  }
+
+  const d = TC_DATA[key];
+
+  /* /tc 음악 6 → 특정 TC 상세 */
+  if (num) {
+    const idx = parseInt(num) - 1;
+    const tc = d.list[idx];
+    if (!tc) return tgSend(chatId, `❓ TC #${num} 없음 (범위: 1~${d.total})`, { parse_mode: '' });
+    const detail = [
+      `${d.label} — TC-${tc.id}`,
+      `우선순위: ${tc.p}`,
+      `제목: ${tc.title}`,
+      '',
+      `📄 상세 내용은 GitHub 저장소의`,
+      `  ${d.file}  TC-${tc.id} 항목을 확인하세요.`,
+    ];
+    return tgSend(chatId, detail.join('\n'), { parse_mode: '' });
+  }
+
+  /* /tc 음악 → 전체 목록 */
+  const p1list = d.list.filter(t => t.p === 'P1');
+  const p2list = d.list.filter(t => t.p === 'P2');
+  const p3list = d.list.filter(t => t.p === 'P3');
+
+  const lines = [
+    `${d.label} TC 목록 (총 ${d.total}개)`,
+    `서브: ${d.categories.join(', ')}`,
+    '',
+    `━━ P1 필수 (${p1list.length}개) ━━`,
+    ...p1list.map((t,i) => `${i+1}. TC-${t.id} ${t.title}`),
+    '',
+    `━━ P2 중요 (${p2list.length}개) ━━`,
+    ...p2list.map((t,i) => `${i+1}. TC-${t.id} ${t.title}`),
+    '',
+    `━━ P3 선택 (${p3list.length}개) ━━`,
+    ...p3list.map((t,i) => `${i+1}. TC-${t.id} ${t.title}`),
+    '',
+    `상세: tc ${key} [번호]  예) tc ${key} 1`,
+  ];
+  await tgSend(chatId, lines.join('\n'), { parse_mode: '' });
+};
+
 /* ── 메인 핸들러 ── */
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -2472,6 +2662,7 @@ export default async function handler(req, res) {
       { re: /머지.*(해|하자|ㄱ|go)|합쳐/i, cmd: '머지' },
       { re: /서버.*(상태|어때|정상)|사이트.*(되|살아|정상)|헬스/i, cmd: '상태' },
       { re: /QA|점검|테스트.*전체|버그.*찾/i, cmd: 'QA' },
+      { re: /테스트.*케이스|TC목록|테케|tc\s*(음악|디자인|커뮤)/i, cmd: 'tc' },
       { re: /구현.*현황|뭐.*했|뭐.*만들|기능.*목록|어디.*까지.*구현|작업.*내역/i, cmd: '작업' },
       { re: /고도화|phase|업그레이드.*진행|어디.*까지.*고도화/i, cmd: '고도화' },
       { re: /인기.*곡|핫|유행|트렌드|trending/i, cmd: '인기곡' },
