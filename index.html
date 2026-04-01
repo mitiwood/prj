@@ -5145,10 +5145,13 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         </div>
 
         <!-- 생성 버튼 -->
-        <button class="gen-btn" id="gen-btn" aria-label="음악 생성하기">
+        <div style="display:flex;gap:6px;">
+        <button class="gen-btn" id="gen-btn" aria-label="음악 생성하기" style="flex:1;">
           <span class="gen-spinner" id="gen-spinner"></span>
           <span id="gen-txt">✦ 음악 생성하기</span>
         </button>
+        <button onclick="_abTestGenerate()" style="padding:12px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.08);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;" title="동일 프롬프트를 2개 모델로 동시 생성">A/B</button>
+        </div>
       </div>
 
             <!-- ━━━ 심플 패널 (Suno 스타일 원페이지) ━━━ -->
@@ -5699,6 +5702,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <span style="font-size:12px;color:var(--t3);">곧 찾아올게요</span>
     </div>
     <div id="history-view-grid"></div>
+    <div id="hist-load-more" style="display:none;text-align:center;padding:16px;color:var(--t3);font-size:12px;">불러오는 중...</div>
   </div>
 
   <!-- ─────────── NAS 연결 패널 ─────────── -->
@@ -7035,6 +7039,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div id="ext-title" style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">곡 제목</div>
         <div id="ext-duration-label" style="font-size:11px;color:var(--t3);margin-top:2px;">길이: 측정 중...</div>
       </div>
+    </div>
+
+    <!-- 연장 체인 타임라인 -->
+    <div id="ext-chain-timeline" style="display:none;margin-bottom:14px;padding:10px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:6px;">🔗 연장 히스토리</div>
+      <div id="ext-chain-items" style="display:flex;align-items:center;gap:4px;overflow-x:auto;padding-bottom:4px;"></div>
     </div>
 
     <!-- 연장 시작 시점 (슬라이더) -->
@@ -9056,6 +9066,7 @@ async function _ytDoGenerate(){
 
     /* ── 곡 길이 옵션: normal/long이면 자동 연장 ── */
     var _extRounds=_ytDuration==='long'?2:_ytDuration==='normal'?1:0;
+    var _ytExtMeta=null; /* 자동 연장 체인 메타 */
     if(_extRounds>0 && tracks[0]){
       for(var _er=0;_er<_extRounds;_er++){
         var _extTrack=tracks[0];
@@ -9072,7 +9083,12 @@ async function _ytDoGenerate(){
             _genStepPrev=_svStep3;
             if(_extResult?.length){
               var _extValid=_extResult.filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
-              if(_extValid.length)tracks[0]=_extValid[0];
+              if(_extValid.length){
+                /* Extend 메타 업데이트 */
+                var _prevMeta=_ytExtMeta||{chainDepth:0,rootId:tracks[0].id||'',chainIds:[tracks[0].id||'']};
+                _ytExtMeta={chainDepth:_prevMeta.chainDepth+1,rootId:_prevMeta.rootId,parentId:_extId,chainIds:_prevMeta.chainIds.concat([_extValid[0].id||''])};
+                tracks[0]=_extValid[0];
+              }
             }
           }
         }catch(extErr){console.warn('[YT extend '+(_er+1)+']',extErr.message);}
@@ -9119,6 +9135,7 @@ async function _ytDoGenerate(){
         type: 'audio',
         genMode: 'youtube',
         model: model,
+        _extendMeta: _ytExtMeta||null,
         _ytAnalysis: _lastYtAnalysis,
         _owner: currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
@@ -11479,7 +11496,7 @@ var _modeLocked={custom:false,simple:false,youtube:false,mv:false};
 /* ── 생성 큐 매니저 (music/video 독립 채널) ── */
 var _QueueManager={
   channels:{
-    music:{busy:false,queue:[],maxQueue:1},
+    music:{busy:false,queue:[],maxQueue:3},
     video:{busy:false,queue:[],maxQueue:2},
   },
   enqueue:function(channel,item){
@@ -11489,6 +11506,7 @@ var _QueueManager={
     item.status='waiting';item.createdAt=Date.now();item.channel=channel;
     ch.queue.push(item);
     _updateQueueBadge();
+    this._saveToSession();
     return true;
   },
   dequeue:function(channel){
@@ -11497,17 +11515,35 @@ var _QueueManager={
     var item=ch.queue.shift();
     item.status='generating';
     _updateQueueBadge();
+    this._saveToSession();
     return item;
   },
   clear:function(channel){
     if(channel){var ch=this.channels[channel];if(ch)ch.queue=[];}
     else{this.channels.music.queue=[];this.channels.video.queue=[];}
     _updateQueueBadge();
+    this._saveToSession();
   },
   setBusy:function(channel,val){var ch=this.channels[channel];if(ch)ch.busy=!!val;},
   isBusy:function(channel){var ch=this.channels[channel];return ch?ch.busy:false;},
   totalQueued:function(){return this.channels.music.queue.length+this.channels.video.queue.length;},
+  _saveToSession:function(){
+    try{sessionStorage.setItem('kms_gen_queue',JSON.stringify({music:this.channels.music.queue,video:this.channels.video.queue}));}catch(e){}
+  },
+  _restoreFromSession:function(){
+    try{
+      var saved=JSON.parse(sessionStorage.getItem('kms_gen_queue')||'null');
+      if(saved){
+        if(saved.music&&saved.music.length){this.channels.music.queue=saved.music;}
+        if(saved.video&&saved.video.length){this.channels.video.queue=saved.video;}
+        _updateQueueBadge();
+      }
+      sessionStorage.removeItem('kms_gen_queue');
+    }catch(e){}
+  },
 };
+/* 페이지 로드 시 큐 복구 */
+try{_QueueManager._restoreFromSession();}catch(e){}
 
 /* 레거시 호환: _globalGenerating getter/setter */
 Object.defineProperty(window,'_globalGenerating',{
@@ -11660,16 +11696,22 @@ function _setGenCount(n){
 }
 /* 전역 생성 중 → 모든 생성 버튼 disabled / 완료 → active */
 function _syncGenButtons(){
-  const ids=['gen-btn','simple-gen-btn','yt-gen-btn','mv-gen-btn','rc-submit-btn','extend-submit-btn'];
-  ids.forEach(id=>{
-    const b=$(id);if(!b)return;
-    b.disabled=_globalGenerating;
-    if(_globalGenerating){
-      b.style.opacity='.5';b.style.cursor='not-allowed';
-    } else {
-      b.style.opacity='';b.style.cursor='';
-    }
+  var _musicBusy=_QueueManager.isBusy('music');
+  var _videoBusy=_QueueManager.isBusy('video');
+  /* 음악 채널 버튼 */
+  ['gen-btn','simple-gen-btn','yt-gen-btn','rc-submit-btn','extend-submit-btn'].forEach(function(id){
+    var b=$(id);if(!b)return;
+    b.disabled=_musicBusy;
+    b.style.opacity=_musicBusy?'.5':'';
+    b.style.cursor=_musicBusy?'not-allowed':'';
   });
+  /* 비디오 채널 버튼 (독립) */
+  var mvBtn=$('mv-gen-btn');
+  if(mvBtn){
+    mvBtn.disabled=_videoBusy;
+    mvBtn.style.opacity=_videoBusy?'.5':'';
+    mvBtn.style.cursor=_videoBusy?'not-allowed':'';
+  }
 }
 async function generate(overrideParams){
   var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
@@ -11759,7 +11801,7 @@ async function generate(overrideParams){
   const songDesc=($('song-desc')?.value||'').trim();
   const mood=moodVal;
   const negTags=$('neg-tags').value.trim();
-  const model=$('model-sel').value; /* 모든 모드 동일 모델 (V4.5 기본) */
+  const model=overrideParams?._abModel||$('model-sel').value; /* A/B 테스트 시 오버라이드 */
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
   /* 커스텀 모드 — 입력 데이터 충분성 체크 → 바텀시트 안내 */
@@ -11926,7 +11968,19 @@ async function generate(overrideParams){
       _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
       if(!tracks.length) throw new Error('Lyria 트랙을 받지 못했어요');
     } else {
-      const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+      var genData;
+      try{
+        genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+      }catch(_v5Err){
+        /* V5 폴백: V5 실패 시 V4_5로 자동 재시도 */
+        if(model==='V5' && typeof MODEL_PROFILES!=='undefined' && MODEL_PROFILES.V5?.fallback){
+          var _fbModel=MODEL_PROFILES.V5.fallback;
+          _genLog('FALLBACK','V5 실패 → '+_fbModel+' 폴백: '+_v5Err.message);
+          toast('V5 모델 오류 — '+_fbModel+'로 자동 전환합니다','',3000);
+          body.model=_fbModel;delete body.audioWeight;
+          genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+        } else { throw _v5Err; }
+      }
       const taskId=genData?.data?.taskId||genData?.taskId;
       _genLog('TASK',taskId?'taskId='+taskId:'taskId 없음!');
       if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
@@ -11944,6 +11998,8 @@ async function generate(overrideParams){
       if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
       if(tracks.length<_rawTracks.length) console.warn('[generate] A/B 중 '+ (_rawTracks.length-tracks.length)+'곡 실패 제외');
     }
+    /* ── 1곡 모드: API가 2곡 반환해도 1곡만 사용 ── */
+    if(_genCount===1 && tracks.length>1) tracks=tracks.slice(0,1);
 
     /* ── 곡 길이 옵션: 사용자가 명시적으로 120초 초과 선택 시에만 자동 연장 ── */
     var _durExtRounds = selectedDuration>120 ? 1 : 0;
@@ -11980,7 +12036,7 @@ async function generate(overrideParams){
 
     if(_genCancelled){ _genLog('CANCEL','사용자 취소'); toast('생성이 취소되었어요','',2000); return; }
 
-    lastTracks=tracks.map(t=>({...t,_inputLyrics:lastLyricsInput,_taskId:taskId}));
+    lastTracks=tracks.map(t=>({...t,_inputLyrics:lastLyricsInput,_taskId:lastTaskId}));
     renderTracks(lastTracks,prompt,styleStr,currentMode);
     /* showFeedbackCard()는 result-batch 확인 버튼에서 호출 */
 
@@ -12063,6 +12119,11 @@ async function generate(overrideParams){
 
     /* 음악 생성 알림 — 텔레그램 + 카카오 동시 전송 */
     _notifyMusicCreated(tracks, currentMode, styleStr);
+
+    /* A/B 테스트 결과 수집 */
+    if(overrideParams?._abTest && tracks[0] && typeof _collectABResult==='function'){
+      _collectABResult(model, tracks[0]);
+    }
 
     if(makeMV){
       const mvTrack=tracks[0];
@@ -12705,6 +12766,25 @@ function openExtendModal(audioId){
       });
     }
   }
+  /* 체인 타임라인 렌더링 */
+  var _tlEl=$('ext-chain-timeline');
+  var _tlItems=$('ext-chain-items');
+  if(_tlEl && _tlItems && _extOrigTrack?._extendMeta){
+    var meta=_extOrigTrack._extendMeta;
+    _tlEl.style.display='block';
+    var _tlHtml='';
+    meta.chainIds.forEach(function(cid,ci){
+      var ch=historyData.find(function(hh){return hh.id===cid;});
+      var label=ch?(ch.title||'').slice(0,12)||(ci===0?'원곡':'연장'+ci);
+      _tlHtml+='<div style="padding:4px 8px;background:'+(ci===meta.chainIds.length-1?'rgba(124,58,237,.2)':'rgba(255,255,255,.05)')+';border-radius:6px;font-size:10px;color:var(--t2);white-space:nowrap;">'+label+'</div>';
+      if(ci<meta.chainIds.length-1) _tlHtml+='<span style="color:var(--t3);font-size:10px;">→</span>';
+    });
+    _tlHtml+='<span style="color:var(--t3);font-size:10px;">→</span><div style="padding:4px 8px;background:rgba(59,130,246,.15);border:1px dashed rgba(59,130,246,.4);border-radius:6px;font-size:10px;color:#60a5fa;white-space:nowrap;">새 연장</div>';
+    _tlItems.innerHTML=_tlHtml;
+  } else if(_tlEl){
+    _tlEl.style.display='none';
+  }
+
   $('extend-modal').style.display='';
   $('extend-modal').classList.add('on');
 }
@@ -13645,8 +13725,10 @@ function renderHistoryView(){
     _renderMyFeedView(grid,count);
     return;
   }
+  /* 검색/필터 적용 (history-manager.js) */
+  var _preFiltered = (typeof getFilteredHistory==='function') ? getFilteredHistory(historyData) : historyData;
   /* 탭 필터 적용 */
-  let filtered = historyData.map((h,idx)=>({...h,_origIdx:idx})).filter(h=>{
+  let filtered = _preFiltered.map((h,idx)=>({...h,_origIdx:historyData.indexOf(h)>=0?historyData.indexOf(h):idx})).filter(h=>{
     if(_histTabFilter==='music') return !h.video_url;
     if(_histTabFilter==='mv') return !!h.video_url;
     if(_histTabFilter==='liked') return h._liked || h._commLiked;
@@ -28304,7 +28386,7 @@ function _addGenHistory(title,tags,extra){
   l.unshift(entry);
   _saveGenHistory(l);_renderGenHistory();
 }
-function _renderGenHistory(){var l=_getGenHistory();var s=$('gen-history-section');if(!s)return;if(!l.length){s.style.display='none';return;}s.style.display='block';var e=$('gen-history-list');if(!e)return;e.innerHTML=l.slice(0,10).map(function(h,i){var modeLabel={'custom':'커스텀','simple':'심플','youtube':'YT'}[h.mode]||'';return '<div class="gen-history-item" onclick="_reapplyGenHistory('+i+')"><div class="ghi-title">'+esc(h.title)+(modeLabel?' <span style="font-size:9px;opacity:.5;">'+modeLabel+'</span>':'')+'</div><div class="ghi-sub">'+esc((h.tags||'').slice(0,40))+'</div></div>';}).join('');}
+function _renderGenHistory(){var l=_getGenHistory();var s=$('gen-history-section');if(!s)return;if(!l.length){s.style.display='none';return;}s.style.display='block';var e=$('gen-history-list');if(!e)return;e.innerHTML=l.slice(0,10).map(function(h,i){var modeLabel={'custom':'커스텀','simple':'심플','youtube':'YT'}[h.mode]||'';var bm=h.bookmarked?'⭐ ':'';var bmBtn='<span onclick="event.stopPropagation();if(typeof toggleGenHistoryBookmark===\'function\')toggleGenHistoryBookmark('+i+');" style="cursor:pointer;font-size:12px;margin-left:4px;opacity:.6;" title="북마크">'+(h.bookmarked?'⭐':'☆')+'</span>';return '<div class="gen-history-item" onclick="_reapplyGenHistory('+i+')"><div class="ghi-title">'+bm+esc(h.title)+(modeLabel?' <span style="font-size:9px;opacity:.5;">'+modeLabel+'</span>':'')+bmBtn+'</div><div class="ghi-sub">'+esc((h.tags||'').slice(0,40))+'</div></div>';}).join('');}
 function _reapplyGenHistory(idx){
   var l=_getGenHistory();var h=l[idx];if(!h)return;
   /* 제목 */
@@ -29483,7 +29565,7 @@ setTimeout(_showOnboarding, 1500);
 <script src="js/stem-mixer.js"></script>
 <script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
-<script>initModelProfiles();if(typeof renderHistSearchBar==='function')renderHistSearchBar();</script>
+<script>initModelProfiles();if(typeof renderHistSearchBar==='function')renderHistSearchBar();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
 
 </body>
 </html>
