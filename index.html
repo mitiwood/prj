@@ -9069,6 +9069,8 @@ async function _ytDoGenerate(){
       _enhancedPrompt = _styleHint + prompt;
       if(_enhancedPrompt.length > 2000) _enhancedPrompt = _enhancedPrompt.slice(0,2000);
     }
+    /* kie.ai style 200자 제한 — customMode:true여도 적용됨 */
+    if(_finalStyle.length>200) _finalStyle=_finalStyle.slice(0,200);
     const body = {
       prompt: _enhancedPrompt,
       customMode: true,
@@ -12076,8 +12078,7 @@ async function generate(overrideParams){
     }
     /* kie.ai style 길이 제한: customMode=true → 1000자, false → 200자 */
     if(body.style){
-      var _maxStyle=body.customMode?999:200;
-      if(body.style.length>_maxStyle) body.style=body.style.slice(0,_maxStyle);
+      if(body.style.length>200) body.style=body.style.slice(0,200);
     }
     if(negTags)body.negativeTags=negTags;
     if(!instOn&&vocalGender)body.vocalGender=vocalGender;
