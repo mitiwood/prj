@@ -9284,9 +9284,13 @@ async function _ytDoGenerate(){
 }
 
 $('yt-gen-btn').onclick = null;
-$('yt-gen-btn').addEventListener('click', function(e){
+$('yt-gen-btn').addEventListener('click', async function(e){
   e.stopPropagation();
   if(this.disabled) return;
+  /* supervisor: 캐시 없으면 먼저 동기화 */
+  if(!_serverCreditsCache && currentUser?.name){
+    try{await _fetchServerCredits();}catch(e){}
+  }
   /* 플랜 한도 체크 — YouTube 모드 */
   if(!checkPlanLimit('song')) return;
   const ytUrl = ($('yt-url')?.value||'').trim();
@@ -23978,6 +23982,8 @@ function checkPlanLimit(type){
 
   /* 로그인 사용자: 서버 크레딧 캐시 확인 */
   if(_serverCreditsCache){
+    /* supervisor 이중 체크 (크레딧 0이어도 통과) */
+    if(_serverCreditsCache.plan==='supervisor') return true;
     var _sKey = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':type==='vr'?'credits_song':'credits_song';
     var _sRemain = _serverCreditsCache[_sKey];
     if(typeof _sRemain === 'number' && _sRemain > 0){
@@ -23992,7 +23998,12 @@ function checkPlanLimit(type){
     }
   }
 
-  /* 서버 캐시 없으면 서버에서 동기화 후 재시도 */
+  /* 서버 캐시 없으면 — supervisor면 일단 통과 (백그라운드 동기화) */
+  if(currentUser?.plan==='supervisor'){
+    _fetchServerCredits().catch(function(){});
+    return true;
+  }
+  /* 서버에서 동기화 후 재시도 */
   _syncPlanAndRetry(type);
   return false;
 }
