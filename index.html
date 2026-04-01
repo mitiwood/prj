@@ -8815,6 +8815,8 @@ $('yt-song-title').addEventListener('input',function(){delete this.dataset.autoF
 
 /* ── 심플 모드 생성 버튼 ── */
 $('simple-gen-btn').addEventListener('click',async()=>{
+  /* ★ 이중 클릭 방지 */
+  if(_QueueManager.isBusy('music')){toast('⏳ 생성 중이에요.','',2000);return;}
   /* 게스트 모드: 사전 한도 체크 */
   if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
     if(_getGuestUsage() >= GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
@@ -11780,17 +11782,19 @@ async function generate(overrideParams){
   _genLog('START','mode='+_modeKey+', genCount='+_genCount);
   /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
   if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
-  const apiKey=kieApiKey;
-  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
-  /* 새 생성 시작 시 재시도 플래그 초기화 */
-  if(!overrideParams?._afterLyrics) _retryCount = 0;
-  /* 음악 채널 생성 중 — 큐 없이 바로 차단 (1곡씩만 생성) */
+  /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
   if(_QueueManager.isBusy('music') && !overrideParams?._afterLyrics){
     toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
     return;
   }
+  /* ★ 즉시 busy 설정 — 이후 await 전에 잠금 확보 */
+  _globalGenerating = true; _syncGenButtons();
+  const apiKey=kieApiKey;
+  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
+  /* 새 생성 시작 시 재시도 플래그 초기화 */
+  if(!overrideParams?._afterLyrics) _retryCount = 0;
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
-  if(!overrideParams?._afterLyrics && !checkPlanLimit('song')) return;
+  if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_globalGenerating=false;_syncGenButtons();return;}
   /* 로그인 체크 + 게스트 모드 허용 */
   if(!overrideParams?._afterLyrics){
     if(!currentUser){
@@ -11798,16 +11802,17 @@ async function generate(overrideParams){
         /* 게스트 모드: 사용량 체크 */
         if(_getGuestUsage() >= GUEST_SONG_LIMIT){
           _showGuestLoginPrompt();
+          _globalGenerating=false;_syncGenButtons();
           return;
         }
       }else{
         /* 비로그인 + 비게스트: 로그인 유도 */
         openLoginSheet();
+        _globalGenerating=false;_syncGenButtons();
         return;
       }
     }
   }
-  _globalGenerating = true; _syncGenButtons();
   /* 게스트 모드: 강제 1곡 생성 + 사용량 즉시 선차감 */
   var _guestPreDeducted=false;
   if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
