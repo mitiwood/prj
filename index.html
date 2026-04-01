@@ -13199,19 +13199,7 @@ function renderTracks(tracks,prompt,tags,mode){
     });
   });
 
-  /* 심플 모드: 가사 탭 기본 활성화 */
-  if(modeKey==='simple'){
-    tracks.forEach((_,i)=>{
-      const body=container.querySelectorAll('.rc-body')[i];
-      if(!body)return;
-      body.querySelectorAll('.rctab').forEach(t=>t.classList.remove('on'));
-      body.querySelectorAll('.rc-tab-panel').forEach(p=>p.classList.remove('on'));
-      const lyTab=body.querySelector('.rctab[data-tab="ly-'+i+'"]');
-      const lyPanel=document.getElementById('ly-'+i);
-      if(lyTab)lyTab.classList.add('on');
-      if(lyPanel)lyPanel.classList.add('on');
-    });
-  }
+  /* 모든 모드: 재생 탭(🎵) 기본 활성화 */
   /* 탭 이벤트 */
   container.querySelectorAll('.rctab').forEach(tab=>{
     tab.addEventListener('click',function(){
