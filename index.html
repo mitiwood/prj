@@ -3185,6 +3185,14 @@ body.mp-on .comment-sheet{margin-bottom:calc(56px + 62px);max-height:55vh;}
   padding:13px 14px;cursor:pointer;transition:background .15s;
 }
 .settings-item:hover{background:var(--card2);}
+.pref-chip{padding:6px 12px;border-radius:16px;border:1px solid var(--border);background:var(--bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.pref-chip.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-color:var(--acc);}
+.pref-time-btn{padding:6px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.pref-time-btn.on{background:rgba(124,58,237,.12);color:var(--acc);border-color:var(--acc);}
+.slider-round{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:12px;transition:.2s;}
+.slider-round::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+input:checked+.slider-round{background:var(--acc);}
+input:checked+.slider-round::before{transform:translateX(20px);}
 .settings-item-left{display:flex;align-items:center;gap:11px;}
 .settings-item-icon{
   width:36px;height:36px;border-radius:10px;
@@ -5989,6 +5997,62 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <span style="font-size:13px;color:var(--t1);">📢 공지/이벤트 알림</span>
               <input type="checkbox" checked data-notif-pref="system" onchange="_saveNotifPrefs()" style="width:18px;height:18px;accent-color:var(--acc);">
             </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 일일 음악 추천 ── -->
+    <div class="settings-section" id="daily-rec-section">
+      <div class="settings-section-title">🎵 일일 음악 추천</div>
+      <div class="settings-item" style="flex-direction:column;align-items:flex-start;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--t1);">매일 맞춤 추천 받기</div>
+            <div style="font-size:11px;color:var(--t3);">설정한 시간에 취향에 맞는 곡을 푸시로 알려드려요</div>
+          </div>
+          <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">
+            <input type="checkbox" id="daily-rec-toggle" onchange="_saveMusicPrefs()" style="opacity:0;width:0;height:0;">
+            <span style="position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:12px;transition:.2s;" class="slider-round"></span>
+          </label>
+        </div>
+
+        <div id="daily-rec-options" style="display:none;width:100%;">
+          <!-- 장르 선택 -->
+          <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">🎵 좋아하는 장르</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="pref-genre-chips">
+            <button class="pref-chip" data-genre="K-Pop" onclick="_togglePrefChip(this)">K-Pop</button>
+            <button class="pref-chip" data-genre="Ballad" onclick="_togglePrefChip(this)">발라드</button>
+            <button class="pref-chip" data-genre="Hip-Hop" onclick="_togglePrefChip(this)">힙합</button>
+            <button class="pref-chip" data-genre="Lo-Fi" onclick="_togglePrefChip(this)">로파이</button>
+            <button class="pref-chip" data-genre="Jazz" onclick="_togglePrefChip(this)">재즈</button>
+            <button class="pref-chip" data-genre="Classical" onclick="_togglePrefChip(this)">클래식</button>
+            <button class="pref-chip" data-genre="EDM" onclick="_togglePrefChip(this)">EDM</button>
+            <button class="pref-chip" data-genre="R&B" onclick="_togglePrefChip(this)">R&B</button>
+            <button class="pref-chip" data-genre="Rock" onclick="_togglePrefChip(this)">록</button>
+            <button class="pref-chip" data-genre="Acoustic" onclick="_togglePrefChip(this)">어쿠스틱</button>
+          </div>
+
+          <!-- 분위기 선택 -->
+          <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">🎨 좋아하는 분위기</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="pref-mood-chips">
+            <button class="pref-chip" data-mood="energetic" onclick="_togglePrefChip(this)">신나는</button>
+            <button class="pref-chip" data-mood="emotional" onclick="_togglePrefChip(this)">감성적</button>
+            <button class="pref-chip" data-mood="calm" onclick="_togglePrefChip(this)">잔잔한</button>
+            <button class="pref-chip" data-mood="dark" onclick="_togglePrefChip(this)">어두운</button>
+            <button class="pref-chip" data-mood="romantic" onclick="_togglePrefChip(this)">로맨틱</button>
+            <button class="pref-chip" data-mood="epic" onclick="_togglePrefChip(this)">웅장한</button>
+            <button class="pref-chip" data-mood="chill" onclick="_togglePrefChip(this)">칠/릴렉스</button>
+            <button class="pref-chip" data-mood="nostalgic" onclick="_togglePrefChip(this)">레트로</button>
+          </div>
+
+          <!-- 알림 시간 -->
+          <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;">⏰ 알림 시간</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="pref-time-btn" data-time="09:00" onclick="_setPrefTime(this)">🌅 오전 9시</button>
+            <button class="pref-time-btn" data-time="12:00" onclick="_setPrefTime(this)">☀️ 낮 12시</button>
+            <button class="pref-time-btn" data-time="18:00" onclick="_setPrefTime(this)">🌇 저녁 6시</button>
+            <button class="pref-time-btn on" data-time="21:00" onclick="_setPrefTime(this)">🌙 밤 9시</button>
           </div>
         </div>
       </div>
@@ -8887,7 +8951,8 @@ $('yt-song-title').addEventListener('input',function(){delete this.dataset.autoF
 /* ── 심플 모드 생성 버튼 ── */
 $('simple-gen-btn').addEventListener('click',async()=>{
   /* ★ 이중 클릭 방지 */
-  if(_QueueManager.isBusy('music')){toast('⏳ 생성 중이에요.','',2000);return;}
+  if(typeof _QueueManager!=='undefined'&&_QueueManager&&_QueueManager.isBusy('music')){toast('⏳ 생성 중이에요.','',2000);return;}
+  if(typeof _globalGenerating!=='undefined'&&_globalGenerating){toast('⏳ 생성 중이에요.','',2000);return;}
   /* 게스트 모드: 사전 한도 체크 */
   if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
     if(_getGuestUsage() >= GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
@@ -23280,6 +23345,86 @@ function _loadNotifPrefs(){
 function _getNotifPrefs(){
   return JSON.parse(localStorage.getItem('kms_notif_prefs')||'{"likes":true,"comments":true,"follows":true,"system":true}');
 }
+
+/* ── 일일 음악 추천 취향 설정 ── */
+var _musicPrefs={genres:[],moods:[],push_time:'21:00',daily_push_on:false};
+
+function _togglePrefChip(el){
+  el.classList.toggle('on');
+  _saveMusicPrefs();
+}
+
+function _setPrefTime(el){
+  document.querySelectorAll('.pref-time-btn').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  _saveMusicPrefs();
+}
+
+function _saveMusicPrefs(){
+  var genres=[];
+  document.querySelectorAll('#pref-genre-chips .pref-chip.on').forEach(function(c){genres.push(c.dataset.genre);});
+  var moods=[];
+  document.querySelectorAll('#pref-mood-chips .pref-chip.on').forEach(function(c){moods.push(c.dataset.mood);});
+  var timeBtn=document.querySelector('.pref-time-btn.on');
+  var pushTime=timeBtn?timeBtn.dataset.time:'21:00';
+  var dailyOn=document.getElementById('daily-rec-toggle')?.checked||false;
+
+  _musicPrefs={genres:genres,moods:moods,push_time:pushTime,daily_push_on:dailyOn};
+  localStorage.setItem('kms_music_prefs',JSON.stringify(_musicPrefs));
+
+  /* 옵션 영역 토글 */
+  var opts=document.getElementById('daily-rec-options');
+  if(opts)opts.style.display=dailyOn?'block':'none';
+
+  /* 서버 동기화 */
+  if(currentUser){
+    fetch('/api/user-prefs',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:currentUser.name,provider:currentUser.provider,genres:genres,moods:moods,push_time:pushTime,daily_push_on:dailyOn})
+    }).catch(function(){});
+  }
+}
+
+function _loadMusicPrefs(){
+  try{_musicPrefs=JSON.parse(localStorage.getItem('kms_music_prefs')||'{}');}catch(e){_musicPrefs={};}
+  var toggle=document.getElementById('daily-rec-toggle');
+  if(toggle)toggle.checked=!!_musicPrefs.daily_push_on;
+  var opts=document.getElementById('daily-rec-options');
+  if(opts)opts.style.display=_musicPrefs.daily_push_on?'block':'none';
+
+  /* 장르 칩 복원 */
+  if(_musicPrefs.genres){
+    document.querySelectorAll('#pref-genre-chips .pref-chip').forEach(function(c){
+      c.classList.toggle('on',_musicPrefs.genres.indexOf(c.dataset.genre)>=0);
+    });
+  }
+  /* 분위기 칩 복원 */
+  if(_musicPrefs.moods){
+    document.querySelectorAll('#pref-mood-chips .pref-chip').forEach(function(c){
+      c.classList.toggle('on',_musicPrefs.moods.indexOf(c.dataset.mood)>=0);
+    });
+  }
+  /* 시간 복원 */
+  if(_musicPrefs.push_time){
+    document.querySelectorAll('.pref-time-btn').forEach(function(b){
+      b.classList.toggle('on',b.dataset.time===_musicPrefs.push_time);
+    });
+  }
+
+  /* 서버에서 로드 (로그인 시) */
+  if(currentUser){
+    fetch('/api/user-prefs?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider))
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.ok&&d.prefs){
+          _musicPrefs={genres:d.prefs.genres||[],moods:d.prefs.moods||[],push_time:d.prefs.push_time||'21:00',daily_push_on:!!d.prefs.daily_push_on};
+          localStorage.setItem('kms_music_prefs',JSON.stringify(_musicPrefs));
+          _loadMusicPrefs(); /* UI 재적용 (재귀 방지: 서버 호출 안 함) */
+        }
+      }).catch(function(){});
+  }
+}
+setTimeout(_loadMusicPrefs,1000);
 
 function _editProfile() {
   if (!currentUser) { openLoginSheet(); return; }
