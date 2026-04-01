@@ -8842,7 +8842,7 @@ $('simple-lyrics-btn').addEventListener('click',async()=>{
   try{
     let text='';
     try{
-      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt, callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'simple-lyrics'});
+      const ld=await kieRequest(kieApiKey,'POST','/api/v1/lyrics',{prompt:(prompt||'').slice(0,200), callBackUrl:CALLBACK}); trackUsage('lyrics',{mode:'simple-lyrics'});
       const ltid=ld?.data?.taskId||ld?.taskId;
       if(ltid){
         for(let i=0;i<40;i++){
@@ -10726,7 +10726,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
     let text = '';
     let kieSuccess = false;
     try{
-      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt, callBackUrl:CALLBACK});
+      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:(lyricsPrompt||'').slice(0,200), callBackUrl:CALLBACK});
       trackUsage('lyrics',{mode:'auto-lyrics'});
       const taskId=data?.data?.taskId||data?.taskId;
       if(taskId){
@@ -10883,7 +10883,7 @@ async function _autoLyricsAndGenerate(){
 
     /* 1차: kie.ai lyrics API */
     try{
-      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:lyricsPrompt, callBackUrl:CALLBACK});
+      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:(lyricsPrompt||'').slice(0,200), callBackUrl:CALLBACK});
       const taskId=data?.data?.taskId||data?.taskId;
       if(taskId){
         for(let i=0;i<30;i++){
@@ -11856,6 +11856,7 @@ async function generate(overrideParams){
   /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
   if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
     _genLog('BLOCK','5초 이내 중복 호출 차단');
+    toast('⏳ 잠시만 기다려주세요 (5초)','',2500);
     return;
   }
   /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
@@ -15921,6 +15922,7 @@ function _extractLyricsFromResponse(d){
 
 /* ── 공통 가사 생성 헬퍼 (kie.ai + Claude 폴백) ── */
 async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
+  prompt=(prompt||'').slice(0,200); /* kie.ai lyrics prompt 200자 제한 */
   let text='';
   /* 1차: kie.ai lyrics API */
   try{
