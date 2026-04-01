@@ -15899,9 +15899,7 @@ function showMiniPlayer(idx){
       if(genId!==_fpAudioGenId) return;
       _syncAllPlayBtns(true);
       /* Web Audio API 연결 + rAF 싱크 루프 시작 */
-      if(typeof _fpConnectAudioCtx==='function'&&!audio._webAudioConnected){
-        try{_fpConnectAudioCtx(audio);audio._webAudioConnected=true;}catch(e){}
-      }
+      /* rAF 싱크 루프 시작 */
       if(typeof _fpStartSyncLoop==='function') _fpStartSyncLoop();
       /* Media Session — 백그라운드 재생 + 잠금화면 컨트롤 */
       _updateMediaSession(historyData[fpCurrentIdx]);
@@ -19604,54 +19602,16 @@ function resetSyncOffset(){
 
 var _fpPrevActiveIdx=-1;
 
-/* ── Web Audio API 기반 정밀 싱크 엔진 ── */
-var _fpAudioCtx=null;
-var _fpAnalyser=null;
-var _fpMediaSource=null;
-var _fpFreqData=null;
+/* ── rAF 기반 정밀 싱크 엔진 ── */
 var _fpSyncRAF=null;
 
-/* AudioContext + AnalyserNode + 밴드패스 연결 */
-function _fpConnectAudioCtx(audioEl){
-  try{
-    if(!_fpAudioCtx) _fpAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    if(_fpAudioCtx.state==='suspended') _fpAudioCtx.resume();
-    /* 이미 연결된 소스 해제 */
-    if(_fpMediaSource){try{_fpMediaSource.disconnect();}catch(e){}_fpMediaSource=null;}
-    _fpMediaSource=_fpAudioCtx.createMediaElementSource(audioEl);
-    /* 밴드패스 필터: 보컬 대역 300Hz~3kHz */
-    var bpf=_fpAudioCtx.createBiquadFilter();
-    bpf.type='bandpass';bpf.frequency.value=1200;bpf.Q.value=0.5;
-    /* AnalyserNode */
-    _fpAnalyser=_fpAudioCtx.createAnalyser();
-    _fpAnalyser.fftSize=256;
-    _fpFreqData=new Uint8Array(_fpAnalyser.frequencyBinCount);
-    /* 라우팅: source → bpf → analyser (보컬 대역 분석)
-              source → destination (원본 재생) */
-    _fpMediaSource.connect(bpf);
-    bpf.connect(_fpAnalyser);
-    _fpMediaSource.connect(_fpAudioCtx.destination);
-  }catch(e){console.warn('[AudioCtx]',e.message);}
-}
-
-/* 실시간 보컬 에너지 측정 */
-function _fpGetVocalEnergy(){
-  if(!_fpAnalyser||!_fpFreqData) return 255;
-  _fpAnalyser.getByteFrequencyData(_fpFreqData);
-  var sum=0,count=_fpFreqData.length;
-  for(var i=0;i<count;i++) sum+=_fpFreqData[i];
-  return count>0?sum/count:0;
-}
-
-/* rAF 기반 싱크 루프 */
+/* rAF 기반 싱크 루프 — 60fps로 가사 체크 */
 function _fpStartSyncLoop(){
   if(_fpSyncRAF) cancelAnimationFrame(_fpSyncRAF);
   function _loop(){
     _fpSyncRAF=requestAnimationFrame(_loop);
     if(!fpAudio||fpAudio.paused||!fpTimestampLines.length) return;
-    /* AudioContext 시간 사용 (더 정밀), 폴백: fpAudio.currentTime */
-    var ct=fpAudio.currentTime;
-    fpSyncLyrics(ct);
+    fpSyncLyrics(fpAudio.currentTime);
   }
   _loop();
 }
@@ -19675,13 +19635,6 @@ function fpSyncLyrics(currentTime){
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
       if(currentTime>=ds&&currentTime<de){activeIdx=di;break;}
     }
-    /* 보컬 에너지 체크: TS 매칭됐지만 보컬 대역 에너지 낮으면 전환 지연 */
-    if(activeIdx>=0&&activeIdx!==_fpPrevActiveIdx&&_fpAnalyser){
-      var energy=_fpGetVocalEnergy();
-      if(energy<15&&_fpPrevActiveIdx>=0){
-        activeIdx=_fpPrevActiveIdx; /* 에너지 낮으면 이전 줄 유지 (전환 지연) */
-      }
-    }
   } else if(_fpLrcTimes.length){
     /* LRC/균등 분할 */
     for(var i=n-1;i>=0;i--){
@@ -19697,7 +19650,7 @@ function fpSyncLyrics(currentTime){
     var _s=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.start)||0):(_fpLrcTimes[activeIdx]||0);
     var _e=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.end)||0):(activeIdx<n-1?_fpLrcTimes[activeIdx+1]:fpAudio.duration);
     var _txt=(fpTimestampLines[activeIdx].textContent||'').trim().slice(0,30);
-    var _energy=_fpAnalyser?Math.round(_fpGetVocalEnergy()):'N/A';
+    var _energy='—';
     console.log('%c[LyricSync] %c#'+activeIdx+'/'+n+' %c'+currentTime.toFixed(2)+'s %c['+_s.toFixed(2)+'~'+_e.toFixed(2)+'] %cE:'+_energy+' %c'+_txt,
       'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#f59e0b','color:#fff');
   }
