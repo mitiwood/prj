@@ -12467,6 +12467,7 @@ async function generate(overrideParams){
     /* ── Lyria 모델 감지 → 별도 생성 흐름 ── */
     var _isLyriaMain = model.startsWith('LYRIA');
     var tracks;
+    var taskId='';
     if(_isLyriaMain){
       var _ldSubLyria=$('ld-sub');if(_ldSubLyria)_ldSubLyria.innerHTML='🌐 Google Lyria로 생성 중...<br>1~2분 소요될 수 있어요';
       var _lyriaBodyMain = {
@@ -12488,7 +12489,8 @@ async function generate(overrideParams){
       var _lyriaFailed = !_lyriaResMain.ok || !(_lyriaDataMain?.tracks?.length || _lyriaDataMain?.data?.response?.sunoData?.length);
       if(_lyriaResMain.ok && !_lyriaFailed){
         tracks = _lyriaDataMain?.tracks || _lyriaDataMain?.data?.response?.sunoData || [];
-        lastTaskId = _lyriaDataMain?.data?.taskId || '';
+        taskId = _lyriaDataMain?.data?.taskId || 'lyria_'+Date.now();
+        lastTaskId = taskId;
         _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
       }
       if(!_lyriaResMain.ok && _lyriaDataMain?.error === 'credit_exceeded') throw new Error('이번 달 사용량을 초과했어요.');
@@ -12524,7 +12526,7 @@ async function generate(overrideParams){
           genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
         } else { throw _v5Err; }
       }
-      const taskId=genData?.data?.taskId||genData?.taskId;
+      taskId=genData?.data?.taskId||genData?.taskId;
       _genLog('TASK',taskId?'taskId='+taskId:'taskId 없음!');
       if(!taskId)throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,100));
       lastTaskId=taskId; /* ✅ 뮤직비디오 요청용으로 저장 */
@@ -12696,8 +12698,10 @@ async function generate(overrideParams){
     var _classified = _classifyError(e.message);
     var _isRetryable = _classified.retry && !_genCancelled && !e.message.includes('취소') && _retryCount < 2;
 
-    /* 서버 에러 로깅 */
-    _logErrorToServer('/api/v1/generate',e.message,null,_classified.cat==='server'||_classified.cat==='unknown'?'critical':'warn');
+    /* 서버 에러 로깅 + 생성 실패 상세 기록 */
+    var _failDetail='mode='+(_modeKey||'?')+' model='+(model||'?')+' elapsed='+Math.round((Date.now()-_genT0)/1000)+'s cat='+_classified.cat+' err='+e.message;
+    _logErrorToServer('/api/v1/generate',_failDetail,null,_classified.cat==='server'||_classified.cat==='unknown'?'critical':'warn');
+    console.error('[generate FAIL]',_failDetail);
 
     /* 자동 재시도 (최대 2회, 카테고리별 대기 시간) */
     if(_isRetryable){
