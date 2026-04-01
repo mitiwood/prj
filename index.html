@@ -4801,24 +4801,33 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   </div>
 </div>
 <style>
+/* 다크모드 스플래시 */
 #splash-screen{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;transition:opacity .5s ease;overflow:hidden;}
 #splash-screen.out{opacity:0;pointer-events:none;}
-.splash-bg{position:absolute;inset:0;background:linear-gradient(135deg,#7c3aed 0%,#db2777 50%,#f97316 100%);z-index:0;}
+.splash-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2e 40%,#2d1a4a 70%,#1e1b4b 100%);z-index:0;}
 .splash-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:28px;}
-.splash-glow-ring{position:absolute;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.12);filter:blur(40px);animation:splashGlow 2s ease-in-out infinite alternate;pointer-events:none;}
-@keyframes splashGlow{0%{transform:scale(1);opacity:.3;}100%{transform:scale(1.25);opacity:.6;}}
-.splash-card{position:relative;z-index:2;padding:28px 40px;border-radius:24px;background:rgba(255,255,255,.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center;animation:splashCardIn .8s ease-out both;}
+.splash-glow-ring{position:absolute;width:240px;height:240px;border-radius:50%;background:rgba(124,58,237,.2);filter:blur(50px);animation:splashGlow 2s ease-in-out infinite alternate;pointer-events:none;}
+@keyframes splashGlow{0%{transform:scale(1);opacity:.3;}100%{transform:scale(1.25);opacity:.7;}}
+.splash-card{position:relative;z-index:2;padding:28px 40px;border-radius:24px;background:rgba(124,58,237,.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(168,85,247,.25);box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;animation:splashCardIn .8s ease-out both;}
 @keyframes splashCardIn{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:scale(1);}}
-.splash-logo{font-size:48px;font-weight:800;color:#fff;letter-spacing:-1px;animation:splashTextIn .6s .3s ease-out both;}
+.splash-logo{font-size:48px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;animation:splashTextIn .6s .3s ease-out both;}
 @keyframes splashTextIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-.splash-domain{font-size:14px;color:rgba(255,255,255,.85);font-weight:500;margin-top:4px;letter-spacing:1px;animation:splashTextIn .6s .5s ease-out both;}
+.splash-domain{font-size:14px;color:rgba(167,139,250,.7);font-weight:500;margin-top:4px;letter-spacing:1px;animation:splashTextIn .6s .5s ease-out both;}
 .splash-dots{display:flex;gap:8px;animation:splashTextIn .5s .8s ease-out both;}
-.splash-dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:splashBounce .6s ease-in-out infinite;}
+.splash-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:splashBounce .6s ease-in-out infinite;}
 .splash-dot:nth-child(2){animation-delay:.15s;}
 .splash-dot:nth-child(3){animation-delay:.3s;}
 @keyframes splashBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 .splash-bottom{position:absolute;bottom:60px;left:0;right:0;z-index:2;text-align:center;}
-.splash-insight{font-size:13px;color:rgba(255,255,255,.75);padding:0 24px;line-height:1.6;animation:splashTextIn .6s 1s ease-out both;}
+.splash-insight{font-size:13px;color:rgba(255,255,255,.45);padding:0 24px;line-height:1.6;animation:splashTextIn .6s 1s ease-out both;}
+/* 라이트모드 스플래시 */
+[data-theme="light"] .splash-bg{background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 40%,#ddd6fe 70%,#f5f3ff 100%);}
+[data-theme="light"] .splash-glow-ring{background:rgba(124,58,237,.1);}
+[data-theme="light"] .splash-card{background:rgba(255,255,255,.7);border:1px solid rgba(124,58,237,.15);box-shadow:0 20px 60px rgba(124,58,237,.1);}
+[data-theme="light"] .splash-logo{background:linear-gradient(135deg,#7c3aed,#6d28d9,#5b21b6);-webkit-background-clip:text;background-clip:text;}
+[data-theme="light"] .splash-domain{color:rgba(109,40,217,.6);}
+[data-theme="light"] .splash-dot{background:#7c3aed;}
+[data-theme="light"] .splash-insight{color:rgba(0,0,0,.45);}
 @media(min-width:744px){
   .splash-logo{font-size:60px;}
   .splash-domain{font-size:16px;}
