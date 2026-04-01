@@ -22959,7 +22959,11 @@ function renderSettings(){
   const loginBtn=$('settings-login-btn');
   var editBtn=$('settings-edit-btn');
   if(currentUser){
-    if(nameEl)nameEl.textContent=currentUser.name||t('user');
+    if(nameEl){
+      var _uPlan=currentUser.plan||_serverCreditsCache?.plan||'free';
+      var _planBadges={supervisor:'⭐',creator:'👑',pro:'💜'};
+      nameEl.innerHTML=esc(currentUser.name||t('user'))+(_planBadges[_uPlan]?' <span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;color:#fff;vertical-align:middle;background:'+(_uPlan==='supervisor'?'linear-gradient(135deg,#ef4444,#dc2626)':_uPlan==='creator'?'linear-gradient(135deg,#f59e0b,#ef4444)':'linear-gradient(135deg,#7c3aed,#a855f7)')+';">'+_planBadges[_uPlan]+' '+_uPlan.charAt(0).toUpperCase()+_uPlan.slice(1)+'</span>':'');
+    }
     if(subEl)subEl.textContent=currentUser.email||t('loggedIn');
     if(avatarEl){
       var _avUrl=currentUser.avatar;
@@ -24127,7 +24131,7 @@ function renderPlanUI(){
   var usedLyrics = Math.max(0, planInfo.lyrics - cLyrics);
 
   /* 배너 */
-  const badge=$('plan-badge'); if(badge){ badge.textContent=planInfo.icon+' '+planType.toUpperCase(); badge.style.background=planType==='free'?'rgba(255,255,255,.15)':'linear-gradient(135deg,var(--acc),var(--acc2))'; }
+  const badge=$('plan-badge'); if(badge){ badge.textContent=planInfo.icon+' '+planType.toUpperCase(); badge.style.background=planType==='supervisor'?'linear-gradient(135deg,#ef4444,#dc2626)':planType==='free'?'rgba(255,255,255,.15)':'linear-gradient(135deg,var(--acc),var(--acc2))'; }
   const pname=$('plan-name'); if(pname) pname.textContent=planInfo.label;
   const pdesc=$('plan-desc'); if(pdesc){
     if(planType==='supervisor') pdesc.textContent='⭐ Supervisor — 모든 기능 무제한';
