@@ -490,8 +490,10 @@ html,body{
 .mtab{
   flex:1;padding:10px 8px;border:none;background:transparent;
   color:var(--t3);font-family:inherit;font-size:13px;font-weight:600;
-  cursor:pointer;border-radius:12px;transition:all .25s ease;white-space:nowrap;
+  cursor:pointer;border-radius:12px;transition:all .3s ease;white-space:nowrap;
+  overflow:hidden;min-width:0;opacity:1;
 }
+.mtab.mtab-hidden{flex:0;padding:0;margin:0;opacity:0;pointer-events:none;max-width:0;border:none;}
 .mtab:hover{color:var(--t1);background:rgba(255,255,255,.06);}
 .mtab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.25);}
 
@@ -8983,12 +8985,14 @@ function _applyGenModeConfig(){
   });
   tabs.forEach(function(tab){
     var cfg=gm[tab.dataset.mode];
-    tab.style.display=(cfg&&cfg.enabled===false)?'none':'';
+    var hidden=(cfg&&cfg.enabled===false);
+    tab.classList.toggle('mtab-hidden',hidden);
+    tab.style.display=''; /* display:none 제거 — CSS transition으로 처리 */
     parent.appendChild(tab);
   });
   var activeTab=parent.querySelector('.mtab.on');
-  if(activeTab&&activeTab.style.display==='none'){
-    var first=tabs.find(function(t){return t.style.display!=='none';});
+  if(activeTab&&activeTab.classList.contains('mtab-hidden')){
+    var first=tabs.find(function(t){return !t.classList.contains('mtab-hidden');});
     if(first) first.click();
   }
 }
@@ -25017,10 +25021,15 @@ async function _syncPlanFromServer(){
 
 /* ── 로그인 시 사용자 DB 전체 최신화 ── */
 var _userSyncDone = false;
-async function _syncUserDataFromServer(){
+var _userSyncLastAt=0;
+var _USER_SYNC_COOLDOWN=60000; /* 최소 60초 간격 */
+async function _syncUserDataFromServer(force){
   if(!currentUser) return;
-  if(_userSyncDone) return;
+  if(_userSyncDone && !force) return;
+  var now=Date.now();
+  if(!force && (now - _userSyncLastAt) < _USER_SYNC_COOLDOWN) return;
   _userSyncDone = true;
+  _userSyncLastAt = now;
   try {
     const name = encodeURIComponent(currentUser.name);
     const prov = encodeURIComponent(currentUser.provider);
