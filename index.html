@@ -3363,18 +3363,18 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 }
 .fp-back svg{width:22px;height:22px;}
 .fp-header-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;}
-.fp-scroll{flex:1;overflow-y:auto;padding:0 20px 20px;display:flex;flex-direction:column;align-items:center;position:relative;}
-/* 커버 — 가사 배경으로 투명하게 합침 */
-.fp-cover-wrap{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.fp-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 0 20px;display:flex;flex-direction:column;align-items:center;position:relative;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;}
+.fp-scroll::-webkit-scrollbar{display:none;}
+/* 커버 — 가사 뒤 반투명 배경 */
+.fp-cover-wrap{position:sticky;top:0;z-index:0;pointer-events:none;height:0;overflow:visible;}
 .fp-cover{
-  width:100%;height:100%;
-  overflow:hidden;background:linear-gradient(145deg,#1a0a2e,#2d1a4a,#0f2a4a);
-  display:flex;align-items:center;justify-content:center;
-  position:absolute;inset:0;
-  opacity:.15;filter:blur(10px);
+  width:200px;height:200px;border-radius:20px;
+  overflow:hidden;background:linear-gradient(145deg,#1a0a2e,#2d1a4a);
+  margin:20px auto 0;opacity:.35;
+  box-shadow:0 8px 40px rgba(0,0,0,.5);
 }
 .fp-cover img{width:100%;height:100%;object-fit:cover;}
-.fp-cover svg{width:64px;height:64px;color:rgba(255,255,255,.15);display:none;}
+.fp-cover svg{display:none;}
 /* 곡 정보 — 중앙 정렬 */
 .fp-info{text-align:left;margin-bottom:0;width:100%;padding:0 20px;box-sizing:border-box;}
 .fp-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px;line-height:1.3;}
@@ -3916,11 +3916,10 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 /* ── 제목 아래 가사 영역 (노래방 스타일) ── */
 /* ── Apple Music 스타일 가사 ── */
 .fp-lyrics-main{
-  margin-top:0;padding:24px 24px 40vh;text-align:left;
-  flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;-ms-overflow-style:none;
-  position:relative;
+  margin-top:0;padding:24px 24px 50vh;text-align:left;
+  min-height:60vh;
+  overflow:visible;
+  position:relative;z-index:1;
 }
 .fp-lyrics-main::-webkit-scrollbar{display:none;}
 .fp-lm-line{
@@ -4518,7 +4517,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
   /* 풀플레이어 — Apple Music mobile */
   .fp-inner{padding:0 10px;}
-  .fp-cover{opacity:.12;}
+  
   .fp-title{font-size:20px;}
   .fp-controls{gap:28px;}
   .fp-play-btn{width:56px;height:56px;}
@@ -4595,7 +4594,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .mood-chip{font-size:8px;padding:5px 2px;}
   .adv-instrument-grid{grid-template-columns:repeat(3,1fr);}
   .comm-featured-cover{height:150px;}
-  .fp-cover{opacity:.12;}
+  
   .comm-list-actions{gap:3px;}
   .comm-reaction-sm{padding:3px 5px;font-size:11px;}
   .comm-list-actions .star-rating-sm .star{font-size:10px;}
@@ -4668,7 +4667,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .settings-section{max-width:none;margin-bottom:16px;}
   /* 풀 플레이어 — 태블릿 꽉 차게 */
   .fp-inner{max-width:100%;padding:0 10px;}
-  .fp-cover{opacity:.1;}
+  
   .fp-scroll{padding:0 40px 32px;}
   .fp-title{font-size:28px;}
   .fp-tags{font-size:14px;}
@@ -4732,7 +4731,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .preset-carousel{max-width:none;}
   /* 풀 플레이어 — 데스크탑 꽉 차게 */
   .fp-inner{max-width:100%;padding:0 20px;}
-  .fp-cover{opacity:.08;}
+  
   .fp-scroll{padding:0 60px 40px;}
   .fp-title{font-size:30px;}
   .fp-tags{font-size:15px;}
