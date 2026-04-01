@@ -36,6 +36,8 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <!-- Lucide Icons CDN -->
 <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" defer></script>
+<!-- QR Code Generator -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
 <!-- Kakao JS SDK — 공유 시 동적 로드 (cross-site cookie 경고 방지) -->
 <link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7c3aed"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
@@ -5673,8 +5675,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="clear-all-btn" id="clear-all-btn" style="display:none;">전체 삭제</button>
     </div>
 <!-- 앨범 + 라이선스 + NAS -->    <div style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_createAlbum()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💿 앨범 만들기</button>      <button onclick="_downloadLicense()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📜 상업 라이선스</button>      <button onclick="_openNasPanel()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.06);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🗄️ NAS 연결</button>    </div>
-    <!-- 검색/필터 바 -->
-    <div id="hist-search-bar"></div>
     <!-- 음악/뮤비 탭 -->
     <div class="hist-tabs" id="hist-tabs">
       <button class="hist-tab on" data-htab="all" onclick="_switchHistTab('all')">전체</button>
@@ -6927,6 +6927,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="sc-share-target" data-sc-target="copy">
         <div class="sc-icon" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">🔗</div>
         <span class="sc-label">링크복사</span>
+      </button>
+      <button class="sc-share-target" onclick="event.stopPropagation();_showQRCard(_scIdx);">
+        <div class="sc-icon" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);">📱</div>
+        <span class="sc-label">QR 코드</span>
       </button>
     </div>
     <div class="sc-comm-share" id="sc-comm-toggle" onclick="toggleCommShare()">
@@ -9060,7 +9064,7 @@ async function _ytDoGenerate(){
       if($('ld-task')) $('ld-task').textContent='';
       $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
-      const _rawYtTracks = await pollResult(apiKey, taskId);
+      const _rawYtTracks = await pollResult(apiKey, taskId, _localGenCount);
       if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
       /* ✅ FIX: 생성 실패 트랙 필터링 */
       tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
@@ -10458,7 +10462,8 @@ function _pollViaSSE(tid){
   });
 }
 
-async function pollResult(apiKey,taskId){
+async function pollResult(apiKey,taskId,_localGenCount){
+  if(_localGenCount===undefined) _localGenCount=_genCount;
   /* SSE 비활성화 — Vercel 서버리스에서 불안정하여 클라이언트 폴링 직행 */
   /* 폴링: 초기 3회(300ms) → 다음 7회(800ms) → 이후(1.5초) → 80초 이후(2.5초) */
   let elapsed = 0;
@@ -12087,7 +12092,7 @@ async function generate(overrideParams){
       $('ld-task').textContent='';
 
       _genLog('POLL','폴링 시작 taskId='+taskId);
-      const _rawTracks=await pollResult(apiKey,taskId);
+      const _rawTracks=await pollResult(apiKey,taskId,_localGenCount);
       _genLog('POLL','폴링 완료 '+(Date.now()-_genT0)+'ms, 트랙 '+(_rawTracks?.length||0)+'개');
       _clearGenSession();
       if(!_rawTracks?.length)throw new Error('트랙을 받지 못했어요');
@@ -13121,6 +13126,7 @@ function renderTracks(tracks,prompt,tags,mode){
           <div class="dl-row">
             <button class="dl-btn audio" data-dl-audio="${esc(audioUrl)}" data-dl-name="${esc(title)}.mp3">⬇ MP3</button>
             <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
+            <button class="dl-btn" style="color:#7c3aed;border-color:rgba(124,58,237,.3);" data-qr-idx="${i}" data-qr-title="${esc(title)}" data-qr-img="${esc(imageUrl)}" data-qr-id="${esc(track.id||'')}">📱 QR</button>
           </div>
           ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
         </div>
@@ -13363,6 +13369,16 @@ function renderTracks(tracks,prompt,tags,mode){
       var task=this.dataset.ptTask||'';
       if(typeof _showPostTools==='function') _showPostTools(url,id,title,task);
       else toast('도구 모듈 로딩 중...','',1500);
+    });
+  });
+
+  /* QR 버튼 이벤트 */
+  batchWrap.querySelectorAll('[data-qr-idx]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var title=this.dataset.qrTitle||'무제';
+      var img=this.dataset.qrImg||'';
+      var id=this.dataset.qrId||'';
+      _showQRCardDirect(title,img,id);
     });
   });
 
@@ -29670,12 +29686,52 @@ setTimeout(_showOnboarding, 1500);
   _updateFixedNav();
 })();
 </script>
+<script>
+/* ── QR 코드 공유 카드 ── */
+function _generateQR(text,size){
+  if(typeof qrcode==='undefined'){toast('QR 라이브러리 로딩 중...','',1500);return null;}
+  var qr=qrcode(0,'M');qr.addData(text);qr.make();
+  return qr.createDataURL(size||4,0);
+}
+function _showQRCard(idx){
+  var h=historyData[idx];if(!h)return;
+  _showQRCardDirect(h.title||'무제',h.image_url||'',h.id||h.taskId||'');
+}
+function _showQRCardDirect(title,imageUrl,trackId){
+  var shareUrl='https://ddinggok.com'+(trackId?'/?play='+encodeURIComponent(trackId):'');
+  var qrImg=_generateQR(shareUrl,5);
+  if(!qrImg){toast('QR 생성 실패','err');return;}
+  var ov=document.createElement('div');
+  ov.id='_qr_overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+  ov.innerHTML='<div id="_qr_card" style="background:linear-gradient(145deg,#1a0a2e,#2d1a4a);border-radius:24px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(124,58,237,.3);">'
+    +(imageUrl?'<div style="width:80px;height:80px;border-radius:16px;overflow:hidden;margin:0 auto 16px;box-shadow:0 4px 16px rgba(0,0,0,.3);"><img src="'+esc(imageUrl)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'🎵\'"></div>':'<div style="font-size:48px;margin-bottom:16px;">🎵</div>')
+    +'<div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(title)+'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:20px;">띵곡 AI Music Studio</div>'
+    +'<div style="background:#fff;border-radius:16px;padding:16px;display:inline-block;margin-bottom:16px;"><img src="'+qrImg+'" style="width:160px;height:160px;image-rendering:pixelated;"></div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:16px;">QR을 스캔하면 이 곡을 바로 들을 수 있어요</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button id="_qr_save" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 이미지 저장</button>'
+    +'<button id="_qr_copy" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🔗 링크 복사</button>'
+    +'</div></div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  document.getElementById('_qr_save').addEventListener('click',function(){
+    var a=document.createElement('a');a.href=qrImg;a.download=(title||'track')+'-qr.png';
+    document.body.appendChild(a);a.click();a.remove();
+    toast('QR 이미지 저장됨!','ok',2000);
+  });
+  document.getElementById('_qr_copy').addEventListener('click',function(){
+    navigator.clipboard.writeText(shareUrl).then(function(){toast('링크 복사됨!','ok',2000);}).catch(function(){toast('복사 실패','err');});
+  });
+}
+</script>
 <script src="js/create-enhance.js"></script>
 <script src="js/prompt-engine.js"></script>
 <script src="js/stem-mixer.js"></script>
 <script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
-<script>initModelProfiles();if(typeof renderHistSearchBar==='function')renderHistSearchBar();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
+<script>initModelProfiles();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
 
 </body>
 </html>
