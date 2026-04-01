@@ -13516,15 +13516,14 @@ $('extend-submit-btn').addEventListener('click',async()=>{
 /* ── 가사 파싱 ── */
 function parseLyrics(text){
   if(!text||!text.trim())return'<div class="lyrics-empty">가사 정보가 없어요</div>';
+  /* [Verse 1][Chorus] 등 연속 태그 → 개행으로 치환 후 제거 */
+  text=text.replace(/\[.*?\]/g,'\n').replace(/\n{3,}/g,'\n\n');
   const lines=text.split('\n');
   let html='<div class="lyrics-text">';
   let lineIdx=0;
   lines.forEach(line=>{
     const trimmed=line.trim();
-    /* [Verse], [Chorus], [Bridge] 등 섹션 태그 제거 */
-    if(/^\[.+\]$/.test(trimmed)){
-      return; /* 스킵 */
-    }else if(trimmed){
+    if(trimmed){
       html+=`<span class="lyric-line" data-line-idx="${lineIdx++}">${esc(trimmed)}</span>`;
     }else{
       html+='<br>';
@@ -19269,7 +19268,8 @@ async function fpRenderLyrics(h){
   }
   /* 스타일 태그만 있는 경우만 제외 (영어 콤마 구분 짧은 문자열, 한글 없음) */
   const isStyleStr = raw && !raw.includes('\n') && raw.length < 80 && !/[\uac00-\ud7a3]/.test(raw) && /^[a-zA-Z0-9,\s\-_&]+$/.test(raw);
-  const plain = isStyleStr ? '' : raw;
+  /* [Verse 1][Chorus] 등 연속 태그 → 개행으로 치환 */
+  const plain = isStyleStr ? '' : raw.replace(/\[.*?\]/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 
   fpTimestampLines=[];
   _fpLrcTimes=[];
