@@ -11893,6 +11893,8 @@ async function generate(overrideParams){
   _globalGenerating = true; _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
+  /* 캐시 없으면 서버에서 선로드 (iOS Safari 느린 fetch 대응) */
+  if(!_serverCreditsCache && currentUser?.name){try{await _fetchServerCredits();}catch(e){}}
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
   if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_globalGenerating=false;_syncGenButtons();return;}
   /* 로그인 체크 + 게스트 모드 허용 */
