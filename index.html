@@ -28096,40 +28096,15 @@ function _startSpectrum(){
   _initSpectrum();
   var el=$('fp-spectrum');if(!el)return;
   var bars=el.children;
-  /* 오디오 분석기 연결 */
-  if(fpAudio&&!_spectrumAnalyser){
-    try{
-      if(!_spectrumAudioCtx) _spectrumAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-      if(_spectrumAudioCtx.state==='suspended') _spectrumAudioCtx.resume();
-      if(!fpAudio._specSrc){
-        _spectrumSource=_spectrumAudioCtx.createMediaElementSource(fpAudio);
-        fpAudio._specSrc=_spectrumSource;
-      } else { _spectrumSource=fpAudio._specSrc; }
-      _spectrumAnalyser=_spectrumAudioCtx.createAnalyser();
-      _spectrumAnalyser.fftSize=128;
-      _spectrumSource.connect(_spectrumAnalyser);
-      _spectrumAnalyser.connect(_spectrumAudioCtx.destination);
-    }catch(e){_spectrumAnalyser=null;}
-  }
-  /* 실시간 웨이브 렌더링 */
+  /* 재생 속도 반영 웨이브 (오디오 연결 없이 — 소리 끊김 방지) */
   function _drawWave(){
     _spectrumRafId=requestAnimationFrame(_drawWave);
     if(!fpAudio||fpAudio.paused){for(var i=0;i<bars.length;i++)bars[i].style.height='2px';return;}
-    if(_spectrumAnalyser){
-      var data=new Uint8Array(_spectrumAnalyser.frequencyBinCount);
-      _spectrumAnalyser.getByteFrequencyData(data);
-      var step=Math.floor(data.length/_spectrumBars);
-      for(var i=0;i<bars.length;i++){
-        var val=data[i*step]||0;
-        bars[i].style.height=Math.max(2,val/255*38)+'px';
-      }
-    } else {
-      /* 폴백: 오디오 분석 불가 시 심플 웨이브 */
-      var t=Date.now()/200;
-      for(var i=0;i<bars.length;i++){
-        var h=Math.sin(t+i*0.3)*12+14+Math.sin(t*1.7+i*0.5)*8;
-        bars[i].style.height=Math.max(2,h)+'px';
-      }
+    var t=fpAudio.currentTime*3; /* 재생 시간 기반 — 노래 속도 반영 */
+    var rate=fpAudio.playbackRate||1;
+    for(var i=0;i<bars.length;i++){
+      var h=Math.sin(t*rate+i*0.25)*10+16+Math.sin(t*rate*1.8+i*0.4)*8+Math.cos(t*rate*0.7+i*0.6)*5;
+      bars[i].style.height=Math.max(2,h)+'px';
     }
   }
   if(_spectrumRafId) cancelAnimationFrame(_spectrumRafId);
@@ -28138,7 +28113,6 @@ function _startSpectrum(){
 function _stopSpectrum(){
   if(_spectrumRafId){cancelAnimationFrame(_spectrumRafId);_spectrumRafId=0;}
   clearInterval(_spectrumTimer);
-  if(_spectrumAnalyser){try{_spectrumSource.disconnect(_spectrumAnalyser);_spectrumAnalyser.disconnect();}catch(e){}_spectrumAnalyser=null;}
   var el=$('fp-spectrum');if(el){var bars=el.children;for(var i=0;i<bars.length;i++)bars[i].style.height='2px';}
 }
 
