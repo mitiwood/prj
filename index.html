@@ -3935,11 +3935,11 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   text-shadow:0 0 20px rgba(168,85,247,.4);
 }
 .fp-lm-line.done{font-size:16px;color:rgba(255,255,255,.1);transform:scale(0.95);}
-.fp-lm-line.upcoming{display:none;}
+.fp-lm-line.upcoming{color:rgba(255,255,255,.1);transform:scale(0.95);}
 [data-theme="light"] .fp-lm-line{color:rgba(0,0,0,.15);}
 [data-theme="light"] .fp-lm-line.active{color:rgba(0,0,0,.9);}
 [data-theme="light"] .fp-lm-line.done{color:rgba(0,0,0,.08);}
-[data-theme="light"] .fp-lm-line.upcoming{display:none;}
+[data-theme="light"] .fp-lm-line.upcoming{color:rgba(0,0,0,.08);}
 .fp-lm-sec{
   font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
   letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;text-align:left;
@@ -15898,6 +15898,11 @@ function showMiniPlayer(idx){
     audio.play().then(function(){
       if(genId!==_fpAudioGenId) return;
       _syncAllPlayBtns(true);
+      /* Web Audio API 연결 + rAF 싱크 루프 시작 */
+      if(typeof _fpConnectAudioCtx==='function'&&!audio._webAudioConnected){
+        try{_fpConnectAudioCtx(audio);audio._webAudioConnected=true;}catch(e){}
+      }
+      if(typeof _fpStartSyncLoop==='function') _fpStartSyncLoop();
       /* Media Session — 백그라운드 재생 + 잠금화면 컨트롤 */
       _updateMediaSession(historyData[fpCurrentIdx]);
       if('mediaSession' in navigator) navigator.mediaSession.playbackState='playing';
@@ -16891,8 +16896,7 @@ async function _doOpenFullPlayer(idx){
   }
   /* 배경은 fp-bg (커버 블러 풀스크린)가 이미 처리 */
   await fpRenderLyrics(h);
-  /* 보컬 감지 분석 (백그라운드) */
-  if(h.audio_url && typeof _analyzeVocalMap==='function') _analyzeVocalMap(h.audio_url);
+  /* rAF 싱크 루프 준비 (재생 시작 시 AudioContext 연결) */
 
   /* 풀플레이어 열기 — 미니플레이어 완전 제거 */
   $('fullplayer').classList.add('on');
@@ -19600,148 +19604,119 @@ function resetSyncOffset(){
 
 var _fpPrevActiveIdx=-1;
 
-/* ── Web Audio 보컬 감지 엔진 ── */
-var _fpVocalMap=[]; /* 0.1초 단위 보컬 유무 배열: true=보컬, false=간주 */
-var _fpVocalAnalyzing=false;
+/* ── Web Audio API 기반 정밀 싱크 엔진 ── */
+var _fpAudioCtx=null;
+var _fpAnalyser=null;
+var _fpMediaSource=null;
+var _fpFreqData=null;
+var _fpSyncRAF=null;
 
-function _isVocalAt(timeSec){
-  if(!_fpVocalMap.length) return true; /* 분석 전이면 보컬 있다고 가정 */
-  var idx=Math.floor(timeSec*10);
-  if(idx<0) return true;
-  if(idx>=_fpVocalMap.length) return false;
-  return _fpVocalMap[idx];
-}
-
-async function _analyzeVocalMap(audioUrl){
-  if(_fpVocalAnalyzing) return;
-  _fpVocalAnalyzing=true;
-  _fpVocalMap=[];
+/* AudioContext + AnalyserNode + 밴드패스 연결 */
+function _fpConnectAudioCtx(audioEl){
   try{
-    var res=await fetch(audioUrl);
-    var buf=await res.arrayBuffer();
-    var offCtx=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,44100);
-    var decoded=await offCtx.decodeAudioData(buf);
-    var sr=decoded.sampleRate;
-    var data=decoded.getChannelData(0);
-    var stepSize=Math.floor(sr*0.1); /* 0.1초 단위 */
-    var totalSteps=Math.floor(data.length/stepSize);
-    /* 주파수 분석: 300Hz~3kHz 밴드 에너지 (보컬 대역) */
-    var fftSize=2048;
-    var offCtx2=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,decoded.length,sr);
-    var source=offCtx2.createBufferSource();
-    var analyser=offCtx2.createAnalyser();
-    analyser.fftSize=fftSize;
-    /* 밴드패스 필터: 300Hz ~ 3kHz */
-    var bpf=offCtx2.createBiquadFilter();
-    bpf.type='bandpass';
-    bpf.frequency.value=1200;
-    bpf.Q.value=0.5;
-    source.buffer=decoded;
-    source.connect(bpf);
-    bpf.connect(analyser);
-    analyser.connect(offCtx2.destination);
-    source.start(0);
-    /* ScriptProcessor 대신 직접 PCM 데이터에서 RMS 계산 (더 빠름) */
-    /* 밴드패스 필터 없이 간단 RMS로 대체 (OfflineAudioContext 렌더 시간 절약) */
-    offCtx2=null;source=null;analyser=null;bpf=null; /* 위 방식 취소 */
-    /* 직접 PCM에서 0.1초 단위 RMS 에너지 계산 */
-    var rmsArr=[];
-    for(var s=0;s<totalSteps;s++){
-      var start=s*stepSize;
-      var end=Math.min(start+stepSize,data.length);
-      var sum=0;
-      for(var j=start;j<end;j++) sum+=data[j]*data[j];
-      rmsArr.push(Math.sqrt(sum/(end-start)));
-    }
-    /* 전체 평균 RMS 계산 */
-    var avgRms=rmsArr.reduce(function(a,b){return a+b;},0)/rmsArr.length;
-    /* 임계값: 평균의 30% 이하 → 간주 (보컬 없음) */
-    var threshold=avgRms*0.3;
-    _fpVocalMap=rmsArr.map(function(rms){return rms>threshold;});
-    /* 스무딩: 0.3초(3샘플) 연속 false여야 간주로 판정 (짧은 무음 무시) */
-    var smoothed=_fpVocalMap.slice();
-    for(var si=1;si<smoothed.length-1;si++){
-      if(!smoothed[si]&&(smoothed[si-1]||smoothed[si+1])) smoothed[si]=true;
-    }
-    _fpVocalMap=smoothed;
-    console.log('[VocalMap] 분석 완료: '+_fpVocalMap.length+'프레임, 보컬='+_fpVocalMap.filter(Boolean).length+', 간주='+_fpVocalMap.filter(function(v){return !v;}).length);
-  }catch(e){
-    console.warn('[VocalMap] 분석 실패:',e.message);
-    _fpVocalMap=[];
-  }finally{
-    _fpVocalAnalyzing=false;
-  }
+    if(!_fpAudioCtx) _fpAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(_fpAudioCtx.state==='suspended') _fpAudioCtx.resume();
+    /* 이미 연결된 소스 해제 */
+    if(_fpMediaSource){try{_fpMediaSource.disconnect();}catch(e){}_fpMediaSource=null;}
+    _fpMediaSource=_fpAudioCtx.createMediaElementSource(audioEl);
+    /* 밴드패스 필터: 보컬 대역 300Hz~3kHz */
+    var bpf=_fpAudioCtx.createBiquadFilter();
+    bpf.type='bandpass';bpf.frequency.value=1200;bpf.Q.value=0.5;
+    /* AnalyserNode */
+    _fpAnalyser=_fpAudioCtx.createAnalyser();
+    _fpAnalyser.fftSize=256;
+    _fpFreqData=new Uint8Array(_fpAnalyser.frequencyBinCount);
+    /* 라우팅: source → bpf → analyser (보컬 대역 분석)
+              source → destination (원본 재생) */
+    _fpMediaSource.connect(bpf);
+    bpf.connect(_fpAnalyser);
+    _fpMediaSource.connect(_fpAudioCtx.destination);
+  }catch(e){console.warn('[AudioCtx]',e.message);}
 }
 
-/* 전체모드 가사 싱크 */
+/* 실시간 보컬 에너지 측정 */
+function _fpGetVocalEnergy(){
+  if(!_fpAnalyser||!_fpFreqData) return 255;
+  _fpAnalyser.getByteFrequencyData(_fpFreqData);
+  var sum=0,count=_fpFreqData.length;
+  for(var i=0;i<count;i++) sum+=_fpFreqData[i];
+  return count>0?sum/count:0;
+}
+
+/* rAF 기반 싱크 루프 */
+function _fpStartSyncLoop(){
+  if(_fpSyncRAF) cancelAnimationFrame(_fpSyncRAF);
+  function _loop(){
+    _fpSyncRAF=requestAnimationFrame(_loop);
+    if(!fpAudio||fpAudio.paused||!fpTimestampLines.length) return;
+    /* AudioContext 시간 사용 (더 정밀), 폴백: fpAudio.currentTime */
+    var ct=fpAudio.currentTime;
+    fpSyncLyrics(ct);
+  }
+  _loop();
+}
+function _fpStopSyncLoop(){
+  if(_fpSyncRAF){cancelAnimationFrame(_fpSyncRAF);_fpSyncRAF=null;}
+}
+
+/* 전체모드 가사 싱크 — rAF에서 호출 */
 function fpSyncLyrics(currentTime){
-  var _rawTime=currentTime;
   currentTime=currentTime+_syncOffset;
-  if(!fpTimestampLines.length||!fpAudio?.duration)return;
+  if(!fpTimestampLines.length||!fpAudio?.duration) return;
   var firstEl=fpTimestampLines[0];
-  var hasDataEnd=firstEl&&firstEl.dataset.start!==undefined&&firstEl.dataset.end!==undefined&&parseFloat(firstEl.dataset.end)>0;
-  /* TS 모드: -0.2s 보정 (다음 가사로 살짝 빨리 넘어가는 것 방지) */
-  if(hasDataEnd) currentTime-=0.2;
+  var hasDataEnd=firstEl&&firstEl.dataset&&parseFloat(firstEl.dataset.end)>0;
   var n=fpTimestampLines.length;
   var activeIdx=-1;
-  /* start/end 정밀 싱크 + Web Audio 보컬 감지 */
+
   if(hasDataEnd){
+    /* TS 모드: data-start/end 매칭 */
     for(var di=n-1;di>=0;di--){
       var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
-      if(currentTime>=ds&&currentTime<de){
-        /* 보컬 감지: 현재 구간에 보컬 없으면 간주 → 스킵 */
-        if(_fpVocalMap&&_fpVocalMap.length&&!_isVocalAt(currentTime)){
-          continue; /* 보컬 없는 구간 → 이 줄 매칭 안 함 */
-        }
-        activeIdx=di;break;
+      if(currentTime>=ds&&currentTime<de){activeIdx=di;break;}
+    }
+    /* 보컬 에너지 체크: TS 매칭됐지만 보컬 대역 에너지 낮으면 전환 지연 */
+    if(activeIdx>=0&&activeIdx!==_fpPrevActiveIdx&&_fpAnalyser){
+      var energy=_fpGetVocalEnergy();
+      if(energy<15&&_fpPrevActiveIdx>=0){
+        activeIdx=_fpPrevActiveIdx; /* 에너지 낮으면 이전 줄 유지 (전환 지연) */
       }
     }
   } else if(_fpLrcTimes.length){
-    /* LRC/균등 분할 — endTime도 고려 */
+    /* LRC/균등 분할 */
     for(var i=n-1;i>=0;i--){
-      var _es=_fpLrcTimes[i];
-      var _ee=(i<n-1)?_fpLrcTimes[i+1]:fpAudio.duration;
-      /* 다음 줄 시작까지 갭이 3초 이상이면 현재 줄 끝에서 1.5초 후 해제 */
-      var _gap=_ee-_es;
-      var _lineEnd=(_gap>4)?(_es+_gap*0.4):_ee;
-      if(currentTime>=_es&&currentTime<_lineEnd){activeIdx=i;break;}
+      if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
     }
   }
+
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
-  /* 간주 구간: 모든 줄 숨김 */
-  if(activeIdx<0){
-    fpTimestampLines.forEach(function(el){
-      el.classList.remove('active','done');
-      el.classList.add('upcoming');
-    });
-    return;
-  }
+
   /* 디버그 로그 */
   if(activeIdx>=0){
     var _s=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.start)||0):(_fpLrcTimes[activeIdx]||0);
     var _e=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.end)||0):(activeIdx<n-1?_fpLrcTimes[activeIdx+1]:fpAudio.duration);
     var _txt=(fpTimestampLines[activeIdx].textContent||'').trim().slice(0,30);
-    var _mode=hasDataEnd?'TS':(_fpLrcTimes._isLrc?'LRC':'EST');
-    console.log('%c[LyricSync] %c#'+activeIdx+'/'+n+' %c'+_rawTime.toFixed(2)+'s (offset:'+_syncOffset+', rate:'+(fpAudio?.playbackRate||1)+'x) %c['+_s.toFixed(2)+'~'+_e.toFixed(2)+'] %c'+_txt+' %c('+_mode+')',
-      'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#fff','color:#888');
+    var _energy=_fpAnalyser?Math.round(_fpGetVocalEnergy()):'N/A';
+    console.log('%c[LyricSync] %c#'+activeIdx+'/'+n+' %c'+currentTime.toFixed(2)+'s %c['+_s.toFixed(2)+'~'+_e.toFixed(2)+'] %cE:'+_energy+' %c'+_txt,
+      'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#f59e0b','color:#fff');
   }
-  /* active/done/upcoming 클래스 */
+
+  /* active/done 클래스 — 가사는 항상 보임 */
   fpTimestampLines.forEach(function(el,i){
-    el.classList.remove('active','done','upcoming');
+    el.classList.remove('active','done');
     if(i===activeIdx) el.classList.add('active');
     else if(i<activeIdx) el.classList.add('done');
-    else el.classList.add('upcoming');
   });
+
+  /* 자동 스크롤: 활성 줄을 중앙에 배치 */
   if(activeIdx>=0){
     var box=$('fp-lyrics-main');
     if(box){
       var el=fpTimestampLines[activeIdx];
       var areaRect=box.getBoundingClientRect();
       var elRect=el.getBoundingClientRect();
-      /* 활성 줄을 영역 하단 75% 지점에 배치 — 미래 가사 화면 밖 */
-      var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height*0.75)+(elRect.height/2);
+      var targetScroll=box.scrollTop+(elRect.top-areaRect.top)-(areaRect.height*0.4)+(elRect.height/2);
       if(Math.abs(box.scrollTop-targetScroll)>5) box.scrollTo({top:targetScroll,behavior:'smooth'});
     }
   }
