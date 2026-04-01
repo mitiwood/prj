@@ -12044,9 +12044,10 @@ async function generate(overrideParams){
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
   _genLog('START','mode='+_modeKey+', genCount='+_genCount);
-  /* 심플 모드: 항상 1곡만 (2곡 선택 무시) */
+  /* 기본 1곡 — 유저가 명시적으로 2곡 버튼 선택했을 때만 2곡 */
   var _localGenCount = _genCount;
-  if(currentMode==='simple') _localGenCount=1;
+  if(currentMode==='simple'||currentMode==='youtube') _localGenCount=1;
+  if(_localGenCount!==1&&_localGenCount!==2) _localGenCount=1; /* 안전장치 */
   /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
   if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
     _genLog('BLOCK','5초 이내 중복 호출 차단');
@@ -12401,6 +12402,8 @@ async function generate(overrideParams){
 
     if(_genCancelled){ _genLog('CANCEL','사용자 취소'); toast('생성이 취소되었어요','',2000); return; }
 
+    /* 최종 안전장치: 1곡 모드면 반드시 1곡만 */
+    if(_localGenCount===1 && tracks.length>1) tracks=tracks.slice(0,1);
     lastTracks=tracks.map(t=>({...t,_inputLyrics:lastLyricsInput,_taskId:lastTaskId}));
     renderTracks(lastTracks,prompt,styleStr,currentMode);
     /* showFeedbackCard()는 result-batch 확인 버튼에서 호출 */
