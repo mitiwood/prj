@@ -10546,7 +10546,7 @@ async function pollResult(apiKey,taskId){
       });
       /* 1곡 모드: FIRST_SUCCESS에서 유효 트랙 있으면 즉시 반환 */
       /* ✅ FIX: TEXT_SUCCESS 제거 — 가사만 완성된 상태이므로 오디오 미준비, 폴링 계속 */
-      if(status==='FIRST_SUCCESS'&&_validTracks.length&&_genCount===1){
+      if(status==='FIRST_SUCCESS'&&_validTracks.length&&_localGenCount===1){
         if(_pctEl)_pctEl.textContent='100%';if(_fillEl)_fillEl.style.width='100%';if(_etaEl)_etaEl.textContent='\u2705 완료!';
         return _validTracks.slice(0,1);
       }
@@ -10555,7 +10555,7 @@ async function pollResult(apiKey,taskId){
       if(status==='SUCCESS'||status==='FIRST_SUCCESS'||status==='COMPLETE'){
         if(_validTracks.length){
           if(_pctEl)_pctEl.textContent='100%';if(_fillEl)_fillEl.style.width='100%';if(_etaEl)_etaEl.textContent='\u2705 완료!';
-          return _genCount===1?_validTracks.slice(0,1):_validTracks;
+          return _localGenCount===1?_validTracks.slice(0,1):_validTracks;
         }
         /* 트랙은 있지만 audioUrl 미준비 → 폴링 계속 */
         if(tracks.length && i < MAX_POLLS-2){ continue; }
@@ -11782,6 +11782,7 @@ async function generate(overrideParams){
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
   _genLog('START','mode='+_modeKey+', genCount='+_genCount, new Error().stack?.split('\n').slice(1,4).join(' < '));
+  const _localGenCount = _genCount; /* 생성 시작 시점의 곡 수 고정 — 폴링 중 외부 변경 차단 */
   /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
   if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
     _genLog('BLOCK','5초 이내 중복 호출 차단');
@@ -11790,7 +11791,7 @@ async function generate(overrideParams){
   /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
   if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
   /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
-  if((_QueueManager.isBusy('music') || _globalGenerating) && !overrideParams?._afterLyrics){
+  if((_QueueManager.isBusy('music') || _globalGenerating) && !(overrideParams?._afterLyrics && (currentMode==='custom'||currentMode==='youtube'))){
     _genLog('BLOCK','busy 상태 — 차단');
     toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
     return;
@@ -11800,8 +11801,6 @@ async function generate(overrideParams){
   _globalGenerating = true; _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
-  /* 새 생성 시작 시 재시도 플래그 초기화 */
-  if(!overrideParams?._afterLyrics) _retryCount = 0;
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
   if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_globalGenerating=false;_syncGenButtons();return;}
   /* 로그인 체크 + 게스트 모드 허용 */
@@ -12094,7 +12093,7 @@ async function generate(overrideParams){
       if(tracks.length<_rawTracks.length) console.warn('[generate] A/B 중 '+ (_rawTracks.length-tracks.length)+'곡 실패 제외');
     }
     /* ── 1곡 모드: API가 2곡 반환해도 1곡만 사용 ── */
-    if(_genCount===1 && tracks.length>1) tracks=tracks.slice(0,1);
+    if(_localGenCount===1 && tracks.length>1) tracks=tracks.slice(0,1);
 
     /* ── 곡 길이 옵션: 사용자가 명시적으로 120초 초과 선택 시에만 자동 연장 ── */
     var _durExtRounds = selectedDuration>120 ? 1 : 0;
@@ -13165,13 +13164,11 @@ function renderTracks(tracks,prompt,tags,mode){
 
   /* ── 포스트 액션 카드 (result-batch 하단) ── */
   var _postActions=document.createElement('div');
-  _postActions.style.cssText='display:flex;flex-direction:column;gap:8px;padding:16px 0 4px;';
+  _postActions.style.cssText='display:flex;gap:8px;padding:12px 0 4px;';
   _postActions.innerHTML=`
-    <button onclick="_saveAndGoLibrary()" style="width:100%;padding:15px 20px;border-radius:14px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(124,58,237,.3);transition:all .2s;">이 곡으로 저장하기</button>
-    <div style="display:flex;gap:8px;">
-      <button onclick="_showPostGenFeedback()" style="flex:1;padding:13px 12px;border-radius:14px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.06);color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">다시 작곡하기</button>
-      <button onclick="_restoreStepUI()" style="flex:1;padding:13px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">새로 만들기</button>
-    </div>`;
+    <button onclick="_saveAndGoLibrary()" style="flex:1;padding:10px 8px;border-radius:12px;border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.08);color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">💾 저장</button>
+    <button onclick="_showPostGenFeedback()" style="flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">🔄 다시 작곡</button>
+    <button onclick="_restoreStepUI()" style="flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">✦ 새로 만들기</button>`;
   batchWrap.appendChild(_postActions);
 
   /* A/B 선택 버튼 이벤트 */
