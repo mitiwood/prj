@@ -5118,6 +5118,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
         <!-- 프롬프트 미리보기 -->
         <div id="prompt-preview-panel"></div>
+        <div id="prompt-suggestions" style="display:none;margin-top:4px;padding:4px 8px;background:rgba(251,191,36,.05);border-radius:8px;"></div>
 
         <!-- 생성 전 요약 카드 -->
         <div id="gen-summary-card" style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.15);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
@@ -11507,7 +11508,6 @@ var _QueueManager={
 };
 
 /* 레거시 호환: _globalGenerating getter/setter */
-var _globalGenerating=false;
 Object.defineProperty(window,'_globalGenerating',{
   get:function(){return _QueueManager.channels.music.busy||_QueueManager.channels.video.busy;},
   set:function(v){/* 레거시 set → music 채널에 반영 */_QueueManager.channels.music.busy=!!v;},
@@ -14493,47 +14493,22 @@ $('vr-submit-btn').addEventListener('click', async () => {
       });
     }
 
-    /* 스템 믹서 — 볼륨 슬라이더로 실시간 믹싱 */
+    /* 스템 믹서 — Web Audio API 기반 (stem-mixer.js) */
     if(_vrMode === 'split_stem'){
-      htm += '<div style="margin-top:14px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">';
-      htm += '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px;">🎚 스템 믹서</div>';
-      htm += '<div style="font-size:11px;color:var(--t3);margin-bottom:10px;">각 트랙 볼륨을 조절하며 실시간 믹싱</div>';
-      htm += '<div id="vr-mixer-wrap">';
-      var _mixStems = [{k:'vocalUrl',l:'보컬'},{k:'drumsUrl',l:'드럼'},{k:'bassUrl',l:'베이스'},{k:'guitarUrl',l:'기타'},{k:'pianoUrl',l:'피아노'},{k:'stringsUrl',l:'스트링'},{k:'instrumentalUrl',l:'MR'}];
-      _mixStems.forEach(function(ms){
-        var mu = res[ms.k]; if(!mu) return;
-        htm += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
-        htm += '<span style="font-size:11px;color:var(--t2);width:50px;flex-shrink:0;">'+ms.l+'</span>';
-        htm += '<input type="range" min="0" max="100" value="80" style="flex:1;accent-color:var(--acc);" data-stem-key="'+ms.k+'">';
-        htm += '</div>';
-      });
-      htm += '</div>';
-      htm += '<div style="display:flex;gap:6px;margin-top:10px;">';
-      htm += '<button onclick="_vrMixerPlay()" style="flex:1;padding:9px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" id="vr-mixer-play-btn">▶ 믹스 재생</button>';
-      htm += '<button onclick="_vrMixerStop()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">⏹ 정지</button>';
-      htm += '</div></div>';
+      htm += '<div id="vr-mixer-area" style="margin-top:14px;"></div>';
     }
 
     htm += '</div>';
     $('results').innerHTML = htm;
 
-    /* 스템 믹서 오디오 초기화 */
-    if(_vrMode === 'split_stem'){
-      window._mixAudios = {};
-      [{k:'vocalUrl'},{k:'drumsUrl'},{k:'bassUrl'},{k:'guitarUrl'},{k:'pianoUrl'},{k:'stringsUrl'},{k:'instrumentalUrl'}].forEach(function(ms){
-        var mu = res[ms.k]; if(!mu) return;
-        var a = new Audio(mu); a.volume = 0.8; a.loop = true;
-        a.addEventListener('error',function(){console.warn('[StemMix] 스템 로드 실패:',ms.k);});
-        window._mixAudios[ms.k] = a;
-      });
+    /* 스템 믹서 초기화 (Web Audio API) */
+    if(_vrMode === 'split_stem' && typeof renderStemMixer === 'function'){
+      var _stemList = [
+        {k:'vocalUrl',l:'Vocal'},{k:'backingVocalsUrl',l:'Backing Vocals'},{k:'drumsUrl',l:'Drums'},{k:'bassUrl',l:'Bass'},{k:'guitarUrl',l:'Guitar'},{k:'pianoUrl',l:'Piano'},{k:'keyboardUrl',l:'Keys'},{k:'percussionUrl',l:'Percussion'},{k:'stringsUrl',l:'Strings'},{k:'synthUrl',l:'Synth'},{k:'brassUrl',l:'Brass'},{k:'woodwindsUrl',l:'Woodwinds'},{k:'fxUrl',l:'FX'},{k:'instrumentalUrl',l:'MR'}
+      ];
+      var _validStems = _stemList.filter(function(s){return !!res[s.k];}).map(function(s){return {label:s.l,url:res[s.k]};});
+      renderStemMixer(_validStems, h.title||'', h.audio_url||'');
     }
-    /* 스템 볼륨 슬라이더 이벤트 */
-    document.querySelectorAll("[data-stem-key]").forEach(function(sl){
-      sl.addEventListener("input",function(){
-        var k=this.dataset.stemKey;
-        if(window._mixAudios&&window._mixAudios[k])window._mixAudios[k].volume=this.value/100;
-      });
-    });
     $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     /* MR + 보컬 트랙 히스토리 저장 */
@@ -29502,6 +29477,8 @@ setTimeout(_showOnboarding, 1500);
 })();
 </script>
 <script src="js/create-enhance.js"></script>
+<script src="js/prompt-engine.js"></script>
+<script src="js/stem-mixer.js"></script>
 <script src="js/model-profiles.js"></script>
 <script>initModelProfiles();</script>
 
