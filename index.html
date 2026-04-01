@@ -19613,13 +19613,12 @@ function fpSyncLyrics(currentTime){
     for(var di=n-1;di>=0;di--){
       var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
-      /* 간주 보정: 줄 duration이 8초 이상이면 실제 보컬 부분만 사용 */
       var _lineDur=de-ds;
       var _realEnd=de;
-      if(_lineDur>8){
+      /* 간주 보정: 줄이 5초 이상이면 보컬 부분만 (글자수 기반) */
+      if(_lineDur>5){
         var _txt=(fpTimestampLines[di].textContent||'').trim();
-        var _estDur=Math.min(8,Math.max(3,_txt.length*0.2+1.5));
-        _realEnd=ds+_estDur;
+        _realEnd=ds+Math.min(_lineDur,Math.max(2.5,_txt.length*0.2+1));
       }
       if(currentTime>=ds&&currentTime<_realEnd){activeIdx=di;break;}
     }
@@ -19636,9 +19635,12 @@ function fpSyncLyrics(currentTime){
   }
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
-  /* 간주 구간: active 해제 */
+  /* 간주 구간: 모든 줄 숨김 */
   if(activeIdx<0){
-    fpTimestampLines.forEach(function(el){el.classList.remove('active');});
+    fpTimestampLines.forEach(function(el){
+      el.classList.remove('active','done');
+      el.classList.add('upcoming');
+    });
     return;
   }
   /* 디버그 로그 */
