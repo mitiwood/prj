@@ -9619,20 +9619,24 @@ function _saveLoginUser(user){
 
   if(!sharedAudio && !sharedTitle && !sharedTrackId) return;
 
+  /* play 파라미터가 URL인지 trackId인지 판별 */
+  var _isPlayUrl = sharedAudio && (sharedAudio.startsWith('http') || sharedAudio.startsWith('//'));
+  var _playTrackId = sharedTrackId || (!_isPlayUrl && sharedAudio ? sharedAudio : '');
+
   /* 페이지 로드 완료 후 처리 */
   window.addEventListener('load', ()=>{
     setTimeout(()=>{
-      /* play 파라미터가 있으면 바로 재생 (게스트 공유 등 서버에 없는 트랙) */
-      if(sharedAudio){
+      /* play 파라미터가 실제 URL이면 바로 재생 */
+      if(_isPlayUrl){
         _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
       }
-      /* trackId만 있고 play 없는 경우: 서버 조회 */
-      else if(sharedTrackId){
-        fetch('/api/tracks?id='+encodeURIComponent(sharedTrackId)).then(r=>r.json()).then(d=>{
+      /* trackId로 서버 조회 후 재생 (QR 공유 등) */
+      else if(_playTrackId){
+        fetch('/api/tracks?id='+encodeURIComponent(_playTrackId)).then(r=>r.json()).then(d=>{
           var track=d.track||(Array.isArray(d.tracks)&&d.tracks[0])||(Array.isArray(d.data)&&d.data[0])||null;
           if(!track){
             var tracks=d.tracks||d.data||[];
-            track=tracks.find(function(t){return String(t.id)===String(sharedTrackId);});
+            track=tracks.find(function(t){return String(t.id)===String(_playTrackId);});
           }
           if(track&&track.audio_url){
             _showSharedPlayer(track.title||sharedTitle||'공유된 노래', track.audio_url, track.image_url||sharedImg||'');
