@@ -4581,9 +4581,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 }
 
 /* ══════════════════════════════
-   반응형 — 태블릿 (768px+)
+   반응형 — 태블릿 (744px+ : iPad mini 대응)
 ══════════════════════════════ */
-@media(min-width:768px){
+@media(min-width:600px){
+  .app-wrap{max-width:580px;}
+  .bottom-nav{max-width:580px;left:50%;transform:translateX(-50%);}
+  #mini-player{max-width:580px;left:50%;transform:translateX(-50%);}
+}
+@media(min-width:744px){
   .app-wrap{max-width:720px;}
   .bottom-nav{max-width:720px;left:50%;transform:translateX(-50%);}
   #mini-player{max-width:720px;left:50%;transform:translateX(-50%);}
@@ -9241,6 +9246,7 @@ async function _ytDoGenerate(){
     /* ── Lyria 모델 감지 → 별도 생성 흐름 ── */
     var _isLyria = model.startsWith('LYRIA');
     var tracks;
+    var _ytTaskId = ''; /* taskId를 블록 밖에서도 접근 가능하도록 */
     if(_isLyria){
       if($('ld-sub'))$('ld-sub').innerHTML='🌐 Google Lyria로 생성 중...<br>1~2분 소요될 수 있어요';
       var _lyriaBody = {
@@ -9264,19 +9270,21 @@ async function _ytDoGenerate(){
       if(!tracks.length) throw new Error('Lyria 트랙을 받지 못했어요');
     } else {
       const genData = await kieRequest(apiKey,'POST','/api/v1/generate',body);
-      const taskId  = genData?.data?.taskId || genData?.taskId;
-      if(!taskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
+      _ytTaskId = genData?.data?.taskId || genData?.taskId || '';
+      if(!_ytTaskId) throw new Error('taskId 없음 — '+JSON.stringify(genData).slice(0,120));
 
-      lastTaskId = taskId;
+      lastTaskId = _ytTaskId;
       if($('ld-task')) $('ld-task').textContent='';
       $('ld-sub').innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
 
-      const _rawYtTracks = await pollResult(apiKey, taskId, 1); /* YouTube 모드는 항상 1곡 */
+      const _rawYtTracks = await pollResult(apiKey, _ytTaskId, 1); /* YouTube 모드는 항상 1곡 */
       if(!_rawYtTracks?.length) throw new Error('트랙을 받지 못했어요');
       /* ✅ FIX: 생성 실패 트랙 필터링 */
       tracks=_rawYtTracks.filter(t=>(t.audioUrl||t.audio_url||t.song_path||''));
     }
     if(!tracks.length)throw new Error('모든 트랙 생성에 실패했어요 — 다시 시도해주세요');
+    /* YouTube 모드: 항상 1곡만 사용 */
+    if(tracks.length>1) tracks=tracks.slice(0,1);
 
     /* ── 곡 길이 옵션: normal/long이면 자동 연장 ── */
     var _extRounds=_ytDuration==='long'?2:_ytDuration==='normal'?1:0;
@@ -9324,7 +9332,7 @@ async function _ytDoGenerate(){
 
     /* 가사 우선순위: kie.ai 반환 가사 > 유저 입력/자동 생성 가사 (실제 노래와 일치하는 가사 우선) */
     var _ytUserLyrics = ytLyrics; /* 유저 입력 or 자동 생성된 실제 가사 */
-    lastTracks      = tracks.map(t=>({...t,_inputLyrics:_ytUserLyrics,_taskId:taskId}));
+    lastTracks      = tracks.map(t=>({...t,_inputLyrics:_ytUserLyrics,_taskId:_ytTaskId}));
     lastLyricsInput = _ytUserLyrics;
     renderTracks(lastTracks, prompt, ytStyle, 'youtube');
     showFeedbackCard();
