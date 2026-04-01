@@ -13497,8 +13497,9 @@ function parseLyrics(text){
   let lineIdx=0;
   lines.forEach(line=>{
     const trimmed=line.trim();
+    /* [Verse], [Chorus], [Bridge] 등 섹션 태그 제거 */
     if(/^\[.+\]$/.test(trimmed)){
-      html+=`<span class="lsec">${esc(trimmed.replace(/[\[\]]/g,''))}</span>`;
+      return; /* 스킵 */
     }else if(trimmed){
       html+=`<span class="lyric-line" data-line-idx="${lineIdx++}">${esc(trimmed)}</span>`;
     }else{
@@ -19328,9 +19329,8 @@ async function fpRenderLyrics(h){
       html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(text)}</div>`;
       lyricLineIdx++;
     } else if(/^\[.+\]$/.test(trimmed)){
-      const secText=trimmed.replace(/[\[\]]/g,'').trim();
-      html += `<div class="fp-lm-sec">${esc(secText)}</div>`;
-      parsedLines.push({time:null, text:secText, isSection:true});
+      /* 섹션 태그 [Verse], [Chorus] 등 — 표시하지 않음 */
+      return;
     } else {
       parsedLines.push({time:null, text:trimmed, isSection:false});
       html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(trimmed)}</div>`;
@@ -20571,12 +20571,12 @@ function renderKpPlainLyrics(plain){
   if(!plain){$('kp-lyrics-area').innerHTML='<div class="kp-lyrics-empty">가사가 없어요<br><span style="font-size:11px;opacity:.5;">커스텀 모드로 생성하면 가사가 표시됩니다</span></div>';return;}
   const lyricsArea=$('kp-lyrics-area');
   const lines=plain.split('\n');
-  kpLines=lines.map((text,i)=>({isSec:/^\[.+\]$/.test(text.trim()),text:text.replace(/[\[\]]/g,'').trim(),startS:null}));
+  kpLines=lines.filter(t=>!(/^\[.+\]$/.test(t.trim()))).map((text,i)=>({isSec:false,text:text.trim(),startS:null}));
   let html='';
   lines.forEach((line,li)=>{
     if(!line.trim()){html+='<div style="height:12px;"></div>';return;}
     if(/^\[.+\]$/.test(line.trim())){
-      html+=`<div class="kp-lyrics-sec">${esc(line.replace(/[\[\]]/g,'').trim())}</div>`;
+      return; /* 섹션 태그 제거 */
     } else {
       html+=`<div class="kp-lyrics-line no-sync" id="kpl-${li}">${esc(line)}</div>`;
     }
