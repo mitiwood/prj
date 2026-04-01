@@ -3362,7 +3362,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
   display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);
 }
 .fp-back svg{width:22px;height:22px;}
-.fp-header-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;}
+.fp-header-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;position:absolute;left:50%;transform:translateX(-50%);text-align:center;}
 .fp-scroll{flex:1;min-height:0;padding:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
 .fp-bottom{flex-shrink:0;padding:0 20px;position:relative;z-index:2;}
 .fp-center{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
@@ -3935,11 +3935,11 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
   text-shadow:0 0 20px rgba(168,85,247,.4);
 }
 .fp-lm-line.done{font-size:16px;color:rgba(255,255,255,.1);transform:scale(0.95);}
-.fp-lm-line.upcoming{color:transparent;transform:scale(0.93);}
+.fp-lm-line.upcoming{display:none;}
 [data-theme="light"] .fp-lm-line{color:rgba(0,0,0,.15);}
 [data-theme="light"] .fp-lm-line.active{color:rgba(0,0,0,.9);}
 [data-theme="light"] .fp-lm-line.done{color:rgba(0,0,0,.08);}
-[data-theme="light"] .fp-lm-line.upcoming{color:transparent;}
+[data-theme="light"] .fp-lm-line.upcoming{display:none;}
 .fp-lm-sec{
   font-size:10px;font-weight:700;color:rgba(168,85,247,.45);
   letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 4px;text-align:left;
@@ -16840,8 +16840,17 @@ async function _doOpenFullPlayer(idx){
   /* MV / 리믹스 뱃지 */
   var _fpHdr=$('fp-header-title');
   if(_fpHdr){
-    var _rmLabel=h._extendedFrom?'🔄 연장 곡':h._coveredFrom?'🎤 커버 곡':h._remasteredFrom?'✨ 리마스터':h._styleFrom?'🎨 스타일 재사용':h._vocalRemovedFrom?'🎙 보컬 분리':hasVideo?'뮤직비디오 재생 중':'재생 중';
-    _fpHdr.textContent=_rmLabel;
+    _fpHdr.textContent='재생 중';
+    /* DB에서 재생수 조회 → 헤더에 표시 */
+    var _trackId=h.id||h._sbId||'';
+    if(_trackId){
+      fetch('/api/tracks?id='+encodeURIComponent(_trackId)).then(function(r){return r.json();}).then(function(d){
+        var t=d.track||d.tracks?.[0];
+        var plays=t?.comm_plays||t?.play_count||h._commPlays||0;
+        if(plays>0) _fpHdr.textContent='🎧 '+plays+'명이 들었어요';
+        else _fpHdr.textContent='재생 중';
+      }).catch(function(){});
+    }
   }
   /* 실시간 리스너 배지 */
   var fpLive=$('fp-live-badge');
