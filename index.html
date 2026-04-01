@@ -10446,16 +10446,41 @@ function _ytUrlCheck(){
   if(btn){btn.disabled=!isValid;btn.style.opacity=isValid?'1':'0.4';}
   if(warn){warn.style.display=(hasInput&&!isValid)?'block':'none';}
 }
-/* input / paste / keyup / change 모두 처리 */
-['input','keyup','change'].forEach(ev=>$('yt-url').addEventListener(ev,_ytUrlCheck));
-$('yt-url').addEventListener('paste',()=>{
-  setTimeout(()=>{
+/* input / paste / keyup / change / blur 모두 처리 (iOS Safari 대응) */
+['input','keyup','change','blur'].forEach(function(ev){$('yt-url').addEventListener(ev,_ytUrlCheck);});
+$('yt-url').addEventListener('paste',function(){
+  setTimeout(function(){
     _ytUrlCheck();
-    const val=($('yt-url').value||'').trim();
+    var val=($('yt-url').value||'').trim();
     if(val&&(val.includes('youtube.com')||val.includes('youtu.be'))){
-      setTimeout(()=>$('yt-analyze-btn').click(),300);
+      setTimeout(function(){$('yt-analyze-btn').click();},300);
     }
-  },50);
+  },100);
+});
+/* iOS Safari: 포커스 중 주기적 URL 체크 (자동완성/추천 입력 대응) */
+var _ytUrlPollTimer=null;
+$('yt-url').addEventListener('focus',function(){
+  if(_ytUrlPollTimer)return;
+  _ytUrlPollTimer=setInterval(function(){
+    var el=$('yt-url');
+    if(!el||document.activeElement!==el){clearInterval(_ytUrlPollTimer);_ytUrlPollTimer=null;return;}
+    _ytUrlCheck();
+    var v=(el.value||'').trim();
+    if(v&&(v.includes('youtube.com')||v.includes('youtu.be'))&&!_lastYtAnalysis&&!$('yt-analyze-btn').disabled===false){
+      clearInterval(_ytUrlPollTimer);_ytUrlPollTimer=null;
+      setTimeout(function(){if(!_lastYtAnalysis)$('yt-analyze-btn').click();},300);
+    }
+  },500);
+});
+$('yt-url').addEventListener('blur',function(){
+  if(_ytUrlPollTimer){clearInterval(_ytUrlPollTimer);_ytUrlPollTimer=null;}
+  setTimeout(function(){
+    _ytUrlCheck();
+    var v=($('yt-url').value||'').trim();
+    if(v&&(v.includes('youtube.com')||v.includes('youtu.be'))&&!_lastYtAnalysis){
+      $('yt-analyze-btn').click();
+    }
+  },200);
 });
 /* 초기 상태: 분석 버튼 비활성화 */
 $('yt-analyze-btn').disabled=true;$('yt-analyze-btn').style.opacity='0.4';
