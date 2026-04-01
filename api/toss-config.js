@@ -56,6 +56,20 @@ export const PLANS = {
       "상업적 이용 라이선스",
     ],
   },
+  supervisor: {
+    price: 0,
+    period: "무기한",
+    label: "Supervisor",
+    icon: "⭐",
+    color: "#ef4444",
+    desc: "슈퍼바이저 — 모든 기능 무제한",
+    limits: { songs: 9999, mv: 9999, lyrics: 9999 },
+    features: [
+      "모든 기능 무제한",
+      "전체 모델 접근",
+      "관리자 권한",
+    ],
+  },
 };
 
 /* 크레딧 팩 (일회성 구매) */

@@ -85,6 +85,11 @@ export default async function handler(req, res) {
     const user = users[0];
     const plan = user?.plan || 'free';
 
+    /* supervisor: 무제한 */
+    if (plan === 'supervisor') {
+      return res.status(200).json({ ok: true, plan: 'supervisor', remaining: 'unlimited', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 });
+    }
+
     /* plan_expires 만료 체크 */
     if (plan !== 'free' && user?.plan_expires) {
       if (new Date(user.plan_expires) < new Date()) {

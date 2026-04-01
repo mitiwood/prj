@@ -11994,7 +11994,11 @@ async function generate(overrideParams){
     else if(styleStr){ body.style = styleStr; }
     if(_promptHasKo && !instOn && body.style && body.style.toLowerCase().indexOf('korean')===-1){
       body.style = 'Korean lyrics, Korean vocal, sung in Korean, ' + body.style;
-      if(body.style.length>999) body.style=body.style.slice(0,999);
+    }
+    /* kie.ai style 길이 제한: customMode=true → 1000자, false → 200자 */
+    if(body.style){
+      var _maxStyle=body.customMode?999:200;
+      if(body.style.length>_maxStyle) body.style=body.style.slice(0,_maxStyle);
     }
     if(negTags)body.negativeTags=negTags;
     if(!instOn&&vocalGender)body.vocalGender=vocalGender;
@@ -23630,6 +23634,8 @@ function trackUsage(type, meta={}){
 
 /* 플랜 제한 체크 — generate() 시작 전 호출 (서버 크레딧 기반) */
 function checkPlanLimit(type){
+  /* 슈퍼바이저: 무제한 */
+  if(currentUser?.role==='supervisor'||currentUser?.plan==='supervisor') return true;
   /* 게스트 모드: 별도 한도 체크 */
   if(!currentUser && isGuestMode()){
     if(type==='song'){
@@ -24255,7 +24261,8 @@ async function _syncPlanFromServer(){
         if(typeof _renderSettingsExtended === 'function') _renderSettingsExtended();
         if(typeof _updateCreditBadge === 'function') _updateCreditBadge();
         if(typeof _updateCreditWarn === 'function') _updateCreditWarn();
-        const planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑'};
+        const planNames = {free:'Free',pro:'Pro 💜',creator:'Creator 👑',supervisor:'Supervisor ⭐'};
+        if(currentUser) currentUser.plan=serverPlan;
         toast('🎫 플랜이 '+(planNames[serverPlan]||serverPlan)+'으로 변경됐어요!','ok',3000);
       }
     }
