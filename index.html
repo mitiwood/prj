@@ -10792,7 +10792,7 @@ function _pollViaSSE(tid){
 }
 
 async function pollResult(apiKey,taskId,_localGenCount){
-  if(_localGenCount===undefined) _localGenCount=_genCount;
+  if(_localGenCount===undefined) _localGenCount=1; /* 기본 1곡 — 명시적으로 전달된 경우만 2곡 */
   /* SSE 비활성화 — Vercel 서버리스에서 불안정하여 클라이언트 폴링 직행 */
   /* 폴링: 초기 3회(300ms) → 다음 7회(800ms) → 이후(1.5초) → 80초 이후(2.5초) */
   let elapsed = 0;
@@ -11784,8 +11784,10 @@ var _ERR_RULES=[
     msg:'가사에 부적절한 단어가 있어요',guide:'가사를 수정한 후 다시 시도해주세요.',retry:false,icon:'🚫'},
   {cat:'credit',   test:function(m,s){return m.includes('credit')||m.includes('Credit')||m.includes('크레딧')||m.includes('사용량')||m.includes('limit')||m.includes('exceed')||s===402;},
     msg:'이번 달 사용량을 모두 사용했어요',guide:'플랜을 업그레이드하면 더 많은 곡을 만들 수 있어요.',retry:false,icon:'💳',action:'upgrade'},
-  {cat:'input',    test:function(m,s){return m.includes('422')||m.includes('callBackUrl')||s===422;},
-    msg:'요청 형식에 오류가 있어요',guide:'설정을 확인하고 다시 시도해주세요.',retry:false,icon:'⚠️'},
+  {cat:'input',    test:function(m,s){return m.includes('422')||m.includes('callBackUrl')||m.includes('cannot exceed')||m.includes('200 characters')||m.includes('style length')||s===422;},
+    msg:'요청 형식에 오류가 있어요',guide:'스타일/가사 길이를 줄이고 다시 시도해주세요.',retry:true,icon:'⚠️',delay:1000},
+  {cat:'reference', test:function(m){return m.includes('is not defined')||m.includes('cannot read prop');},
+    msg:'내부 오류가 발생했어요',guide:'새로고침 후 다시 시도해주세요.',retry:false,icon:'🔧'},
   {cat:'model',    test:function(m){return m.includes('model error')||m.includes('model is empty');},
     msg:'AI 모델에 일시적 오류가 발생했어요',guide:'다른 모델을 선택하거나 잠시 후 다시 시도해주세요.',retry:true,icon:'🤖',delay:2000},
   {cat:'timeout',  test:function(m,s){return m.includes('시간 초과')||m.includes('AbortError')||m.includes('timeout')||s===504;},
@@ -12422,7 +12424,7 @@ async function generate(overrideParams){
         lastTaskId=_fbTaskId;
         _saveGenSession(_fbTaskId, { prompt, styleStr, mode: currentMode, instOn, makeMV });
         $('ld-task').textContent='';
-        var _fbTracks=await pollResult(apiKey,_fbTaskId);
+        var _fbTracks=await pollResult(apiKey,_fbTaskId,_localGenCount);
         tracks=(_fbTracks||[]).filter(function(t){return !!(t.audioUrl||t.audio_url||t.song_path);});
         if(!tracks.length)throw new Error('폴백 생성 실패 — 트랙을 받지 못했어요');
       }
@@ -12564,7 +12566,7 @@ async function generate(overrideParams){
       const _lyrics = lastLyricsInput || t.lyric || t.lyrics || t.lrc || '';
       const _sTags = _normTags(t.tags)||styleStr;
       _saveTrackToServer({
-        id:t.id, taskId,
+        id:t.id, taskId:lastTaskId,
         title:_autoGenerateTitle(t.title,_lyrics,_sTags,currentMode),
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
