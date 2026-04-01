@@ -17438,10 +17438,12 @@ function _stopBpmDetection(){
 function fpStartViz(){
   clearInterval(fpVizTimer);
   _startBpmDetection();
+  if(typeof _startSpectrum==='function') _startSpectrum();
 }
 function fpStopViz(){
   clearInterval(fpVizTimer);
   _stopBpmDetection();
+  if(typeof _stopSpectrum==='function') _stopSpectrum();
 }
 
 /* ── 페이지 비가시/복귀 시 시각화 + 오디오 복원 ── */
@@ -29969,9 +29971,9 @@ function _getCreatorLevelHtml(songs,likes){
   return '<span class="creator-level '+lv.cls+'">'+lv.icon+' '+lv.label+'</span>';
 }
 
-/* ── 풀플레이어 오디오 스펙트럼 ── */
+/* ── 풀플레이어 오디오 스펙트럼 (Canvas — BPM 분석기 연동) ── */
 var _spectrumCanvas=null,_spectrumCtx=null,_spectrumRaf=0;
-function _initSpectrum(){
+function _initSpectrumCanvas(){
   if(!fpAudio)return;
   var _spEl=document.getElementById('fp-spectrum');
   if(!_spEl)return;
