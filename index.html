@@ -4932,8 +4932,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
                 <div class="adv-section-title">🤖 AI 모델</div>
                 <select class="opt-select" id="model-sel">
                   <option value="V3_5">V3.5 (빠름)</option>
-                  <option value="V4">V4</option>
-                  <option value="V4_5" selected>V4.5 (권장)</option>
+                  <option value="V4" selected>V4 (권장)</option>
+                  <option value="V4_5">V4.5</option>
                   <option value="V4_5PLUS">V4.5+ (8분)</option>
                   <option value="V5">V5 (최신)</option>
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
@@ -6986,12 +6986,12 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:16px;">
       <div class="opt-label" style="margin-bottom:6px;">모델</div>
       <select class="opt-select" id="vc-model">
-        <option value="V4_5">V4.5 (권장)</option>
+        <option value="V4" selected>V4 (권장)</option>
+        <option value="V4_5">V4.5</option>
         <option value="V4_5PLUS">V4.5+</option>
         <option value="V5">V5 (최신)</option>
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
                   <option value="LYRIA_CLIP">🌐 Lyria 3 Clip (30초)</option>
-        <option value="V4">V4</option>
       </select>
     </div>
     <button class="gen-btn" id="vc-submit-btn" style="width:100%;">
@@ -7059,7 +7059,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div style="margin-bottom:16px;">
       <div class="opt-label" style="margin-bottom:6px;">모델</div>
       <select class="opt-select" id="extend-model">
-        <option value="V4_5">V4.5 (권장)</option>
+        <option value="V4" selected>V4 (권장)</option>
+        <option value="V4_5">V4.5</option>
         <option value="V4_5PLUS">V4.5+</option>
         <option value="V5">V5 (최신)</option>
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
@@ -7130,7 +7131,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div style="margin-bottom:14px;">
         <div class="hes-edit-label">모델</div>
         <select class="hes-edit-input" id="rc-model" style="padding:10px 12px;">
-          <option value="V4_5">V4.5 (권장)</option>
+          <option value="V4" selected>V4 (권장)</option>
+          <option value="V4_5">V4.5</option>
           <option value="V4_5PLUS">V4.5+</option>
           <option value="V5">V5 (최신)</option>
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
@@ -7195,7 +7197,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div style="margin-bottom:14px;">
         <div class="hes-edit-label">모델</div>
         <select class="hes-edit-input" id="rs-model" style="padding:10px 12px;">
-          <option value="V4_5">V4.5 (권장)</option>
+          <option value="V4" selected>V4 (권장)</option>
+          <option value="V4_5">V4.5</option>
           <option value="V4_5PLUS">V4.5+</option>
           <option value="V5">V5 (최신)</option>
                   <option value="LYRIA_PRO">🌐 Lyria 3 Pro (Google)</option>
@@ -8883,7 +8886,7 @@ async function _ytDoGenerate(){
     _ytParts.join(', ').split(',').forEach(function(t){var k=t.trim().toLowerCase();if(k&&!_seen.has(k)){_seen.add(k);_dedup.push(t.trim());}});
     ytStyle = _dedup.join(', ').slice(0,999);
   }
-  const model   = ($('model-sel')?.value) || 'V4_5';
+  const model   = ($('model-sel')?.value) || 'V4';
   const isInst  = ytInstOn;
   const rawTitle= _lastYtAnalysis.title || 'YouTube Cover';
   var _ytTitleEl = $('yt-song-title');
@@ -10380,6 +10383,10 @@ async function kieRequest(apiKey,method,path,body){
         if(data?.error==='credit_exceeded'){
           var upgrade=data.upgrade==='pro'?'Pro':'Creator';
           throw new Error('이번 달 사용량을 초과했어요. '+upgrade+' 플랜으로 업그레이드해보세요!');
+        }
+        /* kie.ai 402 크레딧 부족 → 즉시 중단 (재시도 무의미) */
+        if(res.status===402 || (data?.code===402)){
+          throw new Error('크레딧 부족 — V4 모델로 변경하거나 잠시 후 다시 시도해주세요');
         }
         var errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
         /* model is empty → 일시 오류, 재시도 */
@@ -28051,7 +28058,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
     +'<option value="">자동</option><option value="f">여성</option><option value="m">남성</option></select></div>'
     +'<div style="flex:1;"><label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:4px;">모델</label>'
     +'<select id="_va-model" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:13px;font-family:inherit;">'
-    +'<option value="V4_5PLUS">V4.5 Plus</option><option value="V5">V5</option></select></div></div>'
+    +'<option value="V4">V4 (권장)</option><option value="V4_5PLUS">V4.5 Plus</option><option value="V5">V5</option></select></div></div>'
     +'<button id="_va-submit" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">🎤 보컬 추가 시작</button>'
     +'</div>';
   openBottomSheet(html);
@@ -28066,7 +28073,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
       if(!apiKey){toast('API 키 로딩 중...','err');return;}
       var prompt=document.getElementById('_va-prompt')?.value?.trim()||'emotional vocal singing';
       var gender=document.getElementById('_va-gender')?.value||'';
-      var model=document.getElementById('_va-model')?.value||'V4_5PLUS';
+      var model=document.getElementById('_va-model')?.value||'V4';
       btn.disabled=true; btn.textContent='보컬 추가 중...';
       _globalGenerating=true;_syncGenButtons();
       try{
