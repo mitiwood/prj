@@ -8292,7 +8292,7 @@ function _rowToTrack(t){
     tags:    _normTags(t.tags).split(',')[0]?.trim()||'',
     allTags: _normTags(t.tags).toLowerCase(),
     img:     t.image_url  || '',
-    dur:     (t.duration>0) ? formatTime(t.duration) : '—',
+    dur:     (t.duration>0) ? formatTime(t.duration) : '',
     _duration: t.duration||0,
     audioUrl:t.audio_url  || '',
     videoUrl:t.video_url  || '',
@@ -13413,7 +13413,7 @@ function renderTracks(tracks,prompt,tags,mode){
     const imageUrl=track.imageUrl||track.image_url||'';
     const title=track.title||`트랙 ${i+1}`;
     const trackTags=(_normTags(track.tags)||tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-    const dur=track.duration?formatTime(track.duration):'—';
+    const dur=track.duration?formatTime(track.duration):'';
     const audioId=track.id||'';
     /* 가사: 입력 가사(커스텀) → API lyric(심플/유튜브) → 빈값
        단, API lyric이 스타일 문자열이면 제외 */
@@ -14312,7 +14312,7 @@ function renderHistoryView(){
         if(_kd && _kd.audio_url && _failedAudioUrls.has(_kd.audio_url)){
           toast('재생불가 — 오디오가 만료되었어요','err',2500);return;
         }
-        if(_kd && (!_kd.audio_url||(_kd.duration!==undefined&&_kd.duration!==null&&Number(_kd.duration)===0))){
+        if(_kd && !_kd.audio_url){
           _showFailedTrackDialog(_ki);
           return;
         }
@@ -14325,7 +14325,9 @@ function renderHistoryView(){
     if(!h.audio_url) return;
     const el=document.getElementById('hdur-'+h._origIdx);
     if(!el) return;
+    /* 캐시 → historyData duration → Audio 메타 순서로 표시 */
     if(_durCache[h.id||h.taskId]){el.textContent=_durCache[h.id||h.taskId];return;}
+    if(h.duration&&h.duration>0){var _hd=formatTime(h.duration);_durCache[h.id||h.taskId]=_hd;el.textContent=_hd;return;}
     var _da=new Audio();_da.preload='metadata';_da.src=h.audio_url;
     var _dClean=function(){try{_da.pause();_da.removeAttribute('src');_da.load();}catch(e){}};
     var _dTimer=setTimeout(_dClean,8000);
