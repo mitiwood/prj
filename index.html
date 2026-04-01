@@ -19574,7 +19574,8 @@ function fpSyncLyrics(currentTime){
   if(!fpTimestampLines.length||!fpAudio?.duration)return;
   var firstEl=fpTimestampLines[0];
   var hasDataEnd=firstEl&&firstEl.dataset.start!==undefined&&firstEl.dataset.end!==undefined&&parseFloat(firstEl.dataset.end)>0;
-  /* TS 모드: API 타임스탬프 보정 제거 — 오프셋 0 (정확 매칭) */
+  /* TS 모드: -0.2s 보정 (다음 가사로 살짝 빨리 넘어가는 것 방지) */
+  if(hasDataEnd) currentTime-=0.2;
   var n=fpTimestampLines.length;
   var activeIdx=-1;
   /* start/end 정밀 싱크 — 간주 구간 감지 */
