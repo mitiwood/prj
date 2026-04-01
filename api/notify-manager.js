@@ -6,7 +6,7 @@
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const RESEND_KEY = process.env.RESEND_KEY || '';
-const APP_URL = 'https://ai-music-studio-bice.vercel.app';
+const APP_URL = 'https://ddinggok.com';
 
 function isAdmin(req) {
   const auth = (req.headers.authorization || '').replace('Bearer ', '');

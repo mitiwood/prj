@@ -22,7 +22,7 @@ const DEFAULT_CHAT_ID = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const SB_URL = process.env.SUPABASE_URL || '';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
-const SITE_URL = process.env.SITE_URL || 'https://ai-music-studio-bice.vercel.app';
+const SITE_URL = process.env.SITE_URL || 'https://ddinggok.com';
 
 /* ── 유틸 ── */
 

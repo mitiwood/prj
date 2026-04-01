@@ -237,18 +237,12 @@ function _updatePromptPreview(){
   }
   wrap.style.display='block';
 
-  /* 품질 점수 */
-  let score=0;
-  if(genre) score+=30;
-  if(mood) score+=15;
-  if(desc) score+=20;
-  if(bpm && typeof bpmAuto!=='undefined' && !bpmAuto) score+=5;
-  if(insts) score+=10;
-  if(ref) score+=10;
-  if(lang) score+=5;
-  if(sw>0.7||sw<0.4) score+=3;
-  if(wc>0.7||wc<0.4) score+=2;
-  score=Math.min(score,100);
+  /* 품질 점수 (prompt-engine.js 활용) */
+  var _pq = (typeof calculatePromptQuality === 'function')
+    ? calculatePromptQuality({ genre:genre, mood:mood, desc:desc, bpm:bpm, bpmAuto:(typeof bpmAuto!=='undefined'?bpmAuto:true), instruments:insts, ref:ref, lang:lang, model:document.getElementById('model-sel')?.value||'' })
+    : { score:0, suggestions:[] };
+  var score = _pq.score;
+  if (typeof renderPromptSuggestions === 'function') renderPromptSuggestions(_pq.suggestions);
 
   const scoreColor=score>=70?'#22c55e':score>=40?'#f59e0b':'#ef4444';
   const scoreLabel=score>=70?'최적':'보통';
@@ -631,7 +625,7 @@ function _shareKakao(title,audioUrl,imgUrl){
     try{
       Kakao.Share.sendDefault({
         objectType:'feed',
-        content:{title:title||'AI Music Studio',description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ai-music-studio-bice.vercel.app/icons/icon-512.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},
+        content:{title:title||'AI Music Studio',description:'AI로 만든 음악을 들어보세요!',imageUrl:imgUrl||'https://ddinggok.com/icons/icon-512.png',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}},
         buttons:[{title:'들으러 가기',link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}]
       });
     }catch(e){_copyShareLink(audioUrl,title,imgUrl);}

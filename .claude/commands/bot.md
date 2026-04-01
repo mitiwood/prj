@@ -8,7 +8,7 @@ CLI에서 텔레봇/카카오봇 명령을 직접 실행하는 스킬.
 ```python
 # 카카오 웹훅
 payload = {"userRequest": {"utterance": "<명령>", "user": {"id": "cli"}}}
-fetch('https://ai-music-studio-bice.vercel.app/api/kakao-webhook', POST, payload)
+fetch('https://ddinggok.com/api/kakao-webhook', POST, payload)
 
 # 텔레그램은 결과를 직접 /api/telegram으로 전송
 ```

@@ -94,7 +94,7 @@ export default async function handler(req, res) {
 
     /* 웹훅 등록 */
     if (action === 'register-webhook') {
-      const webhookUrl = 'https://ai-music-studio-bice.vercel.app/api/sentry-webhook';
+      const webhookUrl = 'https://ddinggok.com/api/sentry-webhook';
       /* 기존 훅 조회 */
       const existing = await sentryFetch(`/projects/${SENTRY_ORG}/${SENTRY_PROJ}/hooks/`);
       if (Array.isArray(existing)) {
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
     /* 크리티컬 에러 체크 + 봇 알림 (Vercel Cron 또는 외부 호출용) */
     if (action === 'check-critical') {
-      const BASE = 'https://ai-music-studio-bice.vercel.app';
+      const BASE = 'https://ddinggok.com';
       const since = new Date(Date.now() - 30 * 60 * 1000).toISOString(); /* 최근 30분 */
       const issues = await sentryFetch(
         `/projects/${SENTRY_ORG}/${SENTRY_PROJ}/issues/?query=is:unresolved+level:error+lastSeen:>${since}&sort=freq&limit=10`

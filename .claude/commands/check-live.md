@@ -2,8 +2,8 @@
 
 **Instructions:**
 1. 메인 사이트 응답 확인:
-   - `curl -s -o /dev/null -w "%{http_code}" https://ai-music-studio-bice.vercel.app`
-   - 응답 시간 측정: `curl -s -o /dev/null -w "%{time_total}" https://ai-music-studio-bice.vercel.app`
+   - `curl -s -o /dev/null -w "%{http_code}" https://ddinggok.com`
+   - 응답 시간 측정: `curl -s -o /dev/null -w "%{time_total}" https://ddinggok.com`
 
 2. API 엔드포인트 상태 체크 (각각 HTTP 상태코드 확인):
    - `/api/tracks`

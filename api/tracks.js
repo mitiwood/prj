@@ -448,7 +448,7 @@ async function _handler(req, res) {
                     body: `${userName}님이 좋아요를 눌렀어요`, data: JSON.stringify({ trackId: id, fromUser: userName })
                   })});
                   /* realtime 이벤트 발행 */
-                  try { await fetch('https://ai-music-studio-bice.vercel.app/api/realtime', {
+                  try { await fetch('https://ddinggok.com/api/realtime', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_PWD}` },
                     body: JSON.stringify({ event: 'new_like', data: { targetUser: track.owner_name, fromUser: userName, trackTitle: track.title, trackId: id } })
                   }); } catch {}

@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       _mem.push(entry);
       if (_mem.length > 100) _mem = _mem.slice(-100);
     }
-    const shareUrl = `https://ai-music-studio-bice.vercel.app/?playlist=${id}`;
+    const shareUrl = `https://ddinggok.com/?playlist=${id}`;
     return res.status(200).json({ ok: true, id, shareUrl });
   }
 

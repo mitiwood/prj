@@ -108,7 +108,7 @@ export default async function handler(req, res) {
     /* 5. 서버 상태 */
     report += `\n✅ Supabase: 정상`;
     report += `\n✅ Vercel: 정상`;
-    report += `\n🔗 https://ai-music-studio-bice.vercel.app`;
+    report += `\n🔗 https://ddinggok.com`;
 
     if (!hasNews) {
       report += `\n\n💤 최근 30분간 새 활동 없음`;
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
     const kakaoReport = report.replace(/\*/g, '');
     await Promise.allSettled([
       tgSend(report),
-      fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      fetch('https://ddinggok.com/api/kakao-notify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: kakaoReport }),
       }).catch(() => {}),
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
     const errReport = `⚠️ *서버 상태 이상*\n⏰ ${ts}\n\n❌ 오류: ${e.message}\n\n점검이 필요합니다.`;
     await Promise.allSettled([
       tgSend(errReport),
-      fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+      fetch('https://ddinggok.com/api/kakao-notify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: errReport.replace(/\*/g, '') }),
       }).catch(() => {}),

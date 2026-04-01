@@ -103,7 +103,7 @@
   - (변경사항 요약)
 
   📁 수정된 파일: (파일명)
-  🔗 https://ai-music-studio-bice.vercel.app
+  🔗 https://ddinggok.com
   ```
 - 항상 **한국어**로 응답
 

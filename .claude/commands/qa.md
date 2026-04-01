@@ -97,10 +97,10 @@ QA 전체 점검 결과
 import urllib.request, json
 # Telegram
 tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer kenny2024!'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer kenny2024!'}))
 # Kakao
 kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
 ```
 
 **필수 점검 항목 (크리티컬):**

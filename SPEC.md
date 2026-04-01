@@ -3,7 +3,7 @@
 > **버전:** 3.0
 > **최종 수정:** 2026-03-25
 > **총 코드:** index.html 23,065줄 / admin.html 8,758줄 / 커밋 826회 / API 46개
-> **URL:** https://ai-music-studio-bice.vercel.app
+> **URL:** https://ddinggok.com
 
 ---
 

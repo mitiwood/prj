@@ -11,7 +11,7 @@
    - `npx vercel --prod --yes`
 
 3. 헬스체크 (5개 엔드포인트):
-   - `https://ai-music-studio-bice.vercel.app` (200?)
+   - `https://ddinggok.com` (200?)
    - `/api/config` (200?)
    - `/api/toss-config` (200?)
    - `/api/announcement` (200?)

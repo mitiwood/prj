@@ -2,14 +2,14 @@
  * /api/sentry-webhook — Sentry 웹훅 수신 → 크리티컬 에러 봇 알림
  *
  * Sentry Webhook Integration에서 이 URL을 등록:
- *   https://ai-music-studio-bice.vercel.app/api/sentry-webhook
+ *   https://ddinggok.com/api/sentry-webhook
  *
  * 트리거 조건: issue.created (새 이슈 생성 시)
  * 크리티컬/에러 레벨만 알림 전송 (warning/info 무시)
  */
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
-const BASE = 'https://ai-music-studio-bice.vercel.app';
+const BASE = 'https://ddinggok.com';
 
 /* 도배 방지: 같은 이슈 10분 내 재전송 차단 */
 const _sentCache = {};

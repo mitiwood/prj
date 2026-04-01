@@ -32,7 +32,7 @@ const _commentRateLimit = {}; // 유저별 댓글 도배 방지
 
 async function _kakaoNotify(event, data) {
   try {
-    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+    await fetch('https://ddinggok.com/api/kakao-notify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, data }),
     });

@@ -10,7 +10,7 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const KIE_API_KEY = process.env.KIE_API_KEY || '';
 const GH_TOKEN   = process.env.GITHUB_TOKEN || '';
 const GH_REPO    = 'mitiwood/ai-music-studio';
-const BASE       = 'https://ai-music-studio-bice.vercel.app';
+const BASE       = 'https://ddinggok.com';
 const KIE_BASE   = 'https://api.kie.ai';
 const CALLBACK   = `${BASE}/api/callback`;
 
@@ -632,9 +632,9 @@ msg = """QA 전체 점검 결과
 (실제 결과에 맞게 표 작성)
 """
 tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer ${ADMIN_SECRET}'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer ${ADMIN_SECRET}'}))
 kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
 PYEOF
 ${'```'}
 

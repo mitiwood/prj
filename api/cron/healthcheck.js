@@ -13,7 +13,7 @@ const VAPID_PUB = process.env.VAPID_PUBLIC_KEY || "";
 const TOSS_CK   = process.env.TOSS_CLIENT_KEY || "";
 const TOSS_SK   = process.env.TOSS_SECRET_KEY || "";
 const CRON_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET;
-const BASE = "https://ai-music-studio-bice.vercel.app";
+const BASE = "https://ddinggok.com";
 
 /* ── 유틸 ── */
 async function probe(url, opts = {}) {
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
   const kakaoReport = report.replace(/\*/g, '');
   const [sent] = await Promise.allSettled([
     tgSend(report),
-    fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+    fetch('https://ddinggok.com/api/kakao-notify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: kakaoReport }),
     }).catch(() => {}),

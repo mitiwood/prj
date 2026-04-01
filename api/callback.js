@@ -11,7 +11,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID   = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_SERVICE_KEY;
-const BASE      = 'https://ai-music-studio-bice.vercel.app';
+const BASE      = 'https://ddinggok.com';
 
 async function tgSend(text) {
   if (!BOT_TOKEN || !CHAT_ID) return;

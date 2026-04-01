@@ -8,7 +8,7 @@
  * 토큰 만료 시 자동 갱신 (refresh_token 사용)
  */
 
-const APP_URL = 'https://ai-music-studio-bice.vercel.app';
+const APP_URL = 'https://ddinggok.com';
 const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID || '';
 const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || '';
 const SB_URL = process.env.SUPABASE_URL;

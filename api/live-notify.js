@@ -15,7 +15,7 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
-const BASE = 'https://ai-music-studio-bice.vercel.app';
+const BASE = 'https://ddinggok.com';
 
 /* 인메모리 폴백 (Supabase 장애 시) */
 let _mem = [];

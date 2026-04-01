@@ -58,7 +58,7 @@ function generateSvg(title, artist, tags) {
   <rect x="80" y="500" width="260" height="50" rx="25" fill="url(#accent)"/>
   <text x="210" y="532" font-family="Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">AI로 음악 만들기 →</text>
   <!-- 하단 URL -->
-  <text x="1120" y="590" font-family="Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="end">ai-music-studio-bice.vercel.app</text>
+  <text x="1120" y="590" font-family="Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="end">ddinggok.com</text>
 </svg>`;
 }
 

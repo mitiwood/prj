@@ -5669,6 +5669,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="clear-all-btn" id="clear-all-btn" style="display:none;">전체 삭제</button>
     </div>
 <!-- 앨범 + 라이선스 + NAS -->    <div style="display:flex;gap:6px;margin-bottom:10px;">      <button onclick="_createAlbum()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">💿 앨범 만들기</button>      <button onclick="_downloadLicense()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.04);color:#f59e0b;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">📜 상업 라이선스</button>      <button onclick="_openNasPanel()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.06);color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">🗄️ NAS 연결</button>    </div>
+    <!-- 검색/필터 바 -->
+    <div id="hist-search-bar"></div>
     <!-- 음악/뮤비 탭 -->
     <div class="hist-tabs" id="hist-tabs">
       <button class="hist-tab on" data-htab="all" onclick="_switchHistTab('all')">전체</button>
@@ -9121,7 +9123,7 @@ async function _ytDoGenerate(){
         _owner: currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
-    historyData = historyData.slice(0,30);
+    historyData = historyData.slice(0,50);
     saveHistory(); updateHistBadge();
     /* 게스트 모드: 사용량은 선차감됨 — 한도 도달 시 로그인 유도 */
     if(_ytGuestPreDeducted && _getGuestUsage()>=GUEST_SONG_LIMIT){
@@ -9912,7 +9914,7 @@ async function generateMV(){
               video_url:videoUrl,image_url:linkedTrack?.image_url||'',
               tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'
             });
-            historyData=historyData.slice(0,30);
+            historyData=historyData.slice(0,50);
             saveHistory();updateHistBadge();
             _saveTrackToServer({id:historyData[0].id,taskId:mvTaskId,title:mvTitle,audio_url:linkedTrack?.audio_url||'',video_url:videoUrl,image_url:linkedTrack?.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||''});
             _notifyBot('\uD83C\uDFAC MV \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'\uC775\uBA85')+'\n\uD83C\uDFB6 '+mvTitle);
@@ -12014,7 +12016,7 @@ async function generate(overrideParams){
         _autoFillLyrics(_newTrack, apiKey);
       }
     });
-    historyData=historyData.slice(0,30);
+    historyData=historyData.slice(0,50);
     saveHistory();updateHistBadge();
     /* 게스트 모드: 사용량은 생성 시작 시 선차감됨 — 완료 후 한도 도달 시 로그인 유도 */
     if(_guestPreDeducted){
@@ -12143,7 +12145,7 @@ function _applyResumedTracks(tracks, taskId, params) {
     var _tTags = _normTags(t.tags) || styleStr;
     historyData.unshift({ id: t.id, taskId: taskId, title: _autoGenerateTitle(t.title, apiLyric, _tTags, mode), audio_url: t.audioUrl || t.audio_url || t.song_path || '', video_url: '', image_url: t.imageUrl || t.image_url || '', tags: _tTags, lyrics: apiLyric, created: Date.now(), type: 'audio', genMode: mode, model: (typeof model!=='undefined'?model:''), _owner: currentUser ? { name: currentUser.name, avatar: currentUser.avatar, provider: currentUser.provider } : null });
   });
-  historyData = historyData.slice(0, 30);
+  historyData = historyData.slice(0, 50);
   saveHistory(); updateHistBadge();
   showCompletionPopup(mode, '');
   setTimeout(function() { var rs = $('results-' + mode); if (rs) rs.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
@@ -12310,7 +12312,7 @@ async function _mvGenerateImage(){
         if(st==='success'||st==='completed'||st==='finish'){
           var vu='';try{var rj=typeof d.resultJson==='string'?JSON.parse(d.resultJson):d.resultJson||{};vu=rj.resultUrls?.[0]||rj.videoUrl||rj.url||'';}catch{}
           if(!vu){var o=d.output||d.response||d.result||{};vu=o.videoUrl||o.video_url||o.url||o.videos?.[0]?.url||d.videoUrl||d.video_url||'';}
-          if(vu){var mt=lt?_autoGenerateTitle(lt.title,lt.lyrics||'',lt.tags||'','mv')+' MV':'Music Video';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+          if(vu){var mt=lt?_autoGenerateTitle(lt.title,lt.lyrics||'',lt.tags||'','mv')+' MV':'Music Video';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,50);saveHistory();updateHistBadge();
             ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 뮤직비디오 완성!</div><div class="mv-video-wrap"><video src="'+esc(vu)+'" controls playsinline style="width:100%;"></video></div><div style="display:flex;gap:8px;margin-top:8px;"><a href="'+esc(vu)+'" download="mv.mp4" style="flex:1;padding:10px;text-align:center;border-radius:10px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-decoration:none;">다운로드</a></div></div>';
             toast('🎬 뮤직비디오 완성!','ok',3000);}else{ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⚠️ URL 없음</div></div>';}return;}
         if(st==='fail'||st==='failed'||st==='error'){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ 실패: '+(d.failMsg||st)+'</div></div>';return;}
@@ -12435,7 +12437,7 @@ async function requestMusicVideo(apiKey,taskId,audioId,trackIdx){
             };
             historyData.unshift(mvEntry);
     trackUsage('mv', {mode:'mv', title:mvEntry.title||''});
-            historyData=historyData.slice(0,30);
+            historyData=historyData.slice(0,50);
             saveHistory();renderHistory();
             _saveTrackToServer({id:mvEntry.id,taskId:mvEntry.taskId||'',title:mvEntry.title,audio_url:mvEntry.audio_url||'',video_url:mvEntry.video_url||'',image_url:mvEntry.image_url||'',tags:'뮤직비디오',lyrics:'',genMode:'mv',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||''});
             /* results-mv에도 카드 추가 */
@@ -12544,7 +12546,7 @@ $('vc-submit-btn').addEventListener('click',async()=>{
         <button class="dl-btn lnk" onclick="navigator.clipboard.writeText('${esc(newUrl)}').then(()=>toast('링크 복사됨!','ok'))">🔗 링크</button>
       </div>`;
     historyData.unshift({id:result.id||Date.now().toString(),taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:result.imageUrl||'',tags:'보컬 변경',lyrics:'',created:Date.now(),type:'audio'});
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();
+    historyData=historyData.slice(0,50);saveHistory();updateHistBadge();
     _saveTrackToServer({id:historyData[0].id,taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:result.imageUrl||'',tags:'보컬 변경',lyrics:'',genMode:'vocal',owner_name:currentUser?.name||'익명',owner_avatar:currentUser?.avatar||'',owner_provider:currentUser?.provider||''});
     toast('🎙 보컬 교체 완성!','ok');
   }catch(e){
@@ -12791,7 +12793,7 @@ $('extend-submit-btn').addEventListener('click',async()=>{
           _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
         });
       });
-      historyData=historyData.slice(0,30); saveHistory(); updateHistBadge();
+      historyData=historyData.slice(0,50); saveHistory(); updateHistBadge();
       trackUsage('song',{mode:'extend'});
     }
   }catch(e){
@@ -14185,7 +14187,7 @@ $('rc-submit-btn').addEventListener('click',async()=>{
       _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
     };
     historyData.unshift(coverTrack);
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
+    historyData=historyData.slice(0,50);saveHistory();updateHistBadge();renderHistoryView();
     lastTracks=[{...result,_inputLyrics:h.lyrics||''}];
     renderTracks(lastTracks,'Cover: '+h.title,'cover','custom');
     showCompletionPopup('custom','');
@@ -14264,7 +14266,7 @@ $('rs-submit-btn').addEventListener('click',async()=>{
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
+    historyData=historyData.slice(0,50);saveHistory();updateHistBadge();renderHistoryView();
     toast('새 곡이 완성됐어요!','ok',3000);
     setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'style-reuse'});
@@ -14345,7 +14347,7 @@ $('rm-submit-btn').addEventListener('click',async()=>{
         _owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null,
       });
     });
-    historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
+    historyData=historyData.slice(0,50);saveHistory();updateHistBadge();renderHistoryView();
     toast('리마스터 완성! V5 품질로 업그레이드됐어요','ok',3000);
     setTimeout(()=>{switchTab('history-view');},600);
     trackUsage('song',{mode:'remaster'});
@@ -14519,7 +14521,7 @@ $('vr-submit-btn').addEventListener('click', async () => {
     if (vu) {
       historyData.unshift({id:(Date.now()+1).toString(),taskId:vrTid,title:'[보컬] '+_autoGenerateTitle(h.title,h.lyrics||'',h.tags||'','custom'),audio_url:vu,video_url:'',image_url:h.image_url||'',tags:'vocal only',lyrics:h.lyrics||'',created:Date.now(),type:'audio',genMode:'vocal-extract',_vocalRemovedFrom:h.id||'',_owner:_vrOwner});
     }
-    historyData = historyData.slice(0, 30);
+    historyData = historyData.slice(0, 50);
     saveHistory(); updateHistBadge(); renderHistoryView();
     trackUsage(_vrMode==='split_stem'?'stem':'vr',{mode:_vrMode});
     toast(_vrMode === 'split_stem' ? '스템 분리 완료!' : '보컬 제거 완료! 보컬+MR이 저장됐어요', 'ok', 3000);
@@ -28245,7 +28247,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
         var newTitle=result.title||'Vocal: '+(title||'무제');
         var vocalTrack={id:result.id||Date.now().toString(),taskId:taskId,title:newTitle,audio_url:newUrl,video_url:'',image_url:result.imageUrl||'',tags:prompt||'vocal',lyrics:prompt||'',created:Date.now(),type:'audio',genMode:'add-vocal',_owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null};
         historyData.unshift(vocalTrack);
-        historyData=historyData.slice(0,30);saveHistory();updateHistBadge();renderHistoryView();
+        historyData=historyData.slice(0,50);saveHistory();updateHistBadge();renderHistoryView();
         lastTracks=[{...result,_inputLyrics:prompt||''}];
         renderTracks(lastTracks,'Vocal: '+(title||''),'vocal','custom');
         showCompletionPopup('custom','');
@@ -29479,8 +29481,9 @@ setTimeout(_showOnboarding, 1500);
 <script src="js/create-enhance.js"></script>
 <script src="js/prompt-engine.js"></script>
 <script src="js/stem-mixer.js"></script>
+<script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
-<script>initModelProfiles();</script>
+<script>initModelProfiles();if(typeof renderHistSearchBar==='function')renderHistSearchBar();</script>
 
 </body>
 </html>

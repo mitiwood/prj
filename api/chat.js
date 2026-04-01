@@ -247,7 +247,7 @@ async function _notifyReply(replyTo, senderName, content) {
     title: `💬 ${senderName}님이 답장했어요`,
     body: preview,
     icon: '/icon-192.png',
-    url: 'https://ai-music-studio-bice.vercel.app/?tab=community&chat=1',
+    url: 'https://ddinggok.com/?tab=community&chat=1',
     badge: '/icon-72.png',
   });
 

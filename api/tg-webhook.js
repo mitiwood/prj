@@ -32,7 +32,7 @@ const SB_KEY     = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const GH_TOKEN   = process.env.GITHUB_TOKEN || '';
 const GH_REPO    = 'mitiwood/ai-music-studio';
-const BASE       = 'https://ai-music-studio-bice.vercel.app';
+const BASE       = 'https://ddinggok.com';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
 const KIE_KEY    = process.env.KIE_API_KEY || '';
 const TOSS_KEY   = process.env.TOSS_CLIENT_KEY || '';
@@ -1006,11 +1006,11 @@ msg = """QA 전체 점검 결과
 
 # Telegram
 tg = json.dumps({'text': msg, 'parse_mode': ''}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer ${ADMIN_SECRET}'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/telegram', data=tg, headers={'Content-Type':'application/json; charset=utf-8','Authorization':'Bearer ${ADMIN_SECRET}'}))
 
 # Kakao
 kk = json.dumps({'text': msg}, ensure_ascii=False).encode('utf-8')
-urllib.request.urlopen(urllib.request.Request('https://ai-music-studio-bice.vercel.app/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
+urllib.request.urlopen(urllib.request.Request('https://ddinggok.com/api/kakao-notify', data=kk, headers={'Content-Type':'application/json; charset=utf-8'}))
 print('QA report sent')
 PYEOF
 \`\`\`

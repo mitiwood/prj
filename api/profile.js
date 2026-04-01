@@ -15,7 +15,7 @@ const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
-const BASE = 'https://ai-music-studio-bice.vercel.app';
+const BASE = 'https://ddinggok.com';
 const _profileRateMap = {}; /* Rate limit for profile updates */
 const _activeSessionMap = {}; /* 활성화 알림: 세션당 최초 1회만 (true=이미 알림 완료) */
 const _leaveNotifyCount = {}; /* 이탈 알림: 사용자당 최대 2회 카운트 */

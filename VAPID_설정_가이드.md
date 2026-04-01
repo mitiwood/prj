@@ -36,9 +36,9 @@ Vercel Dashboard → 프로젝트 → Settings → Environment Variables
 
 ## 4. 배포 후 확인
 
-1. https://ai-music-studio-bice.vercel.app 접속
+1. https://ddinggok.com 접속
 2. 알림 권한 허용
-3. https://ai-music-studio-bice.vercel.app/admin 접속
+3. https://ddinggok.com/admin 접속
 4. 푸시 알림 탭 → VAPID 상태 확인 → ✅ 표시 확인
 5. 로컬 테스트 버튼으로 알림 테스트
 

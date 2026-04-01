@@ -16,7 +16,7 @@
    - 🩹 수정 내용: `<수정 요약>`
    - ✅ Committed: `<hash> <message>`
    - ✅ Pushed to origin/main
-   - 🚀 Vercel auto-deploy triggered → https://ai-music-studio-bice.vercel.app
+   - 🚀 Vercel auto-deploy triggered → https://ddinggok.com
    - 변경된 파일 목록
 
 **Rules:**

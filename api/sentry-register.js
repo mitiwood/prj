@@ -11,7 +11,7 @@ const SENTRY_ORG   = process.env.SENTRY_ORG || 'kenny-17';
 const SENTRY_PROJ  = process.env.SENTRY_PROJECT || 'javascript';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const SENTRY_API   = 'https://sentry.io/api/0';
-const BASE         = 'https://ai-music-studio-bice.vercel.app';
+const BASE         = 'https://ddinggok.com';
 
 async function sentryFetch(path, opts = {}) {
   if (!SENTRY_TOKEN) return { error: 'SENTRY_AUTH_TOKEN 미설정' };

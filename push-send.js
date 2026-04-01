@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     title: title || 'Kenny\'s Music Studio',
     body:  body  || '새로운 소식이 있어요 🎵',
     icon:  icon  || '/icon-192.png',
-    url:   url   || 'https://ai-music-studio-bice.vercel.app',
+    url:   url   || 'https://ddinggok.com',
     badge: '/icon-72.png'
   });
 

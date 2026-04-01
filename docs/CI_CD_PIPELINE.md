@@ -101,7 +101,7 @@ ai-music-studio-flutter/
 
 ### WebView 주요 기능
 
-- **웹앱 100% 로드:** https://ai-music-studio-bice.vercel.app
+- **웹앱 100% 로드:** https://ddinggok.com
 - **OAuth 도메인 허용:** Google, Kakao, Naver
 - **결제 도메인 허용:** api.tosspayments.com
 - **외부 링크:** 시스템 브라우저로 분기

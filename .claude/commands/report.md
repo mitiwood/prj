@@ -30,7 +30,7 @@
 3. Python을 사용하여 텔레그램 + 카카오로 동시 전송한다:
    - 텔레그램: `/api/telegram` (parse_mode: 'HTML', UTF-8 인코딩)
    - 카카오: `/api/kakao-notify`
-   - URL: `https://ai-music-studio-bice.vercel.app`
+   - URL: `https://ddinggok.com`
 4. 전송 결과를 사용자에게 보고한다
 
 **Rules:**

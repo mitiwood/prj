@@ -23,7 +23,7 @@ async function _tgNotify(text) {
 
 async function _kakaoNotify(text) {
   try {
-    await fetch('https://ai-music-studio-bice.vercel.app/api/kakao-notify', {
+    await fetch('https://ddinggok.com/api/kakao-notify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });

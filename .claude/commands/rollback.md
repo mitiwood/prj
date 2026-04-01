@@ -23,7 +23,7 @@
    - ⏪ Rolled back: `<되돌린 커밋 목록>`
    - ✅ Committed: `<hash> <message>`
    - ✅ Pushed to origin/main
-   - 🚀 Vercel auto-deploy triggered → https://ai-music-studio-bice.vercel.app
+   - 🚀 Vercel auto-deploy triggered → https://ddinggok.com
 
 **Rules:**
 - `git reset --hard` 절대 사용 금지 (히스토리 보존)

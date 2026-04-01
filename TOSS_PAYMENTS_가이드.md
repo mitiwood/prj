@@ -143,7 +143,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_created ON public.payments(created_at DE
 
 ### Step 6. 토스 웹훅 설정 (선택)
 1. 토스 개발자센터 → 웹훅 설정
-2. URL: `https://ai-music-studio-bice.vercel.app/api/payments/webhook`
+2. URL: `https://ddinggok.com/api/payments/webhook`
 3. 이벤트: 결제 취소, 만료 등
 
 ---

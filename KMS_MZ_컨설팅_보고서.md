@@ -88,7 +88,7 @@ MZ UX 원칙: 선택의 피로도 줄이기
 #### ⑥ AI 아티스트 프로필 + SEO 직격탄
 ```
 URL: /artist/[username]
-예시: ai-music-studio-bice.vercel.app/artist/kenny
+예시: ddinggok.com/artist/kenny
 
 내용:
 - 생성한 곡 포트폴리오 공개 갤러리
@@ -234,7 +234,7 @@ Apple Pay / Google Pay
 <!-- Open Graph (카카오/인스타 공유 미리보기) -->
 <meta property="og:title" content="AI로 내 노래 만들기 — Kenny's Music Studio">
 <meta property="og:description" content="30초 만에 AI가 나만의 음악을 완성해드려요 🎵">
-<meta property="og:image" content="https://ai-music-studio-bice.vercel.app/og-cover.png">
+<meta property="og:image" content="https://ddinggok.com/og-cover.png">
 
 <!-- 구조화 데이터 (Google 검색 리치 결과) -->
 <script type="application/ld+json">
@@ -243,7 +243,7 @@ Apple Pay / Google Pay
   "@type": "WebApplication",
   "name": "Kenny's Music Studio",
   "description": "AI로 나만의 K-Pop, 발라드, Lo-Fi 음악을 무료로 만드는 서비스",
-  "url": "https://ai-music-studio-bice.vercel.app",
+  "url": "https://ddinggok.com",
   "applicationCategory": "MusicApplication",
   "operatingSystem": "Web Browser",
   "offers": {

@@ -135,7 +135,7 @@ export default async function handler(req, res) {
       );
       /* plan_changed 이벤트 브로드캐스트 → 클라이언트 배지 즉시 갱신 */
       try {
-        await fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ai-music-studio-bice.vercel.app'}/api/realtime`, {
+        await fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'https://ddinggok.com'}/api/realtime`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
           body: JSON.stringify({ event: 'plan_changed', data: { user: userName, provider: userProvider, plan: setPlan } }),

@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
     /* notify:true — 서버에서 텔레그램+카카오 알림 (클라이언트에 시크릿 노출 없이) */
     if (notify && ADMIN_SECRET) {
-      const BASE = 'https://ai-music-studio-bice.vercel.app';
+      const BASE = 'https://ddinggok.com';
       const alertText = log.error_message.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
       try {
         await Promise.allSettled([

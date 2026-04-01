@@ -48,7 +48,7 @@ lib/
 - 2초 후 WebView로 전환
 
 ### WebView
-- **URL:** https://ai-music-studio-bice.vercel.app
+- **URL:** https://ddinggok.com
 - **OAuth 허용 도메인:** accounts.google.com, kauth.kakao.com, nid.naver.com
 - **결제 허용:** api.tosspayments.com
 - **외부 링크:** 시스템 브라우저로 분기

@@ -6,6 +6,23 @@
  * → { title, author, genre, mood, style_prompt, description, bpm_estimate, ... }
  */
 import _artistDBData from './artist-db.js';
+
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+async function _sbFetch(method, path, body = null) {
+  if (!SB_URL || !SB_KEY) return null;
+  const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: method === 'GET' ? '' : 'return=representation' };
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1${path}`, opts);
+    if (!r.ok) return null;
+    const txt = await r.text();
+    return txt ? JSON.parse(txt) : [];
+  } catch { return null; }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -26,8 +43,18 @@ export default async function handler(req, res) {
   const vidMatch = url.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
   const videoId = vidMatch ? vidMatch[1] : '';
 
+  // ── 캐시 조회 (30일 유효) ──
+  if (videoId && SB_URL && SB_KEY) {
+    try {
+      const cached = await _sbFetch('GET', `/yt_analysis_cache?video_id=eq.${videoId}&expires_at=gt.${new Date().toISOString()}&limit=1`);
+      if (cached && cached[0]) {
+        return res.status(200).json({ ...cached[0].result, _cached: true, _analyzer: cached[0].analyzer || 'cached' });
+      }
+    } catch (e) { /* 캐시 실패 무시 */ }
+  }
+
   // ── Step 1: 멀티소스 메타데이터 수집 ──
-  let title = '', author = '', description = '', category = '', tags = '', duration = '', publishDate = '';
+  let title = '', author = '', description = '', category = '', tags = '', duration = '', publishDate = '', _subtitles = '';
 
   // 1-a) oEmbed (기본)
   try {
@@ -97,6 +124,25 @@ export default async function handler(req, res) {
         // 게시일
         const dateMatch = html.match(/"publishDate"\s*:\s*"([^"]+)"/);
         if (dateMatch) publishDate = dateMatch[1];
+
+        // 1-d) 자막/가사 추출 (captionTracks에서)
+        try {
+          const captionMatch = html.match(/"captionTracks"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
+          if (captionMatch) {
+            const captions = JSON.parse(captionMatch[1]);
+            const preferred = captions.find(c => c.languageCode === 'ko')
+              || captions.find(c => c.languageCode === 'en')
+              || captions[0];
+            if (preferred && preferred.baseUrl) {
+              const subUrl = preferred.baseUrl.replace(/&fmt=\w+/, '') + '&fmt=srv3';
+              const subRes = await fetch(subUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+              if (subRes.ok) {
+                const subXml = await subRes.text();
+                _subtitles = subXml.replace(/<[^>]+>/g, ' ').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim().slice(0, 2000);
+              }
+            }
+          }
+        } catch (subErr) { console.warn('[yt-analyze] subtitle:', subErr.message); }
       }
     } catch (e) {
       console.warn('[yt-analyze] page scrape:', e.message);
@@ -124,6 +170,7 @@ export default async function handler(req, res) {
     category ? `Category: "${category}"` : '',
     duration ? `Duration: ${duration}` : '',
     publishDate ? `Published: ${publishDate}` : '',
+    _subtitles ? `Lyrics/Subtitles (from captions): "${_subtitles.slice(0, 800)}"` : '',
   ].filter(Boolean).join('\n');
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
@@ -195,7 +242,7 @@ export default async function handler(req, res) {
     if (analysis) _analyzer = 'smart-fallback';
   }
 
-  return res.status(200).json({
+  const responseObj = {
     title,
     author,
     description: description.slice(0, 200),
@@ -203,12 +250,26 @@ export default async function handler(req, res) {
     category,
     duration,
     videoId,
+    subtitles: _subtitles ? _subtitles.slice(0, 500) : undefined,
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
     _debugError: _debugError || undefined,
     _keys: { gemini: !!geminiKey, claude: !!anthropicKey },
     ...analysis,
-  });
+  };
+
+  // ── 캐시 저장 (LLM 분석 성공 시만, fire-and-forget) ──
+  if (videoId && _analyzer !== 'fallback' && SB_URL && SB_KEY) {
+    _sbFetch('POST', '/yt_analysis_cache', {
+      video_id: videoId,
+      url,
+      result: responseObj,
+      analyzer: _analyzer,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }).catch(() => {});
+  }
+
+  return res.status(200).json(responseObj);
 }
 
 /** LLM 분석 프롬프트 생성 */
