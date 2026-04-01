@@ -5645,7 +5645,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <textarea class="fb-textarea" id="fb-text" placeholder="원하시는 방향을 자유롭게 적어주세요... (선택)"></textarea>
       <div class="fb-time-info">
         <div class="fb-time-dot"></div>
-        <span id="fb-time-txt">재작곡 예상 시간: 약 <strong>45~90초</strong> · 2곡 생성 예정</span>
+        <span id="fb-time-txt">재작곡 예상 시간: 약 <strong>45~90초</strong> · 1곡 생성</span>
       </div>
       <div class="fb-actions">
         <button class="fb-remix-btn" id="fb-remix-btn">🔄 이걸로 다시 작곡하기</button>
@@ -11774,35 +11774,27 @@ function _syncGenButtons(){
     mvBtn.style.cursor=_videoBusy?'not-allowed':'';
   }
 }
+var _genLastCallTime=0; /* 마지막 generate 호출 시각 */
 async function generate(overrideParams){
   var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
   var _genT0=Date.now();
   const _modeKey=currentMode||'custom';
-  _genLog('START','mode='+_modeKey+', genCount='+_genCount);
-  /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
-  if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
-  const apiKey=kieApiKey;
-  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');return;}
-  /* 새 생성 시작 시 재시도 플래그 초기화 (재시도 호출이면 리셋 금지) */
-  if(!overrideParams?._afterLyrics && !overrideParams?._isRetry) _retryCount = 0;
-  /* 전역 생성 중 — 큐에 추가 (최대 1개 대기, 게스트는 큐 비활성) */
-  if(_globalGenerating && !overrideParams?._afterLyrics){
-    /* 게스트 모드: 큐 없이 바로 차단 */
-    if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
-      toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
-      return;
-    }
-    if(_genQueue.length>=1){
-      toast('대기 큐가 가득 찼어요 (최대 1곡 대기)','err',3000);
-      return;
-    }
-    _genQueue.push({params:overrideParams||{},mode:currentMode});
-    toast('🎵 현재 곡 완료 후 자동 생성됩니다 (대기 1곡)','ok',3000);
-    /* 로딩카드에 큐 표시 */
-    var _qLabel=$('ld-task');if(_qLabel){_qLabel.style.display='block';_qLabel.textContent='⏳ 다음 곡 대기 중...';}
+  _genLog('START','mode='+_modeKey+', genCount='+_genCount, new Error().stack?.split('\n').slice(1,4).join(' < '));
+  /* ★ 중복 호출 차단: 5초 이내 재호출 방지 (_afterLyrics 제외) */
+  if(!overrideParams?._afterLyrics && (_genT0 - _genLastCallTime < 5000)){
+    _genLog('BLOCK','5초 이내 중복 호출 차단');
     return;
   }
-  /* ★ 즉시 busy 설정 — 이후 await 전에 잠금 확보 */
+  /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
+  if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
+  /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
+  if((_QueueManager.isBusy('music') || _globalGenerating) && !overrideParams?._afterLyrics){
+    _genLog('BLOCK','busy 상태 — 차단');
+    toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
+    return;
+  }
+  /* ★ 즉시 busy 설정 + 호출 시각 기록 */
+  _genLastCallTime=_genT0;
   _globalGenerating = true; _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
