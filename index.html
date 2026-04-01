@@ -15687,7 +15687,11 @@ function showMiniPlayer(idx){
         setTimeout(function(){ _mfQueuePlay(_ctxNext.queueIdx); }, 600);
       } else {
         _playContextIdx = _ctxNext.ctxIdx;
-        setTimeout(function(){ showMiniPlayer(_ctxNext.hIdx); }, 600);
+        var _fpOpen=document.getElementById('fullplayer')&&document.getElementById('fullplayer').classList.contains('on');
+        setTimeout(function(){
+          if(_fpOpen){_doOpenFullPlayer(_ctxNext.hIdx);}
+          else{showMiniPlayer(_ctxNext.hIdx);}
+        }, 600);
       }
     } else {
       /* 컨텍스트 내 다음곡 없음 — 재생 종료 */
