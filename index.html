@@ -8089,6 +8089,20 @@ var PRESET_MAP={
 
 /* ── 상태 ── */
 var historyData=JSON.parse(localStorage.getItem('kms_history')||'[]');
+/* 로컬 가사에서 섹션 태그 일괄 제거 (1회성) */
+if(!localStorage.getItem('kms_lyrics_cleaned')){
+  var _lc=false;
+  historyData.forEach(function(h){
+    ['lyrics','lyric','_inputLyrics'].forEach(function(k){
+      if(h[k]&&/^\[.+\]$/m.test(h[k])){
+        h[k]=h[k].split('\n').filter(function(l){return !(/^\[.+\]$/.test(l.trim()));}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+        _lc=true;
+      }
+    });
+  });
+  if(_lc) localStorage.setItem('kms_history',JSON.stringify(historyData));
+  localStorage.setItem('kms_lyrics_cleaned','1');
+}
 
 /* ── Supabase 클라이언트 헬퍼 (서버리스 없이 직접 호출) ──
    index.html은 anon 키로 SELECT만, 쓰기는 /api/tracks 통해 서버에서
@@ -19583,8 +19597,9 @@ function fpRenderTimestampedLyrics(words){
   words.forEach(function(w){
     const text=w.word||'';
     if(/^\[.+\]$/.test(text.trim())){
+      /* 섹션 태그 스킵 */
       if(curLine.words.length){lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};}
-      lines.push({isSec:true,text:text.replace(/[\[\]]/g,'').trim(),startS:w.startS||0});
+      return;
     } else if(text.includes('\n')){
       const parts=text.split('\n');
       parts.forEach(function(p,pi){
@@ -19610,7 +19625,7 @@ function fpRenderTimestampedLyrics(words){
   const newLrcEndTimes=[];
   lines.forEach(function(line){
     if(line.isSec){
-      html+=`<div class="fp-lm-sec">${esc(line.text||'')}</div>`;
+      return; /* 섹션 태그 표시 안 함 */
     } else {
       const lineText=line.words.map(function(w){return w.text;}).join(' ');
       html+=`<div class="fp-lm-line" data-li="${lineIdx}" data-start="${line.startS||0}" data-end="${line.endS||0}" onclick="fpSeekToLine(this)">${esc(lineText)}</div>`;
