@@ -12049,23 +12049,25 @@ async function generate(overrideParams){
   var _localGenCount = _genCount;
   if(currentMode==='simple'||currentMode==='youtube') _localGenCount=1;
   if(_localGenCount!==1&&_localGenCount!==2) _localGenCount=1; /* 안전장치 */
-  /* 취소 상태이면 즉시 중단 (재시도 타이머에서 호출된 경우) */
-  if(_genCancelled){_genLog('SKIP','취소 상태 — 생성 중단');return;}
-  /* ★ 이중 호출 방지: busy 체크를 최우선으로 (async 레이스 컨디션 차단) */
-  if((_QueueManager.isBusy('music') || _globalGenerating) && !(overrideParams?._afterLyrics && (currentMode==='custom'||currentMode==='youtube'))){
+  /* ★ 이전 취소 상태 강제 리셋 (사용자가 직접 버튼 클릭 시) */
+  if(!overrideParams?._isRetry) _genCancelled=false;
+  /* ★ 이중 호출 방지: music 채널만 체크 (video 채널은 독립) */
+  if(_QueueManager.isBusy('music') && !overrideParams?._afterLyrics){
     _genLog('BLOCK','busy 상태 — 차단');
     toast('⏳ 생성 중이에요. 완료 후 다시 시도해주세요.','',2500);
     return;
   }
-  /* ★ 즉시 busy 설정 + 호출 시각 기록 */
+  /* ★ 즉시 busy 설정 */
   _haptic.medium();
-  _globalGenerating = true; _syncGenButtons();
+  _QueueManager.setBusy('music',true); _syncGenButtons();
   const apiKey=kieApiKey;
-  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_globalGenerating=false;_syncGenButtons();return;}
-  /* 캐시 없으면 서버에서 선로드 (iOS Safari 느린 fetch 대응) */
-  if(!_serverCreditsCache && currentUser?.name){try{await _fetchServerCredits();}catch(e){}}
+  if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_QueueManager.setBusy('music',false);_syncGenButtons();return;}
+  /* 캐시 없으면 서버에서 선로드 (타임아웃 3초) */
+  if(!_serverCreditsCache && currentUser?.name){
+    try{await Promise.race([_fetchServerCredits(),new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},3000);})]);}catch(e){}
+  }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
-  if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_globalGenerating=false;_syncGenButtons();return;}
+  if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_QueueManager.setBusy('music',false);_syncGenButtons();return;}
   /* 로그인 체크 + 게스트 모드 허용 */
   if(!overrideParams?._afterLyrics){
     if(!currentUser){
@@ -12073,13 +12075,13 @@ async function generate(overrideParams){
         /* 게스트 모드: 사용량 체크 */
         if(_getGuestUsage() >= GUEST_SONG_LIMIT){
           _showGuestLoginPrompt();
-          _globalGenerating=false;_syncGenButtons();
+          _QueueManager.setBusy('music',false);_syncGenButtons();
           return;
         }
       }else{
         /* 비로그인 + 비게스트: 로그인 유도 */
         openLoginSheet();
-        _globalGenerating=false;_syncGenButtons();
+        _QueueManager.setBusy('music',false);_syncGenButtons();
         return;
       }
     }
