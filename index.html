@@ -3365,13 +3365,12 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-header-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;}
 .fp-scroll{flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column;position:relative;}
 .fp-center{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
-/* 커버 — 가사 뒤 반투명 배경 */
-.fp-cover-wrap{position:sticky;top:0;z-index:0;pointer-events:none;height:0;overflow:visible;}
+/* 커버 — 풀스크린 반투명 배경 (헤더 포함) */
+.fp-cover-wrap{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
 .fp-cover{
-  width:100vw;height:100vh;border-radius:0;
+  width:100%;height:100%;
   overflow:hidden;background:linear-gradient(145deg,#1a0a2e,#2d1a4a);
-  margin:0;opacity:.25;
-  position:relative;left:50%;transform:translateX(-50%);
+  opacity:.35;
 }
 .fp-cover img{width:100%;height:100%;object-fit:cover;}
 .fp-cover svg{display:none;}
@@ -6795,6 +6794,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   <!-- iOS 바텀시트 컨테이너 (transform 스택 컨텍스트 내부) -->
   <div id="fp-sheet-container" style="display:none;position:absolute;inset:0;z-index:10007;"></div>
   <div class="fp-inner">
+    <!-- 커버 배경 — 헤더 포함 풀스크린 -->
+    <div class="fp-cover-wrap">
+      <div class="fp-cover" id="fp-cover"></div>
+    </div>
     <div class="fp-swipe-handle"><div class="fp-handle-bar"></div></div>
     <div class="fp-header">
       <button class="fp-back" id="fp-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -6803,13 +6806,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div style="width:32px;"></div>
     </div>
     <div class="fp-scroll" id="fp-scroll">
-      <div class="fp-cover-wrap">
-        <div class="fp-cover" id="fp-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64" style="color:rgba(255,255,255,.15);"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-        <!-- 가사 오버레이 (커버 위) -->
-        <div class="fp-lyrics-overlay" id="fp-lyrics-overlay">
-          <div class="fp-lyrics-overlay-box" id="fp-lyrics-overlay-box"></div>
-        </div>
-      </div>
       <div class="fp-layout">
         <div class="fp-center">
           <div class="fp-info" style="text-align:left;margin-bottom:0;">
@@ -29967,9 +29963,17 @@ function _getCreatorLevelHtml(songs,likes){
 var _spectrumCanvas=null,_spectrumCtx=null,_spectrumRaf=0;
 function _initSpectrum(){
   if(!fpAudio)return;
-  _spectrumCanvas=document.getElementById('fp-spectrum');
-  if(!_spectrumCanvas)return;
+  var _spEl=document.getElementById('fp-spectrum');
+  if(!_spEl)return;
+  /* div이면 canvas로 교체 */
+  if(_spEl.tagName!=='CANVAS'){
+    var _cvs=document.createElement('canvas');
+    _cvs.id='fp-spectrum';_cvs.className=_spEl.className;_cvs.style.cssText='width:100%;height:40px;opacity:.7;';
+    _spEl.parentNode.replaceChild(_cvs,_spEl);
+    _spectrumCanvas=_cvs;
+  } else { _spectrumCanvas=_spEl; }
   _spectrumCtx=_spectrumCanvas.getContext('2d');
+  if(!_spectrumCtx)return;
   _spectrumCanvas.width=_spectrumCanvas.offsetWidth*2;
   _spectrumCanvas.height=80;
   if(typeof _bpmAnalyser!=='undefined'&&_bpmAnalyser) _drawSpectrum();
