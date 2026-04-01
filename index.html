@@ -9721,9 +9721,14 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
   const setPause=()=>{playIcon.innerHTML='<polygon points="6 3 20 12 6 21 6 3"/>';};
   const setPlay=()=>{playIcon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';};
 
-  audio.addEventListener('loadedmetadata',()=>{if(dur)dur.textContent=fmtT(audio.duration);});
+  audio.addEventListener('loadedmetadata',()=>{if(dur&&audio.duration&&isFinite(audio.duration))dur.textContent=fmtT(audio.duration);});
+  audio.addEventListener('durationchange',()=>{if(dur&&audio.duration&&isFinite(audio.duration))dur.textContent=fmtT(audio.duration);});
   audio.addEventListener('timeupdate',()=>{
-    if(audio.duration){fill.style.width=(audio.currentTime/audio.duration*100)+'%';}
+    var d=audio.duration;
+    if(d&&isFinite(d)){
+      fill.style.width=(audio.currentTime/d*100)+'%';
+      if(dur)dur.textContent=fmtT(d);
+    }
     cur.textContent=fmtT(audio.currentTime);
   });
   audio.addEventListener('ended',setPause);
@@ -13762,7 +13767,7 @@ function _doTogglePlay(btn,idx,url){
   var _tEl=document.getElementById('ap-time-'+idx);
   if(_tEl){var _tc=_tEl.textContent;if(_tc.includes('/ —')||_tc.includes('불러오는 중'))_tEl.textContent='0:00 / 잠시만 기다려 주세요...';}
   var audio=new Audio();audio._idx=idx;audio._url=url;audio.preload='auto';audio._corsRetried=false;audio._retried=false;activeAudio=audio;
-  audio.addEventListener('timeupdate',function(){if(_apRafPending)return;_apRafPending=true;requestAnimationFrame(function(){_apRafPending=false;if(audio!==activeAudio)return;var pct=audio.duration?(audio.currentTime/audio.duration)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(audio.currentTime)+' / '+formatTime(audio.duration||0);updateKaraokeSync(idx,audio.currentTime);});});
+  audio.addEventListener('timeupdate',function(){if(_apRafPending)return;_apRafPending=true;requestAnimationFrame(function(){_apRafPending=false;if(audio!==activeAudio)return;var dur=audio.duration&&isFinite(audio.duration)?audio.duration:0;var pct=dur?(audio.currentTime/dur)*100:0;var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width=pct+'%';var tt=document.getElementById('ap-time-'+idx);if(tt)tt.textContent=formatTime(audio.currentTime)+' / '+formatTime(dur);updateKaraokeSync(idx,audio.currentTime);});});
   audio.addEventListener('ended',function(){btn.textContent='\u25B6';stopViz(idx);var f=document.getElementById('ap-prog-'+idx);if(f)f.style.width='0%';});
   audio.addEventListener('error',function(){var code=audio.error?.code;var msgs={1:'로딩 중단',2:'네트워크 오류',3:'디코딩 실패',4:'재생 불가'};if(!audio._corsRetried&&(code===2||code===4)){audio._corsRetried=true;audio.removeAttribute('crossorigin');audio.crossOrigin=null;audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});toast('오디오 재연결 중...','',2000);return;}if(!audio._retried&&code===2){audio._retried=true;setTimeout(function(){audio.src=url;audio.load();audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(){});},1000);toast('오디오 재연결 중...','',2000);return;}btn.textContent='\u25B6';toast('오디오 '+(msgs[code]||'재생 오류'),'err',3000);});
   var _tpS=false;function _tpPlay(){if(_tpS||audio!==activeAudio)return;_tpS=true;audio.play().then(function(){btn.textContent='\u23F8';startViz(idx);}).catch(function(e){_tpS=false;btn.textContent='\u25B6';toast('재생 실패: '+e.message,'err',3000);});}
@@ -15341,7 +15346,7 @@ function showMiniPlayer(idx){
 
   var _msLastPos=0; /* Media Session position 업데이트 쓰로틀 */
   audio.addEventListener('timeupdate',()=>{
-    if(genId!==_fpAudioGenId||!audio.duration) return;
+    if(genId!==_fpAudioGenId||!audio.duration||!isFinite(audio.duration)) return;
     /* 다음 곡 프리로드 — 마지막 15초 */
     if(audio.duration-audio.currentTime<15&&_preloadedIdx<0&&typeof _preloadNextTrack==='function') _preloadNextTrack();
     /* Media Session position — 5초마다 업데이트 (백그라운드 잠금화면 진행바) */
