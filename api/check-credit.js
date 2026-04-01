@@ -16,6 +16,7 @@ import { verifyJWT } from './_jwt.js';
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+const SUPERVISOR_NAMES = (process.env.SUPERVISOR_NAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
 /* toss-config.js에서 가져온 플랜 한도 매핑 */
 function getPlanLimits(planType) {
@@ -85,8 +86,8 @@ export default async function handler(req, res) {
     const user = users[0];
     const plan = user?.plan || 'free';
 
-    /* supervisor: 무제한 */
-    if (plan === 'supervisor') {
+    /* supervisor: 무제한 (DB plan 또는 환경변수 목록) */
+    if (plan === 'supervisor' || SUPERVISOR_NAMES.includes((userName||'').toLowerCase())) {
       return res.status(200).json({ ok: true, plan: 'supervisor', remaining: 'unlimited', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 });
     }
 

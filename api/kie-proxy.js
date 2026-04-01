@@ -69,20 +69,23 @@ async function sbFetch(method, path, body = null) {
   return txt ? JSON.parse(txt) : [];
 }
 
+/* 환경변수 기반 슈퍼바이저 이름 목록 (쉼표 구분) */
+const SUPERVISOR_NAMES = (process.env.SUPERVISOR_NAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
 async function checkServerCredit(userName, userProvider, creditType) {
   if (!SB_URL || !SB_KEY) return { ok: true, fallback: true };
+  /* 환경변수 슈퍼바이저 목록 체크 */
+  if (SUPERVISOR_NAMES.includes((userName || '').toLowerCase())) return { ok: true, plan: 'supervisor' };
   try {
     const users = await sbFetch('GET',
       `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     let user = users?.[0];
-    /* 같은 이름의 supervisor 레코드가 있으면 즉시 통과 (멀티 소셜 계정 대응) */
-    if (!user || (user.plan !== 'supervisor')) {
+    if (!user) {
+      /* name+provider 매칭 실패 → name만으로 재검색 */
       try {
-        const byNameAll = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=5`);
-        const svUser = byNameAll?.find(u => u.plan === 'supervisor');
-        if (svUser) return { ok: true, plan: 'supervisor' };
-        if (!user && byNameAll?.[0]) user = byNameAll[0];
+        const byName = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
+        user = byName?.[0];
       } catch {}
     }
     if (!user) return { ok: true, fallback: true };
@@ -90,6 +93,32 @@ async function checkServerCredit(userName, userProvider, creditType) {
 
     /* supervisor: 무제한 즉시 통과 */
     if (plan === 'supervisor') return { ok: true, plan: 'supervisor' };
+
+    /* 같은 email의 supervisor 계정이 있으면 승격 (멀티 소셜 대응) */
+    if (user.email) {
+      try {
+        const byEmail = await sbFetch('GET', `/users?email=ilike.${encodeURIComponent(user.email)}&plan=eq.supervisor&select=plan&limit=1`);
+        if (byEmail?.[0]) {
+          /* 현재 계정도 supervisor로 자동 승격 */
+          try { await sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          return { ok: true, plan: 'supervisor' };
+        }
+      } catch {}
+    }
+
+    /* DB에 supervisor 플랜 사용자인지 전역 검색 (이름 다를 수 있음) */
+    try {
+      const svAll = await sbFetch('GET', `/users?plan=eq.supervisor&select=name,email&limit=10`);
+      if (svAll?.length) {
+        /* 현재 사용자의 email이 supervisor 목록에 있으면 승격 */
+        const userEmail = user.email || '';
+        const match = svAll.find(sv => sv.email && userEmail && sv.email.toLowerCase() === userEmail.toLowerCase());
+        if (match) {
+          try { await sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          return { ok: true, plan: 'supervisor' };
+        }
+      }
+    } catch {}
 
     /* 만료 체크 */
     if (plan !== 'free' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
