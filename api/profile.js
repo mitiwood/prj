@@ -13,6 +13,7 @@
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+const SUPERVISOR_NAMES = (process.env.SUPERVISOR_NAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const BASE = 'https://ddinggok.com';
@@ -272,6 +273,13 @@ export default async function handler(req, res) {
       const results = await Promise.all(promises);
       const users = results[0].data;
       const user = users[0] || { name, provider, avatar: '', plan: 'free' };
+      /* SUPERVISOR_NAMES 환경변수 체크 → plan/credits 오버라이드 */
+      if (SUPERVISOR_NAMES.includes((name || '').toLowerCase())) {
+        user.plan = 'supervisor';
+        user.credits_song = 9999;
+        user.credits_mv = 9999;
+        user.credits_lyrics = 9999;
+      }
       const tracks = results[1].data || [];
       const trackCount = results[1].count;
       const followerCount = results[2].count || 0;
