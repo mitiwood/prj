@@ -10397,6 +10397,13 @@ async function kieRequest(apiKey,method,path,body){
         }
         throw new Error(errMsg);
       }
+      /* kie.ai가 HTTP 200이지만 body에 에러 코드를 넣는 경우 (402 크레딧 부족, 422 모델 에러 등) */
+      if(data?.code===402){
+        throw new Error('크레딧 부족 — V4 모델로 변경하거나 잠시 후 다시 시도해주세요');
+      }
+      if(data?.code===422){
+        throw new Error(data?.msg||'요청 오류 (422) — 모델을 변경하거나 다시 시도해주세요');
+      }
       return data;
     }catch(e){
       _lastErr=e;
