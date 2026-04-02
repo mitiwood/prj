@@ -8564,6 +8564,8 @@ function _releaseWakeLock(){
   if(_wakeLock){ try{_wakeLock.release();}catch(e){} _wakeLock=null; }
 }
 
+/* 음악 생성 중 상태 플래그 (hoisting 보장용 선언) */
+var _globalGenerating = false;
 /* 생성 시작 시 Wake Lock 획득, 완료 시 해제 */
 var _origSyncGenButtons = typeof _syncGenButtons==='function' ? _syncGenButtons : null;
 /* _syncGenButtons 호출 시마다 Wake Lock 관리 */
@@ -9794,7 +9796,7 @@ function _saveLoginUser(user){
     currentUser=user;
     localStorage.setItem('kms_user',JSON.stringify(user));
     /* 게스트 모드 정리 — 로그인 전환 (생성 중이면 상태 보존) */
-    var _wasGenerating = _globalGenerating;
+    var _wasGenerating = (typeof _globalGenerating !== 'undefined') && _globalGenerating;
     /* 게스트 트랙 → 로그인 유저 계정으로 DB 이관 */
     var _guestTracks=[];
     try{ _guestTracks=JSON.parse(localStorage.getItem('kms_guest_tracks')||'[]'); }catch(e){}
