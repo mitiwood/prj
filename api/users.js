@@ -192,15 +192,15 @@ export default async function handler(req, res) {
           let existing = null;
           /* 1) 같은 email+provider 매칭 */
           if (userEmail) {
-            existing = await sbFetch(`/users?email=ilike.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
+            existing = await sbFetch(`/users?email=eq.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
           }
           /* 2) 같은 name+provider 폴백 */
           if (!existing?.length) {
-            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
+            existing = await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
           }
           /* 3) 같은 이름인데 다른 provider로 등록된 기존 유저 (provider 전환 감지) */
           if (!existing?.length) {
-            existing = await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=neq.guest&select=login_count,name,provider`);
+            existing = await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=neq.guest&select=login_count,name,provider`);
             if (existing?.length > 0) {
               existingProvider = existing[0].provider; /* 기존 provider 기록 */
             }
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
         /* 기존 provider가 다르면 → 기존 레코드를 새 provider로 업데이트 */
         if (existingProvider && existingProvider !== provider) {
           try {
-            await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(existingProvider)}`, {
+            await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(existingProvider)}`, {
               method: 'PATCH',
               body: JSON.stringify(entry),
             });
@@ -303,7 +303,7 @@ export default async function handler(req, res) {
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'nothing to update' });
 
     try {
-      await sbFetch(`/users?name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`, {
+      await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`, {
         method: 'PATCH',
         body: JSON.stringify(update),
       });
@@ -368,7 +368,7 @@ export default async function handler(req, res) {
       if (id) {
         path = `/users?id=eq.${encodeURIComponent(id)}`;
       } else {
-        path = `/users?name=ilike.${encodeURIComponent(name)}`;
+        path = `/users?name=eq.${encodeURIComponent(name)}`;
         if (provider) path += `&provider=eq.${encodeURIComponent(provider)}`;
       }
       await sbFetch(path, { method: 'DELETE' });

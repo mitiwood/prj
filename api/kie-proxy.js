@@ -69,15 +69,56 @@ async function sbFetch(method, path, body = null) {
   return txt ? JSON.parse(txt) : [];
 }
 
+/* 환경변수 기반 슈퍼바이저 이름 목록 (쉼표 구분) */
+const SUPERVISOR_NAMES = (process.env.SUPERVISOR_NAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
 async function checkServerCredit(userName, userProvider, creditType) {
   if (!SB_URL || !SB_KEY) return { ok: true, fallback: true };
+  /* 환경변수 슈퍼바이저 목록 체크 */
+  if (SUPERVISOR_NAMES.includes((userName || '').toLowerCase())) return { ok: true, plan: 'supervisor' };
   try {
     const users = await sbFetch('GET',
-      `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
-    if (!users || !users[0]) return { ok: true, fallback: true };
-    const user = users[0];
+    let user = users?.[0];
+    if (!user) {
+      /* name+provider 매칭 실패 → name만으로 재검색 */
+      try {
+        const byName = await sbFetch('GET', `/users?name=eq.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
+        user = byName?.[0];
+      } catch {}
+    }
+    if (!user) return { ok: true, fallback: true };
     let plan = user.plan || 'free';
+
+    /* supervisor: 무제한 즉시 통과 */
+    if (plan === 'supervisor') return { ok: true, plan: 'supervisor' };
+
+    /* 같은 email의 supervisor 계정이 있으면 승격 (멀티 소셜 대응) */
+    if (user.email) {
+      try {
+        const byEmail = await sbFetch('GET', `/users?email=eq.${encodeURIComponent(user.email)}&plan=eq.supervisor&select=plan&limit=1`);
+        if (byEmail?.[0]) {
+          /* 현재 계정도 supervisor로 자동 승격 */
+          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          return { ok: true, plan: 'supervisor' };
+        }
+      } catch {}
+    }
+
+    /* DB에 supervisor 플랜 사용자인지 전역 검색 (이름 다를 수 있음) */
+    try {
+      const svAll = await sbFetch('GET', `/users?plan=eq.supervisor&select=name,email&limit=10`);
+      if (svAll?.length) {
+        /* 현재 사용자의 email이 supervisor 목록에 있으면 승격 */
+        const userEmail = user.email || '';
+        const match = svAll.find(sv => sv.email && userEmail && sv.email.toLowerCase() === userEmail.toLowerCase());
+        if (match) {
+          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          return { ok: true, plan: 'supervisor' };
+        }
+      }
+    } catch {}
 
     /* 만료 체크 */
     if (plan !== 'free' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
@@ -97,12 +138,12 @@ async function checkServerCredit(userName, userProvider, creditType) {
     let used = 0;
     if (creditType === 'song' || creditType === 'vr') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks ? tracks.length : 0;
     } else if (creditType === 'mv') {
       const tracks = await sbFetch('GET',
-        `/tracks?owner_name=ilike.${encodeURIComponent(userName)}&owner_provider=ilike.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
+        `/tracks?owner_name=eq.${encodeURIComponent(userName)}&owner_provider=eq.${encodeURIComponent(userProvider)}&video_url=neq.&video_url=not.is.null&created_at=gte.${monthStart.toISOString()}&select=id&limit=1000`
       );
       used = tracks ? tracks.length : 0;
     }

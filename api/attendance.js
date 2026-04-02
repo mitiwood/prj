@@ -115,19 +115,19 @@ export default async function handler(req, res) {
       if (action === 'reset_streak') {
         /* 해당 유저의 모든 출석 기록 삭제 */
         await sbFetch('DELETE',
-          `/attendance?user_name=ilike.${encodeURIComponent(targetName)}&user_provider=ilike.${encodeURIComponent(targetProvider)}`
+          `/attendance?user_name=eq.${encodeURIComponent(targetName)}&user_provider=eq.${encodeURIComponent(targetProvider)}`
         );
         return res.status(200).json({ ok: true, message: `${targetName} 출석 기록 초기화` });
       }
       if (action === 'grant_bonus') {
         /* 유저 크레딧에 보너스 수동 지급 */
         const users = await sbFetch('GET',
-          `/users?name=ilike.${encodeURIComponent(targetName)}&provider=ilike.${encodeURIComponent(targetProvider)}&select=credits_song&limit=1`
+          `/users?name=eq.${encodeURIComponent(targetName)}&provider=eq.${encodeURIComponent(targetProvider)}&select=credits_song&limit=1`
         );
         if (users[0]) {
           const newCredits = (users[0].credits_song || 0) + (credits || 0);
           await sbFetch('PATCH',
-            `/users?name=ilike.${encodeURIComponent(targetName)}&provider=ilike.${encodeURIComponent(targetProvider)}`,
+            `/users?name=eq.${encodeURIComponent(targetName)}&provider=eq.${encodeURIComponent(targetProvider)}`,
             { credits_song: newCredits }
           );
         }
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
     /* GET — 출석 현황 조회 */
     if (req.method === 'GET') {
       const records = await sbFetch('GET',
-        `/attendance?user_name=ilike.${encodeURIComponent(userName)}&user_provider=ilike.${encodeURIComponent(userProvider)}&check_date=gte.${monthStart}&order=check_date.desc&limit=31`
+        `/attendance?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&check_date=gte.${monthStart}&order=check_date.desc&limit=31`
       );
 
       const todayChecked = records.some(r => r.check_date === today);
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       /* 오늘 이미 출석했는지 확인 */
       const existing = await sbFetch('GET',
-        `/attendance?user_name=ilike.${encodeURIComponent(userName)}&user_provider=ilike.${encodeURIComponent(userProvider)}&check_date=eq.${today}&limit=1`
+        `/attendance?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&check_date=eq.${today}&limit=1`
       );
       if (existing.length > 0) {
         return res.status(200).json({ ok: true, already: true, streak: existing[0].streak, bonus: 0 });
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
       /* 어제 출석 여부로 스트릭 계산 */
       const yesterday = new Date(new Date().getTime() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
       const yesterdayRecord = await sbFetch('GET',
-        `/attendance?user_name=ilike.${encodeURIComponent(userName)}&user_provider=ilike.${encodeURIComponent(userProvider)}&check_date=eq.${yesterday}&limit=1`
+        `/attendance?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&check_date=eq.${yesterday}&limit=1`
       );
 
       let streak = 1;
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
       } else {
         /* 마지막 출석일 확인 (복귀 유저 체크) */
         const lastRecord = await sbFetch('GET',
-          `/attendance?user_name=ilike.${encodeURIComponent(userName)}&user_provider=ilike.${encodeURIComponent(userProvider)}&order=check_date.desc&limit=1`
+          `/attendance?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&order=check_date.desc&limit=1`
         );
         if (lastRecord.length > 0) {
           const lastDate = new Date(lastRecord[0].check_date);
@@ -217,12 +217,12 @@ export default async function handler(req, res) {
       if (bonus > 0) {
         try {
           const users = await sbFetch('GET',
-            `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}&select=credits_song&limit=1`
+            `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=credits_song&limit=1`
           );
           if (users[0]) {
             const newCredits = (users[0].credits_song || 0) + bonus;
             await sbFetch('PATCH',
-              `/users?name=ilike.${encodeURIComponent(userName)}&provider=ilike.${encodeURIComponent(userProvider)}`,
+              `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
               { credits_song: newCredits }
             );
           }

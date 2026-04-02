@@ -73,9 +73,9 @@ export default async function handler(req, res) {
       const encProv = encodeURIComponent(provider);
 
       if (action === 'inbox') {
-        rows = await sb('GET', `/collabs?to_name=ilike.${encName}&to_provider=eq.${encProv}&status=eq.pending&order=created_at.desc&limit=20`);
+        rows = await sb('GET', `/collabs?to_name=eq.${encName}&to_provider=eq.${encProv}&status=eq.pending&order=created_at.desc&limit=20`);
       } else if (action === 'sent') {
-        rows = await sb('GET', `/collabs?from_name=ilike.${encName}&from_provider=eq.${encProv}&order=created_at.desc&limit=20`);
+        rows = await sb('GET', `/collabs?from_name=eq.${encName}&from_provider=eq.${encProv}&order=created_at.desc&limit=20`);
       } else if (action === 'active') {
         rows = await sb('GET', `/collabs?status=eq.accepted&or=(and(from_name.ilike.${encName},from_provider.eq.${encProv}),and(to_name.ilike.${encName},to_provider.eq.${encProv}))&order=updated_at.desc&limit=20`);
       } else if (action === 'detail') {
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       try {
         /* 중복 방지: 같은 상대에게 pending 요청이 있는지 */
         const existing = await sb('GET',
-          `/collabs?from_name=ilike.${encodeURIComponent(fromName)}&from_provider=eq.${encodeURIComponent(fromProvider)}&to_name=ilike.${encodeURIComponent(toName)}&to_provider=eq.${encodeURIComponent(toProvider)}&status=eq.pending&limit=1`
+          `/collabs?from_name=eq.${encodeURIComponent(fromName)}&from_provider=eq.${encodeURIComponent(fromProvider)}&to_name=eq.${encodeURIComponent(toName)}&to_provider=eq.${encodeURIComponent(toProvider)}&status=eq.pending&limit=1`
         );
         if (existing && existing.length > 0)
           return res.status(409).json({ error: '이미 보낸 요청이 있습니다' });

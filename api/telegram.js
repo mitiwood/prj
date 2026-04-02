@@ -235,7 +235,7 @@ async function handleWebhookCommand(text, chatId) {
 
     try {
       /* 이름에 포함된 사용자 검색 */
-      const users = await sbFetch(`/users?name=ilike.*${encodeURIComponent(query)}*&order=last_login.desc&limit=10`);
+      const users = await sbFetch(`/users?name=eq.*${encodeURIComponent(query)}*&order=last_login.desc&limit=10`);
 
       if (!users || users.length === 0) {
         await tgApi('sendMessage', {

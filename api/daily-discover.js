@@ -41,7 +41,7 @@ function todayKST() {
 async function getUserGenreWeights(userName, userProvider) {
   try {
     const likes = await sbFetch('GET',
-      `/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=ilike.${encodeURIComponent(userProvider)}&type=eq.like&limit=50&order=created_at.desc`
+      `/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&type=eq.like&limit=50&order=created_at.desc`
     );
     if (!likes.length) return null;
 
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       // 1) 오늘의 미션 기록 조회
       const missions = await sbFetch('GET',
-        `/daily_missions?user_name=ilike.${uName}&user_provider=ilike.${uProv}&mission_date=eq.${today}&limit=1`
+        `/daily_missions?user_name=eq.${uName}&user_provider=eq.${uProv}&mission_date=eq.${today}&limit=1`
       );
       const mission = missions[0] || null;
 
@@ -240,7 +240,7 @@ export default async function handler(req, res) {
       let streak = 0;
       try {
         const recentMissions = await sbFetch('GET',
-          `/daily_missions?user_name=ilike.${uName}&user_provider=ilike.${uProv}&reward_claimed=eq.true&order=mission_date.desc&limit=31`
+          `/daily_missions?user_name=eq.${uName}&user_provider=eq.${uProv}&reward_claimed=eq.true&order=mission_date.desc&limit=31`
         );
         // 어제부터 역순으로 연속일 계산
         const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
@@ -298,7 +298,7 @@ export default async function handler(req, res) {
 
       // 오늘 미션 조회 (없으면 생성)
       let missions = await sbFetch('GET',
-        `/daily_missions?user_name=ilike.${uName}&user_provider=ilike.${uProv}&mission_date=eq.${today}&limit=1`
+        `/daily_missions?user_name=eq.${uName}&user_provider=eq.${uProv}&mission_date=eq.${today}&limit=1`
       );
 
       /* === 곡 발견 완료 기록 === */
@@ -367,7 +367,7 @@ export default async function handler(req, res) {
         try {
           const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
           const recentMissions = await sbFetch('GET',
-            `/daily_missions?user_name=ilike.${uName}&user_provider=ilike.${uProv}&reward_claimed=eq.true&order=mission_date.desc&limit=31`
+            `/daily_missions?user_name=eq.${uName}&user_provider=eq.${uProv}&reward_claimed=eq.true&order=mission_date.desc&limit=31`
           );
           let checkDate = yesterday;
           for (const m of recentMissions) {
@@ -399,12 +399,12 @@ export default async function handler(req, res) {
         // 크레딧 지급
         try {
           const users = await sbFetch('GET',
-            `/users?name=ilike.${uName}&provider=ilike.${uProv}&select=credits_song&limit=1`
+            `/users?name=eq.${uName}&provider=eq.${uProv}&select=credits_song&limit=1`
           );
           if (users[0]) {
             const newCredits = (users[0].credits_song || 0) + totalReward;
             await sbFetch('PATCH',
-              `/users?name=ilike.${uName}&provider=ilike.${uProv}`,
+              `/users?name=eq.${uName}&provider=eq.${uProv}`,
               { credits_song: newCredits }
             );
           }

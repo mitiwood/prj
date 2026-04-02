@@ -70,7 +70,7 @@ async function _handler(req, res) {
     const userProvider = req.query?.userProvider || "";
     if (!userName) return res.status(400).json({ error: "userName required" });
     try {
-      const rows = await sb(`/notifications?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&order=created_at.desc&limit=30`);
+      const rows = await sb(`/notifications?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&order=created_at.desc&limit=30`);
       return res.status(200).json({ ok: true, notifications: rows || [] });
     } catch (e) {
       return res.status(200).json({ ok: true, notifications: [] });
@@ -83,7 +83,7 @@ async function _handler(req, res) {
     const userProvider = req.query?.userProvider || "";
     if (!userName) return res.status(400).json({ error: "userName required" });
     try {
-      const rows = await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&select=track_id,type&limit=500`);
+      const rows = await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&select=track_id,type&limit=500`);
       return res.status(200).json({ ok: true, likes: rows || [] });
     } catch (e) {
       return res.status(200).json({ ok: true, likes: [] });
@@ -95,11 +95,11 @@ async function _handler(req, res) {
     /* 검색: ?action=search&owner=X&provider=Y&q=키워드&genre=pop&date_from=2026-01-01&gen_mode=custom */
     if (req.query?.action === 'search' && ownerName) {
       try {
-        let f = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
+        let f = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
         const q = req.query?.q || '';
         if (q) f += `&or=(title.ilike.*${encodeURIComponent(q)}*,tags.ilike.*${encodeURIComponent(q)}*)`;
         const genre = req.query?.genre || '';
-        if (genre) f += `&tags=ilike.*${encodeURIComponent(genre)}*`;
+        if (genre) f += `&tags=eq.*${encodeURIComponent(genre)}*`;
         const genMode = req.query?.gen_mode || '';
         if (genMode) f += `&gen_mode=eq.${encodeURIComponent(genMode)}`;
         const dateFrom = req.query?.date_from || '';
@@ -117,7 +117,7 @@ async function _handler(req, res) {
     /* 통계: ?action=stats&owner=X&provider=Y */
     if (req.query?.action === 'stats' && ownerName) {
       try {
-        const rows = await sb(`/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&select=created_at,tags,gen_mode,model,comm_likes,comm_plays&order=created_at.desc&limit=500`);
+        const rows = await sb(`/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&select=created_at,tags,gen_mode,model,comm_likes,comm_plays&order=created_at.desc&limit=500`);
         const data = rows || [];
         const byGenre = {}, byMode = {}, byMonth = {};
         let totalPlays = 0, totalLikes = 0;
@@ -163,7 +163,7 @@ async function _handler(req, res) {
       if (isAdmin) {
         filter = `/tracks?order=created_at.desc&limit=${limit}&offset=${offset}&select=*`;
       } else if (ownerName) {
-        filter = `/tracks?owner_name=ilike.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
+        filter = `/tracks?owner_name=eq.${encodeURIComponent(ownerName)}&owner_provider=eq.${encodeURIComponent(ownerProv)}&audio_url=neq.&audio_url=not.is.null&order=created_at.desc&limit=${limit}&select=*`;
       } else {
         const sel = isLite ? liteSelect : '*';
         const sortParam = req.query?.sort || 'default';
@@ -468,16 +468,16 @@ async function _handler(req, res) {
       if (userName && userProvider) {
         try {
           if (isUndo) {
-            await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}`, { method: "DELETE", prefer: "return=minimal" });
+            await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}`, { method: "DELETE", prefer: "return=minimal" });
           } else {
             /* 중복 체크 */
-            const existing = await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}&select=id`);
+            const existing = await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${likeType}&select=id`);
             if (existing?.length > 0) {
               return res.status(200).json({ success: true, duplicate: true, message: "이미 투표했어요" });
             }
             /* 반대 투표 제거 */
             const opposite = likeType === "like" ? "dislike" : "like";
-            try { await sb(`/likes?user_name=ilike.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${opposite}`, { method: "DELETE", prefer: "return=minimal" }); } catch {}
+            try { await sb(`/likes?user_name=eq.${encodeURIComponent(userName)}&user_provider=eq.${encodeURIComponent(userProvider)}&track_id=eq.${encodeURIComponent(id)}&type=eq.${opposite}`, { method: "DELETE", prefer: "return=minimal" }); } catch {}
             /* 투표 기록 */
             await sb("/likes", { method: "POST", prefer: "return=minimal", body: JSON.stringify({ user_name: userName, user_provider: userProvider, track_id: id, type: likeType }) });
 
@@ -607,7 +607,7 @@ async function _handler(req, res) {
     try {
       if (bulkAll) {
         /* 전체 삭제: 사용자의 모든 트랙 */
-        await sb(`/tracks?owner_name=ilike.${encodeURIComponent(delOwner)}&owner_provider=eq.${encodeURIComponent(delProvider)}`, {
+        await sb(`/tracks?owner_name=eq.${encodeURIComponent(delOwner)}&owner_provider=eq.${encodeURIComponent(delProvider)}`, {
           method: "DELETE",
           prefer: "return=minimal",
         });
