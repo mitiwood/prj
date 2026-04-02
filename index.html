@@ -24753,14 +24753,9 @@ function checkPlanLimit(type){
     }
   }
 
-  /* 서버 캐시 없으면 — supervisor면 일단 통과 (백그라운드 동기화) */
-  if(currentUser?.plan==='supervisor'){
-    _fetchServerCredits().catch(function(){});
-    return true;
-  }
-  /* 서버에서 동기화 후 재시도 */
-  _syncPlanAndRetry(type);
-  return false;
+  /* 서버 캐시 없으면 — 백그라운드 로드 후 낙관적 허용 (서버에서 최종 검증) */
+  _fetchServerCredits().catch(function(){});
+  return true;
 }
 
 /* 한도 초과 시 서버 플랜 확인 후 재판정 */
