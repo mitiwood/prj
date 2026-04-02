@@ -24735,26 +24735,19 @@ function checkPlanLimit(type){
     return false;
   }
 
-  /* 로그인 사용자: 서버 크레딧 캐시 확인 */
+  /* 로그인 사용자: 서버(kie-proxy)가 실제 사용량 기반으로 최종 차단 — 클라이언트는 낙관적 허용 */
+  /* 캐시에 크레딧 정보가 있으면 UI 힌트만 제공 */
   if(_serverCreditsCache){
-    /* supervisor 이중 체크 (크레딧 0이어도 통과) */
     if(_serverCreditsCache.plan==='supervisor') return true;
     var _sKey = type==='song'?'credits_song':type==='mv'?'credits_mv':type==='lyrics'?'credits_lyrics':type==='vr'?'credits_song':'credits_song';
     var _sRemain = _serverCreditsCache[_sKey];
-    if(typeof _sRemain === 'number' && _sRemain > 0){
-      if(_sRemain <= 2) toast('⚠️ 크레딧 '+_sRemain+'회 남았어요','warn',3000);
-      try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
-      return true;
+    if(typeof _sRemain === 'number' && _sRemain <= 2 && _sRemain > 0){
+      toast('⚠️ 크레딧 '+_sRemain+'회 남았어요','warn',3000);
     }
-    if(typeof _sRemain === 'number' && _sRemain <= 0){
-      /* 서버 크레딧 0 → 최신 정보 재확인 후 차단 */
-      _syncPlanAndRetry(type);
-      return false;
-    }
+    try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
+  } else {
+    _fetchServerCredits().catch(function(){});
   }
-
-  /* 서버 캐시 없으면 — 백그라운드 로드 후 낙관적 허용 (서버에서 최종 검증) */
-  _fetchServerCredits().catch(function(){});
   return true;
 }
 

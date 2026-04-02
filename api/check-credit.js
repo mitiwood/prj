@@ -158,7 +158,9 @@ export default async function handler(req, res) {
       const isSelf = jwtUser && jwtUser.name === userName && jwtUser.provider === userProvider;
       if (!isAdminDeduct && !isSelf) return res.status(403).json({ ok: false, reason: 'forbidden' });
       const creditCol = type === 'song' ? 'credits_song' : type === 'mv' ? 'credits_mv' : type === 'vr' ? 'credits_song' : 'credits_lyrics';
-      const currentCredits = user?.[creditCol] || 0;
+      /* NULL이면 플랜 기본값에서 차감 (|| 0 으로 처리하면 0→-1→0으로 크레딧이 소실됨) */
+      const _deductDefault = type === 'song' ? limits.songs : type === 'mv' ? limits.mv : limits.songs;
+      const currentCredits = user?.[creditCol] != null ? user[creditCol] : _deductDefault;
       const newCredits = Math.max(0, currentCredits - 1);
       await sbFetch('PATCH',
         `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
