@@ -24827,10 +24827,13 @@ async function _fetchServerCredits(){
       var _ownerEmails=['altosax7@gmail.com'];
       if(_ownerEmails.indexOf((currentUser?.email||'').toLowerCase())>=0) _plan='supervisor';
       var _isSupervisor = _plan === 'supervisor';
+      /* 플랜별 기본 크레딧 — DB에 NULL이면 (신규/미설정 사용자) 플랜 기본값 사용 */
+      var _planDefaults = {free:{s:5,m:0,l:5},pro:{s:50,m:3,l:50},creator:{s:999,m:20,l:999},supervisor:{s:9999,m:9999,l:9999}};
+      var _def = _planDefaults[_plan] || _planDefaults.free;
       _serverCreditsCache = {
-        credits_song: _isSupervisor ? 9999 : (d.profile.credits_song ?? 0),
-        credits_mv: _isSupervisor ? 9999 : (d.profile.credits_mv ?? 0),
-        credits_lyrics: _isSupervisor ? 9999 : (d.profile.credits_lyrics ?? 0),
+        credits_song: _isSupervisor ? 9999 : (d.profile.credits_song != null ? d.profile.credits_song : _def.s),
+        credits_mv: _isSupervisor ? 9999 : (d.profile.credits_mv != null ? d.profile.credits_mv : _def.m),
+        credits_lyrics: _isSupervisor ? 9999 : (d.profile.credits_lyrics != null ? d.profile.credits_lyrics : _def.l),
         plan: _plan,
       };
       if(currentUser) currentUser.plan = _plan;
