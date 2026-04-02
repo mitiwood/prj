@@ -222,7 +222,7 @@ export default async function handler(req, res) {
           login_count: existingCount + 1,
           ...(clientIp ? { last_ip: clientIp } : {}),
           ...(location ? { last_location: location } : {}),
-          ...(isNew ? { plan: 'free' } : {}),
+          ...(isNew ? { plan: 'free', credits_song: 5, credits_mv: 0, credits_lyrics: 5 } : {}),
         };
 
         /* 기존 provider가 다르면 → 기존 레코드를 새 provider로 업데이트 */

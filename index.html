@@ -7796,7 +7796,7 @@ async function _doLoadSbTracks(){
     const d = await r.json();
     if(Array.isArray(d.tracks)){
       await _loadRealUsers();
-      _sbTracks = d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      _sbTracks = d.tracks.map(_rowToTrack);
       /* DB에 duration이 있는 트랙은 _durCache에 즉시 반영 */
       _sbTracks.forEach(function(t){if(t.dur&&t.dur!=='—'&&t._sbId) _durCache[t._sbId]=t.dur;});
       _sbOffset = _sbTracks.length;
@@ -7867,7 +7867,7 @@ async function _pollRefreshSbTracks(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return !!t.audioUrl && _isRealUser(t._owner?.name);});
+      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return !!t.audioUrl;});
       var newFp = _calcFingerprint(newTracks);
       if(newFp !== _sbFingerprint){
         _sbTracks = newTracks;
@@ -7893,7 +7893,7 @@ async function _loadSbTracksMore(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     if(Array.isArray(d.tracks)){
-      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return !!t.audioUrl && _isRealUser(t._owner?.name);});
+      var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return !!t.audioUrl;});
       _sbTracks = _sbTracks.concat(newTracks);
       _sbOffset += newTracks.length;
       _sbHasMore = d.tracks.length >= _SB_PAGE_SIZE;
@@ -9427,6 +9427,7 @@ function _saveLoginUser(user){
     _saveLoginUser(user);
     /* DB에서 사용자 전체 데이터 최신화 (플랜+크레딧+트랙+출석) */
     setTimeout(()=>{ _syncPlanFromServer(); }, 300);
+    setTimeout(()=>{ if(typeof _fetchServerCredits==='function') _fetchServerCredits(); }, 500);
     setTimeout(()=>{ _userSyncDone=false; _syncUserDataFromServer(); }, 600);
     /* Supabase에서 내 트랙 로드 */
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
@@ -20948,7 +20949,7 @@ async function _renderCommunityInner(force){
   try{
     var [_d]=await Promise.all([_tracksP,_usersP]);
     if(Array.isArray(_d.tracks)){
-      _sbTracks=_d.tracks.map(_rowToTrack).filter(function(t){return _isRealUser(t._owner?.name);});
+      _sbTracks=_d.tracks.map(_rowToTrack);
       _sbTracks.forEach(function(t){if(t.dur&&t.dur!=='—'&&t._sbId) _durCache[t._sbId]=t.dur;});
       _sbOffset=_sbTracks.length;
       _sbHasMore=_d.tracks.length>=_SB_PAGE_SIZE;
