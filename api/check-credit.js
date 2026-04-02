@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (!type || !['song', 'mv', 'lyrics', 'vr'].includes(type)) {
+  if (!type || !['song', 'mv', 'lyrics', 'vr', 'bonus'].includes(type)) {
     return res.status(400).json({ ok: false, reason: 'invalid_type' });
   }
 
