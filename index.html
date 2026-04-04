@@ -10853,7 +10853,16 @@ $('yt-analyze-btn').addEventListener('click', async () => {
         style="font-size:12px;line-height:1.7;margin-bottom:8px;"></textarea>
       <button id="yt-lyrics-gen-btn" style="width:100%;padding:9px;border-radius:10px;border:1px solid rgba(124,58,237,.4);background:rgba(124,58,237,.15);color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
         \u2726 AI 가사 자동 생성 (선택사항)
+      </button>
+      <button id="yt-quick-gen-btn" class="gen-btn" style="margin-top:12px;box-shadow:0 4px 24px rgba(124,58,237,.35);">
+        \u25B6 바로 생성하기
       </button>`;
+
+    /* 바로 생성 버튼 */
+    document.getElementById('yt-quick-gen-btn').addEventListener('click', function(){
+      if(!checkPlanLimit('song')) return;
+      _ytDoGenerate();
+    });
 
     /* AI 가사 생성 버튼 */
     document.getElementById('yt-lyrics-gen-btn').addEventListener('click', async function(){
@@ -10894,7 +10903,9 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* 토스 스텝 다음 버튼 활성화 */
     if(typeof _enableYtStep1Next==='function') _enableYtStep1Next();
     var _ytNb=$('yt-next-1'); if(_ytNb) _ytNb.textContent='다음';
-    toast('✅ 분석 완료! 다음 버튼을 눌러주세요','ok',3000);
+    toast('✅ 분석 완료!','ok',2000);
+    /* 분석 완료 후 자동으로 Step 2로 이동 (0.5초 대기) */
+    setTimeout(function(){ if(typeof _ytStepGo==='function') _ytStepGo(2); },500);
 
     /* 자동 생성 플래그 */
     if(window._ytAutoGenerateAfterAnalysis){
