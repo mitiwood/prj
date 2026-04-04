@@ -12471,11 +12471,8 @@ async function generate(overrideParams){
       /* YT 모드: 분석 스타일만으로 생성 (가사 없어도 OK) */
       lyricsText = overrideParams?.styleStr || $('prompt').value.trim() || 'YouTube cover music';
     } else if(isSimple){
-      /* 심플모드: 가사 없으면 테마 설명으로 생성 (스타일 태그는 style 필드로) */
-      var _simpleDesc = ($('simple-prompt')?.value||'').trim();
-      var _simpleLang = ($('lyrics-lang')?.value||'').trim();
-      var _sLangHint = _simpleLang ? 'Sing in '+_simpleLang+'. ' : '';
-      lyricsText = _sLangHint + 'Create a song about: ' + (_simpleDesc || moodVal || 'happy pop song');
+      /* 심플모드: 가사 없으면 설명/무드만으로 바로 생성 (가사는 백그라운드 자동 생성) */
+      lyricsText = $('simple-prompt')?.value.trim() || moodVal || 'happy pop song';
 } else if(isCustom){
       toast('\u270d\ufe0f \uac00\uc0ac\uac00 \uc5c6\uc5b4\uc694. AI\uac00 \uc790\ub3d9\uc73c\ub85c \uc791\uc0ac \ud6c4 \uc74c\uc545\uc744 \uc0dd\uc131\ud560\uac8c\uc694!','',2500);
       _globalGenerating = false; _syncGenButtons();
@@ -12582,6 +12579,8 @@ async function generate(overrideParams){
     var _vocalLang = lyricsLang || '';
     if(!_vocalLang && _promptHasKo) _vocalLang = 'Korean';
     if(!_vocalLang && /[\u3040-\u30FF\u4E00-\u9FFF]/.test(prompt)) _vocalLang = /[\u3040-\u30FF]/.test(prompt) ? 'Japanese' : 'Chinese';
+    /* 심플 모드: 언어 미지정 + 한글 미감지 시 기본 Korean (한국어 사용자 기본값) */
+    if(!_vocalLang && isSimple) _vocalLang = 'Korean';
     if(_vocalLang && !instOn && body.style && body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
       body.style = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang + ', ' + body.style;
     }
