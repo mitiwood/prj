@@ -6108,15 +6108,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="comm-filter-row">
       <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="top-rated">⭐ 별점순</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
-      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
       <button class="comm-ftag" data-cf="hiphop">🎤 Hip-Hop</button>
       <button class="comm-ftag" data-cf="lofi">☕ Lo-Fi</button>
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
+      <button class="comm-ftag" data-cf="refresh" id="comm-refresh-btn" onclick="_commRefresh()" style="margin-left:auto;flex-shrink:0;">🔄</button>
     </div>
     <!-- 크리에이터 섹션 (최상위 — 인스타 스타일) -->
     <div id="comm-creators-section" style="margin-bottom:16px;">
@@ -20421,9 +20422,16 @@ $('clear-all-btn').addEventListener('click',()=>{
 var _commActiveGenre='all';
 var _commSearchQuery='';
 var _commCreatorShowCount=10;
+/* 새로고침 버튼 */
+function _commRefresh(){
+  toast('🔄 새로고침 중...','',1500);
+  _sbLoaded=false;_chartRenderedOnce=false;_lastChartHash='';
+  _loadSbTracks(true).then(function(){renderCommunity(true);_renderWeeklyChart();toast('✅ 최신 곡 불러옴','ok',1500);});
+}
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
-    document.querySelectorAll('.comm-ftag').forEach(b=>b.classList.remove('on'));
+    if(this.dataset.cf==='refresh') return; /* 새로고침은 onclick으로 처리 */
+    document.querySelectorAll('.comm-ftag').forEach(b=>{if(b.dataset.cf!=='refresh')b.classList.remove('on');});
     this.classList.add('on');
     _commActiveGenre=this.dataset.cf||'all';
     /* 정렬 모드 변경 */
