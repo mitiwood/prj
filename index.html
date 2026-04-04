@@ -9445,15 +9445,14 @@ async function _ytDoGenerate(){
   }
 
   /* prompt: 가사가 있으면 가사를 prompt로, 없으면 테마 설명 (스타일 태그는 style 필드로) */
+  /* prompt: 가사가 있으면 가사를 prompt로, 없으면 스타일 설명 */
   var prompt;
   if(ytLyrics){
     prompt = ytLyrics;
   } else {
-    /* 가사 없을 때: 곡 테마/설명을 prompt로 (스타일 태그를 prompt에 넣으면 그걸 가사로 노래함!) */
-    var _ytVocalLang2 = ($('yt-vocal-lang')?.value || '').trim();
-    var _ytLangHint = _ytVocalLang2 ? 'Sing in ' + _ytVocalLang2 + '. ' : '';
-    var _ytTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle || 'beautiful song';
-    prompt = _ytLangHint + 'Create a song about: ' + _ytTheme;
+    /* 인스트루멘탈이거나 가사 생성 실패 시 — 스타일을 prompt에 직접 포함 (kie.ai가 더 잘 반영) */
+    var _promptParts = [ytStylePrompt, ytRefSound, ytSongStructure].filter(Boolean);
+    prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
   }
 
   /* 보컬 언어 선택 반영 */
@@ -12477,19 +12476,10 @@ async function generate(overrideParams){
       var _sLangHint = _simpleLang ? 'Sing in '+_simpleLang+'. ' : '';
       lyricsText = _sLangHint + 'Create a song about: ' + (_simpleDesc || moodVal || 'happy pop song');
 } else if(isCustom){
-      toast('✍️ 가사를 생성 중...','',2000);
-      var _cLang=($('lyrics-lang')?.value||'').trim();
-      var _cHint=_cLang?'Write lyrics in '+_cLang+'. ':'';
-      var _cDesc=($('song-desc')?.value||'').trim();
-      var _cTheme=_cDesc||[($('genre-sub')?.value||''),($('mood')?.value||'')].filter(Boolean).join(', ')||'감성적인 노래';
-      try{
-        var _cLyrics=await Promise.race([
-          _kieLyricsWithFallback(kieApiKey, (_cHint+_cTheme).slice(0,300)),
-          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},8000);})
-        ]);
-        if(_cLyrics&&_cLyrics.length>30){lyricsText=_cLyrics;$('prompt').value=_cLyrics;}
-        else{lyricsText=(_cHint||'')+'Create a song about: '+_cTheme;}
-      }catch(e){lyricsText=(_cHint||'')+'Create a song about: '+_cTheme;}
+      toast('\u270d\ufe0f \uac00\uc0ac\uac00 \uc5c6\uc5b4\uc694. AI\uac00 \uc790\ub3d9\uc73c\ub85c \uc791\uc0ac \ud6c4 \uc74c\uc545\uc744 \uc0dd\uc131\ud560\uac8c\uc694!','',2500);
+      _globalGenerating = false; _syncGenButtons();
+      await _autoLyricsAndGenerate();
+      return;
     } else if(false){/* 심플 분기 이동됨 — 기존 isSimple 비활성 */
       /* 심플: 설명 없으면 안내 팝업 + 인풋 포커스 */
       const simpleInput = $('simple-prompt');
