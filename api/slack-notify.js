@@ -46,10 +46,11 @@ export default async function handler(req, res) {
   const payload = formatMessage(body);
 
   try {
+    const jsonBody = JSON.stringify(payload);
     const r = await fetch(WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: Buffer.from(jsonBody, 'utf-8'),
     });
 
     if (!r.ok) {
