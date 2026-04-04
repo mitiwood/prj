@@ -12547,8 +12547,12 @@ async function generate(overrideParams){
       if(_simpleStyle.length) body.style=_simpleStyle.join(', ');
     }
     else if(styleStr){ body.style = styleStr; }
-    if(_promptHasKo && !instOn && body.style && body.style.toLowerCase().indexOf('korean')===-1){
-      body.style = 'Korean lyrics, Korean vocal, sung in Korean, ' + body.style;
+    /* 보컬 언어 힌트 — 선택된 언어 또는 가사에서 자동 감지 */
+    var _vocalLang = lyricsLang || '';
+    if(!_vocalLang && _promptHasKo) _vocalLang = 'Korean';
+    if(!_vocalLang && /[\u3040-\u30FF\u4E00-\u9FFF]/.test(prompt)) _vocalLang = /[\u3040-\u30FF]/.test(prompt) ? 'Japanese' : 'Chinese';
+    if(_vocalLang && !instOn && body.style && body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
+      body.style = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang + ', ' + body.style;
     }
     /* kie.ai style 길이 제한: customMode=true → 1000자, false → 200자 */
     if(body.style){
