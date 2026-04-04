@@ -20843,14 +20843,26 @@ try{var _savedFailed=JSON.parse(localStorage.getItem('kms_failed_urls')||'[]');_
 function _persistFailedUrls(){try{localStorage.setItem('kms_failed_urls',JSON.stringify([..._failedAudioUrls].slice(-200)));}catch(e){}}
 /* 원본 add 래핑 — 추가 시 자동 영속화 */
 var _origFailedAdd=_failedAudioUrls.add.bind(_failedAudioUrls);
-_failedAudioUrls.add=function(url){_origFailedAdd(url);_persistFailedUrls();return _failedAudioUrls;};
+_failedAudioUrls.add=function(url){
+  /* 생성 후 5분 이내 곡의 URL은 실패 등록 차단 (CDN 준비 시간 확보) */
+  var _now=Date.now();
+  for(var _fi=0;_fi<historyData.length;_fi++){
+    if(historyData[_fi].audio_url===url&&historyData[_fi].created&&(_now-historyData[_fi].created)<300000) return _failedAudioUrls;
+  }
+  _origFailedAdd(url);_persistFailedUrls();return _failedAudioUrls;
+};
 var _urlCheckInFlight=false;
 /* 오디오 URL 사전 검증 — HEAD 요청으로 404 감지 (히스토리 + 크리에이터 뷰) */
 function _checkAudioUrls(){
   if(_urlCheckInFlight)return;
   var urls=[];
+  var _now=Date.now();
   var _addUrl=function(u){if(u&&!_failedAudioUrls.has(u)&&urls.indexOf(u)<0)urls.push(u);};
-  historyData.forEach(function(h){_addUrl(h.audio_url);});
+  historyData.forEach(function(h){
+    /* 생성 후 5분 이내 곡은 URL 검사 건너뜀 (CDN 준비 시간 확보) */
+    if(h.created&&(_now-h.created)<300000) return;
+    _addUrl(h.audio_url);
+  });
   if(typeof _sbTracks!=='undefined'&&_sbTracks)_sbTracks.forEach(function(t){_addUrl(t.audio_url||t.audioUrl);});
   if(typeof _myFeedDetail!=='undefined'&&_myFeedDetail&&_myFeedDetail.tracks)_myFeedDetail.tracks.forEach(function(t){_addUrl(t.audio_url);});
   if(!urls.length)return;
