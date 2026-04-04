@@ -9407,15 +9407,14 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     generate({_afterLyrics:true, prompt:simpleLyrics});
     return;
   }
-  /* 가사 없음 → 즉시 생성 (customMode:false로 kie.ai가 자체 작사) */
+  /* 가사 없음 → 테마 기반 즉시 생성 (customMode:true로 가사 반환받음) */
   var _sDesc=desc;
   var _sMood=moodVal;
   if(!_sDesc&&!_sMood){
-    var _randomThemes=['사랑과 이별','새벽 감성','여행과 자유','꿈을 향해','봄날의 설렘','비 오는 밤','추억 속 너','도시의 밤','희망과 용기','첫사랑의 기억','혼자만의 시간','별빛 아래'];
+    var _randomThemes=['사랑과 이별의 아픔','새벽 감성 발라드','여행과 자유','꿈을 향한 여정','봄날의 설렘','비 오는 밤','추억 속 너','도시의 밤','희망과 용기','첫사랑의 기억','혼자만의 시간','별빛 아래'];
     _sDesc=_randomThemes[Math.floor(Math.random()*_randomThemes.length)];
   }
-  /* 설명+분위기를 style로, prompt는 설명만 (가사 아님) → customMode=false로 빠른 생성 */
-  generate({_afterLyrics:true, prompt:_sDesc||'Korean pop song', _simpleNoLyrics:true});
+  generate({_afterLyrics:true, prompt:(_sDesc+(_sMood?' '+_sMood:''))||'한국어 팝송'});
 });
 
 /* ── YouTube 생성 버튼 ── */
@@ -12739,8 +12738,8 @@ async function generate(overrideParams){
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
     const _ytStyleStr = overrideParams?.styleStr || styleStr;
     /* customMode: 가사 직접 입력 시 true → kie.ai가 style 필드 반영 */
-    /* 심플모드 가사 미입력(_simpleNoLyrics)이면 customMode=false → kie.ai 자체 작사+빠른 생성 */
-    const _forceCustom = (isSimple && !overrideParams?._simpleNoLyrics) || (prompt||'').length > 400 || _simpleHasRealLyrics;
+    /* customMode: 가사/설명이 있으면 true → kie.ai가 style+prompt 모두 반영 */
+    const _forceCustom = isSimple || (prompt||'').length > 400 || _simpleHasRealLyrics;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
     if(selectedDuration===0){
