@@ -10926,9 +10926,11 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* 토스 스텝 다음 버튼 활성화 */
     if(typeof _enableYtStep1Next==='function') _enableYtStep1Next();
     var _ytNb=$('yt-next-1'); if(_ytNb) _ytNb.textContent='다음';
-    toast('✅ 분석 완료!','ok',2000);
-    /* 분석 완료 후 자동으로 Step 2로 이동 (0.5초 대기) */
-    setTimeout(function(){ if(typeof _ytStepGo==='function') _ytStepGo(2); },500);
+    toast('✅ 분석 완료! 아래에서 바로 생성하거나 다음 버튼으로 설정을 변경하세요','ok',3000);
+    /* 분석 완료 후 결과+바로생성 버튼이 보이도록 Step 1 유지 (자동 이동 제거) */
+    /* 분석 결과 영역으로 스크롤 */
+    var _ytResult=$('yt-result');
+    if(_ytResult) _ytResult.scrollIntoView({behavior:'smooth',block:'start'});
 
     /* 자동 생성 플래그 */
     if(window._ytAutoGenerateAfterAnalysis){
