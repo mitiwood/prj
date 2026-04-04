@@ -19766,13 +19766,13 @@ function _fpAssignTimes(){
   var dur=fpAudio.duration;
   var n=fpTimestampLines.length;
   if(n<2) return;
-  /* 각 라인의 음절 수(글자 수) 기반 가중치 */
+  /* 각 라인의 글자 수 기반 가중치 (한글=1, 영어=글자수/3) */
   var weights=[], totalW=0;
   for(var wi=0;wi<n;wi++){
     var txt=(fpTimestampLines[wi].textContent||'').replace(/\[.*?\]/g,'').trim();
     var ko=(txt.match(/[\uAC00-\uD7AF]/g)||[]).length;
-    var en=(txt.match(/[a-zA-Z]+/g)||[]).length;
-    var w=Math.max(ko+en*2, 1);
+    var enChars=(txt.match(/[a-zA-Z]/g)||[]).length;
+    var w=Math.max(ko + Math.ceil(enChars/3), 1);
     if(/^\[.*\]$/.test(txt.trim())) w=0.3; /* 섹션 헤더는 짧게 */
     weights.push(w); totalW+=w;
   }
@@ -19879,11 +19879,18 @@ function fpSyncLyrics(currentTime){
   var activeIdx=-1;
 
   if(hasDataEnd){
-    /* TS 모드: data-start/end 매칭 */
+    /* TS 모드: data-start/end 매칭 — 갭 구간에서는 직전 라인 유지 */
     for(var di=n-1;di>=0;di--){
       var ds=parseFloat(fpTimestampLines[di].dataset.start)||0;
       var de=parseFloat(fpTimestampLines[di].dataset.end)||0;
       if(currentTime>=ds&&currentTime<de){activeIdx=di;break;}
+    }
+    /* 갭 구간(라인 end ~ 다음 라인 start)에서 직전 라인 유지 */
+    if(activeIdx===-1){
+      for(var gi=n-1;gi>=0;gi--){
+        var gs=parseFloat(fpTimestampLines[gi].dataset.start)||0;
+        if(currentTime>=gs){activeIdx=gi;break;}
+      }
     }
   } else if(_fpLrcTimes.length){
     /* LRC/균등 분할 */
@@ -19953,7 +19960,8 @@ function fpRenderTimestampedLyrics(words){
         curLine.endS=w.endS||0;
       }
       const joined=curLine.words.map(function(x){return x.text;}).join(' ');
-      if(/[.!?,。！？、，]$/.test(text.trim())||joined.length>40){
+      /* 라인 분할: 문장 끝(.!?) 또는 60자 초과 시 — 쉼표는 분할 안 함 (영어 싱크 개선) */
+      if(/[.!?。！？]$/.test(text.trim())||joined.length>60){
         lines.push({...curLine});curLine={words:[],startS:null,endS:null,isSec:false};
       }
     }
