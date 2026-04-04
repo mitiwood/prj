@@ -5306,8 +5306,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <div class="opt-group">
                 <div class="adv-section-title">🌏 가사 언어</div>
                 <select class="opt-select" id="lyrics-lang">
+                  <option value="Korean" selected>한국어 (기본)</option>
                   <option value="">자동 (입력 언어 따름)</option>
-                  <option value="Korean">한국어</option>
                   <option value="English">영어</option>
                   <option value="Japanese">일본어</option>
                   <option value="Chinese">중국어</option>
@@ -9969,7 +9969,7 @@ function _saveLoginUser(user){
             track=tracks.find(function(t){return String(t.id)===String(_playTrackId);});
           }
           if(track&&track.audio_url){
-            _showSharedPlayer(track.title||sharedTitle||'공유된 노래', track.audio_url, track.image_url||sharedImg||'');
+            _showSharedPlayer(track.title||sharedTitle||'공유된 노래', track.audio_url, track.image_url||sharedImg||'', track.duration||0);
           } else {
             toast('공유된 곡을 찾을 수 없어요','',2000);
           }
@@ -9985,7 +9985,7 @@ function _saveLoginUser(user){
   });
 })();
 
-function _showSharedPlayer(title, audioUrl, imgUrl){
+function _showSharedPlayer(title, audioUrl, imgUrl, duration){
   document.getElementById('shared-player-wrap')?.remove();
   const wrap=document.createElement('div');
   wrap.id='shared-player-wrap';
@@ -10015,7 +10015,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:6px;">
         <span id="ssp-cur" style="font-size:11px;color:#6b5f8a;">0:00</span>
-        <span id="ssp-dur" style="font-size:11px;color:#6b5f8a;">—</span>
+        <span id="ssp-dur" style="font-size:11px;color:#6b5f8a;">${duration&&duration>0?(Math.floor(duration/60)+':'+(Math.floor(duration%60)<10?'0':'')+Math.floor(duration%60)):'—'}</span>
       </div>
     </div>
     <!-- 컨트롤 -->
@@ -10053,6 +10053,7 @@ function _showSharedPlayer(title, audioUrl, imgUrl){
 
   audio.addEventListener('loadedmetadata',()=>{if(dur&&audio.duration&&isFinite(audio.duration))dur.textContent=fmtT(audio.duration);});
   audio.addEventListener('durationchange',()=>{if(dur&&audio.duration&&isFinite(audio.duration))dur.textContent=fmtT(audio.duration);});
+  audio.addEventListener('canplay',()=>{if(dur&&audio.duration&&isFinite(audio.duration)&&dur.textContent==='—')dur.textContent=fmtT(audio.duration);});
   audio.addEventListener('timeupdate',()=>{
     var d=audio.duration;
     if(d&&isFinite(d)){
