@@ -6134,7 +6134,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <!-- 주간 TOP 10 차트 -->
     <div id="comm-chart-wrap" style="display:none;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:15px;font-weight:800;color:var(--t1);">🏆 재생 TOP 10</div>
+        <div style="font-size:15px;font-weight:800;color:var(--t1);">🏆 이번 주 인기 차트</div>
         <span id="comm-chart-period" style="font-size:10px;color:var(--t3);"></span>
       </div>
       <div id="comm-chart-list" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -29827,11 +29827,13 @@ function _renderWeeklyChart(){
   var wrap=$('comm-chart-wrap'),listEl=$('comm-chart-list');
   if(!wrap||!listEl)return;
   if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
-  /* 누적 재생 TOP 10 — 기간 제한 없이 전체 트랙 대상 */
+  /* 이번 주 최근 생성 인기 차트 — 최근 7일 내 생성된 곡, 재생순 */
+  var weekAgo=Date.now()-7*86400000;
   var weekly=_sbTracks.filter(function(t){
     var au=t.audioUrl||t.audio_url||t.song_path||'';
     if(!au||au.indexOf('example.com')>=0)return false;
-    return true;
+    var ts=t._created||new Date(t.created_at||0).getTime();
+    return ts>weekAgo;
   });
   weekly.forEach(function(t){t._score=(t.comm_plays||t.plays||0);});
   weekly.sort(function(a,b){return b._score-a._score;});
@@ -29854,8 +29856,10 @@ function _renderWeeklyChart(){
   if(_chartHash===_lastChartHash) return;
   _lastChartHash=_chartHash;
   wrap.style.display='';
+  var now=new Date(),wa=new Date(weekAgo);
+  var fmt=function(d){return(d.getMonth()+1)+'/'+d.getDate();};
   var period=$('comm-chart-period');
-  if(period)period.textContent='누적 재생순';
+  if(period)period.textContent=fmt(wa)+' ~ '+fmt(now);
   listEl.innerHTML=top10.map(function(t,i){
     var rank=i+1;
     var rc=rank<=3?'r'+rank:'';
