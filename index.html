@@ -11519,8 +11519,10 @@ async function _autoLyricsAndGenerate(){
   const desc=($('song-desc')?.value||'').trim();
   const titleVal=($('song-title')?.value||'').trim();
   const refArtist=($('ref-artist')?.value||'').trim();
+  const _lyrLang=$('lyrics-lang')?.value||'Korean';
+  const _langHint=_lyrLang==='Korean'?'한국어 가사로':_lyrLang==='Japanese'?'日本語の歌詞で':_lyrLang==='Chinese'?'中文歌词':'';
   const base=desc||[sub,mood].filter(Boolean).join(', ')||'감성적인 노래';
-  const lyricsPrompt=titleVal?`${titleVal}: ${base}`:base;
+  const lyricsPrompt=(_langHint?_langHint+' ':'')+(titleVal?`${titleVal}: ${base}`:base);
 
   /* 버튼 로딩 상태 + 동시 생성 방지 */
   _QueueManager.setBusy('music',true); _syncGenButtons();
