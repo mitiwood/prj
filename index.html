@@ -2665,6 +2665,16 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-no-results .comm-no-icon{font-size:40px;margin-bottom:12px;}
 .comm-no-results .comm-no-title{font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;}
 .comm-no-results .comm-no-desc{font-size:12px;}
+/* 메인 탭 (멜론 스타일) */
+.comm-mtab{flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-bottom:-2px;}
+.comm-mtab.on{color:var(--acc);border-bottom-color:var(--acc);}
+.comm-mtab:hover{color:var(--t1);}
+[data-theme="light"] .comm-mtab{color:#8e8e93;}
+[data-theme="light"] .comm-mtab.on{color:#7c3aed;border-bottom-color:#7c3aed;}
+/* 인사이트 스탯 카드 */
+.comm-insight-card{text-align:center;padding:10px 6px;border-radius:10px;background:var(--card);border:1px solid var(--border);}
+.comm-insight-num{font-size:18px;font-weight:900;color:var(--acc);line-height:1;}
+.comm-insight-label{font-size:10px;color:var(--t3);margin-top:3px;}
 .comm-filter-row{
   display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;
   margin-bottom:16px;scrollbar-width:none;
@@ -6106,9 +6116,23 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
       <div id="search-suggest" class="search-suggest" style="display:none;"></div>
     </div>
-    <div class="comm-filter-row">
-      <button class="comm-ftag on" data-cf="all">🔥 전체</button>
-      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
+    <!-- 메인 탭 (멜론 스타일) -->
+    <div class="comm-main-tabs" style="display:flex;border-bottom:2px solid var(--border);margin-bottom:12px;">
+      <button class="comm-mtab on" data-ctab="all" onclick="_commSwitchTab('all')">전체</button>
+      <button class="comm-mtab" data-ctab="chart" onclick="_commSwitchTab('chart')">인기차트</button>
+      <button class="comm-mtab" data-ctab="latest" onclick="_commSwitchTab('latest')">최근등록</button>
+      <button class="comm-mtab" data-ctab="chat" onclick="_commSwitchTab('chat')">채팅</button>
+      <button style="margin-left:auto;background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:8px;" onclick="_commRefresh()" title="새로고침">🔄</button>
+    </div>
+    <!-- 인사이트 배너 (인기차트 탭) -->
+    <div id="comm-insight-banner" style="display:none;margin-bottom:14px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.12);">
+      <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📊 이번 주 인사이트</div>
+      <div id="comm-insight-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;"></div>
+      <div id="comm-insight-trend" style="font-size:11px;color:var(--t2);line-height:1.6;"></div>
+    </div>
+    <!-- 장르 필터 (전체/최근등록 탭) -->
+    <div class="comm-filter-row" id="comm-genre-filter">
+      <button class="comm-ftag on" data-cf="all">전체</button>
       <button class="comm-ftag" data-cf="top-rated">⭐ 별점순</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
@@ -6117,7 +6141,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
-      <button class="comm-ftag" data-cf="refresh" id="comm-refresh-btn" onclick="_commRefresh()" style="margin-left:auto;flex-shrink:0;">🔄</button>
     </div>
     <!-- 크리에이터 섹션 (최상위 — 인스타 스타일) -->
     <div id="comm-creators-section" style="margin-bottom:16px;">
@@ -20422,11 +20445,96 @@ $('clear-all-btn').addEventListener('click',()=>{
 var _commActiveGenre='all';
 var _commSearchQuery='';
 var _commCreatorShowCount=10;
+var _commCurrentTab='all'; /* 메인 탭 상태 */
+
 /* 새로고침 버튼 */
 function _commRefresh(){
   toast('🔄 새로고침 중...','',1500);
   _sbLoaded=false;_chartRenderedOnce=false;_lastChartHash='';
-  _loadSbTracks(true).then(function(){renderCommunity(true);_renderWeeklyChart();toast('✅ 최신 곡 불러옴','ok',1500);});
+  _loadSbTracks(true).then(function(){renderCommunity(true);_renderWeeklyChart();_commRenderInsight();toast('✅ 최신 곡 불러옴','ok',1500);});
+}
+
+/* 메인 탭 전환 */
+function _commSwitchTab(tab){
+  _commCurrentTab=tab;
+  document.querySelectorAll('.comm-mtab').forEach(function(b){b.classList.toggle('on',b.dataset.ctab===tab);});
+  var genreFilter=$('comm-genre-filter');
+  var insightBanner=$('comm-insight-banner');
+  var chartWrap=$('comm-chart-wrap');
+  var commList=$('comm-list');
+  var creatorsSection=$('comm-creators-section');
+  /* 모든 섹션 기본 숨김 */
+  if(genreFilter) genreFilter.style.display='none';
+  if(insightBanner) insightBanner.style.display='none';
+  if(chartWrap) chartWrap.style.display='none';
+  if(commList) commList.style.display='none';
+  if(creatorsSection) creatorsSection.style.display='none';
+
+  if(tab==='all'){
+    if(genreFilter) genreFilter.style.display='';
+    if(commList) commList.style.display='';
+    if(creatorsSection) creatorsSection.style.display='';
+    _commSortMode='default';_sbLoaded=false;renderCommunity(true);
+  } else if(tab==='chart'){
+    if(insightBanner) insightBanner.style.display='';
+    if(chartWrap) chartWrap.style.display='';
+    _chartRenderedOnce=false;_lastChartHash='';_renderWeeklyChart();
+    _commRenderInsight();
+  } else if(tab==='latest'){
+    if(genreFilter) genreFilter.style.display='';
+    if(commList) commList.style.display='';
+    _commSortMode='latest';_sbLoaded=false;renderCommunity(true);
+  } else if(tab==='chat'){
+    _commActiveGenre='chat';
+    if(commList) commList.style.display='';
+    _commSortMode='default';_sbLoaded=false;renderCommunity(true);
+  }
+}
+
+/* 인사이트 렌더 */
+function _commRenderInsight(){
+  var statsEl=$('comm-insight-stats');
+  var trendEl=$('comm-insight-trend');
+  if(!statsEl||!trendEl||!_sbTracks||!_sbTracks.length) return;
+
+  var weekAgo=Date.now()-7*86400000;
+  var thisWeek=_sbTracks.filter(function(t){var ts=t._created||new Date(t.created_at||0).getTime();return ts>weekAgo;});
+  var prevWeek=_sbTracks.filter(function(t){var ts=t._created||new Date(t.created_at||0).getTime();return ts>weekAgo-7*86400000&&ts<=weekAgo;});
+
+  var totalPlays=thisWeek.reduce(function(s,t){return s+(t.comm_plays||t.plays||0);},0);
+  var totalLikes=thisWeek.reduce(function(s,t){return s+(t.comm_likes||t.likes||0);},0);
+  var newSongs=thisWeek.length;
+  var prevSongs=prevWeek.length;
+
+  /* 장르 분포 */
+  var genreMap={};
+  thisWeek.forEach(function(t){
+    var tags=(t.tags||'').toLowerCase();
+    var genres=['k-pop','hip-hop','lo-fi','electronic','ballad','rock','jazz','ost','acoustic','r&b','pop','indie'];
+    genres.forEach(function(g){if(tags.indexOf(g)>=0) genreMap[g]=(genreMap[g]||0)+1;});
+  });
+  var topGenres=Object.entries(genreMap).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+
+  var growthPct=prevSongs>0?Math.round((newSongs-prevSongs)/prevSongs*100):0;
+  var growthIcon=growthPct>0?'📈 +'+growthPct+'%':growthPct<0?'📉 '+growthPct+'%':'➡️ 동일';
+
+  statsEl.innerHTML=[
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+newSongs+'</div><div class="comm-insight-label">이번 주 신곡</div></div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalPlays+'</div><div class="comm-insight-label">총 재생</div></div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalLikes+'</div><div class="comm-insight-label">총 좋아요</div></div>',
+  ].join('');
+
+  var trendLines=['• '+growthIcon+' 전주 대비 신곡 수'];
+  if(topGenres.length) trendLines.push('• 인기 장르: '+topGenres.map(function(g){return g[0]+' ('+g[1]+'곡)';}).join(', '));
+
+  /* 가장 인기 곡 */
+  var topTrack=thisWeek.slice().sort(function(a,b){return(b.comm_plays||0)-(a.comm_plays||0);})[0];
+  if(topTrack&&(topTrack.comm_plays||0)>0){
+    var owner=topTrack._owner||{};
+    trendLines.push('• 🔥 1위: '+(topTrack.title||'무제').slice(0,20)+' — '+(owner.name||'익명')+' (▶'+(topTrack.comm_plays||0)+')');
+  }
+
+  trendEl.innerHTML=trendLines.join('<br>');
 }
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
