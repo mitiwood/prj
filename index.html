@@ -9455,9 +9455,9 @@ async function _ytDoGenerate(){
   if(ytLyrics){
     prompt = ytLyrics;
   } else {
-    /* 인스트루멘탈이거나 가사 생성 실패 시 — 스타일을 prompt에 직접 포함 (kie.ai가 더 잘 반영) */
-    var _promptParts = [ytStylePrompt, ytRefSound, ytSongStructure].filter(Boolean);
-    prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
+    /* 인스트루멘탈이거나 가사 생성 실패 시 — 곡 테마만 prompt로 (스타일은 style 필드에서 처리) */
+    var _ytTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle || '';
+    prompt = _ytTheme ? _ytTheme : (_lastYtAnalysis.title || 'music');
   }
 
   /* 보컬 언어 선택 반영 */
@@ -9481,11 +9481,7 @@ async function _ytDoGenerate(){
   try{
     /* 가사가 있을 때 prompt 앞에 스타일 힌트 삽입 (kie.ai가 style보다 prompt를 더 잘 반영) */
     var _enhancedPrompt = prompt;
-    if(ytLyrics && ytStylePrompt){
-      var _styleHint = '[Style: ' + ytStylePrompt.slice(0,200) + ']\n\n';
-      _enhancedPrompt = _styleHint + prompt;
-      if(_enhancedPrompt.length > 2000) _enhancedPrompt = _enhancedPrompt.slice(0,2000);
-    }
+    /* ★ 스타일 힌트는 style 필드에서 처리 — prompt에 [Style:...] 주입하면 가사로 노래됨 */
     /* kie.ai style 200자 제한 — customMode:true여도 적용됨 */
     if(_finalStyle.length>200) _finalStyle=_finalStyle.slice(0,200);
     const body = {
