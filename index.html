@@ -12466,22 +12466,25 @@ async function generate(overrideParams){
       /* YT 모드: 분석 스타일만으로 생성 (가사 없어도 OK) */
       lyricsText = overrideParams?.styleStr || $('prompt').value.trim() || 'YouTube cover music';
     } else if(isSimple){
-      /* 심플모드: 가사 없으면 설명/무드만으로 바로 생성 (가사는 백그라운드 자동 생성) */
-      lyricsText = $('simple-prompt')?.value.trim() || moodVal || 'happy pop song';
+      /* 심플모드: 가사 없으면 테마 설명으로 생성 (스타일 태그는 style 필드로) */
+      var _simpleDesc = ($('simple-prompt')?.value||'').trim();
+      var _simpleLang = ($('lyrics-lang')?.value||'').trim();
+      var _sLangHint = _simpleLang ? 'Sing in '+_simpleLang+'. ' : '';
+      lyricsText = _sLangHint + 'Create a song about: ' + (_simpleDesc || moodVal || 'happy pop song');
 } else if(isCustom){
-      toast('✍️ 가사를 빠르게 생성 중...','',2000);
+      toast('✍️ 가사를 생성 중...','',2000);
       var _cLang=($('lyrics-lang')?.value||'').trim();
       var _cHint=_cLang?'Write lyrics in '+_cLang+'. ':'';
       var _cDesc=($('song-desc')?.value||'').trim();
-      var _cBase=_cHint+(_cDesc||[($('genre-sub')?.value||''),($('mood')?.value||'')].filter(Boolean).join(', ')||'감성적인 노래');
+      var _cTheme=_cDesc||[($('genre-sub')?.value||''),($('mood')?.value||'')].filter(Boolean).join(', ')||'감성적인 노래';
       try{
         var _cLyrics=await Promise.race([
-          _kieLyricsWithFallback(kieApiKey, _cBase.slice(0,300)),
-          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
+          _kieLyricsWithFallback(kieApiKey, (_cHint+_cTheme).slice(0,300)),
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},8000);})
         ]);
         if(_cLyrics&&_cLyrics.length>30){lyricsText=_cLyrics;$('prompt').value=_cLyrics;}
-        else{lyricsText=_cBase;}
-      }catch(e){lyricsText=_cBase;}
+        else{lyricsText=(_cHint||'')+'Create a song about: '+_cTheme;}
+      }catch(e){lyricsText=(_cHint||'')+'Create a song about: '+_cTheme;}
     } else if(false){/* 심플 분기 이동됨 — 기존 isSimple 비활성 */
       /* 심플: 설명 없으면 안내 팝업 + 인풋 포커스 */
       const simpleInput = $('simple-prompt');
