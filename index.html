@@ -9921,18 +9921,18 @@ function _saveLoginUser(user){
 
   if(!sharedAudio && !sharedTitle && !sharedTrackId) return;
 
-  /* play 파라미터가 URL인지 trackId인지 판별 */
+  /* play 파라미터가 URL인지 판별 — URL이면 항상 우선 사용 */
   var _isPlayUrl = sharedAudio && (sharedAudio.startsWith('http') || sharedAudio.startsWith('//'));
-  var _playTrackId = sharedTrackId || (!_isPlayUrl && sharedAudio ? sharedAudio : '');
+  var _playTrackId = !_isPlayUrl ? (sharedTrackId || (sharedAudio||'')) : '';
 
   /* 페이지 로드 완료 후 처리 */
   window.addEventListener('load', ()=>{
     setTimeout(()=>{
-      /* play 파라미터가 실제 URL이면 바로 재생 */
+      /* play 파라미터가 실제 URL이면 바로 재생 (가장 신뢰할 수 있는 소스) */
       if(_isPlayUrl){
         _showSharedPlayer(sharedTitle||'공유된 노래', sharedAudio, sharedImg||'');
       }
-      /* trackId로 서버 조회 후 재생 (QR 공유 등) */
+      /* play URL 없을 때만 trackId로 서버 조회 후 재생 */
       else if(_playTrackId){
         fetch('/api/tracks?id='+encodeURIComponent(_playTrackId)).then(r=>r.json()).then(d=>{
           var track=d.track||(Array.isArray(d.tracks)&&d.tracks[0])||(Array.isArray(d.data)&&d.data[0])||null;
@@ -20320,13 +20320,14 @@ function fpShareInstagram(){
 function _fpShareUrl(){
   const h=historyData[fpCurrentIdx]||{};
   const title=h.title||'나의 노래';
-  const trackId=h.id||h._sbId||'';
-  const isGuest=!currentUser&&typeof isGuestMode==='function'&&isGuestMode();
   const params=new URLSearchParams({t:title});
-  /* 게스트 트랙은 서버에 없으므로 trackId 제외, play/img만 전달 */
-  if(trackId&&!isGuest) params.set('trackId',trackId);
+  /* play URL을 항상 전달 — 가장 신뢰할 수 있는 재생 소스 */
   if(h.audio_url) params.set('play',h.audio_url);
   if(h.image_url) params.set('img',h.image_url);
+  /* Supabase ID 우선 (로컬 ID는 불안정) — 폴백용으로만 전달 */
+  const sbId=h._sbId||'';
+  const isGuest=!currentUser&&typeof isGuestMode==='function'&&isGuestMode();
+  if(sbId&&!isGuest) params.set('trackId',sbId);
   return 'https://ddinggok.com/api/share?'+params.toString();
 }
 function fpShareFacebook(){
