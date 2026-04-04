@@ -5086,6 +5086,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <!-- ━━━ 커스텀 패널 ━━━ -->
       <div class="mode-panel" id="panel-custom">
 
+        <!-- 곡 제목 -->
+        <div style="margin-bottom:10px;">
+          <input class="form-input" id="song-title" type="text" placeholder="곡 제목 (비워두면 AI 자동 생성)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;font-size:12px;">
+        </div>
+
         <!-- 1. 장르 -->
         <div class="form-grp" id="genre-row">
           <div class="form-label">
@@ -5303,10 +5308,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
         </div>
 
-        <!-- 6. 곡 제목 (인라인) -->
-        <div style="margin-top:8px;margin-bottom:4px;">
-          <input class="form-input" id="song-title" type="text" placeholder="곡 제목 (비워두면 AI 자동 생성)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;font-size:12px;">
-        </div>
         <input type="hidden" id="song-desc" value="">
 
         <!-- 7. 고급 설정 -->
@@ -15983,6 +15984,7 @@ function showMiniPlayer(idx){
   /* 재생/일시정지 상태 변화 → 프로필뷰 + 커뮤니티 동기화 */
   audio.addEventListener('play',function(){
     if(genId!==_fpAudioGenId) return;
+    if(typeof _fpStartSyncLoop==='function') _fpStartSyncLoop(); /* pause 후 재개 시 싱크 루프 재시작 */
     var sid=historyData[fpCurrentIdx]?.id||'';
     _syncPvPlayBtns(sid, true);
     _syncMfPlayBtns(sid, true);
@@ -19936,7 +19938,7 @@ function fpSyncLyrics(currentTime){
   currentTime=currentTime+_syncOffset;
   if(!fpTimestampLines.length||!fpAudio?.duration) return;
   /* data-end가 있는 요소가 하나라도 있으면 TS 모드 (첫 요소만 보면 오판) */
-  var hasDataEnd=fpTimestampLines.some(function(el){return el.dataset&&parseFloat(el.dataset.end)>0;});
+  var hasDataEnd=fpTimestampLines.some(function(el){return el.dataset&&!isNaN(parseFloat(el.dataset.end))&&el.dataset.end!=='0';});
   var n=fpTimestampLines.length;
   var activeIdx=-1;
 
@@ -19961,6 +19963,9 @@ function fpSyncLyrics(currentTime){
       if(currentTime>=_fpLrcTimes[i]){activeIdx=i;break;}
     }
   }
+
+  /* 곡 시작 전(첫 라인 시간 이전)에도 첫 가사 활성화 */
+  if(activeIdx===-1&&n>0&&currentTime>=0) activeIdx=0;
 
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
