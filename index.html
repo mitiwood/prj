@@ -439,7 +439,7 @@ html,body{
 .chart-info{flex:1;min-width:0}
 .chart-info-title{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chart-info-artist{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px}
-.chart-stats{display:flex;gap:8px;font-size:10px;color:var(--t3);flex-shrink:0}
+.chart-stats{display:flex;gap:14px;font-size:10px;color:var(--t3);flex-shrink:0}
 .chart-play-btn{width:28px;height:28px;border-radius:50%;border:none;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .chart-item.playing{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.3)}
 /* 리믹스 계보 */
@@ -29806,7 +29806,7 @@ function _renderWeeklyChart(){
     var ts=t._created||new Date(t.created_at||0).getTime();
     return ts>weekAgo;
   });
-  weekly.forEach(function(t){t._score=(t.likes||0)*3+(t.plays||0);});
+  weekly.forEach(function(t){t._score=(t.comm_plays||t.plays||0)*3+(t.comm_likes||t.likes||0);});
   weekly.sort(function(a,b){return b._score-a._score;});
   /* 관리자 TOP10 오버라이드 — 지정된 트랙을 최상위로 */
   var _adminTop10=_commConfig&&_commConfig.top10_override?_commConfig.top10_override:[];
