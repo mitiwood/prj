@@ -19737,6 +19737,8 @@ async function fpRenderLyrics(h){
                 fpRenderTimestampedLyrics(_w2);
                 fpSyncMode=true;
                 var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
+                /* 즉시 현재 위치로 싱크 */
+                if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
                 console.log('[fpRenderLyrics] 백그라운드 타임스탬프 로딩 성공, 싱크 갱신');
               }
             }
@@ -19749,6 +19751,8 @@ async function fpRenderLyrics(h){
       fpRenderTimestampedLyrics(_tsWords);
       fpSyncMode=true;
       var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
+      /* 즉시 현재 위치로 싱크 — 렌더 지연으로 놓친 초반 라인 보정 */
+      if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
       /* 서버 DB 가사도 API 가사로 동기화 */
       var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
       if(_realLyrics.length>20 && _realLyrics!==raw && typeof _saveTrackToServer==='function'){
@@ -19878,7 +19882,9 @@ function _fpAssignTimes(){
   var syncBtn=$('fp-lyrics-mode-btn');
   if(syncBtn){syncBtn.style.display='';syncBtn.textContent='싱크 모드 (추정)';}
   fpSyncMode=true;
-  if(fpTimestampLines[0]) fpTimestampLines[0].classList.add('active');
+  /* 즉시 현재 위치로 싱크 — 오디오 이미 재생 중이면 놓친 라인 보정 */
+  if(fpAudio&&!fpAudio.paused&&fpAudio.currentTime>1){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
+  else if(fpTimestampLines[0]) fpTimestampLines[0].classList.add('active');
 }
 
 function fpSeekToLine(el){
@@ -28041,7 +28047,7 @@ function updateSliderLabel(type, val){
 /* ══════════════════════════════════════════════════
    댓글 시스템
    ══════════════════════════════════════════════════ */
-var _commentTrackId='',_commentData=[],_commentReplyTo=null,_commentPollTimer=null;
+var _commentTrackId='',_commentData=[],_commentReplyTo=null,_commentPollTimer=null,_commentPollFails=0;
 
 function openCommentSheet(trackId){
   if(!trackId)return;
@@ -28079,7 +28085,21 @@ function closeCommentSheet(){
 }
 async function _loadComments(){
   if(!_commentTrackId)return;
-  try{const r=await fetch('/api/comments?track_id='+encodeURIComponent(_commentTrackId));const d=await r.json();_commentData=d.comments||[];_renderComments();}catch(e){console.warn('[comments]',e.message);}
+  try{
+    var r=await fetch('/api/comments?track_id='+encodeURIComponent(_commentTrackId));
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var d=await r.json();
+    _commentData=d.comments||[];_renderComments();
+    _commentPollFails=0;
+  }catch(e){
+    console.warn('[comments]',e.message);
+    _commentPollFails++;
+    /* 연속 3회 실패 시 폴링 간격 30초로 증가 */
+    if(_commentPollFails>=3&&_commentPollTimer){
+      clearInterval(_commentPollTimer);
+      _commentPollTimer=setInterval(_loadComments,30000);
+    }
+  }
 }
 function _renderComments(){
   const list=document.getElementById('_comment_list');if(!list)return;
