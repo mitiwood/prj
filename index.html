@@ -9396,17 +9396,44 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   instOn=simpleInstOn;
   /* 가사가 있으면 바로 generate로 진행 */
   if(simpleLyrics){
+    const origPrompt=$('prompt').value;
+    $('prompt').value=simpleLyrics;
     generate();
+    setTimeout(()=>{$('prompt').value=origPrompt;},100);
     return;
   }
+  /* 가사 없음 → 빠른 작사 후 생성 */
   if(!desc&&!moodVal){
-    /* 빈 입력 → 기본 스타일로 바로 생성 (가사는 백그라운드 자동 생성) */
     $('simple-prompt').value='감성적인 한국 팝송, 따뜻하고 서정적인';
   }
-  const origPrompt=$('prompt').value;
-  $('prompt').value=desc;
-  generate();
-  setTimeout(()=>{$('prompt').value=origPrompt;},100);
+  var _sDesc=$('simple-prompt').value.trim();
+  var _sMood=($('simple-mood')?.value||'').trim();
+  var _sLyricsPrompt=[_sDesc,_sMood].filter(Boolean).join(', ')||'감성적인 한국어 팝송';
+  toast('✍️ AI 가사 생성 중...','',5000);
+  try{
+    var _sLyrics=await _kieLyricsWithFallback(kieApiKey, _sLyricsPrompt);
+    if(_sLyrics&&_sLyrics.length>20){
+      /* 생성된 가사를 심플 가사란에 표시 + prompt에 세팅 */
+      var _sLyricsTA=$('simple-lyrics');if(_sLyricsTA)_sLyricsTA.value=_sLyrics;
+      var _sLyricsBody=$('simple-lyrics-body');if(_sLyricsBody)_sLyricsBody.style.display='';
+      const origPrompt=$('prompt').value;
+      $('prompt').value=_sLyrics;
+      generate();
+      setTimeout(()=>{$('prompt').value=origPrompt;},100);
+    } else {
+      /* 작사 실패 → 설명만으로 생성 (kie.ai가 자동 작사) */
+      const origPrompt=$('prompt').value;
+      $('prompt').value='';
+      generate({_afterLyrics:true});
+      setTimeout(()=>{$('prompt').value=origPrompt;},100);
+    }
+  }catch(e){
+    /* 작사 API 실패 → 설명만으로 생성 */
+    const origPrompt=$('prompt').value;
+    $('prompt').value='';
+    generate({_afterLyrics:true});
+    setTimeout(()=>{$('prompt').value=origPrompt;},100);
+  }
 });
 
 /* ── YouTube 생성 버튼 ── */
@@ -17443,7 +17470,7 @@ function _checkSleepOnEnd(){if(_sleepMode==='endoftrack'){fpCancelSleep();if(fpA
 /* ═══ 4. 크로스페이드 ═══ */
 var _fpXfadeEnabled=false,_fpXfadeDur=3;
 function fpToggleCrossfade(){_fpXfadeEnabled=!_fpXfadeEnabled;var b=$('fp-crossfade-toggle');if(b)b.classList.toggle('on',_fpXfadeEnabled);var l=$('fp-xfade-label');if(l)l.textContent=_fpXfadeEnabled?'ON':'크로스';toast(_fpXfadeEnabled?'크로스페이드 ON ('+_fpXfadeDur+'초)':'크로스페이드 OFF','',1500);}
-function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.removeAttribute('src');}catch(e){}}fpAudio=nA;if(typeof _fpSavedVolume!=='undefined')fpAudio.volume=_fpSavedVolume;if(typeof _fpSpeedOptions!=='undefined'&&typeof _fpSpeedIdx!=='undefined')fpAudio.playbackRate=_fpSpeedOptions[_fpSpeedIdx];fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId||!fpAudio||!fpAudio.duration)return;if(_mpRafPending)return;_mpRafPending=true;requestAnimationFrame(function(){_mpRafPending=false;if(gid!==_fpAudioGenId)return;var d=_ensureMpDom();var ratio=fpAudio.currentTime/fpAudio.duration;var p=ratio*100;if(d.fpFill)d.fpFill.style.width=p+'%';if(d.fpThumb)d.fpThumb.style.left=p+'%';if(d.fpCur)d.fpCur.textContent=formatTime(fpAudio.currentTime);if(d.fpDur)d.fpDur.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function'&&fpAudio)fpSyncLyrics(fpAudio.currentTime);if(d.fill)d.fill.style.transform='scaleX('+ratio+')';});});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();}},50);}
+function _doCrossfade(nextIdx){var ind=$('fp-xfade-ind');if(ind){ind.classList.add('on');setTimeout(function(){ind.classList.remove('on');},2500);}var oldAudio=fpAudio;var h=historyData[nextIdx];if(!h||!h.audio_url)return;var nA=new Audio();nA.preload='auto';nA.src=h.audio_url;nA.volume=0;nA.play().catch(function(){});var steps=_fpXfadeDur*20,step=0;var xf=setInterval(function(){step++;var pct=step/steps;if(oldAudio)try{oldAudio.volume=Math.max(0,1-pct);}catch(e){}try{nA.volume=Math.min(1,pct);}catch(e){}if(step>=steps){clearInterval(xf);if(oldAudio){try{oldAudio.pause();oldAudio.removeAttribute('src');}catch(e){}}fpAudio=nA;if(typeof _fpSavedVolume!=='undefined')fpAudio.volume=_fpSavedVolume;if(typeof _fpSpeedOptions!=='undefined'&&typeof _fpSpeedIdx!=='undefined')fpAudio.playbackRate=_fpSpeedOptions[_fpSpeedIdx];fpCurrentIdx=nextIdx;_fpAudioGenId++;var gid=_fpAudioGenId;fpAudio.addEventListener('timeupdate',function(){if(gid!==_fpAudioGenId||!fpAudio||!fpAudio.duration)return;if(_mpRafPending)return;_mpRafPending=true;requestAnimationFrame(function(){_mpRafPending=false;if(gid!==_fpAudioGenId)return;var d=_ensureMpDom();var ratio=fpAudio.currentTime/fpAudio.duration;var p=ratio*100;if(d.fpFill)d.fpFill.style.width=p+'%';if(d.fpThumb)d.fpThumb.style.left=p+'%';if(d.fpCur)d.fpCur.textContent=formatTime(fpAudio.currentTime);if(d.fpDur)d.fpDur.textContent=formatTime(fpAudio.duration);if(typeof fpSyncLyrics==='function'&&fpAudio)fpSyncLyrics(fpAudio.currentTime);if(d.fill)d.fill.style.transform='scaleX('+ratio+')';});});fpAudio.addEventListener('ended',function(){if(gid!==_fpAudioGenId)return;if(_checkSleepOnEnd())return;fpPlayNext();});_updateFpUI(nextIdx);_syncAllPlayBtns(true);if(typeof fpStartViz==='function')fpStartViz();if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}},50);}
 async function _updateFpUI(idx){
   var h=historyData[idx];if(!h)return;
   fpCurrentIdx=idx;
