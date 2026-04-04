@@ -28124,14 +28124,20 @@ function _setReply(pid,name){_commentReplyTo={id:pid,name};const b=document.getE
 function _cancelReply(){_commentReplyTo=null;const b=document.getElementById('_comment_reply_bar');if(b)b.style.display='none';}
 async function _submitComment(){
   if(_actionLocks['comment'])return;
-  _throttleAction('comment',function(){},1500);
-  const input=document.getElementById('_comment_input');const content=(input?.value||'').trim();
-  if(!content){toast('댓글을 입력해주세요','err');return;}
-  const _cUser = currentUser || {name:'익명',avatar:'',provider:''};
+  _actionLocks['comment']=true;
+  var input=document.getElementById('_comment_input');var content=(input?.value||'').trim();
+  if(!content){toast('댓글을 입력해주세요','err');delete _actionLocks['comment'];return;}
+  if(!currentUser){toast('로그인 후 댓글을 작성할 수 있어요','warn');delete _actionLocks['comment'];return;}
+  var _cUser=currentUser;
   input.value='';
-  try{await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content,author_name:_cUser.name||'익명',author_avatar:_cUser.avatar||'',author_provider:_cUser.provider||''})});
-  _notifyBot('\uD83D\uDCAC \uB313\uAE00\n\n\uD83D\uDC64 '+(_cUser.name||'\uC775\uBA85')+'\n\uD83D\uDCDD '+content.slice(0,100));
-  _cancelReply();await _loadComments();const list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;}catch(e){toast('댓글 전송 실패','err');}
+  try{
+    var r=await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({track_id:_commentTrackId,parent_id:_commentReplyTo?.id||null,content:content,author_name:_cUser.name||'익명',author_avatar:_cUser.avatar||'',author_provider:_cUser.provider||''})});
+    var d=await r.json();
+    if(!r.ok||!d.success){toast(d.error||'댓글 전송 실패','err');return;}
+    _notifyBot('\uD83D\uDCAC \uB313\uAE00\n\n\uD83D\uDC64 '+(_cUser.name||'\uC775\uBA85')+'\n\uD83D\uDCDD '+content.slice(0,100));
+    _cancelReply();await _loadComments();var list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;
+  }catch(e){toast('댓글 전송 실패','err');}
+  finally{delete _actionLocks['comment'];}
 }
 async function _deleteMyComment(id){
   _showSettingsConfirm('댓글 삭제','이 댓글을 삭제할까요?','삭제',async()=>{

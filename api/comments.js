@@ -197,7 +197,7 @@ export default async function handler(req, res) {
 
     const trackId = req.query?.track_id;
     const all = req.query?.all === "true";
-    const limit = parseInt(req.query?.limit) || 200;
+    const limit = Math.min(parseInt(req.query?.limit) || 200, 500);
 
     /* 관리자 전체 조회 */
     if (all && isAdmin) {
