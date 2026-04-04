@@ -2674,9 +2674,10 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-mtab{flex:1;padding:11px 0;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--t3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-bottom:-2px;text-align:center;}
 .comm-mtab.on{color:var(--acc);border-bottom-color:var(--acc);}
 .comm-mtab:hover{color:var(--t1);}
-.comm-refresh-tab{background:transparent;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:6px 8px;flex-shrink:0;opacity:.4;transition:opacity .2s,transform .3s;}
+.comm-refresh-tab{background:transparent;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:6px 8px;flex-shrink:0;opacity:.4;transition:opacity .2s;}
 .comm-refresh-tab:hover{opacity:.75;}
-.comm-refresh-tab:active{transform:rotate(180deg);opacity:1;}
+.comm-refresh-tab svg{transition:transform .5s cubic-bezier(.4,0,.2,1);}
+.comm-refresh-tab.spinning svg{transform:rotate(360deg);}
 [data-theme="light"] .comm-mtab{color:#8e8e93;}
 [data-theme="light"] .comm-mtab.on{color:#7c3aed;border-bottom-color:#7c3aed;}
 [data-theme="light"] .comm-main-tabs{border-bottom-color:rgba(0,0,0,.06);}
@@ -20674,9 +20675,15 @@ var _commCurrentTab='all';
 
 /* 새로고침 버튼 */
 function _commRefresh(){
-  toast('🔄 새로고침 중...','',1500);
+  var _rfBtn=document.querySelector('.comm-refresh-tab');
+  if(_rfBtn){_rfBtn.classList.remove('spinning');void _rfBtn.offsetWidth;_rfBtn.classList.add('spinning');_rfBtn.style.opacity='1';}
+  toast('새로고침 중...','',1500);
   _sbLoaded=false;_lastChartHash='';
-  _loadSbTracks(true).then(function(){_commSwitchTab(_commCurrentTab);toast('✅ 최신 곡 불러옴','ok',1500);});
+  _loadSbTracks(true).then(function(){
+    _commSwitchTab(_commCurrentTab);
+    toast('✅ 최신 곡 불러옴','ok',1500);
+    if(_rfBtn){setTimeout(function(){_rfBtn.classList.remove('spinning');_rfBtn.style.opacity='';},600);}
+  }).catch(function(){if(_rfBtn){_rfBtn.classList.remove('spinning');_rfBtn.style.opacity='';}});
 }
 
 /* 메인 탭 전환 */
