@@ -24,9 +24,10 @@ function formatMessage(body) {
       },
     ];
     if (audioUrl) {
+      /* 오디오 URL을 텍스트로 노출 → Slack이 자동으로 인라인 플레이어 표시 */
       blocks.push({
-        type: 'actions',
-        elements: [{ type: 'button', text: { type: 'plain_text', text: '\uD83C\uDFA7 \uC7AC\uC0DD\uD558\uAE30', emoji: true }, url: audioUrl }],
+        type: 'section',
+        text: { type: 'mrkdwn', text: '\uD83C\uDFA7 ' + audioUrl },
       });
     }
     blocks.push({
