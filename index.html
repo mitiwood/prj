@@ -14605,7 +14605,7 @@ function renderHistoryView(){
         toast('⚠️ 이 곡은 오디오가 만료되어 재생할 수 없어요.\n다시 작곡하거나 삭제해주세요.','err',4000);
         return;
       }
-      if(_hd && (!_hd.audio_url||(_hd.duration!==undefined&&_hd.duration!==null&&Number(_hd.duration)===0))){
+      if(_hd && !_hd.audio_url){
         _showFailedTrackDialog(hi);
         return;
       }
@@ -18507,7 +18507,6 @@ function _renderCreatorDetailView(grid,countEl){
   var _isFailedTrack=function(t){
     if(!t.audio_url) return true;
     if(t.audio_url&&_failedAudioUrls.has(t.audio_url)) return true;
-    if(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0) return true;
     return false;
   };
   var sortedTracks=d.tracks.slice();
@@ -19280,7 +19279,7 @@ function _closeCreatorDetail(){
 function _mfDetailPlay(idx){
   if(!_myFeedDetail||!_myFeedDetail.tracks)return;
   var t=_myFeedDetail.tracks[idx];
-  if(!t||!t.audio_url||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0)){toast('생성에 실패한 곡이에요','err');return;}
+  if(!t||!t.audio_url){toast('생성에 실패한 곡이에요','err');return;}
   if(_mfUnplayableIds.has(t.id)){toast('재생할 수 없는 곡이에요','err',2000);return;}
 
   /* 같은 곡이면 재생/일시정지 토글 */
@@ -21160,7 +21159,7 @@ function _renderFollowFeedUI(list){
       <div class="comm-feed-avatar">${_safeAvatarHtml(avatar,owner)}</div>
       <div class="comm-feed-content">
         <div class="comm-feed-creator">${provIcon} ${esc(owner)} <span class="comm-feed-time">${created}</span></div>
-        <div class="comm-list-item" data-sbid="${esc(sid)}" ${(!t.audio_url||(t.duration!==undefined&&t.duration!==null&&Number(t.duration)===0)||(t.audio_url&&_failedAudioUrls.has(t.audio_url)))?'style="margin-top:4px;opacity:.55;pointer-events:none;"':'onclick="commPlaySb(\''+esc(sid)+'\')" style="margin-top:4px;"'}>
+        <div class="comm-list-item" data-sbid="${esc(sid)}" ${(!t.audio_url||(t.audio_url&&_failedAudioUrls.has(t.audio_url)))?'style="margin-top:4px;opacity:.55;pointer-events:none;"':'onclick="commPlaySb(\''+esc(sid)+'\')" style="margin-top:4px;"'}>
           <div class="comm-list-top">
             <div class="comm-list-img">${t.image_url?'<img src="'+esc(t.image_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22" style="color:var(--acc);opacity:.6;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'}</div>
             <div class="comm-list-info"><div class="comm-list-title">${esc(t.title||'무제')}</div>
