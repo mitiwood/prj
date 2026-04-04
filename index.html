@@ -2670,15 +2670,12 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-mtab{flex:1;padding:11px 0;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--t3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-bottom:-2px;text-align:center;}
 .comm-mtab.on{color:var(--acc);border-bottom-color:var(--acc);}
 .comm-mtab:hover{color:var(--t1);}
-.comm-refresh-tab{background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:8px 10px;flex-shrink:0;}
-.comm-refresh-tab:active{transform:rotate(180deg);transition:transform .3s;}
+.comm-refresh-tab{background:transparent;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:6px 8px;flex-shrink:0;opacity:.4;transition:opacity .2s,transform .3s;}
+.comm-refresh-tab:hover{opacity:.75;}
+.comm-refresh-tab:active{transform:rotate(180deg);opacity:1;}
 [data-theme="light"] .comm-mtab{color:#8e8e93;}
 [data-theme="light"] .comm-mtab.on{color:#7c3aed;border-bottom-color:#7c3aed;}
 [data-theme="light"] .comm-main-tabs{border-bottom-color:rgba(0,0,0,.06);}
-/* 인사이트 스탯 카드 */
-.comm-insight-card{text-align:center;padding:10px 6px;border-radius:10px;background:var(--card);border:1px solid var(--border);}
-.comm-insight-num{font-size:18px;font-weight:900;color:var(--acc);line-height:1;}
-.comm-insight-label{font-size:10px;color:var(--t3);margin-top:3px;}
 .comm-filter-row{
   display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;
   margin-bottom:16px;scrollbar-width:none;
@@ -4879,6 +4876,22 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 }
 .pv-track-play-btn:hover{background:rgba(124,58,237,.2);}
 .pv-empty{text-align:center;padding:40px 16px;color:var(--t3);font-size:13px;}
+/* ── 커스텀 패널 아코디언 ── */
+.custom-section-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-radius:12px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  cursor:pointer;margin-bottom:4px;margin-top:8px;
+  font-size:12px;font-weight:700;color:var(--t2);transition:all .2s;
+}
+.custom-section-toggle:hover{border-color:rgba(168,85,247,.2);background:rgba(255,255,255,.06);}
+.custom-section-body{
+  padding:12px 14px;margin-bottom:4px;
+  background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+  border-radius:0 0 12px 12px;margin-top:-4px;
+}
+[data-theme="light"] .custom-section-toggle{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .custom-section-body{background:rgba(0,0,0,.01);border-color:rgba(0,0,0,.04);}
 </style>
 </head>
 <body>
@@ -6139,12 +6152,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
-    </div>
-    <!-- 인사이트 배너 (인기차트 탭) -->
-    <div id="comm-insight-banner" style="display:none;margin-bottom:14px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.12);">
-      <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📊 이번 주 인사이트</div>
-      <div id="comm-insight-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;"></div>
-      <div id="comm-insight-trend" style="font-size:11px;color:var(--t2);line-height:1.6;"></div>
     </div>
     <!-- 크리에이터 섹션 (최상위 — 인스타 스타일) -->
     <div id="comm-creators-section" style="margin-bottom:16px;">
@@ -8567,7 +8574,7 @@ function _destroyAudio(a){if(!a)return;try{a.pause();}catch(e){}try{a.removeAttr
 var instOn=false,vocalGender='',currentMode='simple';
 var extendAudioId=null,toastTmr=null;
 var selectedEmotions=new Set(),makeMV=false;
-var currentUser=JSON.parse(localStorage.getItem('kms_user')||'null');
+var currentUser=(function(){try{return JSON.parse(localStorage.getItem('kms_user')||'null');}catch(e){console.error('[auth] kms_user 파싱 실패, 초기화:',e);localStorage.removeItem('kms_user');return null;}})();
 /* 관리자 판별 */
 var _ADMIN_NAMES=['Kenny Lee','이승호'];
 function _isAdmin(){return !!(currentUser&&_ADMIN_NAMES.indexOf(currentUser.name)>=0);}
@@ -9074,7 +9081,8 @@ function updateLoginUI(){
   if(area){
     if(currentUser){
       var _areaAv=_ensureHttps(currentUser.avatar);
-      var _areaAvHtml=_isAvatarUrl(_areaAv)?'<img src="'+esc(_areaAv)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\''+(currentUser.name?currentUser.name[0]:'👤')+'\'">':esc(_areaAv||'👤');
+      var _areaFallback=esc(currentUser.name?currentUser.name[0]:'👤').replace(/'/g,'&#39;');
+      var _areaAvHtml=_isAvatarUrl(_areaAv)?'<img src="'+esc(_areaAv)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\''+_areaFallback+'\'">':esc(_areaAv||'👤');
       area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="logout()">
         <div class="user-avatar">${_areaAvHtml}</div>
         <span class="user-name">${esc(currentUser.name)}</span>
@@ -9906,12 +9914,17 @@ function _saveLoginUser(user){
     if(_wasGenerating){
       toast('🎵 생성 중인 곡은 계속 진행됩니다','ok',3000);
     }
-    /* JWT 토큰 발급 */
+    /* JWT 토큰 발급 — 실패 시 로그인 롤백 */
     fetch('/api/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:user.name,provider:user.provider,avatar:user.avatar||''})})
       .then(r=>r.json()).then(d=>{
-        if(d.ok&&d.token)localStorage.setItem('kms_jwt',d.token);
+        if(d.ok&&d.token){localStorage.setItem('kms_jwt',d.token);}
+        else{throw new Error('토큰 발급 실패');}
         if(d.sessionId)localStorage.setItem('kms_session_id',d.sessionId);
-      }).catch(()=>{});
+      }).catch(e=>{
+        console.error('[auth] JWT 발급 실패, 로그인 롤백:',e);
+        currentUser=null;localStorage.removeItem('kms_user');localStorage.removeItem('kms_jwt');localStorage.removeItem('kms_session_id');
+        updateLoginUI();toast('⚠️ 인증 토큰 발급에 실패했습니다. 다시 로그인해주세요.','err',4000);
+      });
     const providerNames={google:'Google',kakao:'카카오',naver:'네이버'};
     const pName=providerNames[user.provider]||user.provider;
     toast('✅ '+pName+'로 로그인되었습니다','ok',2500);
@@ -10130,6 +10143,16 @@ function _setSimpleMood(btn){
   else{btn.classList.add('on');sel.value=val;}
 }
 /* _sunoGenre는 toss step IIFE 내부에서 window._sunoGenre로 정의 */
+
+/* 커스텀 패널 아코디언 토글 */
+function _toggleCustomSection(id){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var vis=el.style.display!=='none';
+  el.style.display=vis?'none':'block';
+  var chev=document.getElementById(id+'-chev');
+  if(chev) chev.textContent=vis?'▼':'▲';
+}
 
 /* 심플모드 가사 아코디언 토글 */
 function _toggleSimpleLyrics(){
@@ -12884,6 +12907,7 @@ async function generate(overrideParams){
       lyrics:lastLyricsInput||'',genre:subGenre||'',mood:moodVal||'',
       bpm:selectedBpm||120,model:model||'',mode:currentMode||'custom'
     });
+    trackUsage('song',{mode:currentMode||'custom',title:songTitle||lastTracks[0]?.title||''});
     showCompletionPopup(currentMode||'custom', '');
     /* 심플모드: 생성 완료 후 입력 필드 초기화 */
     if(isSimple){
@@ -13014,6 +13038,7 @@ function _applyResumedTracks(tracks, taskId, params) {
   });
   historyData = historyData.slice(0, 50);
   saveHistory(); updateHistBadge();
+  trackUsage('song',{mode:mode||'custom',title:''});
   showCompletionPopup(mode, '');
   setTimeout(function() { var rs = $('results-' + mode); if (rs) rs.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
   tracks.forEach(function(t) {
@@ -16885,8 +16910,7 @@ function genUnlock(){
 }
 function showCompletionPopup(mode, title){
   _haptic.success();
-  /* 사용량 기록 */
-  trackUsage('song', {mode:mode||'custom', title:title||''});
+  /* trackUsage는 각 호출부에서 직접 처리 (중복 차감 방지) */
   const modal = $('glp-modal');
   const titleEl = $('glp-title');
   const desc  = $('glp-desc');
@@ -18217,7 +18241,8 @@ function _renderMyFeedView(grid,countEl){
     html+='<div class="mf-trending"><div class="mf-trending-title">HOT 크리에이터</div><div class="mf-trending-row">';
     var medals=['🥇','🥈','🥉'];
     creators.slice(0,3).forEach(function(c,i){
-      var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+esc(c.name.charAt(0).toUpperCase())+'</div>\'">';
+      var _cFb=esc(c.name.charAt(0).toUpperCase()).replace(/'/g,'&#39;');
+      var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+_cFb+'</div>\'">';
       html+='<div class="mf-trend-card'+(i===0?' first':'')+'" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
         +'<div class="mf-trend-medal">'+medals[i]+'</div>'
         +'<div class="mf-trend-avatar">'+aH+'</div>'
@@ -19132,7 +19157,8 @@ function _buildMyFeedInsight(){
       html+='<div class="mf-insight-label">💜 취향 맞는 크리에이터</div>';
       html+='<div class="mf-match-row">';
       matchedCreators.forEach(function(c){
-        var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+esc(c.name.charAt(0).toUpperCase())+'</div>\'">';
+        var _mFb=esc(c.name.charAt(0).toUpperCase()).replace(/'/g,'&#39;');
+        var aH=(!c.avatar||_mfIsBlocked(c.avatar))?'<div class="mf-trend-avatar-fallback">'+esc(c.name.charAt(0).toUpperCase())+'</div>':'<img src="'+esc(c.avatar)+'" alt="" onerror="this.onerror=null;this.parentNode.innerHTML=\'<div class=mf-trend-avatar-fallback>'+_mFb+'</div>\'">';
         var tagChips=c.matchTags.map(function(tag){return'<span class="mf-match-chip">#'+esc(tag)+'</span>';}).join('');
         var matchPct=tagTotal>0?Math.min(99,Math.round(c.score/tagTotal*100)):0;
         html+='<div class="mf-match-card" data-mf-action="open-creator" data-mf-name="'+esc(c.name)+'" data-mf-provider="'+esc(c.provider)+'">'
@@ -20455,7 +20481,7 @@ var _commCurrentTab='all';
 /* 새로고침 버튼 */
 function _commRefresh(){
   toast('🔄 새로고침 중...','',1500);
-  _sbLoaded=false;_chartRenderedOnce=false;_lastChartHash='';
+  _sbLoaded=false;_lastChartHash='';
   _loadSbTracks(true).then(function(){_commSwitchTab(_commCurrentTab);toast('✅ 최신 곡 불러옴','ok',1500);});
 }
 
@@ -20465,7 +20491,6 @@ function _commSwitchTab(tab){
   document.querySelectorAll('.comm-mtab').forEach(function(b){b.classList.toggle('on',b.dataset.ctab===tab);});
 
   var genreFilter=$('comm-genre-filter');
-  var insightBanner=$('comm-insight-banner');
   var chartWrap=$('comm-chart-wrap');
   var commList=$('comm-list');
   var creatorsSection=$('comm-creators-section');
@@ -20479,17 +20504,16 @@ function _commSwitchTab(tab){
   var suggestWrap=$('comm-suggest-wrap');
 
   /* 모든 섹션 숨김 */
-  [genreFilter,insightBanner,chartWrap,commList,creatorsSection,heroWrap,moodWrap,spotlightWrap,activityFeed,dailyDiscover,challengeWrap,genreWrap,suggestWrap].forEach(function(el){if(el)el.style.display='none';});
+  [genreFilter,chartWrap,commList,creatorsSection,heroWrap,moodWrap,spotlightWrap,activityFeed,dailyDiscover,challengeWrap,genreWrap,suggestWrap].forEach(function(el){if(el)el.style.display='none';});
 
   if(tab==='all'){
     /* 전체: 크리에이터 + 장르필터 + 피드 + 사이드 섹션 전부 */
     [genreFilter,commList,creatorsSection,heroWrap,moodWrap,spotlightWrap,activityFeed,dailyDiscover,challengeWrap,genreWrap,suggestWrap].forEach(function(el){if(el)el.style.display='';});
     _commActiveGenre='all';_commSortMode='default';_sbLoaded=false;renderCommunity(true);
   } else if(tab==='chart'){
-    /* 인기차트: 인사이트 + TOP 10 차트 + 크리에이터 스포트라이트 */
-    [insightBanner,chartWrap,spotlightWrap,moodWrap].forEach(function(el){if(el)el.style.display='';});
-    _chartRenderedOnce=false;_lastChartHash='';_renderWeeklyChart();
-    _commRenderInsight();
+    /* 인기차트: TOP 10 차트 + 크리에이터 스포트라이트 */
+    [chartWrap,spotlightWrap,moodWrap].forEach(function(el){if(el)el.style.display='';});
+    _lastChartHash='';_renderWeeklyChart();
   } else if(tab==='latest'){
     /* 최근등록: 장르필터 + 최신순 피드 */
     [genreFilter,commList].forEach(function(el){if(el)el.style.display='';});
@@ -20501,10 +20525,12 @@ function _commSwitchTab(tab){
   }
 }
 
-/* 인사이트 렌더 */
+/* 인사이트 렌더 (멜론 스타일 강화) */
 function _commRenderInsight(){
   var statsEl=$('comm-insight-stats');
   var trendEl=$('comm-insight-trend');
+  var genreChartEl=$('comm-insight-genre-chart');
+  var hotEl=$('comm-insight-hot');
   if(!statsEl||!trendEl||!_sbTracks||!_sbTracks.length) return;
   var banner=$('comm-insight-banner'); if(banner) banner.style.display='';
 
@@ -20515,37 +20541,118 @@ function _commRenderInsight(){
   var totalPlays=thisWeek.reduce(function(s,t){return s+(t.comm_plays||t.plays||0);},0);
   var totalLikes=thisWeek.reduce(function(s,t){return s+(t.comm_likes||t.likes||0);},0);
   var newSongs=thisWeek.length;
+  var prevPlays=prevWeek.reduce(function(s,t){return s+(t.comm_plays||t.plays||0);},0);
+  var prevLikes=prevWeek.reduce(function(s,t){return s+(t.comm_likes||t.likes||0);},0);
   var prevSongs=prevWeek.length;
+
+  /* 평균 별점 */
+  var ratedThis=thisWeek.filter(function(t){return(t.comm_rating||t.avgRating||0)>0;});
+  var avgRating=ratedThis.length?ratedThis.reduce(function(s,t){return s+(t.comm_rating||t.avgRating||0);},0)/ratedThis.length:0;
+  var ratedPrev=prevWeek.filter(function(t){return(t.comm_rating||t.avgRating||0)>0;});
+  var prevAvgRating=ratedPrev.length?ratedPrev.reduce(function(s,t){return s+(t.comm_rating||t.avgRating||0);},0)/ratedPrev.length:0;
+
+  /* 활동 크리에이터 */
+  var creatorsSet={};
+  thisWeek.forEach(function(t){var o=t._owner;if(o&&o.name)creatorsSet[o.name+'_'+(o.provider||'')]=1;});
+  var activeCreators=Object.keys(creatorsSet).length;
+  var prevCreatorsSet={};
+  prevWeek.forEach(function(t){var o=t._owner;if(o&&o.name)prevCreatorsSet[o.name+'_'+(o.provider||'')]=1;});
+  var prevActiveCreators=Object.keys(prevCreatorsSet).length;
+
+  /* 급상승곡 수 */
+  var hotTracks=_sbTracks.filter(function(t){return _isTrending(t);});
+  var hotCount=hotTracks.length;
+
+  /* 전주 대비 화살표 헬퍼 */
+  function _arrow(curr,prev){
+    if(prev===0) return curr>0?'<div class="comm-insight-arrow up">▲ NEW</div>':'<div class="comm-insight-arrow flat">—</div>';
+    var pct=Math.round((curr-prev)/prev*100);
+    return pct>0?'<div class="comm-insight-arrow up">▲ '+pct+'%</div>'
+      :pct<0?'<div class="comm-insight-arrow down">▼ '+Math.abs(pct)+'%</div>'
+      :'<div class="comm-insight-arrow flat">—</div>';
+  }
+  function _arrowFloat(curr,prev){
+    if(prev===0) return curr>0?'<div class="comm-insight-arrow up">▲</div>':'<div class="comm-insight-arrow flat">—</div>';
+    var diff=curr-prev;
+    return diff>0.1?'<div class="comm-insight-arrow up">▲ '+diff.toFixed(1)+'</div>'
+      :diff<-0.1?'<div class="comm-insight-arrow down">▼ '+Math.abs(diff).toFixed(1)+'</div>'
+      :'<div class="comm-insight-arrow flat">—</div>';
+  }
+
+  /* 6개 카드 렌더 */
+  statsEl.innerHTML=[
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+newSongs+'</div><div class="comm-insight-label">이번 주 신곡</div>'+_arrow(newSongs,prevSongs)+'</div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalPlays+'</div><div class="comm-insight-label">총 재생</div>'+_arrow(totalPlays,prevPlays)+'</div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalLikes+'</div><div class="comm-insight-label">총 좋아요</div>'+_arrow(totalLikes,prevLikes)+'</div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+(avgRating>0?avgRating.toFixed(1):'—')+'</div><div class="comm-insight-label">평균 별점</div>'+_arrowFloat(avgRating,prevAvgRating)+'</div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+activeCreators+'</div><div class="comm-insight-label">활동 크리에이터</div>'+_arrow(activeCreators,prevActiveCreators)+'</div>',
+    '<div class="comm-insight-card"><div class="comm-insight-num">'+hotCount+'</div><div class="comm-insight-label">급상승곡</div><div class="comm-insight-arrow" style="color:#f59e0b;font-size:9px;">🔥 HOT</div></div>',
+  ].join('');
 
   /* 장르 분포 */
   var genreMap={};
+  var genreLabels={'k-pop':'K-Pop','hip-hop':'Hip-Hop','lo-fi':'Lo-Fi','electronic':'Electronic','ballad':'Ballad','rock':'Rock','jazz':'Jazz','ost':'OST','acoustic':'Acoustic','r&b':'R&B','pop':'Pop','indie':'Indie'};
+  var genreColors={'k-pop':'#ec4899','hip-hop':'#8b5cf6','lo-fi':'#06b6d4','electronic':'#f59e0b','ballad':'#3b82f6','rock':'#ef4444','jazz':'#f97316','ost':'#6366f1','acoustic':'#22c55e','r&b':'#a855f7','pop':'#14b8a6','indie':'#64748b'};
   thisWeek.forEach(function(t){
-    var tags=(t.tags||'').toLowerCase();
-    var genres=['k-pop','hip-hop','lo-fi','electronic','ballad','rock','jazz','ost','acoustic','r&b','pop','indie'];
-    genres.forEach(function(g){if(tags.indexOf(g)>=0) genreMap[g]=(genreMap[g]||0)+1;});
+    var tags=(t.tags||t.allTags||'').toLowerCase();
+    Object.keys(genreLabels).forEach(function(g){if(tags.indexOf(g)>=0) genreMap[g]=(genreMap[g]||0)+1;});
   });
-  var topGenres=Object.entries(genreMap).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+  var topGenres=Object.entries(genreMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
 
+  /* 트렌드 텍스트 */
   var growthPct=prevSongs>0?Math.round((newSongs-prevSongs)/prevSongs*100):0;
   var growthIcon=growthPct>0?'📈 +'+growthPct+'%':growthPct<0?'📉 '+growthPct+'%':'➡️ 동일';
-
-  statsEl.innerHTML=[
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+newSongs+'</div><div class="comm-insight-label">이번 주 신곡</div></div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalPlays+'</div><div class="comm-insight-label">총 재생</div></div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalLikes+'</div><div class="comm-insight-label">총 좋아요</div></div>',
-  ].join('');
-
   var trendLines=['• '+growthIcon+' 전주 대비 신곡 수'];
-  if(topGenres.length) trendLines.push('• 인기 장르: '+topGenres.map(function(g){return g[0]+' ('+g[1]+'곡)';}).join(', '));
+  if(topGenres.length) trendLines.push('• 인기 장르: '+topGenres.map(function(g){return(genreLabels[g[0]]||g[0])+' ('+g[1]+'곡)';}).join(', '));
 
-  /* 가장 인기 곡 */
-  var topTrack=thisWeek.slice().sort(function(a,b){return(b.comm_plays||0)-(a.comm_plays||0);})[0];
-  if(topTrack&&(topTrack.comm_plays||0)>0){
+  var topTrack=thisWeek.slice().sort(function(a,b){return(b.comm_plays||b.plays||0)-(a.comm_plays||a.plays||0);})[0];
+  if(topTrack&&(topTrack.comm_plays||topTrack.plays||0)>0){
     var owner=topTrack._owner||{};
-    trendLines.push('• 🔥 1위: '+(topTrack.title||'무제').slice(0,20)+' — '+(owner.name||'익명')+' (▶'+(topTrack.comm_plays||0)+')');
+    trendLines.push('• 🔥 1위: '+(topTrack.title||'무제').slice(0,20)+' — '+(owner.name||'익명')+' (▶'+(topTrack.comm_plays||topTrack.plays||0)+')');
+  }
+  trendEl.innerHTML=trendLines.join('<br>');
+
+  /* 장르 분포 바 차트 */
+  if(genreChartEl&&topGenres.length>=2){
+    var maxCount=topGenres[0][1];
+    genreChartEl.innerHTML='<div class="comm-genre-bar-wrap">'
+      +'<div class="comm-genre-bar-title">🏷 장르 분포</div>'
+      +topGenres.map(function(g){
+        var pct=Math.round(g[1]/maxCount*100);
+        var color=genreColors[g[0]]||'var(--acc)';
+        return '<div class="comm-genre-bar-row">'
+          +'<div class="comm-genre-bar-label">'+(genreLabels[g[0]]||g[0])+'</div>'
+          +'<div class="comm-genre-bar-track"><div class="comm-genre-bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div>'
+          +'<div class="comm-genre-bar-pct">'+g[1]+'곡</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  } else if(genreChartEl){
+    genreChartEl.innerHTML='';
   }
 
-  trendEl.innerHTML=trendLines.join('<br>');
+  /* 급상승 HOT 섹션 */
+  if(hotEl&&hotTracks.length>0){
+    var hotTop=hotTracks.slice().sort(function(a,b){return(b.comm_plays||b.plays||0)-(a.comm_plays||a.plays||0);}).slice(0,3);
+    hotEl.innerHTML='<div class="comm-hot-wrap">'
+      +'<div class="comm-hot-title">🔥 급상승</div>'
+      +hotTop.map(function(t){
+        var img=t.image_url||t.img||t.cover||'';
+        var imgTag=img?'<img class="comm-hot-thumb" src="'+img.replace(/"/g,'&quot;')+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="comm-hot-thumb" style="display:flex;align-items:center;justify-content:center;font-size:14px;">🎵</div>';
+        var o=t._owner||{};
+        var sid=t._sbId||'';
+        var plays=t.comm_plays||t.plays||0;
+        var likes=t.comm_likes||t.likes||0;
+        return '<div class="comm-hot-item" onclick="commPlaySb(\''+sid+'\')">'
+          +imgTag
+          +'<div class="comm-hot-info"><div class="comm-hot-info-title">'+(t.title||'무제').replace(/</g,'&lt;')+'</div><div class="comm-hot-info-artist">'+(o.name||'익명').replace(/</g,'&lt;')+'</div></div>'
+          +'<div class="comm-hot-stats">▶'+plays+' ❤️'+likes+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  } else if(hotEl){
+    hotEl.innerHTML='';
+  }
 }
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
@@ -23939,7 +24046,8 @@ function renderSettings(){
     if(avatarEl){
       var _avUrl=currentUser.avatar;
       if(_isAvatarUrl(_avUrl)){
-        avatarEl.innerHTML='<img src="'+esc(_avUrl)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\''+(currentUser.name?currentUser.name[0]:'👤')+'\'">';
+        var _setFallback=esc(currentUser.name?currentUser.name[0]:'👤').replace(/'/g,'&#39;');
+        avatarEl.innerHTML='<img src="'+esc(_avUrl)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.parentNode.textContent=\''+_setFallback+'\'">';
       } else {
         avatarEl.textContent=currentUser.name?currentUser.name[0]:'👤';
       }
@@ -29947,10 +30055,9 @@ setTimeout(_renderGenHistory,600);
 
 /* ── 주간 TOP 10 차트 ── */
 var _lastChartHash=''; /* ✅ 차트 변경 감지용 해시 — 동일하면 재렌더링 스킵 */
-var _chartRenderedOnce=false; /* ✅ 차트 최초 1회 렌더 플래그 */
+/* 차트 해시 비교로 중복 렌더링 방지 */
 function _renderWeeklyChart(){
-  /* ✅ FIX: 이미 렌더된 차트는 다시 그리지 않음 — 실시간 갱신 제거 */
-  if(_chartRenderedOnce) return;
+  /* 해시 비교로 중복 렌더링 방지 — _chartRenderedOnce 가드 제거됨 */
   var wrap=$('comm-chart-wrap'),listEl=$('comm-chart-list');
   if(!wrap||!listEl)return;
   if(!_sbTracks||!_sbTracks.length){wrap.style.display='none';return;}
@@ -29979,7 +30086,7 @@ function _renderWeeklyChart(){
   var top10=weekly.slice(0,10);
   if(top10.length<3){wrap.style.display='none';return;}
   /* ✅ 차트 변경 감지: 해시 비교 → 동일하면 재렌더링 스킵 (깜빡임 방지) */
-  var _chartHash=top10.map(function(t){return(t._sbId||t.id)+'_'+(t.likes||0)+'_'+(t.plays||0);}).join('|');
+  var _chartHash=top10.map(function(t){return(t._sbId||t.id)+'_'+(t.comm_likes||t.likes||0)+'_'+(t.comm_plays||t.plays||0);}).join('|');
   if(_chartHash===_lastChartHash) return;
   _lastChartHash=_chartHash;
   wrap.style.display='';
@@ -30013,9 +30120,7 @@ function _renderWeeklyChart(){
   listEl.querySelectorAll('.chart-item').forEach(function(el,i){
     el.style.animation='commFadeIn .3s ease-out '+(i*0.04)+'s both';
   });
-  _chartRenderedOnce=true; /* ✅ 최초 1회 렌더 완료 — 이후 실시간 갱신 안 함 */
-  /* 인사이트 배너 자동 표시 */
-  try{_commRenderInsight();}catch(e){}
+  /* 해시 비교가 중복 렌더링 방지 담당 */
 }
 
 /* ── 무드 플레이리스트 ── */

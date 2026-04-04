@@ -161,7 +161,20 @@ async function checkServerCredit(userName, userProvider, creditType) {
     if (used >= limit) {
       return { ok: false, reason: 'limit_exceeded', plan, used, limit, upgrade: plan === 'free' ? 'pro' : 'creator' };
     }
-    return { ok: true, plan, used, remaining: limit - used };
+
+    /* 선차감: 크레딧 컬럼을 즉시 -1 하여 동시 요청 race condition 방어 */
+    const creditCol = creditType === 'song' || creditType === 'vr' ? 'credits_song' : creditType === 'mv' ? 'credits_mv' : 'credits_lyrics';
+    const currentCredits = user?.[creditCol] != null ? user[creditCol] : limit;
+    if (currentCredits > 0) {
+      try {
+        await sbFetch('PATCH',
+          `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+          { [creditCol]: Math.max(0, currentCredits - 1) }
+        );
+      } catch (e) { console.warn('[kie-proxy] pre-deduct fail:', e.message); }
+    }
+
+    return { ok: true, plan, used, remaining: limit - used, preDeducted: true };
   } catch (e) {
     console.warn('[kie-proxy] credit check failed:', e.message);
     return { ok: true, fallback: true };
@@ -209,6 +222,19 @@ async function _handler(req, res) {
     }
   }
 
+  /* 선차감 복구 헬퍼: API 실패 시 크레딧 +1 복원 */
+  const _creditCheck = (creditType && userName && userProvider && !isGuest) ? { userName, userProvider, creditType } : null;
+  async function _restoreCredit() {
+    if (!_creditCheck || !SB_URL || !SB_KEY) return;
+    try {
+      const creditCol = _creditCheck.creditType === 'song' || _creditCheck.creditType === 'vr' ? 'credits_song' : _creditCheck.creditType === 'mv' ? 'credits_mv' : 'credits_lyrics';
+      const rows = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(_creditCheck.userName)}&provider=eq.${encodeURIComponent(_creditCheck.userProvider)}&select=${creditCol}&limit=1`);
+      const cur = rows?.[0]?.[creditCol] ?? 0;
+      await sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(_creditCheck.userName)}&provider=eq.${encodeURIComponent(_creditCheck.userProvider)}`, { [creditCol]: cur + 1 });
+      console.log('[kie-proxy] credit restored for', _creditCheck.userName);
+    } catch (e) { console.warn('[kie-proxy] credit restore fail:', e.message); }
+  }
+
   const KIE_BASE = 'https://api.kie.ai';
   const url = `${KIE_BASE}${path}`;
 
@@ -246,6 +272,7 @@ async function _handler(req, res) {
       /* HTML 응답 (게이트웨이 에러 등) → 재시도 대상 */
       if (text.trimStart().startsWith('<')) {
         if (attempt < maxRetries) { await new Promise(r => setTimeout(r, (attempt + 1) * 1500)); continue; }
+        await _restoreCredit();
         return res.status(upstream.status).json({
           error: 'kie.ai returned HTML (status ' + upstream.status + ')',
           endpoint: path,
@@ -262,17 +289,22 @@ async function _handler(req, res) {
       let data;
       try { data = JSON.parse(text); } catch(e) {
         if (attempt < maxRetries) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        await _restoreCredit();
         return res.status(500).json({ error: 'JSON parse failed: ' + e.message, raw: text.slice(0,200) });
       }
 
+      /* kie.ai가 에러 응답(4xx/5xx)을 반환하면 선차감 크레딧 복구 */
+      if (!upstream.ok) await _restoreCredit();
       return res.status(upstream.status).json(data);
     } catch (e) {
       if (e.name === 'AbortError') {
         if (attempt < maxRetries) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        await _restoreCredit();
         return res.status(504).json({ error: 'kie.ai timeout (' + (timeoutMs/1000) + 's)' });
       }
       /* 네트워크 에러 → 재시도 */
       if (attempt < maxRetries) { await new Promise(r => setTimeout(r, (attempt + 1) * 1500)); continue; }
+      await _restoreCredit();
       return res.status(500).json({ error: e.message });
     }
   }
