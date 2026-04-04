@@ -12450,10 +12450,12 @@ async function generate(overrideParams){
       /* 심플모드: 가사 없으면 설명/무드만으로 바로 생성 (가사는 백그라운드 자동 생성) */
       lyricsText = $('simple-prompt')?.value.trim() || moodVal || 'happy pop song';
     } else if(isCustom){
-      toast('✍️ 가사가 없어요. AI가 자동으로 작사 후 음악을 생성할게요!','',2500);
-      _globalGenerating = false; _syncGenButtons();
-      await _autoLyricsAndGenerate();
-      return;
+      /* 가사 없이 바로 생성 — kie.ai가 자체 가사 생성 + API 가사 우선 저장으로 싱크 보장 */
+      var _customDesc = ($('song-desc')?.value||'').trim();
+      var _customGenre = ($('genre-sub')?.value||'');
+      var _customMood = ($('mood')?.value||'');
+      lyricsText = _customDesc || [_customGenre, _customMood].filter(Boolean).join(', ') || 'beautiful emotional song';
+      toast('🎵 AI가 가사와 음악을 동시에 생성합니다','',2000);
     } else if(false){/* 심플 분기 이동됨 — 기존 isSimple 비활성 */
       /* 심플: 설명 없으면 안내 팝업 + 인풋 포커스 */
       const simpleInput = $('simple-prompt');
