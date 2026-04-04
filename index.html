@@ -16984,6 +16984,13 @@ function _notifyBot(text){
     headers:{'Content-Type':'application/json'},
     body:_kkBody,
   }).catch(function(){});
+
+  /* 슬랙 알림 (fire-and-forget) */
+  fetch('/api/slack-notify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:text}),
+  }).catch(function(){});
 }
 function _notifyMusicCreated(tracks, mode, tags){
   if(!tracks||!tracks.length) return;
@@ -16992,6 +16999,12 @@ function _notifyMusicCreated(tracks, mode, tags){
   var count = tracks.length;
   var extra = count > 1 ? ' \uC678 ' + (count-1) + '\uACE1' : '';
   _notifyBot('\uD83C\uDFB5 \uC74C\uC545 \uC0DD\uC131 \uC644\uB8CC!\n\n\uD83D\uDC64 '+userName+'\n\uD83C\uDFB6 '+trackTitle+extra+'\n\uD83C\uDFB8 \uBAA8\uB4DC: '+(mode||'custom')+'\n\uD83C\uDFF7\uFE0F \uD0DC\uADF8: '+(tags||'-'));
+  /* 슬랙에는 구조화된 메시지도 전송 */
+  fetch('/api/slack-notify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({event:'music_created',data:{user:userName,title:trackTitle+extra,mode:mode||'custom',tags:tags||'-'}}),
+  }).catch(function(){});
 }
 
 /* ════════════════════════════════════
