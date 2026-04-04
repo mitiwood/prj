@@ -9403,12 +9403,14 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     return;
   }
   /* 가사 없음 → 빠른 작사 후 생성 */
-  if(!desc&&!moodVal){
-    $('simple-prompt').value='감성적인 한국 팝송, 따뜻하고 서정적인';
+  var _sDesc=desc;
+  var _sMood=moodVal;
+  if(!_sDesc&&!_sMood){
+    /* 빈 입력 → 랜덤 테마로 다양한 곡 생성 */
+    var _randomThemes=['사랑과 이별','새벽 감성','여행과 자유','꿈을 향해','봄날의 설렘','비 오는 밤','추억 속 너','도시의 밤','희망과 용기','첫사랑의 기억','혼자만의 시간','별빛 아래'];
+    _sDesc=_randomThemes[Math.floor(Math.random()*_randomThemes.length)];
   }
-  var _sDesc=$('simple-prompt').value.trim();
-  var _sMood=($('simple-mood')?.value||'').trim();
-  var _sLyricsPrompt=[_sDesc,_sMood].filter(Boolean).join(', ')||'감성적인 한국어 팝송';
+  var _sLyricsPrompt=[_sDesc,_sMood].filter(Boolean).join(', ');
   toast('✍️ AI 가사 생성 중...','',5000);
   try{
     var _sLyrics=await _kieLyricsWithFallback(kieApiKey, _sLyricsPrompt);
