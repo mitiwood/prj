@@ -9414,29 +9414,9 @@ async function _ytDoGenerate(){
   var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent='0%';
   var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent='예상 ~1분';
 
-  /* ── 가사 비어있고 인스트루멘탈 아니면 → 가사 먼저 생성 후 prompt로 사용 ── */
-  if(!ytLyrics && !isInst){
-    var _autoLang = ($('yt-vocal-lang')?.value || '').trim();
-    var _langHint = _autoLang ? ('Write lyrics in ' + _autoLang + '. ') : '';
-    var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
-    var lyricsStyle = _lastYtAnalysis.lyrics_style || '';
-    var lyricsPrompt = _langHint + [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
-    var _ldSub=$('ld-sub');if(_ldSub)_ldSub.innerHTML='가사 생성 중... ✍️';
-    console.log('%c[YT-Timer] 가사 생성 시작','color:#f59e0b;font-weight:bold','+'+((Date.now()-_ytT0)/1000).toFixed(1)+'s');
-    try{
-      var _autoLyrics = await _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300));
-      if(_autoLyrics && _autoLyrics.length > 30){
-        ytLyrics = _autoLyrics;
-        var _ytTaStep3Auto = document.getElementById('yt-lyrics-step3');
-        if(_ytTaStep3Auto) _ytTaStep3Auto.value = _autoLyrics;
-        var _ytTaAuto = document.getElementById('yt-lyrics-ta');
-        if(_ytTaAuto) _ytTaAuto.value = _autoLyrics;
-        trackUsage('lyrics',{mode:'yt-auto-lyrics'});
-      }
-    }catch(e){ console.warn('[YT auto-lyrics]', e.message); }
-    if(_ldSub)_ldSub.innerHTML='YouTube 감성으로 작업 중 ~<br>거의 다 됐어요 ☕';
-    console.log('%c[YT-Timer] 가사 생성 완료','color:#22c55e;font-weight:bold','+'+((Date.now()-_ytT0)/1000).toFixed(1)+'s');
-  }
+  /* ── 가사 사전 생성 제거 — kie.ai가 자체적으로 가사 생성 + API 가사 우선 저장으로 15-25초 단축 ── */
+  /* 가사 없이 생성해도 kie.ai가 보컬 가사를 만들어 부르고, pollResult 후 API 가사를 저장함 */
+  console.log('%c[YT-Timer] 가사 사전 생성 스킵 (API 가사 우선)','color:#f59e0b;font-weight:bold','+'+((Date.now()-_ytT0)/1000).toFixed(1)+'s');
 
   /* ── 제목 미입력/자동 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
   if(_titleIsAuto && ytLyrics && ytLyrics.length > 30){
