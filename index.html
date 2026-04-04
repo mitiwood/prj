@@ -12489,7 +12489,7 @@ async function generate(overrideParams){
   const songDesc=($('song-desc')?.value||'').trim();
   const mood=moodVal;
   const negTags=$('neg-tags').value.trim();
-  const model=overrideParams?._abModel||$('model-sel').value; /* A/B 테스트 시 오버라이드 */
+  const model=overrideParams?._abModel||$('model-sel')?.value||'V4'; /* A/B 테스트 시 오버라이드 */
   const sw=parseFloat($('style-weight').value);
   const wc=parseFloat($('weird-constraint').value);
   /* 커스텀 모드 — 입력 데이터 충분성 체크 → 바텀시트 안내 */
@@ -12559,7 +12559,7 @@ async function generate(overrideParams){
     styleWeight: sw, weirdness: wc, isCustom
   });
 
-  const prompt=lyricsText||styleStr;
+  const prompt=lyricsText||styleStr||'happy pop song';
   /* 심플모드: simple-lyrics 실제 입력값만 가사로 저장 (설명/분위기 텍스트 제외) */
   if(isSimple){
     lastLyricsInput=($('simple-lyrics')?.value||'').trim();
@@ -12597,8 +12597,8 @@ async function generate(overrideParams){
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
     const _ytStyleStr = overrideParams?.styleStr || styleStr;
-    /* customMode: 가사 입력 시 강제 true (kie.ai가 가사로 인식하도록) */
-    const _forceCustom = (prompt||'').length > 400 || _simpleHasRealLyrics;
+    /* customMode: 심플/커스텀/YT 모두 true → kie.ai가 style 필드 반영 */
+    const _forceCustom = isSimple || (prompt||'').length > 400 || _simpleHasRealLyrics;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
     if(selectedDuration===0){
@@ -12625,21 +12625,27 @@ async function generate(overrideParams){
     var _vocalLang = lyricsLang || '';
     if(!_vocalLang && _promptHasKo) _vocalLang = 'Korean';
     if(!_vocalLang && /[\u3040-\u30FF\u4E00-\u9FFF]/.test(prompt)) _vocalLang = /[\u3040-\u30FF]/.test(prompt) ? 'Japanese' : 'Chinese';
-    /* 언어 미지정 + 한글 미감지 시 기본 Korean (한국어 사용자 기본값) */
+    /* 영문 알파벳만 있으면 English 힌트 */
+    if(!_vocalLang && /^[a-zA-Z\s\d\p{P}]+$/u.test(prompt) && prompt.length>30) _vocalLang = 'English';
+    /* 언어 미감지 시 기본 Korean (한국어 사용자 기본값 — 가사 없거나 짧을 때) */
     if(!_vocalLang) _vocalLang = 'Korean';
+    /* 사용자 스타일을 먼저 배치 → 자동 힌트는 뒤에 추가 (200자 잘림 시 사용자 스타일 보존) */
+    var _autoHints = [];
     if(_vocalLang && !instOn){
-      var _langTag = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang;
-      if(!body.style) body.style = _langTag;
-      else if(body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1) body.style = _langTag + ', ' + body.style;
+      if(!body.style || body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
+        _autoHints.push(_vocalLang + ' vocal');
+      }
     }
-    /* 성별 힌트만 추가 (200자 제한 고려 — 장르/무드 힌트는 style에 이미 포함) */
-    if(!instOn && body.style && vocalGender){
+    if(!instOn && vocalGender){
       var _gH = vocalGender==='f'?'female vocal':'male vocal';
-      if(body.style.toLowerCase().indexOf(_gH)===-1) body.style = _gH + ', ' + body.style;
+      if(!body.style || body.style.toLowerCase().indexOf(_gH)===-1) _autoHints.push(_gH);
     }
-    /* 곡 길이 힌트 — 짧게 선택 시 style에도 추가 */
-    if(selectedDuration===0 && body.style && body.style.indexOf('short song')===-1){
-      body.style='short song, under 1 minute, '+body.style;
+    if(selectedDuration===0){
+      if(!body.style || body.style.indexOf('short song')===-1) _autoHints.push('short song');
+    }
+    if(_autoHints.length){
+      if(!body.style) body.style = _autoHints.join(', ');
+      else body.style = body.style + ', ' + _autoHints.join(', ');
     }
     /* kie.ai style 길이 제한: customMode=true → 200자, false → 200자 (초과 시 콤마 단위로 자름) */
     if(body.style){
