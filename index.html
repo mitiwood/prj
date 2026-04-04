@@ -8364,7 +8364,6 @@ async function _pollRefreshSbTracks(){
 async function _loadSbTracksMore(){
   if(_sbLoadingMore || !_sbHasMore) return;
   _sbLoadingMore = true;
-  _showCommLoadingIndicator(true);
   try{
     var r = await fetch('/api/tracks?public=true&mode=community&limit='+_SB_PAGE_SIZE+'&offset='+_sbOffset);
     if(!r.ok) throw new Error('HTTP '+r.status);
@@ -8382,31 +8381,24 @@ async function _loadSbTracksMore(){
     }
   }catch(e){ console.warn('[SB] 추가 로드 실패:', e.message); }
   _sbLoadingMore = false;
-  _showCommLoadingIndicator(false);
-}
-
-/* 로딩 인디케이터 표시/숨김 */
-function _showCommLoadingIndicator(show){
-  var el = document.getElementById('comm-scroll-loading');
-  if(show){
-    if(!el){
-      el = document.createElement('div');
-      el.id = 'comm-scroll-loading';
-      el.style.cssText = 'padding:8px 0;';
-      el.innerHTML = Array(3).fill('<div class="comm-skeleton-item"><div class="comm-skeleton-img skeleton-pulse"></div><div class="comm-skeleton-text"><div class="skeleton-line skeleton-pulse" style="width:60%"></div><div class="skeleton-line skeleton-pulse" style="width:40%"></div></div></div>').join('');
-      var list = $('comm-list');
-      if(list) list.parentNode.insertBefore(el, list.nextSibling);
-    }
-    el.style.display = '';
-  } else {
-    if(el) el.style.display = 'none';
+  /* 더 이상 로드할 데이터 없으면 sentinel 제거 */
+  if(!_sbHasMore){
+    var _snEl=document.getElementById('comm-scroll-sentinel');if(_snEl)_snEl.remove();
+    if(_sbIntersectionObserver){_sbIntersectionObserver.disconnect();_sbIntersectionObserver=null;}
   }
 }
+
+/* _showCommLoadingIndicator 제거됨 — comm-scroll-loading 스켈레톤 삭제 */
 
 
 /* IntersectionObserver 기반 무한 스크롤 설정 */
 function _setupCommInfiniteScroll(){
   if(_sbIntersectionObserver){ _sbIntersectionObserver.disconnect(); _sbIntersectionObserver=null; }
+  /* 데이터가 더 없으면 sentinel 생성하지 않음 */
+  if(!_sbHasMore){
+    var _old1=document.getElementById('comm-scroll-sentinel');if(_old1)_old1.remove();
+    return;
+  }
   var sentinel = document.getElementById('comm-scroll-sentinel');
   if(!sentinel){
     sentinel = document.createElement('div');
@@ -8415,8 +8407,6 @@ function _setupCommInfiniteScroll(){
     var list = $('comm-list');
     if(list) list.parentNode.insertBefore(sentinel, list.nextSibling);
   }
-  var loadEl = document.getElementById('comm-scroll-loading');
-  if(loadEl) loadEl.style.display = 'none';
 
   _sbIntersectionObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(entry){
@@ -19609,6 +19599,7 @@ async function fpRenderLyrics(h){
             if(_riLyric)break;
           }
           if(_riLyric && _riLyric.length>20){
+            h.lyrics=_riLyric; /* 로컬 메모리도 갱신 — 재귀 시 빈 가사 방지 */
             _saveTrackToServer({id:h.id,lyrics:_riLyric});
             return fpRenderLyrics(h);
           }
@@ -19657,7 +19648,8 @@ async function fpRenderLyrics(h){
               window._fpAlignedCache[_retryCK]=_w2;
               /* 현재 재생 중인 곡과 동일할 때만 UI 갱신 */
               var _curH=historyData[fpCurrentIdx];
-              if(_curH&&(_curH.id===_retryH.id||_curH.taskId===_retryTaskId)){
+              var _curAudioId=_curH?.id||_curH?._sbId||'';
+              if(_curH&&(_curAudioId===_retryAudioId||(_curH.id===_retryH.id&&_curH.taskId===_retryTaskId))){
                 fpRenderTimestampedLyrics(_w2);
                 fpSyncMode=true;
                 var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
@@ -24684,11 +24676,15 @@ function saveLyricsEdit(idx){
   const newText=area.value;
   /* lastTracks 업데이트 */
   if(lastTracks&&lastTracks[idx]){lastTracks[idx]._inputLyrics=newText;lastTracks[idx].lyric=newText;}
-  /* 서버 DB에 가사 저장 (localStorage에는 저장 안 함) */
+  /* historyData도 동기화 (페이지 이동 후 가사 유실 방지) */
   const audioUrl=lastTracks?.[idx]?.audioUrl||lastTracks?.[idx]?.audio_url||'';
   if(audioUrl){
-    const h=historyData.find(h=>h.audioUrl===audioUrl||h.audio_url===audioUrl);
-    if(h&&typeof _saveTrackToServer==='function') _saveTrackToServer({id:h.id,lyrics:newText});
+    const h=historyData.find(h=>h.audioUrl===audioUrl||h.audio_url===audioUrl||h.audio===audioUrl);
+    if(h){
+      h.lyrics=newText;h.lyric=newText;h._inputLyrics=newText;
+      saveHistory();
+      if(typeof _saveTrackToServer==='function') _saveTrackToServer({id:h.id,lyrics:newText});
+    }
   }
   plain.innerHTML=parseLyrics(newText);
   cancelLyricsEdit(idx);
