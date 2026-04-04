@@ -122,7 +122,7 @@ export function useGenerate() {
           setGenStatus('KIE 모델로 생성 중...');
           const genRes = await kieRequest(
             'POST',
-            '/api/v1/music/create',
+            '/api/v1/generate',
             {
               prompt: input.prompt,
               style: input.style,
@@ -130,7 +130,7 @@ export function useGenerate() {
               instrumental: input.instrumental,
               lyrics: input.lyrics,
               model,
-              callBackUrl: 'https://ddinggok.com/api/kie-callback',
+              callBackUrl: 'https://ddinggok.com/api/callback',
             },
             user
               ? { name: user.name, provider: user.provider }

@@ -21,7 +21,13 @@ export async function kieRequest(
       const res = await fetchJson<KieResponse>(`${API_BASE}/kie-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method, path, body, user }),
+        body: JSON.stringify({
+          method,
+          path,
+          body,
+          userName: user?.name,
+          userProvider: user?.provider,
+        }),
       });
       return res;
     } catch (err: unknown) {
@@ -68,7 +74,7 @@ export async function pollResult(
     const res = await fetchJson<{ data?: PollStatus }>(`${API_BASE}/kie-proxy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method: 'GET', path: `/api/v1/music/task/${taskId}` }),
+      body: JSON.stringify({ method: 'GET', path: `/api/v1/generate/record-info?taskId=${taskId}` }),
       signal,
     });
 

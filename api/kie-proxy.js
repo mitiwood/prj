@@ -36,6 +36,7 @@ const CREDIT_PATHS = {
   '/api/v1/generate/get-timestamped-lyrics': null, /* 가사 타임스탬프 조회 */
   '/api/v1/generate':             'song', /* ✅ FIX: 기본 음악 생성 (이전: /api/v1/generate/music — 실제 API 경로 불일치) */
   '/api/v1/lyrics/generate':      'lyrics',
+  '/api/v1/vocal-removal/generate': 'vr',
   '/api/v1/vocal-removal/create': 'vr',
   '/api/v1/jobs/createTask':      'mv',
 };
