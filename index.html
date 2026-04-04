@@ -19405,10 +19405,13 @@ async function fpRenderLyrics(h){
   var _kBtn=$('fp-karaoke-btn');if(_kBtn)_kBtn.style.display='';
 
   /* 타임스탬프 가사 선로딩 (재생 전 await — 5초 타임아웃) */
-  /* 사용자가 직접 수정한 가사가 있으면 API 타임스탬프 가사 건너뜀 → LRC 파싱으로 처리 */
+  /* 사용자 가사가 이미 있으면 API 타임스탬프 가사 건너뜀 → LRC 파싱 또는 균등분할로 처리 */
+  var _hasUserLyrics = plain.trim().length > 30;
+  var _hasLrcTimestamps = /\[\d{1,2}:\d{2}/.test(raw);
+  var _skipApiLyrics = h._lyricsEdited || _hasUserLyrics || _hasLrcTimestamps;
   var _tsTaskId=h.taskId||h._taskId||'';
   var _tsAudioId=h.id||h._sbId||'';
-  if(!h._lyricsEdited && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
+  if(!_skipApiLyrics && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     /* 캐시 있으면 즉시 적용 */
     var _tsWords=[];
     if(h._fpAlignedWords && h._fpAlignedWords.length){
