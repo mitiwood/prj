@@ -3,12 +3,22 @@
 const APP_URL = 'https://ddinggok.com';
 
 export default async function handler(req, res) {
-  const { code, error } = req.query;
+  const { code, error, state } = req.query;
 
   if (error || !code) {
     console.error('[kakao-callback] 오류:', error);
     return res.redirect(`${APP_URL}/?login=fail`);
   }
+
+  /* CSRF state 검증 */
+  const cookies = Object.fromEntries((req.headers.cookie || '').split(';').map(c => c.trim().split('=')));
+  const savedState = cookies.oauth_state;
+  if (!state || !savedState || state !== savedState) {
+    console.error('[kakao-callback] CSRF state 불일치');
+    return res.redirect(`${APP_URL}/?login=fail`);
+  }
+  /* state 쿠키 제거 */
+  res.setHeader('Set-Cookie', 'oauth_state=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0');
 
   const clientId     = process.env.KAKAO_CLIENT_ID;
   const clientSecret = process.env.KAKAO_CLIENT_SECRET;

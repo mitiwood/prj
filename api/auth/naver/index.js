@@ -1,7 +1,13 @@
+import crypto from 'crypto';
+
 export default function handler(req, res) {
   const clientId = process.env.NAVER_CLIENT_ID;
+  if (!clientId) return res.status(500).json({ error: 'NAVER_CLIENT_ID 환경변수 없음' });
+
   const redirectUri = 'https://ddinggok.com/api/auth/naver/callback';
-  const state = Math.random().toString(36).substring(2);
+  const state = crypto.randomBytes(20).toString('hex');
+
+  res.setHeader('Set-Cookie', `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=600`);
 
   const params = new URLSearchParams({
     response_type: 'code',

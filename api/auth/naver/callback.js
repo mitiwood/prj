@@ -1,7 +1,17 @@
 export default async function handler(req, res) {
-  const { code, error } = req.query;
+  const { code, error, state } = req.query;
   const APP_URL = 'https://ddinggok.com';
   if (error || !code) return res.redirect(`${APP_URL}/?login=fail`);
+
+  /* CSRF state 검증 */
+  const cookies = Object.fromEntries((req.headers.cookie || '').split(';').map(c => c.trim().split('=')));
+  const savedState = cookies.oauth_state;
+  if (!state || !savedState || state !== savedState) {
+    console.error('[naver-callback] CSRF state 불일치');
+    return res.redirect(`${APP_URL}/?login=fail`);
+  }
+  /* state 쿠키 제거 */
+  res.setHeader('Set-Cookie', 'oauth_state=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0');
 
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
@@ -17,6 +27,7 @@ export default async function handler(req, res) {
         client_secret: clientSecret,
         redirect_uri: redirectUri,
         code,
+        state,
       }),
     });
     const tokenData = await tokenRes.json();
@@ -38,7 +49,7 @@ export default async function handler(req, res) {
     });
     res.redirect(`${APP_URL}/?${params}`);
   } catch(e) {
-    console.error('Naver callback error:', e);
+    console.error('[naver-callback] 에러:', e.message);
     res.redirect(`${APP_URL}/?login=fail`);
   }
 }
