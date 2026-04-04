@@ -9384,10 +9384,13 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   /* ★ 이중 클릭 방지 */
   if(typeof _QueueManager!=='undefined'&&_QueueManager&&_QueueManager.isBusy('music')){toast('⏳ 생성 중이에요.','',2000);return;}
   if(typeof _globalGenerating!=='undefined'&&_globalGenerating){toast('⏳ 생성 중이에요.','',2000);return;}
-  /* 게스트 모드: 사전 한도 체크 */
+  /* 로그인 + 크레딧 체크 */
   if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
     if(_getGuestUsage() >= GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
+  } else if(!currentUser && !(typeof isGuestMode==='function'&&isGuestMode())){
+    openLoginSheet(); return;
   }
+  if(currentUser && !checkPlanLimit('song')) return;
   const desc=$('simple-prompt').value.trim();
   const simpleLyrics=($('simple-lyrics')?.value||'').trim();
   const moodVal=$('simple-mood').value;
@@ -9399,10 +9402,7 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   instOn=simpleInstOn;
   /* 가사가 있으면 바로 generate로 진행 */
   if(simpleLyrics){
-    const origPrompt=$('prompt').value;
-    $('prompt').value=simpleLyrics;
-    generate();
-    setTimeout(()=>{$('prompt').value=origPrompt;},100);
+    generate({_afterLyrics:true, prompt:simpleLyrics});
     return;
   }
   /* 가사 없음 → 즉시 생성 (customMode:false로 kie.ai가 자체 작사) */
