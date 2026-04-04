@@ -17003,7 +17003,7 @@ function _notifyMusicCreated(tracks, mode, tags){
   fetch('/api/slack-notify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({event:'music_created',data:{user:userName,title:trackTitle+extra,mode:mode||'custom',tags:tags||'-'}}),
+    body:JSON.stringify({event:'music_created',data:{user:userName,title:trackTitle+extra,mode:mode||'custom',tags:tags||'-',audio_url:tracks[0]?.audioUrl||tracks[0]?.audio_url||''}}),
   }).catch(function(){});
 }
 
