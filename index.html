@@ -19429,7 +19429,7 @@ async function fpRenderLyrics(h){
   var _hasLrcTimestamps = /\[\d{1,2}:\d{2}/.test(raw);
   var _tsTaskId=h.taskId||h._taskId||'';
   var _tsAudioId=h.id||h._sbId||'';
-  var _apiTimingLines=[]; /* API에서 추출한 라인�� 타이밍 [{startS, endS}] */
+  var _apiTimingLines=[]; /* API에서 추출한 라인별�� 타이밍 [{startS, endS}] */
 
   if(!_hasLrcTimestamps && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     var _tsWords=[];
@@ -19445,19 +19445,17 @@ async function fpRenderLyrics(h){
         if(_tsWords.length) h._fpAlignedWords=_tsWords;
       }catch(e){}
     }
-    /* API에서 라인별 타이밍만 추출 (텍스트는 무시) */
+    /* API aligned words가 있으면 텍스트+타이밍 모두 사용 (실제 보컬과 일치) */
     if(_tsWords.length){
-      var _curLine={startS:null,endS:null};
-      _tsWords.forEach(function(w){
-        var t=w.word||'';
-        if(_curLine.startS===null) _curLine.startS=w.startS||0;
-        _curLine.endS=w.endS||0;
-        if(t.includes('\n')){
-          _apiTimingLines.push({startS:_curLine.startS,endS:_curLine.endS});
-          _curLine={startS:null,endS:null};
-        }
-      });
-      if(_curLine.startS!==null) _apiTimingLines.push({startS:_curLine.startS,endS:_curLine.endS});
+      fpRenderTimestampedLyrics(_tsWords);
+      fpSyncMode=true;
+      var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
+      /* 서버 DB 가사도 API 가사로 동기화 */
+      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
+      if(_realLyrics.length>20 && _realLyrics!==raw && typeof _saveTrackToServer==='function'){
+        _saveTrackToServer({id:h.id,lyrics:_realLyrics});
+      }
+      return;
     }
   }
 
@@ -19504,23 +19502,6 @@ async function fpRenderLyrics(h){
   if(hasLrc){
     _fpLrcTimes = parsedLines.filter(p=>!p.isSection && p.time!==null).map(p=>p.time);
     _fpLrcTimes._isLrc=true;
-  }
-
-  /* API 타이밍 데이터를 서버 가사 라인에 매핑 */
-  if(!hasLrc && _apiTimingLines.length && fpTimestampLines.length){
-    var n=fpTimestampLines.length;
-    var m=_apiTimingLines.length;
-    _fpLrcTimes=[];
-    _fpLrcEndTimes=[];
-    for(var ti=0;ti<n;ti++){
-      /* 서버 가사 라인 수 ≠ API 라인 수일 수 있으므로 비율로 매핑 */
-      var mi=Math.min(Math.round(ti*m/n), m-1);
-      _fpLrcTimes.push(_apiTimingLines[mi].startS);
-      _fpLrcEndTimes.push(_apiTimingLines[mi].endS);
-      fpTimestampLines[ti].dataset.start=_apiTimingLines[mi].startS;
-      fpTimestampLines[ti].dataset.end=_apiTimingLines[mi].endS;
-    }
-    hasLrc=true; /* 타이밍 있으므로 싱크 모드 활성화 */
   }
 
   /* LRC 타임스탬프 유무에 따라 싱크 모드 버튼 표시/숨김 */
