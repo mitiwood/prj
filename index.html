@@ -5071,21 +5071,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <!-- ━━━ 커스텀 패널 ━━━ -->
       <div class="mode-panel" id="panel-custom">
 
-        <!-- 커스텀 모드 AI 퀵 어시스턴트 -->
-        <div style="margin-bottom:12px;padding:10px 12px;background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.03));border:1px solid rgba(124,58,237,.15);border-radius:12px;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:13px;">🤖</span><span style="font-size:11px;font-weight:700;color:var(--t1);">AI 퀵 스타일</span></div>
-          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;" class="pt-scroll">
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('감성적인 피아노 발라드, 여성 보컬')">🎤 발라드</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 K-Pop 댄스, 밝은 신스')">🎵 K-Pop</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('다크한 트랩 비트, 808 베이스')">🔥 트랩</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('칠한 Lo-Fi 비트, 재즈 코드')">☕ Lo-Fi</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('시네마틱 오케스트라, 웅장한 스트링스')">🎬 OST</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('레트로 시티팝, 80년대 신스')">🌆 시티팝</button>
-            <button class="ai-suggest-chip" onclick="_quickAiSuggest('어쿠스틱 포크, 따뜻한 기타')">🪕 포크</button>
-          </div>
-        </div>
-
-        <!-- 장르 -->
+        <!-- 1. 장르 -->
         <div class="form-grp" id="genre-row">
           <div class="form-label">
             <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg></span> 장르 / 스타일
@@ -5105,40 +5091,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <select id="genre-sub" style="display:none;"><option value="">카테고리 먼저 선택</option></select>
         </div>
 
-        <!-- 곡 제목 -->
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> 곡 제목
-            <span class="form-label-hint">비워두면 AI가 자동 생성</span>
-          </div>
-          <input class="form-input" id="song-title" type="text" placeholder="곡 제목을 입력하세요 (선택)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;">
-        </div>
-        <input type="hidden" id="song-desc" value="">
-
-        <!-- AI 스타일 도구 -->
-        <div class="form-grp" id="ai-style-tools">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span> AI 스타일 도구
-            <span class="form-label-hint">AI가 최적의 스타일을 찾아드려요</span>
-          </div>
-          <div class="ref-artist-tags" id="ai-style-applied" style="min-height:0;margin-bottom:6px;"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="ai-assist-btn" id="trend-btn" onclick="aiTrendStyle()">
-              <span class="lspin" id="trend-spinner" style="display:none;"></span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> 트렌드
-            </button>
-            <button class="ai-assist-btn" id="mood-ai-btn" onclick="aiMoodToStyle()">
-              <span class="lspin" id="mood-spinner" style="display:none;"></span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> AI 스타일
-            </button>
-            <label class="ai-assist-btn" style="cursor:pointer;" title="사진 업로드 → 분위기 분석">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> 이미지 분석
-              <input type="file" id="img-analyze-input" accept="image/*" style="display:none;" onchange="aiImageToStyle(this)">
-            </label>
-          </div>
-        </div>
-
-        <!-- 분위기 그리드 -->
+        <!-- 2. 분위기 -->
         <div class="form-grp">
           <div class="form-label">
             <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span> 분위기
@@ -5162,24 +5115,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <button class="mood-chip" data-mood="mysterious, ethereal" onclick="_setMood(this)"><span class="mood-ico">🔮</span>신비</button>
           </div>
         </div>
-        <!-- 인스트루멘탈 토글 -->
-        <div class="options-row" style="margin-bottom:12px;">
-          <div class="opt-group">
-            <div class="opt-label">인스트루멘탈</div>
-            <div class="toggle-label-row" id="inst-toggle">
-              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
-              <span class="toggle-txt">보컬 없음</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- 가사 — 곡설명 바로 아래 -->
+        <!-- 3. 가사 -->
         <div class="form-grp">
           <div class="form-label">
             <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> 가사
             <span class="form-label-hint">선택 — 비우면 AI 자동 생성</span>
           </div>
-          <textarea class="form-input" id="prompt" rows="4" data-i18n-ph="lyricsPlaceholder"
+          <textarea class="form-input" id="prompt" rows="3" data-i18n-ph="lyricsPlaceholder"
             placeholder="느낌만 적어도 OK ✨ AI가 알아서 가사를 만들어줘요&#10;&#10;예) 새벽 감성 발라드, 이별 후 혼자 걷는 길&#10;&#10;직접 쓰고 싶다면 👇&#10;[Verse 1]&#10;너의 흔적이 남아있는 이 거리..." oninput="_updateLyricsInfo()"></textarea>
           <!-- 가사 도우미 -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;">
@@ -5187,20 +5130,8 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               <button onclick="_insertTag('[Verse]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Verse</button>
               <button onclick="_insertTag('[Chorus]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Chorus</button>
               <button onclick="_insertTag('[Bridge]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Bridge</button>
-              <button onclick="_insertTag('[Outro]')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;font-family:inherit;">+ Outro</button>
             </div>
             <div id="lyrics-info" style="font-size:10px;color:var(--t3);">0/5,000자 · 0줄</div>
-          </div>
-          <!-- 스타일 태그 원터치 칩 -->
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">
-            <button onclick="_addStyleTag('dreamy')" class="style-chip-btn">dreamy</button>
-            <button onclick="_addStyleTag('lo-fi beat')" class="style-chip-btn">lo-fi beat</button>
-            <button onclick="_addStyleTag('acoustic')" class="style-chip-btn">acoustic</button>
-            <button onclick="_addStyleTag('808 bass')" class="style-chip-btn">808 bass</button>
-            <button onclick="_addStyleTag('cinematic')" class="style-chip-btn">cinematic</button>
-            <button onclick="_addStyleTag('synth wave')" class="style-chip-btn">synth wave</button>
-            <button onclick="_addStyleTag('R&B groove')" class="style-chip-btn">R&B groove</button>
-            <button onclick="_addStyleTag('trap beat')" class="style-chip-btn">trap beat</button>
           </div>
           <!-- AI 스타일 추천 -->
           <div id="ai-recommend-area" style="display:none;margin-bottom:8px;">
@@ -5228,7 +5159,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
             <span class="lyrics-hint">✦ 가사 없으면 AI가 자동 생성</span>
             <button class="ai-assist-btn" id="stream-lyrics-btn" onclick="streamLyricsGenerate()" style="font-size:12px;">
               <span class="lspin" id="stream-lyrics-spinner" style="display:none;"></span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> 빠른 작사
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> AI 작사
             </button>
             <button class="lyrics-gen-btn" id="lyrics-btn">
               <span class="lspin" id="lyrics-spinner"></span>
@@ -5245,35 +5176,120 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
         </div>
 
-        <!-- BPM 슬라이더 -->
-        <div class="form-grp">
-          <div class="form-label">
-            <span class="form-label-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 곡 스피드
-            <span class="form-label-hint">현재: <span id="bpm-display">120</span> BPM</span>
+        <!-- 바로 생성 미니 버튼 -->
+        <button onclick="generate()" style="width:100%;padding:9px 14px;border-radius:10px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.08);color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:4px;transition:all .2s;" id="quick-gen-btn">⚡ 바로 생성</button>
+
+        <!-- 4. 아코디언: 보컬 & 사운드 -->
+        <div class="custom-section-toggle" onclick="_toggleCustomSection('cs-vocal')">
+          <span>🎤 보컬 &amp; 사운드</span>
+          <span id="cs-vocal-chev">▼</span>
+        </div>
+        <div class="custom-section-body" id="cs-vocal" style="display:none;">
+          <!-- 인스트루멘탈 토글 -->
+          <div class="options-row" style="margin-bottom:10px;">
+            <div class="opt-group">
+              <div class="opt-label" style="font-size:11px;">인스트루멘탈</div>
+              <div class="toggle-label-row" id="inst-toggle">
+                <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+                <span class="toggle-txt">보컬 없음</span>
+              </div>
+            </div>
           </div>
-          <div class="bpm-main-row">
-            <span style="font-size:11px;color:var(--t3);">느림</span>
-            <input type="range" class="bpm-slider" id="bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
-              oninput="selectedBpm=parseInt(this.value);$('bpm-display').textContent=this.value;if($('bpm-val'))$('bpm-val').textContent=this.value;">
-            <span style="font-size:11px;color:var(--t3);">빠름</span>
-            <div class="bpm-badge" id="bpm-badge">120</div>
-            <button class="bpm-auto-btn" id="bpm-auto-btn" title="AUTO">AUTO</button>
+          <!-- 보컬 성별 -->
+          <div style="margin-bottom:10px;" id="vocal-group">
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">보컬 성별</div>
+            <div class="vocal-row">
+              <button class="vbtn on" data-v=""><span class="vbtn-ico">🎙</span>자동</button>
+              <button class="vbtn" data-v="m"><span class="vbtn-ico">🧑</span>남성</button>
+              <button class="vbtn" data-v="f"><span class="vbtn-ico">👩</span>여성</button>
+            </div>
+          </div>
+          <!-- BPM 슬라이더 -->
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">곡 스피드 — <span id="bpm-display">120</span> BPM</div>
+            <div class="bpm-main-row">
+              <span style="font-size:11px;color:var(--t3);">느림</span>
+              <input type="range" class="bpm-slider" id="bpm-slider" min="60" max="200" step="1" value="120" style="flex:1;"
+                oninput="selectedBpm=parseInt(this.value);$('bpm-display').textContent=this.value;if($('bpm-val'))$('bpm-val').textContent=this.value;">
+              <span style="font-size:11px;color:var(--t3);">빠름</span>
+              <div class="bpm-badge" id="bpm-badge">120</div>
+              <button class="bpm-auto-btn" id="bpm-auto-btn" title="AUTO">AUTO</button>
+            </div>
+          </div>
+          <!-- 곡 길이 -->
+          <div>
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:4px;">곡 길이</div>
+            <div style="font-size:10px;color:var(--t3);margin-bottom:6px;">~2분 선택 시 생성 후 자동 연장됩니다. (크레딧 2배 사용)</div>
+            <div class="duration-btns">
+              <button class="dbtn on" data-dur="0">짧게 ~1분</button>
+              <button class="dbtn" data-dur="120">보통 ~2분</button>
+            </div>
+            <div id="extend-hint-vocal" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:12px;color:var(--acc3);line-height:1.5;">
+              💡 생성 후 결과 카드에서 <b>연장</b> 버튼을 누르면 곡을 이어서 늘릴 수 있어요!
+            </div>
           </div>
         </div>
 
-        <!-- 보컬 성별 -->
-        <div class="form-grp" id="vocal-group">
-          <div class="form-label">
-            <span class="form-label-icon"><i data-lucide="mic" style="width:14px;height:14px;"></i></span> 보컬 성별
+        <!-- 5. 아코디언: AI 도구 & 스타일 -->
+        <div class="custom-section-toggle" onclick="_toggleCustomSection('cs-aitools')">
+          <span>🤖 AI 도구 &amp; 스타일</span>
+          <span id="cs-aitools-chev">▼</span>
+        </div>
+        <div class="custom-section-body" id="cs-aitools" style="display:none;">
+          <!-- AI 퀵 스타일 칩 -->
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">AI 퀵 스타일</div>
+            <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;" class="pt-scroll">
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('감성적인 피아노 발라드, 여성 보컬')">🎤 발라드</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('신나는 K-Pop 댄스, 밝은 신스')">🎵 K-Pop</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('다크한 트랩 비트, 808 베이스')">🔥 트랩</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('칠한 Lo-Fi 비트, 재즈 코드')">☕ Lo-Fi</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('시네마틱 오케스트라, 웅장한 스트링스')">🎬 OST</button>
+              <button class="ai-suggest-chip" onclick="_quickAiSuggest('레트로 시티팝, 80년대 신스')">🌆 시티팝</button>
+            </div>
           </div>
-          <div class="vocal-row">
-            <button class="vbtn on" data-v=""><span class="vbtn-ico">🎙</span>자동</button>
-            <button class="vbtn" data-v="m"><span class="vbtn-ico">🧑</span>남성</button>
-            <button class="vbtn" data-v="f"><span class="vbtn-ico">👩</span>여성</button>
+          <!-- AI 스타일 도구 -->
+          <div style="margin-bottom:10px;" id="ai-style-tools">
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">AI 스타일 도구</div>
+            <div class="ref-artist-tags" id="ai-style-applied" style="min-height:0;margin-bottom:6px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="ai-assist-btn" id="trend-btn" onclick="aiTrendStyle()">
+                <span class="lspin" id="trend-spinner" style="display:none;"></span>
+                트렌드
+              </button>
+              <button class="ai-assist-btn" id="mood-ai-btn" onclick="aiMoodToStyle()">
+                <span class="lspin" id="mood-spinner" style="display:none;"></span>
+                AI 스타일
+              </button>
+              <label class="ai-assist-btn" style="cursor:pointer;" title="사진 업로드 → 분위기 분석">
+                이미지 분석
+                <input type="file" id="img-analyze-input" accept="image/*" style="display:none;" onchange="aiImageToStyle(this)">
+              </label>
+            </div>
+          </div>
+          <!-- 스타일 태그 칩 -->
+          <div>
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">스타일 태그</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button onclick="_addStyleTag('dreamy')" class="style-chip-btn">dreamy</button>
+              <button onclick="_addStyleTag('lo-fi beat')" class="style-chip-btn">lo-fi beat</button>
+              <button onclick="_addStyleTag('acoustic')" class="style-chip-btn">acoustic</button>
+              <button onclick="_addStyleTag('808 bass')" class="style-chip-btn">808 bass</button>
+              <button onclick="_addStyleTag('cinematic')" class="style-chip-btn">cinematic</button>
+              <button onclick="_addStyleTag('synth wave')" class="style-chip-btn">synth wave</button>
+              <button onclick="_addStyleTag('R&B groove')" class="style-chip-btn">R&amp;B groove</button>
+              <button onclick="_addStyleTag('trap beat')" class="style-chip-btn">trap beat</button>
+            </div>
           </div>
         </div>
 
-        <!-- 고급 설정 -->
+        <!-- 6. 곡 제목 (인라인) -->
+        <div style="margin-top:8px;margin-bottom:4px;">
+          <input class="form-input" id="song-title" type="text" placeholder="곡 제목 (비워두면 AI 자동 생성)" data-i18n-ph="songTitle" autocomplete="off" style="padding:10px 12px;font-size:12px;">
+        </div>
+        <input type="hidden" id="song-desc" value="">
+
+        <!-- 7. 고급 설정 -->
         <div class="advanced-toggle" id="adv-toggle">
           <span class="adv-lbl">⚙️ 고급 설정</span>
           <span class="adv-chev" id="adv-chev">▼</span>
@@ -20506,10 +20522,16 @@ function _commSwitchTab(tab){
   /* 모든 섹션 숨김 */
   [genreFilter,chartWrap,commList,creatorsSection,heroWrap,moodWrap,spotlightWrap,activityFeed,dailyDiscover,challengeWrap,genreWrap,suggestWrap].forEach(function(el){if(el)el.style.display='none';});
 
+  /* 채팅 탭에서 벗어나면 폴링/Realtime 정리 */
+  if(tab!=='chat'){
+    if(_chatPollTimer){clearInterval(_chatPollTimer);_chatPollTimer=null;}
+    if(typeof _stopChatRealtime==='function')_stopChatRealtime();
+  }
+
   if(tab==='all'){
     /* 전체: 크리에이터 + 장르필터 + 피드 + 사이드 섹션 전부 */
     [genreFilter,commList,creatorsSection,heroWrap,moodWrap,spotlightWrap,activityFeed,dailyDiscover,challengeWrap,genreWrap,suggestWrap].forEach(function(el){if(el)el.style.display='';});
-    _commActiveGenre='all';_commSortMode='default';_sbLoaded=false;renderCommunity(true);
+    _commActiveGenre='all';_commSortMode='default';renderCommunity(true);
   } else if(tab==='chart'){
     /* 인기차트: TOP 10 차트 + 크리에이터 스포트라이트 */
     [chartWrap,spotlightWrap,moodWrap].forEach(function(el){if(el)el.style.display='';});
@@ -20517,143 +20539,16 @@ function _commSwitchTab(tab){
   } else if(tab==='latest'){
     /* 최근등록: 장르필터 + 최신순 피드 */
     [genreFilter,commList].forEach(function(el){if(el)el.style.display='';});
-    _commActiveGenre='all';_commSortMode='latest';_sbLoaded=false;renderCommunity(true);
+    _commActiveGenre='all';_commSortMode='latest';renderCommunity(true);
   } else if(tab==='chat'){
     /* 채팅: 피드에서 채팅 모드 */
     [commList].forEach(function(el){if(el)el.style.display='';});
-    _commActiveGenre='chat';_commSortMode='default';_sbLoaded=false;renderCommunity(true);
+    _commActiveGenre='chat';_commSortMode='default';renderCommunity(true);
   }
 }
 
-/* 인사이트 렌더 (멜론 스타일 강화) */
-function _commRenderInsight(){
-  var statsEl=$('comm-insight-stats');
-  var trendEl=$('comm-insight-trend');
-  var genreChartEl=$('comm-insight-genre-chart');
-  var hotEl=$('comm-insight-hot');
-  if(!statsEl||!trendEl||!_sbTracks||!_sbTracks.length) return;
-  var banner=$('comm-insight-banner'); if(banner) banner.style.display='';
-
-  var weekAgo=Date.now()-7*86400000;
-  var thisWeek=_sbTracks.filter(function(t){var ts=t._created||new Date(t.created_at||0).getTime();return ts>weekAgo;});
-  var prevWeek=_sbTracks.filter(function(t){var ts=t._created||new Date(t.created_at||0).getTime();return ts>weekAgo-7*86400000&&ts<=weekAgo;});
-
-  var totalPlays=thisWeek.reduce(function(s,t){return s+(t.comm_plays||t.plays||0);},0);
-  var totalLikes=thisWeek.reduce(function(s,t){return s+(t.comm_likes||t.likes||0);},0);
-  var newSongs=thisWeek.length;
-  var prevPlays=prevWeek.reduce(function(s,t){return s+(t.comm_plays||t.plays||0);},0);
-  var prevLikes=prevWeek.reduce(function(s,t){return s+(t.comm_likes||t.likes||0);},0);
-  var prevSongs=prevWeek.length;
-
-  /* 평균 별점 */
-  var ratedThis=thisWeek.filter(function(t){return(t.comm_rating||t.avgRating||0)>0;});
-  var avgRating=ratedThis.length?ratedThis.reduce(function(s,t){return s+(t.comm_rating||t.avgRating||0);},0)/ratedThis.length:0;
-  var ratedPrev=prevWeek.filter(function(t){return(t.comm_rating||t.avgRating||0)>0;});
-  var prevAvgRating=ratedPrev.length?ratedPrev.reduce(function(s,t){return s+(t.comm_rating||t.avgRating||0);},0)/ratedPrev.length:0;
-
-  /* 활동 크리에이터 */
-  var creatorsSet={};
-  thisWeek.forEach(function(t){var o=t._owner;if(o&&o.name)creatorsSet[o.name+'_'+(o.provider||'')]=1;});
-  var activeCreators=Object.keys(creatorsSet).length;
-  var prevCreatorsSet={};
-  prevWeek.forEach(function(t){var o=t._owner;if(o&&o.name)prevCreatorsSet[o.name+'_'+(o.provider||'')]=1;});
-  var prevActiveCreators=Object.keys(prevCreatorsSet).length;
-
-  /* 급상승곡 수 */
-  var hotTracks=_sbTracks.filter(function(t){return _isTrending(t);});
-  var hotCount=hotTracks.length;
-
-  /* 전주 대비 화살표 헬퍼 */
-  function _arrow(curr,prev){
-    if(prev===0) return curr>0?'<div class="comm-insight-arrow up">▲ NEW</div>':'<div class="comm-insight-arrow flat">—</div>';
-    var pct=Math.round((curr-prev)/prev*100);
-    return pct>0?'<div class="comm-insight-arrow up">▲ '+pct+'%</div>'
-      :pct<0?'<div class="comm-insight-arrow down">▼ '+Math.abs(pct)+'%</div>'
-      :'<div class="comm-insight-arrow flat">—</div>';
-  }
-  function _arrowFloat(curr,prev){
-    if(prev===0) return curr>0?'<div class="comm-insight-arrow up">▲</div>':'<div class="comm-insight-arrow flat">—</div>';
-    var diff=curr-prev;
-    return diff>0.1?'<div class="comm-insight-arrow up">▲ '+diff.toFixed(1)+'</div>'
-      :diff<-0.1?'<div class="comm-insight-arrow down">▼ '+Math.abs(diff).toFixed(1)+'</div>'
-      :'<div class="comm-insight-arrow flat">—</div>';
-  }
-
-  /* 6개 카드 렌더 */
-  statsEl.innerHTML=[
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+newSongs+'</div><div class="comm-insight-label">이번 주 신곡</div>'+_arrow(newSongs,prevSongs)+'</div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalPlays+'</div><div class="comm-insight-label">총 재생</div>'+_arrow(totalPlays,prevPlays)+'</div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+totalLikes+'</div><div class="comm-insight-label">총 좋아요</div>'+_arrow(totalLikes,prevLikes)+'</div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+(avgRating>0?avgRating.toFixed(1):'—')+'</div><div class="comm-insight-label">평균 별점</div>'+_arrowFloat(avgRating,prevAvgRating)+'</div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+activeCreators+'</div><div class="comm-insight-label">활동 크리에이터</div>'+_arrow(activeCreators,prevActiveCreators)+'</div>',
-    '<div class="comm-insight-card"><div class="comm-insight-num">'+hotCount+'</div><div class="comm-insight-label">급상승곡</div><div class="comm-insight-arrow" style="color:#f59e0b;font-size:9px;">🔥 HOT</div></div>',
-  ].join('');
-
-  /* 장르 분포 */
-  var genreMap={};
-  var genreLabels={'k-pop':'K-Pop','hip-hop':'Hip-Hop','lo-fi':'Lo-Fi','electronic':'Electronic','ballad':'Ballad','rock':'Rock','jazz':'Jazz','ost':'OST','acoustic':'Acoustic','r&b':'R&B','pop':'Pop','indie':'Indie'};
-  var genreColors={'k-pop':'#ec4899','hip-hop':'#8b5cf6','lo-fi':'#06b6d4','electronic':'#f59e0b','ballad':'#3b82f6','rock':'#ef4444','jazz':'#f97316','ost':'#6366f1','acoustic':'#22c55e','r&b':'#a855f7','pop':'#14b8a6','indie':'#64748b'};
-  thisWeek.forEach(function(t){
-    var tags=(t.tags||t.allTags||'').toLowerCase();
-    Object.keys(genreLabels).forEach(function(g){if(tags.indexOf(g)>=0) genreMap[g]=(genreMap[g]||0)+1;});
-  });
-  var topGenres=Object.entries(genreMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-
-  /* 트렌드 텍스트 */
-  var growthPct=prevSongs>0?Math.round((newSongs-prevSongs)/prevSongs*100):0;
-  var growthIcon=growthPct>0?'📈 +'+growthPct+'%':growthPct<0?'📉 '+growthPct+'%':'➡️ 동일';
-  var trendLines=['• '+growthIcon+' 전주 대비 신곡 수'];
-  if(topGenres.length) trendLines.push('• 인기 장르: '+topGenres.map(function(g){return(genreLabels[g[0]]||g[0])+' ('+g[1]+'곡)';}).join(', '));
-
-  var topTrack=thisWeek.slice().sort(function(a,b){return(b.comm_plays||b.plays||0)-(a.comm_plays||a.plays||0);})[0];
-  if(topTrack&&(topTrack.comm_plays||topTrack.plays||0)>0){
-    var owner=topTrack._owner||{};
-    trendLines.push('• 🔥 1위: '+(topTrack.title||'무제').slice(0,20)+' — '+(owner.name||'익명')+' (▶'+(topTrack.comm_plays||topTrack.plays||0)+')');
-  }
-  trendEl.innerHTML=trendLines.join('<br>');
-
-  /* 장르 분포 바 차트 */
-  if(genreChartEl&&topGenres.length>=2){
-    var maxCount=topGenres[0][1];
-    genreChartEl.innerHTML='<div class="comm-genre-bar-wrap">'
-      +'<div class="comm-genre-bar-title">🏷 장르 분포</div>'
-      +topGenres.map(function(g){
-        var pct=Math.round(g[1]/maxCount*100);
-        var color=genreColors[g[0]]||'var(--acc)';
-        return '<div class="comm-genre-bar-row">'
-          +'<div class="comm-genre-bar-label">'+(genreLabels[g[0]]||g[0])+'</div>'
-          +'<div class="comm-genre-bar-track"><div class="comm-genre-bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div>'
-          +'<div class="comm-genre-bar-pct">'+g[1]+'곡</div>'
-          +'</div>';
-      }).join('')
-      +'</div>';
-  } else if(genreChartEl){
-    genreChartEl.innerHTML='';
-  }
-
-  /* 급상승 HOT 섹션 */
-  if(hotEl&&hotTracks.length>0){
-    var hotTop=hotTracks.slice().sort(function(a,b){return(b.comm_plays||b.plays||0)-(a.comm_plays||a.plays||0);}).slice(0,3);
-    hotEl.innerHTML='<div class="comm-hot-wrap">'
-      +'<div class="comm-hot-title">🔥 급상승</div>'
-      +hotTop.map(function(t){
-        var img=t.image_url||t.img||t.cover||'';
-        var imgTag=img?'<img class="comm-hot-thumb" src="'+img.replace(/"/g,'&quot;')+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="comm-hot-thumb" style="display:flex;align-items:center;justify-content:center;font-size:14px;">🎵</div>';
-        var o=t._owner||{};
-        var sid=t._sbId||'';
-        var plays=t.comm_plays||t.plays||0;
-        var likes=t.comm_likes||t.likes||0;
-        return '<div class="comm-hot-item" onclick="commPlaySb(\''+sid+'\')">'
-          +imgTag
-          +'<div class="comm-hot-info"><div class="comm-hot-info-title">'+(t.title||'무제').replace(/</g,'&lt;')+'</div><div class="comm-hot-info-artist">'+(o.name||'익명').replace(/</g,'&lt;')+'</div></div>'
-          +'<div class="comm-hot-stats">▶'+plays+' ❤️'+likes+'</div>'
-          +'</div>';
-      }).join('')
-      +'</div>';
-  } else if(hotEl){
-    hotEl.innerHTML='';
-  }
-}
+/* 인사이트 배너 제거됨 — _commRenderInsight는 더 이상 사용하지 않음 */
+function _commRenderInsight(){}
 document.querySelectorAll('.comm-ftag').forEach(btn=>{
   btn.addEventListener('click',function(){
     if(this.dataset.cf==='refresh') return; /* 새로고침은 onclick으로 처리 */
@@ -21590,10 +21485,16 @@ function _chatDateLabel(dateStr){
 }
 
 function _chatLinkify(text){
-  return text.replace(/(https?:\/\/[^\s<]+)/g,'<a class="chat-link" href="$1" target="_blank" rel="noopener" onclick="event.stopPropagation()">$1</a>');
+  return text.replace(/(https?:\/\/[^\s<]+)/g,function(url){
+    var safe=url.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    return '<a class="chat-link" href="'+safe+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+url+'</a>';
+  });
 }
 function _chatMentionify(text){
-  return text.replace(/@(\S+)/g,'<span class="chat-mention" onclick="event.stopPropagation();openCreatorProfile(\'$1\',\'\')">@$1</span>');
+  return text.replace(/@(\S+)/g,function(_m,name){
+    var safe=name.replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\\/g,'\\\\');
+    return '<span class="chat-mention" onclick="event.stopPropagation();openCreatorProfile(\''+safe+'\',\'\')">@'+name+'</span>';
+  });
 }
 function _chatFormatContent(raw){
   let s=esc(raw);
