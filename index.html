@@ -11454,7 +11454,7 @@ async function _autoLyricsAndGenerate(){
       toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
     }
     /* 바로 생성 — _afterLyrics 플래그로 잠금 우회 */
-    setTimeout(()=>{ _globalGenerating=false; _syncGenButtons(); generate({_afterLyrics:true}); },800);
+    setTimeout(()=>{ _QueueManager.setBusy('music',false); _globalGenerating=false; _syncGenButtons(); generate({_afterLyrics:true}); },800);
   }catch(e){
     clearInterval(ti);
     _QueueManager.setBusy('music',false); _globalGenerating = false; _syncGenButtons();
