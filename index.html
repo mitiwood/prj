@@ -9494,6 +9494,11 @@ async function _ytDoGenerate(){
     };
     if(songTitle) body.title = songTitle;
     if(ytVocalGender && !isInst) body.vocalGender = ytVocalGender;
+    /* 곡 길이 제어 — short 선택 시 짧은 곡 힌트 */
+    if(_ytDuration==='short'){
+      body.duration=60;
+      if(body.style&&body.style.indexOf('short song')===-1) body.style='short song, under 1 minute, '+body.style;
+    }
     /* 스타일 가중치 최대 — 분석된 스타일 충실 반영 */
     body.styleWeight = 0.95;
     /* 창의성 최소 — 분석된 원곡 느낌에 가깝게 */
@@ -12561,6 +12566,12 @@ async function generate(overrideParams){
     /* customMode: 가사 입력 시 강제 true (kie.ai가 가사로 인식하도록) */
     const _forceCustom = (prompt||'').length > 400 || _simpleHasRealLyrics;
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
+    /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
+    if(selectedDuration===0){
+      body.duration=60;
+    } else if(selectedDuration>0){
+      body.duration=selectedDuration;
+    }
     /* V5 모델: audioWeight 파라미터 추가 */
     if(model==='V5'){var _aw=$('audio-weight');if(_aw)body.audioWeight=parseFloat(_aw.value)||0.5;}
     /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
@@ -12582,6 +12593,10 @@ async function generate(overrideParams){
     if(!_vocalLang && /[\u3040-\u30FF\u4E00-\u9FFF]/.test(prompt)) _vocalLang = /[\u3040-\u30FF]/.test(prompt) ? 'Japanese' : 'Chinese';
     if(_vocalLang && !instOn && body.style && body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
       body.style = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang + ', ' + body.style;
+    }
+    /* 곡 길이 힌트 — 짧게 선택 시 style에도 추가 */
+    if(selectedDuration===0 && body.style && body.style.indexOf('short song')===-1){
+      body.style='short song, under 1 minute, '+body.style;
     }
     /* kie.ai style 길이 제한: customMode=true → 1000자, false → 200자 */
     if(body.style){
