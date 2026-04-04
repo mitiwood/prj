@@ -254,7 +254,7 @@ export default async function handler(req, res) {
       const qEmail = req.query?.email;
       const userFilter = qEmail
         ? `email=eq.${encodeURIComponent(qEmail)}&provider=eq.${encodeURIComponent(provider)}`
-        : `name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`;
+        : `name=ilike.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(provider)}`;
       const trackFilter = qEmail
         ? `owner_email=eq.${encodeURIComponent(qEmail)}&owner_provider=eq.${encodeURIComponent(provider)}`
         : `owner_name=eq.${encodeURIComponent(name)}&owner_provider=eq.${encodeURIComponent(provider)}`;
@@ -274,7 +274,8 @@ export default async function handler(req, res) {
       const users = results[0].data;
       const user = users[0] || { name, provider, avatar: '', plan: 'free' };
       /* SUPERVISOR_NAMES 환경변수 체크 → plan/credits 오버라이드 */
-      if (SUPERVISOR_NAMES.includes((name || '').toLowerCase())) {
+      const OWNER_EMAILS = ['altosax7@gmail.com'];
+      if (SUPERVISOR_NAMES.includes((name || '').toLowerCase()) || OWNER_EMAILS.includes((user.email || '').toLowerCase())) {
         user.plan = 'supervisor';
         user.credits_song = 9999;
         user.credits_mv = 9999;

@@ -81,13 +81,13 @@ async function checkServerCredit(userName, userProvider, creditType) {
   if (SUPERVISOR_NAMES.includes((userName || '').toLowerCase())) return { ok: true, plan: 'supervisor' };
   try {
     const users = await sbFetch('GET',
-      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     let user = users?.[0];
     if (!user) {
-      /* name+provider 매칭 실패 → name만으로 재검색 */
+      /* name+provider 매칭 실패 → name만으로 재검색 (대소문자 무시) */
       try {
-        const byName = await sbFetch('GET', `/users?name=eq.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
+        const byName = await sbFetch('GET', `/users?name=ilike.${encodeURIComponent(userName)}&provider=neq.guest&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&order=last_login.desc&limit=1`);
         user = byName?.[0];
       } catch {}
     }
