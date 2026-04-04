@@ -7855,6 +7855,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div class="kp-controls">
           <button class="kp-play-btn" id="kp-play-btn">▶</button>
         </div>
+        <button id="kp-mr-btn" onclick="_kpToggleMR()" style="margin-top:8px;padding:8px 16px;border-radius:20px;border:1.5px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;justify-content:center;">
+          <span id="kp-mr-icon">🎵</span> <span id="kp-mr-text">MR 전환</span>
+        </button>
       </div>
     </div>
     <div class="kp-right" id="kp-lyrics-area">
@@ -21017,8 +21020,34 @@ function _openFullKaraoke(idx){
   openKaraokePlayer(h.audio_url||'',h.title||'',_normTags(h.tags),h.image_url||'',h.taskId||'',h.id||'',plain);
 }
 
+var _kpOriginalUrl=''; /* 원본(보컬) 오디오 URL */
+var _kpMRUrl=''; /* MR(보컬 제거) 오디오 URL */
+var _kpIsMR=false; /* 현재 MR 모드 여부 */
+var _kpTaskId=''; /* 보컬 제거 taskId */
+var _kpAudioId=''; /* 보컬 제거 audioId */
+var _kpMRLoading=false;
+
 function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyrics){
   const player=$('karaoke-player');
+  /* MR 상태 초기화 */
+  _kpOriginalUrl=audioUrl;_kpMRUrl='';_kpIsMR=false;_kpTaskId=taskId;_kpAudioId=audioId;_kpMRLoading=false;
+  /* MR 버튼 초기화 */
+  var mrBtn=$('kp-mr-btn');if(mrBtn){mrBtn.style.opacity='1';mrBtn.disabled=false;}
+  var mrText=$('kp-mr-text');if(mrText)mrText.textContent='MR 전환';
+  var mrIcon=$('kp-mr-icon');if(mrIcon)mrIcon.textContent='🎵';
+  /* 이미 MR 트랙으로 열린 경우 (보컬 제거된 트랙) */
+  var _kpHist=historyData.find(function(t){return t.id===audioId||(taskId&&t.taskId===taskId);});
+  if(_kpHist&&(_kpHist.genMode==='vocal-removal'||_kpHist._vocalRemovedFrom)){
+    _kpIsMR=true;_kpMRUrl=audioUrl;
+    /* 원본 트랙 찾기 */
+    if(_kpHist._vocalRemovedFrom){var orig=historyData.find(function(o){return o.id===_kpHist._vocalRemovedFrom;});if(orig)_kpOriginalUrl=orig.audio_url||audioUrl;}
+    if(mrText)mrText.textContent='원본으로';if(mrIcon)mrIcon.textContent='🎤';
+  }
+  /* 히스토리에서 이 곡의 MR 버전 찾기 */
+  if(!_kpIsMR){
+    var existingMR=historyData.find(function(t){return t._vocalRemovedFrom===audioId&&t.audio_url;});
+    if(existingMR){_kpMRUrl=existingMR.audio_url;if(mrText)mrText.textContent='MR 전환';}
+  }
   /* 다른 소스 재생 중이면 즉시 정지 */
   stopAllAudio();
   /* 기존 노래방 오디오 정지 */
@@ -21211,6 +21240,102 @@ function startKpViz(){
 function stopKpViz(){
   clearInterval(kpVizTimer);
   $('kp-viz').querySelectorAll('.kp-vbar').forEach(b=>{b.style.transform='scaleY(0.11)';});
+}
+
+/* MR 전환: 보컬 제거 → MR 오디오로 교체 */
+async function _kpToggleMR(){
+  var mrBtn=$('kp-mr-btn'),mrText=$('kp-mr-text'),mrIcon=$('kp-mr-icon');
+  if(_kpMRLoading){toast('MR 변환 중...','',1500);return;}
+
+  /* 이미 MR 모드 → 원본으로 복원 */
+  if(_kpIsMR&&_kpOriginalUrl){
+    _kpIsMR=false;
+    _kpSwitchAudio(_kpOriginalUrl);
+    if(mrText)mrText.textContent='MR 전환';if(mrIcon)mrIcon.textContent='🎵';
+    toast('🎤 원본(보컬) 모드','ok',1500);
+    return;
+  }
+
+  /* 이미 MR URL이 있으면 바로 전환 */
+  if(_kpMRUrl){
+    _kpIsMR=true;
+    _kpSwitchAudio(_kpMRUrl);
+    if(mrText)mrText.textContent='원본으로';if(mrIcon)mrIcon.textContent='🎤';
+    toast('🎵 MR(반주) 모드','ok',1500);
+    return;
+  }
+
+  /* MR 없음 → 보컬 제거 API 호출 */
+  if(!_kpAudioId&&!_kpTaskId){toast('이 곡은 MR 변환을 지원하지 않아요','err',2500);return;}
+  _kpMRLoading=true;
+  if(mrText)mrText.textContent='변환 중...';if(mrBtn){mrBtn.style.opacity='.5';mrBtn.disabled=true;}
+  toast('🎵 보컬 제거 중... 잠시만 기다려주세요','',5000);
+
+  try{
+    var apiKey=kieApiKey||'proxy';
+    var vrBody={audioId:_kpAudioId||_kpTaskId};
+    var vrRes=await kieRequest(apiKey,'POST','/api/v1/vocal-removal/generate',vrBody);
+    var vrTaskId=vrRes?.data?.taskId||vrRes?.taskId;
+    if(!vrTaskId)throw new Error('보컬 제거 요청 실패');
+
+    /* 폴링 */
+    for(var p=0;p<60;p++){
+      await sleep(1500);
+      var pr=await kieRequest(apiKey,'GET','/api/v1/vocal-removal/record-info?taskId='+vrTaskId);
+      var pd=pr?.data;
+      if(!pd)continue;
+      if(pd.status==='completed'||pd.status==='complete'||pd.status==='SUCCESS'){
+        var instUrl=pd.instrumentalUrl||pd.instrumental_url||(pd.result&&pd.result.instrumental_url)||'';
+        if(!instUrl&&pd.result){instUrl=pd.result.instrumentalUrl||pd.result.audio_url||'';}
+        if(instUrl){
+          _kpMRUrl=instUrl;_kpIsMR=true;
+          _kpSwitchAudio(_kpMRUrl);
+          if(mrText)mrText.textContent='원본으로';if(mrIcon)mrIcon.textContent='🎤';
+          if(mrBtn){mrBtn.style.opacity='1';mrBtn.disabled=false;}
+          _kpMRLoading=false;
+          toast('🎵 MR(반주) 모드 전환 완료!','ok',2000);
+          /* 히스토리에 MR 트랙 저장 */
+          var _kpH=historyData.find(function(t){return t.id===_kpAudioId||t.taskId===_kpTaskId;});
+          historyData.unshift({id:vrTaskId,taskId:vrTaskId,title:'[MR] '+($('kp-title')?.textContent||''),audio_url:instUrl,image_url:_kpH?.image_url||'',tags:'instrumental, MR',lyrics:'',created:Date.now(),type:'audio',genMode:'vocal-removal',_vocalRemovedFrom:_kpAudioId||'',_owner:currentUser?{name:currentUser.name,avatar:currentUser.avatar,provider:currentUser.provider}:null});
+          saveHistory();updateHistBadge();
+          return;
+        }
+      }
+      if(pd.status==='failed'||pd.status==='error')throw new Error('보컬 제거 실패');
+    }
+    throw new Error('보컬 제거 시간 초과');
+  }catch(e){
+    toast('❌ MR 변환 실패: '+e.message,'err',3000);
+  }finally{
+    _kpMRLoading=false;
+    if(mrText)mrText.textContent='MR 전환';if(mrBtn){mrBtn.style.opacity='1';mrBtn.disabled=false;}
+  }
+}
+
+/* 노래방 오디오 URL 교체 (재생 위치 유지) */
+function _kpSwitchAudio(newUrl){
+  if(!kpAudio)return;
+  var curTime=kpAudio.currentTime;
+  var wasPlaying=!kpAudio.paused;
+  kpAudio.pause();
+  if(kpAudio){_destroyAudio(kpAudio);kpAudio=null;}
+  var audio=new Audio(newUrl);
+  kpAudio=audio;
+  audio.currentTime=curTime;
+  audio.addEventListener('timeupdate',function(){
+    if(_kpRafPending)return;_kpRafPending=true;
+    requestAnimationFrame(function(){
+      _kpRafPending=false;if(audio!==kpAudio)return;
+      var pct=audio.duration?(audio.currentTime/audio.duration)*100:0;
+      $('kp-prog-fill').style.width=pct+'%';
+      $('kp-cur').textContent=formatTime(audio.currentTime);
+      $('kp-dur').textContent=formatTime(audio.duration||0);
+      syncKpLyrics(audio.currentTime);
+    });
+  });
+  audio.addEventListener('ended',function(){$('kp-play-btn').textContent='▶';stopKpViz();});
+  audio.addEventListener('error',function(){toast('오디오 재생 오류','err');});
+  if(wasPlaying)audio.play().then(function(){$('kp-play-btn').textContent='⏸';startKpViz();}).catch(function(){});
 }
 
 function closeKaraokePlayer(){
