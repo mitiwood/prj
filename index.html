@@ -9414,9 +9414,22 @@ async function _ytDoGenerate(){
   var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent='0%';
   var _ldEta=$('ld-eta');if(_ldEta)_ldEta.textContent='예상 ~1분';
 
-  /* ── 가사 사전 생성 제거 — kie.ai가 자체적으로 가사 생성 + API 가사 우선 저장으로 15-25초 단축 ── */
-  /* 가사 없이 생성해도 kie.ai가 보컬 가사를 만들어 부르고, pollResult 후 API 가사를 저장함 */
-  console.log('%c[YT-Timer] 가사 사전 생성 스킵 (API 가사 우선)','color:#f59e0b;font-weight:bold','+'+((Date.now()-_ytT0)/1000).toFixed(1)+'s');
+  /* ── 가사 없으면 빠른 자동 생성 (5초 타임아웃) ── */
+  if(!ytLyrics && !isInst){
+    var _autoLang = ($('yt-vocal-lang')?.value || '').trim();
+    var _langHint = _autoLang ? ('Write lyrics in ' + _autoLang + '. ') : '';
+    var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
+    var lyricsPrompt = _langHint + [lyricsTheme, ytGenre, ytMood].filter(Boolean).join(', ');
+    var _ldSub=$('ld-sub');if(_ldSub)_ldSub.innerHTML='가사 생성 중... ✍️';
+    try{
+      var _fastLyrics = await Promise.race([
+        _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300)),
+        new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
+      ]);
+      if(_fastLyrics && _fastLyrics.length > 30){ ytLyrics = _fastLyrics; }
+    }catch(e){}
+    if(_ldSub)_ldSub.innerHTML='YouTube 감성으로 작업 중 ~';
+  }
 
   /* ── 제목 미입력/자동 + 가사 있으면 → 가사에서 의미있는 제목 추출 ── */
   if(_titleIsAuto && ytLyrics && ytLyrics.length > 30){
@@ -12449,13 +12462,20 @@ async function generate(overrideParams){
     } else if(isSimple){
       /* 심플모드: 가사 없으면 설명/무드만으로 바로 생성 (가사는 백그라운드 자동 생성) */
       lyricsText = $('simple-prompt')?.value.trim() || moodVal || 'happy pop song';
-    } else if(isCustom){
-      /* 가사 없이 바로 생성 — kie.ai가 자체 가사 생성 + API 가사 우선 저장으로 싱크 보장 */
-      var _customDesc = ($('song-desc')?.value||'').trim();
-      var _customGenre = ($('genre-sub')?.value||'');
-      var _customMood = ($('mood')?.value||'');
-      lyricsText = _customDesc || [_customGenre, _customMood].filter(Boolean).join(', ') || 'beautiful emotional song';
-      toast('🎵 AI가 가사와 음악을 동시에 생성합니다','',2000);
+} else if(isCustom){
+      toast('✍️ 가사를 빠르게 생성 중...','',2000);
+      var _cLang=($('lyrics-lang')?.value||'').trim();
+      var _cHint=_cLang?'Write lyrics in '+_cLang+'. ':'';
+      var _cDesc=($('song-desc')?.value||'').trim();
+      var _cBase=_cHint+(_cDesc||[($('genre-sub')?.value||''),($('mood')?.value||'')].filter(Boolean).join(', ')||'감성적인 노래');
+      try{
+        var _cLyrics=await Promise.race([
+          _kieLyricsWithFallback(kieApiKey, _cBase.slice(0,300)),
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
+        ]);
+        if(_cLyrics&&_cLyrics.length>30){lyricsText=_cLyrics;$('prompt').value=_cLyrics;}
+        else{lyricsText=_cBase;}
+      }catch(e){lyricsText=_cBase;}
     } else if(false){/* 심플 분기 이동됨 — 기존 isSimple 비활성 */
       /* 심플: 설명 없으면 안내 팝업 + 인풋 포커스 */
       const simpleInput = $('simple-prompt');
