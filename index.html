@@ -15756,6 +15756,8 @@ function _clearMediaSession(){
 
 function _destroyFpAudio(){
   if(!fpAudio) return;
+  /* rAF 싱크 루프 정리 */
+  if(typeof _fpStopSyncLoop==='function') _fpStopSyncLoop();
   /* 이벤트 리스너 일괄 해제 */
   if(_fpAbort){try{_fpAbort.abort();}catch(e){}_fpAbort=null;}
   /* BPM 분석기 해제 */
@@ -19684,6 +19686,7 @@ async function fpRenderLyrics(h){
     const lrcMatch = trimmed.match(lrcRe);
     if(lrcMatch){
       const mins=parseInt(lrcMatch[1]), secs=parseInt(lrcMatch[2]);
+      if(isNaN(mins)||isNaN(secs)||mins<0||secs<0||secs>59)return; /* 잘못된 타임스탬프 무시 */
       const frac=lrcMatch[3]?parseFloat('0.'+lrcMatch[3]):0;
       const timeSec=mins*60+secs+frac;
       const text=lrcMatch[4].trim();
@@ -19845,9 +19848,9 @@ var _fpSyncRAF=null;
 function _fpStartSyncLoop(){
   if(_fpSyncRAF) cancelAnimationFrame(_fpSyncRAF);
   function _loop(){
-    _fpSyncRAF=requestAnimationFrame(_loop);
-    if(!fpAudio||fpAudio.paused||!fpTimestampLines.length) return;
+    if(!fpAudio||fpAudio.paused||!fpTimestampLines.length){_fpSyncRAF=null;return;} /* paused → 루프 중단 */
     fpSyncLyrics(fpAudio.currentTime);
+    _fpSyncRAF=requestAnimationFrame(_loop);
   }
   _loop();
 }
@@ -21079,6 +21082,7 @@ function stopKpViz(){
 function closeKaraokePlayer(){
   const _savedTime=kpAudio?kpAudio.currentTime:0;
   if(kpAudio){kpAudio.pause();}
+  _fpStopSyncLoop();
   stopKpViz();
   $('karaoke-player').classList.remove('on');
   document.body.style.overflow='';
