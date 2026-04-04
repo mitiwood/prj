@@ -9652,7 +9652,7 @@ async function _ytDoGenerate(){
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:_ytSTags,
-        lyrics:(t.lyric||t.lyrics||t.lrc||'').includes('\n') ? (t.lyric||t.lyrics||t.lrc) : (ytLyrics||''),
+        lyrics:(function(){var al=t.lyric||t.lyrics||t.lrc||'';return(al&&(al.includes('\n')||al.length>120))?al:(ytLyrics||'');})(),
         genMode:'youtube',
         owner_name:currentUser?.name||'익명',
         owner_avatar:currentUser?.avatar||'',
@@ -12721,9 +12721,9 @@ async function generate(overrideParams){
       /* 심플모드: lastLyricsInput 없음 → API 응답 lyric 사용
          커스텀모드: 입력 가사 우선, 없으면 API lyric */
       const apiLyric=t.lyric||t.lyrics||t.lrc||'';
-      /* API 가사가 있으면 항상 사용 (보컬이 부르는 실제 가사) */
-      /* 사용자 입력 가사 우선, 없으면 API 응답 가사 (설명 텍스트는 가사로 저장 안 함) */
-      const savedLyrics = lastLyricsInput || apiLyric || '';
+      /* ★ API 실제 가사 우선 (보컬이 부르는 가사 = 싱크 일치) → 없으면 사용자 입력 */
+      const _isRealApi = apiLyric && (apiLyric.includes('\n') || /\[.+?\]/.test(apiLyric) || apiLyric.length > 120);
+      const savedLyrics = _isRealApi ? apiLyric : (lastLyricsInput || apiLyric || '');
       const _tTags=_normTags(t.tags)||styleStr;
       const _newTrack = {
         id:t.id,taskId:lastTaskId,title:_autoGenerateTitle(t.title,savedLyrics,_tTags,currentMode),
@@ -12776,10 +12776,11 @@ async function generate(overrideParams){
       setTimeout(function(){ showMiniPlayer(0); },300);
     }
 
-    /* 서버에 트랙 저장 (admin 전체 조회용) — 히스토리에 저장된 가사 우선 */
+    /* 서버에 트랙 저장 — API 실제 가사 우선 (싱크 일치) */
     tracks.forEach(t=>{
-      var _hm=historyData.find(function(hh){return hh.id===t.id;});
-      const _lyrics = (_hm&&_hm.lyrics)||lastLyricsInput||t.lyric||t.lyrics||t.lrc||'';
+      var _apiL=t.lyric||t.lyrics||t.lrc||'';
+      var _isRealSrv=_apiL&&(_apiL.includes('\n')||/\[.+?\]/.test(_apiL)||_apiL.length>120);
+      const _lyrics = _isRealSrv ? _apiL : (lastLyricsInput||_apiL||'');
       const _sTags = _normTags(t.tags)||styleStr;
       _saveTrackToServer({
         id:t.id, taskId:lastTaskId,
