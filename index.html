@@ -636,7 +636,7 @@ textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
 /* 보컬 */
 .vocal-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
 .vbtn{
-  padding:12px 6px;border-radius:12px;
+  padding:10px 4px;border-radius:10px;
   border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);
   color:var(--t2);font-size:12px;font-weight:600;
   cursor:pointer;transition:all .2s;font-family:inherit;text-align:center;
@@ -5210,14 +5210,18 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
               </div>
             </div>
           </div>
-          <!-- 보컬 성별 -->
+          <!-- 보컬 스타일 -->
           <div style="margin-bottom:10px;" id="vocal-group">
-            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">보컬 성별</div>
+            <div style="font-size:11px;color:var(--t2);font-weight:600;margin-bottom:6px;">보컬 스타일</div>
             <div class="vocal-row">
               <button class="vbtn on" data-v=""><span class="vbtn-ico">🎙</span>자동</button>
               <button class="vbtn" data-v="m"><span class="vbtn-ico">🧑</span>남성</button>
               <button class="vbtn" data-v="f"><span class="vbtn-ico">👩</span>여성</button>
               <button class="vbtn" data-v="duet"><span class="vbtn-ico">👫</span>혼성</button>
+              <button class="vbtn" data-v="boygroup"><span class="vbtn-ico">🎤</span>보이그룹</button>
+              <button class="vbtn" data-v="girlgroup"><span class="vbtn-ico">💖</span>걸그룹</button>
+              <button class="vbtn" data-v="choir"><span class="vbtn-ico">🎼</span>합창</button>
+              <button class="vbtn" data-v="rapper"><span class="vbtn-ico">🔥</span>래퍼</button>
             </div>
           </div>
           <!-- BPM 슬라이더 -->
@@ -12738,12 +12742,17 @@ async function generate(overrideParams){
       }
     }
     if(!instOn && vocalGender){
-      if(vocalGender==='duet'){
-        _autoHints.push('male and female duet, mixed vocals, boy and girl singing together');
-      } else {
-        var _gH = vocalGender==='f'?'female vocal':'male vocal';
-        if(!body.style || body.style.toLowerCase().indexOf(_gH)===-1) _autoHints.push(_gH);
-      }
+      var _vocalHints={
+        'm':'male vocal',
+        'f':'female vocal',
+        'duet':'male and female duet, mixed vocals, boy and girl singing together',
+        'boygroup':'boy group, multiple male vocalists, K-pop idol group harmony',
+        'girlgroup':'girl group, multiple female vocalists, K-pop girl group harmony',
+        'choir':'choir vocals, full chorus, harmonized group singing, ensemble',
+        'rapper':'rap vocal, rhythmic flow, hip-hop delivery, confident rap'
+      };
+      var _vh=_vocalHints[vocalGender];
+      if(_vh) _autoHints.push(_vh);
     }
     if(selectedDuration===0){
       if(!body.style || body.style.indexOf('short song')===-1) _autoHints.push('short song');
@@ -12761,7 +12770,7 @@ async function generate(overrideParams){
       }
     }
     if(negTags)body.negativeTags=negTags;
-    if(!instOn&&vocalGender&&vocalGender!=='duet')body.vocalGender=vocalGender;
+    if(!instOn&&vocalGender&&(vocalGender==='m'||vocalGender==='f'))body.vocalGender=vocalGender;
     const songTitle=overrideParams?.title||(isSimple?$('simple-song-title')?.value?.trim():'') ||(isYT?$('yt-song-title')?.value?.trim():'')|| $('song-title').value.trim();
     if(songTitle)body.title=songTitle;
     /* kie.ai generate API는 duration을 지원하지 않음 — 제거 */
