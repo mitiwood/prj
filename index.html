@@ -9605,7 +9605,8 @@ async function _ytDoGenerate(){
       const apiLyric   = t.lyric||t.lyrics||t.lrc||'';
       const isRealLyric= apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
       /* 가사 우선순위: kie.ai 실제 가사(노래와 일치) → 유저 직접 입력 → 빈값 */
-      const _savedLyrics = (isRealLyric ? apiLyric : '') || _ytUserLyrics || '';
+      /* ★ API 가사가 있으면 항상 우선 (자동 생성 가사는 prompt용이라 실제 보컬과 다를 수 있음) */
+      const _savedLyrics = isRealLyric ? apiLyric : (_ytUserLyrics || '');
       historyData.unshift({
         id:t.id, taskId:_ytTaskId,
         title: _autoGenerateTitle(t.title||songTitle,_ytUserLyrics,_ytTags,'youtube'),
@@ -9646,7 +9647,7 @@ async function _ytDoGenerate(){
         audio_url:t.audioUrl||t.audio_url||t.song_path||'',
         image_url:t.imageUrl||t.image_url||'',
         tags:_ytSTags,
-        lyrics:(t.lyric||t.lyrics||t.lrc||'').includes('\n') ? (t.lyric||t.lyrics||t.lrc) : (ytLyrics||''),
+        lyrics:(function(){var al=t.lyric||t.lyrics||t.lrc||'';return(al&&(al.includes('\n')||al.length>120))?al:(ytLyrics||'');})(),
         genMode:'youtube',
         owner_name:currentUser?.name||'익명',
         owner_avatar:currentUser?.avatar||'',
