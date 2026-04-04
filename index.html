@@ -21895,6 +21895,8 @@ async function renderCommunity(force=false){
   try{ await _renderCommunityInner(force); }finally{ _commRendering=false; }
 }
 async function _renderCommunityInner(force){
+  /* 잔여 comm-scroll-loading 강제 제거 */
+  var _stale=document.getElementById('comm-scroll-loading');if(_stale)_stale.remove();
   /* 크리에이터 모드이면 별도 렌더 */
   if(_commActiveGenre==='creators'){
     var cw=$('comm-chart-wrap');if(cw)cw.style.display='none';
