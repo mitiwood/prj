@@ -17232,6 +17232,15 @@ async function _doOpenFullPlayer(idx){
 
   /* debug removed */
 
+  /* 균등 분할 타이밍 — duration 로드 후 할당 (fpRenderLyrics는 이전 audio에서 실행되므로 새 audio에 재등록) */
+  audio.addEventListener('loadedmetadata',function(){
+    if(genId!==_fpAudioGenId)return;
+    if(typeof _fpAssignTimes==='function'&&!_fpLrcTimes.length) _fpAssignTimes();
+  });
+  audio.addEventListener('canplay',function(){
+    if(genId!==_fpAudioGenId)return;
+    if(typeof _fpAssignTimes==='function'&&!_fpLrcTimes.length) _fpAssignTimes();
+  },{once:true});
   audio.addEventListener('timeupdate',()=>{
     if(genId!==_fpAudioGenId)return;
     if(!audio.duration)return;
@@ -17325,6 +17334,19 @@ async function _doOpenFullPlayer(idx){
     audio.pause();_syncAllPlayBtns(false);
     toast(msg,'err',4000);
   });
+  /* play/pause 이벤트 — 싱크 루프 제어 */
+  audio.addEventListener('play',function(){
+    if(genId!==_fpAudioGenId)return;
+    if(typeof _fpStartSyncLoop==='function') _fpStartSyncLoop();
+    _syncAllPlayBtns(true);
+    if('mediaSession' in navigator) navigator.mediaSession.playbackState='playing';
+  });
+  audio.addEventListener('pause',function(){
+    if(genId!==_fpAudioGenId)return;
+    if(typeof _fpStopSyncLoop==='function') _fpStopSyncLoop();
+    _syncAllPlayBtns(false);
+    if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
+  });
   /* canplay 대기 후 재생 */
   audio.addEventListener('canplay',function _onCanPlay(){
     audio.removeEventListener('canplay',_onCanPlay);
@@ -17332,8 +17354,6 @@ async function _doOpenFullPlayer(idx){
     if(typeof _initBpmAnalyser==='function') _initBpmAnalyser();
     audio.play().then(()=>{
       if(genId!==_fpAudioGenId)return;
-      /* debug removed */
-      _syncAllPlayBtns(true);
     }).catch((e)=>{
       if(e.name!=='AbortError')console.warn('[FP play() error]',e.message);
     });
