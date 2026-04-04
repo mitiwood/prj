@@ -531,7 +531,11 @@ body.simple-mode #preset-carousel,
 body.youtube-mode .prompt-templates,
 body.youtube-mode .gen-history,
 body.youtube-mode .home-widgets,
-body.youtube-mode #preset-carousel{display:none!important;}
+body.youtube-mode #preset-carousel,
+body.mv-mode .prompt-templates,
+body.mv-mode .gen-history,
+body.mv-mode .home-widgets,
+body.mv-mode #preset-carousel{display:none!important;}
 
 /* 폼 공통 */
 .form-grp{margin-bottom:18px;}
@@ -9284,10 +9288,12 @@ document.querySelectorAll('.mtab').forEach(tab=>{
       if(aiStyleEl) aiStyleEl.innerHTML='';
     }
     const panel=$('panel-'+currentMode);if(panel)panel.classList.add('on');
-    /* 심플모드: 공통 영역 숨김 */
+    /* 모드별 공통 영역 숨김 */
     document.body.classList.toggle('simple-mode', currentMode==='simple');
     document.body.classList.toggle('youtube-mode', currentMode==='youtube');
     document.body.classList.toggle('mv-mode', currentMode==='mv');
+    /* 프롬프��� 템플릿: 커스텀 모드에서만 표시 */
+    var _ptEl=$('prompt-templates');if(_ptEl)_ptEl.style.display=(currentMode==='custom')?'':'none';
     /* 공용 nav 갱신 */
     if(typeof _updateFixedNav==='function') _updateFixedNav();
     /* 현재 모드 결과 섹션만 표시, 나머지 숨김 */
@@ -29940,7 +29946,7 @@ function _remasterV5(audioUrl, audioId, title){
   $('remaster-modal').classList.add('on');
 }
 
-function _renderPromptTemplates(){var s=$('pt-scroll');if(!s)return;s.innerHTML=_promptTemplates.map(function(t,i){return '<div class="pt-card" onclick="_applyTemplate('+i+')"><div class="pt-card-emoji">'+t.emoji+'</div><div class="pt-card-title">'+t.title+'</div><div class="pt-card-desc">'+t.tags+'</div></div>';}).join('');}
+function _renderPromptTemplates(){var s=$('pt-scroll');if(!s)return;/* 심플/유튜브 모드에서는 숨김 유지 */var _ptWrap=$('prompt-templates');if(_ptWrap&&(currentMode==='simple'||currentMode==='youtube'))_ptWrap.style.display='none';s.innerHTML=_promptTemplates.map(function(t,i){return '<div class="pt-card" onclick="_applyTemplate('+i+')"><div class="pt-card-emoji">'+t.emoji+'</div><div class="pt-card-title">'+t.title+'</div><div class="pt-card-desc">'+t.tags+'</div></div>';}).join('');}
 function _applyTemplate(idx){var t=_promptTemplates[idx];if(!t)return;if(typeof currentMode!=='undefined'&&currentMode!=='custom'){var mt=document.querySelector('.mtab[data-mode="custom"]');if(mt)mt.click();}var p=$('prompt');if(p&&t.lyrics)p.value=t.lyrics;var d=$('song-desc');if(d&&t.tags)d.value=t.tags;var b=$('bpm-slider');if(b&&t.bpm){b.value=t.bpm;var bv=$('bpm-val');if(bv)bv.textContent=t.bpm;}toast(t.emoji+' "'+t.title+'" 적용!','ok',1500);_addGenHistory(t.title,t.tags);}
 setTimeout(_renderPromptTemplates,500);
 
