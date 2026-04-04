@@ -8,14 +8,14 @@ import AdvancedOptions from '../components/generate/AdvancedOptions';
 import Chip from '../components/ui/Chip';
 import type { Preset } from '../lib/engine/presets';
 import { buildStyleString } from '../lib/engine/prompt-engine';
-import { Music, Zap, Youtube, Film } from 'lucide-react';
+import { Music, Zap, Video, Film } from 'lucide-react';
 
 type Mode = 'custom' | 'simple' | 'youtube' | 'mv';
 
 const MODES: { id: Mode; label: string; icon: typeof Music }[] = [
   { id: 'custom', label: '커스텀', icon: Music },
   { id: 'simple', label: '심플', icon: Zap },
-  { id: 'youtube', label: 'YouTube', icon: Youtube },
+  { id: 'youtube', label: 'YouTube', icon: Video },
   { id: 'mv', label: 'MV', icon: Film },
 ];
 
