@@ -9499,6 +9499,8 @@ async function _ytDoGenerate(){
       body.duration=60;
       if(body.style&&body.style.indexOf('short song')===-1) body.style='short song, under 1 minute, '+body.style;
     }
+    /* kie.ai style 200자 제한 — 최종 안전장치 */
+    if(body.style && body.style.length>200) body.style=body.style.slice(0,200);
     /* 스타일 가중치 최대 — 분석된 스타일 충실 반영 */
     body.styleWeight = 0.95;
     /* 창의성 최소 — 분석된 원곡 느낌에 가깝게 */
@@ -12605,34 +12607,10 @@ async function generate(overrideParams){
     if(_vocalLang && !instOn && body.style && body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
       body.style = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang + ', ' + body.style;
     }
-    /* 보컬 스타일 힌트 자동 추가 — 장르/무드 기반 (UI 비노출) */
-    if(!instOn && body.style){
-      var _vHints = [];
-      var _sLow = (body.style||'').toLowerCase();
-      /* 장르별 보컬 특성 */
-      if(/ballad|발라드/.test(_sLow)) _vHints.push('emotional vocal, wide vocal range, dynamic expression');
-      else if(/hip-?hop|rap|trap|힙합/.test(_sLow)) _vHints.push('rhythmic vocal flow, confident delivery, dynamic rap');
-      else if(/r&b|rnb|soul/.test(_sLow)) _vHints.push('smooth soulful vocal, groove, warm tone');
-      else if(/rock|punk|metal/.test(_sLow)) _vHints.push('powerful vocal, raw energy, passionate delivery');
-      else if(/jazz/.test(_sLow)) _vHints.push('smooth jazz vocal, improvisational phrasing');
-      else if(/edm|electronic|dance|house|techno/.test(_sLow)) _vHints.push('catchy vocal hook, energetic vocal chant');
-      else if(/lo-?fi|chill|ambient/.test(_sLow)) _vHints.push('soft breathy vocal, intimate whisper-like tone');
-      else if(/k-?pop|pop/.test(_sLow)) _vHints.push('clear bright vocal, catchy melodic hook, polished tone');
-      else if(/trot|트로트/.test(_sLow)) _vHints.push('vibrato vocal, expressive Korean trot singing');
-      else if(/classical|cinematic|orchestral/.test(_sLow)) _vHints.push('operatic vocal, grand dynamic range');
-      else if(/acoustic|folk/.test(_sLow)) _vHints.push('warm natural vocal, intimate acoustic feel');
-      else _vHints.push('expressive vocal, clear tone, dynamic singing');
-      /* 무드별 보강 */
-      if(/sad|emotional|melanchol/.test(_sLow)) _vHints.push('heartfelt emotional delivery');
-      else if(/energetic|hype|upbeat|party/.test(_sLow)) _vHints.push('high energy vocal performance');
-      else if(/calm|relax|peaceful/.test(_sLow)) _vHints.push('gentle soothing voice');
-      else if(/dark|intense/.test(_sLow)) _vHints.push('deep intense vocal character');
-      /* 성별 보강 */
-      if(vocalGender==='f') _vHints.push('female vocalist');
-      else if(vocalGender==='m') _vHints.push('male vocalist');
-      /* style 앞에 삽입 (200자 제한 고려) */
-      var _vHintStr = _vHints.join(', ');
-      body.style = _vHintStr + ', ' + body.style;
+    /* 성별 힌트만 추가 (200자 제한 고려 — 장르/무드 힌트는 style에 이미 포함) */
+    if(!instOn && body.style && vocalGender){
+      var _gH = vocalGender==='f'?'female vocal':'male vocal';
+      if(body.style.toLowerCase().indexOf(_gH)===-1) body.style = _gH + ', ' + body.style;
     }
     /* 곡 길이 힌트 — 짧게 선택 시 style에도 추가 */
     if(selectedDuration===0 && body.style && body.style.indexOf('short song')===-1){
