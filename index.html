@@ -9428,7 +9428,7 @@ async function _ytDoGenerate(){
     try{
       var _fastLyrics = await Promise.race([
         _kieLyricsWithFallback(kieApiKey, lyricsPrompt.slice(0,300)),
-        new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
+        new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},8000);})
       ]);
       if(_fastLyrics && _fastLyrics.length > 30){ ytLyrics = _fastLyrics; }
     }catch(e){}
@@ -9444,14 +9444,16 @@ async function _ytDoGenerate(){
     }
   }
 
-  /* prompt: 가사가 있으면 가사를 prompt로, 없으면 스타일 설명 */
+  /* prompt: 가사가 있으면 가사를 prompt로, 없으면 테마 설명 (스타일 태그는 style 필드로) */
   var prompt;
   if(ytLyrics){
     prompt = ytLyrics;
   } else {
-    /* 인스트루멘탈이거나 가사 생성 실패 시 — 스타일을 prompt에 직접 포함 (kie.ai가 더 잘 반영) */
-    var _promptParts = [ytStylePrompt, ytRefSound, ytSongStructure].filter(Boolean);
-    prompt = _promptParts.length ? _promptParts.join('. ').slice(0,500) : ('Create music similar to: ' + (_lastYtAnalysis.title||'YouTube music'));
+    /* 가사 없을 때: 곡 테마/설명을 prompt로 (스타일 태그를 prompt에 넣으면 그걸 가사로 노래함!) */
+    var _ytVocalLang2 = ($('yt-vocal-lang')?.value || '').trim();
+    var _ytLangHint = _ytVocalLang2 ? 'Sing in ' + _ytVocalLang2 + '. ' : '';
+    var _ytTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle || 'beautiful song';
+    prompt = _ytLangHint + 'Create a song about: ' + _ytTheme;
   }
 
   /* 보컬 언어 선택 반영 */
