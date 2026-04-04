@@ -19431,10 +19431,14 @@ async function fpRenderLyrics(h){
   var _tsAudioId=h.id||h._sbId||'';
   var _apiTimingLines=[]; /* API에서 추출한 라인별�� 타이밍 [{startS, endS}] */
 
+  /* 세션 메모리 캐시 (localStorage에 저장 안 함) */
+  if(typeof window._fpAlignedCache==='undefined') window._fpAlignedCache={};
+  var _cacheKey=_tsTaskId+'_'+_tsAudioId;
+
   if(!_hasLrcTimestamps && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     var _tsWords=[];
-    if(h._fpAlignedWords && h._fpAlignedWords.length){
-      _tsWords=h._fpAlignedWords;
+    if(window._fpAlignedCache[_cacheKey]){
+      _tsWords=window._fpAlignedCache[_cacheKey];
     } else {
       try{
         var _tsRes=await Promise.race([
@@ -19442,7 +19446,7 @@ async function fpRenderLyrics(h){
           new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},5000);})
         ]);
         _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
-        if(_tsWords.length) h._fpAlignedWords=_tsWords;
+        if(_tsWords.length) window._fpAlignedCache[_cacheKey]=_tsWords;
       }catch(e){}
     }
     /* API aligned words가 있으면 텍스트+타이밍 모두 사용 (실제 보컬과 일치) */
