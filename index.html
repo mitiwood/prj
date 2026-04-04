@@ -10948,12 +10948,22 @@ async function kieRequest(apiKey,method,path,body){
         if(_att<_maxRetry){await sleep(1500);continue;}
         throw new Error('서버 응답 파싱 실패');
       }
-      if(!res.ok){
-        /* 크레딧 초과 → 즉시 중단 */
-        if(data?.error==='credit_exceeded'){
+      /* supervisor + credit_exceeded → 서버가 차단했지만 클라이언트에서 재시도 (userName 없이) */
+      if(!res.ok && data?.error==='credit_exceeded'){
+        var _isSv=currentUser?.plan==='supervisor'||currentUser?.role==='supervisor'||_serverCreditsCache?.plan==='supervisor';
+        if(_isSv){
+          console.log('[kieRequest] supervisor — credit_exceeded, guest로 재시도');
+          /* guest로 보내서 서버 크레딧 체크 우회 */
+          var _svRes = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:path,method:method,body:body,userName:'guest',userProvider:'guest'})});
+          var _svData; try{_svData=await _svRes.json();}catch(e){_svData=null;}
+          if(_svRes.ok && _svData) return _svData;
+          /* 재시도도 실패하면 아래 에러 핸들링으로 진행 */
+        } else {
           var upgrade=data.upgrade==='pro'?'Pro':'Creator';
           throw new Error('이번 달 사용량을 초과했어요. '+upgrade+' 플랜으로 업그레이드해보세요!');
         }
+      }
+      if(!res.ok){
         /* kie.ai 402 크레딧 부족 → 즉시 중단 (재시도 무의미) */
         if(res.status===402 || (data?.code===402)){
           throw new Error('크레딧 부족 — V4 모델로 변경하거나 잠시 후 다시 시도해주세요');
@@ -12640,7 +12650,7 @@ async function generate(overrideParams){
         lastTaskId = taskId;
         _genLog('LYRIA','Lyria 생성 완료, 트랙 '+(tracks?.length||0)+'개');
       }
-      if(!_lyriaResMain.ok && _lyriaDataMain?.error === 'credit_exceeded') throw new Error('이번 달 사용량을 초과했어요.');
+      if(!_lyriaResMain.ok && _lyriaDataMain?.error === 'credit_exceeded' && !(currentUser?.plan==='supervisor'||_serverCreditsCache?.plan==='supervisor')) throw new Error('이번 달 사용량을 초과했어요.');
       /* Lyria 실패 → kie.ai V4 자동 폴백 */
       if(_lyriaFailed){
         _genLog('FALLBACK','Lyria 실패 → V4 폴백: '+(_lyriaDataMain?.error||'트랙 없음'));

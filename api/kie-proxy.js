@@ -72,13 +72,16 @@ async function sbFetch(method, path, body = null) {
 /* 환경변수 기반 슈퍼바이저 이름 목록 (쉼표 구분) */
 const SUPERVISOR_NAMES = (process.env.SUPERVISOR_NAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
+/* 최고 권한 이메일 — 서버에서도 supervisor 강제 통과 (클라이언트와 동일) */
+const OWNER_EMAILS = ['altosax7@gmail.com'];
+
 async function checkServerCredit(userName, userProvider, creditType) {
   if (!SB_URL || !SB_KEY) return { ok: true, fallback: true };
   /* 환경변수 슈퍼바이저 목록 체크 */
   if (SUPERVISOR_NAMES.includes((userName || '').toLowerCase())) return { ok: true, plan: 'supervisor' };
   try {
     const users = await sbFetch('GET',
-      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=plan,email,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     let user = users?.[0];
     if (!user) {
@@ -93,6 +96,12 @@ async function checkServerCredit(userName, userProvider, creditType) {
 
     /* supervisor: 무제한 즉시 통과 */
     if (plan === 'supervisor') return { ok: true, plan: 'supervisor' };
+
+    /* 최고 권한 이메일 → supervisor 강제 승격 */
+    if (user.email && OWNER_EMAILS.includes(user.email.toLowerCase())) {
+      try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+      return { ok: true, plan: 'supervisor' };
+    }
 
     /* 같은 email의 supervisor 계정이 있으면 승격 (멀티 소셜 대응) */
     if (user.email) {
