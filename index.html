@@ -15992,6 +15992,7 @@ function showMiniPlayer(idx){
   },_sig);
   audio.addEventListener('pause',function(){
     if(genId!==_fpAudioGenId) return;
+    if(typeof _fpStopSyncLoop==='function') _fpStopSyncLoop(); /* rAF 싱크 루프 정리 */
     var sid=historyData[fpCurrentIdx]?.id||'';
     _syncPvPlayBtns(sid, false);
     _syncMfPlayBtns(sid, false);
