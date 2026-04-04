@@ -3726,7 +3726,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .audio-player{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:10px;}
 .audio{display:none;}
 .ap-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.ap-play-btn{width:36px;height:36px;border-radius:50%;background:var(--acc);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;color:#fff;font-size:13px;}
+.ap-play-btn{width:36px;height:36px;border-radius:50%;background:var(--acc);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;color:#fff;font-size:13px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;position:relative;z-index:2;}
 .ap-play-btn:hover{transform:scale(1.08);background:var(--acc2);}
 .ap-info{flex:1;min-width:0;}
 .ap-track{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -3738,7 +3738,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 .ap-vbar{flex:1;background:rgba(168,85,247,.3);border-radius:2px;min-width:2px;height:18px;transform-origin:center bottom;transform:scaleY(0.17);will-change:transform;}
 /* result-card cover */
 .rc-cover-img{width:100%;height:100%;object-fit:cover;display:block;}
-.rc-cover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.25);}
+.rc-cover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.25);pointer-events:none;}
 .rc-cover-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;}
 /* lyrics display */
 .lyrics-display{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;min-height:80px;max-height:220px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;line-height:1.8;color:var(--t2);font-size:13px;white-space:pre-wrap;}
@@ -4461,7 +4461,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 /* ── AI 어시스트 바텀시트 ── */
 .ai-sheet-overlay{position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;}
-.ai-sheet-box{background:#1a1a28;border-radius:20px 20px 0 0;width:100%;max-width:var(--sheet-max,480px);padding:20px 20px 36px;max-height:80vh;overflow-y:auto;animation:sheet-up .25s ease;}
+.ai-sheet-box{background:#1a1a28;border-radius:20px 20px 0 0;width:100%;max-width:var(--sheet-max,480px);padding:20px 20px calc(36px + env(safe-area-inset-bottom,0px));max-height:70vh;overflow-y:auto;animation:sheet-up .25s ease;}
+@media(max-height:700px){.ai-sheet-box{max-height:65vh;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}}
+[data-theme="light"] .ai-sheet-box{background:#fff;}
 @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 /* 카드 등장 애니메이션 */
 @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
