@@ -2665,12 +2665,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-no-results .comm-no-icon{font-size:40px;margin-bottom:12px;}
 .comm-no-results .comm-no-title{font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px;}
 .comm-no-results .comm-no-desc{font-size:12px;}
-/* 메인 탭 (멜론 스타일) */
-.comm-mtab{flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-bottom:-2px;}
-.comm-mtab.on{color:var(--acc);border-bottom-color:var(--acc);}
-.comm-mtab:hover{color:var(--t1);}
-[data-theme="light"] .comm-mtab{color:#8e8e93;}
-[data-theme="light"] .comm-mtab.on{color:#7c3aed;border-bottom-color:#7c3aed;}
 /* 인사이트 스탯 카드 */
 .comm-insight-card{text-align:center;padding:10px 6px;border-radius:10px;background:var(--card);border:1px solid var(--border);}
 .comm-insight-num{font-size:18px;font-weight:900;color:var(--acc);line-height:1;}
@@ -6116,23 +6110,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-search-clear" id="comm-search-clear" style="display:none;" onclick="clearCommSearch()" title="검색 초기화">&times;</button>
       <div id="search-suggest" class="search-suggest" style="display:none;"></div>
     </div>
-    <!-- 메인 탭 (멜론 스타일) -->
-    <div class="comm-main-tabs" style="display:flex;border-bottom:2px solid var(--border);margin-bottom:12px;">
-      <button class="comm-mtab on" data-ctab="all" onclick="_commSwitchTab('all')">전체</button>
-      <button class="comm-mtab" data-ctab="chart" onclick="_commSwitchTab('chart')">인기차트</button>
-      <button class="comm-mtab" data-ctab="latest" onclick="_commSwitchTab('latest')">최근등록</button>
-      <button class="comm-mtab" data-ctab="chat" onclick="_commSwitchTab('chat')">채팅</button>
-      <button style="margin-left:auto;background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:8px;" onclick="_commRefresh()" title="새로고침">🔄</button>
-    </div>
-    <!-- 인사이트 배너 (인기차트 탭) -->
-    <div id="comm-insight-banner" style="display:none;margin-bottom:14px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.12);">
-      <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📊 이번 주 인사이트</div>
-      <div id="comm-insight-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;"></div>
-      <div id="comm-insight-trend" style="font-size:11px;color:var(--t2);line-height:1.6;"></div>
-    </div>
-    <!-- 장르 필터 (전체/최근등록 탭) -->
-    <div class="comm-filter-row" id="comm-genre-filter">
-      <button class="comm-ftag on" data-cf="all">전체</button>
+    <div class="comm-filter-row">
+      <button class="comm-ftag on" data-cf="all">🔥 전체</button>
+      <button class="comm-ftag" data-cf="chat">💬 채팅</button>
       <button class="comm-ftag" data-cf="top-rated">⭐ 별점순</button>
       <button class="comm-ftag" data-cf="following">👥 팔로잉</button>
       <button class="comm-ftag" data-cf="kpop">🎵 K-Pop</button>
@@ -6141,6 +6121,13 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="comm-ftag" data-cf="electronic">⚡ Electronic</button>
       <button class="comm-ftag" data-cf="ost">🎬 OST</button>
       <button class="comm-ftag" data-cf="leaderboard">🏆 리더보드</button>
+      <button class="comm-ftag" data-cf="refresh" id="comm-refresh-btn" onclick="_commRefresh()" style="margin-left:auto;flex-shrink:0;">🔄</button>
+    </div>
+    <!-- 인사이트 배너 (인기차트 섹션 위) -->
+    <div id="comm-insight-banner" style="display:none;margin-bottom:14px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(168,85,247,.04));border:1px solid rgba(124,58,237,.12);">
+      <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📊 이번 주 인사이트</div>
+      <div id="comm-insight-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;"></div>
+      <div id="comm-insight-trend" style="font-size:11px;color:var(--t2);line-height:1.6;"></div>
     </div>
     <!-- 크리에이터 섹션 (최상위 — 인스타 스타일) -->
     <div id="comm-creators-section" style="margin-bottom:16px;">
@@ -20445,8 +20432,6 @@ $('clear-all-btn').addEventListener('click',()=>{
 var _commActiveGenre='all';
 var _commSearchQuery='';
 var _commCreatorShowCount=10;
-var _commCurrentTab='all'; /* 메인 탭 상태 */
-
 /* 새로고침 버튼 */
 function _commRefresh(){
   toast('🔄 새로고침 중...','',1500);
@@ -20454,48 +20439,12 @@ function _commRefresh(){
   _loadSbTracks(true).then(function(){renderCommunity(true);_renderWeeklyChart();_commRenderInsight();toast('✅ 최신 곡 불러옴','ok',1500);});
 }
 
-/* 메인 탭 전환 */
-function _commSwitchTab(tab){
-  _commCurrentTab=tab;
-  document.querySelectorAll('.comm-mtab').forEach(function(b){b.classList.toggle('on',b.dataset.ctab===tab);});
-  var genreFilter=$('comm-genre-filter');
-  var insightBanner=$('comm-insight-banner');
-  var chartWrap=$('comm-chart-wrap');
-  var commList=$('comm-list');
-  var creatorsSection=$('comm-creators-section');
-  /* 모든 섹션 기본 숨김 */
-  if(genreFilter) genreFilter.style.display='none';
-  if(insightBanner) insightBanner.style.display='none';
-  if(chartWrap) chartWrap.style.display='none';
-  if(commList) commList.style.display='none';
-  if(creatorsSection) creatorsSection.style.display='none';
-
-  if(tab==='all'){
-    if(genreFilter) genreFilter.style.display='';
-    if(commList) commList.style.display='';
-    if(creatorsSection) creatorsSection.style.display='';
-    _commSortMode='default';_sbLoaded=false;renderCommunity(true);
-  } else if(tab==='chart'){
-    if(insightBanner) insightBanner.style.display='';
-    if(chartWrap) chartWrap.style.display='';
-    _chartRenderedOnce=false;_lastChartHash='';_renderWeeklyChart();
-    _commRenderInsight();
-  } else if(tab==='latest'){
-    if(genreFilter) genreFilter.style.display='';
-    if(commList) commList.style.display='';
-    _commSortMode='latest';_sbLoaded=false;renderCommunity(true);
-  } else if(tab==='chat'){
-    _commActiveGenre='chat';
-    if(commList) commList.style.display='';
-    _commSortMode='default';_sbLoaded=false;renderCommunity(true);
-  }
-}
-
 /* 인사이트 렌더 */
 function _commRenderInsight(){
   var statsEl=$('comm-insight-stats');
   var trendEl=$('comm-insight-trend');
   if(!statsEl||!trendEl||!_sbTracks||!_sbTracks.length) return;
+  var banner=$('comm-insight-banner'); if(banner) banner.style.display='';
 
   var weekAgo=Date.now()-7*86400000;
   var thisWeek=_sbTracks.filter(function(t){var ts=t._created||new Date(t.created_at||0).getTime();return ts>weekAgo;});
@@ -30003,6 +29952,8 @@ function _renderWeeklyChart(){
     el.style.animation='commFadeIn .3s ease-out '+(i*0.04)+'s both';
   });
   _chartRenderedOnce=true; /* ✅ 최초 1회 렌더 완료 — 이후 실시간 갱신 안 함 */
+  /* 인사이트 배너 자동 표시 */
+  try{_commRenderInsight();}catch(e){}
 }
 
 /* ── 무드 플레이리스트 ── */
