@@ -399,7 +399,7 @@ async function _handler(req, res) {
       const updates = {};
       if (b.title) updates.title = String(b.title).slice(0, 100);
       if (b.tags) updates.tags = String(b.tags).slice(0, 500);
-      if (b.lyrics !== undefined) updates.lyrics = String(b.lyrics).slice(0, 5000);
+      if (b.lyrics !== undefined && b.lyrics !== null) updates.lyrics = String(b.lyrics).slice(0, 5000);
       if (!Object.keys(updates).length) return res.status(400).json({ error: "nothing to update" });
       try {
         /* 소유자 확인 */

@@ -12475,6 +12475,28 @@ function _syncGenButtons(){
     mvBtn.style.cursor=_videoBusy?'not-allowed':'';
   }
 }
+/* 생성 완료 후 모든 입력 필드 초기화 */
+function _resetGenerateInputs(mode){
+  /* 값 초기화 헬퍼 */
+  function _clr(id){var e=$(id);if(e){if(e.tagName==='SELECT')e.selectedIndex=0;else if(e.tagName==='INPUT'&&e.type==='range'){}else e.value='';}}
+  function _clrHtml(id){var e=$(id);if(e)e.innerHTML='';}
+
+  if(mode==='simple'){
+    _clr('simple-prompt');_clr('simple-lyrics');_clr('simple-song-title');
+    _clr('simple-mood');_clr('simple-ref-artist');
+    _clrHtml('simple-ref-artist-tags');
+  } else if(mode==='youtube'){
+    _clr('yt-url');_clr('yt-song-title');_clr('yt-mood');_clr('yt-lyrics-ta');
+    _clrHtml('yt-result');
+  } else {
+    /* 커스텀 모드 */
+    _clr('prompt');_clr('song-title');_clr('song-desc');
+    _clr('genre-sub');_clr('neg-tags');_clr('ref-artist');
+    _clrHtml('ref-artist-tags');_clrHtml('ai-style-applied');
+  }
+  /* 프리셋 선택 해제 */
+  document.querySelectorAll('.preset-chip.active').forEach(function(el){el.classList.remove('active');});
+}
 /* generate 이중 호출은 _globalGenerating + _QueueManager.isBusy로 방어 */
 async function generate(overrideParams){
   var _genLog=function(tag,msg,data){console.log('%c[Generate] %c'+tag+'%c '+msg,'color:#a78bfa;font-weight:bold','color:#fbbf24;font-weight:bold','color:inherit',data!==undefined?data:'');};
@@ -12932,12 +12954,8 @@ async function generate(overrideParams){
     });
     trackUsage('song',{mode:currentMode||'custom',title:songTitle||lastTracks[0]?.title||''});
     showCompletionPopup(currentMode||'custom', '');
-    /* 심플모드: 생성 완료 후 입력 필드 초기화 */
-    if(isSimple){
-      if($('simple-prompt')) $('simple-prompt').value='';
-      if($('simple-lyrics')) $('simple-lyrics').value='';
-      if($('simple-song-title')) $('simple-song-title').value='';
-    }
+    /* 생성 완료 후 모든 사용자 입력 초기화 */
+    _resetGenerateInputs(currentMode);
     /* 생성 완료 → 스텝 UI 숨기고 결과 영역으로 전환 */
     _hideStepsShowResults(currentMode);
     setTimeout(function(){
@@ -19605,7 +19623,7 @@ async function fpRenderLyrics(h){
             if(_riLyric)break;
           }
           if(_riLyric && _riLyric.length>20){
-            h.lyrics=_riLyric; /* 로컬 메모리도 갱신 — 재귀 시 빈 가사 방지 */
+            h.lyrics=_riLyric;h.lyric=_riLyric;h._inputLyrics=_riLyric; /* 로컬 메모리도 갱신 — 재귀 시 빈 가사 방지 */
             _saveTrackToServer({id:h.id,lyrics:_riLyric});
             return fpRenderLyrics(h);
           }
@@ -19792,9 +19810,10 @@ function _fpAssignTimes(){
 function fpSeekToLine(el){
   if(!fpAudio?.duration||!fpTimestampLines.length)return;
   var li=parseInt(el.dataset.li);
+  if(isNaN(li)||li<0)return; /* 잘못된 인덱스 무시 */
   /* data-start 우선 (타임스탬프 API), 없으면 _fpLrcTimes */
   var seekTime=parseFloat(el.dataset.start);
-  if(isNaN(seekTime)&&!isNaN(li)&&li>=0&&li<_fpLrcTimes.length) seekTime=_fpLrcTimes[li];
+  if(isNaN(seekTime)&&li>=0&&li<_fpLrcTimes.length) seekTime=_fpLrcTimes[li];
   if(!isNaN(seekTime)&&seekTime>=0) fpAudio.currentTime=seekTime;
   if(fpAudio.paused){fpAudio.play();_setPlayIcon($('fp-play-btn'),true,true);if(typeof fpStartViz==='function')fpStartViz();}
   fpTimestampLines.forEach(function(l,i){
@@ -20987,6 +21006,7 @@ function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyri
 function renderKpTimestampedLyrics(words){
   /* 단어 → 라인 그룹으로 변환 */
   const lyricsArea=$('kp-lyrics-area');
+  if(!lyricsArea)return;
   const lines=[];
   let curLine={words:[],startS:null,endS:null,isSec:false,text:''};
 
@@ -21031,8 +21051,9 @@ function renderKpTimestampedLyrics(words){
 }
 
 function renderKpPlainLyrics(plain){
-  if(!plain){$('kp-lyrics-area').innerHTML='<div class="kp-lyrics-empty">가사가 없어요<br><span style="font-size:11px;opacity:.5;">커스텀 모드로 생성하면 가사가 표시됩니다</span></div>';return;}
-  const lyricsArea=$('kp-lyrics-area');
+  var _kpEl=$('kp-lyrics-area');
+  if(!plain){if(_kpEl)_kpEl.innerHTML='<div class="kp-lyrics-empty">가사가 없어요<br><span style="font-size:11px;opacity:.5;">커스텀 모드로 생성하면 가사가 표시됩니다</span></div>';return;}
+  const lyricsArea=_kpEl;if(!lyricsArea)return;
   const lines=plain.split('\n');
   kpLines=lines.filter(t=>!(/^\[.+\]$/.test(t.trim()))).map((text,i)=>({isSec:false,text:text.trim(),startS:null}));
   let html='';
@@ -21050,7 +21071,8 @@ function renderKpPlainLyrics(plain){
 
 function syncKpLyrics(currentTime){
   currentTime=currentTime+_syncOffset;
-  const lines=$('kp-lyrics-area').querySelectorAll('.kp-lyrics-line:not(.no-sync)');
+  var _kpArea=$('kp-lyrics-area');if(!_kpArea)return;
+  const lines=_kpArea.querySelectorAll('.kp-lyrics-line:not(.no-sync)');
   let activeEl=null;
   lines.forEach(el=>{
     const start=parseFloat(el.dataset.start)||0;
@@ -24683,16 +24705,18 @@ function saveLyricsEdit(idx){
   if(!area||!plain)return;
   const newText=area.value;
   /* lastTracks 업데이트 */
-  if(lastTracks&&lastTracks[idx]){lastTracks[idx]._inputLyrics=newText;lastTracks[idx].lyric=newText;}
+  if(lastTracks&&lastTracks[idx]){lastTracks[idx]._inputLyrics=newText;lastTracks[idx].lyric=newText;lastTracks[idx].lyrics=newText;}
   /* historyData도 동기화 (페이지 이동 후 가사 유실 방지) */
-  const audioUrl=lastTracks?.[idx]?.audioUrl||lastTracks?.[idx]?.audio_url||'';
-  if(audioUrl){
-    const h=historyData.find(h=>h.audioUrl===audioUrl||h.audio_url===audioUrl||h.audio===audioUrl);
-    if(h){
-      h.lyrics=newText;h.lyric=newText;h._inputLyrics=newText;
-      saveHistory();
-      if(typeof _saveTrackToServer==='function') _saveTrackToServer({id:h.id,lyrics:newText});
-    }
+  const _lt=lastTracks?.[idx];
+  const audioUrl=_lt?.audioUrl||_lt?.audio_url||'';
+  const _trackId=_lt?.id||_lt?._sbId||_lt?.taskId||'';
+  var h=null;
+  if(audioUrl) h=historyData.find(function(x){return x.audioUrl===audioUrl||x.audio_url===audioUrl;});
+  if(!h&&_trackId) h=historyData.find(function(x){return x.id===_trackId||x._sbId===_trackId||x.taskId===_trackId;});
+  if(h){
+    h.lyrics=newText;h.lyric=newText;h._inputLyrics=newText;
+    saveHistory();
+    if(typeof _saveTrackToServer==='function') _saveTrackToServer({id:h.id||h._sbId,lyrics:newText});
   }
   plain.innerHTML=parseLyrics(newText);
   cancelLyricsEdit(idx);
