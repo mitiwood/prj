@@ -10996,7 +10996,7 @@ function _pollViaSSE(tid){
 async function pollResult(apiKey,taskId,_localGenCount){
   if(_localGenCount===undefined) _localGenCount=1; /* 기본 1곡 — 명시적으로 전달된 경우만 2곡 */
   /* SSE 비활성화 — Vercel 서버리스에서 불안정하여 클라이언트 폴링 직행 */
-  /* 폴링: 초기 3회(300ms) → 다음 7회(800ms) → 이후(1.5초) → 80초 이후(2.5초) */
+  /* 폴링: 초기 5회(200ms) → 다음 10회(500ms) → 이후(1초) → 60초 이후(1.5초) → 90초 이후(2초) */
   let elapsed = 0;
   let _noDataCount = 0;
   /* ── 진행률 UI (단조증가 — 절대 뒤로 안 감) ── */
@@ -11006,7 +11006,7 @@ async function pollResult(apiKey,taskId,_localGenCount){
   var _stageMin={'PENDING':0,'CREATE':5,'GENERATE':20,'TEXT_SUCCESS':50,'FIRST_SUCCESS':75,'SUCCESS':100,'COMPLETE':100};
   function _updPct(ms,st){
     var sec=Math.round(ms/1000);
-    var estSec=_genCount===1?45:90; /* 예상 총 시간 */
+    var estSec=_genCount===1?35:70; /* 예상 총 시간 (폴링 최적화로 단축) */
     /* 상태 기반 최소 퍼센트 */
     var stageBase=_stageMin[st]||0;
     /* 시간 기반 퍼센트 (예상 시간 대비 경과, 최대 95%) */
@@ -11037,7 +11037,7 @@ async function pollResult(apiKey,taskId,_localGenCount){
   const _maxNetFails=10; /* 연속 10회 실패 시 중단 */
   for(let i=0;i<MAX_POLLS;i++){
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
-    const interval = i < 3 ? 300 : i < 10 ? 800 : i < 20 ? 1500 : elapsed < 80000 ? 2000 : 2500;
+    const interval = i < 5 ? 200 : i < 15 ? 500 : i < 30 ? 1000 : elapsed < 60000 ? 1500 : elapsed < 90000 ? 2000 : 2500;
     await sleep(interval);
     if(_genCancelled) throw new Error('사용자가 생성을 취소했어요');
     elapsed += interval;
@@ -11058,12 +11058,12 @@ async function pollResult(apiKey,taskId,_localGenCount){
       else if(status==='GENERATE'||status==='TEXT_SUCCESS') _statusStep=2;
       else if(status==='FIRST_SUCCESS') _statusStep=3;
       else if(status==='SUCCESS'||status==='COMPLETE') _statusStep=4;
-      var _estSec=_genCount===1?45:90;
+      var _estSec=_genCount===1?35:70;
       var _timeStep=elapsed<(_estSec*150)?1:elapsed<(_estSec*450)?2:elapsed<(_estSec*800)?3:4;
       var _stepNow=Math.max(_statusStep,_timeStep);
       _setGenStep(_stepNow);
       /* ld-sub: 단계 텍스트 — _genStepPrev 기준 (단조증가 반영) */
-      var _stepMsg=['','요청을 보내는 중...','멜로디를 만들고 있어요','믹싱 마무리 중...','거의 완성됐어요!'];
+      var _stepMsg=['','🎵 AI에게 요청 전송 중...','🎶 멜로디와 보컬을 만들고 있어요','🎧 사운드 믹싱 마무리 중...','✨ 거의 완성! 잠시만 기다려주세요'];
       var _ldS=$('ld-sub');if(_ldS&&_stepMsg[_genStepPrev])_ldS.textContent=_stepMsg[_genStepPrev];
       /* sunoData 외 다양한 응답 구조 대응 */
       var tracks=st.response?.sunoData||st.sunoData||st.tracks||st.response?.tracks||st.response?.data||st.data||[];
@@ -12764,6 +12764,10 @@ async function generate(overrideParams){
       var resultSec=$('results-'+(currentMode||'custom'));
       if(resultSec) resultSec.scrollIntoView({behavior:'smooth',block:'start'});
     },600);
+    /* ★ 생성 완료 즉시 자동 재생 — 첫 번째 유효 트랙 */
+    if(historyData[0]&&historyData[0].audio_url){
+      setTimeout(function(){ showMiniPlayer(0); },300);
+    }
 
     /* 서버에 트랙 저장 (admin 전체 조회용) — 히스토리에 저장된 가사 우선 */
     tracks.forEach(t=>{
