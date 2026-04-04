@@ -9493,9 +9493,8 @@ async function _ytDoGenerate(){
       if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
     }
   } else if(!isInst){
-    /* 언어 미선택(자동) + 가사에 한글 포함 시 Korean 힌트 */
-    var _hasKorean = /[\uAC00-\uD7AF\u3131-\u3163\u318D-\u318F]/.test(ytLyrics);
-    if(_hasKorean && _finalStyle.toLowerCase().indexOf('korean')===-1){
+    /* 언어 미선택(자동) — 기본 Korean 힌트 추가 */
+    if(_finalStyle.toLowerCase().indexOf('korean')===-1){
       _finalStyle = 'Korean lyrics, Korean vocal, sung in Korean, ' + _finalStyle;
       if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
     }
@@ -12625,8 +12624,8 @@ async function generate(overrideParams){
     var _vocalLang = lyricsLang || '';
     if(!_vocalLang && _promptHasKo) _vocalLang = 'Korean';
     if(!_vocalLang && /[\u3040-\u30FF\u4E00-\u9FFF]/.test(prompt)) _vocalLang = /[\u3040-\u30FF]/.test(prompt) ? 'Japanese' : 'Chinese';
-    /* 심플 모드: 언어 미지정 + 한글 미감지 시 기본 Korean (한국어 사용자 기본값) */
-    if(!_vocalLang && isSimple) _vocalLang = 'Korean';
+    /* 언어 미지정 + 한글 미감지 시 기본 Korean (한국어 사용자 기본값) */
+    if(!_vocalLang) _vocalLang = 'Korean';
     if(_vocalLang && !instOn && body.style && body.style.toLowerCase().indexOf(_vocalLang.toLowerCase())===-1){
       body.style = _vocalLang + ' lyrics, ' + _vocalLang + ' vocal, sung in ' + _vocalLang + ', ' + body.style;
     }
