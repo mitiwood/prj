@@ -11180,16 +11180,11 @@ async function pollResult(apiKey,taskId,_localGenCount){
     if(_fillEl)_fillEl.style.width=p+'%';
     /* 원형 프로그레스 링 동기화 */
     if(typeof _updateLdRing==='function') _updateLdRing(p);
-    /* 남은 시간: 경과 시간 기반 추정 (절대 증가 안 함) */
-    var remSec=Math.max(0,estSec-sec);
-    if(_etaEl){
-      if(p>=99)_etaEl.textContent='\u2728 거의 완료!';
-      else if(remSec>60)_etaEl.textContent='\u23F3 약 '+Math.ceil(remSec/60)+'분 남음';
-      else if(remSec>0)_etaEl.textContent='\u23F3 약 '+remSec+'초 남음';
-      else _etaEl.textContent='\u23F3 마무리 중...';
-    }
+    /* 남은 시간: _updateGenEta에서 통합 처리 (단조감소 보장) */
+    /* _updPct에서는 ETA 텍스트를 직접 변경하지 않음 — 이중 업데이트로 시간 역전 방지 */
   }
   _updPct(0,'PENDING');
+  _prevEtaSec=9999; /* ETA 단조감소 리셋 */
   _genStepPrev=0; _setGenStep(1); _genStartTime=Date.now();
   /* _genCancelled는 리셋하지 않음 — extend 폴링 중 취소가 무효화되는 버그 방지 */
   let _netFailCount=0; /* 연속 네트워크 실패 카운터 */
@@ -12465,13 +12460,17 @@ function _estimateGenTime(mode,model){
   var defaults={V3_5:35000,V4:45000,V4_5:50000,V4_5PLUS:80000,V5:55000,LYRIA_PRO:60000,LYRIA_CLIP:30000};
   return defaults[model]||50000;
 }
+var _prevEtaSec=9999; /* ETA 단조감소 보장 — 이전보다 커지면 무시 */
 var _updateGenEta=function(elapsed){
   var etaEl=$('ld-eta');if(!etaEl)return;
   var model=$('model-sel')?.value||'V4';
   var est=_estimateGenTime(currentMode||'custom',model);
   var remain=Math.max(0,est-elapsed);
-  if(remain<=0){etaEl.textContent='거의 완성됐어요!';return;}
   var sec=Math.round(remain/1000);
+  /* 단조감소: 이전 값보다 커지면 이전 값 유지 (시간 역전 방지) */
+  if(sec>_prevEtaSec) sec=_prevEtaSec;
+  _prevEtaSec=sec;
+  if(sec<=0){etaEl.textContent='거의 완성됐어요!';return;}
   etaEl.textContent=sec>60?'약 '+Math.ceil(sec/60)+'분 남음':'약 '+sec+'초 남음';
 };
 /* 곡 수 선택 (1=빠른 생성, 2=A/B 비교) */
