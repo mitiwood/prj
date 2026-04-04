@@ -19425,15 +19425,13 @@ async function fpRenderLyrics(h){
   /* 가사가 있으면 노래방 버튼 표시 */
   var _kBtn=$('fp-karaoke-btn');if(_kBtn)_kBtn.style.display='';
 
-  /* 타임스탬프 가사 선로딩 (재생 전 await — 5초 타임아웃) */
-  /* 사용자 가사가 이미 있으면 API 타임스탬프 가사 건너뜀 → LRC 파싱 또는 균등분할로 처리 */
-  var _hasUserLyrics = plain.trim().length > 30;
+  /* 타임스탬프 가사 선로딩 — 타이밍 데이터 추출용 (가사 텍스트는 서버 것 사용) */
   var _hasLrcTimestamps = /\[\d{1,2}:\d{2}/.test(raw);
-  var _skipApiLyrics = h._lyricsEdited || _hasUserLyrics || _hasLrcTimestamps;
   var _tsTaskId=h.taskId||h._taskId||'';
   var _tsAudioId=h.id||h._sbId||'';
-  if(!_skipApiLyrics && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
-    /* 캐시 있으면 즉시 적용 */
+  var _apiTimingLines=[]; /* API에서 추출한 라인�� 타이밍 [{startS, endS}] */
+
+  if(!_hasLrcTimestamps && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
     var _tsWords=[];
     if(h._fpAlignedWords && h._fpAlignedWords.length){
       _tsWords=h._fpAlignedWords;
@@ -19445,27 +19443,21 @@ async function fpRenderLyrics(h){
         ]);
         _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
         if(_tsWords.length) h._fpAlignedWords=_tsWords;
-        /* 디버그: API 전체 응답 로그 — 간주 마커/waveform 확인용 */
-        console.log('%c[TS-API] 응답 키:','color:#f59e0b;font-weight:bold',Object.keys(_tsRes?.data||{}));
-        console.log('%c[TS-API] waveform:','color:#f59e0b',(_tsRes?.data?.waveform||[]).length+'프레임');
-        console.log('%c[TS-API] hootCer:','color:#f59e0b',_tsRes?.data?.hootCer);
-        /* 간주 마커 탐색 */
-        var _interludeWords=_tsWords.filter(function(w){return /^\[/.test(w.word||'');});
-        if(_interludeWords.length) console.log('%c[TS-API] 마커 발견:','color:#22c55e;font-weight:bold',_interludeWords.map(function(w){return w.word+' @'+w.startS+'s';}));
-        else console.log('%c[TS-API] 간주 마커 없음','color:#ef4444');
       }catch(e){}
     }
+    /* API에서 라인별 타이밍만 추출 (텍스트는 무시) */
     if(_tsWords.length){
-      /* alignedWords = 실제 보컬이 부르는 가사 → 항상 우선 사용 */
-      fpRenderTimestampedLyrics(_tsWords);
-      fpSyncMode=true;
-      var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
-      /* 서버 DB에만 가사 저장 (localStorage에는 저장 안 함) */
-      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
-      if(_realLyrics.length>20 && typeof _saveTrackToServer==='function'){
-        _saveTrackToServer({id:h.id,lyrics:_realLyrics});
-      }
-      return; /* ★ API 가사 렌더 완료 → 이후 h.lyrics 파싱 건너뜀 */
+      var _curLine={startS:null,endS:null};
+      _tsWords.forEach(function(w){
+        var t=w.word||'';
+        if(_curLine.startS===null) _curLine.startS=w.startS||0;
+        _curLine.endS=w.endS||0;
+        if(t.includes('\n')){
+          _apiTimingLines.push({startS:_curLine.startS,endS:_curLine.endS});
+          _curLine={startS:null,endS:null};
+        }
+      });
+      if(_curLine.startS!==null) _apiTimingLines.push({startS:_curLine.startS,endS:_curLine.endS});
     }
   }
 
@@ -19512,6 +19504,23 @@ async function fpRenderLyrics(h){
   if(hasLrc){
     _fpLrcTimes = parsedLines.filter(p=>!p.isSection && p.time!==null).map(p=>p.time);
     _fpLrcTimes._isLrc=true;
+  }
+
+  /* API 타이밍 데이터를 서버 가사 라인에 매핑 */
+  if(!hasLrc && _apiTimingLines.length && fpTimestampLines.length){
+    var n=fpTimestampLines.length;
+    var m=_apiTimingLines.length;
+    _fpLrcTimes=[];
+    _fpLrcEndTimes=[];
+    for(var ti=0;ti<n;ti++){
+      /* 서버 가사 라인 수 ≠ API 라인 수일 수 있으므로 비율로 매핑 */
+      var mi=Math.min(Math.round(ti*m/n), m-1);
+      _fpLrcTimes.push(_apiTimingLines[mi].startS);
+      _fpLrcEndTimes.push(_apiTimingLines[mi].endS);
+      fpTimestampLines[ti].dataset.start=_apiTimingLines[mi].startS;
+      fpTimestampLines[ti].dataset.end=_apiTimingLines[mi].endS;
+    }
+    hasLrc=true; /* 타이밍 있으므로 싱크 모드 활성화 */
   }
 
   /* LRC 타임스탬프 유무에 따라 싱크 모드 버튼 표시/숨김 */
