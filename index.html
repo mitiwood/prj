@@ -8308,8 +8308,8 @@ async function _doLoadSbTracks(){
       /* 인사이트 캐시 무효화 (새 데이터 반영) */
       if(typeof _insightFp!=='undefined') _insightFp='';
     }
-    /* 로그인 사용자의 좋아요/싫어요 상태를 서버에서 복원 */
-    _restoreUserLikes();
+    /* 로그인 사용자의 좋아요/싫어요 상태를 서버에서 복원 (await 필수) */
+    await _restoreUserLikes();
   }catch(e){ console.warn('[SB] 커뮤니티 로드 실패:', e.message); }
   _sbLoading = false;
 }
@@ -8363,7 +8363,12 @@ async function _pollRefreshSbTracks(){
       var newTracks = d.tracks.map(_rowToTrack).filter(function(t){return !!t.audioUrl;});
       var newFp = _calcFingerprint(newTracks);
       if(newFp !== _sbFingerprint){
+        /* 기존 좋아요 상태 보존 */
+        var _oldLikeMap={};
+        _sbTracks.forEach(function(t){var id=t._sbId||t.id;if(id&&(t.liked||t.disliked))_oldLikeMap[id]={liked:t.liked,disliked:t.disliked};});
         _sbTracks = newTracks;
+        /* 좋아요 상태 복원 */
+        _sbTracks.forEach(function(t){var id=t._sbId||t.id;var old=_oldLikeMap[id];if(old){t.liked=old.liked;t.disliked=old.disliked;}});
         _sbOffset = _sbTracks.length;
         _sbFingerprint = newFp;
         changed = true;
@@ -17922,14 +17927,20 @@ function fpToggleLike(){
   var h=fpCurrentIdx>=0?historyData[fpCurrentIdx]:null;
   if(h){h._liked=fpLiked;h._disliked=fpDisliked;saveHistory();_syncAllLikeStates(h);}
   fpUpdateLikeUI();toast(fpLiked?'❤️ 좋아요!':'좋아요 취소','',1200);
-  if(h&&(h.id||h._sbId)){fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpLiked?'like':'unlike'),{method:'PATCH'}).catch(()=>{});}
+  if(h&&(h.id||h._sbId)){
+    var _likeBody=currentUser?{userName:currentUser.name,userProvider:currentUser.provider}:{};
+    fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpLiked?'like':'unlike'),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(_likeBody)}).catch(()=>{});
+  }
 }
 function fpToggleDislike(){
   fpDisliked=!fpDisliked;if(fpDisliked)fpLiked=false;
   var h=fpCurrentIdx>=0?historyData[fpCurrentIdx]:null;
   if(h){h._liked=fpLiked;h._disliked=fpDisliked;saveHistory();_syncAllLikeStates(h);}
   fpUpdateLikeUI();toast(fpDisliked?'👎 싫어요':'싫어요 취소','',1200);
-  if(h&&(h.id||h._sbId)){fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpDisliked?'dislike':'undislike'),{method:'PATCH'}).catch(()=>{});}
+  if(h&&(h.id||h._sbId)){
+    var _dlBody=currentUser?{userName:currentUser.name,userProvider:currentUser.provider}:{};
+    fetch('/api/tracks?id='+encodeURIComponent(h.id||h._sbId)+'&action='+(fpDisliked?'dislike':'undislike'),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(_dlBody)}).catch(()=>{});
+  }
 }
 
 /* 플레이리스트 추가 — 바텀시트 (body 직접 렌더링으로 z-index 보장) */
