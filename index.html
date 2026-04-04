@@ -9402,40 +9402,19 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     setTimeout(()=>{$('prompt').value=origPrompt;},100);
     return;
   }
-  /* 가사 없음 → 빠른 작사 후 생성 */
+  /* 가사 없음 → 즉시 생성 (kie.ai가 자체 작사) + 백그라운드 작사 */
   var _sDesc=desc;
   var _sMood=moodVal;
   if(!_sDesc&&!_sMood){
-    /* 빈 입력 → 랜덤 테마로 다양한 곡 생성 */
     var _randomThemes=['사랑과 이별','새벽 감성','여행과 자유','꿈을 향해','봄날의 설렘','비 오는 밤','추억 속 너','도시의 밤','희망과 용기','첫사랑의 기억','혼자만의 시간','별빛 아래'];
     _sDesc=_randomThemes[Math.floor(Math.random()*_randomThemes.length)];
+    $('simple-prompt').value=_sDesc;
   }
-  var _sLyricsPrompt=[_sDesc,_sMood].filter(Boolean).join(', ');
-  toast('✍️ AI 가사 생성 중...','',5000);
-  try{
-    var _sLyrics=await _kieLyricsWithFallback(kieApiKey, _sLyricsPrompt);
-    if(_sLyrics&&_sLyrics.length>20){
-      /* 생성된 가사를 심플 가사란에 표시 + prompt에 세팅 */
-      var _sLyricsTA=$('simple-lyrics');if(_sLyricsTA)_sLyricsTA.value=_sLyrics;
-      var _sLyricsBody=$('simple-lyrics-body');if(_sLyricsBody)_sLyricsBody.style.display='';
-      const origPrompt=$('prompt').value;
-      $('prompt').value=_sLyrics;
-      generate();
-      setTimeout(()=>{$('prompt').value=origPrompt;},100);
-    } else {
-      /* 작사 실패 → 설명만으로 생성 (kie.ai가 자동 작사) */
-      const origPrompt=$('prompt').value;
-      $('prompt').value='';
-      generate({_afterLyrics:true});
-      setTimeout(()=>{$('prompt').value=origPrompt;},100);
-    }
-  }catch(e){
-    /* 작사 API 실패 → 설명만으로 생성 */
-    const origPrompt=$('prompt').value;
-    $('prompt').value='';
-    generate({_afterLyrics:true});
-    setTimeout(()=>{$('prompt').value=origPrompt;},100);
-  }
+  /* 즉시 생성 시작 — 가사 비워서 kie.ai가 자동 작사 */
+  const origPrompt=$('prompt').value;
+  $('prompt').value='';
+  generate({_afterLyrics:true});
+  setTimeout(()=>{$('prompt').value=origPrompt;},100);
 });
 
 /* ── YouTube 생성 버튼 ── */
