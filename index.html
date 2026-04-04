@@ -9943,6 +9943,15 @@ function _saveLoginUser(user){
       toast('🎵 게스트 모드에서 만든 '+_guestTracks.length+'곡이 내 계정에 저장됐어요!','ok',4000);
     }
     localStorage.removeItem('kms_guest_tracks');
+    /* ✅ 로컬 히스토리에서 _owner가 null인 트랙(게스트 생성분) → 현재 유저 소유로 업데이트 */
+    var _guestFixed=0;
+    historyData.forEach(function(h){
+      if(!h._owner && h.audio_url && h.genMode){
+        h._owner={name:user.name,avatar:user.avatar||'',provider:user.provider||''};
+        _guestFixed++;
+      }
+    });
+    if(_guestFixed>0){saveHistory();console.log('[Guest→Login] 로컬 히스토리 '+_guestFixed+'곡 소유자 업데이트');}
     localStorage.removeItem('kms_guest_mode');
     localStorage.removeItem('kms_guest_songs');
     _showGuestCTA(); /* 게스트 CTA 숨김 */
@@ -9971,8 +9980,10 @@ function _saveLoginUser(user){
     setTimeout(()=>{ _syncPlanFromServer(); }, 300);
     setTimeout(()=>{ if(typeof _fetchServerCredits==='function') _fetchServerCredits(); }, 500);
     setTimeout(()=>{ _syncUserDataFromServer(true); }, 600); /* 로그인 직후: force */
-    /* Supabase에서 내 트랙 로드 */
-    setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 800);
+    /* 로그인 직후 히스토리 즉시 표시 (로컬 데이터) */
+    try{ renderHistoryView(); }catch(e){}
+    /* Supabase에서 내 트랙 로드 (게스트 트랙 서버 저장 대기 후) */
+    setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 2000);
     /* 푸시 구독 요청 */
     setTimeout(()=>{ if(window.kmsRequestPush) window.kmsRequestPush(); }, 1500);
     /* 세션 유효성 주기적 검증 (5분마다) */
