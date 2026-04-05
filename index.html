@@ -17779,6 +17779,8 @@ async function _updateFpUI(idx){
   var tg=$('fp-tags');if(tg)tg.textContent=h.tags?.split(',')[0]?.trim()||'';
   var cv=$('fp-cover');if(cv)cv.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="" style="width:100%;height:100%;object-fit:cover;">':'';
   var bg=$('fp-bg');if(bg&&h.image_url)bg.style.backgroundImage='url('+h.image_url+')';
+  var aa=$('fp-album-art-img');if(aa)aa.innerHTML=h.image_url?'<img src="'+h.image_url+'" alt="">':'🎵';
+  var mm=$('fp-more-menu');if(mm)mm.style.display='none';
   var _uhdr=$('fp-header-title');if(_uhdr){_uhdr.textContent='재생 중';var _uid=h.id||h._sbId||'';if(_uid){fetch('/api/tracks?id='+encodeURIComponent(_uid)).then(function(r){return r.json();}).then(function(d){var _ut=d.track||d.tracks?.[0];var _up=_ut?.comm_plays||_ut?.play_count||0;if(_up>0)_uhdr.textContent='🎧 '+_up+'명이 들었어요';}).catch(function(){});}}
   var mt=$('mp-title');if(mt)mt.textContent=h.title||'무제';
   var ms=$('mp-sub');if(ms)ms.textContent=h.tags?.split(',')[0]?.trim()||'';
