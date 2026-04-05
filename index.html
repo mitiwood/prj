@@ -13069,9 +13069,9 @@ async function generate(overrideParams){
       if(!body.style) body.style = _autoHints.join(', ');
       else body.style = body.style + ', ' + _autoHints.join(', ');
     }
-    /* kie.ai style 길이 제한: customMode=true → 200자, false → 200자 (초과 시 콤마 단위로 자름) */
+    /* kie.ai style 길이 제한: 500자 (초과 시 콤마 단위로 자름) */
     if(body.style){
-      var _styleMax = 200;
+      var _styleMax = 500;
       if(body.style.length>_styleMax){
         var _cut=body.style.lastIndexOf(',',_styleMax);
         body.style=_cut>50?body.style.slice(0,_cut):body.style.slice(0,_styleMax);
@@ -28373,12 +28373,12 @@ async function analyzeRefArtist(){
   if(hintEl) hintEl.style.display = 'none';
 
   try{
-    const sys = '당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 구체적인 프로덕션 스타일, 보컬 특성, 악기 편성, 사운드 텍스처를 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
-    const usr = `"${artistVal}" 아티스트의 실제 음악 사운드를 완벽히 재현하기 위한 핵심 스타일 태그를 8개 추출하세요. 다음 카테고리별 1-2개씩: (1)장르/서브장르 (2)보컬 스타일 (3)프로덕션/비트 특성 (4)악기/사운드 텍스처 (5)분위기/에너지. 쉼표 구분 영문만. 예: "dark trap, breathy falsetto vocals, heavy 808 sub-bass, ethereal synth pads, melancholic atmospheric, lo-fi reverb, minimalist beat, ambient textures"`;
+    const sys = '당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
+    const usr = `"${artistVal}" 아티스트의 대표곡 사운드를 완벽히 재현하기 위한 스타일 태그를 12개 추출하세요. 카테고리별 2개씩: (1)장르/서브장르 (2)BPM 범위와 키 (3)보컬 스타일과 특성 (4)프로덕션/비트/사운드 특성 (5)악기 편성 (6)분위기/에너지. 쉼표 구분 영문만. 예: "K-Pop bubblegum electro-pop, 128 BPM D major, multiple female vocalists sweet harmonized vocals, polished bright clean electro-pop production, synth bass synth arpeggios drum machine, cheerful euphoric playful energetic"`;
     let result = '';
     await callClaudeStream(sys, usr, (p)=>{ result = p; });
     if(result){
-      const tags = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>1 && s.length<50).slice(0,8);
+      const tags = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>1 && s.length<60).slice(0,12);
       if(tags.length && tagsEl){
         tagsEl.innerHTML = tags.map(t=>`<span class="ref-artist-tag">${t}</span>`).join('');
         /* 스타일 필드에 자동 주입 — 아티스트명 + 분석 태그 모두 포함 */
@@ -28403,12 +28403,12 @@ async function _analyzeSimpleRefArtist(){
   if(btn) btn.disabled=true;
   if(btn) btn.textContent='분석 중...';
   try{
-    var sys='당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 구체적인 프로덕션 스타일, 보컬 특성, 악기 편성, 사운드 텍스처를 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
-    var usr='"'+artistVal+'" 아티스트의 실제 음악 사운드를 완벽히 재현하기 위한 핵심 스타일 태그를 8개 추출하세요. 다음 카테고리별 1-2개씩: (1)장르/서브장르 (2)보컬 스타일 (3)프로덕션/비트 특성 (4)악기/사운드 텍스처 (5)분위기/에너지. 쉼표 구분 영문만.';
+    var sys='당신은 음악 프로듀서이자 사운드 엔지니어입니다. 아티스트의 실제 사운드를 완벽히 재현할 수 있도록 분석하세요. Suno AI 프롬프트에 직접 사용할 수 있는 영문 태그로 답하세요.';
+    var usr='"'+artistVal+'" 아티스트의 대표곡 사운드를 완벽히 재현하기 위한 스타일 태그를 12개 추출하세요. 카테고리별 2개씩: (1)장르/서브장르 (2)BPM 범위와 키 (3)보컬 스타일과 특성 (4)프로덕션/비트/사운드 특성 (5)악기 편성 (6)분위기/에너지. 쉼표 구분 영문만.';
     var result='';
     await callClaudeStream(sys,usr,function(p){result=p;});
     if(result){
-      var tags=result.replace(/["""'']/g,'').split(',').map(function(s){return s.trim();}).filter(function(s){return s&&s.length>1&&s.length<50;}).slice(0,8);
+      var tags=result.replace(/["""'']/g,'').split(',').map(function(s){return s.trim();}).filter(function(s){return s&&s.length>1&&s.length<60;}).slice(0,12);
       if(tags.length&&tagsEl){
         tagsEl.innerHTML=tags.map(function(t){return '<span class="ref-artist-tag">'+t+'</span>';}).join('');
         _refArtistStyleTags='inspired by '+artistVal+', '+tags.join(', ');
