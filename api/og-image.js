@@ -1,155 +1,38 @@
-import { ImageResponse } from '@vercel/og';
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function truncate(s, max) { s = String(s || ''); return s.length > max ? s.slice(0, max) + '...' : s; }
 
-export const config = { runtime: 'edge' };
+export default async function handler(req, res) {
+  const url = new URL(req.url, `https://${req.headers.host || 'ddinggok.com'}`);
+  const title = truncate(url.searchParams.get('title') || '띵곡', 30);
+  const artist = truncate(url.searchParams.get('artist') || 'AI Music', 20);
+  const tags = truncate(url.searchParams.get('tags') || 'AI Generated', 40);
 
-function truncate(s, max) {
-  s = String(s || '');
-  return s.length > max ? s.slice(0, max) + '...' : s;
-}
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="50%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0a0a1a"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="950" cy="280" r="150" fill="none" stroke="rgba(124,58,237,0.12)" stroke-width="2"/>
+  <text x="950" y="300" text-anchor="middle" font-size="80" opacity="0.2">🎵</text>
+  <text x="80" y="200" font-family="sans-serif" font-size="18" font-weight="700" fill="#7c3aed" letter-spacing="3">DDINGGOK MUSIC STUDIO</text>
+  <rect x="80" y="216" width="80" height="4" rx="2" fill="url(#acc)"/>
+  <text x="80" y="310" font-family="sans-serif" font-size="48" font-weight="800" fill="#ffffff">${esc(title)}</text>
+  <text x="80" y="360" font-family="sans-serif" font-size="26" fill="#a78bfa">${esc(artist)}</text>
+  <text x="80" y="400" font-family="sans-serif" font-size="18" fill="#9ca3af">${esc(tags)}</text>
+  <rect x="80" y="460" width="220" height="48" rx="24" fill="url(#acc)"/>
+  <text x="190" y="490" text-anchor="middle" font-family="sans-serif" font-size="17" font-weight="700" fill="#ffffff">AI로 음악 만들기 →</text>
+  <text x="1120" y="490" text-anchor="end" font-family="sans-serif" font-size="14" fill="#6b7280">ddinggok.com</text>
+</svg>`;
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const title = truncate(searchParams.get('title') || '\uB744\uACE1', 30);
-  const artist = truncate(searchParams.get('artist') || 'AI Music', 20);
-  const tags = truncate(searchParams.get('tags') || 'AI Generated', 40);
-
-  return new ImageResponse(
-    {
-      type: 'div',
-      props: {
-        style: {
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a0a1a 100%)',
-          padding: '60px 80px',
-          fontFamily: 'sans-serif',
-          position: 'relative',
-          overflow: 'hidden',
-        },
-        children: [
-          {
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                top: '100px',
-                right: '120px',
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
-                border: '2px solid rgba(124,58,237,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
-              children: {
-                type: 'div',
-                props: {
-                  style: { fontSize: '80px', opacity: 0.3 },
-                  children: '\uD83C\uDFB5',
-                },
-              },
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                fontSize: '18px',
-                color: '#7c3aed',
-                fontWeight: 700,
-                letterSpacing: '3px',
-                marginBottom: '16px',
-              },
-              children: "KENNY'S MUSIC STUDIO",
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                width: '80px',
-                height: '4px',
-                borderRadius: '2px',
-                background: 'linear-gradient(90deg, #7c3aed, #a855f7)',
-                marginBottom: '40px',
-              },
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                fontSize: '52px',
-                color: '#ffffff',
-                fontWeight: 800,
-                marginBottom: '16px',
-                lineHeight: 1.2,
-              },
-              children: title,
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                fontSize: '28px',
-                color: '#a78bfa',
-                marginBottom: '12px',
-              },
-              children: artist,
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                fontSize: '18px',
-                color: '#9ca3af',
-                marginBottom: '40px',
-              },
-              children: tags,
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-              children: [
-                {
-                  type: 'div',
-                  props: {
-                    style: {
-                      padding: '14px 32px',
-                      borderRadius: '25px',
-                      background: 'linear-gradient(90deg, #7c3aed, #a855f7)',
-                      color: '#fff',
-                      fontSize: '18px',
-                      fontWeight: 700,
-                    },
-                    children: 'AI\uB85C \uC74C\uC545 \uB9CC\uB4E4\uAE30 \u2192',
-                  },
-                },
-                {
-                  type: 'div',
-                  props: {
-                    style: { fontSize: '14px', color: '#6b7280' },
-                    children: 'ddinggok.com',
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    },
-    { width: 1200, height: 630 }
-  );
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+  return res.status(200).send(svg);
 }
