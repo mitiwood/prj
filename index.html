@@ -15339,7 +15339,12 @@ $('rc-submit-btn').addEventListener('click',async()=>{
         const trks=st.response?.sunoData||[];
         if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
         if(status==='FAILED'||status==='ERROR')throw new Error('커버 생성 실패');
-        $('ld-sub').innerHTML=`커버 작업 ${Math.min(95,Math.round((i/40)*100))}% 완료~<br>거의 다 됐어요 🎤`;
+        var _pct=Math.min(95,Math.round((i/40)*100));
+        $('ld-sub').innerHTML='커버 작업 '+_pct+'% 완료~<br>거의 다 됐어요 🎤';
+        /* 로딩바 + 링 프로그레스 업데이트 */
+        var _ldFill=$('ld-fill');if(_ldFill)_ldFill.style.width=_pct+'%';
+        var _ldPct=$('ld-percent');if(_ldPct)_ldPct.textContent=_pct+'%';
+        var _ldRing=document.querySelector('.ld-ring-fill');if(_ldRing)_ldRing.style.strokeDashoffset=339.292*(1-_pct/100);
       }catch(pe){if(pe.message.includes('실패'))throw pe;}
     }
     $('loading-card').classList.remove('on');
