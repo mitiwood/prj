@@ -2506,9 +2506,10 @@ body.mp-on #claude-chat-fab{bottom:130px;}
   font-size:8px;font-weight:800;padding:2px 4px;border-radius:4px;
 }
 .hist-info{flex:1;min-width:0;}
-.hist-title{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-title{font-size:14px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:3px;min-width:0;}
+.hist-title-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;}
 .hist-sub{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hist-liked-badge{font-size:10px;color:#FF4081;margin-left:6px;background:rgba(255,64,129,.15);border:1px solid rgba(255,64,129,.3);border-radius:20px;padding:1px 6px;}
+.hist-liked-badge{font-size:9px;flex-shrink:0;line-height:1;}
 .hist-del{
   width:28px;height:28px;border-radius:8px;
   background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
@@ -14752,7 +14753,7 @@ function renderHistoryView(){
           <div class="hist-play-overlay"><div class="hist-play-icon">${unplayable?'✕':'▶'}</div></div>
         </div>
         <div class="hist-info">
-          <div class="hist-title">${esc(h.title)}${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);margin-left:4px;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;margin-left:4px;font-weight:700;">🤝</span>':''}</div>
+          <div class="hist-title"><span class="hist-title-text">${esc(h.title)}</span>${h._liked?'<span class="hist-liked-badge">❤️</span>':''}${remixLabel?'<span style="font-size:10px;color:var(--acc);flex-shrink:0;">'+remixLabel+'</span>':''}${h._collabId?'<span style="font-size:9px;color:#f59e0b;flex-shrink:0;font-weight:700;">🤝</span>':''}</div>
           <div class="hist-sub">${h._coOwner?.name?'<span style="color:#f59e0b;">with '+esc(h._coOwner.name)+'</span> · ':''}${esc(tagLabel)}${tagLabel&&timeAgo?' · ':''}${timeAgo}</div>
           <div class="hist-full-stats">
             ${h._commPlays?'<span class="hist-full-stat">▶ '+h._commPlays+'</span>':''}
