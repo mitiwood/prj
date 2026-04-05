@@ -344,13 +344,16 @@ async function _handler(req, res) {
 
     if (!id) return res.status(400).json({ error: "id required" });
 
-    /* 재생수 카운팅 */
+    /* 재생수 카운팅 (atomic increment — race condition 방지) */
     if (action === "play") {
       try {
+        await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
+          method: 'POST',
+          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: `UPDATE tracks SET comm_plays = COALESCE(comm_plays, 0) + 1 WHERE id = '${id.replace(/'/g, "''")}'` })
+        });
         const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=comm_plays`);
-        const cur = (rows?.[0]?.comm_plays || 0) + 1;
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ comm_plays: cur }) });
-        return res.status(200).json({ success: true, comm_plays: cur });
+        return res.status(200).json({ success: true, comm_plays: rows?.[0]?.comm_plays || 0 });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) { _mem[idx].comm_plays = (_mem[idx].comm_plays || 0) + 1; return res.status(200).json({ success: true, comm_plays: _mem[idx].comm_plays, source: "memory" }); }
@@ -504,13 +507,17 @@ async function _handler(req, res) {
         } catch (e) { console.warn("[likes]", e.message); }
       }
 
-      /* tracks 카운터 업데이트 (기존 호환) */
+      /* tracks 카운터 업데이트 (atomic increment — race condition 방지) */
       const delta = isUndo ? -1 : 1;
       try {
-        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${col}`);
-        const cur = Math.max(0, (rows?.[0]?.[col] || 0) + delta);
-        await sb(`/tracks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ [col]: cur }) });
-        return res.status(200).json({ success: true, [col]: cur, source: "supabase" });
+        const safeCol = col.replace(/[^a-z_]/g, '');
+        await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
+          method: 'POST',
+          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: `UPDATE tracks SET ${safeCol} = GREATEST(0, COALESCE(${safeCol}, 0) + (${delta})) WHERE id = '${id.replace(/'/g, "''")}'` })
+        });
+        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${safeCol}`);
+        return res.status(200).json({ success: true, [col]: rows?.[0]?.[col] || 0, source: "supabase" });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
         if (idx >= 0) {

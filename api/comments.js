@@ -291,13 +291,42 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, comment: row, source: "memory" });
   }
 
-  /* ─── PATCH: 관리자 숨김/공개 ─── */
+  /* ─── PATCH: 관리자 숨김/공개 + 댓글 수정 ─── */
   if (req.method === "PATCH") {
-    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const id = req.query?.id;
     const action = req.query?.action || "hide";
     if (!id) return res.status(400).json({ error: "id required" });
 
+    /* 댓글 내용 수정 (작성자 본인만) */
+    if (action === "edit") {
+      let b = req.body || {};
+      if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const { content, authorName, authorProvider } = b || {};
+      if (!content || !content.trim()) return res.status(400).json({ error: "내용을 입력해주세요" });
+      if (!authorName || !authorProvider) return res.status(401).json({ error: "로그인 필요" });
+      /* 소유자 확인 */
+      let comment = _mem.find(c => String(c.id) === String(id));
+      if (!comment && _sbAvailable) {
+        try { const rows = await sb(`/comments?id=eq.${encodeURIComponent(id)}&select=author_name,author_provider`); comment = rows?.[0]; } catch {}
+      }
+      if (!comment || comment.author_name !== authorName || comment.author_provider !== authorProvider) {
+        return res.status(403).json({ error: "본인 댓글만 수정할 수 있어요" });
+      }
+      const newContent = content.trim().slice(0, 500);
+      if (_sbAvailable) {
+        try {
+          await sb(`/comments?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ content: newContent }) });
+          const mi = _mem.findIndex(c => c.id === id); if (mi >= 0) _mem[mi].content = newContent;
+          return res.status(200).json({ success: true, content: newContent, source: "supabase" });
+        } catch (e) { console.warn("[comments PATCH edit sb]", e.message); }
+      }
+      const mi = _mem.findIndex(c => c.id === id);
+      if (mi >= 0) { _mem[mi].content = newContent; return res.status(200).json({ success: true, content: newContent, source: "memory" }); }
+      return res.status(404).json({ error: "not found" });
+    }
+
+    /* 관리자 숨김/공개 */
+    if (!isAdmin) return res.status(401).json({ error: "Unauthorized" });
     const isHidden = action === "hide";
     if (_sbAvailable) {
       try {

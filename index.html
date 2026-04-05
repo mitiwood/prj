@@ -11195,7 +11195,7 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     /* 자동 생성 플래그 */
     if(window._ytAutoGenerateAfterAnalysis){
       window._ytAutoGenerateAfterAnalysis = false;
-      setTimeout(() => _ytDoGenerate(), 500);
+      setTimeout(() => { if(checkPlanLimit('song')) _ytDoGenerate(); }, 500);
     }
   }catch(e){
     toast('❌ 분석 실패: '+e.message,'err',5000);
@@ -12751,7 +12751,7 @@ async function generate(overrideParams){
   /* 게스트 모드: 강제 1곡 생성 + 사용량 즉시 선차감 */
   var _guestPreDeducted=false;
   if(!currentUser && typeof isGuestMode==='function' && isGuestMode()){
-    _genCount=1;
+    _localGenCount=1; /* 전역 _genCount 수정 X — 로그인 후 2곡 옵션 유지 */
     _incGuestUsage();
     _guestPreDeducted=true;
     var _gRemainPre=GUEST_SONG_LIMIT-_getGuestUsage();
@@ -12825,8 +12825,8 @@ async function generate(overrideParams){
       lyricsText = $('simple-prompt')?.value.trim() || moodVal || 'happy pop song';
 } else if(isCustom){
       toast('\u270d\ufe0f \uac00\uc0ac\uac00 \uc5c6\uc5b4\uc694. AI\uac00 \uc790\ub3d9\uc73c\ub85c \uc791\uc0ac \ud6c4 \uc74c\uc545\uc744 \uc0dd\uc131\ud560\uac8c\uc694!','',2500);
-      _globalGenerating = false; _syncGenButtons();
-      await _autoLyricsAndGenerate();
+      _QueueManager.setBusy('music',false); _globalGenerating = false; _syncGenButtons();
+      _autoLyricsAndGenerate(); /* await 없이 호출 — finally가 busy 해제하지 않도록 */
       return;
     } else if(false){/* 심플 분기 이동됨 — 기존 isSimple 비활성 */
       /* 심플: 설명 없으면 안내 팝업 + 인풋 포커스 */
@@ -21802,8 +21802,24 @@ function _detectActivityChanges(oldTracks,newTracks){
   });
   _activityItems=_activityItems.slice(0,10);
 }
+function _seedActivityFeed(){
+  if(_activityItems.length>0)return;
+  var now=Date.now(),day=86400000;
+  (_sbTracks||[]).forEach(function(t){
+    if(!t._owner||!t._owner.name)return;
+    if(t._created&&t._created>now-day){
+      _activityItems.push({icon:'🎵',text:(t._owner.name||'익명')+'님이 "'+(t.title||'무제').slice(0,15)+'" 공유',time:t._created});
+    }
+    if((t.likes||0)>=3&&t._created&&t._created>now-3*day){
+      _activityItems.push({icon:'🔥',text:'"'+(t.title||'무제').slice(0,15)+'" 인기 급상승!',time:now-Math.random()*day});
+    }
+  });
+  _activityItems.sort(function(a,b){return b.time-a.time;});
+  _activityItems=_activityItems.slice(0,8);
+}
 function _renderActivityFeed(){
   const el=$('comm-activity-feed');if(!el) return;
+  if(!_activityItems.length)_seedActivityFeed();
   if(!_activityItems.length){el.innerHTML='';return;}
   el.innerHTML=`<div class="comm-activity">
     <div class="comm-activity-title"><span>📡 실시간 활동</span><button onclick="$('comm-activity-feed').innerHTML='';_activityItems=[];" style="background:none;border:none;color:var(--t3);font-size:10px;cursor:pointer;font-family:inherit;">닫기</button></div>
@@ -28441,7 +28457,7 @@ function _renderCI(c,rm,depth){
     <div class="comment-row">${av}<div class="comment-body">
       <div class="comment-meta"><span class="comment-author${isMe?' comment-me'  :''}">${esc(c.author_name||'익명')}${isMe?' (나)':''}</span><span class="comment-time">${ta}</span></div>
       <div class="comment-text">${esc(c.content)}</div>
-      <div class="comment-act-row"><button class="comment-act-btn" onclick="_setReply('${c.id}','${esc(c.author_name||'')}')">↩ 답글</button>${isMe?'<button class="comment-act-btn comment-del" onclick="_deleteMyComment(\''+c.id+'\')">삭제</button>':'<button class="comment-act-btn" onclick="_reportComment(\''+c.id+'\',\''+esc(c.author_name||'')+'\',\''+esc((c.content||'').slice(0,30))+'\')" style="color:rgba(255,160,80,.6);">🚩</button>'}</div>
+      <div class="comment-act-row"><button class="comment-act-btn" onclick="_setReply('${c.id}','${esc(c.author_name||'')}')">↩ 답글</button>${isMe?'<button class="comment-act-btn" onclick="_editComment(\''+c.id+'\')">수정</button><button class="comment-act-btn comment-del" onclick="_deleteMyComment(\''+c.id+'\')">삭제</button>':'<button class="comment-act-btn" onclick="_reportComment(\''+c.id+'\',\''+esc(c.author_name||'')+'\',\''+esc((c.content||'').slice(0,30))+'\')" style="color:rgba(255,160,80,.6);">🚩</button>'}</div>
     </div></div>${kids.map(r=>_renderCI(r,rm,depth+1)).join('')}</div>`;
 }
 function _setReply(pid,name){_commentReplyTo={id:pid,name};const b=document.getElementById('_comment_reply_bar'),l=document.getElementById('_comment_reply_label');if(b)b.style.display='flex';if(l)l.textContent='↩ '+name+'에게 답글';document.getElementById('_comment_input')?.focus();}
@@ -28462,6 +28478,35 @@ async function _submitComment(){
     _cancelReply();await _loadComments();var list=document.getElementById('_comment_list');if(list)list.scrollTop=list.scrollHeight;
   }catch(e){toast('댓글 전송 실패','err');}
   finally{delete _actionLocks['comment'];}
+}
+function _editComment(id){
+  var item=document.querySelector('[data-cid="'+id+'"]');if(!item)return;
+  var textEl=item.querySelector('.comment-text');if(!textEl)return;
+  var orig=textEl.textContent||'';
+  textEl.innerHTML='<input class="comment-edit-input" type="text" value="'+esc(orig)+'" maxlength="500" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:12px;font-family:inherit;">'
+    +'<div style="display:flex;gap:6px;margin-top:4px;">'
+    +'<button onclick="_saveEditComment(\''+id+'\')" style="padding:4px 12px;border-radius:6px;background:var(--acc);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">저장</button>'
+    +'<button onclick="_cancelEditComment(\''+id+'\',\''+esc(orig).replace(/'/g,"\\&#39;")+'\')" style="padding:4px 12px;border-radius:6px;background:var(--border);color:var(--t2);border:none;font-size:11px;cursor:pointer;font-family:inherit;">취소</button>'
+    +'</div>';
+  item.querySelector('.comment-edit-input')?.focus();
+}
+function _cancelEditComment(id,orig){
+  var item=document.querySelector('[data-cid="'+id+'"]');if(!item)return;
+  var textEl=item.querySelector('.comment-text');if(textEl)textEl.textContent=orig;
+}
+async function _saveEditComment(id){
+  var item=document.querySelector('[data-cid="'+id+'"]');if(!item)return;
+  var input=item.querySelector('.comment-edit-input');if(!input)return;
+  var content=input.value.trim();
+  if(!content){toast('내용을 입력해주세요','err');return;}
+  if(!currentUser){toast('로그인 필요','warn');return;}
+  try{
+    var r=await fetch('/api/comments?id='+encodeURIComponent(id)+'&action=edit',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:content,authorName:currentUser.name,authorProvider:currentUser.provider})});
+    var d=await r.json();
+    if(!r.ok||!d.success){toast(d.error||'수정 실패','err');return;}
+    var c=_commentData.find(function(x){return x.id===id;});if(c)c.content=content;
+    _renderComments();toast('수정 완료','ok',1500);
+  }catch(e){toast('수정 실패','err');}
 }
 async function _deleteMyComment(id){
   _showSettingsConfirm('댓글 삭제','이 댓글을 삭제할까요?','삭제',async()=>{
@@ -30719,6 +30764,18 @@ async function _renderDailyDiscover(){
     _ddRenderHTML(wrap,d);
   }catch(e){
     console.warn('[DailyDiscover]',e.message);
+    /* 클라이언트 폴백: API 실패 시 _sbTracks에서 랜덤 3곡 */
+    if(_sbTracks&&_sbTracks.length>=3){
+      var _seed=new Date().toDateString()+(currentUser?.name||'');
+      var _hash=0;for(var i=0;i<_seed.length;i++)_hash=(_hash*31+_seed.charCodeAt(i))|0;
+      var _pool=_sbTracks.filter(function(t){return t.audioUrl&&t._owner&&t._owner.name!==(currentUser?.name||'');});
+      if(_pool.length>=3){
+        _pool.sort(function(a,b){return((_hash^(a._sbId||'').length)&0xffff)-((_hash^(b._sbId||'').length)&0xffff);});
+        var _picks=_pool.slice(0,3).map(function(t){return{id:t._sbId,title:t.title,image_url:t.img,tags:t.tags,user_name:t._owner?.name||'',likes:t.likes||0};});
+        _ddRenderHTML(wrap,{tracks:_picks,mission:{totalCount:3,completedCount:0,discoveredIds:[]}});
+        return;
+      }
+    }
     wrap.style.display='none';
   }
 }

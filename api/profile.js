@@ -18,6 +18,15 @@ const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = (process.env.TELEGRAM_CHAT_ID || '').trim();
 const BASE = 'https://ddinggok.com';
 const _profileRateMap = {}; /* Rate limit for profile updates */
+const _rateMap = {};
+function _checkRate(key, maxPerMin) {
+  const now = Date.now();
+  if (!_rateMap[key]) _rateMap[key] = [];
+  _rateMap[key] = _rateMap[key].filter(t => now - t < 60000);
+  if (_rateMap[key].length >= maxPerMin) return false;
+  _rateMap[key].push(now);
+  return true;
+}
 const _activeSessionMap = {}; /* 활성화 알림: 세션당 최초 1회만 (true=이미 알림 완료) */
 const _leaveNotifyCount = {}; /* 이탈 알림: 사용자당 최대 2회 카운트 */
 
@@ -331,6 +340,8 @@ export default async function handler(req, res) {
 
     /* 팔로우/언팔로우 */
     if (action === 'follow' || action === 'unfollow') {
+      const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+      if (!_checkRate('follow:' + ip, 20)) return res.status(429).json({ error: '요청이 너무 빈번합니다' });
       const { followerName, followerProvider, followingName, followingProvider } = body;
       if (!followerName || !followingName) return res.status(400).json({ error: '팔로우 정보 필요' });
       if (followerName === followingName && followerProvider === followingProvider) {
@@ -366,6 +377,8 @@ export default async function handler(req, res) {
 
     /* 신고 */
     if (action === 'report') {
+      const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+      if (!_checkRate('report:' + ip, 5)) return res.status(429).json({ error: '신고 요청이 너무 빈번합니다' });
       const { reporterName, reporterProvider, targetType, targetId, reason } = body;
       if (!reporterName || !targetType || !targetId) return res.status(400).json({ error: '신고 정보 필요' });
 
