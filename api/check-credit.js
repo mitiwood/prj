@@ -81,13 +81,14 @@ export default async function handler(req, res) {
   try {
     /* 1. 유저 조회 → plan 확인 */
     const users = await sbFetch('GET',
-      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=name,provider,plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
+      `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}&select=name,provider,email,plan,credits_song,credits_mv,credits_lyrics,plan_expires&limit=1`
     );
     const user = users[0];
     const plan = user?.plan || 'free';
 
-    /* supervisor: 무제한 (DB plan 또는 환경변수 목록) */
-    if (plan === 'supervisor' || SUPERVISOR_NAMES.includes((userName||'').toLowerCase())) {
+    /* supervisor: 무제한 (DB plan / 환경변수 이름 / 이메일) */
+    const OWNER_EMAILS = ['altosax7@gmail.com'];
+    if (plan === 'supervisor' || SUPERVISOR_NAMES.includes((userName||'').toLowerCase()) || (user?.email && OWNER_EMAILS.includes(user.email.toLowerCase()))) {
       return res.status(200).json({ ok: true, plan: 'supervisor', remaining: 'unlimited', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 });
     }
 
