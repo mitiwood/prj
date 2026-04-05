@@ -39,7 +39,10 @@
 <!-- QR Code Generator -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
 <!-- Kakao JS SDK — 공유 시 동적 로드 (cross-site cookie 경고 방지) -->
-<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7c3aed"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#7c3aed"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="띵곡">
 <script>
 /* 전역 stub — 메인 스크립트 로드 전 onclick 호출 방어 */
 window.$=window.$||function(id){return document.getElementById(id);};
@@ -7964,8 +7967,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <div id="gift-track-list" style="max-height:300px;overflow-y:auto;"></div>
     </div>
     <div id="gift-step-2" style="display:none;">
-      <label style="font-size:13px;color:var(--t2);font-weight:600;">받는 사람 닉네임</label>
-      <input id="gift-to-name" type="text" placeholder="닉네임을 입력하세요" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:14px;margin:6px 0 14px;box-sizing:border-box;font-family:inherit;">
+      <label style="font-size:13px;color:var(--t2);font-weight:600;">받는 사람</label>
+      <!-- 팔로잉/전체 사용자 셀렉트 -->
+      <div id="gift-user-tabs" style="display:flex;gap:6px;margin:8px 0 6px;">
+        <button class="gift-tab on" data-user-tab="following" onclick="_switchGiftUserTab('following')" style="font-size:12px;padding:6px 12px;">내 팔로잉</button>
+        <button class="gift-tab" data-user-tab="all" onclick="_switchGiftUserTab('all')" style="font-size:12px;padding:6px 12px;">전체 사용자</button>
+        <button class="gift-tab" data-user-tab="direct" onclick="_switchGiftUserTab('direct')" style="font-size:12px;padding:6px 12px;">직접 입력</button>
+      </div>
+      <div id="gift-user-list" style="max-height:160px;overflow-y:auto;margin-bottom:8px;border:1px solid var(--border);border-radius:12px;display:none;"></div>
+      <input id="gift-to-name" type="text" placeholder="닉네임을 입력하거나 위에서 선택하세요" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:14px;margin:0 0 14px;box-sizing:border-box;font-family:inherit;">
+      <div id="gift-user-search-results" style="display:none;max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;margin:-10px 0 14px;background:var(--card);"></div>
       <label style="font-size:13px;color:var(--t2);font-weight:600;">이모지 선택</label>
       <div class="gift-emoji-grid" id="gift-emoji-grid"></div>
       <label style="font-size:13px;color:var(--t2);font-weight:600;">메시지 (선택)</label>
@@ -32133,10 +32144,110 @@ function _showQRCardDirect(title,imageUrl,trackId){
     /* 이모지 그리드 */
     var eg=$('gift-emoji-grid');
     eg.innerHTML=_giftEmojis.map(function(e){return '<button class="gift-emoji-btn'+(e===_giftEmoji?' on':'')+'" onclick="_selectGiftEmoji(\''+e+'\')">'+e+'</button>';}).join('');
+    /* 팔로잉 목록 프리로드 */
+    _loadGiftFollowing();
     $('gift-send-sheet').classList.add('on');
   };
 
   window._closeGiftSendSheet=function(){$('gift-send-sheet').classList.remove('on');};
+
+  /* ── 받는 사람 선택: 팔로잉 / 전체 / 직접 입력 ── */
+  var _giftUserTab='following';
+  var _giftFollowingList=[];
+  var _giftAllUsers=[];
+
+  window._switchGiftUserTab=function(tab){
+    _giftUserTab=tab;
+    document.querySelectorAll('#gift-user-tabs .gift-tab').forEach(function(b){b.classList.toggle('on',b.dataset.userTab===tab);});
+    var list=$('gift-user-list');
+    var input=$('gift-to-name');
+    var search=$('gift-user-search-results');
+    search.style.display='none';
+    if(tab==='direct'){
+      list.style.display='none';
+      input.style.display='';
+      input.placeholder='\uB2C9\uB124\uC784\uC744 \uC785\uB825\uD558\uC138\uC694';
+      input.focus();
+    } else if(tab==='following'){
+      list.style.display='';
+      input.style.display='none';
+      _renderGiftUserList(_giftFollowingList,'\uD314\uB85C\uC789\uD558\uB294 \uC0AC\uB78C\uC774 \uC5C6\uC5B4\uC694');
+    } else {
+      list.style.display='none';
+      input.style.display='';
+      input.placeholder='\uB2C9\uB124\uC784 \uAC80\uC0C9...';
+      input.value='';
+      input.focus();
+      _loadGiftAllUsers();
+    }
+  };
+
+  async function _loadGiftFollowing(){
+    if(!currentUser)return;
+    try{
+      var r=await fetch('/api/profile?name='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider)+'&action=following');
+      var d=await r.json();
+      _giftFollowingList=(d.following||[]).map(function(f){return {name:f.following_name||f.name||'',avatar:f.avatar||'',provider:f.following_provider||f.provider||''};});
+      if(_giftUserTab==='following') _renderGiftUserList(_giftFollowingList,'\uD314\uB85C\uC789\uD558\uB294 \uC0AC\uB78C\uC774 \uC5C6\uC5B4\uC694');
+    }catch(e){_giftFollowingList=[];}
+  }
+
+  async function _loadGiftAllUsers(){
+    if(_giftAllUsers.length)return;
+    try{
+      var r=await fetch('/api/users?action=public-names');
+      var d=await r.json();
+      _giftAllUsers=(d.names||[]).filter(function(n){return n&&n!==currentUser?.name;});
+    }catch(e){_giftAllUsers=[];}
+  }
+
+  function _renderGiftUserList(users,emptyMsg){
+    var list=$('gift-user-list');
+    if(!users.length){
+      list.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">'+emptyMsg+'</div>';
+      list.style.display='';
+      return;
+    }
+    var html='';
+    users.forEach(function(u){
+      var name=typeof u==='string'?u:u.name;
+      var avatar=typeof u==='string'?'':u.avatar||'';
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s;" onclick="_pickGiftUser(\''+esc(name)+'\')" onmouseover="this.style.background=\'rgba(168,85,247,.08)\'" onmouseout="this.style.background=\'\'">';
+      html+=avatar?'<img src="'+esc(avatar)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'<div style="width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;">\uD83D\uDC64</div>';
+      html+='<span style="font-size:14px;font-weight:600;color:var(--t1);">'+esc(name)+'</span>';
+      html+='</div>';
+    });
+    list.innerHTML=html;
+    list.style.display='';
+  }
+
+  window._pickGiftUser=function(name){
+    $('gift-to-name').value=name;
+    $('gift-to-name').style.display='';
+    $('gift-user-list').style.display='none';
+    $('gift-user-search-results').style.display='none';
+    toast('\u2705 '+name+'\uB2D8 \uC120\uD0DD','ok',1500);
+  };
+
+  /* 전체 사용자 실시간 검색 */
+  document.addEventListener('DOMContentLoaded',function(){
+    var input=$('gift-to-name');
+    if(!input)return;
+    input.addEventListener('input',function(){
+      if(_giftUserTab!=='all')return;
+      var q=(input.value||'').trim().toLowerCase();
+      var sr=$('gift-user-search-results');
+      if(!q||q.length<1){sr.style.display='none';return;}
+      var filtered=_giftAllUsers.filter(function(n){return n.toLowerCase().includes(q);}).slice(0,10);
+      if(!filtered.length){sr.style.display='none';return;}
+      var html='';
+      filtered.forEach(function(n){
+        html+='<div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--t1);" onclick="_pickGiftUser(\''+esc(n)+'\')" onmouseover="this.style.background=\'rgba(168,85,247,.08)\'" onmouseout="this.style.background=\'\'">'+esc(n)+'</div>';
+      });
+      sr.innerHTML=html;
+      sr.style.display='';
+    });
+  });
 
   window._selectGiftTrack=function(idx){
     var tracks=historyData.filter(function(h){return h.audio_url;}).slice(0,30);
