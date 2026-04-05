@@ -15498,10 +15498,17 @@ $('rm-submit-btn').addEventListener('click',async()=>{
   $('rm-submit-btn').disabled=true;$('rm-spinner').style.display='block';$('rm-btn-txt').textContent='리마스터 중...';
   try{
     const prompt=h.lyrics||h.tags||h.title||'instrumental';
-    const body={prompt,customMode:true,instrumental:!h.lyrics,model:'V5',callBackUrl:CALLBACK,styleWeight:0.7,weirdnessConstraint:0.3};
+    const body={prompt,customMode:true,instrumental:!h.lyrics,model:'V4_5',callBackUrl:CALLBACK,styleWeight:0.7,weirdnessConstraint:0.3};
     if(h.tags)body.style=h.tags;
     if(h.title)body.title='[Remaster] '+(h.title||'');
-    const genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    var genData;
+    try{
+      genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    }catch(_rmErr){
+      /* V4_5 실패 → V4 폴백 */
+      body.model='V4';
+      genData=await kieRequest(apiKey,'POST','/api/v1/generate',body);
+    }
     const taskId=genData?.data?.taskId||genData?.taskId;
     if(!taskId)throw new Error('taskId 없음');
     _closeRemaster();
@@ -21455,20 +21462,22 @@ async function _kpToggleMR(){
 
   try{
     var apiKey=kieApiKey||'proxy';
-    var vrBody={audioId:_kpAudioId||_kpTaskId};
+    var vrBody={audioId:_kpAudioId||_kpTaskId,taskId:_kpTaskId||_kpAudioId,type:'separate_vocal',callBackUrl:CALLBACK};
     var vrRes=await kieRequest(apiKey,'POST','/api/v1/vocal-removal/generate',vrBody);
     var vrTaskId=vrRes?.data?.taskId||vrRes?.taskId;
     if(!vrTaskId)throw new Error('보컬 제거 요청 실패');
 
-    /* 폴링 */
+    /* 폴링 — vocal-removal API는 successFlag 필드 사용 */
     for(var p=0;p<60;p++){
       await sleep(1500);
       var pr=await kieRequest(apiKey,'GET','/api/v1/vocal-removal/record-info?taskId='+vrTaskId);
       var pd=pr?.data;
       if(!pd)continue;
-      if(pd.status==='completed'||pd.status==='complete'||pd.status==='SUCCESS'){
+      var _vrStatus=(pd.status||pd.successFlag||'').toUpperCase();
+      if(_vrStatus==='SUCCESS'||_vrStatus==='COMPLETED'||_vrStatus==='COMPLETE'||pd.successFlag==='SUCCESS'){
         var instUrl=pd.instrumentalUrl||pd.instrumental_url||(pd.result&&pd.result.instrumental_url)||'';
         if(!instUrl&&pd.result){instUrl=pd.result.instrumentalUrl||pd.result.audio_url||'';}
+        if(!instUrl&&pd.instrumentalList&&pd.instrumentalList.length)instUrl=pd.instrumentalList[0];
         if(instUrl){
           _kpMRUrl=instUrl;_kpIsMR=true;
           _kpSwitchAudio(_kpMRUrl);
@@ -21483,7 +21492,7 @@ async function _kpToggleMR(){
           return;
         }
       }
-      if(pd.status==='failed'||pd.status==='error')throw new Error('보컬 제거 실패');
+      if(_vrStatus.includes('FAILED')||_vrStatus.includes('ERROR'))throw new Error(pd.errorMessage||'보컬 제거 실패');
     }
     throw new Error('보컬 제거 시간 초과');
   }catch(e){
