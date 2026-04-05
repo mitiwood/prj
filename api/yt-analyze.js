@@ -402,7 +402,8 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
   // 1차: artist/author 정확 매칭
   for (const entry of _artistDB) {
     for (const name of entry.names) {
-      if (artistLower === name || authorLower === name || _wordMatch(artistLower, name) || _wordMatch(authorLower, name)) {
+      const _nn = _normName(name);
+      if (artistLower === _nn || authorLower === _nn || _wordMatch(artistLower, _nn) || _wordMatch(authorLower, _nn)) {
         artistMatch = entry;
         break;
       }
