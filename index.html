@@ -20841,6 +20841,8 @@ function _updateCreditBadge(){
 /* ── 크레딧 경고 배너 ── */
 function _updateCreditWarn(){
   var banner=$('credit-warn-banner');if(!banner)return;
+  /* supervisor: 경고 배너 절대 표시 안 함 */
+  if(currentUser?.plan==='supervisor'||_serverCreditsCache?.plan==='supervisor'){banner.classList.remove('show');return;}
   var remain=99;
   if(_serverCreditsCache){
     remain=_serverCreditsCache.credits_song??0;
@@ -25793,6 +25795,7 @@ async function _syncPlanAndRetry(type){
 /* 서버 크레딧 검증 — 서버 응답이 limit_exceeded면 강제 차단 */
 async function _serverCreditCheck(type){
   if(!currentUser?.name) return;
+  if(currentUser?.plan==='supervisor'||_serverCreditsCache?.plan==='supervisor') return;
   try {
     const r = await fetch('/api/check-credit', {
       method: 'POST',
@@ -25861,6 +25864,7 @@ async function _serverCreditDeduct(type){
 }
 
 function showUpgradePrompt(type, used, limit, currentPlan){
+  if(currentUser?.plan==='supervisor'||_serverCreditsCache?.plan==='supervisor') return;
   const typeLabel = {song:'음악 생성',mv:'뮤직비디오',lyrics:'가사 생성'}[type]||type;
   /* 하단탭 + 미니플레이어 위에 플로팅 */
   var bnav=document.getElementById('bottom-nav');
