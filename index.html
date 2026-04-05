@@ -4324,7 +4324,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 .fp-info-row{display:flex;align-items:flex-start;gap:12px;width:100%;margin-bottom:4px;}
 .fp-info-actions{display:flex;gap:6px;flex-shrink:0;padding-top:2px;}
 /* 더보기 메뉴 */
-.fp-more-menu{position:fixed;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--card,rgba(30,30,42,.98));border-radius:20px 20px 0 0;padding:12px 12px 24px;border-top:1px solid rgba(255,255,255,.1);max-height:60vh;overflow-y:auto;z-index:10007;box-shadow:0 -8px 40px rgba(0,0,0,.5);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);}
+.fp-more-menu{width:100%;background:rgba(255,255,255,.06);border-radius:14px;padding:6px;margin:8px 0;border:1px solid rgba(255,255,255,.08);max-height:60vh;overflow-y:auto;}
 .fp-more-section-title{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.5px;text-transform:uppercase;padding:8px 14px 4px;}
 [data-theme="light"] .fp-more-section-title{color:rgba(0,0,0,.3);}
 .fp-more-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:none;background:none;color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:10px;transition:background .15s;}
@@ -17457,18 +17457,7 @@ function _setPlayIcon(el, playing, isFp){
 /* 더보기 메뉴 토글 */
 function _fpToggleMoreMenu(){
   var m=$('fp-more-menu');if(!m)return;
-  var isOpen=m.style.display!=='none';
-  if(isOpen){
-    m.style.display='none';
-    var ov=document.getElementById('fp-more-overlay');if(ov)ov.remove();
-  } else {
-    m.style.display='block';
-    /* 배경 오버레이 */
-    var ov=document.createElement('div');ov.id='fp-more-overlay';
-    ov.style.cssText='position:fixed;inset:0;z-index:10006;background:rgba(0,0,0,.4);';
-    ov.onclick=function(){_fpToggleMoreMenu();};
-    document.body.appendChild(ov);
-  }
+  m.style.display=m.style.display==='none'?'block':'none';
 }
 function openFullPlayer(idx){
   const h=historyData[idx];
