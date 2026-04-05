@@ -10001,7 +10001,19 @@ async function _ytDoGenerate(){
     $('loading-card').classList.remove('on');
     console.error('%c[Generate] %cYT-ERROR%c '+e.message+' ('+(Date.now()-_ytT0)+'ms)','color:#a78bfa;font-weight:bold','color:#ef4444;font-weight:bold','color:inherit');
 
+    /* SENSITIVE_WORD: prompt 비우고 자동 재시도 (1회) */
+    if(e._sensitiveRetry && !window._ytSensitiveRetried){
+      window._ytSensitiveRetried=true;
+      toast('⚠️ 민감 표현 감지 — 가사 자동 수정 후 재시도 중...','',3000);
+      /* 가사 비우고 재생성 — kie.ai가 자체 작사 */
+      var _ytLyricsTa=document.getElementById('yt-lyrics-ta');
+      if(_ytLyricsTa) _ytLyricsTa.value='';
+      setTimeout(function(){ _ytGenerating=false;_globalGenerating=false;_syncGenButtons(); _ytDoGenerate(); },1500);
+      return;
+    }
+    window._ytSensitiveRetried=false;
     var _ytClassified = _classifyError(e.message);
+    if(e._sensitiveRetry) _ytClassified={cat:'content',msg:'AI가 부적절한 표현을 감지했어요 — 가사를 수정해주세요',icon:'⚠️',retry:false};
     var _ytIsRetryable = _ytClassified.retry && !_genCancelled && !e.message.includes('취소') && _ytRetryCount < 2;
 
     /* 서버 에러 로깅 */
@@ -11461,7 +11473,10 @@ async function pollResult(apiKey,taskId,_localGenCount){
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
-        throw new Error('AI가 부적절한 표현을 감지했어요 — 가사나 설명을 수정 후 다시 시도해주세요');
+        /* 첫 번째 시도면 자동 재시도 플래그 설정 — 호출측에서 prompt 정제 후 재생성 */
+        var _swErr=new Error('SENSITIVE_WORD_RETRY');
+        _swErr._sensitiveRetry=true;
+        throw _swErr;
       }
       /* audioUrl 또는 streamAudioUrl이 있는 유효 트랙만 필터 */
       tracks.forEach(function(t){if(!t.audioUrl&&t.streamAudioUrl)t.audioUrl=t.streamAudioUrl;});
@@ -13318,7 +13333,18 @@ async function generate(overrideParams){
     $('loading-card').classList.remove('on');
     _genLog('ERROR',e.message,{elapsed:(Date.now()-_genT0)+'ms'});
 
+    /* SENSITIVE_WORD: prompt 비우고 자동 재시도 (1회) */
+    if(e._sensitiveRetry && !window._genSensitiveRetried){
+      window._genSensitiveRetried=true;
+      toast('⚠️ 민감 표현 감지 — 가사 자동 수정 후 재시도...','',3000);
+      $('prompt').value='';
+      if($('simple-lyrics')) $('simple-lyrics').value='';
+      setTimeout(function(){ _QueueManager.setBusy('music',false);_globalGenerating=false;_syncGenButtons(); generate({_afterLyrics:true}); },1500);
+      return;
+    }
+    window._genSensitiveRetried=false;
     var _classified = _classifyError(e.message);
+    if(e._sensitiveRetry) _classified={cat:'content',msg:'AI가 부적절한 표현을 감지했어요 — 가사를 수정해주세요',icon:'⚠️',retry:false};
     var _isRetryable = _classified.retry && !_genCancelled && !e.message.includes('취소') && _retryCount < 2;
 
     /* 서버 에러 로깅 + 생성 실패 상세 기록 */
