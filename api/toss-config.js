@@ -13,9 +13,9 @@ export const PLANS = {
     label: "Free",
     icon: "🆓",
     color: "var(--t3)",
-    desc: "월 5곡 무료 생성",
-    limits: { songs: 5, mv: 0, lyrics: 5 },
-    features: ["AI 작곡 5곡/월", "V3.5 모델", "1분 제한", "MP3 다운로드"],
+    desc: "월 3곡 무료 생성",
+    limits: { songs: 3, mv: 0, lyrics: 3 },
+    features: ["AI 작곡 3곡/월", "V3.5 모델", "1분 제한", "MP3 다운로드"],
   },
   pro: {
     price: 9900,

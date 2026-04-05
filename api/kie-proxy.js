@@ -11,7 +11,7 @@ import { withSentry } from './lib/sentry.js';
 
 /* 게스트 IP 기반 rate limit (서버 메모리) */
 const _guestRateMap = {};
-const GUEST_RATE_LIMIT = 5; /* IP당 최대 5회/시간 */
+const GUEST_RATE_LIMIT = 2; /* IP당 최대 2회/시간 (게스트 1곡 + 여유) */
 function _checkGuestRate(ip) {
   const now = Date.now();
   if (!_guestRateMap[ip]) _guestRateMap[ip] = [];
