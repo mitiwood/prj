@@ -11518,7 +11518,7 @@ $('lyrics-btn').addEventListener('click',async()=>{
             text = _extractLyricsFromResponse(d);
             if(text){ kieSuccess=true; break; }
           }
-          if(status==='FAILED'||status==='ERROR'){
+          if(status.includes('FAILED')||status.includes('ERROR')){
             const errMsg = d.msg||d.error_message||d.response?.error_message||'';
             /* "model is empty" 등 내부 에러는 무시하고 폴백 */
             console.warn('[lyrics] kie.ai 실패:', errMsg);
@@ -11666,7 +11666,7 @@ async function _autoLyricsAndGenerate(){
             text=_extractLyricsFromResponse(d);
             if(text) break;
           }
-          if(status==='FAILED'||status==='ERROR') break;
+          if(status.includes('FAILED')||status.includes('ERROR')) break;
         }
       }
     }catch(e){ console.warn('[auto-lyrics] kie.ai 실패:', e.message); }
@@ -13660,7 +13660,7 @@ $('vc-submit-btn').addEventListener('click',async()=>{
         const status=(st.status||'').toUpperCase();
         const trks=st.response?.sunoData||[];
         if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
-        if(status==='FAILED'||status==='ERROR')throw new Error('보컬 교체 실패');
+        if(status.includes('FAILED')||status.includes('ERROR'))throw new Error(st.errorMessage||'보컬 교체 실패');
         $('vc-result').innerHTML=`<div style="font-size:12px;color:var(--t2);padding:8px;">🎙 보컬 교체 중... ${Math.min(90,Math.round((i/40)*100))}%</div>`;
       }catch(pe){if(pe.message.includes('실패'))throw pe;}
     }
@@ -15338,7 +15338,13 @@ $('rc-submit-btn').addEventListener('click',async()=>{
         const status=(st.status||'').toUpperCase();
         const trks=st.response?.sunoData||[];
         if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
-        if(status==='FAILED'||status==='ERROR')throw new Error('커버 생성 실패');
+        /* COMPLETE/FIRST_SUCCESS도 성공으로 처리 */
+        if((status==='COMPLETE'||status==='FIRST_SUCCESS')&&trks.length){result=trks[0];break;}
+        /* 실패 상태: FAILED, ERROR, *_FAILED 패턴 */
+        if(status.includes('FAILED')||status.includes('ERROR')){
+          var errMsg=st.errorMessage||st.failMsg||'커버 생성 실패';
+          throw new Error(errMsg);
+        }
         var _pct=Math.min(95,Math.round((i/40)*100));
         $('ld-sub').innerHTML='커버 작업 '+_pct+'% 완료~<br>거의 다 됐어요 🎤';
         /* 로딩바 + 링 프로그레스 업데이트 */
@@ -30363,7 +30369,7 @@ function _openVocalAddModal(audioUrl, audioId, title){
             var status=(st.status||'').toUpperCase();
             var trks=st.response?.sunoData||[];
             if(status==='SUCCESS'&&trks.length){result=trks[0];break;}
-            if(status==='FAILED'||status==='ERROR') throw new Error('보컬 추가 실패');
+            if(status.includes('FAILED')||status.includes('ERROR')) throw new Error(st.errorMessage||'보컬 추가 실패');
             $('ld-sub').innerHTML='보컬 작업 '+Math.min(95,Math.round((i/40)*100))+'% 완료~<br>거의 다 됐어요 🎤';
           }catch(pe){if(pe.message.includes('실패'))throw pe;}
         }
