@@ -20159,9 +20159,9 @@ async function fpRenderLyrics(h){
         if(_tsWords.length) window._fpAlignedCache[_cacheKey]=_tsWords;
       }catch(e){
         console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 재시도 예약:', e?.message);
-        /* 백그라운드 재시도 (5초, 15초, 30초) — 성공 시 자동 싱크 갱신 */
+        /* 백그라운드 재시도 (3초, 8초, 20초, 45초, 90초) — 생성 직후 API 준비 대기 */
         var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
-        var _retryDelays=[5000,15000,30000];
+        var _retryDelays=[3000,8000,20000,45000,90000];
         function _tsRetry(attempt){
           if(attempt>=_retryDelays.length)return;
           setTimeout(async function(){
