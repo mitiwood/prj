@@ -52,6 +52,17 @@ async function sb(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
+async function sbPatch(path, body) {
+  if (!SB_URL || !SB_KEY) throw new Error("no_supabase");
+  const r = await fetch(`${SB_URL}/rest/v1${path}`, {
+    method: 'PATCH',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) { const txt = await r.text(); throw new Error(`SB PATCH ${r.status}: ${txt.slice(0,200)}`); }
+  return r;
+}
+
 async function _handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -353,12 +364,11 @@ async function _handler(req, res) {
     /* 재생수 카운팅 (atomic increment — race condition 방지) */
     if (action === "play") {
       try {
-        await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-          method: 'POST',
-          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: `UPDATE tracks SET comm_plays = COALESCE(comm_plays, 0) + 1 WHERE id = '${id.replace(/'/g, "''")}'` })
-        });
-        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=comm_plays`);
+        /* atomic increment via Supabase RPC — SQL 인젝션 방지 */
+        const curRows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=comm_plays`);
+        const curPlays = (curRows?.[0]?.comm_plays || 0) + 1;
+        await sbPatch(`/tracks?id=eq.${encodeURIComponent(id)}`, { comm_plays: curPlays });
+        const rows = [{ comm_plays: curPlays }];
         return res.status(200).json({ success: true, comm_plays: rows?.[0]?.comm_plays || 0 });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);
@@ -517,12 +527,11 @@ async function _handler(req, res) {
       const delta = isUndo ? -1 : 1;
       try {
         const safeCol = col.replace(/[^a-z_]/g, '');
-        await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-          method: 'POST',
-          headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: `UPDATE tracks SET ${safeCol} = GREATEST(0, COALESCE(${safeCol}, 0) + (${delta})) WHERE id = '${id.replace(/'/g, "''")}'` })
-        });
-        const rows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${safeCol}`);
+        /* SQL 인젝션 방지: exec_sql 대신 REST API 사용 */
+        const curRows = await sb(`/tracks?id=eq.${encodeURIComponent(id)}&select=${safeCol}`);
+        const curVal = Math.max(0, (curRows?.[0]?.[safeCol] || 0) + delta);
+        await sbPatch(`/tracks?id=eq.${encodeURIComponent(id)}`, { [safeCol]: curVal });
+        const rows = [{ [safeCol]: curVal }];
         return res.status(200).json({ success: true, [col]: rows?.[0]?.[col] || 0, source: "supabase" });
       } catch (e) {
         const idx = _mem.findIndex((t) => t.id === id);

@@ -7,6 +7,7 @@
 
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
 
 /* 연속 출석 보너스 규칙 */
 const STREAK_BONUS = {
@@ -61,6 +62,7 @@ export default async function handler(req, res) {
   try {
     /* ── 관리자 통계 조회 ── */
     if (req.method === 'GET' && req.query?.admin === 'true') {
+      if (!ADMIN_SECRET || req.headers?.authorization !== `Bearer ${ADMIN_SECRET}`) return res.status(401).json({ error: 'unauthorized' });
       /* 오늘 출석자 목록 */
       const todayRecords = await sbFetch('GET',
         `/attendance?check_date=eq.${today}&order=created_at.desc&limit=500`
@@ -111,6 +113,7 @@ export default async function handler(req, res) {
 
     /* ── 관리자: 특정 유저 출석 초기화/보너스 수동 지급 ── */
     if (req.method === 'POST' && req.body?.admin === true) {
+      if (!ADMIN_SECRET || req.headers?.authorization !== `Bearer ${ADMIN_SECRET}`) return res.status(401).json({ error: 'unauthorized' });
       const { action, targetName, targetProvider, credits } = req.body;
       if (action === 'reset_streak') {
         /* 해당 유저의 모든 출석 기록 삭제 */

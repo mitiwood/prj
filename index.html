@@ -3450,7 +3450,8 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-swipe-handle{text-align:center;padding:8px 0 0;position:relative;z-index:2;cursor:grab;}
 .fp-handle-bar{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.3);margin:0 auto;}
 [data-theme="light"] .fp-handle-bar{background:rgba(0,0,0,.15);}
-.fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(80px) brightness(.2) saturate(1.5);transform:scale(1.4);opacity:.6;transition:opacity .6s ease;}
+.fp-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(48px) brightness(.25) saturate(1.4);transform:scale(1.4);opacity:.5;transition:opacity .8s ease;}
+.fp-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3) 0%,transparent 40%,transparent 60%,rgba(0,0,0,.6) 100%);}
 .fp-inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;max-width:100%;margin:0 auto;width:100%;}
 .fp-header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,50px) 20px 8px;position:relative;z-index:3;background:transparent;}
 .fp-back{
@@ -3474,10 +3475,10 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-cover svg{display:none;}
 /* 곡 정보 — 중앙 정렬 */
 .fp-info{text-align:left;margin-bottom:0;width:100%;padding:0;box-sizing:border-box;flex:1;min-height:0;display:flex;flex-direction:column;}
-.fp-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px;line-height:1.3;}
-.fp-creator{font-size:13px;color:rgba(255,255,255,.6);font-weight:500;margin-top:2px;display:flex;align-items:center;justify-content:flex-start;gap:5px;}
+.fp-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.5px;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.3);}
+.fp-creator{font-size:13px;color:rgba(255,255,255,.7);font-weight:500;margin-top:2px;display:flex;align-items:center;justify-content:flex-start;gap:5px;letter-spacing:.2px;}
 .fp-creator .fp-creator-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.1);}
-.fp-tags{font-size:12px;color:rgba(168,85,247,.7);font-weight:600;margin-top:6px;}
+.fp-tags{font-size:11px;color:rgba(168,85,247,.8);font-weight:600;margin-top:6px;background:rgba(168,85,247,.08);display:inline-block;padding:3px 10px;border-radius:12px;}
 .fp-actions{display:flex;justify-content:center;gap:20px;margin-bottom:14px;}
 .fp-act-btn{
   display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -3489,10 +3490,11 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 /* 프로그레스 바 — Apple Music 슬림 */
 .fp-prog-section{margin-bottom:16px;margin-top:20px;width:100%;}
 .fp-prog-wrap{
-  width:100%;height:5px;background:rgba(255,255,255,.15);
-  border-radius:3px;cursor:pointer;position:relative;margin-bottom:8px;
+  width:100%;height:4px;background:rgba(255,255,255,.12);
+  border-radius:2px;cursor:pointer;position:relative;margin-bottom:8px;transition:height .15s;
 }
-.fp-prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:3px;width:0%;transition:width .1s linear;}
+.fp-prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;width:0%;transition:width .1s linear;box-shadow:0 0 8px rgba(124,58,237,.3);}
+.fp-prog-wrap:hover{height:6px;}.fp-prog-wrap:hover .fp-prog-fill{border-radius:3px;}
 .fp-prog-thumb{
   width:0;height:0;position:absolute;top:0;left:0%;
   opacity:0;transition:all .15s;
@@ -3509,13 +3511,14 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-controls{display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:16px;}
 .fp-play-btn{
   width:68px;height:68px;border-radius:50%;
-  background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;box-shadow:0 6px 24px rgba(124,58,237,.4);
+  background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;box-shadow:0 6px 28px rgba(124,58,237,.5),0 0 0 4px rgba(124,58,237,.1);
   color:#fff;cursor:pointer;display:flex;
   align-items:center;justify-content:center;transition:all .12s;
   -webkit-tap-highlight-color:transparent;
 }
 .fp-play-btn svg{width:42px;height:42px;fill:#fff;}
-.fp-play-btn:active{transform:scale(.9);opacity:.7;}
+.fp-play-btn:hover{transform:scale(1.05);box-shadow:0 8px 32px rgba(124,58,237,.6),0 0 0 6px rgba(124,58,237,.15);}
+.fp-play-btn:active{transform:scale(.92);opacity:.8;}
 .fp-ctrl-btn{
   width:48px;height:48px;border-radius:50%;background:none;
   border:none;color:rgba(255,255,255,.85);cursor:pointer;
@@ -3523,6 +3526,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
   -webkit-tap-highlight-color:transparent;position:relative;
 }
 .fp-ctrl-btn svg{width:28px;height:28px;fill:currentColor;}
+.fp-ctrl-btn:hover{background:rgba(255,255,255,.08);border-radius:50%;}
 .fp-ctrl-btn:active{transform:scale(.85);opacity:.6;}
 /* 가사 */
 .fp-lyrics-section{margin-top:8px;}
@@ -3536,7 +3540,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-lyrics-box{min-height:80px;padding-bottom:24px;}
 .fp-lyrics-empty{font-size:12px;color:rgba(255,255,255,.25);text-align:center;padding:20px 0;}
 .fp-lline{font-size:14px;color:rgba(255,255,255,.45);line-height:2;cursor:pointer;transition:color .1s;padding:1px 0;}
-.fp-lline.active{color:#fff;font-weight:700;}
+.fp-lline.active{color:#fff;font-weight:700;text-shadow:0 0 16px rgba(168,85,247,.4);}
 .fp-lline.done{color:rgba(255,255,255,.3);}
 .fp-lline-plain{font-size:13px;color:rgba(255,255,255,.55);line-height:2;white-space:pre-wrap;}
 .fp-lyric-sec{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:2px;text-transform:uppercase;display:block;margin:14px 0 4px;opacity:.8;}
@@ -8337,7 +8341,7 @@ var PRESET_MAP={
 };
 
 /* ── 상태 ── */
-var historyData=JSON.parse(localStorage.getItem('kms_history')||'[]');
+var historyData=(function(){try{return JSON.parse(localStorage.getItem('kms_history')||'[]');}catch(e){console.warn('[storage]',e);return[];}})();
 /* 로컬 가사에서 섹션 태그 일괄 제거 (1회성) */
 if(!localStorage.getItem('kms_lyrics_cleaned')){
   var _lc=false;
@@ -12496,6 +12500,7 @@ var _retryCount = 0; /* 자동 재시도 카운터 (최대 2회) */
 var _genQueue=typeof _genQueue!=='undefined'?_genQueue:[]; /* 레거시 호환 */
 var _genCancelled=typeof _genCancelled!=='undefined'?_genCancelled:false;
 var _genRetryTimer=null; /* 재시도 타이머 */
+var _genRetryScheduled=false; /* 재시도 예약 중 플래그 — finally에서 _genCancelled 리셋 방지 */
 /* _genStartTime은 create-enhance.js에서 선언 — 여기서 재선언 금지 */
 
 var _cancelGeneration=function(channel){
@@ -13260,7 +13265,8 @@ async function generate(overrideParams){
       toast('⏳ 생성 오류 — 자동 재시도 '+_retryCount+'/2 ('+(_retryCount*2)+'초 후)','',3000);
       console.warn('[generate] auto-retry #'+_retryCount+':', e.message);
       if(_genRetryTimer){clearTimeout(_genRetryTimer);_genRetryTimer=null;}
-      _genRetryTimer=setTimeout(()=>{ if(_genCancelled){return;} _globalGenerating=false; _syncGenButtons(); generate(Object.assign({},overrideParams||{},{_isRetry:true})); }, retryDelay);
+      _genRetryScheduled=true; /* finally에서 _genCancelled 리셋 방지 */
+      _genRetryTimer=setTimeout(()=>{ _genRetryScheduled=false; if(_genCancelled){_genCancelled=false;_syncGenButtons();return;} _globalGenerating=false; _syncGenButtons(); generate(Object.assign({},overrideParams||{},{_isRetry:true})); }, retryDelay);
       return;
     }
     _retryCount = 0;
@@ -13272,7 +13278,9 @@ async function generate(overrideParams){
   }finally{
     var _wasCancelled=_genCancelled; /* 취소 여부 보존 */
     _stopLdTips();
-    _QueueManager.setBusy('music',false); _genCancelled=false; _syncGenButtons();
+    _QueueManager.setBusy('music',false);
+    if(!_genRetryScheduled) _genCancelled=false; /* 재시도 예약 중이면 취소 상태 유지 */
+    _syncGenButtons();
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
     if(activeSpinner){activeSpinner.style.display='none';}
     if(activeTxt){activeTxt.textContent=isSimple?'⚡ 음악 생성하기':isYT?'▶ YouTube로 생성':' ✦ 음악 생성하기';}
