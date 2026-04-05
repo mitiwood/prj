@@ -17225,6 +17225,8 @@ function genUnlock(){
 }
 function showCompletionPopup(mode, title){
   _haptic.success();
+  /* 무료 사용자: 인터스티셜 광고 표시 */
+  if(typeof _shouldShowAd==='function'&&_shouldShowAd()) _showInterstitialAd();
   /* trackUsage는 각 호출부에서 직접 처리 (중복 차감 방지) */
   const modal = $('glp-modal');
   const titleEl = $('glp-title');
@@ -32201,6 +32203,81 @@ function _showQRCardDirect(title,imageUrl,trackId){
 <script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
 <script>initModelProfiles();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
+
+<!-- ── 광고 시스템 JS (무료 사용자만) ── -->
+<script>
+(function(){
+  /* 유료 플랜 여부 확인 — pro/creator/supervisor는 광고 안 보임 */
+  window._shouldShowAd=function(){
+    var plan=(_serverCreditsCache&&_serverCreditsCache.plan)||currentUser?.plan||'free';
+    return plan==='free'&&!isGuestMode();
+  };
+
+  /* 미니플레이어 배너 광고 표시/숨김 */
+  window._updateAdBanner=function(){
+    var banner=$('mp-ad-banner');
+    if(!banner)return;
+    if(_shouldShowAd()){
+      banner.style.display='';
+      try{(adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}
+    } else {
+      banner.style.display='none';
+    }
+  };
+
+  /* 인터스티셜 광고 (생성 완료 시) */
+  window._showInterstitialAd=function(){
+    var overlay=document.createElement('div');
+    overlay.id='ad-interstitial';
+    overlay.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML='<div style="max-width:400px;width:100%;text-align:center;">'
+      +'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:12px;">광고</div>'
+      +'<div style="background:var(--card,#1e1e2a);border-radius:16px;padding:20px;min-height:250px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border,#333);">'
+      +'<ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins>'
+      +'</div>'
+      +'<button id="ad-close-btn" style="display:none;margin-top:16px;padding:12px 32px;border-radius:25px;background:linear-gradient(135deg,var(--acc2,#7c3aed),var(--acc,#a855f7));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">닫기</button>'
+      +'<div id="ad-timer" style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.4);">5초 후 닫기 가능</div>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    try{(adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}
+    /* 5초 카운트다운 후 닫기 버튼 표시 */
+    var sec=5;
+    var timer=setInterval(function(){
+      sec--;
+      var timerEl=document.getElementById('ad-timer');
+      if(timerEl) timerEl.textContent=sec>0?sec+'\uCD08 \uD6C4 \uB2EB\uAE30 \uAC00\uB2A5':'';
+      if(sec<=0){
+        clearInterval(timer);
+        var btn=document.getElementById('ad-close-btn');
+        if(btn){btn.style.display='';btn.onclick=function(){overlay.remove();};}
+        if(timerEl) timerEl.style.display='none';
+      }
+    },1000);
+  };
+
+  /* 플레이어 열릴 때 배너 업데이트 */
+  var _origShowMP=window.showMiniPlayer;
+  if(_origShowMP){
+    var _adWrapped=false;
+    var _checkAdWrap=setInterval(function(){
+      if(typeof showMiniPlayer==='function'&&!_adWrapped){
+        _adWrapped=true;clearInterval(_checkAdWrap);
+        var _realShowMP=window.showMiniPlayer;
+        window.showMiniPlayer=function(idx){
+          _realShowMP(idx);
+          setTimeout(_updateAdBanner,500);
+        };
+      }
+    },2000);
+  }
+
+  /* Pro 업그레이드 시 광고 즉시 숨김 */
+  window._hideAllAds=function(){
+    var banner=$('mp-ad-banner');if(banner)banner.style.display='none';
+    var interstitial=$('ad-interstitial');if(interstitial)interstitial.remove();
+  };
+})();
+</script>
 
 <!-- ── 선물 기능 JS ── -->
 <script>
