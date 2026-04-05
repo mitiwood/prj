@@ -9721,9 +9721,20 @@ async function _ytDoGenerate(){
       if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
     }
   } else if(!isInst){
-    /* 언어 미선택(자동) — 기본 Korean 힌트 추가 */
-    if(_finalStyle.toLowerCase().indexOf('korean')===-1){
-      _finalStyle = 'Korean lyrics, Korean vocal, sung in Korean, ' + _finalStyle;
+    /* 언어 미선택(자동) — 분석 결과에서 언어 추론, 없으면 가사에서 감지, 최종 폴백 Korean */
+    var _autoLang='';
+    if(_lastYtAnalysis?.vocal_style){
+      var _vs=_lastYtAnalysis.vocal_style.toLowerCase();
+      if(/english|영어/.test(_vs)) _autoLang='English';
+      else if(/japanese|일본/.test(_vs)) _autoLang='Japanese';
+      else if(/chinese|중국/.test(_vs)) _autoLang='Chinese';
+      else if(/spanish|스페인/.test(_vs)) _autoLang='Spanish';
+    }
+    if(!_autoLang && /[\uAC00-\uD7AF]/.test(ytLyrics||'')) _autoLang='Korean';
+    if(!_autoLang && /^[a-zA-Z\s\d\p{P}]+$/u.test(ytLyrics||'') && (ytLyrics||'').length>30) _autoLang='English';
+    if(!_autoLang) _autoLang='Korean';
+    if(_finalStyle.toLowerCase().indexOf(_autoLang.toLowerCase())===-1){
+      _finalStyle = _autoLang + ' lyrics, ' + _autoLang + ' vocal, sung in ' + _autoLang + ', ' + _finalStyle;
       if(_finalStyle.length>999) _finalStyle=_finalStyle.slice(0,999);
     }
   }
@@ -12688,6 +12699,7 @@ function _resetGenerateInputs(mode){
     _clr('genre-cat');_clr('genre-sub');_clr('mood');
     _clr('neg-tags');_clr('ref-artist');
     _clrHtml('ref-artist-tags');_clrHtml('ai-style-applied');
+    if(typeof _refArtistStyleTags!=='undefined') _refArtistStyleTags='';
     _rmC('#mood-grid .mood-chip','on');
     _setR('bpm-slider',120);var bd=$('bpm-display');if(bd)bd.textContent='120';
     var ba=$('bpm-auto-btn');if(ba)ba.classList.remove('on');
