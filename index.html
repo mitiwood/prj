@@ -17654,7 +17654,7 @@ async function _doOpenFullPlayer(idx){
         setTimeout(function(){ _mfQueuePlay(_ctxNext.queueIdx); }, 600);
       } else {
         _playContextIdx = _ctxNext.ctxIdx;
-        setTimeout(function(){ _doOpenFullPlayer(_ctxNext.hIdx); }, 600);
+        setTimeout(function(){ _fpQuickSwitch(_ctxNext.hIdx); }, 100);
       }
     } else {
       if(_playContext === 'creator'){ _mfPlayQueue=[]; _mfPlayQueueIdx=-1; }
@@ -17816,43 +17816,51 @@ function _playParentTrack(parentId){
   toast('원곡을 찾을 수 없어요','',2000);
 }
 
-/* 다음/이전 곡 — audio_url 없는 트랙 스킵 */
+/* 경량 곡 전환 — UI 즉시 갱신 + 오디오만 교체 (풀플레이어 유지) */
+function _fpQuickSwitch(hIdx){
+  var h=historyData[hIdx];if(!h||!h.audio_url)return;
+  fpCurrentIdx=hIdx;
+  /* 1. 이전 오디오 즉시 정지 */
+  if(fpAudio){try{fpAudio.pause();}catch(e){}}
+  _syncAllPlayBtns(false);
+  /* 2. UI 즉시 갱신 */
+  _updateFpUI(hIdx);
+  /* 3. 재생 버튼 로딩 스피너 */
+  var pb=$('fp-play-btn');if(pb)pb.innerHTML='<div style="width:24px;height:24px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;"></div>';
+  /* 4. 프로그레스 리셋 */
+  var pf=$('fp-prog-fill');if(pf)pf.style.width='0%';var pt=$('fp-prog-thumb');if(pt)pt.style.left='0%';var cur=$('fp-cur');if(cur)cur.textContent='0:00';
+  /* 5. 새 오디오 */
+  _destroyFpAudio();
+  var genId=++_fpAudioGenId;var audio=new Audio();audio.preload='auto';fpAudio=audio;
+  if(typeof _fpSavedVolume!=='undefined')audio.volume=_fpSavedVolume;
+  if(typeof _fpSpeedOptions!=='undefined'&&typeof _fpSpeedIdx!=='undefined')audio.playbackRate=_fpSpeedOptions[_fpSpeedIdx];
+  audio.addEventListener('loadedmetadata',function(){if(genId!==_fpAudioGenId)return;if(typeof _fpAssignTimes==='function'&&!_fpLrcTimes.length)_fpAssignTimes();});
+  audio.addEventListener('canplay',function _oc(){audio.removeEventListener('canplay',_oc);if(genId!==_fpAudioGenId)return;if(typeof _fpAssignTimes==='function'&&!_fpLrcTimes.length)_fpAssignTimes();audio.play().then(function(){if(genId!==_fpAudioGenId)return;_syncAllPlayBtns(true);_setPlayIcon(pb,true,true);}).catch(function(e){if(e.name!=='AbortError')console.warn('[QuickSwitch]',e.message);});});
+  audio.addEventListener('play',function(){if(genId!==_fpAudioGenId)return;if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();_syncAllPlayBtns(true);if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';});
+  audio.addEventListener('pause',function(){if(genId!==_fpAudioGenId)return;if(typeof _fpStopSyncLoop==='function')_fpStopSyncLoop();_syncAllPlayBtns(false);if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';});
+  audio.addEventListener('timeupdate',function(){if(genId!==_fpAudioGenId||!audio.duration)return;var p=(audio.currentTime/audio.duration)*100;var _f=$('fp-prog-fill');if(_f)_f.style.width=p+'%';var _t=$('fp-prog-thumb');if(_t)_t.style.left=p+'%';var _c=$('fp-cur');if(_c)_c.textContent=formatTime(audio.currentTime);var _d=$('fp-dur');if(_d)_d.textContent=formatTime(audio.duration);if(fpSyncMode&&fpTimestampLines.length)fpSyncLyrics(audio.currentTime);});
+  audio.addEventListener('ended',function(){if(genId!==_fpAudioGenId)return;if(typeof _checkSleepOnEnd==='function'&&_checkSleepOnEnd())return;if(_fpRepeatMode==='one'){audio.currentTime=0;audio.play().catch(function(){});return;}_syncAllPlayBtns(false);var _cn=_getNextInContext();if(_cn){_playContextIdx=_cn.ctxIdx;setTimeout(function(){_fpQuickSwitch(_cn.hIdx);},100);}else{toast('\uB9C8\uC9C0\uB9C9 \uACE1\uC774\uC5D0\uC694','',2000);}});
+  audio.addEventListener('error',function(){if(genId!==_fpAudioGenId)return;_setPlayIcon(pb,false,true);toast('\uC7AC\uC0DD \uC624\uB958','err',3000);});
+  audio.src=h.audio_url;audio.load();
+  if(typeof _updateMediaSession==='function')_updateMediaSession(h);
+}
+/* 다음/이전 곡 — 경량 전환 */
 function fpPlayNext(){
   if(fpCurrentIdx<0)return;
-  /* 컨텍스트 기반 다음곡 */
-  var _ctxNext = _getNextInContext();
-  if(_ctxNext) {
-    if(_ctxNext.type === 'creator') {
-      _mfPlayQueueIdx = _ctxNext.queueIdx;
-      _mfQueuePlay(_ctxNext.queueIdx);
-    } else {
-      _playContextIdx = _ctxNext.ctxIdx;
-      if(typeof _fpXfadeEnabled!=='undefined'&&_fpXfadeEnabled&&fpAudio&&!fpAudio.paused){_doCrossfade(_ctxNext.hIdx);return;}
-      _doOpenFullPlayer(_ctxNext.hIdx);
-    }
-  } else {
-    toast('마지막 곡이에요','',1500);
-  }
+  var _ctxNext=_getNextInContext();
+  if(_ctxNext){
+    if(_ctxNext.type==='creator'){_mfPlayQueueIdx=_ctxNext.queueIdx;_mfQueuePlay(_ctxNext.queueIdx);}
+    else{_playContextIdx=_ctxNext.ctxIdx;if(typeof _fpXfadeEnabled!=='undefined'&&_fpXfadeEnabled&&fpAudio&&!fpAudio.paused){_doCrossfade(_ctxNext.hIdx);return;}_fpQuickSwitch(_ctxNext.hIdx);}
+  }else{toast('\uB9C8\uC9C0\uB9C9 \uACE1\uC774\uC5D0\uC694','',1500);}
 }
 function fpPlayPrev(){
-  if(_playContext === 'single' || _playContextIds.length === 0) {
-    toast('첫 번째 곡이에요','',1500); return;
-  }
-  if(_playContext === 'creator' && _mfPlayQueue.length > 0 && _mfPlayQueueIdx > 0) {
-    _mfPlayQueueIdx--;
-    _mfQueuePlay(_mfPlayQueueIdx);
-    return;
-  }
-  if(_playContextIdx <= 0){ toast('첫 번째 곡이에요','',1500); return; }
-  var prevCtxIdx = _playContextIdx - 1;
-  var prevId = _playContextIds[prevCtxIdx];
-  var hIdx = historyData.findIndex(function(h){ return h.id === prevId || h._sbId === prevId; });
-  if(hIdx >= 0 && historyData[hIdx]?.audio_url) {
-    _playContextIdx = prevCtxIdx;
-    _doOpenFullPlayer(hIdx);
-  } else {
-    toast('첫 번째 곡이에요','',1500);
-  }
+  if(_playContext==='single'||_playContextIds.length===0){toast('\uCCAB \uBC88\uC9F8 \uACE1\uC774\uC5D0\uC694','',1500);return;}
+  if(_playContext==='creator'&&_mfPlayQueue.length>0&&_mfPlayQueueIdx>0){_mfPlayQueueIdx--;_mfQueuePlay(_mfPlayQueueIdx);return;}
+  if(_playContextIdx<=0){toast('\uCCAB \uBC88\uC9F8 \uACE1\uC774\uC5D0\uC694','',1500);return;}
+  var prevCtxIdx=_playContextIdx-1;var prevId=_playContextIds[prevCtxIdx];
+  var hIdx=historyData.findIndex(function(h){return h.id===prevId||h._sbId===prevId;});
+  if(hIdx>=0&&historyData[hIdx]?.audio_url){_playContextIdx=prevCtxIdx;_fpQuickSwitch(hIdx);}
+  else{toast('\uCCAB \uBC88\uC9F8 \uACE1\uC774\uC5D0\uC694','',1500);}
 }
 
 /* ═══ 1. 가사 패널 토글 ═══ */
