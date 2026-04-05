@@ -1,7 +1,8 @@
-/* ── KMS Service Worker v3 — Offline Cache + Push Handler ── */
+/* ── KMS Service Worker v4 — Auto-Update + Offline Cache + Push ── */
 
-const STATIC_CACHE = 'kms-static-v4';
-const RUNTIME_CACHE = 'kms-runtime-v4';
+const SW_VERSION = '20260405';
+const STATIC_CACHE = 'kms-static-v5';
+const RUNTIME_CACHE = 'kms-runtime-v5';
 const VALID_CACHES = [STATIC_CACHE, RUNTIME_CACHE];
 
 const STATIC_ASSETS = [
@@ -151,6 +152,16 @@ async function trimCache(cacheName, maxItems) {
     await Promise.all(keys.slice(0, keys.length - maxItems).map(k => cache.delete(k)));
   }
 }
+
+/* ── 클라이언트 메시지: 버전 조회 + 강제 업데이트 ── */
+self.addEventListener('message', e => {
+  if (e.data === 'GET_VERSION') {
+    e.source?.postMessage({ type: 'SW_VERSION', version: SW_VERSION });
+  }
+  if (e.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 /* ── Push Notification ── */
 self.addEventListener('push', e => {

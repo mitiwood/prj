@@ -28506,11 +28506,41 @@ window.openCreatorProfile=typeof openCreatorProfile!=='undefined'?openCreatorPro
 <script>
 var KMS_SUB_KEY = 'kms_push_sub';
 
+/* ── PWA 자동 업데이트 ── */
+function _initSWAutoUpdate(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/sw.js').then(function(reg){
+    console.log('[SW] registered');
+    /* 업데이트 체크: 페이지 로드 시 + 30분마다 */
+    reg.update().catch(function(){});
+    setInterval(function(){reg.update().catch(function(){});},30*60*1000);
+    /* 새 SW 감지 → 즉시 활성화 */
+    reg.addEventListener('updatefound',function(){
+      var newSW=reg.installing;
+      if(!newSW)return;
+      newSW.addEventListener('statechange',function(){
+        if(newSW.state==='installed' && navigator.serviceWorker.controller){
+          console.log('[SW] 새 버전 감지 → 자동 업데이트');
+          newSW.postMessage('SKIP_WAITING');
+        }
+      });
+    });
+  }).catch(function(e){console.warn('[SW] reg fail:',e.message);});
+  /* controllerchange: 새 SW 활성화되면 페이지 새로고침 */
+  var _swRefreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(_swRefreshing)return;_swRefreshing=true;
+    console.log('[SW] 새 버전 활성화 → 새로고침');
+    window.location.reload();
+  });
+}
+_initSWAutoUpdate();
+
 async function registerPushSW(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try{
     const reg = await navigator.serviceWorker.register('/sw.js');
-    console.log('[SW] registered', reg.scope);
+    console.log('[SW] push registered', reg.scope);
     /* VAPID 공개키 fetch */
     const vr = await fetch('/api/vapid-keys').catch(()=>null);
     if(!vr?.ok) return;
