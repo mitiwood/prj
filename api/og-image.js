@@ -1,7 +1,5 @@
 import { ImageResponse } from '@vercel/og';
 
-export const config = { runtime: 'edge' };
-
 function truncate(s, max) {
   s = String(s || '');
   return s.length > max ? s.slice(0, max) + '...' : s;
