@@ -3536,7 +3536,13 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 }
 .fp-ctrl-btn:hover{color:rgba(255,255,255,.65) !important;}
 .fp-ctrl-btn svg{width:28px;height:28px;fill:currentColor;}
-.fp-ctrl-btn:active{transform:scale(.85);opacity:.6;}
+.fp-ctrl-btn:active{transform:scale(.82);opacity:.5;}
+/* << >> 이전/다음곡 버튼 인터랙션 */
+.fp-skip-btn{transition:color .15s,transform .15s,opacity .15s;}
+.fp-skip-btn:hover{color:rgba(255,255,255,.6) !important;transform:scale(1.08);}
+.fp-skip-btn:active{transform:scale(.8) !important;opacity:.4;}
+#fp-prev-btn:active svg{transform:translateX(-3px);transition:transform .1s;}
+#fp-next-btn:active svg{transform:translateX(3px);transition:transform .1s;}
 /* 가사 */
 .fp-lyrics-section{margin-top:8px;}
 .fp-lyrics-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);}
@@ -7151,7 +7157,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초"><svg viewBox="0 0 32 32" width="32" height="32" fill="none"><path d="M8 4l-4 4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 8h12c5.5 0 10 4.5 10 10s-4.5 10-10 10S6 23.5 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><text x="16" y="20" text-anchor="middle" fill="currentColor" font-size="10.5" font-weight="700" font-family="system-ui,sans-serif" letter-spacing="-0.5">10</text></svg></button>
         <button class="fp-play-btn" id="fp-play-btn"><svg id="fp-play-icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></button>
         <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초"><svg viewBox="0 0 32 32" width="32" height="32" fill="none"><path d="M24 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 8H16C10.5 8 6 12.5 6 18s4.5 10 10 10 10-4.5 10-10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><text x="16" y="20" text-anchor="middle" fill="currentColor" font-size="10.5" font-weight="700" font-family="system-ui,sans-serif" letter-spacing="-0.5">10</text></svg></button>
-        <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡" id="fp-next-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+        <button class="fp-ctrl-btn fp-skip-btn" onclick="fpPlayNext()" title="다음곡" id="fp-next-btn"><svg viewBox="0 0 28 24" width="28" height="24" fill="currentColor"><path d="M2 4l10 8-10 8V4z" opacity=".85"/><path d="M14 4l10 8-10 8V4z" opacity=".85"/></svg></button>
       </div>
       <!-- 추가 컨트롤 -->
       <div class="fp-extra-controls">
