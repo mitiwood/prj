@@ -12,6 +12,7 @@ const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 const SETTINGS_KEY = 'community_config';
+let _configCache = null, _configCacheAt = 0;
 
 /* 기본 설정값 */
 const DEFAULT_CONFIG = {
@@ -64,12 +65,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* ───── GET — 커뮤니티 설정 조회 (인증 불필요) ───── */
+  /* ───── GET — 커뮤니티 설정 조회 (인증 불필요, 30초 메모리 캐시) ───── */
   if (req.method === 'GET') {
+    /* 메모리 캐시 (30초) — 동시 접속자 많아도 DB 호출 최소화 */
+    if (_configCache && Date.now() - _configCacheAt < 30000) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.status(200).json(_configCache);
+    }
     try {
       const rows = await sb('GET', `/settings?select=key,value&key=eq.${SETTINGS_KEY}`);
       if (Array.isArray(rows) && rows.length > 0 && rows[0].value) {
-        /* DB 값에 누락된 필드가 있으면 기본값으로 보충 */
         const saved = rows[0].value;
         const merged = {
           ...DEFAULT_CONFIG,
@@ -77,13 +82,13 @@ export default async function handler(req, res) {
           sections: { ...DEFAULT_CONFIG.sections, ...(saved.sections || {}) },
           gen_modes: { ...DEFAULT_CONFIG.gen_modes, ...(saved.gen_modes || {}) },
         };
+        _configCache = merged; _configCacheAt = Date.now();
         return res.status(200).json(merged);
       }
-      /* 설정이 아직 없으면 기본값 반환 */
+      _configCache = DEFAULT_CONFIG; _configCacheAt = Date.now();
       return res.status(200).json(DEFAULT_CONFIG);
     } catch (e) {
-      /* Supabase 미설정/오류 시 기본값 반환 */
-      return res.status(200).json(DEFAULT_CONFIG);
+      return res.status(200).json(_configCache || DEFAULT_CONFIG);
     }
   }
 

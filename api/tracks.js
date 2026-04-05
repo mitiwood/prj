@@ -18,10 +18,16 @@ const ADMIN_PWD = process.env.ADMIN_SECRET;
 
 let _mem = []; // fallback
 
-/* Rate Limit: IP+액션별 인메모리 카운터 */
+/* Rate Limit: IP+액션별 인메모리 카운터 (5분마다 오래된 키 정리) */
 const _rateMap = {};
+let _rateCleanupAt = Date.now();
 function _checkRate(key, maxPerMin) {
   const now = Date.now();
+  /* 5분마다 오래된 키 정리 (메모리 누수 방지) */
+  if (now - _rateCleanupAt > 300000) {
+    _rateCleanupAt = now;
+    for (const k in _rateMap) { _rateMap[k] = _rateMap[k].filter(t => now - t < 60000); if (!_rateMap[k].length) delete _rateMap[k]; }
+  }
   if (!_rateMap[key]) _rateMap[key] = [];
   _rateMap[key] = _rateMap[key].filter(t => now - t < 60000);
   if (_rateMap[key].length >= maxPerMin) return false;

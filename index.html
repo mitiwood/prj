@@ -20707,7 +20707,8 @@ function _renderFollowSuggestions(){
   wrap.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">추천 크리에이터</div><div class="comm-suggest-follow">'+list.map(function(c){
     var av=c.avatar?'<img src="'+c.avatar+'" alt="">':'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>';
     var isF=_followStateCache[c.name+'__'+c.provider]===true;
-    return '<div class="comm-suggest-card"><div class="comm-suggest-avatar">'+av+'</div><div class="comm-suggest-name">'+c.name+'</div><div class="comm-suggest-meta">'+c.tracks+'곡 · ❤️'+c.likes+'</div><button class="comm-suggest-btn comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button></div>';
+    var reason=c.likes>=5?'인기곡 보유':c.tracks>=3?'다작 크리에이터':'신규 크리에이터';
+    return '<div class="comm-suggest-card"><div class="comm-suggest-avatar">'+av+'</div><div class="comm-suggest-name">'+c.name+'</div><div class="comm-suggest-meta">'+c.tracks+'곡 · ❤️'+c.likes+'</div><div style="font-size:9px;color:var(--acc3);margin-top:1px;">'+reason+'</div><button class="comm-suggest-btn comm-creator-follow-btn'+(isF?' following':'')+'" data-cname="'+esc(c.name)+'" data-cprov="'+esc(c.provider)+'" data-following="'+(isF?'1':'0')+'" onclick="event.stopPropagation();_creatorFollowToggle(this)">'+(isF?'팔로잉':'팔로우')+'</button></div>';
   }).join('')+'</div>';
 }
 async function _suggestFollow(btn,name,prov){
@@ -22304,7 +22305,23 @@ async function _loadChallenges(){
   }catch{return [];}
 }
 function _renderChallengeBanner(container){
-  if(!_challengeCache||!_challengeCache.length){container.innerHTML='';return;}
+  if(!_challengeCache||!_challengeCache.length){
+    /* 활성 챌린지 없으면 이번 주 인기 태그 기반 자동 챌린지 */
+    if(_sbTracks&&_sbTracks.length>=5){
+      var tagMap={};
+      _sbTracks.forEach(function(t){(t.tags||'').split(',').forEach(function(tag){tag=tag.trim();if(tag&&tag.length>1)tagMap[tag]=(tagMap[tag]||0)+1;});});
+      var topTag=Object.entries(tagMap).sort(function(a,b){return b[1]-a[1];})[0];
+      if(topTag){
+        container.innerHTML='<div class="comm-challenge" onclick="_joinChallenge(\''+esc(topTag[0])+'\')">'
+          +'<div class="comm-challenge-header"><span class="comm-challenge-icon">🔥</span><div class="comm-challenge-title">이번 주 핫 테마: '+esc(topTag[0])+'</div></div>'
+          +'<div class="comm-challenge-desc">이 장르로 곡을 만들어보세요! ('+topTag[1]+'곡 생성됨)</div>'
+          +'<div class="comm-challenge-footer"><span class="comm-challenge-theme">#'+esc(topTag[0])+'</span><button class="comm-challenge-join" onclick="event.stopPropagation();_joinChallenge(\''+esc(topTag[0])+'\')">참여하기</button></div>'
+          +'</div>';
+        return;
+      }
+    }
+    container.innerHTML='';return;
+  }
   const active=_challengeCache.filter(c=>{
     if(!c.active) return false;
     if(c.end_at&&new Date(c.end_at)<new Date()) return false;
