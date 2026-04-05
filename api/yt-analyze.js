@@ -43,8 +43,9 @@ export default async function handler(req, res) {
   const vidMatch = url.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
   const videoId = vidMatch ? vidMatch[1] : '';
 
-  // ── 캐시 조회 (30일 유효) ──
-  if (videoId && SB_URL && SB_KEY) {
+  // ── 캐시 조회 (30일 유효, ?force=true로 우회 가능) ──
+  const _forceReanalyze = req.query?.force === 'true' || req.body?.force === true;
+  if (videoId && SB_URL && SB_KEY && !_forceReanalyze) {
     try {
       const cached = await _sbFetch('GET', `/yt_analysis_cache?video_id=eq.${videoId}&expires_at=gt.${new Date().toISOString()}&limit=1`);
       if (cached && cached[0]) {
