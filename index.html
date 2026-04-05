@@ -3485,7 +3485,7 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-cover svg{display:none;}
 /* 곡 정보 — 중앙 정렬 */
 .fp-info{text-align:left;margin-bottom:0;width:100%;padding:0;box-sizing:border-box;flex:1;min-height:0;display:flex;flex-direction:column;}
-.fp-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.5px;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.3);}
+.fp-title{font-size:22px;font-weight:800;margin-bottom:2px;letter-spacing:-.5px;line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .fp-creator{font-size:13px;color:rgba(255,255,255,.7);font-weight:500;margin-top:2px;display:flex;align-items:center;justify-content:flex-start;gap:5px;letter-spacing:.2px;}
 .fp-creator .fp-creator-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.1);}
 .fp-tags{font-size:11px;color:rgba(168,85,247,.8);font-weight:600;margin-top:6px;background:rgba(168,85,247,.08);display:inline-block;padding:3px 10px;border-radius:12px;}
@@ -4304,7 +4304,23 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
 
 /* ── 풀플레이어 사이드 액션 (오른쪽 세로) ── */
-.fp-layout{display:flex;flex-direction:row;align-items:stretch;gap:8px;margin-bottom:0;width:100%;padding:0 20px;box-sizing:border-box;position:relative;z-index:1;flex:1;min-height:0;overflow:visible;}
+.fp-layout{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:0;width:100%;padding:0 24px;box-sizing:border-box;position:relative;z-index:1;flex:1;min-height:0;overflow:visible;}
+/* Apple Music 스타일 앨범아트 */
+.fp-album-art{width:100%;max-width:320px;aspect-ratio:1;border-radius:16px;overflow:hidden;margin:8px auto 20px;box-shadow:0 12px 40px rgba(0,0,0,.4);flex-shrink:0;}
+.fp-album-art-inner{width:100%;height:100%;background:linear-gradient(145deg,#1a0a2e,#2d1a4a);display:flex;align-items:center;justify-content:center;font-size:48px;}
+.fp-album-art-inner img{width:100%;height:100%;object-fit:cover;}
+/* 곡 정보 + 액션 가로 배치 */
+.fp-info-row{display:flex;align-items:flex-start;gap:12px;width:100%;margin-bottom:4px;}
+.fp-info-actions{display:flex;gap:6px;flex-shrink:0;padding-top:2px;}
+/* 더보기 메뉴 */
+.fp-more-menu{width:100%;background:rgba(255,255,255,.06);border-radius:14px;padding:6px;margin:8px 0;border:1px solid rgba(255,255,255,.08);}
+.fp-more-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:none;background:none;color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:10px;transition:background .15s;}
+.fp-more-item:hover{background:rgba(255,255,255,.08);}
+.fp-more-item svg{flex-shrink:0;}
+[data-theme="light"] .fp-more-menu{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .fp-more-item{color:#1c1c1e;}
+[data-theme="light"] .fp-more-item:hover{background:rgba(0,0,0,.05);}
+[data-theme="light"] .fp-album-art{box-shadow:0 12px 40px rgba(0,0,0,.15);}
 .fp-side-actions{
   display:flex;flex-direction:column;align-items:center;gap:5px;
   padding-top:20px;flex-shrink:0;align-self:flex-start;
@@ -7023,20 +7039,41 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </div>
     <div class="fp-scroll" id="fp-scroll">
       <div class="fp-layout">
-        <div class="fp-center">
-          <div class="fp-info" style="text-align:left;margin-bottom:0;">
+        <!-- Apple Music 스타일: 대형 앨범아트 -->
+        <div class="fp-album-art" id="fp-album-art">
+          <div class="fp-album-art-inner" id="fp-album-art-img">🎵</div>
+        </div>
+        <!-- 곡 정보 + 액션 버튼 (가로 배치) -->
+        <div class="fp-info-row">
+          <div class="fp-info" style="flex:1;min-width:0;">
             <div class="fp-title" id="fp-title">곡 제목</div>
             <div class="fp-creator" id="fp-creator"></div>
             <div class="fp-tags" id="fp-tags"></div>
-            <div id="fp-remix-chain" style="display:none;margin-top:6px;"></div>
-            <div id="fp-spectrum" class="spectrum-bars" style="width:100%;margin-top:8px;"></div>
-            <div class="fp-lyrics-main" id="fp-lyrics-main">
-              <div class="fp-lm-empty">🎵</div>
-            </div>
+          </div>
+          <div class="fp-info-actions">
+            <button class="fp-side-btn" id="fp-like-btn" onclick="fpToggleLike()" title="좋아요"><svg id="fp-like-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="pointer-events:none;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+            <button class="fp-side-btn" onclick="fpOpenShare()" title="공유"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="pointer-events:none;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+            <button class="fp-side-btn" id="fp-more-btn" onclick="_fpToggleMoreMenu()" title="더보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="pointer-events:none;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
           </div>
         </div>
-        <!-- 오른쪽 세로 액션 버튼 -->
-        <div class="fp-side-actions">
+        <div id="fp-remix-chain" style="display:none;margin-top:6px;"></div>
+        <div id="fp-spectrum" class="spectrum-bars" style="width:100%;margin-top:4px;"></div>
+        <!-- 가사 영역 -->
+        <div class="fp-center">
+          <div class="fp-lyrics-main" id="fp-lyrics-main">
+            <div class="fp-lm-empty">🎵</div>
+          </div>
+        </div>
+        <!-- 더보기 메뉴 (숨김) -->
+        <div class="fp-more-menu" id="fp-more-menu" style="display:none;">
+          <button class="fp-more-item" id="fp-dislike-btn" onclick="fpToggleDislike()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg> 싫어요</button>
+          <button class="fp-more-item" id="fp-playlist-btn" onclick="fpAddToPlaylist()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> 플레이리스트</button>
+          <button class="fp-more-item" id="fp-dl-btn" onclick="fpDownload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 저장</button>
+          <button class="fp-more-item edit" onclick="openFpEditSheet()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 편집</button>
+          <button class="fp-more-item" id="fp-del-btn" onclick="fpDeleteCurrent()" style="color:rgba(255,80,80,.8);display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> 삭제</button>
+        </div>
+        <!-- 기존 사이드 액션 제거 -->
+        <div class="fp-side-actions" style="display:none;">
         <button class="fp-side-btn" id="fp-like-btn" onclick="fpToggleLike()" title="좋아요">
           <svg id="fp-like-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="pointer-events:none;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
@@ -9761,10 +9798,12 @@ async function _ytDoGenerate(){
   }
 
   try{
-    /* 가사가 있을 때 prompt 앞에 스타일 힌트 삽입 (kie.ai가 style보다 prompt를 더 잘 반영) */
+    /* kie.ai SENSITIVE_WORD 방지 — prompt/style에서 민감 키워드 제거 */
+    var _sensitiveRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
+    prompt = (prompt||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
+    _finalStyle = (_finalStyle||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
     var _enhancedPrompt = prompt;
-    /* ★ 스타일 힌트는 style 필드에서 처리 — prompt에 [Style:...] 주입하면 가사로 노래됨 */
-    /* kie.ai style 200자 제한 — customMode:true여도 적용됨 */
+    /* kie.ai style 200자 제한 */
     if(_finalStyle.length>200) _finalStyle=_finalStyle.slice(0,200);
     const body = {
       prompt: _enhancedPrompt,
@@ -11422,7 +11461,7 @@ async function pollResult(apiKey,taskId,_localGenCount){
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
       if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
-        throw new Error('가사에 부적절한 단어가 포함되어 있어요 — 가사를 수정 후 다시 시도해주세요');
+        throw new Error('AI가 부적절한 표현을 감지했어요 — 가사나 설명을 수정 후 다시 시도해주세요');
       }
       /* audioUrl 또는 streamAudioUrl이 있는 유효 트랙만 필터 */
       tracks.forEach(function(t){if(!t.audioUrl&&t.streamAudioUrl)t.audioUrl=t.streamAudioUrl;});
@@ -12946,6 +12985,10 @@ async function generate(overrideParams){
     /* customMode: 가사 직접 입력 시 true → kie.ai가 style 필드 반영 */
     /* customMode: 가사/설명이 있으면 true → kie.ai가 style+prompt 모두 반영 */
     const _forceCustom = isSimple || (prompt||'').length > 400 || _simpleHasRealLyrics;
+    /* kie.ai SENSITIVE_WORD 방지 — prompt/style에서 민감 키워드 제거 */
+    var _swRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
+    if(_swRe.test(prompt)) prompt=prompt.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
+    if(styleStr&&_swRe.test(styleStr)) styleStr=styleStr.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
     const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
     if(selectedDuration===0){
@@ -17293,6 +17336,11 @@ function _setPlayIcon(el, playing, isFp){
   el.innerHTML = playing ? (isFp ? _SVG_FP_PAUSE : _SVG_PAUSE) : (isFp ? _SVG_FP_PLAY : _SVG_PLAY);
 }
 
+/* 더보기 메뉴 토글 */
+function _fpToggleMoreMenu(){
+  var m=$('fp-more-menu');if(!m)return;
+  m.style.display=m.style.display==='none'?'block':'none';
+}
 function openFullPlayer(idx){
   const h=historyData[idx];
   if(!h)return;
