@@ -84,6 +84,7 @@ export default function handler(req, res) {
     return res.status(405).json({ error: "method not allowed" });
   }
 
+  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
   return res.status(200).json({
     ok: true,
     clientKey: TOSS_CLIENT_KEY,

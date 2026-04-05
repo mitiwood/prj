@@ -20258,16 +20258,6 @@ function fpSyncLyrics(currentTime){
   if(activeIdx===_fpPrevActiveIdx) return;
   _fpPrevActiveIdx=activeIdx;
 
-  /* 디버그 로그 */
-  if(activeIdx>=0){
-    var _s=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.start)||0):(_fpLrcTimes[activeIdx]||0);
-    var _e=hasDataEnd?(parseFloat(fpTimestampLines[activeIdx].dataset.end)||0):(activeIdx<n-1?_fpLrcTimes[activeIdx+1]:fpAudio.duration);
-    var _txt=(fpTimestampLines[activeIdx].textContent||'').trim().slice(0,30);
-    var _energy='—';
-    console.log('%c[LyricSync] %c#'+activeIdx+'/'+n+' %c'+currentTime.toFixed(2)+'s %c['+_s.toFixed(2)+'~'+_e.toFixed(2)+'] %cE:'+_energy+' %c'+_txt,
-      'color:#a78bfa;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#f59e0b','color:#fff');
-  }
-
   /* active/done 클래스 — 가사는 항상 보임 */
   fpTimestampLines.forEach(function(el,i){
     el.classList.remove('active','done');
@@ -21472,14 +21462,8 @@ function syncKpLyrics(currentTime){
       el.classList.remove('active','done');
     }
   });
-  /* 현재 라인 자동 스크롤 + 디버그 */
+  /* 현재 라인 자동 스크롤 */
   if(activeEl){
-    var _kIdx=[...lines].indexOf(activeEl);
-    var _kS=parseFloat(activeEl.dataset.start)||0;
-    var _kE=parseFloat(activeEl.dataset.end)||0;
-    var _kT=(activeEl.textContent||'').trim().slice(0,30);
-    console.log('%c[KP-Sync] %c#'+_kIdx+' %c'+currentTime.toFixed(2)+'s %c['+_kS.toFixed(2)+'~'+_kE.toFixed(2)+'] %c'+_kT,
-      'color:#ec4899;font-weight:bold','color:#fbbf24','color:#60a5fa','color:#4ade80','color:#fff');
     const area=$('kp-lyrics-area');
     const areaRect=area.getBoundingClientRect();
     const elRect=activeEl.getBoundingClientRect();
