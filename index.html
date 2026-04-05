@@ -9925,6 +9925,7 @@ async function _ytDoGenerate(){
     }
     trackUsage('song',{mode:'youtube',title:songTitle});
     showCompletionPopup('youtube','');
+    _resetGenerateInputs('youtube');
     _hideStepsShowResults('youtube');
     setTimeout(function(){
       var resultSec=$('results-youtube');
@@ -12736,6 +12737,11 @@ function _resetGenerateInputs(mode){
   }
   _rmC('.preset-chip','active');
   selectedBpm=120;bpmAuto=true;instOn=false;vocalGender='';selectedDuration=0;
+  /* 감정/가사 미리보기/전역 상태 초기화 */
+  if(typeof selectedEmotions!=='undefined') selectedEmotions.clear();
+  _rmC('.emotion-chip','on');
+  var _lpw=$('lyrics-preview-wrap');if(_lpw){_lpw.classList.remove('on');_lpw.innerHTML='';}
+  lastLyricsInput='';
 }
 /* generate 이중 호출은 _globalGenerating + _QueueManager.isBusy로 방어 */
 async function generate(overrideParams){
