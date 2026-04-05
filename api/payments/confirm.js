@@ -16,6 +16,7 @@ function findPlanOrPack(key) {
 }
 
 async function sb(path, opts = {}) {
+  if (!SB_URL || !SB_KEY) return null;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {

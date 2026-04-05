@@ -5,6 +5,7 @@ const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const WEBHOOK_SECRET = process.env.TOSS_WEBHOOK_SECRET;
 
 async function sb(path, opts = {}) {
+  if (!SB_URL || !SB_KEY) return null;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {

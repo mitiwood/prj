@@ -61,6 +61,8 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  if (!SECRET) return res.status(500).json({ ok: false, error: 'JWT_SECRET or ADMIN_SECRET not configured' });
+
   /* POST: 토큰 발급 (세션 ID 포함) */
   if (req.method === 'POST') {
     const { name, provider, avatar } = req.body || {};

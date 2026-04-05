@@ -31,7 +31,7 @@ async function sb(method, path, body) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -59,6 +59,12 @@ export default async function handler(req, res) {
     const { from_name, from_provider, to_name, track_id, track_title, track_image, track_audio_url, track_tags, message, emoji } = b;
     if (!from_name || !to_name || !track_audio_url) {
       return res.status(400).json({ ok: false, error: 'from_name, to_name, track_audio_url required' });
+    }
+
+    /* 받는 사람 존재 여부 확인 */
+    const userCheck = await sb('GET', `/users?name=ilike.${encodeURIComponent(to_name)}&select=name&limit=1`);
+    if (!userCheck || !userCheck.length) {
+      return res.status(400).json({ ok: false, error: '\uC874\uC7AC\uD558\uC9C0 \uC54A\uB294 \uC0AC\uC6A9\uC790\uC785\uB2C8\uB2E4' });
     }
 
     const row = {
