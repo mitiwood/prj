@@ -19788,29 +19788,32 @@ async function fpRenderLyrics(h){
         _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
         if(_tsWords.length) window._fpAlignedCache[_cacheKey]=_tsWords;
       }catch(e){
-        console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 10초 후 재시도 예약:', e?.message);
-        /* 백그라운드 재시도 — 성공 시 자동으로 가사 싱크 업데이트 */
+        console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 재시도 예약:', e?.message);
+        /* 백그라운드 재시도 (5초, 15초, 30초) — 성공 시 자동 싱크 갱신 */
         var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
-        setTimeout(async function(){
-          try{
-            var _r2=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_retryTaskId,audioId:_retryAudioId});
-            var _w2=_r2&&_r2.data&&_r2.data.alignedWords?_r2.data.alignedWords:[];
-            if(_w2.length){
-              window._fpAlignedCache[_retryCK]=_w2;
-              /* 현재 재생 중인 곡과 동일할 때만 UI 갱신 */
-              var _curH=historyData[fpCurrentIdx];
-              var _curAudioId=_curH?.id||_curH?._sbId||'';
-              if(_curH&&(_curAudioId===_retryAudioId||(_curH.id===_retryH.id&&_curH.taskId===_retryTaskId))){
-                fpRenderTimestampedLyrics(_w2);
-                fpSyncMode=true;
-                var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
-                /* 즉시 현재 위치로 싱크 */
-                if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
-                console.log('[fpRenderLyrics] 백그라운드 타임스탬프 로딩 성공, 싱크 갱신');
-              }
-            }
-          }catch(e2){}
-        },10000);
+        var _retryDelays=[5000,15000,30000];
+        function _tsRetry(attempt){
+          if(attempt>=_retryDelays.length)return;
+          setTimeout(async function(){
+            try{
+              var _r2=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_retryTaskId,audioId:_retryAudioId});
+              var _w2=_r2&&_r2.data&&_r2.data.alignedWords?_r2.data.alignedWords:[];
+              if(_w2.length){
+                window._fpAlignedCache[_retryCK]=_w2;
+                var _curH=historyData[fpCurrentIdx];
+                var _curAudioId=_curH?.id||_curH?._sbId||'';
+                if(_curH&&(_curAudioId===_retryAudioId||(_curH.id===_retryH.id&&_curH.taskId===_retryTaskId))){
+                  fpRenderTimestampedLyrics(_w2);
+                  fpSyncMode=true;
+                  var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
+                  if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
+                  console.log('[fpRenderLyrics] 재시도 #'+(attempt+1)+' 성공, 싱크 갱신');
+                }
+              } else { _tsRetry(attempt+1); }
+            }catch(e2){ _tsRetry(attempt+1); }
+          },_retryDelays[attempt]);
+        }
+        _tsRetry(0);
       }
     }
     /* API aligned words가 있으면 텍스트+타이밍 모두 사용 (실제 보컬과 일치) */
@@ -19937,8 +19940,8 @@ function _fpAssignTimes(){
     if(/^\[.*\]$/.test(txt.trim())) w=0.3; /* 섹션 헤더는 짧게 */
     weights.push(w); totalW+=w;
   }
-  /* 곡 앞 8%(인트로), 뒤 5%(아웃트로) 마진 */
-  var t0=dur*0.08, usable=dur*0.87;
+  /* 곡 앞 5%(인트로), 뒤 3%(아웃트로) 마진 — Hip-Hop 등 빠른 곡 대응 */
+  var t0=dur*0.05, usable=dur*0.92;
   _fpLrcTimes=[];
   var cursor=t0;
   for(var ti=0;ti<n;ti++){
