@@ -9802,9 +9802,14 @@ async function _ytDoGenerate(){
     var _sensitiveRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
     prompt = (prompt||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
     _finalStyle = (_finalStyle||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
+    /* 프롬프트에 음악 스타일 설명도 포함 — 원곡 느낌 반영 강화 */
+    var _styleDesc = ytRefSound||ytStylePrompt||'';
     var _enhancedPrompt = prompt;
-    /* kie.ai style 200자 제한 */
-    if(_finalStyle.length>200) _finalStyle=_finalStyle.slice(0,200);
+    if(_styleDesc && !isInst){
+      _enhancedPrompt = prompt + '\n\n[Musical Style: ' + _styleDesc.slice(0,150) + ']';
+    }
+    /* kie.ai style 필드 — 120자→500자 확장 (세부 악기/음향 특성 보존) */
+    if(_finalStyle.length>500) _finalStyle=_finalStyle.slice(0,500);
     const body = {
       prompt: _enhancedPrompt,
       customMode: true,
@@ -9815,19 +9820,22 @@ async function _ytDoGenerate(){
     };
     if(songTitle) body.title = songTitle;
     if(ytVocalGender && !isInst) body.vocalGender = ytVocalGender;
+    /* BPM/Key 직접 전달 — 원곡 템포/조성 반영 */
+    if(ytBpm && ytBpm>0) body.bpm = ytBpm;
+    if(ytKey) body.key = ytKey;
     /* 곡 길이 제어 — short 선택 시 짧은 곡 힌트 */
     if(_ytDuration==='short'){
       body.duration=60;
       if(body.style&&body.style.indexOf('short song')===-1) body.style='short song, under 1 minute, '+body.style;
     }
-    /* kie.ai style 200자 제한 — 최종 안전장치 */
-    if(body.style && body.style.length>200) body.style=body.style.slice(0,200);
+    /* kie.ai style 500자 제한 — 최종 안전장치 */
+    if(body.style && body.style.length>500) body.style=body.style.slice(0,500);
     /* 스타일 가중치 최대 — 분석된 스타일 충실 반영 */
     body.styleWeight = 0.95;
     /* 창의성 최소 — 분석된 원곡 느낌에 가깝게 */
-    body.weirdnessConstraint = 0.05;
+    body.weirdnessConstraint = 0.1;
     /* 오디오 특성 가중치 — 원곡 사운드 텍스처에 충실 */
-    body.audioWeight = 0.8;
+    body.audioWeight = 0.85;
     console.log('%c[YT-Generate] style (%d chars):%c %s','color:#a78bfa;font-weight:bold',_finalStyle.length,'color:#888',_finalStyle);
 
     /* debug removed */
