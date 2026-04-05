@@ -223,7 +223,7 @@ async function _handler(req, res) {
   /* ─── POST: 저장 (JWT 검증 + Rate Limit) ─── */
   if (req.method === "POST") {
     const jwtUser = verifyJWT(req);
-    /* JWT 없어도 허용 (하위 호환) — 단, Rate Limit 적용 */
+    /* JWT 있으면 owner_name 위조 방지 — JWT name과 불일치 시 거부 */
     const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
     if (!_checkRate('post:' + ip, 10)) {
       return res.status(429).json({ error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.' });
@@ -259,6 +259,10 @@ async function _handler(req, res) {
       } = b;
       if (!id || !audio_url)
         return res.status(400).json({ error: "id and audio_url required" });
+      /* JWT owner 위조 방지 */
+      if (jwtUser && owner_name && jwtUser.name && jwtUser.name.toLowerCase() !== (owner_name || '').toLowerCase()) {
+        return res.status(403).json({ error: 'owner_name mismatch with JWT' });
+      }
       const now = Date.now();
       const row = {
         id,

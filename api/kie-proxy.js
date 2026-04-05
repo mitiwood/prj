@@ -9,6 +9,20 @@
 import { PLANS } from './toss-config.js';
 import { withSentry } from './lib/sentry.js';
 
+/* 게스트 IP 기반 rate limit (서버 메모리) */
+const _guestRateMap = {};
+const GUEST_RATE_LIMIT = 5; /* IP당 최대 5회/시간 */
+function _checkGuestRate(ip) {
+  const now = Date.now();
+  if (!_guestRateMap[ip]) _guestRateMap[ip] = [];
+  _guestRateMap[ip] = _guestRateMap[ip].filter(t => now - t < 3600000);
+  if (_guestRateMap[ip].length >= GUEST_RATE_LIMIT) return false;
+  _guestRateMap[ip].push(now);
+  return true;
+}
+/* 주기적 정리 (메모리 누수 방지) */
+setInterval(() => { const now = Date.now(); for (const ip in _guestRateMap) { _guestRateMap[ip] = _guestRateMap[ip].filter(t => now - t < 3600000); if (!_guestRateMap[ip].length) delete _guestRateMap[ip]; } }, 600000);
+
 const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 
@@ -207,6 +221,13 @@ async function _handler(req, res) {
   const isGuest = userName === 'guest' && userProvider === 'guest';
   if (creditType && (!userName || !userProvider)) {
     return res.status(400).json({ error: 'userName, userProvider required for this API' });
+  }
+  /* 게스트: 서버사이드 IP 기반 rate limit (localStorage 우회 방지) */
+  if (creditType && isGuest) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || 'unknown';
+    if (!_checkGuestRate(ip)) {
+      return res.status(403).json({ error: 'guest_limit', msg: '게스트 체험 한도 초과 — 로그인하면 더 많은 곡을 만들 수 있어요!' });
+    }
   }
   if (creditType && userName && userProvider && !isGuest) {
     const creditCheck = await checkServerCredit(userName, userProvider, creditType);

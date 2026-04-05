@@ -10546,7 +10546,7 @@ function mvRefreshTrackSelect(){
     <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">내 음악 중 연결할 곡을 선택하세요</div>
     ${_mvFilteredTracks.map((h,i)=>`
       <div class="mv-track-card" onclick="mvSelectTrack(${i})" id="mv-tc-${i}">
-        <div class="mv-tc-thumb">${h.image_url?`<img src="${h.image_url}" alt="">`:'🎵'}</div>
+        <div class="mv-tc-thumb">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'🎵'}</div>
         <div class="mv-tc-info">
           <div class="mv-tc-title">${esc(h.title||'무제')}</div>
           <div class="mv-tc-tag">${esc(_normTags(h.tags).split(',')[0]?.trim()||'')}</div>
@@ -10580,7 +10580,7 @@ function mvSelectTrack(idx){
   /* 선택 프리뷰 */
   const st=$('mv-selected-track');
   const thumb=$('mv-sel-thumb');
-  if(thumb)thumb.innerHTML=h.image_url?`<img src="${h.image_url}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
+  if(thumb)thumb.innerHTML=h.image_url?`<img src="${esc(h.image_url)}" style="width:100%;height:100%;object-fit:cover;">`:'🎵';
   if($('mv-sel-title'))$('mv-sel-title').textContent=h.title||'무제';
   if($('mv-sel-tags'))$('mv-sel-tags').textContent=_normTags(h.tags).split(',')[0]?.trim()||'';
   st.style.display='flex';
@@ -13490,7 +13490,7 @@ async function _mvGenerateImage(){
           if(vu){var mt=lt?_autoGenerateTitle(lt.title,lt.lyrics||'',lt.tags||'','mv')+' MV':'Music Video';historyData.unshift({id:'mv_'+Date.now(),taskId:tid,title:mt,audio_url:lt?.audio_url||'',video_url:vu,image_url:lt?.image_url||'',tags:'뮤직비디오',lyrics:'',created:Date.now(),type:'video'});historyData=historyData.slice(0,50);saveHistory();updateHistBadge();
             ra.innerHTML='<div class="mv-result-card"><div class="mv-result-title">🎬 뮤직비디오 완성!</div><div class="mv-video-wrap"><video src="'+esc(vu)+'" controls playsinline style="width:100%;"></video></div><div style="display:flex;gap:8px;margin-top:8px;"><a href="'+esc(vu)+'" download="mv.mp4" style="flex:1;padding:10px;text-align:center;border-radius:10px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-decoration:none;">다운로드</a></div></div>';
             toast('🎬 뮤직비디오 완성!','ok',3000);}else{ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⚠️ URL 없음</div></div>';}return;}
-        if(st==='fail'||st==='failed'||st==='error'){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ 실패: '+(d.failMsg||st)+'</div></div>';return;}
+        if(st==='fail'||st==='failed'||st==='error'){ra.innerHTML='<div class="mv-result-card"><div style="color:var(--red);font-size:12px;">❌ 실패: '+esc(d.failMsg||st)+'</div></div>';return;}
       }catch(pe2){console.warn('[ai-mv]',pe2);}
     }
     ra.innerHTML='<div class="mv-result-card"><div style="color:var(--ylw);font-size:12px;">⏱ 시간 초과</div></div>';
