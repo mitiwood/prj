@@ -11413,11 +11413,15 @@ async function kieRequest(apiKey,method,path,body){
       }
       /* supervisor + credit_exceeded → 서버가 차단했지만 클라이언트에서 재시도 (userName 없이) */
       if(!res.ok && data?.error==='credit_exceeded'){
-        var _isSv=currentUser?.plan==='supervisor'||currentUser?.role==='supervisor'||_serverCreditsCache?.plan==='supervisor';
+        var _ownerEm=['altosax7@gmail.com'];
+        var _isSv=currentUser?.plan==='supervisor'||currentUser?.role==='supervisor'||_serverCreditsCache?.plan==='supervisor'||_ownerEm.indexOf((currentUser?.email||'').toLowerCase())>=0;
+        console.log('[kieRequest] credit_exceeded — isSv:',_isSv,'plan:',currentUser?.plan,'email:',currentUser?.email,'cache:',_serverCreditsCache?.plan);
         if(_isSv){
           console.log('[kieRequest] supervisor — credit_exceeded, guest로 재시도');
-          /* guest로 보내서 서버 크레딧 체크 우회 */
-          var _svRes = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:path,method:method,body:body,userName:'guest',userProvider:'guest'})});
+          /* style 200자 제한 */
+          var _svBody=body?Object.assign({},body):{};
+          if(_svBody.style&&_svBody.style.length>200) _svBody.style=_svBody.style.slice(0,200);
+          var _svRes = await fetch('/api/kie-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:path,method:method,body:_svBody,userName:'guest',userProvider:'guest'})});
           var _svData; try{_svData=await _svRes.json();}catch(e){_svData=null;}
           if(_svRes.ok && _svData) return _svData;
           /* 재시도도 실패하면 아래 에러 핸들링으로 진행 */
