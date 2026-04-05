@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-  const { url = '' } = body || {};
+  const { url = '', includeLyrics = false } = body || {};
 
   if (!url || !url.includes('youtu')) {
     return res.status(400).json({ error: 'YouTube URL이 필요합니다' });
@@ -126,8 +126,8 @@ export default async function handler(req, res) {
         const dateMatch = html.match(/"publishDate"\s*:\s*"([^"]+)"/);
         if (dateMatch) publishDate = dateMatch[1];
 
-        // 1-d) 자막/가사 추출 (captionTracks에서)
-        try {
+        // 1-d) 자막/가사 추출 — 이용자가 명시적으로 동의한 경우에만 (includeLyrics=true)
+        if (includeLyrics) try {
           const captionMatch = html.match(/"captionTracks"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
           if (captionMatch) {
             const captions = JSON.parse(captionMatch[1]);
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
               }
             }
           }
-        } catch (subErr) { console.warn('[yt-analyze] subtitle:', subErr.message); }
+        } catch (subErr) { console.warn('[yt-analyze] subtitle:', subErr.message); } /* end includeLyrics */
       }
     } catch (e) {
       console.warn('[yt-analyze] page scrape:', e.message);
@@ -395,8 +395,9 @@ function _smartFallbackAnalysis(title, author, desc, tags, category, duration) {
     return true;
   }
   let artistMatch = null;
-  const artistLower = artist.toLowerCase().trim();
-  const authorLower = author.toLowerCase().replace(/\s*-\s*topic$/i, '').trim();
+  const _normName = (s) => s.toLowerCase().replace(/[''`]/g, '').trim();
+  const artistLower = _normName(artist);
+  const authorLower = _normName(author.replace(/\s*-\s*topic$/i, ''));
   const titleLower = title.toLowerCase();
   // 1차: artist/author 정확 매칭
   for (const entry of _artistDB) {

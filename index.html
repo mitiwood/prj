@@ -5773,6 +5773,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 분석
               </button>
             </div>
+            <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--t3);cursor:pointer;">
+              <input type="checkbox" id="yt-include-lyrics" style="accent-color:var(--acc);width:16px;height:16px;cursor:pointer;">
+              영상 자막(가사)도 참고하여 분석 <span style="color:var(--t3);opacity:.6;">(본인이 권리를 가진 경우만)</span>
+            </label>
             <div id="yt-url-warn" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:8px;">⚠️ YouTube URL만 분석 가능합니다.</div>
           </div>
           <div id="yt-result" style="display:none;flex:1;overflow-y:auto;scrollbar-width:none;margin-top:8px;"></div>
@@ -11171,7 +11175,7 @@ $('yt-analyze-btn').addEventListener('click', async () => {
     const r = await fetch('/api/yt-analyze', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({url}),
+      body: JSON.stringify({url, includeLyrics: !!($('yt-include-lyrics')&&$('yt-include-lyrics').checked)}),
     });
     const raw = await r.text();
     if(!r.ok) throw new Error('분석 서버 오류 ' + r.status);
