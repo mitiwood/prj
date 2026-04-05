@@ -8221,6 +8221,8 @@ var KIE_BASE = 'https://api.kie.ai';
 /* ── 탭 전환 ── */
 function switchTab(viewId){
   _haptic.tap();
+  /* 마지막 탭 저장 — 로그인 후 복원용 */
+  try{localStorage.setItem('kms_last_tab',viewId);}catch(e){}
   /* ── 1단계: 탭 전환 (UI) — 에러와 무관하게 반드시 실행 ── */
   try{
     document.querySelectorAll('#mp-detail-sheet,#fp-edit-sheet,#hist-edit-sheet,#share-sheet,#recompose-sheet').forEach(el=>el.classList.remove('on'));
@@ -10113,6 +10115,9 @@ function _saveLoginUser(user){
     setTimeout(()=>{ if(typeof _fetchServerCredits==='function') _fetchServerCredits(); }, 500);
     setTimeout(()=>{ _syncUserDataFromServer(true); }, 600); /* 로그인 직후: force */
     /* 로그인 직후 히스토리 즉시 표시 (로컬 데이터) */
+    /* 로그인 전 마지막 탭으로 복원 (스플래시 대신) */
+    var _lastTab=localStorage.getItem('kms_last_tab')||'create-view';
+    try{ switchTab(_lastTab); }catch(e){}
     try{ renderHistoryView(); }catch(e){}
     /* Supabase에서 내 트랙 로드 (게스트 트랙 서버 저장 대기 후) */
     setTimeout(()=>{ _loadMyTracks(true).then(()=>{ renderHistoryView(); }); }, 2000);
@@ -32097,12 +32102,15 @@ function _showQRCardDirect(title,imageUrl,trackId){
 
   /* ── 선물 곡 재생 ── */
   window._playGiftTrack=function(url,title,img,tags){
+    if(!url){toast('재생할 수 없는 곡이에요','err',2000);return;}
+    /* URL 디코딩 (HTML 이스케이프 대응) */
+    try{var _d=document.createElement('textarea');_d.innerHTML=url;url=_d.value;}catch(e){}
     var idx=historyData.findIndex(function(h){return h.audio_url===url;});
     if(idx>=0){
       showMiniPlayer(idx);
     } else {
-      historyData.unshift({id:'gift_'+Date.now(),title:title||'\uC120\uBB3C \uACE1',audio_url:url,image_url:img||'',tags:tags||'',lyrics:'',duration:0,created:Date.now(),type:'audio',genMode:'gift',_fromGift:true});
-      saveHistory();
+      historyData.unshift({id:'gift_'+Date.now(),title:title||'\uC120\uBB3C \uACE1',audio_url:url,image_url:img||'',tags:tags||'',lyrics:'',created:Date.now(),type:'audio',genMode:'gift',_fromGift:true});
+      saveHistory();updateHistBadge();
       showMiniPlayer(0);
     }
   };
@@ -32144,7 +32152,8 @@ function _showQRCardDirect(title,imageUrl,trackId){
     /* 이모지 그리드 */
     var eg=$('gift-emoji-grid');
     eg.innerHTML=_giftEmojis.map(function(e){return '<button class="gift-emoji-btn'+(e===_giftEmoji?' on':'')+'" onclick="_selectGiftEmoji(\''+e+'\')">'+e+'</button>';}).join('');
-    /* 팔로잉 목록 프리로드 */
+    /* 팔로잉 목록 실시간 조회 (매번 새로) */
+    _giftFollowingList=[];_giftAllUsers=[];
     _loadGiftFollowing();
     $('gift-send-sheet').classList.add('on');
   };
