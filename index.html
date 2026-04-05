@@ -10108,9 +10108,9 @@ $('yt-gen-btn').addEventListener('click', async function(e){
   e.stopPropagation();
   if(this.disabled) return;
   if(_globalGenerating){_showGeneratingPopup();return;} /* 더블클릭 방지 */
-  /* supervisor: 캐시 없으면 먼저 동기화 */
-  if(!_serverCreditsCache && currentUser?.name){
-    try{await _fetchServerCredits();}catch(e){}
+  /* 크레딧 캐시 동기화 — 매 생성 시 최신 상태 확인 (이름 변경/플랜 갱신 대응) */
+  if(currentUser?.name){
+    try{await Promise.race([_fetchServerCredits(),new Promise(function(_,r){setTimeout(r,3000);})]);}catch(e){}
   }
   /* 플랜 한도 체크 — YouTube 모드 */
   if(!checkPlanLimit('song')) return;
@@ -12874,8 +12874,8 @@ async function generate(overrideParams){
   _QueueManager.setBusy('music',true); _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_QueueManager.setBusy('music',false);_syncGenButtons();return;}
-  /* 캐시 없으면 서버에서 선로드 (타임아웃 3초) */
-  if(!_serverCreditsCache && currentUser?.name){
+  /* 크레딧 캐시 동기화 — 매 생성 시 최신 상태 확인 */
+  if(currentUser?.name){
     try{await Promise.race([_fetchServerCredits(),new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},3000);})]);}catch(e){}
   }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
