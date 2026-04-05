@@ -9735,7 +9735,8 @@ async function _ytDoGenerate(){
     var _langHint = _autoLang ? ('Write lyrics in ' + _autoLang + '. ') : '';
     var lyricsTheme = _lastYtAnalysis.lyrics_theme || _lastYtAnalysis.description || songTitle;
     var lyricsStyle = _lastYtAnalysis.lyrics_style || '';
-    var lyricsPrompt = _langHint + [lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
+    var _ytArtistForLyrics = (_lastYtAnalysis.author||'').replace(/\s*[-–]?\s*(Topic|Official|VEVO|Music|Records)$/i,'').trim();
+    var lyricsPrompt = _langHint + [_ytArtistForLyrics?(_ytArtistForLyrics+' 스타일'):'', lyricsTheme, lyricsStyle, ytGenre, ytMood, _lastYtAnalysis.vocal_style||''].filter(Boolean).join(', ');
     var _ldSub=$('ld-sub');if(_ldSub)_ldSub.innerHTML='가사 생성 중... ✍️';
     console.log('%c[YT-Timer] 가사 생성 시작','color:#f59e0b;font-weight:bold','+'+((Date.now()-_ytT0)/1000).toFixed(1)+'s');
     try{
@@ -9804,11 +9805,16 @@ async function _ytDoGenerate(){
     var _sensitiveRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
     prompt = (prompt||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
     _finalStyle = (_finalStyle||'').replace(_sensitiveRe,'').replace(/\s{2,}/g,' ').trim();
-    /* 프롬프트에 음악 스타일 설명도 포함 — 원곡 느낌 반영 강화 */
+    /* 프롬프트에 음악 스타일+아티스트+가사테마 포함 — 원곡 느낌 최대 반영 */
     var _styleDesc = ytRefSound||ytStylePrompt||'';
+    var _lyricsThemeDesc = _lastYtAnalysis.lyrics_theme||'';
     var _enhancedPrompt = prompt;
-    if(_styleDesc && !isInst){
-      _enhancedPrompt = prompt + '\n\n[Musical Style: ' + _styleDesc.slice(0,150) + ']';
+    if(!isInst){
+      var _promptExtras = [];
+      if(_ytAuthor) _promptExtras.push('Artist: ' + _ytAuthor);
+      if(_styleDesc) _promptExtras.push('Sound: ' + _styleDesc.slice(0,200));
+      if(_lyricsThemeDesc) _promptExtras.push('Theme: ' + _lyricsThemeDesc.slice(0,100));
+      if(_promptExtras.length) _enhancedPrompt = prompt + '\n\n[' + _promptExtras.join(' | ') + ']';
     }
     /* kie.ai style 필드 — 120자→500자 확장 (세부 악기/음향 특성 보존) */
     if(_finalStyle.length>500) _finalStyle=_finalStyle.slice(0,500);
