@@ -16756,12 +16756,18 @@ function expandToFullPlayer(){
     const pb=$('fp-play-btn');
     _setPlayIcon(pb, fpAudio && !fpAudio.paused, true);
 
-    /* 가사 렌더 — 이전 곡 상태 초기화 후 비동기 로딩 */
-    fpTimestampLines = [];
-    _fpLrcTimes = [];
-    _fpLrcEndTimes = [];
-    _fpPrevActiveIdx = -1;
-    fpRenderLyrics(h);
+    /* 가사 렌더 — 이미 로딩된 싱크 데이터가 있으면 재사용, 없으면 새로 로딩 */
+    if(fpTimestampLines.length>0){
+      /* 이미 showMiniPlayer→_updateFpUI에서 로딩 완료 — 현재 위치로 즉시 싱크 */
+      _fpPrevActiveIdx=-1;
+      if(fpAudio&&!fpAudio.paused) fpSyncLyrics(fpAudio.currentTime);
+    } else {
+      /* 아직 로딩 안 됨 — 새로 로딩 */
+      _fpLrcTimes = [];
+      _fpLrcEndTimes = [];
+      _fpPrevActiveIdx = -1;
+      fpRenderLyrics(h);
+    }
 
   } catch(e){
     console.error('[expandToFP] render error:', e);
