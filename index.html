@@ -18125,11 +18125,40 @@ function fpToggleDislike(){
 /* 플레이리스트 추가 — 바텀시트 (body 직접 렌더링으로 z-index 보장) */
 function fpAddToPlaylist(){
   if(fpCurrentIdx<0)return;
-  const h=historyData[fpCurrentIdx];
+  var h=historyData[fpCurrentIdx];
   if(!h){toast('곡 정보 없음','err');return;}
-  if(!currentUser && !(typeof isGuestMode==='function'&&isGuestMode())){toast('로그인이 필요해요','err',2000);return;}
-  /* 즉시 추가 (확인 팝업 없이) */
-  _fpDoAddPlaylist();
+  /* 바텀시트로 플레이리스트 선택 */
+  var pls=_getPlaylists();
+  var id=h.id||h._sbId||h.taskId||'';
+  var container=$('fp-sheet-container');
+  if(!container)return;
+  container.style.display='block';
+  container.innerHTML='<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="_fpClosePlSheet()"></div>'
+    +'<div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;padding:20px 16px 32px;max-height:60vh;overflow-y:auto;">'
+    +'<div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:14px;">플레이리스트에 추가</div>'
+    +pls.map(function(pl,i){
+      var already=pl.tracks.some(function(t){return t.id===id;});
+      return '<button onclick="'+(already?'':'_fpAddToPlIdx('+i+')')+'" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:'+(already?'rgba(124,58,237,.08)':'var(--bg)')+';color:var(--t1);font-size:13px;font-weight:600;cursor:'+(already?'default':'pointer')+';font-family:inherit;margin-bottom:8px;text-align:left;">'
+        +'<span style="font-size:18px;">'+(already?'✅':'📋')+'</span>'
+        +'<span style="flex:1;">'+esc(pl.name)+'<span style="font-size:11px;color:var(--t3);margin-left:6px;">'+pl.tracks.length+'곡</span></span>'
+        +(already?'<span style="font-size:11px;color:var(--acc);">추가됨</span>':'')
+        +'</button>';
+    }).join('')
+    +'<button onclick="_fpClosePlSheet()" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--border);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;">닫기</button>'
+    +'</div>';
+}
+function _fpAddToPlIdx(idx){
+  var h=historyData[fpCurrentIdx];if(!h)return;
+  var pls=_getPlaylists();
+  var pl=pls[idx];if(!pl)return;
+  var id=h.id||h._sbId||h.taskId||'';
+  if(pl.tracks.some(function(t){return t.id===id;})){toast('이미 추가됨','',1500);return;}
+  pl.tracks.unshift({id:id,title:h.title||'무제',audio_url:h.audio_url||'',image_url:h.image_url||'',tags:h.tags||'',added:Date.now()});
+  if(pl.tracks.length>50)pl.tracks=pl.tracks.slice(0,50);
+  _savePlaylists(pls);
+  toast('"'+esc(pl.name)+'"에 추가했어요','ok',1500);
+  _fpClosePlSheet();
+  var fpBtn=$('fp-playlist-btn');if(fpBtn)fpBtn.classList.add('added');
 }
 function _fpClosePlSheet(){
   var c=document.getElementById('fp-pl-overlay');
