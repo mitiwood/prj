@@ -259,6 +259,7 @@ export default async function handler(req, res) {
     _analyzed: _analyzer !== 'fallback',
     _analyzer,
     _debugError: _debugError || undefined,
+    _debugArtist: { artist, artistLower, authorLower, dbMatched: !!artistMatch },
     _keys: { gemini: !!geminiKey, claude: !!anthropicKey },
     ...analysis,
   };
