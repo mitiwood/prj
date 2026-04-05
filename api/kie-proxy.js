@@ -284,6 +284,10 @@ async function _handler(req, res) {
 
       let sendBody = reqBody;
       if (isLLM && sendBody) sendBody = { ...sendBody, stream: false };
+      /* kie.ai style 200자 제한 — 서버사이드 최종 안전장치 */
+      if (sendBody && sendBody.style && sendBody.style.length > 200) {
+        sendBody = { ...sendBody, style: sendBody.style.slice(0, 200) };
+      }
       if (sendBody && method !== 'GET') fetchOpts.body = JSON.stringify(sendBody);
 
       const upstream = await fetch(url, fetchOpts);
