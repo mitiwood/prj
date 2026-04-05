@@ -161,16 +161,20 @@ export default async function handler(req, res) {
   let _debugError = '';
   let _analyzer = 'fallback';
 
+  // 아티스트명 정제 (Topic, Official 등 접미사 제거)
+  const _cleanArtist = (author || '').replace(/\s*[-–]?\s*(Topic|Official|VEVO|Music|Records|Official Music)$/i, '').trim();
   // 수집된 메타데이터 텍스트
   const metaInfo = [
-    `Video title: "${title}"`,
-    `Channel/Artist: "${author}"`,
+    `Song: "${_cleanArtist ? _cleanArtist + ' - ' : ''}${title}"`,
+    `Artist: "${_cleanArtist || author}"`,
+    _cleanArtist !== author ? `Channel: "${author}"` : '',
     description ? `Video description: "${description.slice(0, 400)}"` : '',
     tags ? `Video tags: "${tags}"` : '',
     category ? `Category: "${category}"` : '',
     duration ? `Duration: ${duration}` : '',
     publishDate ? `Published: ${publishDate}` : '',
     _subtitles ? `Lyrics/Subtitles (from captions): "${_subtitles.slice(0, 800)}"` : '',
+    _cleanArtist ? `IMPORTANT: This is "${title}" by ${_cleanArtist}. Use your EXACT knowledge of this artist and song.` : '',
   ].filter(Boolean).join('\n');
 
   const analysisPrompt = _buildAnalysisPrompt(metaInfo);
