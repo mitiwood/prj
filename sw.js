@@ -1,9 +1,11 @@
 /* ── KMS Service Worker v4 — Auto-Update + Offline Cache + Push ── */
 
-const SW_VERSION = '20260405';
-const STATIC_CACHE = 'kms-static-v5';
-const RUNTIME_CACHE = 'kms-runtime-v5';
+const SW_VERSION = '20260406a';
+const STATIC_CACHE = 'kms-static-v6';
+const RUNTIME_CACHE = 'kms-runtime-v6';
 const VALID_CACHES = [STATIC_CACHE, RUNTIME_CACHE];
+/* index.html은 캐시하지 않고 항상 네트워크 우선 (network-first) */
+const NEVER_CACHE = ['/', '/index.html'];
 
 const STATIC_ASSETS = [
   '/',
