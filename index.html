@@ -32398,7 +32398,8 @@ function _showQRCardDirect(title,imageUrl,trackId){
   window._updateAdBanner=function(){
     var banner=$('mp-ad-banner');
     if(!banner)return;
-    if(_shouldShowAd()){
+    /* AdSense 승인 전에는 빈 배너가 높이만 차지하므로 숨김 */
+    if(_shouldShowAd()&&window.adsbygoogle&&window.adsbygoogle.loaded){
       banner.style.display='';
       try{(adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}
     } else {
