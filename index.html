@@ -7140,9 +7140,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <span>가사 전체</span>
           <button class="fp-lyrics-toggle" id="fp-lyrics-mode-btn" onclick="fpToggleLyricsMode()">싱크 모드</button>
           <div class="sync-offset-ctrl" id="fp-sync-offset-ctrl" style="display:none;">
-            <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.5,'fp')" title="-0.5초">−</button>
+            <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.3,'fp')" title="-0.3초">−</button>
             <span class="sync-offset-val" id="fp-sync-offset-val">0.0s</span>
-            <button class="sync-offset-btn" onclick="adjustSyncOffset(0.5,'fp')" title="+0.5초">+</button>
+            <button class="sync-offset-btn" onclick="adjustSyncOffset(0.3,'fp')" title="+0.3초">+</button>
           </div>
         </div>
         <div class="fp-lyrics-box" id="fp-lyrics-box">
@@ -7896,9 +7896,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div class="kp-header-title">🎤 노래방 모드</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="sync-offset-ctrl" id="kp-sync-offset-ctrl">
-        <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.5,'kp')" title="-0.5초">−</button>
+        <button class="sync-offset-btn" onclick="adjustSyncOffset(-0.3,'kp')" title="-0.3초">−</button>
         <span class="sync-offset-val" id="kp-sync-offset-val">0.0s</span>
-        <button class="sync-offset-btn" onclick="adjustSyncOffset(0.5,'kp')" title="+0.5초">+</button>
+        <button class="sync-offset-btn" onclick="adjustSyncOffset(0.3,'kp')" title="+0.3초">+</button>
       </div>
       <button class="kp-close" id="kp-close-btn">✕ 닫기</button>
     </div>
@@ -20120,7 +20120,7 @@ function _getSyncTrackKey(){var h=historyData[fpCurrentIdx];return h?(h.id||h._s
 function _saveSyncOffsets(){try{var keys=Object.keys(_syncOffsetCache);if(keys.length>100){var o={};keys.slice(-100).forEach(function(k){o[k]=_syncOffsetCache[k];});_syncOffsetCache=o;}localStorage.setItem('kms_sync_offsets',JSON.stringify(_syncOffsetCache));}catch(e){}}
 function loadSyncOffsetForTrack(){
   var key=_getSyncTrackKey();
-  _syncOffset=(key&&_syncOffsetCache[key]!==undefined)?_syncOffsetCache[key]:0;
+  _syncOffset=(key&&_syncOffsetCache[key]!==undefined)?_syncOffsetCache[key]:-0.3; /* 기본 -0.3초 보정 */
   var label=(_syncOffset>=0?'+':'')+_syncOffset.toFixed(1)+'s';
   var fpEl=$('fp-sync-offset-val');if(fpEl)fpEl.textContent=label;
   var kpEl=$('kp-sync-offset-val');if(kpEl)kpEl.textContent=label;
@@ -21319,6 +21319,7 @@ function openKaraokePlayer(audioUrl,title,tags,imageUrl,taskId,audioId,plainLyri
         const words=res?.data?.alignedWords||[];
         if(words.length){
           renderKpTimestampedLyrics(words);
+          toast('🎤 가사 싱크 로드 완료 — 안 맞으면 상단 −/+ 버튼으로 조절','',3000);
         } else {
           renderKpPlainLyrics(plainLyrics);
         }
