@@ -14754,9 +14754,8 @@ function _playFromHistoryView(idx) {
   for(var i=0;i<historyData.length;i++){
     var h=historyData[i];
     if(!h||!h.audio_url) continue;
-    /* duration check removed */
-    /* 내 생성곡만 포함 (커뮤니티/피드/플레이리스트 제외) */
-    if(!h._fromSb && !h._fromFeed && !h._fromPl) _ctxIds.push(h.id||h._sbId||('hist_'+i));
+    /* 피드/플레이리스트에서 가져온 타인 곡은 제외, 서버 동기화 곡(_fromSb)은 포함 */
+    if(!h._fromFeed && !h._fromPl) _ctxIds.push(h.id||h._sbId||('hist_'+i));
   }
   var curId = historyData[idx]?.id || historyData[idx]?._sbId || '';
   var ctxIdx = _ctxIds.indexOf(curId);
@@ -28514,24 +28513,32 @@ function _initSWAutoUpdate(){
     /* 업데이트 체크: 페이지 로드 시 + 30분마다 */
     reg.update().catch(function(){});
     setInterval(function(){reg.update().catch(function(){});},30*60*1000);
-    /* 새 SW 감지 → 즉시 활성화 */
+    /* 새 SW 감지 → 즉시 활성화 (새로고침 없이) */
     reg.addEventListener('updatefound',function(){
       var newSW=reg.installing;
       if(!newSW)return;
       newSW.addEventListener('statechange',function(){
         if(newSW.state==='installed' && navigator.serviceWorker.controller){
-          console.log('[SW] 새 버전 감지 → 자동 업데이트');
+          console.log('[SW] 새 버전 감지 → 백그라운드 업데이트');
           newSW.postMessage('SKIP_WAITING');
         }
       });
     });
   }).catch(function(e){console.warn('[SW] reg fail:',e.message);});
-  /* controllerchange: 새 SW 활성화되면 페이지 새로고침 */
-  var _swRefreshing=false;
+  /* controllerchange: 새 SW 활성화 — 재생 중이면 새로고침 안 함 */
   navigator.serviceWorker.addEventListener('controllerchange',function(){
-    if(_swRefreshing)return;_swRefreshing=true;
-    console.log('[SW] 새 버전 활성화 → 새로고침');
-    window.location.reload();
+    console.log('[SW] 새 버전 활성화됨');
+    /* 오디오 재생 중이면 새로고침 하지 않음 — 다음 앱 실행 시 자동 적용 */
+    var isPlaying=typeof fpAudio!=='undefined'&&fpAudio&&!fpAudio.paused;
+    var isGenerating=typeof _globalGenerating!=='undefined'&&_globalGenerating;
+    if(isPlaying||isGenerating){
+      console.log('[SW] 재생/생성 중 — 다음 실행 시 적용');
+      return;
+    }
+    /* 유저 인터랙션 없는 상태에서만 조용히 새로고침 */
+    if(document.hidden){
+      window.location.reload();
+    }
   });
 }
 _initSWAutoUpdate();
