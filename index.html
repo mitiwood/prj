@@ -3335,6 +3335,39 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 /* ══════════════════════════════
    BOTTOM NAV
 ══════════════════════════════ */
+/* ── 선물 탭/카드 ── */
+.gift-tab{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s;}
+.gift-tab.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.gift-card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:.2s;}
+.gift-card.unopened{animation:giftShake 2s infinite;cursor:pointer;border-color:var(--acc);}
+@keyframes giftShake{0%,100%{transform:rotate(0)}10%{transform:rotate(-3deg)}20%{transform:rotate(3deg)}30%{transform:rotate(-3deg)}40%{transform:rotate(0)}}
+.gift-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.gift-emoji{font-size:28px;min-width:36px;text-align:center;}
+.gift-card-info{flex:1;min-width:0;}
+.gift-card-info .name{font-size:14px;font-weight:700;color:var(--t1);}
+.gift-card-info .date{font-size:11px;color:var(--t3);}
+.gift-msg{font-size:13px;color:var(--t2);margin:6px 0;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:10px;font-style:italic;}
+.gift-track{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.03);border-radius:12px;margin-top:8px;}
+.gift-track-img{width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--bg);}
+.gift-track-info{flex:1;min-width:0;}
+.gift-track-info .title{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gift-track-info .tags{font-size:11px;color:var(--t3);}
+.gift-play-btn{width:36px;height:36px;border-radius:50%;background:var(--acc);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* 선물 보내기 시트 */
+#gift-send-sheet{position:fixed;inset:0;z-index:10002;pointer-events:none;opacity:0;transition:opacity .25s;}
+#gift-send-sheet.on{opacity:1;pointer-events:auto;}
+#gift-send-sheet .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);}
+#gift-send-panel{position:absolute;bottom:0;left:0;right:0;max-width:var(--sheet-max,480px);margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s;}
+#gift-send-sheet.on #gift-send-panel{transform:translateY(0);}
+.gift-step-indicator{display:flex;gap:6px;justify-content:center;margin-bottom:16px;}
+.gift-step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
+.gift-step-dot.on{background:var(--acc);width:20px;border-radius:4px;}
+.gift-track-select{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:.15s;margin-bottom:6px;}
+.gift-track-select:hover,.gift-track-select.selected{border-color:var(--acc);background:rgba(168,85,247,.08);}
+.gift-emoji-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0;}
+.gift-emoji-btn{width:40px;height:40px;border-radius:12px;border:2px solid var(--border);background:transparent;font-size:20px;cursor:pointer;transition:.15s;}
+.gift-emoji-btn.on{border-color:var(--acc);background:rgba(168,85,247,.15);transform:scale(1.15);}
+
 #bottom-nav{
   position:fixed;bottom:0;left:0;right:0;margin:0 auto;
   width:100%;max-width:var(--sheet-max,480px);
@@ -6235,6 +6268,20 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <div id="comm-suggest-wrap"></div>
   </div>
 
+  <!-- ─────────── GIFT VIEW ─────────── -->
+  <div class="view" id="gift-view">
+    <div style="padding:16px 16px 8px;display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="font-size:20px;font-weight:800;color:var(--t1);margin:0;">🎁 선물함</h2>
+      <button onclick="_openGiftSendSheet()" style="padding:8px 14px;border-radius:20px;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 선물 보내기</button>
+    </div>
+    <!-- 받은/보낸 탭 -->
+    <div style="display:flex;gap:8px;padding:8px 16px;">
+      <button class="gift-tab on" data-gift-tab="received" onclick="_switchGiftTab('received')">받은 선물</button>
+      <button class="gift-tab" data-gift-tab="sent" onclick="_switchGiftTab('sent')">보낸 선물</button>
+    </div>
+    <div id="gift-list" style="padding:8px 16px 120px;"></div>
+  </div>
+
   <!-- ─────────── SETTINGS VIEW ─────────── -->
   <div class="view" id="settings-view">
     <div class="settings-banner">
@@ -6902,6 +6949,11 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     <span class="bnav-label" data-i18n="library">라이브러리</span>
     <span class="bnav-badge" id="bnav-hist-badge" style="display:none">0</span>
+  </button>
+  <button class="bnav-item" data-view="gift-view" onclick="switchTab('gift-view')" style="position:relative;">
+    <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
+    <span class="bnav-label">선물</span>
+    <span class="bnav-badge" id="gift-badge" style="display:none">0</span>
   </button>
   <button class="bnav-item" data-view="settings-view" onclick="switchTab('settings-view')">
     <svg class="bnav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -7896,6 +7948,39 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
     </label>
   </div>
 </div>
+<!-- ── 선물 보내기 바텀시트 ── -->
+<div id="gift-send-sheet">
+  <div class="sheet-bg" onclick="_closeGiftSendSheet()"></div>
+  <div id="gift-send-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h3 style="margin:0;font-size:17px;font-weight:800;color:var(--t1);">🎁 선물 보내기</h3>
+      <button onclick="_closeGiftSendSheet()" style="background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div class="gift-step-indicator" id="gift-step-dots">
+      <div class="gift-step-dot on"></div><div class="gift-step-dot"></div><div class="gift-step-dot"></div>
+    </div>
+    <div id="gift-step-1">
+      <p style="font-size:13px;color:var(--t2);margin:0 0 10px;">어떤 곡을 선물할까요?</p>
+      <div id="gift-track-list" style="max-height:300px;overflow-y:auto;"></div>
+    </div>
+    <div id="gift-step-2" style="display:none;">
+      <label style="font-size:13px;color:var(--t2);font-weight:600;">받는 사람 닉네임</label>
+      <input id="gift-to-name" type="text" placeholder="닉네임을 입력하세요" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:14px;margin:6px 0 14px;box-sizing:border-box;font-family:inherit;">
+      <label style="font-size:13px;color:var(--t2);font-weight:600;">이모지 선택</label>
+      <div class="gift-emoji-grid" id="gift-emoji-grid"></div>
+      <label style="font-size:13px;color:var(--t2);font-weight:600;">메시지 (선택)</label>
+      <textarea id="gift-message" placeholder="이 곡 들어봐!" rows="2" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--t1);font-size:14px;margin:6px 0 0;resize:none;box-sizing:border-box;font-family:inherit;"></textarea>
+    </div>
+    <div id="gift-step-3" style="display:none;">
+      <div id="gift-preview" style="text-align:center;padding:16px 0;"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button id="gift-prev-btn" onclick="_giftPrevStep()" style="display:none;flex:1;padding:14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">이전</button>
+      <button id="gift-next-btn" onclick="_giftNextStep()" style="flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,var(--acc2),var(--acc));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">다음</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── 로그인 모달 ── -->
 <!-- ── 로그인 바텀시트 ── -->
 <div id="login-sheet" style="position:fixed;inset:0;z-index:10001;pointer-events:none;opacity:0;transition:opacity .25s;">
@@ -31925,6 +32010,240 @@ function _showQRCardDirect(title,imageUrl,trackId){
 <script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
 <script>initModelProfiles();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
+
+<!-- ── 선물 기능 JS ── -->
+<script>
+(function(){
+  var _giftStep=1;
+  var _giftSelectedTrack=null;
+  var _giftEmoji='\uD83D\uDC9C';
+  var _giftTab='received';
+  var _giftEmojis=['\uD83D\uDC9C','\uD83C\uDFB5','\uD83C\uDF1F','\uD83C\uDF89','\uD83D\uDC99','\uD83C\uDF38','\uD83D\uDD25','\uD83C\uDF82','\uD83E\uDD8B','\uD83D\uDC8E','\uD83C\uDF08','\uD83C\uDF81'];
+
+  /* ── 선물함 로드 ── */
+  window._loadGifts=async function(){
+    if(!currentUser) return;
+    var list=$('gift-list');if(!list)return;
+    list.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px;">로딩 중...</div>';
+    try{
+      var url=_giftTab==='received'
+        ?'/api/gifts?to='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider)
+        :'/api/gifts?from='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider);
+      var r=await fetch(url);var d=await r.json();
+      var gifts=d.gifts||[];
+      if(!gifts.length){
+        list.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--t3);">'
+          +(_giftTab==='received'?'\uD83D\uDCED \uC544\uC9C1 \uBC1B\uC740 \uC120\uBB3C\uC774 \uC5C6\uC5B4\uC694':'\uD83C\uDF81 \uC544\uC9C1 \uBCF4\uB0B8 \uC120\uBB3C\uC774 \uC5C6\uC5B4\uC694')
+          +'<br><span style="font-size:12px;opacity:.6;margin-top:6px;display:block;">'
+          +(_giftTab==='received'?'\uCE5C\uAD6C\uC5D0\uAC8C \uB0B4 \uC74C\uC545\uC744 \uC120\uBB3C\uD574\uBCF4\uC138\uC694!':'\uC88B\uC544\uD558\uB294 \uACE1\uC744 \uCE5C\uAD6C\uC5D0\uAC8C \uC120\uBB3C\uD574\uBCF4\uC138\uC694!')
+          +'</span></div>';
+        return;
+      }
+      /* 배지 업데이트 */
+      var unopened=gifts.filter(function(g){return !g.opened&&_giftTab==='received';}).length;
+      _updateGiftBadge(unopened);
+
+      var html='';
+      gifts.forEach(function(g){
+        var isUnopened=!g.opened&&_giftTab==='received';
+        var dateStr=g.created_at?new Date(g.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        var personName=_giftTab==='received'?g.from_name:g.to_name;
+        var personLabel=_giftTab==='received'?'from':'to';
+
+        html+='<div class="gift-card'+( isUnopened?' unopened':'')+'" data-gift-id="'+esc(g.id)+'" onclick="'+(isUnopened?'_openGift(\''+esc(g.id)+'\')':'')+'">';
+        html+='<div class="gift-card-header">';
+        html+='<div class="gift-emoji">'+(isUnopened?'\uD83C\uDF81':esc(g.emoji||'\uD83C\uDFB5'))+'</div>';
+        html+='<div class="gift-card-info"><div class="name">'+(isUnopened?'\uD83C\uDF81 \uC120\uBB3C\uC774 \uB3C4\uCC29\uD588\uC5B4\uC694!':esc(personName))+'</div>';
+        html+='<div class="date">'+(isUnopened?'\uD130\uCE58\uD574\uC11C \uC5F4\uC5B4\uBCF4\uC138\uC694':dateStr)+'</div></div></div>';
+
+        if(!isUnopened){
+          if(g.message) html+='<div class="gift-msg">"'+esc(g.message)+'"</div>';
+          html+='<div class="gift-track">';
+          html+=g.track_image?'<img class="gift-track-img" src="'+esc(g.track_image)+'" onerror="this.style.display=\'none\'">':'';
+          html+='<div class="gift-track-info"><div class="title">'+esc(g.track_title||'\uBB34\uC81C')+'</div>';
+          html+='<div class="tags">'+esc(g.track_tags||'')+'</div></div>';
+          if(g.track_audio_url){
+            html+='<button class="gift-play-btn" onclick="event.stopPropagation();_playGiftTrack(\''+esc(g.track_audio_url)+'\',\''+esc(g.track_title||'')+'\',\''+esc(g.track_image||'')+'\',\''+esc(g.track_tags||'')+'\');">\u25B6</button>';
+          }
+          html+='</div>';
+        }
+        html+='</div>';
+      });
+      list.innerHTML=html;
+    }catch(e){
+      list.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px;">\uBB38\uC81C\uAC00 \uBC1C\uC0DD\uD588\uC5B4\uC694</div>';
+    }
+  };
+
+  /* ── 선물 열기 ── */
+  window._openGift=async function(id){
+    try{
+      await fetch('/api/gifts',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      toast('\uD83C\uDF81 \uC120\uBB3C\uC744 \uC5F4\uC5C8\uC5B4\uC694!','ok',2000);
+      _loadGifts();
+    }catch(e){}
+  };
+
+  /* ── 선물 곡 재생 ── */
+  window._playGiftTrack=function(url,title,img,tags){
+    var idx=historyData.findIndex(function(h){return h.audio_url===url;});
+    if(idx>=0){
+      showMiniPlayer(idx);
+    } else {
+      historyData.unshift({id:'gift_'+Date.now(),title:title||'\uC120\uBB3C \uACE1',audio_url:url,image_url:img||'',tags:tags||'',lyrics:'',duration:0,created:Date.now(),type:'audio',genMode:'gift',_fromGift:true});
+      saveHistory();
+      showMiniPlayer(0);
+    }
+  };
+
+  /* ── 탭 전환 ── */
+  window._switchGiftTab=function(tab){
+    _giftTab=tab;
+    document.querySelectorAll('.gift-tab').forEach(function(b){b.classList.toggle('on',b.dataset.giftTab===tab);});
+    _loadGifts();
+  };
+
+  /* ── 배지 업데이트 ── */
+  window._updateGiftBadge=function(count){
+    var badge=$('gift-badge');
+    if(!badge)return;
+    if(count>0){badge.textContent=count;badge.style.display='';}
+    else{badge.style.display='none';}
+  };
+
+  /* ── 선물 보내기 시트 ── */
+  window._openGiftSendSheet=function(){
+    if(!currentUser){openLoginSheet();return;}
+    _giftStep=1;_giftSelectedTrack=null;_giftEmoji='\uD83D\uDC9C';
+    _renderGiftStep();
+    /* 트랙 목록 */
+    var tl=$('gift-track-list');
+    var html='';
+    var tracks=historyData.filter(function(h){return h.audio_url;}).slice(0,30);
+    if(!tracks.length){html='<div style="text-align:center;padding:30px;color:var(--t3);font-size:13px;">\uC120\uBB3C\uD560 \uACE1\uC774 \uC5C6\uC5B4\uC694. \uBA3C\uC800 \uC74C\uC545\uC744 \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!</div>';}
+    tracks.forEach(function(h,i){
+      html+='<div class="gift-track-select" data-gift-idx="'+i+'" onclick="_selectGiftTrack('+i+')">';
+      html+=h.image_url?'<img src="'+esc(h.image_url)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" onerror="this.style.display=\'none\'">':'<div style="width:40px;height:40px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;">\uD83C\uDFB5</div>';
+      html+='<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(h.title||'\uBB34\uC81C')+'</div>';
+      html+='<div style="font-size:11px;color:var(--t3);">'+esc((h.tags||'').split(',')[0]||'')+'</div></div>';
+      html+='<div class="gift-check" style="display:none;color:var(--acc);font-weight:bold;">\u2713</div>';
+      html+='</div>';
+    });
+    tl.innerHTML=html;
+    /* 이모지 그리드 */
+    var eg=$('gift-emoji-grid');
+    eg.innerHTML=_giftEmojis.map(function(e){return '<button class="gift-emoji-btn'+(e===_giftEmoji?' on':'')+'" onclick="_selectGiftEmoji(\''+e+'\')">'+e+'</button>';}).join('');
+    $('gift-send-sheet').classList.add('on');
+  };
+
+  window._closeGiftSendSheet=function(){$('gift-send-sheet').classList.remove('on');};
+
+  window._selectGiftTrack=function(idx){
+    var tracks=historyData.filter(function(h){return h.audio_url;}).slice(0,30);
+    _giftSelectedTrack=tracks[idx]||null;
+    document.querySelectorAll('.gift-track-select').forEach(function(el,i){
+      el.classList.toggle('selected',i===idx);
+      var chk=el.querySelector('.gift-check');if(chk)chk.style.display=i===idx?'':'none';
+    });
+  };
+
+  window._selectGiftEmoji=function(e){
+    _giftEmoji=e;
+    document.querySelectorAll('.gift-emoji-btn').forEach(function(b){b.classList.toggle('on',b.textContent===e);});
+  };
+
+  window._giftNextStep=function(){
+    if(_giftStep===1){
+      if(!_giftSelectedTrack){toast('\uACE1\uC744 \uC120\uD0DD\uD574\uC8FC\uC138\uC694','err',2000);return;}
+      _giftStep=2;
+    } else if(_giftStep===2){
+      var toName=($('gift-to-name').value||'').trim();
+      if(!toName){toast('\uBC1B\uB294 \uC0AC\uB78C \uB2C9\uB124\uC784\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694','err',2000);return;}
+      /* 미리보기 */
+      var pv=$('gift-preview');
+      pv.innerHTML='<div style="font-size:48px;margin-bottom:12px;">'+_giftEmoji+'</div>'
+        +'<div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:4px;">'+esc(currentUser.name)+' \u2192 '+esc(toName)+'</div>'
+        +'<div style="font-size:13px;color:var(--t2);margin-bottom:12px;">"'+esc($('gift-message').value||'\uC774 \uACE1 \uB4E4\uC5B4\uBD10!')+'"</div>'
+        +'<div style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,.04);border-radius:12px;">'
+        +(_giftSelectedTrack.image_url?'<img src="'+esc(_giftSelectedTrack.image_url)+'" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">':'')
+        +'<span style="font-size:13px;font-weight:600;color:var(--t1);">'+esc(_giftSelectedTrack.title||'\uBB34\uC81C')+'</span></div>';
+      _giftStep=3;
+    } else if(_giftStep===3){
+      _sendGift();return;
+    }
+    _renderGiftStep();
+  };
+
+  window._giftPrevStep=function(){
+    if(_giftStep>1){_giftStep--;_renderGiftStep();}
+  };
+
+  function _renderGiftStep(){
+    $('gift-step-1').style.display=_giftStep===1?'':'none';
+    $('gift-step-2').style.display=_giftStep===2?'':'none';
+    $('gift-step-3').style.display=_giftStep===3?'':'none';
+    $('gift-prev-btn').style.display=_giftStep>1?'':'none';
+    $('gift-next-btn').textContent=_giftStep===3?'\uD83C\uDF81 \uC120\uBB3C \uBCF4\uB0B4\uAE30':'\uB2E4\uC74C';
+    var dots=$('gift-step-dots').children;
+    for(var i=0;i<dots.length;i++){dots[i].className='gift-step-dot'+(i+1===_giftStep?' on':'');}
+  }
+
+  async function _sendGift(){
+    var toName=($('gift-to-name').value||'').trim();
+    var msg=($('gift-message').value||'').trim();
+    var t=_giftSelectedTrack;
+    if(!t||!toName)return;
+    $('gift-next-btn').disabled=true;$('gift-next-btn').textContent='\uC804\uC1A1 \uC911...';
+    try{
+      var r=await fetch('/api/gifts',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          from_name:currentUser.name,
+          from_provider:currentUser.provider||'',
+          to_name:toName,
+          track_id:t.id||t._sbId||'',
+          track_title:t.title||'',
+          track_image:t.image_url||'',
+          track_audio_url:t.audio_url||t.audioUrl||'',
+          track_tags:(t.tags||'').slice(0,300),
+          message:msg||'\uC774 \uACE1 \uB4E4\uC5B4\uBD10!',
+          emoji:_giftEmoji,
+        }),
+      });
+      var d=await r.json();
+      if(d.ok){
+        toast('\uD83C\uDF81 '+toName+'\uB2D8\uC5D0\uAC8C \uC120\uBB3C\uC744 \uBCF4\uB0C8\uC5B4\uC694!','ok',3000);
+        _closeGiftSendSheet();
+        _switchGiftTab('sent');
+      } else {
+        toast('\uC120\uBB3C \uC804\uC1A1 \uC2E4\uD328: '+(d.error||''),'err',3000);
+      }
+    }catch(e){
+      toast('\uC120\uBB3C \uC804\uC1A1 \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC5B4\uC694','err',3000);
+    }
+    $('gift-next-btn').disabled=false;$('gift-next-btn').textContent='\uD83C\uDF81 \uC120\uBB3C \uBCF4\uB0B4\uAE30';
+  }
+
+  /* ── switchTab 연동: gift-view 진입 시 로드 ── */
+  var _origSwitchTab=window.switchTab;
+  window.switchTab=function(viewId){
+    _origSwitchTab(viewId);
+    if(viewId==='gift-view') _loadGifts();
+  };
+
+  /* ── 초기 배지 로드 ── */
+  setTimeout(function(){
+    if(!currentUser)return;
+    fetch('/api/gifts?to='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider))
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var unopened=(d.gifts||[]).filter(function(g){return !g.opened;}).length;
+        _updateGiftBadge(unopened);
+      }).catch(function(){});
+  },3000);
+})();
+</script>
 
 </body>
 </html>

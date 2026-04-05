@@ -327,3 +327,28 @@ CREATE INDEX IF NOT EXISTS idx_tracks_co_owner ON public.tracks(co_owner_name, c
 -- ============================================================
 ALTER TABLE public.tracks
   ADD COLUMN IF NOT EXISTS duration INTEGER DEFAULT 0;
+
+-- ============================================================
+-- 17. gifts 테이블 (선물하기)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.gifts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  from_name TEXT NOT NULL DEFAULT '',
+  from_provider TEXT DEFAULT '',
+  to_name TEXT NOT NULL DEFAULT '',
+  track_id TEXT DEFAULT '',
+  track_title TEXT DEFAULT '',
+  track_image TEXT DEFAULT '',
+  track_audio_url TEXT DEFAULT '',
+  track_tags TEXT DEFAULT '',
+  message TEXT DEFAULT '',
+  emoji TEXT DEFAULT '🎵',
+  opened BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.gifts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "gifts_public_read" ON public.gifts FOR SELECT USING (true);
+CREATE POLICY "gifts_service_write" ON public.gifts FOR ALL USING (true) WITH CHECK (true);
+CREATE INDEX IF NOT EXISTS idx_gifts_to ON public.gifts (to_name);
+CREATE INDEX IF NOT EXISTS idx_gifts_from ON public.gifts (from_name);
+CREATE INDEX IF NOT EXISTS idx_gifts_created ON public.gifts (created_at DESC);
