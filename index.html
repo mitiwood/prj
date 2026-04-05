@@ -9682,18 +9682,20 @@ async function _ytDoGenerate(){
   const ytBpm = _lastYtAnalysis.bpm_estimate || 0;
   const ytKey = (_lastYtAnalysis.key_signature||'').trim();
   const ytSongStructure = (_lastYtAnalysis.song_structure||'').trim();
-  /* style: style_prompt를 통째로 우선 배치 (쪼개지 않음) + 보조 태그 보충 (최대 999자, kie.ai 제한 1000) */
+  /* style: style_prompt를 통째로 우선 배치 + 아티스트 + 보조 태그 보충 */
   var _bpmHint = ytBpm > 0 ? (ytBpm + ' BPM') : '';
   var _keyHint = ytKey ? ('key of ' + ytKey) : '';
+  var _ytAuthor = (_lastYtAnalysis.author||'').replace(/\s*[-–]?\s*(Topic|Official|VEVO|Music|Records)$/i,'').trim();
+  var _artistHint = _ytAuthor ? ('inspired by ' + _ytAuthor) : '';
   /* style_prompt가 있으면 그대로 사용하고, 빠진 정보만 보충 */
   var ytStyle;
   if(ytStylePrompt){
     var _spLower = ytStylePrompt.toLowerCase();
-    var _extras = [_bpmHint, _keyHint, ytVocalStyle, ytRefSound].filter(function(t){return t && _spLower.indexOf(t.toLowerCase().split(',')[0].trim())===-1;});
+    var _extras = [_artistHint, _bpmHint, _keyHint, ytVocalStyle, ytRefSound].filter(function(t){return t && _spLower.indexOf(t.toLowerCase().split(',')[0].trim())===-1;});
     ytStyle = (ytStylePrompt + (_extras.length ? ', ' + _extras.join(', ') : '')).slice(0,999);
   } else {
     /* style_prompt 없으면 (폴백 분석) 개별 태그 조합 */
-    var _ytParts=[ytGenre,ytMood,ytInstruments,ytVocalStyle,ytRefSound,_bpmHint,_keyHint,ytMoodTags].filter(Boolean);
+    var _ytParts=[_artistHint,ytGenre,ytMood,ytInstruments,ytVocalStyle,ytRefSound,_bpmHint,_keyHint,ytMoodTags].filter(Boolean);
     var _seen=new Set();var _dedup=[];
     _ytParts.join(', ').split(',').forEach(function(t){var k=t.trim().toLowerCase();if(k&&!_seen.has(k)){_seen.add(k);_dedup.push(t.trim());}});
     ytStyle = _dedup.join(', ').slice(0,999);
