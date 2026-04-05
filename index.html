@@ -9701,6 +9701,12 @@ async function _ytDoGenerate(){
   var apiKey = kieApiKey;
   if(!apiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도','err'); return; }
   if(!_lastYtAnalysis){ toast('먼저 YouTube URL을 분석해주세요','err',2500); return; }
+  /* 크레딧 캐시 동기화 (supervisor 인식 보장) */
+  if(currentUser?.name){
+    try{await Promise.race([_fetchServerCredits(),new Promise(function(_,r){setTimeout(r,3000);})]);}catch(e){}
+  }
+  if(currentUser?.plan==='supervisor'||_serverCreditsCache?.plan==='supervisor'){/* supervisor 통과 */}
+  else if(currentUser?.name && !checkPlanLimit('song')) return;
   /* 로그인 체크 (게스트 모드 허용) */
   if(!currentUser && !isGuestMode()){ openLoginSheet(); toast('로그인 후 음악을 생성할 수 있어요','err',2500); return; }
   if(!currentUser && isGuestMode() && _getGuestUsage()>=GUEST_SONG_LIMIT){ _showGuestLoginPrompt(); return; }
