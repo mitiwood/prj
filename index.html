@@ -3506,8 +3506,8 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 .fp-play-btn svg{width:42px;height:42px;fill:#fff;}
 .fp-play-btn:active{transform:scale(.9);opacity:.7;}
 .fp-ctrl-btn{
-  width:44px;height:44px;border-radius:50%;background:none;
-  border:none;color:rgba(255,255,255,.8);cursor:pointer;
+  width:48px;height:48px;border-radius:50%;background:none;
+  border:none;color:rgba(255,255,255,.85);cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .12s;
   -webkit-tap-highlight-color:transparent;position:relative;
 }
@@ -4284,15 +4284,16 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   padding-top:60px;flex-shrink:0;align-self:flex-start;
   max-height:calc(100vh - 200px);overflow-y:auto;overflow-x:hidden;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  position:relative;z-index:5;
 }
 .fp-side-actions::-webkit-scrollbar{display:none;}
 .fp-side-btn{
   width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);
-  color:rgba(255,255,255,.4);font-size:17px;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.5);font-size:17px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;transition:all .15s;backdrop-filter:blur(4px);
-  flex-shrink:0;
+  flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .fp-side-btn:hover{background:rgba(124,58,237,.15);color:rgba(255,255,255,.6);}
 .fp-side-btn.liked{color:rgba(255,100,130,.6);}
@@ -7046,9 +7047,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       </div>
       <div class="fp-controls">
         <button class="fp-ctrl-btn" onclick="fpPlayPrev()" title="이전곡" id="fp-prev-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-        <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;color:currentColor;">10</span></button>
+        <button class="fp-ctrl-btn" onclick="fpSeekRel(-10)" title="-10초" style="position:relative;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span style="font-size:10px;font-weight:800;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:currentColor;margin-top:1px;">10</span></button>
         <button class="fp-play-btn" id="fp-play-btn"><svg id="fp-play-icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></button>
-        <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg><span style="font-size:9px;font-weight:700;position:absolute;color:currentColor;">10</span></button>
+        <button class="fp-ctrl-btn" onclick="fpSeekRel(10)" title="+10초" style="position:relative;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg><span style="font-size:10px;font-weight:800;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:currentColor;margin-top:1px;">10</span></button>
         <button class="fp-ctrl-btn" onclick="fpPlayNext()" title="다음곡" id="fp-next-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
       </div>
       <!-- 추가 컨트롤 -->
@@ -31926,14 +31927,26 @@ function _showQRCardDirect(title,imageUrl,trackId){
   var fpEl=document.getElementById('fullplayer');
   if(fpEl){
     fpEl.addEventListener('touchstart',function(e){
-      if(e.touches[0].clientY<120){_fpSy=e.touches[0].clientY;_fpActive=true;}
+      /* 상단 200px 영역에서 스와이프 시작 감지 (기존 120→200) */
+      if(e.touches[0].clientY<200){_fpSy=e.touches[0].clientY;_fpActive=true;}
       else{_fpActive=false;}
     },{passive:true});
     fpEl.addEventListener('touchend',function(e){
       if(!_fpActive) return;
       var dy=e.changedTouches[0].clientY-_fpSy;
       _fpActive=false;
-      if(dy>60&&typeof closeFullPlayer==='function') closeFullPlayer();
+      /* 50px 이상 아래로 스와이프하면 닫기 (기존 60→50) */
+      if(dy>50){
+        fpEl.classList.remove('on');
+        document.body.style.overflow='';
+        if(typeof fpStopViz==='function')fpStopViz();
+        if(typeof _stopSpectrum==='function')_stopSpectrum();
+        /* 미니플레이어 복원 (재생 유지) */
+        if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]?.audio_url){
+          var mp=$('mini-player');
+          if(mp){mp.classList.remove('mp-hide');mp.style.transition='';mp.classList.add('on');document.body.classList.add('mp-on');}
+        }
+      }
     },{passive:true});
   }
 
