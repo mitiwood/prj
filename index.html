@@ -17425,16 +17425,18 @@ function showMiniPlayer(idx){
                   if(genId===_fpAudioGenId){audio.src=newUrl;audio.load();audio.play().catch(function(){});}
                   toast('오디오 URL 갱신 완료!','ok',2000);return;
                 }
-                _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
+                _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();clearTimeout(_canplayTimer);_syncAllPlayBtns(false);
                 toast('오디오 URL이 만료되었어요 — 다시 생성해주세요','err',4000);
-              }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오 URL이 만료되었어요','err',3000);});
+              }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();clearTimeout(_canplayTimer);_syncAllPlayBtns(false);toast('오디오 URL이 만료되었어요','err',3000);});
             } else {
-              _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
+              _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();clearTimeout(_canplayTimer);_syncAllPlayBtns(false);
               toast('오디오 URL이 만료되었어요'+(r.ok?'':' ('+r.status+')'),'err',3000);
             }
           } else {
-            _failedAudioUrls.add(_safeAudioUrl);renderHistoryView();
-            toast('오디오 포맷을 재생할 수 없어요','err',3000);
+            /* URL은 유효한 오디오(r.ok && isAudio) — 브라우저 로드 실패 → 재시도 */
+            clearTimeout(_canplayTimer);
+            if(genId===_fpAudioGenId){ audio.load(); audio.play().catch(function(){}); }
+            toast('오디오 재연결 중...','',2000);
           }
         }).catch(function(){_failedAudioUrls.add(_safeAudioUrl);renderHistoryView();toast('오디오를 재생할 수 없어요','err',3000);});
         return; /* HEAD 비동기 처리이므로 아래 동기 정리는 건너뜀 */
