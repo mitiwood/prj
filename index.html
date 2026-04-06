@@ -412,8 +412,8 @@ html,body{
 
 /* ── 뷰 컨테이너 ── */
 .views-wrap{padding:0 0 80px;}
-.view{display:none;padding:20px;}
-.view.on{display:block;}
+.view{display:none;padding:20px;will-change:auto;}
+.view.on{display:block;will-change:contents;}
 
 /* ── 섹션 헤더 ── */
 .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -496,7 +496,6 @@ html,body{
 .genre-card-count{font-size:9px;color:var(--t3);margin-top:2px}
 @media(max-width:360px){.genre-grid{grid-template-columns:repeat(3,1fr)}}
 .live-listeners{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;background:rgba(239,68,68,.15);font-size:10px;font-weight:600;color:#ef4444}
-.live-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:livePulse 1.5s infinite}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 .trending-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:6px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:9px;font-weight:800;animation:trendGlow 2s infinite}
 @keyframes trendGlow{0%,100%{box-shadow:0 0 4px rgba(245,158,11,.3)}50%{box-shadow:0 0 10px rgba(245,158,11,.6)}}
@@ -756,7 +755,6 @@ textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
 .opt-label{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:5px;letter-spacing:0.2px;text-transform:uppercase;}
 
 /* 분위기 그리드 */
-.mood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
 .style-chip-btn{padding:4px 10px;border-radius:16px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.08);color:var(--acc);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
 .style-chip-btn:hover,.style-chip-btn:active{background:rgba(124,58,237,.2);border-color:var(--acc);}
 [data-theme="light"] .style-chip-btn{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.2);}
@@ -954,10 +952,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .loading-card[data-mode="vocal"]{--ld-glow:rgba(249,115,22,.08);--ld-badge-bg:rgba(249,115,22,.12);--ld-badge-c:#fb923c;--ld-badge-bd:rgba(249,115,22,.2);}
 /* 라이트모드 */
 [data-theme="light"] .loading-card.on{background:var(--bg,#fff);}
-[data-theme="light"] .ld-title{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
 [data-theme="light"] .ld-pct-text{background:linear-gradient(135deg,#4c1d95,#7c3aed);-webkit-background-clip:text;background-clip:text;}
-[data-theme="light"] .ld-ring-bg{stroke:rgba(0,0,0,.06);}
-[data-theme="light"] .ld-tip-card{background:rgba(0,0,0,.03);border-color:transparent;}
 [data-theme="light"] .ld-cancel-btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;}
 
 /* 결과 섹션 */
@@ -1221,7 +1216,6 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .hist-vt-btn{width:28px;height:28px;border:none;background:transparent;color:var(--t3);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .hist-vt-btn.on{background:var(--acc);color:#fff;}
 /* Suno 그리드 뷰 */
-.hist-view-grid{transition:all .3s ease;}
 .hist-view-grid.grid-mode{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
 .hist-view-grid.grid-mode .hist-card-wrap{min-width:0;}
 .hist-view-grid.grid-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 12px rgba(0,0,0,.15);position:relative;min-width:0;width:100%;}
@@ -1243,7 +1237,7 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .hist-view-grid.grid-mode .hist-more{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:50%;;}
 /* 전체모드 (full) — 대형 카드 */
 .hist-view-grid.full-mode{display:flex;flex-direction:column;gap:16px;}
-.hist-view-grid.full-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 16px rgba(0,0,0,.18);position:relative;}
+.hist-view-grid.full-mode .hist-card{flex-direction:column;align-items:stretch;padding:0;border-radius:16px;overflow:hidden;margin-bottom:0;box-shadow:0 2px 16px rgba(0,0,0,.18);position:relative;animation:cardSlideUp .35s ease both;}
 .hist-view-grid.full-mode .hist-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.28);}
 .hist-view-grid.full-mode .hist-thumb{width:100%;height:0;padding-bottom:100%;border-radius:0;font-size:32px;position:relative;background:linear-gradient(135deg,#1a0537,#2d1a5a,#0f2a4a);}
 .hist-view-grid.full-mode .hist-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0a14;}
@@ -1296,7 +1290,6 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .sc-comm-txt{font-size:12px;font-weight:600;color:var(--t2);}
 .sc-comm-txt span{display:block;font-size:10px;font-weight:400;color:var(--t3);margin-top:1px;}
 @keyframes cardSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.hist-view-grid.full-mode .hist-card{animation:cardSlideUp .35s ease both;}
 .hist-view-grid.full-mode .hist-card:nth-child(2){animation-delay:.06s;}
 .hist-view-grid.full-mode .hist-card:nth-child(3){animation-delay:.12s;}
 .hist-view-grid.full-mode .hist-card:nth-child(4){animation-delay:.18s;}
@@ -1324,7 +1317,6 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .credit-warn-banner{display:none;padding:10px 14px;margin-bottom:10px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.1));border:1px solid rgba(245,158,11,.25);font-size:12px;color:#f59e0b;align-items:center;gap:8px;}
 .credit-warn-banner.show{display:flex;}
 @keyframes heartBurst{0%{transform:scale(1)}25%{transform:scale(1.4)}50%{transform:scale(.9)}100%{transform:scale(1)}}
-.comm-reaction-sm.liked{animation:heartBurst .4s ease;}
 .comm-comment-preview{display:flex;align-items:center;gap:6px;padding:6px 10px;margin-top:6px;background:var(--bg2);border-radius:8px;font-size:11px;color:var(--t3);cursor:pointer;overflow:hidden;}
 .comm-comment-preview:hover{background:var(--s3);}
 .comm-comment-preview .ccp-avatar{width:16px;height:16px;border-radius:50%;flex-shrink:0;}
@@ -1920,8 +1912,6 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .high-contrast .bnav-item{border:1px solid #555;}
 .high-contrast input,.high-contrast textarea,.high-contrast select{border:2px solid #777!important;}
 /* 성능: GPU 가속 힌트 */
-.view{will-change:auto;}
-.view.on{will-change:contents;}
 #fullplayer{will-change:transform;}
 .hist-card,.comm-list-item{contain:paint style;}
 
@@ -2129,7 +2119,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-creator-card:hover .mf-creator-arrow{transform:translateX(2px);color:var(--acc);}
 /* 상세 히어로 */
 .mf-detail-hero{background:var(--card);border-radius:20px;padding:0;margin-bottom:14px;border:1px solid var(--border);position:relative;overflow:hidden;}
-.mf-detail-hero-bg{height:80px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1),rgba(236,72,153,.08));position:relative;}
+.mf-detail-hero-bg{height:80px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1),rgba(236,72,153,.08));position:relative;transition:transform .1s linear;}
 .mf-detail-hero-bg img{width:100%;height:100%;object-fit:cover;filter:blur(20px) brightness(.7);transform:scale(1.2);}
 .mf-back-btn{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(8px);transition:background .2s;}
 .mf-back-btn:hover{background:rgba(0,0,0,.5);}
@@ -2163,7 +2153,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .mf-trk-card{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:12px;cursor:pointer;transition:all .15s;}
 .mf-trk-card:hover{background:rgba(124,58,237,.04);}
 .mf-trk-card:active{background:rgba(124,58,237,.08);}
-.mf-trk-card.playing{background:rgba(124,58,237,.1);border-left:3px solid var(--acc);padding-left:7px;}
+.mf-trk-card.playing{background:rgba(124,58,237,.1);border-left:3px solid var(--acc);padding-left:7px;position:relative;overflow:hidden;}
 .mf-trk-card.playing .mf-trk-num{color:var(--acc);font-weight:800;}
 .mf-trk-card.playing .mf-trk-title{color:var(--acc);}
 .mf-trk-card.playing .mf-trk-play-btn{background:var(--acc);box-shadow:0 2px 8px rgba(124,58,237,.3);}
@@ -2358,11 +2348,8 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 /* 빈 상태 일러스트 */
 .mf-empty-illust{width:120px;height:120px;margin:0 auto 16px;opacity:.6;}
 /* 재생 중 트랙 애니메이션 그래디언트 보더 */
-.mf-trk-card.playing{position:relative;overflow:hidden;}
 .mf-trk-card.playing::before{content:'';position:absolute;inset:-1px;border-radius:12px;padding:1.5px;background:linear-gradient(90deg,var(--acc),#ec4899,#f59e0b,var(--acc));background-size:300% 100%;animation:mfGradBorder 3s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:0;}
 @keyframes mfGradBorder{0%{background-position:0% 50%;}100%{background-position:300% 50%;}}
-/* 패럴랙스 히어로 */
-.mf-detail-hero-bg{transition:transform .1s linear;}
 /* 공유 버튼 */
 .mf-share-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
 .mf-share-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(124,58,237,.06);}
@@ -2486,7 +2473,7 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 .he-sub{font-size:12px;opacity:.6;}
 
 /* 히스토리 리스트 */
-.hist-view-grid{display:flex;flex-direction:column;gap:2px;}
+.hist-view-grid{display:flex;flex-direction:column;gap:2px;transition:all .3s ease;}
 .hist-card{
   display:flex;align-items:center;gap:12px;
   background:var(--card);border-radius:var(--r);
@@ -2796,13 +2783,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-item-row:hover{background:var(--card2);}
 .comm-rank{font-size:12px;color:var(--t3);font-weight:700;width:18px;flex-shrink:0;}
 .comm-rank.top{color:var(--ylw);}
-.comm-thumb{
-  width:46px;height:46px;border-radius:9px;
-  background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
-  overflow:hidden;display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;
-}
-.comm-thumb img{width:100%;height:100%;object-fit:cover;}
 .comm-info{flex:1;min-width:0;}
 .comm-track-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .comm-meta{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--t3);}
@@ -3122,13 +3102,12 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-featured{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:0;}
 .comm-featured-cover{width:100%;height:200px;position:relative;overflow:hidden;}
 .comm-featured-bg{width:100%;height:100%;background:linear-gradient(135deg,#1a0537,#3d1a5a,#0f2a4a);display:flex;align-items:center;justify-content:center;color:var(--acc);opacity:.5;}
-.comm-featured-badge-wrap{position:absolute;top:12px;right:12px;}
+.comm-featured-badge-wrap{position:absolute;top:12px;right:12px;z-index:15;}
 .comm-featured-like-badge{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);padding:5px 10px;border-radius:12px;font-size:12px;color:#fff;}
 .comm-featured-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.93);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 6px 28px rgba(0,0,0,.55);z-index:20;}
 .comm-featured-play-btn:hover{transform:translate(-50%,-50%) scale(1.1);}
 .comm-featured-play-btn.playing{background:var(--acc);box-shadow:0 6px 28px rgba(124,58,237,.6);}
 .comm-featured-cover-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.05),rgba(0,0,0,.4));pointer-events:none;z-index:1;}
-.comm-featured-badge-wrap{z-index:15;}
 .comm-featured-prog-wrap{display:flex;align-items:center;gap:8px;padding:8px 16px 0;}
 .comm-featured-prog{flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:2px;cursor:pointer;}
 .comm-featured-prog-fill{height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .1s;}
@@ -3144,7 +3123,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 /* Community List Items — 2줄 구조 (상단: 정보, 하단: 액션) */
 .comm-list-item{display:flex;flex-direction:column;gap:8px;padding:14px;cursor:pointer;border:none;background:var(--card);border-radius:var(--r);margin-bottom:10px;contain:content;transition:all .2s cubic-bezier(.4,0,.2,1);box-shadow:var(--card-shadow);border:1px solid var(--border);}
 .comm-list-item:last-child{margin-bottom:0;}
-.comm-list-item:hover{background:rgba(255,255,255,.04);}
 .comm-list-item:active{opacity:.8;}
 .comm-my-section{margin-bottom:16px;}
 .comm-my-section-title{font-size:13px;font-weight:800;color:var(--acc3);padding:10px 4px 6px;display:flex;align-items:center;gap:6px;}
@@ -3172,7 +3150,7 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
 .comm-list-actions{display:flex;align-items:center;gap:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;}
 .comm-reaction-sm{display:flex;align-items:center;gap:3px;padding:5px 9px;border-radius:8px;border:none;background:none;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;flex-shrink:0;}
 .comm-reaction-sm:hover{color:var(--t1);background:rgba(255,255,255,.06);}
-.comm-reaction-sm.liked{color:#ff6482;}
+.comm-reaction-sm.liked{color:#ff6482;animation:heartBurst .4s ease;}
 .comm-reaction-sm.disliked{color:var(--t3);opacity:.6;}
 .comm-reaction-sm span{font-size:11px;}
 .comm-list-actions .star-rating-sm{gap:0;}
@@ -3550,13 +3528,11 @@ input:checked+.slider-round::before{transform:translateX(20px);}
   color:rgba(255,255,255,.6);font-size:10px;font-weight:700;
   cursor:pointer;font-family:inherit;
 }
-.fp-lyrics-box{min-height:80px;padding-bottom:24px;}
+.fp-lyrics-box{min-height:80px;padding-bottom:24px;scroll-behavior:smooth;}
 .fp-lyrics-empty{font-size:12px;color:rgba(255,255,255,.25);text-align:center;padding:20px 0;}
 .fp-lline{font-size:14px;color:rgba(255,255,255,.45);line-height:2;cursor:pointer;transition:color .1s;padding:1px 0;text-align:left !important;}
-.fp-lline.active{color:#fff;font-weight:700;text-shadow:0 0 16px rgba(168,85,247,.4);}
 .fp-lline.done{color:rgba(255,255,255,.3);}
 .fp-lline-plain{font-size:13px;color:rgba(255,255,255,.55);line-height:2;white-space:pre-wrap;text-align:left !important;}
-.fp-lyric-sec{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:2px;text-transform:uppercase;display:block;margin:14px 0 4px;opacity:.8;}
 .fp-lyric-sec:first-child{margin-top:0;}
 .fp-lyrics-mode-btn{padding:4px 10px;border-radius:var(--rx);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;}
 /* 싱크 오프셋 조절 */
@@ -3569,7 +3545,6 @@ input:checked+.slider-round::before{transform:translateX(20px);}
 [data-theme="light"] .sync-offset-val{color:#48484a;}
 /* 가사 싱크 카라오케 스타일 */
 .fp-lline.active{color:#fff;font-weight:700;font-size:16px;text-shadow:0 0 20px rgba(168,85,247,.5);transition:all .3s ease;}
-.fp-lyrics-box{scroll-behavior:smooth;}
 .fp-lyrics-karaoke{position:relative;overflow:hidden;}
 .fp-lline .lyric-progress{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(168,85,247,.15),transparent);border-radius:4px;pointer-events:none;transition:width .1s linear;}
 /* 이퀄라이저 패널 */
@@ -3880,7 +3855,6 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .dl-btn{display:flex;align-items:center;gap:5px;padding:7px 11px;border-radius:var(--rs);border:1px solid var(--border);background:var(--card2);color:var(--t1);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s;flex:1;justify-content:center;}
 .dl-btn:hover{border-color:var(--border2);color:#fff;}
 .dl-btn.audio{color:var(--acc3);border-color:rgba(168,85,247,.25);}
-.dl-btn.lnk{color:var(--green);border-color:rgba(16,185,129,.2);}
 .dl-btn.ext{color:var(--t2);}
 .dl-btn.vocal-chg{color:#00dda0;border-color:rgba(0,221,160,.25);}
 .dl-btn:disabled{opacity:.4;cursor:not-allowed;}
@@ -4064,7 +4038,6 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 
 /* ── fp 버튼 Apple Music 스타일 ── */
 .fp-act-btn{color:rgba(255,255,255,.5);}
-.fp-act-btn:hover{color:#fff;}
 .fp-act-btn.liked .fp-act-icon{filter:drop-shadow(0 0 6px rgba(255,100,130,.7));}
 
 
@@ -4897,9 +4870,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 ══════════════════════════════ */
 @media(min-width:1024px){
   :root{--sheet-max:800px;}
-  .app-wrap{max-width:960px;padding:0 20px;}
-  #bottom-nav{max-width:960px;}
-  #mini-player{max-width:960px;left:0;right:0;margin:0 auto;}
+  .app-wrap{max-width:calc(100% - 40px);padding:0 20px;}
+  #bottom-nav{max-width:calc(100% - 40px);}
+  #mini-player{max-width:calc(100% - 40px);left:0;right:0;margin:0 auto;}
   /* 히스토리 그리드: 4열 */
   .hist-view-grid.grid-mode{grid-template-columns:repeat(4,1fr)!important;}
   /* 커뮤니티: 3열 */
@@ -4955,19 +4928,20 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    반응형 — 와이드 데스크탑 (1440px+)
 ══════════════════════════════ */
 @media(min-width:1440px){
-  :root{--sheet-max:900px;}
-  .app-wrap{max-width:1200px;}
-  #bottom-nav{max-width:1200px;}
-  #mini-player{max-width:1200px;left:0;right:0;margin:0 auto;}
+  :root{--sheet-max:960px;}
+  .app-wrap{max-width:calc(100% - 48px);padding:0 24px;}
+  #bottom-nav{max-width:calc(100% - 48px);}
+  #mini-player{max-width:calc(100% - 48px);left:0;right:0;margin:0 auto;}
   .hist-view-grid.grid-mode{grid-template-columns:repeat(5,1fr)!important;}
   .comm-list{grid-template-columns:repeat(4,1fr);}
   .batch-cards-wrap{grid-template-columns:repeat(3,1fr);}
+  .results-inner{grid-template-columns:repeat(3,1fr);gap:18px;}
   /* 바텀시트/모달 — 와이드 */
   .ai-sheet-box,.hes-sheet,.modal,.rc-sheet-box,
   .hes-panel,.fes-panel,.mds-panel,.queue-panel,.dm-panel,
   .comment-sheet,.share-panel,.report-sheet,.comm-share-box,
-  .rc-sheet-panel{max-width:800px;}
-  #claude-chat-panel{max-width:800px;}
+  .rc-sheet-panel{max-width:860px;}
+  #claude-chat-panel{max-width:860px;}
 }
 /* ── Creator Profile View ── */
 .profile-header{
@@ -11645,10 +11619,12 @@ async function kieRequest(apiKey,method,path,body){
           throw new Error('크레딧 부족 — V4 모델로 변경하거나 잠시 후 다시 시도해주세요');
         }
         var errMsg=data?.msg||data?.error||data?.message||'API 오류 '+res.status;
-        /* model is empty / music id error → 일시 오류, 대기 후 재시도 */
+        /* model is empty / music id error → 일시 오류, 대기 후 재시도
+           music id error: kie.ai 음악 인덱싱 대기 필요 — 5s/15s 간격 */
         if((errMsg.toLowerCase().includes('model is empty')||errMsg.toLowerCase().includes('the model is empty')||errMsg.toLowerCase().includes('music id error')) && _att<_maxRetry){
-          console.warn('[kieRequest] recoverable error, retry '+(_att+1)+': '+errMsg);
-          await sleep(2000*(1+_att));
+          console.warn('[kieRequest] recoverable error, retry '+(_att+1)+'/'+_maxRetry+': '+errMsg);
+          var _retryWait=errMsg.toLowerCase().includes('music id error')?5000*(1+_att):2000*(1+_att);
+          await sleep(_retryWait);
           continue;
         }
         /* 사용자에게 무의미한 에러 메시지 변환 */
@@ -20421,15 +20397,15 @@ async function fpRenderLyrics(h){
       try{
         var _tsRes=await Promise.race([
           kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId}),
-          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},8000);})
+          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},25000);})
         ]);
         _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
         if(_tsWords.length) window._fpAlignedCache[_cacheKey]=_tsWords;
       }catch(e){
         console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 재시도 예약:', e?.message);
-        /* 백그라운드 재시도 (3초, 8초, 20초, 45초, 90초) — 생성 직후 API 준비 대기 */
+        /* 백그라운드 재시도 — music id error: 인덱싱 대기 필요 → 5s/15s/30s/60s/120s */
         var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
-        var _retryDelays=[1000,4000,10000,25000,60000];
+        var _retryDelays=[5000,15000,30000,60000,120000];
         function _tsRetry(attempt){
           if(attempt>=_retryDelays.length)return;
           setTimeout(async function(){
@@ -22598,8 +22574,11 @@ async function _chatDeleteMsg(msgId){
 var _chatRealtimeConnected=false;
 var _chatRealtimeChannel=null;
 var _sbClient=null;
+var _chatWsFailCount=0; /* WebSocket 연속 실패 횟수 — 2회 초과 시 폴링 전용 전환 */
 
 async function _startChatRealtime(){
+  /* Firefox __cf_bm 차단 등으로 2회 이상 실패 시 WebSocket 시도 생략 (폴링이 처리) */
+  if(_chatWsFailCount>=2) return;
   try{
     /* Supabase JS SDK 동적 로드 */
     if(!window.supabase){
@@ -22619,7 +22598,19 @@ async function _startChatRealtime(){
     var _sbAnon=(cfg.anonKey||'').trim();
     if(!_sbUrl||!_sbAnon) return;
 
-    _sbClient=window.supabase.createClient(_sbUrl,_sbAnon,{realtime:{params:{eventsPerSecond:10}}});
+    /* __cf_bm 쿠키 차단(Firefox ETP) 대응:
+       - reconnectAfterMs: 실패 카운트 기반, 2회 초과 시 사실상 재연결 중단
+       - timeout 10s: 연결 지연 시 빠른 실패 처리 */
+    _sbClient=window.supabase.createClient(_sbUrl,_sbAnon,{
+      realtime:{
+        params:{eventsPerSecond:10},
+        reconnectAfterMs:function(tries){
+          if(_chatWsFailCount>=2) return 600000;
+          return Math.min(tries*3000,15000);
+        },
+        timeout:10000
+      }
+    });
 
     /* chat_messages INSERT/DELETE + 타이핑 broadcast */
     _chatRealtimeChannel=_sbClient.channel('chat-realtime')
@@ -22634,12 +22625,24 @@ async function _startChatRealtime(){
         _onRealtimeTyping(payload.payload);
       })
       .subscribe(function(status){
-        _chatRealtimeConnected=(status==='SUBSCRIBED');
-        if(_chatRealtimeConnected) console.log('[Chat] Realtime 연결됨 (DB+broadcast)');
+        if(status==='SUBSCRIBED'){
+          _chatRealtimeConnected=true;
+          _chatWsFailCount=0;
+          console.log('[Chat] Realtime 연결됨 (DB+broadcast)');
+        } else if(status==='TIMED_OUT'||status==='CHANNEL_ERROR'||status==='CLOSED'){
+          _chatRealtimeConnected=false;
+          _chatWsFailCount++;
+          if(_chatWsFailCount>=2){
+            console.warn('[Chat] WebSocket '+_chatWsFailCount+'회 실패 — 폴링 전용 전환');
+            try{if(_sbClient&&_chatRealtimeChannel)_sbClient.removeChannel(_chatRealtimeChannel);}catch(e2){}
+            _chatRealtimeChannel=null;
+          }
+        }
       });
   }catch(e){
     console.warn('[Chat] Realtime 연결 실패, 폴링 폴백:',e.message);
     _chatRealtimeConnected=false;
+    _chatWsFailCount++;
   }
 }
 
@@ -23688,11 +23691,20 @@ function _fetchFollowBatch(){
     .then(function(d){
       if(d.ok&&d.followingSet){
         var now=Date.now();
+        /* [BUG-FOLLOW-STATE] 수정: 보호 윈도우 5초→30초
+         * 5초 보호는 서버 응답 지연(배치 fetch + follow API 동시 실행) 시
+         * pending 보호가 만료되어 방금 팔로우한 상태가 false로 초기화되는 버그.
+         * 30초로 연장해 서버 저장 지연 + 배치 응답 지연을 모두 커버. */
+        var PENDING_GUARD=30000;
+        var serverSet=d.followingSet;
+        /* 서버에 없는 항목만 false 처리 — pending 보호 내 항목은 클라이언트 값 유지 */
         Object.keys(_followStateCache).forEach(function(k){
-          if(_followPendingOps[k]&&(now-_followPendingOps[k])<5000) return;
+          if(serverSet[k]) return; /* 서버에 있으면 유지 */
+          if(_followPendingOps[k]&&(now-_followPendingOps[k])<PENDING_GUARD) return; /* pending 보호 */
           _followStateCache[k]=false;
         });
-        Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
+        /* 서버 팔로우 목록 반영 */
+        Object.keys(serverSet).forEach(function(k){_followStateCache[k]=true;});
         _followBatchLoaded=true;
         _followBatchLoadedAt=Date.now();
         _saveFollowCache();
@@ -23919,9 +23931,7 @@ function _renderCreatorList(){
   _loadCommDurations(all.filter(t=>!_durCache[t._sbId]));
   /* 크리에이터 아바타 동기화 (users 테이블 기준) */
   _syncCreatorAvatars(list);
-
-  /* 크리에이터 헤더의 팔로우 버튼 상태 갱신 — 공통 함수 사용 */
-  if(isLoggedIn) _loadCommFollowStates(list);
+  /* [BUG-FOLLOW-DUP] 수정: _loadCommFollowStates 중복 호출 제거 (23907 라인) */
 }
 
 /* 크리에이터 카드 클릭 → 좋아요 1위 곡 재생 + 프로필 뷰 이동 */
@@ -32841,16 +32851,16 @@ function _showQRCardDirect(title,imageUrl,trackId){
 
 })();
 </script>
-<script src="js/create-enhance.js"></script>
-<script src="js/prompt-engine.js"></script>
-<script src="js/stem-mixer.js"></script>
-<script src="js/history-manager.js"></script>
-<script src="js/model-profiles.js"></script>
+<script src="js/create-enhance.js?v=20260406"></script>
+<script src="js/prompt-engine.js?v=20260406"></script>
+<script src="js/stem-mixer.js?v=20260406"></script>
+<script src="js/history-manager.js?v=20260406"></script>
+<script src="js/model-profiles.js?v=20260406"></script>
 <!-- ── 버그 수정 모듈 (인라인 함수 오버라이드) ── -->
-<script src="js/auth-manager.js"></script>
-<script src="js/follow-manager.js"></script>
-<script src="js/credit-manager.js"></script>
-<script src="js/profile-manager.js"></script>
+<script src="js/auth-manager.js?v=20260406"></script>
+<script src="js/follow-manager.js?v=20260406"></script>
+<script src="js/credit-manager.js?v=20260406"></script>
+<script src="js/profile-manager.js?v=20260406"></script>
 <script>initModelProfiles();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
 
 <!-- ── 광고 시스템 — AdSense 승인 후 활성화 예정 ── -->
