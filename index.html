@@ -17352,9 +17352,10 @@ function _syncMpLikeBtn(){
   }
   bar.addEventListener('click',function(e){e.stopPropagation();seekTo(e);});
   var dragging=false;
-  bar.addEventListener('touchstart',function(e){e.stopPropagation();dragging=true;seekTo(e);},{passive:true});
-  document.addEventListener('touchmove',function(e){if(dragging)seekTo(e);},{passive:true});
+  bar.addEventListener('touchstart',function(e){e.stopPropagation();e.preventDefault();dragging=true;seekTo(e);},{passive:false});
+  document.addEventListener('touchmove',function(e){if(dragging){e.preventDefault();seekTo(e);}},{passive:false});
   document.addEventListener('touchend',function(){dragging=false;});
+  document.addEventListener('touchcancel',function(){dragging=false;});
 })();
 
 /* 스와이프 좌우 (이전/다음 곡) */
@@ -32765,6 +32766,12 @@ function _showQRCardDirect(title,imageUrl,trackId){
   var _isMobile='ontouchstart' in window;
   if(!_isMobile) return;
 
+  /* iOS AudioContext 최초 터치 unlock — suspended 상태에서 resume 필요 */
+  document.addEventListener('touchstart',function _iosAudioUnlock(){
+    try{if(typeof _eqCtx!=='undefined'&&_eqCtx&&_eqCtx.state==='suspended')_eqCtx.resume();}catch(e){}
+    try{if(typeof _bpmCtx!=='undefined'&&_bpmCtx&&_bpmCtx.state==='suspended')_bpmCtx.resume();}catch(e){}
+  },{once:true,passive:true});
+
   function _isOverlayOpen(){
     return !!(document.getElementById('fullplayer')&&document.getElementById('fullplayer').classList.contains('on')
       || document.querySelector('.ai-sheet-overlay')
@@ -32826,15 +32833,7 @@ function _showQRCardDirect(title,imageUrl,trackId){
       _fpActive=false;
       /* 50px 이상 아래로 스와이프하면 닫기 (기존 60→50) */
       if(dy>50){
-        fpEl.classList.remove('on');
-        document.body.style.overflow='';
-        if(typeof fpStopViz==='function')fpStopViz();
-        if(typeof _stopSpectrum==='function')_stopSpectrum();
-        /* 미니플레이어 복원 (재생 유지) */
-        if(fpCurrentIdx>=0&&historyData[fpCurrentIdx]?.audio_url){
-          var mp=$('mini-player');
-          if(mp){mp.classList.remove('mp-hide');mp.style.transition='';mp.classList.add('on');document.body.classList.add('mp-on');}
-        }
+        if(typeof closeFullPlayer==='function') closeFullPlayer();
       }
     },{passive:true});
   }
