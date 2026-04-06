@@ -188,11 +188,14 @@ export default async function handler(req, res) {
         let isNew = true;
         let existingProvider = null;
         const userEmail = email || '';
+        let foundByEmail = false;
+        let dbName = name; /* DB에 저장된 실제 닉네임 (커스텀 변경 반영) */
         try {
           let existing = null;
           /* 1) 같은 email+provider 매칭 */
           if (userEmail) {
             existing = await sbFetch(`/users?email=eq.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}&select=login_count,name,provider`);
+            if (existing?.length > 0) foundByEmail = true;
           }
           /* 2) 같은 name+provider 폴백 */
           if (!existing?.length) {
@@ -208,11 +211,15 @@ export default async function handler(req, res) {
           if (existing?.length > 0) {
             existingCount = existing[0].login_count || 0;
             isNew = false;
+            /* 커스텀 닉네임 보존: email로 찾은 경우 DB에 저장된 이름 사용 */
+            if (foundByEmail && existing[0].name && existing[0].name !== name) {
+              dbName = existing[0].name;
+            }
           }
         } catch {}
 
         const entry = {
-          name, provider,
+          name: dbName, provider, /* dbName: 커스텀 닉네임 우선 (email 매칭 시) */
           email:       userEmail,
           avatar:      (avatar || '').replace(/^http:\/\//i, 'https://'),
           uid:         id       || '',
@@ -228,16 +235,22 @@ export default async function handler(req, res) {
         /* 기존 provider가 다르면 → 기존 레코드를 새 provider로 업데이트 */
         if (existingProvider && existingProvider !== provider) {
           try {
-            await sbFetch(`/users?name=eq.${encodeURIComponent(name)}&provider=eq.${encodeURIComponent(existingProvider)}`, {
+            await sbFetch(`/users?name=eq.${encodeURIComponent(dbName)}&provider=eq.${encodeURIComponent(existingProvider)}`, {
               method: 'PATCH',
               body: JSON.stringify(entry),
             });
-            console.log(`[users] provider 전환: ${name} ${existingProvider} → ${provider}`);
+            console.log(`[users] provider 전환: ${dbName} ${existingProvider} → ${provider}`);
           } catch (e) {
             console.warn('[users] provider 전환 실패:', e.message);
           }
+        } else if (foundByEmail && userEmail) {
+          /* email+provider로 찾은 경우: 커스텀 닉네임 보존을 위해 PATCH 사용 */
+          await sbFetch(`/users?email=eq.${encodeURIComponent(userEmail)}&provider=eq.${encodeURIComponent(provider)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(entry),
+          });
         } else {
-          /* upsert: name+provider 기준 */
+          /* 신규 또는 name+provider 기준 upsert */
           await sbFetch(`/users?on_conflict=name,provider`, {
             method: 'POST',
             prefer: 'resolution=merge-duplicates',
@@ -267,7 +280,8 @@ export default async function handler(req, res) {
           });
         } catch {}
 
-        return res.status(200).json({ success: true, source: 'supabase' });
+        /* dbName: 커스텀 닉네임 반환 → 클라이언트 currentUser.name 갱신용 */
+        return res.status(200).json({ success: true, source: 'supabase', name: dbName });
       } catch (e) {
         console.warn('[users POST] Supabase 실패, memory fallback:', e.message);
         /* in-memory fallback */

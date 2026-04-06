@@ -26627,8 +26627,9 @@ async function _syncUserDataFromServer(force){
     const name = encodeURIComponent(currentUser.name);
     const prov = encodeURIComponent(currentUser.provider);
     /* 프로필 + 트랙 + 출석 병렬 조회 */
+    const emailParam = currentUser.email ? '&email='+encodeURIComponent(currentUser.email) : '';
     const [profRes, trRes, attRes] = await Promise.allSettled([
-      fetch('/api/profile?name='+name+'&provider='+prov).then(r=>r.json()),
+      fetch('/api/profile?name='+name+'&provider='+prov+emailParam).then(r=>r.json()),
       fetch('/api/tracks?owner='+name+'&provider='+prov+(currentUser.email?'&email='+encodeURIComponent(currentUser.email):'')+'&limit=200').then(r=>r.json()),
       fetch('/api/attendance?userName='+decodeURIComponent(name)+'&userProvider='+decodeURIComponent(prov)).then(r=>r.json()),
     ]);
@@ -26656,6 +26657,10 @@ async function _syncUserDataFromServer(force){
       }
       if(p.email && !currentUser.email){
         currentUser.email = p.email;
+      }
+      /* 커스텀 닉네임 최신화 — DB에 저장된 이름이 OAuth 이름과 다를 경우 DB 이름 사용 */
+      if(p.name && p.name !== currentUser.name){
+        currentUser.name = p.name;
       }
       /* 활동 통계 캐시 */
       currentUser._trackCount = p.trackCount || 0;
