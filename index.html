@@ -6213,7 +6213,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
 
           <!-- 파형 + 진행 바 -->
           <div style="position:relative;margin-bottom:14px;">
-            <canvas id="vs-waveform" width="340" height="70" style="width:100%;height:70px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);display:block;"></canvas>
+            <canvas id="vs-waveform" width="680" height="160" style="width:100%;height:110px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);display:block;"></canvas>
             <!-- 녹음 진행 오버레이 -->
             <div id="vs-rec-progress-wrap" style="display:none;position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.08);border-radius:0 0 12px 12px;">
               <div id="vs-rec-progress-bar" style="height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);border-radius:0 0 12px 12px;width:0%;transition:width .5s linear;"></div>
@@ -16599,32 +16599,72 @@ function _vsGoStep(step){
   _vsStopPreview();
 }
 
+/* ── TTS 음성 가이드 ── */
+function _vsSpeak(text, rate, pitch){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang  = 'ko-KR';
+  u.rate  = rate  || 1.1;
+  u.pitch = pitch || 1.0;
+  /* 한국어 음성 우선 선택 */
+  var voices = window.speechSynthesis.getVoices();
+  var koVoice = voices.find(function(v){ return v.lang.startsWith('ko'); });
+  if(koVoice) u.voice = koVoice;
+  window.speechSynthesis.speak(u);
+}
+
+/* ── 카운트다운 (3,2,1,시작) ── */
+function _vsCountdown(onStart){
+  var n = 3;
+  var el = document.getElementById('vs-rec-timer');
+  var st = document.getElementById('vs-rec-status');
+  function tick(){
+    if(n > 0){
+      if(el) el.textContent = '00:0' + n;
+      if(st) st.textContent = '▶ MR 준비 중... ' + n;
+      _vsSpeak(String(n), 1.2);
+      n--;
+      setTimeout(tick, 900);
+    } else {
+      if(el) el.textContent = '00:00';
+      if(st) st.textContent = '🔴 녹음 중... MR에 맞춰 노래하세요';
+      _vsSpeak('시작', 1.1);
+      setTimeout(onStart, 200);
+    }
+  }
+  tick();
+}
+
 /* ── 녹음 스텝으로 이동 ── */
 function _vsGoRecord(){
   if(!_vsSelectedTrack || !_vsSelectedTrack.audio_url){ toast('트랙을 선택해주세요','err'); return; }
-  /* 트랙 정보 표시 */
-  var titleEl = document.getElementById('vs-rec-track-title');
-  var guideEl = document.getElementById('vs-rec-duration-guide');
+  var titleEl  = document.getElementById('vs-rec-track-title');
+  var guideEl  = document.getElementById('vs-rec-duration-guide');
   var targetEl = document.getElementById('vs-rec-target');
   if(titleEl) titleEl.textContent = _vsSelectedTrack.title || '선택된 트랙';
   if(_vsTrackDuration > 0){
     var m = Math.floor(_vsTrackDuration/60), s = Math.round(_vsTrackDuration%60);
-    var durStr = (m?m+'분 ':'') + s + '초';
-    if(guideEl) guideEl.textContent = '곡 길이 ' + durStr + ' — 이 길이만큼 노래해주세요';
+    var durStr = (m ? m+'분 ' : '') + s + '초';
+    if(guideEl)  guideEl.textContent  = '곡 길이 ' + durStr + ' — 이 길이만큼 노래해주세요';
     if(targetEl) targetEl.textContent = '목표: ' + durStr;
+    /* 음성 안내 */
+    setTimeout(function(){
+      _vsSpeak('이 곡의 길이는 ' + (m ? m+'분 ' : '') + s + '초입니다. 준비가 되면 녹음 버튼을 눌러주세요.', 0.95);
+    }, 400);
   } else {
-    if(guideEl) guideEl.textContent = '트랙을 로드하면 길이가 표시됩니다';
+    if(guideEl)  guideEl.textContent  = '트랙을 로드하면 길이가 표시됩니다';
     if(targetEl) targetEl.textContent = '';
   }
   /* 상태 초기화 */
   _vsVocalBlob = null; _vsVocalUrl = null;
-  document.getElementById('vs-rec-result').style.display    = 'none';
-  document.getElementById('vs-rec-timer').textContent       = '00:00';
+  document.getElementById('vs-rec-result').style.display       = 'none';
+  document.getElementById('vs-rec-timer').textContent          = '00:00';
   document.getElementById('vs-rec-progress-wrap').style.display = 'none';
-  document.getElementById('vs-rec-progress-bar').style.width    = '0%';
-  document.getElementById('vs-rec-btn').textContent = '🎙';
-  document.getElementById('vs-rec-btn').style.background = 'linear-gradient(135deg,#ec4899,#a855f7)';
-  document.getElementById('vs-rec-status').textContent = '버튼을 누르면 MR이 재생되며 녹음이 시작돼요 (헤드폰 권장)';
+  document.getElementById('vs-rec-progress-bar').style.width   = '0%';
+  document.getElementById('vs-rec-btn').textContent            = '🎙';
+  document.getElementById('vs-rec-btn').style.background       = 'linear-gradient(135deg,#ec4899,#a855f7)';
+  document.getElementById('vs-rec-status').textContent         = '버튼을 누르면 카운트다운 후 MR이 재생되며 녹음이 시작돼요';
   var cv = document.getElementById('vs-waveform');
   if(cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
   _vsGoStep('record');
@@ -16636,80 +16676,90 @@ function _vsToggleRecord(){
   else { _vsStartRecording2(); }
 }
 
-/* ── 녹음 시작 ── */
+/* ── 녹음 시작 (카운트다운 포함) ── */
 function _vsStartRecording2(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     toast('마이크를 지원하지 않는 브라우저예요','err'); return;
   }
+  /* 마이크 권한 먼저 확보 */
   navigator.mediaDevices.getUserMedia({
     audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
   }).then(function(stream){
     _vsRecStream2 = stream;
 
-    /* MR 재생 */
-    _vsRecMrAudio2 = new Audio(_vsSelectedTrack.audio_url);
-    _vsRecMrAudio2.volume = 0.8;
-    _vsRecMrAudio2.play().catch(function(){});
-
-    /* 파형 분석 */
+    /* AudioContext + Analyser 세팅 (카운트다운 중에도 파형 표시) */
     var actx = new AudioContext();
     var msrc = actx.createMediaStreamSource(stream);
-    _vsAnalyser2 = actx.createAnalyser(); _vsAnalyser2.fftSize = 512;
+    _vsAnalyser2 = actx.createAnalyser();
+    _vsAnalyser2.fftSize = 1024;
+    _vsAnalyser2.smoothingTimeConstant = 0.82;
     msrc.connect(_vsAnalyser2);
-    _vsDrawWaveform2();
+    _vsDrawWaveform2();   /* 카운트다운 중 파형 미리 보여주기 */
 
-    /* MediaRecorder */
-    _vsRecChunks2 = [];
-    var mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    _vsRecorder2 = new MediaRecorder(stream, { mimeType: mime });
-    _vsRecorder2.ondataavailable = function(e){ if(e.data.size>0) _vsRecChunks2.push(e.data); };
-    _vsRecorder2.onstop = function(){
-      stream.getTracks().forEach(function(t){ t.stop(); });
-      if(_vsRecMrAudio2){ _vsRecMrAudio2.pause(); _vsRecMrAudio2=null; }
-      clearInterval(_vsRecTimerInt);
-      cancelAnimationFrame(_vsAnimFrame2);
+    /* 카운트다운 → 실제 녹음 시작 */
+    document.getElementById('vs-rec-btn').disabled = true;
+    document.getElementById('vs-rec-status').textContent = '▶ MR 준비 중... 3';
+    _vsCountdown(function(){
+      /* ── 실제 녹음 시작 ── */
+      /* MR 재생 */
+      _vsRecMrAudio2 = new Audio(_vsSelectedTrack.audio_url);
+      _vsRecMrAudio2.volume = 0.8;
+      _vsRecMrAudio2.play().catch(function(){});
 
-      _vsVocalBlob = new Blob(_vsRecChunks2, { type:'audio/webm' });
-      _vsVocalUrl  = URL.createObjectURL(_vsVocalBlob);
-      document.getElementById('vs-vocal-audio').src = _vsVocalUrl;
-      document.getElementById('vs-rec-result').style.display = 'block';
+      /* MediaRecorder */
+      _vsRecChunks2 = [];
+      var mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      _vsRecorder2 = new MediaRecorder(stream, { mimeType: mime });
+      _vsRecorder2.ondataavailable = function(e){ if(e.data.size>0) _vsRecChunks2.push(e.data); };
+      _vsRecorder2.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        if(_vsRecMrAudio2){ _vsRecMrAudio2.pause(); _vsRecMrAudio2=null; }
+        clearInterval(_vsRecTimerInt);
+        cancelAnimationFrame(_vsAnimFrame2);
 
-      /* UI 리셋 */
-      document.getElementById('vs-rec-btn').textContent = '🎙';
-      document.getElementById('vs-rec-btn').style.background = 'linear-gradient(135deg,#ec4899,#a855f7)';
-      document.getElementById('vs-rec-status').textContent  = '녹음 완료! 아래에서 결과를 확인하세요.';
-      document.getElementById('vs-rec-progress-wrap').style.display = 'none';
-      var cv = document.getElementById('vs-waveform');
-      if(cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
-    };
+        _vsVocalBlob = new Blob(_vsRecChunks2, { type:'audio/webm' });
+        _vsVocalUrl  = URL.createObjectURL(_vsVocalBlob);
+        document.getElementById('vs-vocal-audio').src = _vsVocalUrl;
+        document.getElementById('vs-rec-result').style.display = 'block';
 
-    _vsRecorder2.start(100);
+        document.getElementById('vs-rec-btn').textContent  = '🎙';
+        document.getElementById('vs-rec-btn').disabled     = false;
+        document.getElementById('vs-rec-btn').style.background = 'linear-gradient(135deg,#ec4899,#a855f7)';
+        document.getElementById('vs-rec-status').textContent   = '녹음 완료! 아래에서 결과를 확인하세요 ✅';
+        document.getElementById('vs-rec-progress-wrap').style.display = 'none';
+        var cv = document.getElementById('vs-waveform');
+        if(cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+        _vsSpeak('녹음이 완료됐습니다.', 0.95);
+      };
 
-    /* 타이머 */
-    _vsRecSeconds = 0;
-    _vsRecTimerInt = setInterval(function(){
-      _vsRecSeconds++;
-      var m = Math.floor(_vsRecSeconds/60), s = _vsRecSeconds%60;
-      document.getElementById('vs-rec-timer').textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-      /* 진행 바 */
-      if(_vsTrackDuration > 0){
-        var pct = Math.min(100, (_vsRecSeconds / _vsTrackDuration) * 100);
-        document.getElementById('vs-rec-progress-bar').style.width = pct + '%';
-        /* 곡 끝 1초 전 경고 */
-        if(_vsTrackDuration - _vsRecSeconds <= 5 && _vsTrackDuration - _vsRecSeconds > 0){
-          document.getElementById('vs-rec-status').textContent = '⏱ 곡이 거의 끝나가요! ' + Math.ceil(_vsTrackDuration - _vsRecSeconds) + '초 남음';
+      _vsRecorder2.start(100);
+
+      /* 타이머 */
+      _vsRecSeconds = 0;
+      _vsRecTimerInt = setInterval(function(){
+        _vsRecSeconds++;
+        var m = Math.floor(_vsRecSeconds/60), s = _vsRecSeconds%60;
+        document.getElementById('vs-rec-timer').textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+        if(_vsTrackDuration > 0){
+          var pct = Math.min(100, (_vsRecSeconds / _vsTrackDuration) * 100);
+          document.getElementById('vs-rec-progress-bar').style.width = pct + '%';
+          var remaining = Math.ceil(_vsTrackDuration - _vsRecSeconds);
+          if(remaining === 10){ _vsSpeak('10초 남았습니다', 1.0); }
+          if(remaining <= 5 && remaining > 0){
+            document.getElementById('vs-rec-status').textContent = '⏱ ' + remaining + '초 남음!';
+            if(remaining === 5) _vsSpeak('5초', 1.2);
+          }
+          if(_vsRecSeconds >= _vsTrackDuration + 3){ _vsStopRecording2(); }
         }
-        /* 자동 정지 (곡 길이 초과 5초) */
-        if(_vsRecSeconds >= _vsTrackDuration + 5){ _vsStopRecording2(); }
-      }
-    }, 1000);
+      }, 1000);
 
-    /* UI 업데이트 */
-    document.getElementById('vs-rec-btn').textContent = '⏹';
-    document.getElementById('vs-rec-btn').style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-    document.getElementById('vs-rec-status').textContent  = '🔴 녹음 중... MR에 맞춰 노래하세요 (헤드폰 권장)';
-    document.getElementById('vs-rec-progress-wrap').style.display = 'block';
-    document.getElementById('vs-rec-result').style.display = 'none';
+      document.getElementById('vs-rec-btn').textContent  = '⏹';
+      document.getElementById('vs-rec-btn').disabled     = false;
+      document.getElementById('vs-rec-btn').style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+      document.getElementById('vs-rec-status').textContent   = '🔴 녹음 중... MR에 맞춰 노래하세요 (헤드폰 권장)';
+      document.getElementById('vs-rec-progress-wrap').style.display = 'block';
+      document.getElementById('vs-rec-result').style.display = 'none';
+    });
 
   }).catch(function(e){ toast('마이크 접근 실패: '+e.message, 'err', 3000); });
 }
@@ -16718,30 +16768,62 @@ function _vsStartRecording2(){
 function _vsStopRecording2(){
   if(_vsRecorder2 && _vsRecorder2.state==='recording') _vsRecorder2.stop();
   if(_vsRecMrAudio2){ _vsRecMrAudio2.pause(); _vsRecMrAudio2=null; }
+  window.speechSynthesis && window.speechSynthesis.cancel();
 }
 
-/* ── 파형 그리기 ── */
+/* ── 주파수 바 파형 시각화 ── */
 function _vsDrawWaveform2(){
   var cv = document.getElementById('vs-waveform');
   if(!cv || !_vsAnalyser2) return;
   var ctx = cv.getContext('2d');
-  var buf = new Uint8Array(_vsAnalyser2.frequencyBinCount);
+  var W = cv.width, H = cv.height;
+  var bufLen = _vsAnalyser2.frequencyBinCount;
+  var dataArr = new Uint8Array(bufLen);
+
+  /* 그라데이션 (한 번만 생성) */
+  var grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,   'rgba(236,72,153,0.9)');
+  grad.addColorStop(0.5, 'rgba(168,85,247,0.85)');
+  grad.addColorStop(1,   'rgba(124,58,237,0.6)');
+
+  var barCount = 64;
+  var barW = Math.floor(W / barCount) - 1;
+
   (function draw(){
     _vsAnimFrame2 = requestAnimationFrame(draw);
-    _vsAnalyser2.getByteTimeDomainData(buf);
-    ctx.clearRect(0,0,cv.width,cv.height);
+    _vsAnalyser2.getByteFrequencyData(dataArr);
+
     /* 배경 */
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg2').trim() || '#1a1a2e';
-    ctx.fillRect(0,0,cv.width,cv.height);
-    /* 파형 */
-    ctx.beginPath();
-    var sliceW = cv.width / buf.length, x = 0;
-    for(var i=0; i<buf.length; i++){
-      var v = buf[i]/128, y = v*(cv.height/2);
-      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-      x += sliceW;
+    ctx.clearRect(0, 0, W, H);
+    var isDark = !document.body.classList.contains('light-mode') && !document.documentElement.classList.contains('light');
+    ctx.fillStyle = isDark ? '#0d0d1a' : '#f0f0f5';
+    ctx.fillRect(0, 0, W, H);
+
+    /* 중앙선 */
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+
+    for(var i=0; i<barCount; i++){
+      /* 샘플 범위: 저주파 ~ 고주파 중 사람 음성 범위(0~4kHz) 강조 */
+      var idx  = Math.floor(i * (bufLen * 0.6) / barCount);
+      var val  = dataArr[idx] / 255;                       /* 0~1 */
+      var barH = Math.max(2, val * (H * 0.88));            /* 최소 2px */
+
+      var x = i * (barW + 1);
+      var y = (H - barH) / 2;                             /* 중앙 기준 */
+
+      /* 그라데이션 바 */
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, barW, barH, 2)
+                    : ctx.rect(x, y, barW, barH);
+      ctx.fill();
+
+      /* 상단 하이라이트 (밝은 점) */
+      ctx.fillStyle = 'rgba(255,255,255,' + (val * 0.5) + ')';
+      ctx.fillRect(x, y, barW, Math.min(3, barH));
     }
-    ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 2; ctx.stroke();
   })();
 }
 
