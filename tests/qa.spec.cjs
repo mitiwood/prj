@@ -5,15 +5,45 @@ const BASE = 'https://ai-music-studio-bice.vercel.app';
 
 /* 게스트 로그인 헬퍼 — JS 직접 실행 */
 async function loginAsGuest(page) {
-  await page.goto(BASE, { waitUntil: 'networkidle', timeout: 20000 });
-  await page.waitForSelector('.app-wrap', { timeout: 10000 });
-  await page.evaluate(() => {
-    if (typeof guestLogin === 'function') guestLogin();
-    else if (typeof socialLogin === 'function') socialLogin('guest');
+  // 페이지 로드 전에 localStorage 사전 설정 (온보딩/로그인 팝업 방지)
+  await page.addInitScript(() => {
+    localStorage.setItem('kms_onboarded', '1');
+    localStorage.setItem('kms_tips_done', '1');
+    localStorage.setItem('kms_guest_mode', '1');
+    localStorage.setItem('kms_guest_id', 'guest_test_e2e');
   });
-  await page.waitForTimeout(1500);
+  await page.goto(BASE, { waitUntil: 'load', timeout: 30000 });
+  await page.waitForSelector('.app-wrap', { timeout: 15000 });
+  await page.evaluate(() => {
+    // 온보딩 팝업 건너뛰기
+    localStorage.setItem('kms_onboarded', '1');
+    localStorage.setItem('kms_tips_done', '1');
+    // 게스트 모드 설정
+    localStorage.setItem('kms_guest_mode', '1');
+    if (!localStorage.getItem('kms_guest_id')) {
+      localStorage.setItem('kms_guest_id', 'guest_test_e2e');
+    }
+    // 온보딩 오버레이 강제 숨김
+    var ov = document.getElementById('onboarding-overlay');
+    if (ov) ov.style.display = 'none';
+    if (typeof startGuestMode === 'function') startGuestMode();
+    else if (typeof guestLogin === 'function') guestLogin();
+  });
+  await page.waitForTimeout(2000);
+  /* 커뮤니티 탭으로 이동 후 creators 모드 전환 → [data-sbid] 요소 로드 */
+  await page.evaluate(() => {
+    if (typeof switchTab === 'function') switchTab('community-view');
+  });
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => {
+    // creators 모드로 전환해 data-sbid 요소를 DOM에 생성
+    if (typeof _commActiveGenre !== 'undefined') {
+      window._commActiveGenre = 'creators';
+    }
+    if (typeof renderCommunity === 'function') renderCommunity(true);
+  });
   /* 커뮤니티 트랙 로딩 대기 */
-  await page.waitForSelector('[data-sbid]', { timeout: 20000 }).catch(() => {});
+  await page.waitForSelector('[data-sbid]', { timeout: 25000 }).catch(() => {});
   await page.waitForTimeout(1000);
 }
 

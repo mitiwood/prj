@@ -397,7 +397,10 @@ async function _notifyUser(targetName, senderName, content, type) {
       await webpush.sendNotification(sub, payload);
     } catch (e) {
       if (e.statusCode === 410) {
+        /* 구독 만료 — 삭제 */
         await sb('DELETE', `/push_subscriptions?user_name=eq.${encodeURIComponent(targetName)}&subscription->>endpoint=eq.${encodeURIComponent(sub.endpoint)}`).catch(() => {});
+      } else {
+        console.warn('[webpush] send fail statusCode=%s msg=%s', e.statusCode, e.message);
       }
     }
   }
