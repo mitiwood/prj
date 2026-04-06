@@ -9755,14 +9755,42 @@ $('simple-gen-btn').addEventListener('click',async()=>{
     generate({_afterLyrics:true, prompt:simpleLyrics});
     return;
   }
-  /* 가사 없음 → 테마 기반 즉시 생성 (customMode:true로 가사 반환받음) */
+  /* 가사 없음 → AI 가사 자동 생성 후 음악 생성 (설명은 style로, 가사는 따로 생성) */
   var _sDesc=desc;
   var _sMood=moodVal;
   if(!_sDesc&&!_sMood){
     var _randomThemes=['사랑과 이별의 아픔','새벽 감성 발라드','여행과 자유','꿈을 향한 여정','봄날의 설렘','비 오는 밤','추억 속 너','도시의 밤','희망과 용기','첫사랑의 기억','혼자만의 시간','별빛 아래'];
     _sDesc=_randomThemes[Math.floor(Math.random()*_randomThemes.length)];
   }
-  generate({_afterLyrics:true, prompt:(_sDesc+(_sMood?' '+_sMood:''))||'한국어 팝송'});
+  /* 로딩 UI — 가사 생성 중 */
+  var _sgBtn=$('simple-gen-btn'),_sgSpin=$('simple-gen-spinner'),_sgTxt=$('simple-gen-txt');
+  if(_sgBtn)_sgBtn.disabled=true;
+  if(_sgSpin)_sgSpin.style.display='block';
+  if(_sgTxt)_sgTxt.textContent='가사 생성 중...';
+  /* AI 가사 생성 (설명/테마 → 실제 노래 가사) */
+  var _autoGenLyrics='';
+  try{
+    var _lyricsTheme=(_sDesc||'감성적인 노래')+(_sMood?' '+_sMood:'');
+    _autoGenLyrics=await _kieLyricsWithFallback(kieApiKey,_lyricsTheme.slice(0,200));
+  }catch(e){console.warn('[simple-auto-lyrics]',e.message);}
+  /* 로딩 복원 */
+  if(_sgBtn)_sgBtn.disabled=false;
+  if(_sgSpin)_sgSpin.style.display='none';
+  if(_sgTxt)_sgTxt.textContent='⚡ 음악 생성하기';
+  if(_autoGenLyrics){
+    /* 생성된 가사 → simple-lyrics 텍스트에어리어에 표시 (아코디언 열기) */
+    var _lyricsTa=$('simple-lyrics');
+    if(_lyricsTa){
+      _lyricsTa.value=_autoGenLyrics;
+      var _lBody=$('simple-lyrics-body'),_lIcon=$('simple-lyrics-icon');
+      if(_lBody&&_lBody.style.display==='none'){_lBody.style.display='';if(_lIcon)_lIcon.textContent='-';}
+    }
+    generate({_afterLyrics:true,prompt:_autoGenLyrics});
+  } else {
+    /* 가사 생성 실패 → 설명을 style로만, prompt는 빈값으로 (kie.ai 자체 작사) */
+    toast('가사 자동 생성 실패 — AI에게 직접 맡깁니다','',2000);
+    generate({_afterLyrics:true,prompt:''});
+  }
 });
 
 /* ── Suno 인스트루멘탈 토글 ── */
@@ -13133,7 +13161,8 @@ async function generate(overrideParams){
       lyricsText=overrideParams?.prompt||_simpleLyrics;
       _simpleHasRealLyrics=true;
     } else {
-      lyricsText=overrideParams?.prompt||_simpleDesc;
+      /* 설명은 style로 사용, prompt에 노래시키지 않음 — overrideParams.prompt는 AI 자동생성 가사 */
+      lyricsText=overrideParams?.prompt||'';
     }
     moodVal=overrideParams?.mood||$('simple-mood').value;
     subGenre='';
@@ -13279,14 +13308,16 @@ async function generate(overrideParams){
     /* 가사에 한글 포함 시 style에 Korean vocal 힌트 자동 추가 */
     var _promptHasKo=/[\uAC00-\uD7AF]/.test(prompt);
     if(isYT && _ytStyleStr){ body.style = _ytStyleStr; }
-    else if(isSimple && _simpleHasRealLyrics){
-      /* 심플모드(가사 있음): 설명+분위기+아티스트 스타일 태그 합산 */
+    else if(isSimple){
+      /* 심플모드: 가사 유무와 무관하게 설명+분위기 → style, 가사(있는 경우)는 prompt */
       var _simpleStyle=[];
       var _sd=($('simple-prompt')?.value||'').trim();
       if(_sd) _simpleStyle.push(_sd);
       if(moodVal) _simpleStyle.push(moodVal);
       if(styleStr) _simpleStyle.push(styleStr);
       if(_simpleStyle.length) body.style=_simpleStyle.join(', ');
+      /* 가사 없음: body.prompt에 설명 대신 제네릭 힌트 (설명을 보컬이 노래하지 않도록) */
+      if(!_simpleHasRealLyrics) body.prompt='한국어 감성 노래';
     }
     else if(styleStr){ body.style = styleStr; }
     /* 보컬 언어 힌트 — 선택된 언어 또는 가사에서 자동 감지 */
