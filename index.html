@@ -6875,7 +6875,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           </div>
           <div class="settings-item-right">›</div>
         </div>
-        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="_showSettingsConfirm(_t('clearHistoryTitle'),_t('clearHistoryMsg'),_t('delete'),()=>{historyData=[];saveHistory();updateHistBadge();renderHistoryView();renderSettings();toast(_t('historyDeleted'),'ok',2000);_deleteAllTracksFromServer();})">
+        <div class="settings-item" style="border-top:1px solid var(--border);border-radius:0 0 12px 12px;" onclick="_showSettingsConfirm(_t('clearHistoryTitle'),_t('clearHistoryMsg'),_t('delete'),()=>{historyData=[];saveHistory();updateHistBadge();_hesIdx=-1;fpCurrentIdx=-1;try{closeHistEditSheet();}catch(e){}try{hideMiniPlayer();}catch(e){}renderHistoryView();renderSettings();toast(_t('historyDeleted'),'ok',2000);_deleteAllTracksFromServer();})">
           <div class="settings-item-left">
             <div class="settings-item-icon">🗑</div>
             <div>
@@ -15244,7 +15244,9 @@ function renderHistoryView(){
   /* 검색/필터 적용 (history-manager.js) */
   var _preFiltered = (typeof getFilteredHistory==='function') ? getFilteredHistory(historyData) : historyData;
   /* 탭 필터 적용 */
-  let filtered = _preFiltered.map((h,idx)=>({...h,_origIdx:historyData.indexOf(h)>=0?historyData.indexOf(h):idx})).filter(h=>{
+  /* _origIdx: ID 기반 역매핑 (indexOf는 객체 참조 일치에 의존하므로 클론 시 실패) */
+  const _idxMap=new Map(historyData.map((x,i)=>[x.id||x.taskId||x.audio_url,i]));
+  let filtered = _preFiltered.map((h,idx)=>({...h,_origIdx:(_idxMap.get(h.id||h.taskId||h.audio_url)??-1)>=0?_idxMap.get(h.id||h.taskId||h.audio_url):idx})).filter(h=>{
     if(_histTabFilter==='music') return !h.video_url;
     if(_histTabFilter==='mv') return !!h.video_url;
     if(_histTabFilter==='liked') return h._liked || h._commLiked;
@@ -17478,7 +17480,7 @@ function _deleteAllTracksFromServer(){
 }
 /* 커뮤니티 캐시(_sbTracks)에서 즉시 제거 + 커뮤니티 뷰 열려 있으면 재렌더 */
 function _purgeFromCommCache(trackId){
-  if(!trackId||typeof _sbTracks==='undefined') return;
+  if(!trackId||!Array.isArray(_sbTracks)) return;
   var before=_sbTracks.length;
   _sbTracks=_sbTracks.filter(function(t){return (t._sbId||t.id)!==trackId;});
   if(_sbTracks.length===before) return; /* 캐시에 없으면 재렌더 불필요 */
