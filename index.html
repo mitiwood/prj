@@ -17036,7 +17036,10 @@ function expandToFullPlayer(){
     _fpLrcTimes=[];
     _fpLrcEndTimes=[];
     _fpPrevActiveIdx=-1;
-    fpRenderLyrics(h);
+    /* await로 완료 후 싱크 루프 재시작 — 미니플레이어에서 전환 시 rAF 루프가 멈춘 것을 복구 */
+    fpRenderLyrics(h).then(function(){
+      if(fpAudio&&!fpAudio.paused&&fpTimestampLines.length&&typeof _fpStartSyncLoop==='function') _fpStartSyncLoop();
+    });
 
   } catch(e){
     console.error('[expandToFP] render error:', e);
@@ -20346,7 +20349,7 @@ async function fpRenderLyrics(h){
         console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 재시도 예약:', e?.message);
         /* 백그라운드 재시도 (3초, 8초, 20초, 45초, 90초) — 생성 직후 API 준비 대기 */
         var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
-        var _retryDelays=[3000,8000,20000,45000,90000];
+        var _retryDelays=[1000,4000,10000,25000,60000];
         function _tsRetry(attempt){
           if(attempt>=_retryDelays.length)return;
           setTimeout(async function(){
@@ -20361,7 +20364,7 @@ async function fpRenderLyrics(h){
                   fpRenderTimestampedLyrics(_w2);
                   fpSyncMode=true;
                   var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
-                  if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
+                  if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
                   console.log('[fpRenderLyrics] 재시도 #'+(attempt+1)+' 성공, 싱크 갱신');
                 }
               } else { _tsRetry(attempt+1); }
@@ -20377,7 +20380,7 @@ async function fpRenderLyrics(h){
       fpSyncMode=true;
       var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
       /* 즉시 현재 위치로 싱크 — 렌더 지연으로 놓친 초반 라인 보정 */
-      if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
+      if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
       /* 서버 DB 가사도 API 가사로 동기화 */
       var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
       if(_realLyrics.length>20 && _realLyrics!==raw && typeof _saveTrackToServer==='function'){
@@ -20453,7 +20456,9 @@ async function fpRenderLyrics(h){
     if(syncBtn){ syncBtn.style.display=''; syncBtn.textContent='싱크 모드'; }
     var _soCtrl2=$('fp-sync-offset-ctrl');if(_soCtrl2)_soCtrl2.style.display='';
     fpSyncMode=true;
-    if(fpTimestampLines.length) fpTimestampLines[0].classList.add('active');
+    /* 재생 중이면 현재 위치로 즉시 싱크, 아니면 첫 라인 활성화 */
+    if(fpAudio&&!fpAudio.paused&&fpAudio.currentTime>0.5){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
+    else if(fpTimestampLines.length) fpTimestampLines[0].classList.add('active');
   } else if(fpTimestampLines.length>=2){
     /* LRC 없어도 가사 라인이 있으면 균등 분할 싱크 시도 */
     if(fpAudio?.duration){
@@ -20508,7 +20513,7 @@ function _fpAssignTimes(){
   if(syncBtn){syncBtn.style.display='';syncBtn.textContent='싱크 모드 (추정)';}
   fpSyncMode=true;
   /* 즉시 현재 위치로 싱크 — 오디오 이미 재생 중이면 놓친 라인 보정 */
-  if(fpAudio&&!fpAudio.paused&&fpAudio.currentTime>1){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);}
+  if(fpAudio&&!fpAudio.paused&&fpAudio.currentTime>1){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
   else if(fpTimestampLines[0]) fpTimestampLines[0].classList.add('active');
 }
 
