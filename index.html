@@ -12025,67 +12025,47 @@ async function _autoLyricsAndGenerate(){
   /* 버튼 로딩 상태 + 동시 생성 방지 */
   _QueueManager.setBusy('music',true); _syncGenButtons();
   const btn=$('gen-btn'),sp=$('gen-spinner'),txt=$('gen-txt');
-  btn.disabled=true;sp.style.display='inline-block';txt.textContent='작사 중...';
+  btn.disabled=true; sp.style.display='inline-block'; txt.textContent='작사 중...';
+  /* FIX: finally 없이 각 경로에서 명시적 리셋 — 800ms 딜레이 중 중복클릭 완전 차단 */
+  const _resetBtn=()=>{ btn.disabled=false; sp.style.display='none'; txt.textContent='✦ 음악 생성하기'; };
 
-  let elapsed=0;
-  const ti=setInterval(()=>{elapsed++;},1000);
   try{
-    let text = '';
+    /* FIX: 중복 폴링 코드 제거 → _kieLyricsWithFallback 사용 (kie.ai + Gemini 폴백 포함) */
+    const text = await _kieLyricsWithFallback(apiKey, lyricsPrompt, refArtist);
 
-    /* 1차: kie.ai lyrics API */
-    try{
-      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:(lyricsPrompt||'').slice(0,200), callBackUrl:CALLBACK});
-      const taskId=data?.data?.taskId||data?.taskId;
-      if(taskId){
-        for(let i=0;i<30;i++){
-          await sleep(i<3?300:i<10?800:1500);
-          let d=null;
-          try{ const res=await kieRequest(apiKey,'GET',`/api/v1/lyrics/record-info?taskId=${taskId}`); d=res?.data; }
-          catch(e){ try{ const r2=await kieRequest(apiKey,'GET',`/api/v1/jobs/recordInfo?taskId=${taskId}`); d=r2?.data; }catch(e2){} }
-          if(!d) continue;
-          const status=(d.status||d.callbackType||'').toUpperCase();
-          if(status==='SUCCESS'||status==='COMPLETE'){
-            text=_extractLyricsFromResponse(d);
-            if(text) break;
-          }
-          if(status.includes('FAILED')||status.includes('ERROR')) break;
-        }
-      }
-    }catch(e){ console.warn('[auto-lyrics] kie.ai 실패:', e.message); }
-
-    clearInterval(ti);
     /* 가사 생성 실패 시 → 가사 없이 스타일만으로 바로 생성 */
     if(!text){
       toast('✍️ 가사 없이 스타일로 바로 생성합니다','',2000);
-      btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';
-      _globalGenerating=false;_syncGenButtons();
+      /* FIX: setBusy(false) 누락 버그 수정 — 큐 영구 잠금 방지 */
+      _QueueManager.setBusy('music',false); _globalGenerating=false; _syncGenButtons();
+      _resetBtn();
       generate({_afterLyrics:true,_skipGuide:true});
       return;
     }
 
     const _p=$('prompt');
-    _p.value=text;
-    _p.style.display='';
+    _p.value=text; _p.style.display='';
     renderLyricsPreview(text, true);
     /* 제목 자동 생성 */
     if(!$('song-title').value.trim()){
-      const firstLine=text.split('\n').find(l=>l.trim()&&!/^\[/.test(l.trim()))||'';
-      const autoTitle=firstLine.slice(0,20)||lyricsPrompt.slice(0,20)||_autoGenerateTitle(null,text,(typeof styleStr!=='undefined'?styleStr:'')||'','custom');
+      const autoTitle=_extractTitleFromLyrics(text,sub,mood)||lyricsPrompt.slice(0,20);
       $('song-title').value=autoTitle;
       toast('✅ 가사+제목 생성 완료! 음악을 생성합니다...','ok',2500);
     } else {
       toast('✅ 가사 생성 완료! 음악을 생성합니다...','ok',2500);
     }
-    /* 바로 생성 — _afterLyrics 플래그로 잠금 우회 */
-    setTimeout(()=>{ _QueueManager.setBusy('music',false); _globalGenerating=false; _syncGenButtons(); generate({_afterLyrics:true}); },800);
+    /* FIX: 버튼 리셋 + generate 호출을 같은 setTimeout 안에 → 딜레이 중 중복클릭 완전 차단 */
+    setTimeout(()=>{
+      _resetBtn();
+      _QueueManager.setBusy('music',false); _globalGenerating=false; _syncGenButtons();
+      generate({_afterLyrics:true});
+    },800);
   }catch(e){
-    clearInterval(ti);
-    _QueueManager.setBusy('music',false); _globalGenerating = false; _syncGenButtons();
+    _QueueManager.setBusy('music',false); _globalGenerating=false; _syncGenButtons();
     const msg=(e.message||'').toLowerCase();
     const isInternal=msg.includes('model is empty')||msg.includes('model')||msg.includes('internal');
     toast(isInternal?'❌ 가사 생성에 실패했어요. 다시 시도해주세요.':'❌ 자동 작사 실패: '+e.message,'err',4000);
-  }finally{
-    btn.disabled=false;sp.style.display='none';txt.textContent='✦ 음악 생성하기';
+    _resetBtn();
   }
 }
 /* ── 음악 생성 ── */
@@ -12442,7 +12422,15 @@ function _aiRecommendFromText(text){
   });
   if(!matched.size){area.style.display='none';return;}
   var arr=Array.from(matched).slice(0,5);
-  chips.innerHTML=arr.map(function(s){return '<button class="style-chip-btn" onclick="_addStyleTag(\''+s+'\')">'+s+'</button>';}).join('');
+  /* FIX: innerHTML 문자열 연결 대신 DOM 메서드 사용 — 스타일 태그 값 안전 처리 */
+  chips.innerHTML='';
+  arr.forEach(function(s){
+    var b=document.createElement('button');
+    b.className='style-chip-btn';
+    b.textContent=s;
+    b.addEventListener('click',function(){_addStyleTag(s);});
+    chips.appendChild(b);
+  });
   area.style.display='';
 }
 function _addStyleTag(tag){
@@ -17374,16 +17362,21 @@ async function _kieLyricsWithFallback(apiKey, prompt, refArtist){
           text=_extractLyricsFromResponse(d);
           if(text) break;
         }
-        if(st==='FAILED'||st==='ERROR') break;
+        /* FIX: includes() 사용 — FAILED_RETRY, ERROR_TIMEOUT 등 변형 상태코드도 감지 */
+        if(st.includes('FAILED')||st.includes('ERROR')) break;
       }
     }
   }catch(e){ console.warn('[lyrics] kie.ai 실패:', e.message); }
-  /* 2차 폴백: Claude */
+  /* 2차 폴백: Claude (FIX: 언어 감지 포함 — 일본어/중국어 요청도 정확히 처리) */
   if(!text){
     try{
       const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
-      const sys='당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
-      const usr=`다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${prompt}"${artistHint}`;
+      const isJapanese=/日本語|Japanese/i.test(prompt);
+      const isChinese=/中文|Chinese/i.test(prompt);
+      const langName=isJapanese?'일본어':isChinese?'중국어':'한국어';
+      const langInst=isJapanese?'日本語で':isChinese?'用中文':'한국어로';
+      const sys=`당신은 전문 작사가입니다. ${langName} 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.`;
+      const usr=`다음 테마/분위기로 감성적인 노래 가사를 ${langInst} 작성해주세요: "${prompt}"${artistHint}`;
       text = await callClaudeStream(sys, usr, ()=>{}) || '';
     }catch(e){ console.warn('[lyrics] Claude 폴백 실패:', e.message); }
   }
