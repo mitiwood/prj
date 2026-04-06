@@ -4637,7 +4637,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
    모바일 반응형 — 깨짐 방지
    ══════════════════════════════════════ */
 /* 기본: 모든 모바일 (480px 이하) */
-@media(max-width:var(--sheet-max,480px)){
+@media(max-width:480px){
   .app-wrap{max-width:100vw;}
   .app-header{padding:14px 12px 10px;}
   .view{padding:12px 10px 80px;}
@@ -4733,8 +4733,9 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
   .bnav-label{font-size:9px;}
   .bnav-svg{width:20px;height:20px;}
 
-  /* 모드 탭 */
-  .mtab{font-size:12px;padding:7px 10px;}
+  /* 모드 탭 — 5개 탭 390px 내 완전 표시 */
+  .mtab{font-size:11px;padding:7px 4px;}
+  .mtab svg.mtab-ico,.mtab [data-lucide]{width:12px;height:12px;}
 
   /* 로딩 카드 — 풀스크린이므로 패딩만 조정 */
   .loading-card.on{padding:20px 14px;}
@@ -8529,7 +8530,7 @@ var MAX_POLLS = 160;        /* 최대 ~5분 대기 */
 var trackDataMap=new Map();
 var GENRE_SUBS={
   pop:['K-Pop Idol','K-Pop Ballad','Synth-pop','Dance-pop','J-Pop','Electropop'],
-  hiphop:['Trap','R&B','Lo-fi Hip Hop','Neo-Soul','Old School Boom Bap','Soul'],
+  hiphop:['Trap beat','R&B','Lo-fi Hip Hop','Neo-Soul','Old School Boom Bap','Soul'],
   electronic:['EDM','House','Ambient Electronic','Techno','Dubstep','Synthwave'],
   rock:['Indie Rock','Alternative','Punk','Post-Rock','Grunge','Heavy Metal'],
   lofi:['Lo-fi Hip-hop','Study Beat','Chillwave','Vaporwave','Chillstep','Ambient'],
@@ -8990,6 +8991,7 @@ function _getGenSession() {
 var _wakeLock = null;
 var _bgPollWorker = null;
 var _bgEnteredAt = 0; /* 백그라운드 진입 시각 */
+var _bgSleepResolvers = new Set(); /* 백그라운드에서 즉시 깨울 pending sleep resolver 목록 */
 
 /* Wake Lock: 생성 중 화면 꺼짐 방지 (모바일) */
 async function _acquireWakeLock(){
@@ -9031,20 +9033,30 @@ function _createBgTimerWorker(){
   }catch(e){ return null; }
 }
 
+/* 백그라운드 sleep resolver들을 즉시 깨우는 헬퍼 */
+function _wakeAllSleeps(){
+  if(!_bgSleepResolvers.size) return;
+  var rs = Array.from(_bgSleepResolvers);
+  _bgSleepResolvers.clear();
+  rs.forEach(function(r){ r(); });
+}
+
 /* 백그라운드 진입/복귀 핸들러 */
 document.addEventListener('visibilitychange', function(){
   if(!_globalGenerating) return;
 
   if(document.hidden){
-    /* 백그라운드 진입 — 타이머 시작 (폴링 간격 유지용) */
+    /* 백그라운드 진입 — Worker 타이머로 폴링 유지 */
     _bgEnteredAt = Date.now();
-    console.log('[BG] 백그라운드 진입 — 생성 진행 중, Wake Lock 유지');
-    /* Worker 타이머: 메인 스레드 setTimeout이 스로틀링돼도 tick 발생 */
+    console.log('[BG] 백그라운드 진입 — 생성 진행 중, 백그라운드 폴링 시작');
     var w = _createBgTimerWorker();
     if(w){
-      w.onmessage = function(){ /* Worker tick — 메인 스레드 wake 유지 용도 */ };
+      /* Worker tick마다 pending sleep 즉시 resolve → 폴링 3초 간격 유지 */
+      w.onmessage = function(){ _wakeAllSleeps(); };
       w.postMessage({cmd:'start', interval:3000});
     }
+    /* 현재 실행 중인 sleep도 즉시 깨워서 다음 폴링이 Worker 타이밍 사용하게 함 */
+    _wakeAllSleeps();
   } else {
     /* 포그라운드 복귀 */
     var away = Date.now() - _bgEnteredAt;
@@ -9053,9 +9065,9 @@ document.addEventListener('visibilitychange', function(){
     if(_bgPollWorker){ _bgPollWorker.postMessage({cmd:'stop'}); }
     /* Wake Lock 재획득 (visibility change 시 자동 해제되므로) */
     _acquireWakeLock();
-    /* 오래 백그라운드에 있었으면 세션 복원 체크 */
+    /* 포그라운드 복귀 시 pending sleep 즉시 resolve → 결과 즉시 확인 */
+    _wakeAllSleeps();
     if(away > 120000 && !_genCancelled){
-      /* 2분 이상 → 폴링이 지연됐을 수 있으므로 즉시 상태 확인 */
       console.log('[BG] 장시간 백그라운드 — 생성 상태 즉시 확인');
       toast('백그라운드에서 돌아왔어요. 생성 상태 확인 중...','',2000);
     }
@@ -11845,16 +11857,19 @@ async function pollResult(apiKey,taskId,_localGenCount){
   throw new Error('시간 초과 — 다시 시도해주세요');
 }
 function sleep(ms){
-  /* 백그라운드 스로틀링 우회: Worker 타이머 + setTimeout 경쟁 */
+  /* 백그라운드 스로틀링 우회: _bgSleepResolvers에 등록 → Worker tick 또는 포그라운드 복귀 시 즉시 깨움 */
   return new Promise(function(resolve){
     var done=false;
-    var finish=function(){if(!done){done=true;resolve();}};
+    var finish=function(){
+      if(!done){
+        done=true;
+        _bgSleepResolvers.delete(finish);
+        resolve();
+      }
+    };
     setTimeout(finish, ms);
-    /* Worker가 있으면 더 정확한 타이밍 제공 */
-    if(_bgPollWorker && document.hidden){
-      var _wHandler=function(){_bgPollWorker.removeEventListener('message',_wHandler);finish();};
-      _bgPollWorker.addEventListener('message',_wHandler);
-    }
+    /* 항상 resolver 등록 — 백그라운드 진입 시 Worker가 깨움 */
+    _bgSleepResolvers.add(finish);
   });
 }
 
@@ -13318,7 +13333,7 @@ async function generate(overrideParams){
     var _swRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
     if(_swRe.test(prompt)) prompt=prompt.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
     if(styleStr&&_swRe.test(styleStr)) styleStr=styleStr.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
-    const body={prompt,customMode:isCustom||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
+    const body={prompt,customMode:(isCustom&&!!lyricsText)||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
     if(selectedDuration===0){
       body.duration=60;
