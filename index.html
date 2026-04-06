@@ -13094,7 +13094,7 @@ async function generate(overrideParams){
   }
   /* ★ 즉시 busy 설정 */
   _haptic.medium();
-  _QueueManager.setBusy('music',true); _syncGenButtons();
+  _globalGenerating=true; _QueueManager.setBusy('music',true); _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_QueueManager.setBusy('music',false);_syncGenButtons();return;}
   /* 크레딧 캐시 백그라운드 동기화 — await 없이 fire-and-forget (생성 지연 방지) */
@@ -13180,7 +13180,7 @@ async function generate(overrideParams){
     if(!hasLyrics && !hasDesc && !hasAiStyle) missingFields.push({id:'lyrics', label:'가사 또는 스타일 설명', hint:'가사를 직접 입력하거나 AI 도구로 스타일을 설정하세요'});
     if(!hasMood && !hasDesc && !hasAiStyle) missingFields.push({id:'mood', label:'분위기', hint:'어떤 분위기의 곡을 원하시나요?'});
     if(missingFields.length >= 1){
-      _globalGenerating = false; _syncGenButtons();
+      _globalGenerating=false; _QueueManager.setBusy('music',false); _syncGenButtons();
       showInputGuideSheet(missingFields);
       return;
     }
@@ -13336,9 +13336,9 @@ async function generate(overrideParams){
       if(!body.style) body.style = _autoHints.join(', ');
       else body.style = body.style + ', ' + _autoHints.join(', ');
     }
-    /* kie.ai style 길이 제한: 500자 (초과 시 콤마 단위로 자름) */
+    /* kie.ai style 길이 제한: 200자 — 서버(kie-proxy.js)와 동일 기준으로 일치 */
     if(body.style){
-      var _styleMax = 500;
+      var _styleMax = 200;
       if(body.style.length>_styleMax){
         var _cut=body.style.lastIndexOf(',',_styleMax);
         body.style=_cut>50?body.style.slice(0,_cut):body.style.slice(0,_styleMax);
@@ -13647,7 +13647,7 @@ async function generate(overrideParams){
   }finally{
     var _wasCancelled=_genCancelled; /* 취소 여부 보존 */
     _stopLdTips();
-    _QueueManager.setBusy('music',false);
+    _globalGenerating=false; _QueueManager.setBusy('music',false);
     if(!_genRetryScheduled) _genCancelled=false; /* 재시도 예약 중이면 취소 상태 유지 */
     _syncGenButtons();
     if(activeGenBtn){activeGenBtn.disabled=false;activeGenBtn.style.opacity='1';}
