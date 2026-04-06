@@ -20295,7 +20295,10 @@ async function fpRenderLyrics(h){
   /* ── 가사 로딩: 로컬 메모리 우선 → 서버 DB 보강 ── */
   var raw=h.lyrics||h.lyric||h._inputLyrics||'';
   var _fetchId=h.id||h._sbId||'';
-  if(_fetchId){
+  /* 세션 내 반복 fetch 방지 */
+  if(typeof window._fpLyricsFetchCache==='undefined') window._fpLyricsFetchCache={};
+  if(_fetchId&&!window._fpLyricsFetchCache[_fetchId]){
+    window._fpLyricsFetchCache[_fetchId]=true;
     try{
       var _srvRes=await fetch('/api/tracks?id='+encodeURIComponent(_fetchId));
       if(_srvRes.ok){
@@ -20317,8 +20320,12 @@ async function fpRenderLyrics(h){
       if(_origL.trim()) raw = _origL;
     }
   }
-  /* 스타일 태그만 있는 경우만 제외 (영어 콤마 구분 짧은 문자열, 한글 없음) */
-  const isStyleStr = raw && !raw.includes('\n') && raw.length < 80 && !/[\uac00-\ud7a3]/.test(raw) && /^[a-zA-Z0-9,\s\-_&]+$/.test(raw);
+  /* 스타일 태그만 있는 경우 제외: 쉼표 구분 짧은 영어 문자열 (예: "Pop, energetic, upbeat")
+     조건: 한 줄 + 80자 미만 + 한글 없음 + 영숫자/공백/쉼표/하이픈/언더스코어만 + 공백 없거나 쉼표 2개 이상 */
+  const isStyleStr = raw && !raw.includes('\n') && raw.length < 80
+    && !/[\uac00-\ud7a3]/.test(raw)
+    && /^[a-zA-Z0-9,\s\-_&]+$/.test(raw)
+    && ((raw.match(/,/g)||[]).length >= 2 || !raw.includes(' '));
   /* [Verse 1][Chorus] 등 연속 태그 → 개행으로 치환 */
   const plain = isStyleStr ? '' : raw.replace(/\[.*?\]/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 
@@ -20548,7 +20555,6 @@ function _fpAssignTimes(){
     _fpLrcTimes.push(cursor);
     cursor+=usable*(weights[ti]/totalW);
   }
-  console.table(_fpLrcTimes.map(function(t,i){return{line:i+1,time:t.toFixed(2)+'s',text:(fpTimestampLines[i]?.textContent||'').trim().slice(0,30)};}));
   var syncBtn=$('fp-lyrics-mode-btn');
   if(syncBtn){syncBtn.style.display='';syncBtn.textContent='싱크 모드 (추정)';}
   fpSyncMode=true;
@@ -32678,6 +32684,11 @@ function _showQRCardDirect(title,imageUrl,trackId){
 <script src="js/stem-mixer.js"></script>
 <script src="js/history-manager.js"></script>
 <script src="js/model-profiles.js"></script>
+<!-- ── 버그 수정 모듈 (인라인 함수 오버라이드) ── -->
+<script src="js/auth-manager.js"></script>
+<script src="js/follow-manager.js"></script>
+<script src="js/credit-manager.js"></script>
+<script src="js/profile-manager.js"></script>
 <script>initModelProfiles();if(typeof initHistInfiniteScroll==='function')initHistInfiniteScroll();</script>
 
 <!-- ── 광고 시스템 — AdSense 승인 후 활성화 예정 ── -->
