@@ -1135,6 +1135,51 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .dl-btn.video{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:var(--acc3);}
 .dl-btn.lnk{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2);color:var(--green);}
 
+/* ══ Result Card Option A — 스트리밍 스타일 ══ */
+.rc-row{display:flex;align-items:center;gap:12px;padding:12px;}
+.rc-thumb{
+  width:80px;height:80px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a0a2e,#2d1a4a);
+  position:relative;overflow:hidden;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.rc-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.rc-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.rc-thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .2s;pointer-events:none;}
+.rc-thumb:active .rc-thumb-overlay{background:rgba(0,0,0,.3);}
+.rc-thumb-hint{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.75));
+  color:#fff;font-size:9px;font-weight:700;text-align:center;
+  padding:6px 2px 4px;pointer-events:none;letter-spacing:.3px;
+}
+.rc-ab-badge{position:absolute;top:6px;left:6px;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;z-index:2;letter-spacing:1px;color:#fff;}
+.rc-info{flex:1;min-width:0;}
+.rc-info .rc-title{font-size:14px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rc-info .rc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+.rc-dur-meta{font-size:11px;color:var(--t3);}
+.rc-player-bar{display:flex;align-items:center;gap:10px;padding:0 12px 8px;}
+.rc-player-bar .ap-prog-wrap{flex:1;height:28px;display:flex;align-items:center;cursor:pointer;position:relative;}
+.rc-player-bar .ap-prog-track{width:100%;height:4px;background:var(--card2);border-radius:2px;position:relative;}
+.rc-player-bar .ap-prog-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;width:0%;transition:width .1s;}
+.rc-player-bar .ap-time{font-size:10px;color:var(--t3);white-space:nowrap;min-width:72px;text-align:right;}
+.rc-actions-row{display:flex;gap:6px;padding:0 12px 12px;}
+.rc-actions-row .dl-btn{flex:1;font-size:10px;padding:7px 3px;text-align:center;}
+.rc-lyrics-section{border-top:1px solid var(--border);}
+.rc-lyrics-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;cursor:pointer;font-size:12px;font-weight:700;
+  color:var(--t2);user-select:none;-webkit-tap-highlight-color:transparent;
+  transition:color .15s;
+}
+.rc-lyrics-toggle:active,.rc-lyrics-toggle:hover{color:var(--t1);}
+.rc-lyrics-toggle .lyt-arrow{font-size:10px;transition:transform .2s;display:inline-block;}
+.rc-lyrics-toggle.open .lyt-arrow{transform:rotate(180deg);}
+.rc-lyrics-body{padding:0 12px 12px;}
+.rc-lyrics-actions{display:flex;gap:8px;margin-bottom:10px;}
+.rc-lyrics-actions .dl-btn{flex:none;padding:6px 12px;}
+[data-theme="light"] .rc-thumb-hint{background:linear-gradient(transparent,rgba(0,0,0,.6));}
+
 /* ══ 음악만들기 고도화 v2 CSS ══ */
 /* 프리셋 캐러셀 */
 .preset-scroll{display:flex;gap:6px;padding:0 4px;min-width:max-content;align-items:center;}
@@ -9105,6 +9150,7 @@ var lastTaskId=''; /* 뮤직비디오 요청용 */
 
 /* ── 현재 세션에서 생성된 트랙 데이터 (가사 복사용) ── */
 var lastTracks=[];
+var _trkSeq=0; /* 결과 카드 DOM ID 중복 방지용 전역 카운터 */
 var lastLyricsInput='';
 var _lastYtAnalysis=null; /* YouTube 분석 결과 임시 저장 */
 
@@ -14685,6 +14731,7 @@ function renderTracks(tracks,prompt,tags,mode){
   batchWrap.appendChild(cardsWrap);
 
   tracks.forEach((track,i)=>{
+    const uid=_trkSeq++; /* 배치 간 DOM ID 충돌 방지용 전역 고유 인덱스 */
     const audioUrl=track.audioUrl||track.audio_url||track.song_path||'';
     const imageUrl=track.imageUrl||track.image_url||'';
     const title=track.title||`트랙 ${i+1}`;
@@ -14696,7 +14743,6 @@ function renderTracks(tracks,prompt,tags,mode){
     const apiLyric=track.lyric||track.lyrics||track.lrc||'';
     /* API 응답 가사 판별: 섹션태그([Verse]) 또는 줄바꿈 있거나 120자 초과면 실제 가사 */
     const isRealApiLyric=apiLyric&&(apiLyric.includes('\n')||/\[.+?\]/.test(apiLyric)||apiLyric.length>120);
-    const isStyleStr=apiLyric&&!isRealApiLyric;
     /* 우선순위: 사용자 입력가사 > API 응답 실제가사 > 빈값 */
     const lyricsRaw=track._inputLyrics||(isRealApiLyric?apiLyric:'');
     /* 가사 없으면 AI 자동 생성 예약 (taskId 있을 때) */
@@ -14705,89 +14751,74 @@ function renderTracks(tracks,prompt,tags,mode){
       track._lyricsRequested = true;
       const _lyricTaskId = track._taskId||track.id;
       const _lyricTitle = track.title||prompt||'';
-      /* 500ms 후 비동기 요청 → 편집기에 채워넣기 */
-      setTimeout(()=> _autoFillLyricsForTrack(i, _lyricTaskId, _lyricTitle, track), 500);
+      /* 500ms 후 비동기 요청 → 편집기에 채워넣기 (uid 캡처) */
+      setTimeout(()=> _autoFillLyricsForTrack(uid, _lyricTaskId, _lyricTitle, track), 500);
     }
+
+    /* 가사 초기 HTML: 자동채우기 대기 중이면 로딩 스피너, 없으면 CTA */
+    const lyricsInitHtml = _hasNoLyrics && (track._taskId||track.id) && kieApiKey
+      ? '<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">⏳ AI가 가사를 불러오는 중...</div>'
+      : lyricsRaw
+        ? parseLyrics(lyricsRaw)
+        : `<div style="text-align:center;padding:20px;color:var(--t3);"><div style="font-size:22px;margin-bottom:8px;">🎵</div><div style="font-size:12px;margin-bottom:12px;">가사가 아직 없어요</div><button onclick="toggleLyricsEdit(${uid})" style="padding:6px 14px;border-radius:8px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:var(--acc3);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">✏️ 직접 입력</button></div>`;
 
     const card=document.createElement('div');card.className='result-card';
     const trackTaskId=track._taskId||lastTaskId||'';
-    const _abBadge = _isAB ? `<div style="position:absolute;top:10px;left:12px;background:${i===0?'linear-gradient(135deg,#7c3aed,#a855f7)':'linear-gradient(135deg,#f59e0b,#f97316)'};color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:12px;z-index:2;letter-spacing:1px;">${i===0?'A':'B'}</div>` : '';
+    const _abBadge=_isAB?`<div class="rc-ab-badge" style="background:${i===0?'linear-gradient(135deg,#7c3aed,#a855f7)':'linear-gradient(135deg,#f59e0b,#f97316)'};">${i===0?'A':'B'}</div>`:'';
+    const _hasLyrics=!!lyricsRaw;
     card.innerHTML=`
-      <div class="rc-cover" style="cursor:pointer;" title="🎤 노래방 모드로 열기" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">
-        ${imageUrl?`<img class="rc-cover-img" src="${imageUrl}" alt="">`:`<div class="rc-cover-placeholder">🎵</div>`}
-        <div class="rc-cover-overlay"></div>
-        <button class="rc-tools-btn rc-tools-cover" data-pt-url="${esc(audioUrl)}" data-pt-id="${esc(audioId)}" data-pt-title="${esc(title)}" data-pt-task="${esc(trackTaskId)}">🛠</button>
-        ${_abBadge}
+      <div class="rc-row">
+        <div class="rc-thumb" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">
+          ${imageUrl?`<img src="${imageUrl}" alt="">`:`<div class="rc-thumb-placeholder">🎵</div>`}
+          <div class="rc-thumb-overlay"></div>
+          <div class="rc-thumb-hint">🎤 노래방</div>
+          ${_abBadge}
+        </div>
+        <div class="rc-info">
+          <div class="rc-title">${esc(title)}</div>
+          <div class="rc-tags">${trackTags.slice(0,3).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
+          <div class="rc-dur-meta" id="rc-dur-${uid}">${dur||'─'}</div>
+        </div>
+        <button class="rc-tools-btn" data-pt-url="${esc(audioUrl)}" data-pt-id="${esc(audioId)}" data-pt-title="${esc(title)}" data-pt-task="${esc(trackTaskId)}" style="align-self:flex-start;margin-top:-2px;border-radius:8px;padding:5px 9px;">🛠</button>
       </div>
-      <div class="rc-body">
-        <div class="rc-title">${esc(title)}</div>
-        <div class="rc-meta">${lyricsRaw?esc((lyricsRaw).split('\n').filter(l=>!/^\[/.test(l.trim())).join(' ').slice(0,60))+(lyricsRaw.length>60?'...':''):esc((prompt||'').slice(0,60))+((prompt||'').length>60?'...':'')} · <span id="rc-dur-${i}">${dur}</span></div>
-        <div class="rc-tags">${trackTags.slice(0,3).map((t,j)=>`<span class="rc-tag${j<2?' hl':''}">${esc(t)}</span>`).join('')}</div>
-        <div class="rc-tabs">
-          <div class="rctab on" data-tab="pl-${i}">🎵 재생</div>
-          <div class="rctab" data-tab="ly-${i}">📝 가사</div>
+      <div class="rc-player-bar">
+        <button class="ap-play-btn" data-idx="${uid}" data-track-idx="${i}" data-url="${esc(audioUrl)}" data-audio-id="${esc(audioId)}">▶</button>
+        <div class="ap-prog-wrap" data-idx="${uid}">
+          <div class="ap-prog-track"><div class="ap-prog-fill" id="ap-prog-${uid}"></div></div>
         </div>
-        <div class="rc-tab-panel on" id="pl-${i}">
-          <div class="audio-player">
-            <div class="ap-top">
-              <button class="ap-play-btn" data-idx="${i}" data-url="${esc(audioUrl)}" data-audio-id="${esc(audioId)}">▶</button>
-              <div class="ap-info">
-                <div class="ap-track">${esc(title)}</div>
-                <div class="ap-time" id="ap-time-${i}">0:00 / ${dur}</div>
-              </div>
-            </div>
-            <div class="ap-prog-wrap" data-idx="${i}">
-              <div class="ap-prog-track"><div class="ap-prog-fill" id="ap-prog-${i}"></div></div>
-            </div>
-            <div class="ap-viz" id="ap-viz-${i}">${Array(28).fill(0).map(()=>'<div class="ap-vbar"></div>').join('')}</div>
-          </div>
-          <div class="dl-row">
-            <button class="dl-btn audio" data-dl-audio="${esc(audioUrl)}" data-dl-name="${esc(title)}.mp3">⬇ MP3</button>
-            <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시 작곡</button>
-            <button class="dl-btn" style="color:#7c3aed;border-color:rgba(124,58,237,.3);" data-qr-idx="${i}" data-qr-title="${esc(title)}" data-qr-img="${esc(imageUrl)}" data-qr-id="${esc(track.id||'')}">📱 QR</button>
-          </div>
-          ${_isAB ? `<button class="rc-select-btn" data-select-idx="${i}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button>` : ''}
+        <span class="ap-time" id="ap-time-${uid}">0:00 / ${dur||'─'}</span>
+      </div>
+      <div class="ap-viz" id="ap-viz-${uid}" style="padding:0 12px 6px;">${Array(28).fill(0).map(()=>'<div class="ap-vbar"></div>').join('')}</div>
+      <div class="rc-actions-row">
+        <button class="dl-btn audio" data-dl-audio="${esc(audioUrl)}" data-dl-name="${esc(title)}.mp3">⬇ MP3</button>
+        <button class="dl-btn" style="color:var(--ylw);border-color:rgba(255,208,0,.3);" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">🎤 노래방</button>
+        <button class="dl-btn" style="color:var(--acc3);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08);" data-recompose-idx="${i}">🔄 다시</button>
+        <button class="dl-btn" style="color:#7c3aed;border-color:rgba(124,58,237,.3);" data-qr-idx="${uid}" data-qr-title="${esc(title)}" data-qr-img="${esc(imageUrl)}" data-qr-id="${esc(track.id||'')}">📱 QR</button>
+      </div>
+      <div class="rc-lyrics-section">
+        <div class="rc-lyrics-toggle" onclick="_toggleLyricsAccordion(this)">
+          <span>📝 가사${_hasLyrics?' <span style="color:var(--acc3);font-size:10px;">✓</span>':''}</span>
+          <span class="lyt-arrow">▼</span>
         </div>
-        <div class="rc-tab-panel" id="ly-${i}">
-          <div class="dl-row" style="margin-bottom:10px;">
-            <button class="dl-btn lnk" data-copy-lyrics-idx="${i}">📋 가사 복사</button>
-            <button class="dl-btn audio" style="color:var(--ylw);border-color:rgba(255,208,0,.3);" data-kp-audio="${esc(audioUrl)}" data-kp-title="${esc(title)}" data-kp-tags="${esc(trackTags.join(','))}" data-kp-image="${esc(imageUrl)}" data-kp-task="${esc(trackTaskId)}" data-kp-audio-id="${esc(audioId)}">🎤 노래방 모드</button>
-            <button class="dl-btn" id="lrc-edit-btn-${i}" style="color:var(--acc3);border-color:rgba(168,85,247,.3);" onclick="toggleLyricsEdit(${i})">✏️ 가사 편집</button>
+        <div class="rc-lyrics-body" style="display:none;">
+          <div class="rc-lyrics-actions">
+            <button class="dl-btn lnk" data-copy-lyrics-idx="${i}" style="padding:6px 12px;">📋 복사</button>
+            <button class="dl-btn" id="lrc-edit-btn-${uid}" style="padding:6px 12px;color:var(--acc3);border-color:rgba(168,85,247,.3);" onclick="toggleLyricsEdit(${uid})">✏️ 편집</button>
           </div>
-          <!-- 가사 표시 영역 -->
-          <div class="lyrics-display" id="lyrics-plain-${i}">${lyricsRaw?parseLyrics(lyricsRaw):'<div style=\'text-align:center;padding:20px;color:var(--t3);\'><div style=\'font-size:24px;margin-bottom:8px;\'>🎵</div><div style=\'font-size:12px;margin-bottom:10px;\'>가사가 아직 없어요</div></div>'}</div>
-          <div class="lyrics-display" id="lyrics-karaoke-${i}"></div>
-          <!-- 가사 편집 영역 (기본 숨김) -->
-          <div id="lrc-edit-wrap-${i}" style="display:none;">
-            <textarea class="lrc-edit-area" id="lrc-edit-area-${i}" rows="8" placeholder="가사를 편집하세요...">${lyricsRaw.replace(/</g,'&lt;')}</textarea>
+          <div class="lyrics-display" id="lyrics-plain-${uid}">${lyricsInitHtml}</div>
+          <div class="lyrics-display" id="lyrics-karaoke-${uid}" style="display:none;"></div>
+          <div id="lrc-edit-wrap-${uid}" style="display:none;">
+            <textarea class="lrc-edit-area" id="lrc-edit-area-${uid}" rows="8" placeholder="가사를 편집하세요..." data-track-id="${esc(audioId)}" data-track-audio="${esc(audioUrl)}">${lyricsRaw.replace(/</g,'&lt;')}</textarea>
             <div class="lrc-edit-actions">
-              <button class="dl-btn" onclick="saveLyricsEdit(${i})" style="color:var(--grn);border-color:rgba(0,221,160,.3);">✅ 저장</button>
-              <button class="dl-btn" onclick="cancelLyricsEdit(${i})">✕ 취소</button>
+              <button class="dl-btn" onclick="saveLyricsEdit(${uid})" style="color:var(--grn);border-color:rgba(0,221,160,.3);">✅ 저장</button>
+              <button class="dl-btn" onclick="cancelLyricsEdit(${uid})">✕ 취소</button>
             </div>
           </div>
         </div>
-        <div id="mvpanel-slot-${i}"></div>
-      </div>`;
+      </div>
+      ${_isAB?`<div style="padding:0 12px 12px;"><button class="rc-select-btn" data-select-idx="${i}" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${i===0?'A':'B'} 버전 선택</button></div>`:''}
+      <div id="mvpanel-slot-${uid}"></div>`;
     cardsWrap.appendChild(card);
-    /* duration 없으면 백그라운드에서 오디오 메타 로드 후 표시 업데이트 */
-    if(audioUrl && !track.duration){
-      var _dma=new Audio();_dma.preload='metadata';
-      var _dmt=setTimeout(function(){try{_dma.removeAttribute('src');}catch(e){}},8000);
-      _dma.addEventListener('loadedmetadata',function(){
-        clearTimeout(_dmt);
-        if(_dma.duration&&isFinite(_dma.duration)){
-          var _dmf=formatTime(_dma.duration);
-          var _de=document.getElementById('ap-time-'+i);if(_de)_de.textContent='0:00 / '+_dmf;
-          var _ds=document.getElementById('rc-dur-'+i);if(_ds)_ds.textContent=_dmf;
-          track.duration=Math.round(_dma.duration);
-          var _dh=historyData.find(function(h){return h.id===(track.id||'');});
-          if(_dh&&!(_dh.duration>0)){_dh.duration=Math.round(_dma.duration);saveHistory();}
-        }
-        try{_dma.removeAttribute('src');}catch(e){}
-      },{once:true});
-      _dma.addEventListener('error',function(){clearTimeout(_dmt);try{_dma.removeAttribute('src');}catch(e){}},{once:true});
-      _dma.src=audioUrl;
-    }
   });
 
   /* ── 포스트 액션 카드 (result-batch 하단) ── */
@@ -14823,19 +14854,6 @@ function renderTracks(tracks,prompt,tags,mode){
     });
   });
 
-  /* 모든 모드: 재생 탭(🎵) 기본 활성화 */
-  /* 탭 이벤트 */
-  container.querySelectorAll('.rctab').forEach(tab=>{
-    tab.addEventListener('click',function(){
-      const panelId=this.dataset.tab;
-      const body=this.closest('.rc-body');
-      body.querySelectorAll('.rctab').forEach(t=>t.classList.remove('on'));
-      body.querySelectorAll('.rc-tab-panel').forEach(p=>p.classList.remove('on'));
-      this.classList.add('on');
-      const panel=document.getElementById(panelId);
-      if(panel)panel.classList.add('on');
-    });
-  });
   /* 삭제 버튼 이벤트 */
   batchWrap.querySelectorAll('[data-rc-delete]').forEach(btn=>{
     btn.addEventListener('click',function(){
@@ -14866,7 +14884,7 @@ function renderTracks(tracks,prompt,tags,mode){
   /* ✅ FIX: batchWrap 스코프로 이벤트 바인딩 — 이전 배치 중복 리스너 방지 */
   batchWrap.querySelectorAll('.ap-play-btn').forEach(btn=>btn.addEventListener('click',()=>{
     /* 결과 카드 재생 버튼 → 미니플레이어 오픈 */
-    const _ti=parseInt(btn.dataset.idx);
+    const _ti=parseInt(btn.dataset.trackIdx); /* data-track-idx = 배치 내 배열 인덱스 (i) */
     const _tr=tracks[_ti];
     if(_tr){
       const _tId=_tr.id||'';
@@ -14890,8 +14908,10 @@ function renderTracks(tracks,prompt,tags,mode){
   }));
   /* ── duration 없는 트랙: 메타데이터 프로브로 전체 시간 표시 ── */
   batchWrap.querySelectorAll('.ap-play-btn').forEach(btn=>{
-    const _pIdx=+btn.dataset.idx, _pUrl=btn.dataset.url;
-    const _pTrack=tracks[_pIdx];
+    const _pIdx=+btn.dataset.idx;          /* uid — DOM ID 조회용 */
+    const _pTrackIdx=+btn.dataset.trackIdx; /* i   — tracks[] 배열 조회용 */
+    const _pUrl=btn.dataset.url;
+    const _pTrack=tracks[_pTrackIdx];
     if(!_pTrack?.duration && _pUrl){
       const _timeEl=document.getElementById(`ap-time-${_pIdx}`);
       if(_timeEl) _timeEl.textContent='0:00 / 불러오는 중...';
@@ -14962,9 +14982,10 @@ function renderTracks(tracks,prompt,tags,mode){
     const plain=track?._inputLyrics||track?.lyric||track?.lyrics||track?.lrc||'';
     openKaraokePlayer(d.kpAudio||'',d.kpTitle||'',d.kpTags||'',d.kpImage||'',d.kpTask||'',audioId,plain);
   }
-  batchWrap.querySelectorAll('.rc-cover[data-kp-audio]').forEach(el=>el.addEventListener('click',()=>openKpFromEl(el)));
+  /* Option A: .rc-thumb이 메인 커버 역할 */
+  batchWrap.querySelectorAll('.rc-thumb[data-kp-audio]').forEach(el=>el.addEventListener('click',()=>openKpFromEl(el)));
   batchWrap.querySelectorAll('[data-kp-audio][data-kp-audio-id]').forEach(btn=>{
-    if(btn.classList.contains('rc-cover'))return; /* 이미 위에서 처리 */
+    if(btn.classList.contains('rc-thumb'))return; /* 이미 위에서 처리 */
     btn.addEventListener('click',()=>openKpFromEl(btn));
   });
   /* ✅ FIX: 가사 복사 — 실제 입력 가사 사용 */
@@ -15020,6 +15041,15 @@ function _batchPlayAll(btn){
     playBtns[0].click();
     toast('▶ 배치 재생','ok',1200);
   }
+}
+
+/* 가사 아코디언 토글 */
+function _toggleLyricsAccordion(toggleEl){
+  var body=toggleEl.nextElementSibling;
+  if(!body)return;
+  var isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  toggleEl.classList.toggle('open',!isOpen);
 }
 
 /* 배치 접기/펼치기 */
@@ -26618,17 +26648,14 @@ function toggleLyricsEdit(idx){
     if(area)area.focus();
   }
 }
-function saveLyricsEdit(idx){
-  const area=document.getElementById('lrc-edit-area-'+idx);
-  const plain=document.getElementById('lyrics-plain-'+idx);
+function saveLyricsEdit(uid){
+  const area=document.getElementById('lrc-edit-area-'+uid);
+  const plain=document.getElementById('lyrics-plain-'+uid);
   if(!area||!plain)return;
   const newText=area.value;
-  /* lastTracks 업데이트 */
-  if(lastTracks&&lastTracks[idx]){lastTracks[idx]._inputLyrics=newText;lastTracks[idx].lyric=newText;lastTracks[idx].lyrics=newText;}
-  /* historyData도 동기화 (페이지 이동 후 가사 유실 방지) */
-  const _lt=lastTracks?.[idx];
-  const audioUrl=_lt?.audioUrl||_lt?.audio_url||'';
-  const _trackId=_lt?.id||_lt?._sbId||_lt?.taskId||'';
+  /* data 속성으로 트랙 식별 (uid ≠ 배열 인덱스이므로 lastTracks[idx] 사용 불가) */
+  const _trackId=area.dataset.trackId||'';
+  const audioUrl=area.dataset.trackAudio||'';
   var h=null;
   if(audioUrl) h=historyData.find(function(x){return x.audioUrl===audioUrl||x.audio_url===audioUrl;});
   if(!h&&_trackId) h=historyData.find(function(x){return x.id===_trackId||x._sbId===_trackId||x.taskId===_trackId;});
@@ -26638,7 +26665,8 @@ function saveLyricsEdit(idx){
     if(typeof _saveTrackToServer==='function') _saveTrackToServer({id:h.id||h._sbId,lyrics:newText});
   }
   plain.innerHTML=parseLyrics(newText);
-  cancelLyricsEdit(idx);
+  /* 가사 표시 후 아코디언 토글 열림 상태 유지 */
+  cancelLyricsEdit(uid);
   toast('✅ 가사가 저장되었습니다','ok');
 }
 function cancelLyricsEdit(idx){
