@@ -5187,6 +5187,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="mtab on" data-mode="simple"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span data-i18n="simple">심플</span></button>
       <button class="mtab" data-mode="youtube"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.43z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z"/></svg> <span>YouTube</span></button>
       <button class="mtab" data-mode="mv"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/><path d="M2 7h20M2 17h20"/></svg> <span>MV</span></button>
+      <button class="mtab" data-mode="suno"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="18" cy="15" r="3"/><path d="M12 18V9l9-3v3"/></svg> <span>Suno</span></button>
     </div>
 
     <!-- 홈 위젯 (설정에서 켜기) -->
@@ -6074,6 +6075,66 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <!-- 결과 영역 -->
         <div id="mv-result-area" style="margin-top:16px;display:none;"></div>
       </div>
+
+      <!-- ━━━ Suno API 테스트 패널 ━━━ -->
+      <div class="mode-panel" id="panel-suno">
+
+        <!-- 안내 배너 -->
+        <div style="padding:10px 14px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:12px;font-size:12px;color:var(--acc);margin-bottom:16px;">
+          🧪 <strong>Suno API 테스트</strong> — kie.ai 레거시 Suno 엔드포인트 직접 호출
+        </div>
+
+        <!-- 곡 설명 (gpt_description_prompt) -->
+        <div class="suno-field">
+          <label class="suno-label">곡 설명 <span class="suno-hint">(스타일 자동 판단)</span></label>
+          <textarea class="suno-input" id="suno-desc" rows="3"
+            placeholder="예: upbeat K-pop song about summer, energetic and cheerful"></textarea>
+        </div>
+
+        <!-- 가사 (prompt) -->
+        <div class="suno-field">
+          <label class="suno-label">가사 <span class="suno-hint">(비워두면 AI 자동 생성)</span></label>
+          <textarea class="suno-input" id="suno-lyrics" rows="5"
+            placeholder="[Verse 1]&#10;가사를 직접 입력하거나 비워두세요..."></textarea>
+        </div>
+
+        <!-- 스타일 태그 (tags) -->
+        <div class="suno-field">
+          <label class="suno-label">스타일 태그 <span class="suno-hint">(쉼표로 구분)</span></label>
+          <input class="suno-input" id="suno-style" type="text" placeholder="예: k-pop, upbeat, female vocal, guitar">
+        </div>
+
+        <!-- 제목 -->
+        <div class="suno-field">
+          <label class="suno-label">곡 제목 <span class="suno-hint">(선택)</span></label>
+          <input class="suno-input" id="suno-title" type="text" placeholder="비워두면 자동 생성">
+        </div>
+
+        <!-- 옵션 -->
+        <div class="suno-options">
+          <div class="suno-opt" id="suno-inst-row" style="cursor:pointer;">
+            <span class="suno-opt-label">인스트루멘탈</span>
+            <div class="toggle-label-row" id="suno-inst-toggle" style="background:none;border:none;padding:0;">
+              <div class="toggle-switch"><div class="toggle-thumb"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 생성 버튼 -->
+        <div style="margin-top:20px;">
+          <button class="gen-btn" id="suno-gen-btn" onclick="generateSuno()" style="box-shadow:0 4px 24px rgba(124,58,237,.35);">
+            <span class="gen-spinner" id="suno-gen-spinner"></span>
+            <span id="suno-gen-txt">Suno로 만들기</span>
+          </button>
+        </div>
+
+        <!-- 디버그 영역 (API 응답 확인용) -->
+        <div style="margin-top:16px;padding-bottom:80px;">
+          <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">API 응답 (테스트용)</div>
+          <pre id="suno-debug" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;color:var(--t2);overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;"></pre>
+        </div>
+      </div>
+
       </div><!-- /mode-panel-wrap -->
     </div><!-- /prompt-card -->
 
@@ -6175,6 +6236,14 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <span class="rsec-count" id="rsec-count-mv"></span>
       </div>
       <div class="results-inner" id="results-inner-mv"></div>
+    </div>
+    <div id="results-suno" class="results-section" style="display:none;">
+      <div class="results-section-header">
+        <span class="rsec-icon">🎵</span>
+        <span class="rsec-label">Suno API</span>
+        <span class="rsec-count" id="rsec-count-suno"></span>
+      </div>
+      <div class="results-inner" id="results-inner-suno"></div>
     </div>
 
     <!-- 피드백 카드 -->
@@ -9584,7 +9653,7 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     /* 공용 nav 갱신 */
     if(typeof _updateFixedNav==='function') _updateFixedNav();
     /* 현재 모드 결과 섹션만 표시, 나머지 숨김 */
-    ['custom','simple','youtube','mv'].forEach(m=>{
+    ['custom','simple','youtube','mv','suno'].forEach(m=>{
       const s=document.getElementById('results-'+m);
       if(!s)return;
       if(m===currentMode){
@@ -9692,6 +9761,111 @@ $('simple-gen-btn').addEventListener('click',async()=>{
   }
   generate({_afterLyrics:true, prompt:(_sDesc+(_sMood?' '+_sMood:''))||'한국어 팝송'});
 });
+
+/* ── Suno 인스트루멘탈 토글 ── */
+var _sunoInstOn = false;
+(function(){
+  var row = $('suno-inst-row'), tog = $('suno-inst-toggle');
+  if(row) row.addEventListener('click', function(e){
+    e.stopPropagation();
+    _sunoInstOn = !_sunoInstOn;
+    if(tog) tog.classList.toggle('on', _sunoInstOn);
+  });
+})();
+
+/* ── Suno API 생성 함수 ── */
+async function generateSuno() {
+  if(typeof _globalGenerating !== 'undefined' && _globalGenerating){ toast('⏳ 생성 중이에요.','',2000); return; }
+  const desc = ($('suno-desc')?.value||'').trim();
+  const lyrics = ($('suno-lyrics')?.value||'').trim();
+  const style = ($('suno-style')?.value||'').trim();
+  const title = ($('suno-title')?.value||'').trim();
+
+  if(!desc && !lyrics){ toast('곡 설명 또는 가사를 입력해주세요','err',2500); return; }
+  if(!checkPlanLimit('song')) return;
+
+  var btn = $('suno-gen-btn');
+  var spinner = $('suno-gen-spinner');
+  var debugEl = $('suno-debug');
+  if(btn) btn.disabled = true;
+  if(spinner) spinner.style.display = 'inline-block';
+  if(debugEl){ debugEl.style.display = 'none'; debugEl.textContent = ''; }
+
+  var apiKey = typeof currentUser !== 'undefined' && currentUser ? (localStorage.getItem('kieApiKey')||'') : (localStorage.getItem('kieApiKey')||'');
+  var body = { mv: false };
+  if(desc) body.gpt_description_prompt = desc;
+  if(lyrics) body.prompt = lyrics;
+  if(style) body.tags = style;
+  if(title) body.title = title;
+  if(_sunoInstOn) body.make_instrumental = true;
+
+  try {
+    toast('Suno API 호출 중...','ok',2000);
+    var data = await kieRequest(apiKey, 'POST', '/api/suno/v1/music', body);
+    if(debugEl){ debugEl.style.display = 'block'; debugEl.textContent = JSON.stringify(data, null, 2); }
+
+    /* taskId 추출 — 레거시 응답 구조 대응 */
+    var taskId = data?.data?.taskId || data?.taskId || data?.data?.task_id || data?.task_id
+               || (Array.isArray(data?.data) && data.data[0]?.taskId);
+    if(!taskId){
+      /* 즉시 결과 반환 케이스 */
+      var immTracks = data?.data?.response?.sunoData || data?.data?.sunoData || data?.data?.tracks
+                    || (Array.isArray(data?.data) ? data.data : []);
+      if(immTracks.length && immTracks.some(function(t){ return t.audioUrl||t.audio_url||t.song_path; })){
+        _renderSunoTracks(immTracks, desc||lyrics, style);
+        return;
+      }
+      throw new Error('taskId 없음 — ' + JSON.stringify(data).slice(0,200));
+    }
+
+    toast('Suno 생성 중... 잠시 기다려주세요','ok',5000);
+    var tracks = await _pollSunoResult(apiKey, taskId, debugEl);
+    if(tracks.length){
+      _renderSunoTracks(tracks, desc||lyrics, style);
+    } else {
+      toast('Suno 트랙을 받지 못했어요. 디버그 영역을 확인해주세요','err',4000);
+    }
+  } catch(e) {
+    toast('Suno 오류: '+e.message,'err',4000);
+    if(debugEl){ debugEl.style.display = 'block'; debugEl.textContent = 'ERROR: '+e.message; }
+  } finally {
+    if(btn) btn.disabled = false;
+    if(spinner) spinner.style.display = 'none';
+  }
+}
+
+async function _pollSunoResult(apiKey, taskId, debugEl) {
+  for(var i = 0; i < 60; i++){
+    await new Promise(function(r){ setTimeout(r, 3000); });
+    try {
+      var poll = await kieRequest(apiKey, 'GET', '/api/v1/generate/record-info?taskId='+taskId);
+      if(debugEl){ debugEl.style.display = 'block'; debugEl.textContent = JSON.stringify(poll, null, 2); }
+      var tracks = poll?.data?.response?.sunoData || poll?.data?.sunoData || poll?.data?.tracks || poll?.sunoData || [];
+      var status = (poll?.data?.status||poll?.status||'').toLowerCase();
+      if(tracks.length && tracks.some(function(t){ return t.audioUrl||t.audio_url||t.song_path; })) return tracks;
+      if(status === 'complete' || status === 'success') break;
+      if(status === 'failed' || status === 'error') throw new Error('생성 실패 ('+status+')');
+    } catch(e) {
+      if(e.message.includes('생성 실패')) throw e;
+      /* 폴링 중 네트워크 오류는 무시하고 재시도 */
+    }
+  }
+  return [];
+}
+
+function _renderSunoTracks(tracks, prompt, style) {
+  if(typeof renderTracks === 'function'){
+    renderTracks(tracks, prompt, style, 'suno');
+  }
+  var sec = $('results-suno');
+  if(sec) sec.style.display = 'block';
+  var cnt = $('rsec-count-suno');
+  if(cnt) cnt.textContent = tracks.length+'곡';
+  setTimeout(function(){
+    var rs = $('results-suno');
+    if(rs) rs.scrollIntoView({behavior:'smooth',block:'start'});
+  }, 400);
+}
 
 /* ── YouTube 생성 버튼 ── */
 /* ── YouTube 곡 길이 옵션 ── */
