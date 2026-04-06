@@ -125,6 +125,37 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, rooms: CHAT_ROOMS });
     }
 
+    /* 일회성 테이블 마이그레이션 */
+    if (action === 'setup_tables' && SB_URL && SB_KEY) {
+      const projectRef = SB_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      if (!projectRef) return res.status(500).json({ error: 'cannot parse project ref' });
+      const sqls = [
+        `CREATE TABLE IF NOT EXISTS public.chat_reactions (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, msg_id TEXT NOT NULL, room TEXT NOT NULL DEFAULT 'general', emoji TEXT NOT NULL, author_name TEXT NOT NULL, author_provider TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(msg_id, emoji, author_name, author_provider))`,
+        `ALTER TABLE public.chat_reactions ENABLE ROW LEVEL SECURITY`,
+        `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='chat_reactions' AND policyname='chat_reactions_read') THEN CREATE POLICY chat_reactions_read ON public.chat_reactions FOR SELECT USING (true); END IF; END $$`,
+        `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='chat_reactions' AND policyname='chat_reactions_write') THEN CREATE POLICY chat_reactions_write ON public.chat_reactions FOR ALL USING (auth.role()='service_role'); END IF; END $$`,
+        `CREATE INDEX IF NOT EXISTS idx_chat_reactions_msg ON public.chat_reactions(msg_id)`,
+        `CREATE TABLE IF NOT EXISTS public.chat_reports (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, msg_id TEXT NOT NULL, room TEXT DEFAULT 'general', reporter_name TEXT NOT NULL, reporter_provider TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW())`,
+        `ALTER TABLE public.chat_reports ENABLE ROW LEVEL SECURITY`,
+        `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='chat_reports' AND policyname='chat_reports_write') THEN CREATE POLICY chat_reports_write ON public.chat_reports FOR ALL USING (auth.role()='service_role'); END IF; END $$`,
+        `CREATE INDEX IF NOT EXISTS idx_chat_reports_msg ON public.chat_reports(msg_id)`,
+        `ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ DEFAULT NULL`,
+      ];
+      const results = [];
+      for (const query of sqls) {
+        try {
+          const r = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+          });
+          const txt = await r.text(); let parsed; try { parsed = JSON.parse(txt); } catch { parsed = txt; }
+          results.push({ ok: r.status < 300, status: r.status, q: query.slice(0, 50), res: parsed });
+        } catch (e) { results.push({ ok: false, q: query.slice(0, 50), error: e.message }); }
+      }
+      return res.status(200).json({ ok: results.every(r => r.ok), results });
+    }
+
     /* 온라인 트래킹 */
     if (user) _trackOnline(user, provider || '');
 
