@@ -381,10 +381,6 @@ html,body{
   font-size:14px;-webkit-font-smoothing:antialiased;
   overflow-x:hidden;-webkit-text-size-adjust:100%;
 }
-::-webkit-scrollbar{width:3px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--acc);border-radius:3px;}
-
 /* ── 레이아웃 ── */
 .app-wrap{max-width:var(--sheet-max,480px);margin:0 auto;position:relative;}
 
@@ -702,6 +698,63 @@ textarea.form-input{resize:vertical;min-height:110px;line-height:1.7;}
   animation:spin .6s linear infinite;display:none;
 }
 .lspin.on{display:inline-block;}
+
+/* ── 전역 select 기본 — 클래스 없는 select 일괄 대응 ── */
+select:not(.opt-select){
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a09ab8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:12px;
+  padding-right:32px!important;font-family:inherit;cursor:pointer;
+}
+[data-theme="light"] select:not(.opt-select){
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2348484a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+/* hes-edit-input을 select에 쓸 때 화살표 추가 */
+select.hes-edit-input{
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a09ab8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:12px;
+  padding-right:36px;
+}
+[data-theme="light"] select.hes-edit-input{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2348484a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* ── 커스텀 시스템 다이얼로그 (confirm / prompt / alert) ── */
+#_sys-dialog-overlay{
+  display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px;
+}
+#_sys-dialog-overlay.on{display:flex;}
+#_sys-dialog-box{
+  background:var(--card2);border:1px solid var(--border2);
+  border-radius:24px;width:100%;max-width:320px;padding:28px 24px 20px;
+  box-shadow:0 32px 80px rgba(0,0,0,.6);
+  animation:_dlg-in .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes _dlg-in{from{transform:scale(.8) translateY(16px);opacity:0;}to{transform:none;opacity:1;}}
+#_sys-dialog-icon{font-size:40px;text-align:center;margin-bottom:12px;line-height:1;}
+#_sys-dialog-title{font-size:17px;font-weight:800;color:var(--t1);text-align:center;margin-bottom:6px;line-height:1.3;}
+#_sys-dialog-msg{font-size:13px;color:var(--t2);text-align:center;line-height:1.65;margin-bottom:20px;white-space:pre-wrap;word-break:keep-all;}
+#_sys-dialog-input{
+  width:100%;background:var(--bg2);border:1.5px solid var(--border2);
+  border-radius:12px;padding:11px 14px;color:var(--t1);
+  font-family:inherit;font-size:14px;margin-bottom:16px;
+  transition:border-color .2s;box-sizing:border-box;
+  -webkit-appearance:none;appearance:none;
+}
+#_sys-dialog-input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(124,58,237,.15);}
+#_sys-dialog-btns{display:flex;gap:8px;}
+.sys-dlg-btn{flex:1;padding:13px;border-radius:14px;border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+.sys-dlg-btn.cancel{background:var(--bg3);color:var(--t2);}
+.sys-dlg-btn.cancel:hover{background:rgba(255,255,255,.1);}
+.sys-dlg-btn.ok{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.3);}
+.sys-dlg-btn.ok:hover{opacity:.9;transform:translateY(-1px);}
+.sys-dlg-btn.ok.danger{background:linear-gradient(135deg,#ef4444,#f97316);box-shadow:0 4px 14px rgba(239,68,68,.3);}
+[data-theme="light"] #_sys-dialog-box{background:#fff;border-color:rgba(0,0,0,.08);}
+[data-theme="light"] #_sys-dialog-input{background:#f2f2f7;border-color:transparent;}
+[data-theme="light"] .sys-dlg-btn.cancel{background:#f2f2f7;color:#48484a;}
 
 /* 옵션 셀렉트 */
 .opt-select{
@@ -12379,15 +12432,16 @@ function _simpleToCustom(){
 function _resetLyrics(id){
   const ta=$(id);
   if(!ta || !ta.value) return;
-  if(!confirm('입력된 가사를 초기화할까요?')) return;
-  ta.value='';
-  ta.focus();
-  if(id==='prompt'){
-    _updateLyricsInfo();
-    const pw=$('lyrics-preview-wrap');
-    if(pw) pw.style.display='none';
-  }
-  toast('가사가 초기화되었습니다','',1500);
+  _confirm('입력된 가사를 초기화할까요?', function(){
+    ta.value='';
+    ta.focus();
+    if(id==='prompt'){
+      _updateLyricsInfo();
+      const pw=$('lyrics-preview-wrap');
+      if(pw) pw.style.display='none';
+    }
+    toast('가사가 초기화되었습니다','',1500);
+  });
 }
 
 /* ── AI 스타일 자동 추천 (로컬 키워드 매칭) ── */
@@ -14585,7 +14639,7 @@ function renderTracks(tracks,prompt,tags,mode){
     btn.addEventListener('click',function(){
       const audioId=this.dataset.rcDelete;
       const title=this.dataset.rcDeleteTitle||'이 곡';
-      if(!confirm('「'+title+'」을(를) 삭제하시겠어요?\n라이브러리에서도 제거됩니다.')){return;}
+      _confirm('「'+title+'」을(를) 삭제하시겠어요?\n라이브러리에서도 제거됩니다.', function(){
       /* 히스토리에서 제거 */
       const hIdx=historyData.findIndex(h=>h.id===audioId||h.audio_url===audioId);
       if(hIdx>=0){ historyData.splice(hIdx,1); saveHistory(); updateHistBadge(); }
@@ -14604,6 +14658,7 @@ function renderTracks(tracks,prompt,tags,mode){
         },300);
       }
       toast('🗑 삭제되었어요','ok',2000);
+      }); // _confirm end
     });
   });
   /* ✅ FIX: batchWrap 스코프로 이벤트 바인딩 — 이전 배치 중복 리스너 방지 */
@@ -18622,7 +18677,7 @@ function _renderPlaylistView(grid,countEl){
   if(countEl) countEl.textContent='플레이리스트 '+pl.length+'곡';
   /* 플레이리스트 선택 헤더 */
   var headerHtml='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
-    +'<select onchange="_switchPlaylist(this.selectedIndex)" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-weight:700;font-family:inherit;">';
+    +'<select onchange="_switchPlaylist(this.selectedIndex)" class="opt-select" style="flex:1;">';
   playlists.forEach(function(pItem,pIdx){
     headerHtml+='<option '+(pIdx===_currentPlIdx?'selected':'')+'>'+esc(pItem.name)+' ('+pItem.tracks.length+'곡)</option>';
   });
@@ -18755,34 +18810,37 @@ function _savePlaylists(pls){
 }
 
 function _createPlaylist(){
-  var name=prompt('새 플레이리스트 이름:');
-  if(!name) return;
-  var pls=_getPlaylists();
-  pls.push({id:'pl_'+Date.now(),name:name,tracks:[],created:Date.now()});
-  _savePlaylists(pls);
-  _currentPlIdx=pls.length-1;
-  renderHistoryView();
-  toast('플레이리스트 생성!','ok',1500);
+  _prompt('새 플레이리스트 이름:', '', function(name){
+    if(!name||!name.trim()) return;
+    var pls=_getPlaylists();
+    pls.push({id:'pl_'+Date.now(),name:name.trim(),tracks:[],created:Date.now()});
+    _savePlaylists(pls);
+    _currentPlIdx=pls.length-1;
+    renderHistoryView();
+    toast('플레이리스트 생성!','ok',1500);
+  });
 }
 
 function _renamePlaylist(){
   var pls=_getPlaylists();
-  var name=prompt('이름 변경:',pls[_currentPlIdx]?pls[_currentPlIdx].name:'');
-  if(!name) return;
-  pls[_currentPlIdx].name=name;
-  _savePlaylists(pls);
-  renderHistoryView();
+  _prompt('이름 변경:', pls[_currentPlIdx]?pls[_currentPlIdx].name:'', function(name){
+    if(!name||!name.trim()) return;
+    pls[_currentPlIdx].name=name.trim();
+    _savePlaylists(pls);
+    renderHistoryView();
+  });
 }
 
 function _deletePlaylist(){
   var pls=_getPlaylists();
   if(pls.length<=1){toast('마지막 플레이리스트는 삭제할 수 없어요','err');return;}
-  if(!confirm(pls[_currentPlIdx].name+' 을(를) 삭제할까요?')) return;
-  pls.splice(_currentPlIdx,1);
-  _currentPlIdx=0;
-  _savePlaylists(pls);
-  renderHistoryView();
-  toast('삭제되었어요','ok',1500);
+  _confirm(pls[_currentPlIdx].name+' 을(를) 삭제할까요?', function(){
+    pls.splice(_currentPlIdx,1);
+    _currentPlIdx=0;
+    _savePlaylists(pls);
+    renderHistoryView();
+    toast('삭제되었어요','ok',1500);
+  });
 }
 
 function _switchPlaylist(idx){
@@ -22573,7 +22631,8 @@ async function _loadChatMessages(){
 }
 
 async function _chatDeleteMsg(msgId){
-  if(!confirm('이 메시지를 삭제할까요?')) return;
+  const ok=await _confirmAsync('이 메시지를 삭제할까요?');
+  if(!ok) return;
   try{
     await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',msgId,author_name:currentUser.name,author_provider:currentUser.provider})});
     const el=document.querySelector(`[data-msg-id="${msgId}"]`);if(el) el.remove();
@@ -25198,23 +25257,23 @@ function _showMyData() {
   });
   msg += '\n히스토리: ' + (historyData||[]).length + '곡';
 
-  alert(msg);
+  _alert(msg, {title:'📦 저장 용량', icon:'📦', okText:'닫기'});
 }
 
 function _clearAllData() {
-  if (!confirm('정말 모든 데이터를 삭제하시겠습니까?\n히스토리, 플레이리스트, 설정 등이 모두 초기화됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
-  if (!confirm('마지막 확인: 정말 삭제합니까?')) return;
-
-  var keysToRemove = [];
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (key && key.startsWith('kms_')) keysToRemove.push(key);
-  }
-  keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
-
-  historyData = [];
-  toast('모든 데이터가 삭제되었어요', 'ok', 2000);
-  setTimeout(function() { location.reload(); }, 1500);
+  _confirm('정말 모든 데이터를 삭제하시겠습니까?\n히스토리, 플레이리스트, 설정 등이 모두 초기화됩니다.\n\n이 작업은 되돌릴 수 없습니다.', function(){
+    _confirm('마지막 확인: 정말 삭제합니까?', function(){
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.startsWith('kms_')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+      historyData = [];
+      toast('모든 데이터가 삭제되었어요', 'ok', 2000);
+      setTimeout(function() { location.reload(); }, 1500);
+    });
+  });
 }
 
 /* ── 법적 고지 (이용약관 / 개인정보 처리방침) ── */
@@ -25983,18 +26042,18 @@ window._updateCreditWarn=_updateCreditWarn;
       <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">🎤 내 아이디어</div>
       <textarea id="cws-my-prompt" placeholder="가사나 프롬프트를 입력하세요" style="width:100%;min-height:60px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:8px;"></textarea>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <select id="cws-my-genre" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;">
+        <select id="cws-my-genre" class="opt-select" style="flex:1;font-size:12px;border-radius:10px;padding:8px 32px 8px 10px;">
           <option value="">장르 선택</option>
           <option>K-Pop</option><option>Hip-Hop</option><option>Electronic</option><option>Rock</option>
           <option>Lo-Fi</option><option>Jazz</option><option>R&B</option><option>Ballad</option>
         </select>
-        <select id="cws-my-mood" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;">
+        <select id="cws-my-mood" class="opt-select" style="flex:1;font-size:12px;border-radius:10px;padding:8px 32px 8px 10px;">
           <option value="">분위기 선택</option>
           <option>신나는</option><option>잔잔한</option><option>슬픈</option><option>몽환적</option>
           <option>파워풀</option><option>로맨틱</option><option>긴장감</option><option>편안한</option>
         </select>
       </div>
-      <select id="cws-my-role" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:12px;font-family:inherit;margin-bottom:8px;">
+      <select id="cws-my-role" class="opt-select" style="width:100%;font-size:12px;border-radius:10px;padding:8px 32px 8px 10px;margin-bottom:8px;">
           <option value="">역할 선택 (선택)</option>
           <option value="vocalist">🎤 보컬리스트</option><option value="composer">🎹 작곡가</option><option value="lyricist">✍️ 작사가</option>
           <option value="producer">🎧 프로듀서</option><option value="rapper">🎤 래퍼</option><option value="all">🎵 올라운더</option>
@@ -26713,12 +26772,13 @@ function _createAlbum(){
   var tracks=historyData.filter(function(h){return h.audio_url;}).slice(0,5);
   if(tracks.length<2){toast('앨범을 만들려면 최소 2곡이 필요해요','err',2000);return;}
   var names=tracks.map(function(t,i){return (i+1)+'. '+(t.title||'무제');}).join('\n');
-  var albumName=prompt('앨범 이름을 입력하세요:\n\n'+names,'My Album');
-  if(!albumName) return;
-  var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');
-  albums.unshift({name:albumName,tracks:tracks.map(function(t){return{id:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url};}),created:Date.now()});
-  localStorage.setItem('kms_albums',JSON.stringify(albums.slice(0,10)));
-  toast('💿 앨범 "'+albumName+'" 생성 완료! ('+tracks.length+'곡)','ok',3000);
+  _prompt('앨범 이름을 입력하세요:\n\n'+names, 'My Album', function(albumName){
+    if(!albumName||!albumName.trim()) return;
+    var albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');
+    albums.unshift({name:albumName.trim(),tracks:tracks.map(function(t){return{id:t.id,title:t.title,audio_url:t.audio_url,image_url:t.image_url};}),created:Date.now()});
+    localStorage.setItem('kms_albums',JSON.stringify(albums.slice(0,10)));
+    toast('💿 앨범 "'+albumName.trim()+'" 생성 완료! ('+tracks.length+'곡)','ok',3000);
+  });
   renderHistoryView();
 }
 
@@ -26764,11 +26824,12 @@ function _playAlbum(idx){
 
 function _deleteAlbum(idx){
   var albums=[];try{albums=JSON.parse(localStorage.getItem('kms_albums')||'[]');}catch(e){}
-  if(!confirm((albums[idx]&&albums[idx].name?albums[idx].name:'앨범')+' 삭제?')) return;
-  albums.splice(idx,1);
-  localStorage.setItem('kms_albums',JSON.stringify(albums));
-  renderHistoryView();
-  toast('앨범 삭제됨','ok',1500);
+  _confirm((albums[idx]&&albums[idx].name?albums[idx].name:'앨범')+' 삭제?', function(){
+    albums.splice(idx,1);
+    localStorage.setItem('kms_albums',JSON.stringify(albums));
+    renderHistoryView();
+    toast('앨범 삭제됨','ok',1500);
+  });
 }
 window._renderAlbumCards=typeof _renderAlbumCards!=="undefined"?_renderAlbumCards:window._renderAlbumCards||function(){return'';};
 window._playAlbum=typeof _playAlbum!=="undefined"?_playAlbum:window._playAlbum||function(){};
@@ -27198,7 +27259,8 @@ async function _acceptCollab(id){
 
 async function _cancelCollab(id){
   if(!currentUser) return;
-  if(!confirm('콜라보 요청을 취소할까요?')) return;
+  const ok=await _confirmAsync('콜라보 요청을 취소할까요?');
+  if(!ok) return;
   try {
     var r = await fetch('/api/collabs', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -27214,7 +27276,8 @@ async function _cancelCollab(id){
 
 async function _declineCollab(id){
   if(!currentUser) return;
-  if(!confirm('콜라보 요청을 거절할까요?')) return;
+  const ok=await _confirmAsync('콜라보 요청을 거절할까요?');
+  if(!ok) return;
   try {
     var r = await fetch('/api/collabs', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -27778,17 +27841,18 @@ function _toggleFollow(){
 function _reportUser(){
   if(!currentUser){ openLoginSheet(); return; }
   if(!_pfTarget) return;
-  const reason = prompt('신고 사유를 입력하세요:');
-  if(!reason) return;
-  fetch('/api/profile', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      action:'report', reporterName:currentUser.name, reporterProvider:currentUser.provider,
-      targetType:'user', targetId:_pfTarget.name+'_'+_pfTarget.provider, reason
-    })
-  }).then(r=>r.json()).then(d=>{
-    toast(d.ok ? '🚩 신고 접수 완료' : '신고 실패', d.ok?'ok':'err', 2000);
-    if(d.ok) _notifyBot('\uD83D\uDEA8 \uC720\uC800 \uC2E0\uACE0\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'?')+' \u2192 '+(_pfTarget&&_pfTarget.name||'?')+'\n\u2757 '+reason);
+  _prompt('신고 사유를 입력하세요:', '', function(reason){
+    if(!reason||!reason.trim()) return;
+    fetch('/api/profile', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'report', reporterName:currentUser.name, reporterProvider:currentUser.provider,
+        targetType:'user', targetId:_pfTarget.name+'_'+_pfTarget.provider, reason:reason.trim()
+      })
+    }).then(r=>r.json()).then(d=>{
+      toast(d.ok ? '🚩 신고 접수 완료' : '신고 실패', d.ok?'ok':'err', 2000);
+      if(d.ok) _notifyBot('\uD83D\uDEA8 \uC720\uC800 \uC2E0\uACE0\n\n\uD83D\uDC64 '+(currentUser&&currentUser.name||'?')+' \u2192 '+(_pfTarget&&_pfTarget.name||'?')+'\n\u2757 '+reason.trim());
+    });
   });
 }
 
@@ -27799,12 +27863,13 @@ function _blockUser(){
   if(blocked.includes(key)){
     toast('이미 차단된 유저예요','',1500); return;
   }
-  if(!confirm(`${_pfTarget.name}님을 차단할까요?\n이 유저의 곡과 댓글이 숨겨집니다.`)) return;
-  blocked.push(key);
-  localStorage.setItem('kms_blocked', JSON.stringify(blocked));
-  toast('🚫 차단 완료','ok',2000);
-  closeProfileSheet();
-  renderCommunity(true);
+  _confirm(`${_pfTarget.name}님을 차단할까요?\n이 유저의 곡과 댓글이 숨겨집니다.`, function(){
+    blocked.push(key);
+    localStorage.setItem('kms_blocked', JSON.stringify(blocked));
+    toast('🚫 차단 완료','ok',2000);
+    closeProfileSheet();
+    renderCommunity(true);
+  });
 }
 
 /* ── 알림 인박스 ── */
@@ -28245,15 +28310,16 @@ function _nasExportSelected(){
 }
 
 function _nasDisconnect(){
-  if(!confirm('NAS 연결 설정을 삭제할까요?')) return;
-  localStorage.removeItem(_NAS_KEY);
-  document.getElementById('nas-qc-id').value='';
-  document.getElementById('nas-user').value='';
-  document.getElementById('nas-pass').value='';
-  document.getElementById('nas-path').value='/music/ddinggok';
-  document.getElementById('nas-disconnect-btn').style.display='none';
-  _nasStatusMsg('연결 설정이 삭제되었습니다','ok');
-  toast('🔌 NAS 연결 해제됨','ok',2000);
+  _confirm('NAS 연결 설정을 삭제할까요?', function(){
+    localStorage.removeItem(_NAS_KEY);
+    document.getElementById('nas-qc-id').value='';
+    document.getElementById('nas-user').value='';
+    document.getElementById('nas-pass').value='';
+    document.getElementById('nas-path').value='/music/ddinggok';
+    document.getElementById('nas-disconnect-btn').style.display='none';
+    _nasStatusMsg('연결 설정이 삭제되었습니다','ok');
+    toast('🔌 NAS 연결 해제됨','ok',2000);
+  });
 }
 window._openNasPanel=_openNasPanel;window._closeNasPanel=_closeNasPanel;window._nasConnect=_nasConnect;window._nasSaveConfig=_nasSaveConfig;window._nasOpenWeb=_nasOpenWeb;window._nasBackupAll=_nasBackupAll;window._nasExportSelected=_nasExportSelected;window._nasDisconnect=_nasDisconnect;
 window._checkAttendance=typeof _checkAttendance!=="undefined"?_checkAttendance:window._checkAttendance||function(){};
@@ -29840,7 +29906,10 @@ async function _lyricsExtractFromAudio(){
   var h=historyData[fpCurrentIdx];
   if(!h){toast('곡 정보 없음','err');return;}
   var existing=h.lyrics||h.lyric||h._inputLyrics||'';
-  if(existing.trim()&&existing.trim().length>20){if(!confirm('이미 가사가 있어요. 새로 추출하시겠어요?'))return;}
+  if(existing.trim()&&existing.trim().length>20){
+    const ok=await _confirmAsync('이미 가사가 있어요. 새로 추출하시겠어요?');
+    if(!ok) return;
+  }
   toast('🎤 AI 가사 추출 중...','',5000);
   var mainBox=$('fp-lyrics-main');
   if(mainBox) mainBox.innerHTML='<div class="fp-lm-empty" style="text-align:center;padding:20px;"><div style="font-size:24px;margin-bottom:8px;">🎤</div><div style="color:var(--t2);font-size:12px;">AI가 가사를 추출하고 있어요...</div><div style="margin-top:8px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;"><div id="lyric-ext-bar" style="width:10%;height:100%;background:var(--accent);border-radius:2px;transition:width .5s;"></div></div></div>';
@@ -31094,10 +31163,10 @@ function _openVocalAddModal(audioUrl, audioId, title){
     +'<textarea id="_va-prompt" rows="3" placeholder="원하는 보컬 스타일이나 가사를 입력하세요" style="width:100%;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);padding:10px 12px;font-size:13px;font-family:inherit;resize:none;"></textarea></div>'
     +'<div style="display:flex;gap:8px;margin-bottom:12px;">'
     +'<div style="flex:1;"><label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:4px;">성별</label>'
-    +'<select id="_va-gender" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:13px;font-family:inherit;">'
+    +'<select id="_va-gender" class="opt-select" style="width:100%;font-size:13px;border-radius:10px;padding:8px 32px 8px 10px;">'
     +'<option value="">자동</option><option value="f">여성</option><option value="m">남성</option></select></div>'
     +'<div style="flex:1;"><label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:4px;">모델</label>'
-    +'<select id="_va-model" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:13px;font-family:inherit;">'
+    +'<select id="_va-model" class="opt-select" style="width:100%;font-size:13px;border-radius:10px;padding:8px 32px 8px 10px;">'
     +'<option value="V4">V4 (권장)</option><option value="V4_5PLUS">V4.5 Plus</option><option value="V5">V5</option></select></div></div>'
     +'<button id="_va-submit" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">🎤 보컬 추가 시작</button>'
     +'</div>';
@@ -33217,6 +33286,85 @@ function _showQRCardDirect(title,imageUrl,trackId){
         _updateGiftBadge(unopened);
       }).catch(function(){});
   },1000);
+})();
+</script>
+
+<!-- ── 커스텀 시스템 다이얼로그 ── -->
+<div id="_sys-dialog-overlay">
+  <div id="_sys-dialog-box">
+    <div id="_sys-dialog-icon"></div>
+    <div id="_sys-dialog-title"></div>
+    <div id="_sys-dialog-msg"></div>
+    <input id="_sys-dialog-input" type="text" autocomplete="off">
+    <div id="_sys-dialog-btns">
+      <button class="sys-dlg-btn cancel" id="_sys-dlg-cancel">취소</button>
+      <button class="sys-dlg-btn ok" id="_sys-dlg-ok">확인</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ── 커스텀 다이얼로그 시스템 ── */
+(function(){
+  var _ov,_title,_msg,_icon,_input,_ok,_cancel,_resolve=null;
+  function _init(){
+    _ov=$('_sys-dialog-overlay');
+    _title=document.getElementById('_sys-dialog-title');
+    _msg=document.getElementById('_sys-dialog-msg');
+    _icon=document.getElementById('_sys-dialog-icon');
+    _input=document.getElementById('_sys-dialog-input');
+    _ok=document.getElementById('_sys-dlg-ok');
+    _cancel=document.getElementById('_sys-dlg-cancel');
+    _ov.addEventListener('click',function(e){if(e.target===_ov)_dismiss(false);});
+    document.addEventListener('keydown',function(e){
+      if(!_ov||!_ov.classList.contains('on'))return;
+      if(e.key==='Escape'){e.preventDefault();_dismiss(false);}
+      if(e.key==='Enter'){e.preventDefault();_dismiss(true);}
+    });
+  }
+  function _dismiss(result){
+    if(!_ov)return;
+    _ov.classList.remove('on');
+    var val=result?(_input.style.display!=='none'?(_input.value||''):true):false;
+    if(_resolve){_resolve(val);_resolve=null;}
+  }
+  function _show(opts){
+    if(!_ov)_init();
+    var isDanger=/삭제|차단|초기화|제거|취소|거절/.test(opts.msg||'');
+    _icon.textContent=opts.icon||(isDanger?'⚠️':'');
+    _icon.style.display=opts.icon||isDanger?'':'none';
+    _title.textContent=opts.title||'';
+    _title.style.display=opts.title?'':'none';
+    _msg.textContent=opts.msg||'';
+    _msg.style.display=opts.msg?'':'none';
+    _input.style.display=opts.input?'':'none';
+    _input.value=opts.default||'';
+    _input.placeholder=opts.placeholder||'';
+    _cancel.style.display=opts.showCancel!==false?'':'none';
+    _ok.textContent=opts.okText||(isDanger?'삭제':'확인');
+    _ok.className='sys-dlg-btn ok'+(isDanger?' danger':'');
+    _cancel.textContent=opts.cancelText||'취소';
+    _ov.classList.add('on');
+    if(opts.input)setTimeout(function(){_input.focus();if(_input.value)_input.select();},120);
+    _ok.onclick=function(){_dismiss(true);};
+    _cancel.onclick=function(){_dismiss(false);};
+    return new Promise(function(r){_resolve=r;});
+  }
+  /* 콜백 기반 */
+  window._confirm=function(msg,onYes,onNo){
+    _show({msg:msg}).then(function(r){if(r&&onYes)onYes();else if(!r&&onNo)onNo();});
+  };
+  window._prompt=function(msg,def,onOk,onCancel){
+    _show({msg:msg,input:true,default:def||'',showCancel:true,okText:'확인'}).then(function(r){
+      if(r!==false&&onOk)onOk(r);else if(r===false&&onCancel)onCancel();
+    });
+  };
+  window._alert=function(msg,opts){
+    opts=opts||{};
+    _show({msg:msg,showCancel:false,okText:opts.okText||'확인',title:opts.title||'',icon:opts.icon||'ℹ️'});
+  };
+  /* Promise 기반 (async 함수용) */
+  window._confirmAsync=function(msg){return _show({msg:msg});};
+  window._promptAsync=function(msg,def){return _show({msg:msg,input:true,default:def||'',showCancel:true});};
 })();
 </script>
 
