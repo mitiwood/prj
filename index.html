@@ -14408,12 +14408,15 @@ function parseLyrics(text){
   const lines=text.split('\n');
   let html='<div class="lyrics-text">';
   let lineIdx=0;
+  /* 선행/후행 공백 방지 */
+  let _started=false, _pendingBr='';
   lines.forEach(line=>{
     const trimmed=line.trim();
     if(trimmed){
+      html+=_pendingBr; _pendingBr=''; _started=true;
       html+=`<span class="lyric-line" data-line-idx="${lineIdx++}">${esc(trimmed)}</span>`;
     }else{
-      html+='<br>';
+      if(_started) _pendingBr+='<br>';
     }
   });
   return html+'</div>';
@@ -20451,60 +20454,41 @@ async function fpRenderLyrics(h){
   var _cacheKey=_tsTaskId+'_'+_tsAudioId;
 
   if(!_hasLrcTimestamps && _tsTaskId && _tsAudioId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
-    var _tsWords=[];
+    /* ★ 캐시 히트 → 즉시 렌더 후 return (블로킹 없음) */
     if(window._fpAlignedCache[_cacheKey]){
-      _tsWords=window._fpAlignedCache[_cacheKey];
-    } else {
-      try{
-        var _tsRes=await Promise.race([
-          kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_tsTaskId,audioId:_tsAudioId}),
-          new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},25000);})
-        ]);
-        _tsWords=_tsRes&&_tsRes.data&&_tsRes.data.alignedWords?_tsRes.data.alignedWords:[];
-        if(_tsWords.length) window._fpAlignedCache[_cacheKey]=_tsWords;
-      }catch(e){
-        console.warn('[fpRenderLyrics] timestamped-lyrics 실패, 재시도 예약:', e?.message);
-        /* 백그라운드 재시도 — music id error: 인덱싱 대기 필요 → 5s/15s/30s/60s/120s */
-        var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
-        var _retryDelays=[5000,15000,30000,60000,120000];
-        function _tsRetry(attempt){
-          if(attempt>=_retryDelays.length)return;
-          setTimeout(async function(){
-            try{
-              var _r2=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_retryTaskId,audioId:_retryAudioId});
-              var _w2=_r2&&_r2.data&&_r2.data.alignedWords?_r2.data.alignedWords:[];
-              if(_w2.length){
-                window._fpAlignedCache[_retryCK]=_w2;
-                var _curH=historyData[fpCurrentIdx];
-                var _curAudioId=_curH?.id||_curH?._sbId||'';
-                if(_curH&&(_curAudioId===_retryAudioId||(_curH.id===_retryH.id&&_curH.taskId===_retryTaskId))){
-                  fpRenderTimestampedLyrics(_w2);
-                  fpSyncMode=true;
-                  var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
-                  if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
-                  console.log('[fpRenderLyrics] 재시도 #'+(attempt+1)+' 성공, 싱크 갱신');
-                }
-              } else { _tsRetry(attempt+1); }
-            }catch(e2){ _tsRetry(attempt+1); }
-          },_retryDelays[attempt]);
-        }
-        _tsRetry(0);
-      }
-    }
-    /* API aligned words가 있으면 텍스트+타이밍 모두 사용 (실제 보컬과 일치) */
-    if(_tsWords.length){
-      fpRenderTimestampedLyrics(_tsWords);
+      var _cachedWords=window._fpAlignedCache[_cacheKey];
+      fpRenderTimestampedLyrics(_cachedWords);
       fpSyncMode=true;
       var sb=$('fp-lyrics-mode-btn');if(sb){sb.style.display='';sb.textContent='싱크 모드';}
-      /* 즉시 현재 위치로 싱크 — 렌더 지연으로 놓친 초반 라인 보정 */
       if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
-      /* 서버 DB 가사도 API 가사로 동기화 */
-      var _realLyrics=_tsWords.map(function(w){return w.word||'';}).join('').replace(/\[.*?\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
-      if(_realLyrics.length>20 && _realLyrics!==raw && typeof _saveTrackToServer==='function'){
-        _saveTrackToServer({id:h.id,lyrics:_realLyrics});
-      }
       return;
     }
+    /* ★ 캐시 미스 → await 없이 백그라운드 fetch (가사 즉시 렌더 후 업그레이드 방식) */
+    var _retryTaskId=_tsTaskId, _retryAudioId=_tsAudioId, _retryH=h, _retryCK=_cacheKey;
+    /* 첫 시도 0ms(즉시) → 실패 시 5s/15s/30s/60s/120s 재시도 */
+    var _retryDelays=[0,5000,15000,30000,60000,120000];
+    function _tsRetry(attempt){
+      if(attempt>=_retryDelays.length)return;
+      setTimeout(async function(){
+        try{
+          var _r2=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_retryTaskId,audioId:_retryAudioId});
+          var _w2=_r2&&_r2.data&&_r2.data.alignedWords?_r2.data.alignedWords:[];
+          if(_w2.length){
+            window._fpAlignedCache[_retryCK]=_w2;
+            var _curH=historyData[fpCurrentIdx];
+            var _curAudioId=_curH?.id||_curH?._sbId||'';
+            if(_curH&&(_curAudioId===_retryAudioId||(_curH.id===_retryH.id&&_curH.taskId===_retryTaskId))){
+              fpRenderTimestampedLyrics(_w2);
+              fpSyncMode=true;
+              var _sb2=$('fp-lyrics-mode-btn');if(_sb2){_sb2.style.display='';_sb2.textContent='싱크 모드';}
+              if(fpAudio&&!fpAudio.paused){_fpPrevActiveIdx=-1;fpSyncLyrics(fpAudio.currentTime);if(typeof _fpStartSyncLoop==='function')_fpStartSyncLoop();}
+              console.log('[fpRenderLyrics] 타임스탬프 #'+(attempt+1)+' 성공, 싱크 업그레이드');
+            }
+          } else { _tsRetry(attempt+1); }
+        }catch(e2){ if(attempt>0)console.warn('[tsRetry] #'+attempt,e2?.message); _tsRetry(attempt+1); }
+      },_retryDelays[attempt]);
+    }
+    _tsRetry(0); /* 백그라운드 시작 — 아래 plain 렌더는 즉시 계속 */
   }
 
   /* LRC 타임스탬프 파싱: [mm:ss.xx] 또는 [mm:ss] */
