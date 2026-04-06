@@ -34,7 +34,8 @@ async function sbPost(path, data) {
       apikey: SB_KEY,
       Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json; charset=utf-8',
-      Prefer: 'return=representation',
+      /* ignore-duplicates: 클라이언트가 이미 올바른 owner로 저장한 트랙은 덮어쓰지 않음 */
+      Prefer: 'return=representation,resolution=ignore-duplicates',
     },
     body: JSON.stringify(data),
   });
