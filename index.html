@@ -1520,6 +1520,9 @@ input[type=range]:not(.bpm-slider)::-webkit-slider-thumb{
 .pl-share-link input{flex:1;background:none;border:none;color:var(--t1);font-size:11px;font-family:inherit;outline:none;}
 .pl-share-link button{padding:4px 10px;border-radius:6px;border:none;background:var(--acc);color:#fff;font-size:10px;font-weight:700;cursor:pointer;}
 /* ━━━ Suno 스타일 심플 모드 ━━━ */
+/* ── 보컬 스튜디오 ── */
+.vs-step{animation:fadeIn .2s ease;}
+.vs-step-title{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 .suno-field{margin-bottom:20px;}
 .suno-label{display:block;font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;letter-spacing:-.2px;}
 .suno-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -16412,6 +16415,293 @@ function _vrStopRecord(){
   var el=$('vr-rec-stop-wrap');if(el)el.remove();
 }
 
+
+
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   보컬 스튜디오 (어드민 전용)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+var _vsSelectedTrack=null;
+var _vsVocalBlob=null;
+var _vsVocalUrl=null;
+var _vsRecorder2=null;
+var _vsRecChunks2=[];
+var _vsRecStream2=null;
+var _vsRecMrAudio2=null;
+var _vsRecTimerInt=null;
+var _vsRecSeconds=0;
+var _vsAnalyser2=null;
+var _vsAnimFrame2=null;
+var _vsPreviewAudios=[];
+
+function _vsRefreshTracks(){
+  var sel=document.getElementById('vs-track-select');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— 트랙을 선택하세요 —</option>';
+  var tracks=typeof historyData!=='undefined'?historyData:[];
+  var mrs=tracks.filter(function(h){return h.genMode==='vocal-removal'||(h.tags&&h.tags.includes('instrumental'));});
+  var others=tracks.filter(function(h){return mrs.indexOf(h)<0&&h.audio_url;});
+  function addOpt(h){
+    if(!h.audio_url)return;
+    var opt=document.createElement('option');
+    opt.value=h.id;
+    var label=(h.genMode==='vocal-removal'?'[MR] ':'')+(h.title||'제목없음');
+    opt.textContent=label.slice(0,40);
+    opt.dataset.url=h.audio_url;
+    opt.dataset.isMr=(h.genMode==='vocal-removal'||(h.tags&&h.tags.includes('instrumental')))?'1':'0';
+    opt.dataset.taskId=h.taskId||'';
+    sel.appendChild(opt);
+  }
+  mrs.forEach(addOpt);
+  others.forEach(addOpt);
+  if(sel.options.length<=1){
+    var o=document.createElement('option');o.disabled=true;
+    o.textContent='생성된 트랙이 없어요';sel.appendChild(o);
+  }
+  sel.onchange=function(){
+    var opt=sel.options[sel.selectedIndex];
+    if(!opt||!opt.dataset.url){
+      document.getElementById('vs-track-preview').style.display='none';
+      document.getElementById('vs-vr-notice').style.display='none';
+      document.getElementById('vs-do-vr-btn').style.display='none';
+      _vsSelectedTrack=null;return;
+    }
+    var url=opt.dataset.url;
+    var isMr=opt.dataset.isMr==='1';
+    _vsSelectedTrack=(typeof historyData!=='undefined'?historyData:[]).find(function(h){return h.id===opt.value;})||{id:opt.value,audio_url:url,title:opt.textContent,genMode:isMr?'vocal-removal':''};
+    document.getElementById('vs-track-audio').src=url;
+    document.getElementById('vs-track-preview').style.display='block';
+    document.getElementById('vs-vr-notice').style.display=isMr?'none':'block';
+    document.getElementById('vs-do-vr-btn').style.display=isMr?'none':'flex';
+  };
+}
+
+async function _vsDoVocalRemoval(){
+  if(!_vsSelectedTrack){toast('트랙을 먼저 선택해주세요','err');return;}
+  var btn=document.getElementById('vs-do-vr-btn');
+  var spin=document.getElementById('vs-vr-spin');
+  btn.disabled=true;spin.style.display='inline-block';
+  var CB=location.origin+'/api/kie-proxy?action=callback';
+  try{
+    var h=_vsSelectedTrack;
+    var d=await kieRequest(kieApiKey,'POST','/api/v1/vocal-removal/generate',{taskId:h.taskId||h.id,audioId:h.id,type:'separate_vocal',callBackUrl:CB});
+    var vrTid=d&&d.data&&(d.data.taskId||d.data.task_id)||d&&d.taskId;
+    if(!vrTid)throw new Error('taskId 없음');
+    toast('보컬 제거 중...','ok',3000);
+    var mrUrl='';
+    for(var i=0;i<40;i++){
+      await new Promise(function(r){setTimeout(r,4000);});
+      var r=await kieRequest(kieApiKey,'GET','/api/v1/vocal-removal/record-info?taskId='+vrTid);
+      var pd=r&&r.data;if(!pd)continue;
+      var st=(pd.status||pd.successFlag||'').toUpperCase();
+      if(st==='SUCCESS'||st==='COMPLETED'||st==='COMPLETE'||pd.successFlag==='SUCCESS'){
+        var rl=pd.response||pd.data||[];if(!Array.isArray(rl))rl=[rl];
+        var inst=rl.find(function(x){return x&&(x.type==='instrumental'||x.stem_type==='instrumental');});
+        mrUrl=(inst&&(inst.audio_url||inst.url))||'';break;
+      }
+      if(st.includes('FAILED')||st.includes('ERROR'))throw new Error('보컬 제거 실패');
+    }
+    if(!mrUrl)throw new Error('MR URL 없음');
+    var newH={id:Date.now().toString(),taskId:vrTid,title:'[MR] '+(h.title||''),audio_url:mrUrl,image_url:h.image_url||'',tags:'instrumental, MR',lyrics:'',created:Date.now(),type:'audio',genMode:'vocal-removal',_vocalRemovedFrom:h.id||''};
+    if(typeof historyData!=='undefined')historyData.unshift(newH);
+    _vsSelectedTrack=newH;
+    _vsRefreshTracks();
+    var sel=document.getElementById('vs-track-select');
+    if(sel){for(var j=0;j<sel.options.length;j++){if(sel.options[j].value===newH.id){sel.selectedIndex=j;sel.onchange&&sel.onchange();break;}}}
+    toast('보컬 제거 완료!','ok',3000);
+  }catch(e){toast('보컬 제거 실패: '+e.message,'err',4000);}
+  finally{btn.disabled=false;spin.style.display='none';}
+}
+
+function _vsGoStep(step){
+  ['track','record','mix'].forEach(function(s){
+    var el=document.getElementById('vs-step-'+s);
+    if(el)el.style.display=(s===step)?'block':'none';
+  });
+  if(step!=='mix')_vsStopPreview();
+}
+
+function _vsGoRecord(){
+  if(!_vsSelectedTrack||!_vsSelectedTrack.audio_url){toast('트랙을 선택해주세요','err');return;}
+  var info=document.getElementById('vs-rec-track-info');
+  if(info)info.textContent='트랙: '+(_vsSelectedTrack.title||'선택된 트랙');
+  _vsVocalBlob=null;_vsVocalUrl=null;
+  document.getElementById('vs-rec-result').style.display='none';
+  document.getElementById('vs-rec-timer').textContent='00:00';
+  _vsGoStep('record');
+}
+
+function _vsToggleRecord(){
+  if(_vsRecorder2&&_vsRecorder2.state==='recording'){_vsStopRecording2();}
+  else{_vsStartRecording2();}
+}
+
+function _vsStartRecording2(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('마이크를 지원하지 않는 브라우저예요','err');return;}
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}).then(function(stream){
+    _vsRecStream2=stream;
+    _vsRecMrAudio2=new Audio(_vsSelectedTrack.audio_url);
+    _vsRecMrAudio2.volume=0.8;
+    _vsRecMrAudio2.play().catch(function(){});
+    var actx=new AudioContext();
+    var msrc=actx.createMediaStreamSource(stream);
+    _vsAnalyser2=actx.createAnalyser();_vsAnalyser2.fftSize=512;
+    msrc.connect(_vsAnalyser2);
+    _vsDrawWaveform2();
+    _vsRecChunks2=[];
+    var mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+    _vsRecorder2=new MediaRecorder(stream,{mimeType:mime});
+    _vsRecorder2.ondataavailable=function(e){if(e.data.size>0)_vsRecChunks2.push(e.data);};
+    _vsRecorder2.onstop=function(){
+      stream.getTracks().forEach(function(t){t.stop();});
+      if(_vsRecMrAudio2){_vsRecMrAudio2.pause();_vsRecMrAudio2=null;}
+      clearInterval(_vsRecTimerInt);
+      cancelAnimationFrame(_vsAnimFrame2);
+      _vsVocalBlob=new Blob(_vsRecChunks2,{type:'audio/webm'});
+      _vsVocalUrl=URL.createObjectURL(_vsVocalBlob);
+      document.getElementById('vs-vocal-audio').src=_vsVocalUrl;
+      document.getElementById('vs-rec-result').style.display='block';
+      var dot=document.getElementById('vs-rec-dot');
+      if(dot){dot.style.background='#fff';dot.style.animation='';}
+      document.getElementById('vs-rec-txt').textContent='녹음 시작';
+      document.getElementById('vs-rec-btn').style.background='linear-gradient(135deg,#ec4899,#a855f7)';
+      document.getElementById('vs-rec-status').textContent='MR이 자동으로 재생되며 내 목소리만 녹음돼요';
+      var cv=document.getElementById('vs-waveform');
+      if(cv)cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+    };
+    _vsRecorder2.start(100);
+    _vsRecSeconds=0;
+    _vsRecTimerInt=setInterval(function(){
+      _vsRecSeconds++;
+      var m=Math.floor(_vsRecSeconds/60),s=_vsRecSeconds%60;
+      document.getElementById('vs-rec-timer').textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    },1000);
+    var dot=document.getElementById('vs-rec-dot');
+    if(dot){dot.style.background='#ef4444';dot.style.animation='pulse 0.8s infinite';}
+    document.getElementById('vs-rec-txt').textContent='녹음 중지';
+    document.getElementById('vs-rec-btn').style.background='linear-gradient(135deg,#ef4444,#dc2626)';
+    document.getElementById('vs-rec-status').textContent='🔴 녹음 중... MR과 함께 노래하세요';
+    document.getElementById('vs-rec-result').style.display='none';
+  }).catch(function(e){toast('마이크 접근 실패: '+e.message,'err',3000);});
+}
+
+function _vsStopRecording2(){
+  if(_vsRecorder2&&_vsRecorder2.state==='recording')_vsRecorder2.stop();
+  if(_vsRecMrAudio2){_vsRecMrAudio2.pause();_vsRecMrAudio2=null;}
+}
+
+function _vsDrawWaveform2(){
+  var cv=document.getElementById('vs-waveform');if(!cv||!_vsAnalyser2)return;
+  var ctx=cv.getContext('2d');
+  var buf=new Uint8Array(_vsAnalyser2.frequencyBinCount);
+  (function draw(){
+    _vsAnimFrame2=requestAnimationFrame(draw);
+    _vsAnalyser2.getByteTimeDomainData(buf);
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.beginPath();
+    var sliceW=cv.width/buf.length,x=0;
+    for(var i=0;i<buf.length;i++){
+      var v=buf[i]/128,y=v*(cv.height/2);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);x+=sliceW;
+    }
+    ctx.strokeStyle='#ec4899';ctx.lineWidth=2;ctx.stroke();
+  })();
+}
+
+function _vsReRecord(){
+  _vsVocalBlob=null;_vsVocalUrl=null;
+  document.getElementById('vs-rec-result').style.display='none';
+  document.getElementById('vs-rec-timer').textContent='00:00';
+  var cv=document.getElementById('vs-waveform');
+  if(cv)cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+}
+
+function _vsGoMix(){
+  if(!_vsVocalBlob){toast('먼저 녹음을 완료해주세요','err');return;}
+  _vsGoStep('mix');
+}
+
+function _vsPreviewMix(){
+  _vsStopPreview();
+  var mrVol=(document.getElementById('vs-mr-vol').value||80)/100;
+  var vcVol=(document.getElementById('vs-vc-vol').value||100)/100;
+  var mrA=new Audio(_vsSelectedTrack.audio_url);mrA.volume=mrVol;
+  var vcA=new Audio(_vsVocalUrl);vcA.volume=vcVol;
+  _vsPreviewAudios=[mrA,vcA];
+  mrA.play().catch(function(){});vcA.play().catch(function(){});
+  document.getElementById('vs-preview-btn').textContent='재생 중...';
+  function rst(){document.getElementById('vs-preview-btn').textContent='▶ 미리 듣기';}
+  mrA.onended=rst;vcA.onended=rst;
+}
+
+function _vsStopPreview(){
+  _vsPreviewAudios.forEach(function(a){try{a.pause();a.currentTime=0;}catch(e){}});
+  _vsPreviewAudios=[];
+  var pb=document.getElementById('vs-preview-btn');if(pb)pb.textContent='▶ 미리 듣기';
+}
+
+function _vsEncodeWAV(buffer){
+  var numCh=buffer.numberOfChannels,sr=buffer.sampleRate,ns=buffer.length;
+  var bps=16,dsz=ns*numCh*(bps/8);
+  var ab=new ArrayBuffer(44+dsz),view=new DataView(ab);
+  function ws(o,s){for(var i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));}
+  ws(0,'RIFF');view.setUint32(4,36+dsz,true);ws(8,'WAVE');
+  ws(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);
+  view.setUint16(22,numCh,true);view.setUint32(24,sr,true);
+  view.setUint32(28,sr*numCh*(bps/8),true);view.setUint16(32,numCh*(bps/8),true);view.setUint16(34,bps,true);
+  ws(36,'data');view.setUint32(40,dsz,true);
+  var off=44;
+  for(var i=0;i<ns;i++){for(var ch=0;ch<numCh;ch++){
+    var s=buffer.getChannelData(ch)[i];s=Math.max(-1,Math.min(1,s));
+    view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;
+  }}
+  return new Blob([ab],{type:'audio/wav'});
+}
+
+async function _vsExportMix(){
+  if(!_vsVocalBlob||!_vsSelectedTrack){toast('트랙과 녹음이 필요해요','err');return;}
+  var btn=document.getElementById('vs-export-btn');
+  var spin=document.getElementById('vs-export-spin');
+  var txt=document.getElementById('vs-export-txt');
+  btn.disabled=true;spin.style.display='inline-block';txt.textContent='믹싱 중...';
+  try{
+    var mrVol=(document.getElementById('vs-mr-vol').value||80)/100;
+    var vcVol=(document.getElementById('vs-vc-vol').value||100)/100;
+    toast('MR 다운로드 중...','ok',2000);
+    var mrResp=await fetch(_vsSelectedTrack.audio_url);
+    if(!mrResp.ok)throw new Error('MR 다운로드 실패');
+    var mrAB=await mrResp.arrayBuffer();
+    var vcAB=await _vsVocalBlob.arrayBuffer();
+    toast('오디오 디코딩 중...','ok',2000);
+    var tmpCtx=new AudioContext();
+    var mrBuf,vcBuf;
+    try{mrBuf=await tmpCtx.decodeAudioData(mrAB);}catch(e){throw new Error('MR 디코딩 실패: '+e.message);}
+    try{vcBuf=await tmpCtx.decodeAudioData(vcAB);}catch(e){throw new Error('보컬 디코딩 실패: '+e.message);}
+    await tmpCtx.close();
+    toast('렌더링 중...','ok',3000);
+    var SR=44100,dur=Math.max(mrBuf.duration,vcBuf.duration);
+    var offCtx=new OfflineAudioContext(2,Math.ceil(dur*SR),SR);
+    var mrSrc=offCtx.createBufferSource();mrSrc.buffer=mrBuf;
+    var mrGn=offCtx.createGain();mrGn.gain.value=mrVol;
+    mrSrc.connect(mrGn);mrGn.connect(offCtx.destination);mrSrc.start(0);
+    var vcSrc=offCtx.createBufferSource();vcSrc.buffer=vcBuf;
+    var vcGn=offCtx.createGain();vcGn.gain.value=vcVol;
+    vcSrc.connect(vcGn);vcGn.connect(offCtx.destination);vcSrc.start(0);
+    var rendered=await offCtx.startRendering();
+    var wavBlob=_vsEncodeWAV(rendered);
+    var wavUrl=URL.createObjectURL(wavBlob);
+    document.getElementById('vs-mixed-audio').src=wavUrl;
+    var title=(_vsSelectedTrack.title||'mixed').replace(/^\[MR\]\s*/,'').replace(/[^\w가-힣\s]/g,'').trim()||'mixed';
+    document.getElementById('vs-dl-btn').onclick=function(){downloadFile(wavUrl,title+'_MyVocal_Mix.wav');};
+    document.getElementById('vs-export-result').style.display='block';
+    toast('믹싱 완료! 🎉','ok',3000);
+  }catch(e){
+    toast('믹싱 실패: '+e.message,'err',4000);
+    console.error('[vs-mix]',e);
+  }finally{
+    btn.disabled=false;spin.style.display='none';txt.textContent='🎚 믹싱 & 다운로드';
+  }
+}
 
 /* ── 2차 바텀시트: 리믹스 & 도구 ── */
 function openHesToolsSheet(){
