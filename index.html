@@ -5208,6 +5208,7 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
       <button class="mtab" data-mode="youtube"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.43z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z"/></svg> <span>YouTube</span></button>
       <button class="mtab" data-mode="mv"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M10 9l5 3-5 3V9z"/><path d="M2 7h20M2 17h20"/></svg> <span>MV</span></button>
       <button class="mtab" data-mode="suno"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="18" cy="15" r="3"/><path d="M12 18V9l9-3v3"/></svg> <span>Suno</span></button>
+      <button class="mtab" data-mode="vocal-studio" id="tab-vocal-studio" style="display:none"><svg class="mtab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> <span>스튜디오</span></button>
     </div>
 
     <!-- 홈 위젯 (설정에서 켜기) -->
@@ -6155,6 +6156,117 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
           <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">API 응답 (테스트용)</div>
           <pre id="suno-debug" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;color:var(--t2);overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;"></pre>
         </div>
+      </div>
+
+      <!-- ━━━ 보컬 스튜디오 패널 (어드민 전용) ━━━ -->
+      <div class="mode-panel" id="panel-vocal-studio">
+        <!-- 헤더 -->
+        <div style="padding:12px 14px;background:linear-gradient(135deg,rgba(236,72,153,.1),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2);border-radius:14px;margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:2px;">🎙 내 보컬 스튜디오</div>
+          <div style="font-size:12px;color:var(--t3);">생성된 곡의 MR에 내 목소리를 녹음하고 믹싱해요</div>
+        </div>
+
+        <!-- STEP 1: 트랙 선택 -->
+        <div id="vs-step-track" class="vs-step">
+          <div class="vs-step-title">1. 트랙 선택</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:10px;">보컬 제거(MR)된 트랙이나 생성된 곡을 선택하세요</div>
+          <select id="vs-track-select" style="width:100%;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--t1);font-size:13px;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;outline:none;">
+            <option value="">— 트랙을 선택하세요 —</option>
+          </select>
+          <div id="vs-track-preview" style="display:none;margin-top:10px;">
+            <audio id="vs-track-audio" controls style="width:100%;border-radius:10px;"></audio>
+          </div>
+          <div id="vs-vr-notice" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;font-size:12px;color:#f59e0b;">
+            ⚠️ 이 트랙에는 아직 보컬이 포함되어 있어요. MR로 변환하거나, 원곡에 직접 녹음할 수 있어요.
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button id="vs-do-vr-btn" style="display:none;flex:1;padding:10px;border-radius:10px;border:none;background:rgba(245,158,11,.15);color:#f59e0b;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="_vsDoVocalRemoval()">
+              <span id="vs-vr-spin" class="lspin" style="display:none;"></span> 🎛 보컬 제거하기
+            </button>
+            <button id="vs-select-btn" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="_vsGoRecord()">
+              이 트랙으로 녹음 시작 →
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: 녹음 -->
+        <div id="vs-step-record" class="vs-step" style="display:none;">
+          <div class="vs-step-title">2. 내 목소리 녹음</div>
+          <div id="vs-rec-track-info" style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--t2);margin-bottom:12px;"></div>
+
+          <!-- 파형 시각화 -->
+          <canvas id="vs-waveform" width="340" height="60" style="width:100%;height:60px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);margin-bottom:12px;display:block;"></canvas>
+
+          <!-- 녹음 컨트롤 -->
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
+            <button id="vs-rec-btn" style="padding:14px 28px;border-radius:50px;border:none;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;" onclick="_vsToggleRecord()">
+              <span id="vs-rec-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block;"></span>
+              <span id="vs-rec-txt">녹음 시작</span>
+            </button>
+          </div>
+          <div id="vs-rec-timer" style="text-align:center;font-size:24px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums;margin-bottom:12px;letter-spacing:2px;">00:00</div>
+          <div id="vs-rec-status" style="text-align:center;font-size:12px;color:var(--t3);margin-bottom:16px;">MR이 자동으로 재생되며 내 목소리만 녹음돼요</div>
+
+          <!-- 녹음 결과 (완료 후 표시) -->
+          <div id="vs-rec-result" style="display:none;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">내 녹음</div>
+            <audio id="vs-vocal-audio" controls style="width:100%;border-radius:10px;margin-bottom:12px;"></audio>
+            <div style="display:flex;gap:8px;">
+              <button style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--s2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="_vsReRecord()">다시 녹음</button>
+              <button style="flex:2;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="_vsGoMix()">믹싱하기 →</button>
+            </div>
+          </div>
+
+          <button style="margin-top:12px;width:100%;padding:8px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;" onclick="_vsGoStep('track')">← 트랙 다시 선택</button>
+        </div>
+
+        <!-- STEP 3: 믹싱 -->
+        <div id="vs-step-mix" class="vs-step" style="display:none;">
+          <div class="vs-step-title">3. 믹싱</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px;">MR과 내 목소리의 볼륨을 조절해서 믹싱해요</div>
+
+          <!-- 볼륨 슬라이더 -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;">
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:700;color:var(--t2);">🎵 MR 볼륨</span>
+                <span id="vs-mr-vol-val" style="font-size:12px;color:var(--acc);font-weight:700;">80%</span>
+              </div>
+              <input type="range" id="vs-mr-vol" min="0" max="100" value="80" style="width:100%;accent-color:var(--acc);" oninput="document.getElementById('vs-mr-vol-val').textContent=this.value+'%'">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:700;color:var(--t2);">🎙 내 목소리 볼륨</span>
+                <span id="vs-vc-vol-val" style="font-size:12px;color:#ec4899;font-weight:700;">100%</span>
+              </div>
+              <input type="range" id="vs-vc-vol" min="0" max="150" value="100" style="width:100%;accent-color:#ec4899;" oninput="document.getElementById('vs-vc-vol-val').textContent=this.value+'%'">
+            </div>
+          </div>
+
+          <!-- 미리 듣기 -->
+          <div id="vs-preview-wrap" style="margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">미리 듣기 (동시 재생)</div>
+            <div style="display:flex;gap:8px;">
+              <button id="vs-preview-btn" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--s2);color:var(--t1);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="_vsPreviewMix()">▶ 미리 듣기</button>
+              <button style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--s2);color:var(--t1);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="_vsStopPreview()">⏹ 정지</button>
+            </div>
+          </div>
+
+          <!-- 믹싱 + 내보내기 -->
+          <button id="vs-export-btn" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="_vsExportMix()">
+            <span id="vs-export-spin" class="lspin" style="display:none;"></span>
+            <span id="vs-export-txt">🎚 믹싱 & 다운로드</span>
+          </button>
+          <div id="vs-export-result" style="display:none;margin-top:14px;">
+            <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;">믹싱 완료!</div>
+            <audio id="vs-mixed-audio" controls style="width:100%;border-radius:10px;margin-bottom:8px;"></audio>
+            <button id="vs-dl-btn" style="width:100%;padding:10px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 다운로드</button>
+          </div>
+
+          <button style="margin-top:12px;width:100%;padding:8px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;font-family:inherit;" onclick="_vsGoStep('record')">← 다시 녹음</button>
+        </div>
+
+        <div style="padding-bottom:80px;"></div>
       </div>
 
       </div><!-- /mode-panel-wrap -->
@@ -9687,7 +9799,7 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     /* 공용 nav 갱신 */
     if(typeof _updateFixedNav==='function') _updateFixedNav();
     /* 현재 모드 결과 섹션만 표시, 나머지 숨김 */
-    ['custom','simple','youtube','mv','suno'].forEach(m=>{
+    ['custom','simple','youtube','mv','suno','vocal-studio'].forEach(m=>{
       const s=document.getElementById('results-'+m);
       if(!s)return;
       if(m===currentMode){
@@ -9700,8 +9812,21 @@ document.querySelectorAll('.mtab').forEach(tab=>{
     });
     /* MV 탭 진입 시 트랙 셀렉트 업데이트 */
     if(currentMode==='mv')mvRefreshTrackSelect();
+    /* 보컬 스튜디오 탭 진입 시 트랙 목록 업데이트 */
+    if(currentMode==='vocal-studio')_vsRefreshTracks();
   });
 });
+
+/* ── 어드민 전용 탭 초기화 ── */
+(function(){
+  function _initAdminTabs(){
+    var tab=document.getElementById('tab-vocal-studio');
+    if(tab) tab.style.display=_isAdmin()?'':'none';
+  }
+  _initAdminTabs();
+  /* 로그인 상태 변경 시 재확인 */
+  document.addEventListener('kms:authChanged',_initAdminTabs);
+})();
 
 /* ── 심플 인스트루멘탈 토글 ── */
 var simpleInstOn=false;
@@ -11938,7 +12063,10 @@ $('lyrics-btn').addEventListener('click',async()=>{
     let text = '';
     let kieSuccess = false;
     try{
-      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:(lyricsPrompt||'').slice(0,200), callBackUrl:CALLBACK});
+      const _lang=$('lyrics-lang')?.value||'Korean';
+      const _langPrefix=_lang==='Korean'?'Korean lyrics: ':_lang==='Japanese'?'Japanese lyrics: ':_lang==='Chinese'?'Chinese lyrics: ':_lang==='English'?'English lyrics: ':'Korean lyrics: ';
+      const _kiePrompt=(_langPrefix+(lyricsPrompt||'')).slice(0,200);
+      const data=await kieRequest(apiKey,'POST','/api/v1/lyrics',{prompt:_kiePrompt, callBackUrl:CALLBACK});
       trackUsage('lyrics',{mode:'auto-lyrics'});
       const taskId=data?.data?.taskId||data?.taskId;
       if(taskId){
@@ -11981,8 +12109,10 @@ $('lyrics-btn').addEventListener('click',async()=>{
       const subEl = document.getElementById('_lyricsgen_sub');
       if(subEl) subEl.innerHTML = 'Claude AI로 작사 전환 중...<br><span style="font-size:11px;color:#6b6780;">거의 다 됐어요!</span>';
       const artistHint = refArtist ? ` 아티스트 스타일: ${refArtist} 느낌으로.` : '';
-      const sys = '당신은 전문 작사가입니다. 한국어 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.';
-      const usr = `다음 테마/분위기로 감성적인 한국어 노래 가사를 작성해주세요: "${lyricsPrompt}"${artistHint}`;
+      const _fbLang=$('lyrics-lang')?.value||'Korean';
+      const _fbLangName=_fbLang==='Japanese'?'일본어':_fbLang==='Chinese'?'중국어':_fbLang==='English'?'영어':'한국어';
+      const sys = `당신은 전문 작사가입니다. ${_fbLangName} 노래 가사를 [Verse 1], [Chorus], [Verse 2], [Bridge] 구조로 작성하세요. 가사만 출력하고 설명은 하지 마세요.`;
+      const usr = `다음 테마/분위기로 감성적인 ${_fbLangName} 노래 가사를 작성해주세요: "${lyricsPrompt}"${artistHint}`;
       text = await callClaudeStream(sys, usr, (partial)=>{
         if(_lyricsGenCancelled) throw new Error('취소됨');
         const subEl2 = document.getElementById('_lyricsgen_sub');
