@@ -13584,6 +13584,27 @@ async function generate(overrideParams){
       if(!savedLyrics && !instOn){
         _autoFillLyrics(_newTrack, apiKey);
       }
+      /* ★ 타임스탬프 선로딩 — 생성 직후 즉시 풀플레이어 열어도 싱크 맞도록 선캐싱 */
+      if(!instOn && t.id && lastTaskId && typeof kieApiKey!=='undefined' && kieApiKey && typeof kieRequest==='function'){
+        (function(_pfId,_pfTask){
+          if(typeof window._fpAlignedCache==='undefined') window._fpAlignedCache={};
+          var _pfKey=_pfTask+'_'+_pfId;
+          var _pfDelays=[1000,4000,12000]; /* 1s/4s/12s — 인덱싱 대기 */
+          function _pfRetry(a){
+            if(a>=_pfDelays.length||window._fpAlignedCache[_pfKey])return;
+            setTimeout(async function(){
+              if(window._fpAlignedCache[_pfKey])return;
+              try{
+                var _pf=await kieRequest(kieApiKey,'POST','/api/v1/generate/get-timestamped-lyrics',{taskId:_pfTask,audioId:_pfId});
+                var _pw=_pf&&_pf.data&&_pf.data.alignedWords?_pf.data.alignedWords:[];
+                if(_pw.length){window._fpAlignedCache[_pfKey]=_pw;console.log('[preFetch] 타임스탬프 선캐싱 완료:',_pfId);}
+                else _pfRetry(a+1);
+              }catch(e){_pfRetry(a+1);}
+            },_pfDelays[a]);
+          }
+          _pfRetry(0);
+        })(t.id, lastTaskId);
+      }
     });
     historyData=historyData.slice(0,50);
     saveHistory();updateHistBadge();
@@ -20626,8 +20647,11 @@ function _fpAssignTimes(){
     if(/^\[.*\]$/.test(txt.trim())) w=0.3; /* 섹션 헤더는 짧게 */
     weights.push(w); totalW+=w;
   }
-  /* 곡 앞 5%(인트로), 뒤 3%(아웃트로) 마진 — Hip-Hop 등 빠른 곡 대응 */
-  var t0=dur*0.05, usable=dur*0.92;
+  /* 인트로/아웃트로 마진 — YouTube/심플은 인트로가 길어 10%, 커스텀은 7% */
+  var _gmMode=historyData[fpCurrentIdx]?.genMode||'custom';
+  var _introRatio=(_gmMode==='youtube'||_gmMode==='simple')?0.10:0.07;
+  var _outroRatio=0.08;
+  var t0=dur*_introRatio, usable=dur*(1-_introRatio-_outroRatio);
   _fpLrcTimes=[];
   var cursor=t0;
   for(var ti=0;ti<n;ti++){
