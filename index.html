@@ -20456,9 +20456,17 @@ async function fpRenderLyrics(h){
   let hasLrc = false;
   const parsedLines=[]; /* {time:초|null, text, isSection} */
 
+  /* 선행/후행 공백 방지: 첫 가사 전 spacer 추가 안 함, 마지막 가사 후 spacer 버림 */
+  let _lyricStarted = false;
+  let _pendingSpacers = '';
+
   lines.forEach(line => {
     const trimmed = line.trim();
-    if(!trimmed){ html += '<div style="height:6px;"></div>'; return; }
+    if(!trimmed){
+      /* 아직 가사가 시작되지 않았으면 선행 공백 무시 */
+      if(_lyricStarted) _pendingSpacers += '<div style="height:6px;"></div>';
+      return;
+    }
     const lrcMatch = trimmed.match(lrcRe);
     if(lrcMatch){
       const mins=parseInt(lrcMatch[1]), secs=parseInt(lrcMatch[2]);
@@ -20469,6 +20477,7 @@ async function fpRenderLyrics(h){
       if(!text)return;
       hasLrc=true;
       parsedLines.push({time:timeSec, text, isSection:false});
+      html += _pendingSpacers; _pendingSpacers=''; _lyricStarted=true;
       html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(text)}</div>`;
       lyricLineIdx++;
     } else if(/^\[.+\]$/i.test(trimmed)){
@@ -20476,6 +20485,7 @@ async function fpRenderLyrics(h){
       return;
     } else {
       parsedLines.push({time:null, text:trimmed, isSection:false});
+      html += _pendingSpacers; _pendingSpacers=''; _lyricStarted=true;
       html += `<div class="fp-lm-line" data-li="${lyricLineIdx}" onclick="fpSeekToLine(this)">${esc(trimmed)}</div>`;
       lyricLineIdx++;
     }
