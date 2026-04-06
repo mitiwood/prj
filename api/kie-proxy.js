@@ -38,6 +38,7 @@ const CREDIT_PATHS = {
   '/api/v1/lyrics/generate':      'lyrics',
   '/api/v1/vocal-removal/create': 'vr',
   '/api/v1/jobs/createTask':      'mv',
+  '/api/suno/v1/music':           'song', /* Suno 레거시 생성 */
 };
 
 function isPathAllowed(path) {
