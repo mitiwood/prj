@@ -2495,7 +2495,6 @@ body.mp-on #claude-chat-fab{bottom:130px;}
 }
 .hist-card:hover{background:var(--card2);transform:translateY(-1px);box-shadow:var(--card-shadow);}
 .hist-card:last-child{border-bottom:none;}
-.hist-card:hover{background:var(--card2);}
 .hist-card-disabled{opacity:.5;}
 .hist-card-disabled .hist-thumb{filter:grayscale(1);}
 /* 스와이프 삭제 */
@@ -2767,19 +2766,6 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
   display:flex;align-items:center;justify-content:center;
 }
 .comm-hero-img img{width:100%;height:100%;object-fit:cover;}
-.comm-hero-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(20,20,30,.90) 30%,rgba(20,20,30,.25) 60%,transparent 80%);
-  pointer-events:none;
-}
-.comm-hero-overlay>*{pointer-events:auto;}
-.comm-hero-controls{
-  display:flex;align-items:center;gap:8px;margin-bottom:8px;
-}
-.comm-hero-play:hover{transform:scale(1.08);}
-.comm-hero-prog{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;width:100px;cursor:pointer;}
-.comm-hero-prog-fill{height:100%;background:#fff;border-radius:2px;width:0%;}
-.comm-hero-time{font-size:11px;color:rgba(255,255,255,.7);}
 .comm-hero-badges{position:absolute;top:12px;right:12px;display:flex;gap:6px;}
 .comm-like-badge{
   display:flex;align-items:center;gap:4px;
@@ -2787,18 +2773,7 @@ body.mp-on #hes-tools-sheet{bottom:calc(56px + 62px);}
   padding:5px 9px;border-radius:12px;font-size:11px;
 }
 .comm-hero-info{padding:14px 16px;}
-.comm-hero-title{font-size:20px;font-weight:800;margin-bottom:3px;}
 .comm-hero-desc{font-size:12px;color:var(--t2);margin-bottom:10px;}
-.comm-hero-actions{display:flex;gap:7px;}
-.comm-hero-act{
-  padding:7px 13px;border-radius:var(--rx);
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
-  font-size:12px;font-weight:700;color:var(--t2);
-  cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;
-}
-.comm-hero-act:hover{background:rgba(255,255,255,.15);color:#fff;}
-.comm-hero-act.liked{color:var(--red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1);}
-.comm-hero-act.disliked{color:var(--t3);}
 /* 1위 뱃지 */
 .comm-hero-rank-badge{
   position:absolute;top:12px;left:12px;
@@ -3874,11 +3849,6 @@ body.mp-on .rc-sheet-box{margin-bottom:calc(56px + 62px);max-height:55vh;}
 .rc-sheet-body{display:flex;flex-direction:column;gap:12px;}
 .rc-sheet-close{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .rc-sheet-title-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-/* comm-hero overlay elements */
-.comm-hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;background:linear-gradient(to top,rgba(10,10,15,.97) 30%,transparent);}
-.comm-hero-badge{display:inline-block;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);font-size:10px;font-weight:800;padding:2px 8px;border-radius:var(--rx);margin-bottom:5px;}
-.comm-hero-meta{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;}
-.comm-hero-placeholder{width:100%;height:200px;background:linear-gradient(135deg,#1a0537,#3d1a5a);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;}
 /* kp */
 .kp-loading{display:flex;align-items:center;gap:8px;padding:20px;font-size:12px;color:var(--t3);}
 .kp-spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(168,85,247,.3);border-top-color:var(--acc2);animation:spin .6s linear infinite;flex-shrink:0;}
@@ -14642,8 +14612,8 @@ function renderTracks(tracks,prompt,tags,mode){
       /* 히스토리에서 제거 */
       const hIdx=historyData.findIndex(h=>h.id===audioId||h.audio_url===audioId);
       if(hIdx>=0){ historyData.splice(hIdx,1); saveHistory(); updateHistBadge(); }
-      /* 서버에서도 삭제 */
-      if(audioId){ _deleteTrackFromServer(audioId).catch(function(){}); }
+      /* 서버에서도 삭제 + 커뮤니티 캐시 즉시 제거 */
+      if(audioId){ _deleteTrackFromServer(audioId).catch(function(){}); _purgeFromCommCache(audioId); }
       /* 현재 재생 중이면 정지 */
       if(activeAudio && activeAudio._trackId===audioId){ stopAllAudio(); hideMiniPlayer(); }
       /* 카드 UI 제거 (애니메이션) */
@@ -15513,6 +15483,7 @@ function _histDeleteTrack(idx){
     _haptic.heavy();
     var wasPlaying=fpCurrentIdx===idx;
     if(h.id&&typeof _deleteTrackFromServer==='function') _deleteTrackFromServer(h.id);
+    if(h.id&&typeof _purgeFromCommCache==='function') _purgeFromCommCache(h.id);
     historyData.splice(idx,1);
     saveHistory();updateHistBadge();renderHistoryView();
     if(wasPlaying&&historyData.length>0) showMiniPlayer(Math.min(idx,historyData.length-1));
@@ -15538,6 +15509,7 @@ function _showFailedTrackDialog(idx){
     '삭제',
     function(){
       if(h.id&&typeof _deleteTrackFromServer==='function') _deleteTrackFromServer(h.id);
+      if(h.id&&typeof _purgeFromCommCache==='function') _purgeFromCommCache(h.id);
       historyData.splice(idx,1);
       saveHistory();updateHistBadge();renderHistoryView();
       toast('삭제되었어요','ok',1500);
@@ -17471,6 +17443,15 @@ function _deleteTrackFromServer(trackId){
 function _deleteAllTracksFromServer(){
   if(!currentUser?.name) return;
   fetch('/api/tracks?all=true&owner='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider||'guest'),{method:'DELETE'}).catch(function(){});
+}
+/* 커뮤니티 캐시(_sbTracks)에서 즉시 제거 + 커뮤니티 뷰 열려 있으면 재렌더 */
+function _purgeFromCommCache(trackId){
+  if(!trackId||typeof _sbTracks==='undefined') return;
+  var before=_sbTracks.length;
+  _sbTracks=_sbTracks.filter(function(t){return (t._sbId||t.id)!==trackId;});
+  if(_sbTracks.length===before) return; /* 캐시에 없으면 재렌더 불필요 */
+  var cv=document.getElementById('community-view');
+  if(cv&&cv.classList.contains('on')) try{renderCommunity(true);}catch(e){}
 }
 
 /* 오디오 URL 재생 가능 여부 검증 */
