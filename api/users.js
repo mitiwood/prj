@@ -182,6 +182,7 @@ export default async function handler(req, res) {
         } catch {}
       }
 
+      let entry = null; /* catch 블록에서도 접근 가능하도록 try 밖에 선언 */
       try {
         /* 기존 유저 조회 — 같은 이름(다른 provider 포함) 검색 */
         let existingCount = 0;
@@ -218,7 +219,7 @@ export default async function handler(req, res) {
           }
         } catch {}
 
-        const entry = {
+        entry = {
           name: dbName, provider, /* dbName: 커스텀 닉네임 우선 (email 매칭 시) */
           email:       userEmail,
           avatar:      (avatar || '').replace(/^http:\/\//i, 'https://'),
