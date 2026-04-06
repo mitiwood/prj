@@ -13110,8 +13110,7 @@ function _resetGenerateInputs(mode){
     _clrHtml('ref-artist-tags');_clrHtml('ai-style-applied');
     if(typeof _refArtistStyleTags!=='undefined') _refArtistStyleTags='';
     _rmC('#mood-grid .mood-chip','on');
-    _setR('bpm-slider',120);var bd=$('bpm-display');if(bd)bd.textContent='120';
-    var ba=$('bpm-auto-btn');if(ba)ba.classList.remove('on');
+    _setR('bpm-slider',120);
     _setR('style-weight',0.65);_setR('weird-constraint',0.65);
     _setR('eq-low',0);_setR('eq-mid',0);_setR('eq-high',0);
     _setR('mix-comp',0.5);_setR('mix-reverb',0.3);_setR('audio-weight',0.5);
@@ -13121,6 +13120,7 @@ function _resetGenerateInputs(mode){
   }
   _rmC('.preset-chip','active');
   selectedBpm=120;bpmAuto=true;instOn=false;vocalGender='';selectedDuration=0;
+  if(typeof updateBpmDisplay==='function') updateBpmDisplay();
   /* 감정/가사 미리보기/전역 상태 초기화 */
   if(typeof selectedEmotions!=='undefined') selectedEmotions.clear();
   _rmC('.emotion-chip','on');
