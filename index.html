@@ -23434,6 +23434,7 @@ var _followStateCache={};
 var _followBatchLoaded=false;
 var _followBatchLoadedAt=0;
 var _FOLLOW_CACHE_TTL=300000; /* 5분 */
+var _followBatchPromise=null; /* 진행 중인 배치 fetch 중복 방지 */
 
 /* 페이지 로드 시 localStorage에서 캐시 복원 (앱 재진입에도 유지) */
 ;(function(){
@@ -23460,25 +23461,37 @@ function _applyFollowToBtn(btn){
 
 /* 커뮤니티 진입 전 팔로우 목록 프리로드 (await 가능) */
 var _followPendingOps={}; /* 낙관적 UI 진행 중인 팔로우 작업 보호 */
+
+/* 배치 fetch 공유 — 중복 API 호출 방지 */
+function _fetchFollowBatch(){
+  if(!currentUser)return Promise.resolve(null);
+  if(_followBatchLoaded&&(Date.now()-_followBatchLoadedAt)<_FOLLOW_CACHE_TTL)return Promise.resolve(null);
+  if(_followBatchPromise)return _followBatchPromise; /* 진행 중인 요청 재사용 */
+  _followBatchPromise=fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.ok&&d.followingSet){
+        var now=Date.now();
+        Object.keys(_followStateCache).forEach(function(k){
+          if(_followPendingOps[k]&&(now-_followPendingOps[k])<5000) return;
+          _followStateCache[k]=false;
+        });
+        Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
+        _followBatchLoaded=true;
+        _followBatchLoadedAt=Date.now();
+        _saveFollowCache();
+      }
+      return d;
+    })
+    .catch(function(){return null;})
+    .finally(function(){_followBatchPromise=null;});
+  return _followBatchPromise;
+}
+
 async function _preloadFollowStates(){
   if(!currentUser)return;
   if(_followBatchLoaded&&(Date.now()-_followBatchLoadedAt)<_FOLLOW_CACHE_TTL)return;
-  try{
-    var r=await fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider));
-    var d=await r.json();
-    if(d.ok&&d.followingSet){
-      /* DB 결과 적용 — 단, 최근 3초 이내 낙관적 변경은 보호 */
-      var now=Date.now();
-      Object.keys(_followStateCache).forEach(function(k){
-        if(_followPendingOps[k]&&(now-_followPendingOps[k])<5000) return; /* 보호 */
-        _followStateCache[k]=false;
-      });
-      Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
-      _followBatchLoaded=true;
-      _followBatchLoadedAt=Date.now();
-      _saveFollowCache();
-    }
-  }catch(e){}
+  await _fetchFollowBatch();
 }
 
 function _loadCommFollowStates(container){
@@ -23495,22 +23508,10 @@ function _loadCommFollowStates(container){
   /* 기존 캐시 있으면 먼저 적용 (깜빡임 방지) */
   if(_followBatchLoaded) allBtns.forEach(_applyFollowToBtn);
 
-  /* DB에서 팔로우 목록 조회 */
-  fetch('/api/profile?name=_&provider=_&action=batch-follow-check&viewerName='+encodeURIComponent(currentUser.name)+'&viewerProvider='+encodeURIComponent(currentUser.provider))
-    .then(function(r){return r.json();}).then(function(d){
-      if(d.ok&&d.followingSet){
-        var now=Date.now();
-        Object.keys(_followStateCache).forEach(function(k){
-          if(_followPendingOps[k]&&(now-_followPendingOps[k])<5000) return; /* 낙관적 변경 보호 */
-          _followStateCache[k]=false;
-        });
-        Object.keys(d.followingSet).forEach(function(k){_followStateCache[k]=true;});
-        _followBatchLoaded=true;
-        _followBatchLoadedAt=Date.now();
-        _saveFollowCache();
-      }
-      allBtns.forEach(_applyFollowToBtn);
-    }).catch(function(){});
+  /* 공유 Promise로 중복 fetch 방지 */
+  (_followBatchPromise||_fetchFollowBatch())
+    .then(function(){allBtns.forEach(_applyFollowToBtn);})
+    .catch(function(){});
 }
 
 
@@ -23773,23 +23774,30 @@ function _creatorFollowToggle(btn){
 
 /* 커뮤니티 리스트 재생시간 비동기 로드 */
 var _durCache={};
+var _durLoading=new Set(); /* 로드 중인 트랙 ID — 중복 Audio 객체 생성 방지 */
 function _loadCommDurations(tracks){
   tracks.forEach(t=>{
     if(!t.audioUrl||!t._sbId)return;
     var el=document.getElementById('comm-dur-'+t._sbId);
     if(!el)return;
     if(_durCache[t._sbId]){el.textContent=_durCache[t._sbId];return;}
+    if(_durLoading.has(t._sbId))return; /* 이미 로드 중이면 스킵 */
+    _durLoading.add(t._sbId);
     var a=new Audio();
     a.preload='metadata';
     a.src=t.audioUrl;
-    var _cleanup=function(){try{a.pause();a.removeAttribute('src');a.load();}catch(e){}};
+    var _cleanup=function(){
+      _durLoading.delete(t._sbId);
+      try{a.pause();a.removeAttribute('src');a.load();}catch(e){}
+    };
     var _timeout=setTimeout(function(){_cleanup();},8000);
     a.addEventListener('loadedmetadata',function(){
       clearTimeout(_timeout);
       if(a.duration&&isFinite(a.duration)){
         var d=formatTime(a.duration);
         _durCache[t._sbId]=d;
-        el.textContent=d;
+        /* 무한 스크롤로 DOM이 교체되어도 적용되도록 querySelectorAll 사용 */
+        document.querySelectorAll('#comm-dur-'+t._sbId).forEach(function(e){e.textContent=d;});
       }
       _cleanup();
     });
@@ -23816,7 +23824,7 @@ async function _loadCommentCounts(trackIds){
   if(Date.now()-_commentCacheTTL<_COMMENT_CACHE_MS) return;
   /* 미캐시 항목만 배치 조회 (한 번에 최대 50개) */
   const uncached=trackIds.filter(tid=>_commentCountCache[tid]===undefined);
-  const toFetch=uncached.length?uncached:trackIds.slice(0,20);
+  const toFetch=(uncached.length?uncached:trackIds.slice(0,20)).slice(0,50);
   if(!toFetch.length) return;
   try{
     const r=await fetch('/api/comments?action=counts&ids='+toFetch.join(','));
@@ -28143,18 +28151,16 @@ async function callClaudeStream(systemPrompt, userPrompt, onChunk){
   const msgs = [];
   if(systemPrompt) msgs.push({ role:'system', content: systemPrompt });
   msgs.push({ role:'user', content: userPrompt });
-  try{
-    const res = await fetch('/api/kie-proxy', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ path: KIE_LLM_PATH, method: 'POST', body: { messages: msgs, stream: false } })
-    });
-    if(!res.ok){ const e=await res.json().catch(()=>({})); var _em=e?.error?.message||e?.msg||''; if(/credit|balance.*too low/i.test(_em))_em=_t('errCreditLow'); throw new Error(_em||_t('errApiError')+' '+res.status); }
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content || '';
-    if(content && onChunk) onChunk(content);
-    return content;
-  }catch(e){ throw e; }
+  const res = await fetch('/api/kie-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ path: KIE_LLM_PATH, method: 'POST', body: { messages: msgs, stream: false } })
+  });
+  if(!res.ok){ const e=await res.json().catch(()=>({})); var _em=e?.error?.message||e?.msg||''; if(/credit|balance.*too low/i.test(_em))_em=_t('errCreditLow'); throw new Error(_em||_t('errApiError')+' '+res.status); }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content || '';
+  if(content && onChunk) onChunk(content);
+  return content;
 }
 
 /* kie.ai Gemini - 검색 포함 비스트리밍 (서버 프록시 경유) */
@@ -28310,8 +28316,9 @@ async function aiTrendStyle(){
   try{
     const genre = $('genre-sub')?.value || $('genre-cat')?.value || 'K-pop';
     const moodContext = $('mood')?.value ? ` 분위기: ${$('mood').value}` : '';
+    const year = new Date().getFullYear();
     const result = await callClaudeWithSearch(
-      `2026년 현재 ${genre} 음악에서 가장 핫한 트렌드 스타일 키워드 10개를 쉼표로 구분해서 영문으로만 답해줘.${moodContext} 각각 2~5단어의 구체적인 프로덕션 스타일 구문으로. 실제 차트 상위곡, 신보, 트렌드를 반영해줘. 예: "cinematic trap drop, airy falsetto hook, heavy 808 sub-bass, dreamy ambient synth, Y2K pop revival, dark R&B, lo-fi bedroom pop, hyperpop glitch, phonk drift beat, emotional piano ballad"`
+      `${year}년 현재 ${genre} 음악에서 가장 핫한 트렌드 스타일 키워드 10개를 쉼표로 구분해서 영문으로만 답해줘.${moodContext} 각각 2~5단어의 구체적인 프로덕션 스타일 구문으로. 실제 차트 상위곡, 신보, 트렌드를 반영해줘. 예: "cinematic trap drop, airy falsetto hook, heavy 808 sub-bass, dreamy ambient synth, Y2K pop revival, dark R&B, lo-fi bedroom pop, hyperpop glitch, phonk drift beat, emotional piano ballad"`
     );
     if(result){
       const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<50).slice(0,10);
@@ -28365,8 +28372,7 @@ async function aiMoodToStyle(){
     const sys = '당신은 10년 경력 음악 프로듀서입니다. Suno AI에서 고퀄리티 곡을 생성하기 위한 구체적인 스타일 태그를 제안하세요. 각 태그는 프로덕션 방식, 보컬 스타일, 악기, 분위기, 리듬 패턴 등 실제 음악적 요소를 반영해야 합니다. 8가지를 쉼표로 구분해서 영문으로만 답하세요.';
     const usr = `다음 정보에 어울리는 구체적인 음악 프로덕션 스타일 태그 8가지: ${context}${artistContext}
 각각 다른 음악적 측면을 커버하세요: (1)장르 세부 (2)보컬 (3)비트/리듬 (4)악기 (5)사운드 텍스처 (6)분위기 (7)프로덕션 기법 (8)에너지/템포`;
-    let result = '';
-    await callClaudeStream(sys, usr, (p) => { result = p; });
+    const result = await callClaudeStream(sys, usr);
     if(result){
       const chips = result.replace(/["""'']/g,'').split(',').map(s=>s.trim()).filter(s=>s && s.length>2 && s.length<60).slice(0,8);
       if(chips.length){
@@ -32695,9 +32701,14 @@ function _showQRCardDirect(title,imageUrl,trackId){
   /* ── 선물 열기 ── */
   window._openGift=async function(id){
     try{
-      await fetch('/api/gifts',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
-      toast('\uD83C\uDF81 \uC120\uBB3C\uC744 \uC5F4\uC5C8\uC5B4\uC694!','ok',2000);
-      _loadGifts();
+      var r=await fetch('/api/gifts',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      var d=await r.json();
+      if(d.ok!==false){
+        toast('\uD83C\uDF81 \uC120\uBB3C\uC744 \uC5F4\uC5C8\uC5B4\uC694!','ok',2000);
+        _loadGifts();
+      } else {
+        toast('\uC120\uBB3C \uC5F4\uAE30 \uC2E4\uD328','err',2000);
+      }
     }catch(e){}
   };
 
@@ -32719,7 +32730,7 @@ function _showQRCardDirect(title,imageUrl,trackId){
   /* ── 탭 전환 ── */
   window._switchGiftTab=function(tab){
     _giftTab=tab;
-    document.querySelectorAll('.gift-tab').forEach(function(b){b.classList.toggle('on',b.dataset.giftTab===tab);});
+    document.querySelectorAll('#gift-view .gift-tab').forEach(function(b){b.classList.toggle('on',b.dataset.giftTab===tab);});
     _loadGifts();
   };
 
@@ -32936,7 +32947,8 @@ function _showQRCardDirect(title,imageUrl,trackId){
       if(d.ok){
         toast('\uD83C\uDF81 '+toName+'\uB2D8\uC5D0\uAC8C \uC120\uBB3C\uC744 \uBCF4\uB0C8\uC5B4\uC694!','ok',3000);
         _closeGiftSendSheet();
-        _switchGiftTab('sent');
+        var giftView=$('gift-view');
+        if(giftView&&giftView.classList.contains('on')) _switchGiftTab('sent');
       } else {
         toast('\uC120\uBB3C \uC804\uC1A1 \uC2E4\uD328: '+(d.error||''),'err',3000);
       }
@@ -32956,13 +32968,13 @@ function _showQRCardDirect(title,imageUrl,trackId){
   /* ── 초기 배지 로드 ── */
   setTimeout(function(){
     if(!currentUser)return;
-    fetch('/api/gifts?to='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider))
+    fetch('/api/gifts?to='+encodeURIComponent(currentUser.name)+'&provider='+encodeURIComponent(currentUser.provider)+'&select=id,opened')
       .then(function(r){return r.json();})
       .then(function(d){
         var unopened=(d.gifts||[]).filter(function(g){return !g.opened;}).length;
         _updateGiftBadge(unopened);
       }).catch(function(){});
-  },3000);
+  },1000);
 })();
 </script>
 

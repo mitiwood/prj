@@ -42,13 +42,11 @@ export default async function handler(req, res) {
   /* ── GET: 선물 목록 조회 ── */
   if (req.method === 'GET') {
     const { to, from, provider } = req.query;
-    let path = '/gifts?order=created_at.desc&limit=50';
-    if (to) path += `&to_name=ilike.${encodeURIComponent(to)}`;
-    if (from) path += `&from_name=ilike.${encodeURIComponent(from)}`;
-    if (provider) {
-      if (to) path += `&to_provider=eq.${encodeURIComponent(provider)}`;
-      if (from) path += `&from_provider=eq.${encodeURIComponent(provider)}`;
-    }
+    let path = '/gifts?select=id,from_name,to_name,track_title,track_image,track_audio_url,track_tags,message,emoji,opened,created_at&order=created_at.desc&limit=50';
+    if (to) path += `&to_name=eq.${encodeURIComponent(to)}`;
+    if (from) path += `&from_name=eq.${encodeURIComponent(from)}`;
+    if (provider && to) path += `&to_provider=eq.${encodeURIComponent(provider)}`;
+    if (provider && from) path += `&from_provider=eq.${encodeURIComponent(provider)}`;
     const rows = await sb('GET', path);
     return res.status(200).json({ ok: true, gifts: rows || [] });
   }
