@@ -9613,7 +9613,7 @@ function _applyGenModeConfig(){
   });
   tabs.forEach(function(tab){
     var cfg=gm[tab.dataset.mode];
-    var hidden=(cfg&&cfg.enabled===false);
+    var hidden=cfg ? cfg.enabled===false : false;
     tab.classList.toggle('mtab-hidden',hidden);
     tab.style.display=''; /* display:none 제거 — CSS transition으로 처리 */
     parent.appendChild(tab);
