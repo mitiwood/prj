@@ -57,29 +57,20 @@ export default async function handler(req, res) {
   // ── Step 1: 멀티소스 메타데이터 수집 ──
   let title = '', author = '', description = '', category = '', tags = '', duration = '', publishDate = '', _subtitles = '';
 
-  // 1-a) oEmbed (기본)
-  try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-    const r = await fetch(oembedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (r.ok) {
-      const d = await r.json();
-      title  = d.title       || '';
-      author = d.author_name || '';
-    }
-  } catch (e) {
-    console.warn('[yt-analyze] oEmbed:', e.message);
-  }
+  // 1-a) oEmbed + 1-b) noembed 병렬 fetch (순차 → 병렬로 ~300ms 단축)
+  const encodedUrl = encodeURIComponent(url);
+  const [oembedResult, noembedResult] = await Promise.allSettled([
+    fetch(`https://www.youtube.com/oembed?url=${encodedUrl}&format=json`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+      .then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`https://noembed.com/embed?url=${encodedUrl}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+      .then(r => r.ok ? r.json() : null).catch(() => null),
+  ]);
 
-  // 1-b) noembed.com (추가 메타데이터)
-  try {
-    const noembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
-    const r2 = await fetch(noembedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (r2.ok) {
-      const d2 = await r2.json();
-      if (!title && d2.title) title = d2.title;
-      if (!author && d2.author_name) author = d2.author_name;
-    }
-  } catch (e) { /* noembed 실패 무시 */ }
+  const oembedData  = oembedResult.status  === 'fulfilled' ? oembedResult.value  : null;
+  const noembedData = noembedResult.status === 'fulfilled' ? noembedResult.value : null;
+
+  if (oembedData)  { title  = oembedData.title       || ''; author = oembedData.author_name || ''; }
+  if (noembedData) { if (!title && noembedData.title) title = noembedData.title; if (!author && noembedData.author_name) author = noembedData.author_name; }
 
   // 1-c) YouTube 페이지에서 메타데이터 스크래핑 (설명, 태그, 카테고리)
   if (videoId) {
@@ -226,7 +217,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
+          max_tokens: 2048,
           messages: [{ role: 'user', content: analysisPrompt }],
         }),
       });

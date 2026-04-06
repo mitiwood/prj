@@ -9906,7 +9906,7 @@ async function _ytDoGenerate(){
   if(_genRetryTimer){clearTimeout(_genRetryTimer);_genRetryTimer=null;}
   if(_genCancelled) return; /* 취소 상태면 즉시 중단 */
   if(_ytGenerating) return;
-  if(_globalGenerating){ _showGeneratingPopup(); return; }
+  if(_globalGenerating || _QueueManager.isBusy('music')){ _showGeneratingPopup(); return; }
 
   var apiKey = kieApiKey;
   if(!apiKey){ toast('API 키 로딩 중... 잠시 후 다시 시도','err'); return; }
@@ -13234,7 +13234,7 @@ async function generate(overrideParams){
     styleWeight: sw, weirdness: wc, isCustom
   });
 
-  const prompt=lyricsText||styleStr||'happy pop song';
+  let prompt=lyricsText||styleStr||'happy pop song';
   /* 심플모드: simple-lyrics 실제 입력값만 가사로 저장 (설명/분위기 텍스트 제외) */
   if(isSimple){
     lastLyricsInput=($('simple-lyrics')?.value||'').trim();
