@@ -113,9 +113,9 @@ async function checkServerCredit(userName, userProvider, creditType) {
     /* supervisor: 무제한 즉시 통과 */
     if (plan === 'supervisor') return { ok: true, plan: 'supervisor' };
 
-    /* 최고 권한 이메일 → supervisor 강제 승격 */
+    /* 최고 권한 이메일 → supervisor 강제 승격 (fire-and-forget) */
     if (user.email && OWNER_EMAILS.includes(user.email.toLowerCase())) {
-      try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+      sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }).catch(() => {});
       return { ok: true, plan: 'supervisor' };
     }
 
@@ -124,26 +124,11 @@ async function checkServerCredit(userName, userProvider, creditType) {
       try {
         const byEmail = await sbFetch('GET', `/users?email=eq.${encodeURIComponent(user.email)}&plan=eq.supervisor&select=plan&limit=1`);
         if (byEmail?.[0]) {
-          /* 현재 계정도 supervisor로 자동 승격 */
-          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
+          sbFetch('PATCH', `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }).catch(() => {});
           return { ok: true, plan: 'supervisor' };
         }
       } catch {}
     }
-
-    /* DB에 supervisor 플랜 사용자인지 전역 검색 (이름 다를 수 있음) */
-    try {
-      const svAll = await sbFetch('GET', `/users?plan=eq.supervisor&select=name,email&limit=10`);
-      if (svAll?.length) {
-        /* 현재 사용자의 email이 supervisor 목록에 있으면 승격 */
-        const userEmail = user.email || '';
-        const match = svAll.find(sv => sv.email && userEmail && sv.email.toLowerCase() === userEmail.toLowerCase());
-        if (match) {
-          try { await sbFetch('PATCH', `/users?name=eq.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`, { plan: 'supervisor', credits_song: 9999, credits_mv: 9999, credits_lyrics: 9999 }); } catch {}
-          return { ok: true, plan: 'supervisor' };
-        }
-      }
-    } catch {}
 
     /* 만료 체크 */
     if (plan !== 'free' && user.plan_expires && new Date(user.plan_expires) < new Date()) {
@@ -177,16 +162,14 @@ async function checkServerCredit(userName, userProvider, creditType) {
       return { ok: false, reason: 'limit_exceeded', plan, used, limit, upgrade: plan === 'free' ? 'pro' : 'creator' };
     }
 
-    /* 선차감: 크레딧 컬럼을 즉시 -1 하여 동시 요청 race condition 방어 */
+    /* 선차감: 크레딧 컬럼을 즉시 -1 (fire-and-forget — 생성 응답 지연 방지) */
     const creditCol = creditType === 'song' || creditType === 'vr' ? 'credits_song' : creditType === 'mv' ? 'credits_mv' : 'credits_lyrics';
     const currentCredits = user?.[creditCol] != null ? user[creditCol] : limit;
     if (currentCredits > 0) {
-      try {
-        await sbFetch('PATCH',
-          `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
-          { [creditCol]: Math.max(0, currentCredits - 1) }
-        );
-      } catch (e) { console.warn('[kie-proxy] pre-deduct fail:', e.message); }
+      sbFetch('PATCH',
+        `/users?name=ilike.${encodeURIComponent(userName)}&provider=eq.${encodeURIComponent(userProvider)}`,
+        { [creditCol]: Math.max(0, currentCredits - 1) }
+      ).catch(e => { console.warn('[kie-proxy] pre-deduct fail:', e.message); });
     }
 
     return { ok: true, plan, used, remaining: limit - used, preDeducted: true };

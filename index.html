@@ -8808,7 +8808,8 @@ async function _loadMyTracks(force=false){
   try{
     const name = encodeURIComponent(currentUser.name||'');
     const prov = encodeURIComponent(currentUser.provider||'');
-    const r = await fetch('/api/tracks?owner='+name+'&provider='+prov+'&limit=200');
+    const emailParam = currentUser.email ? '&email='+encodeURIComponent(currentUser.email) : '';
+    const r = await fetch('/api/tracks?owner='+name+'&provider='+prov+emailParam+'&limit=200');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(Array.isArray(d.tracks)){
@@ -13094,10 +13095,8 @@ async function generate(overrideParams){
   _QueueManager.setBusy('music',true); _syncGenButtons();
   const apiKey=kieApiKey;
   if(!apiKey){_genLog('ERROR','API 키 없음');toast('API 키 로딩 중... 잠시 후 다시 시도해주세요','err');_QueueManager.setBusy('music',false);_syncGenButtons();return;}
-  /* 크레딧 캐시 동기화 — 매 생성 시 최신 상태 확인 */
-  if(currentUser?.name){
-    try{await Promise.race([_fetchServerCredits(),new Promise(function(_,rj){setTimeout(function(){rj(new Error('timeout'));},3000);})]);}catch(e){}
-  }
+  /* 크레딧 캐시 백그라운드 동기화 — await 없이 fire-and-forget (생성 지연 방지) */
+  if(currentUser?.name){ _fetchServerCredits().catch(function(){}); }
   /* 플랜 한도 체크 — 한도 초과 시 업그레이드 유도 후 차단 */
   if(!overrideParams?._afterLyrics && !checkPlanLimit('song')){_QueueManager.setBusy('music',false);_syncGenButtons();return;}
   /* 로그인 체크 + 게스트 모드 허용 */
@@ -26630,7 +26629,7 @@ async function _syncUserDataFromServer(force){
     /* 프로필 + 트랙 + 출석 병렬 조회 */
     const [profRes, trRes, attRes] = await Promise.allSettled([
       fetch('/api/profile?name='+name+'&provider='+prov).then(r=>r.json()),
-      fetch('/api/tracks?owner='+name+'&provider='+prov+'&limit=200').then(r=>r.json()),
+      fetch('/api/tracks?owner='+name+'&provider='+prov+(currentUser.email?'&email='+encodeURIComponent(currentUser.email):'')+'&limit=200').then(r=>r.json()),
       fetch('/api/attendance?userName='+decodeURIComponent(name)+'&userProvider='+decodeURIComponent(prov)).then(r=>r.json()),
     ]);
 
