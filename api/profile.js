@@ -166,19 +166,31 @@ export default async function handler(req, res) {
     if (action === 'creators') {
       try {
         const { data: users } = await sb('GET',
-          `/users?select=name,provider,avatar,plan,login_count&provider=neq.guest&provider=neq.mgr_manager&order=last_login.desc&limit=50`);
-        /* 트랙 수 집계 */
+          `/users?select=name,provider,avatar,plan,login_count&provider=neq.guest&provider=neq.mgr_manager&order=last_login.desc&limit=200`);
+        /* 트랙 수 집계 + owner 정보 수집 (users 테이블에 없는 사용자 보완용) */
         const { data: trackCounts } = await sb('GET',
-          `/tracks?select=owner_name,owner_provider,is_public&is_public=eq.true`);
+          `/tracks?select=owner_name,owner_provider,owner_avatar,owner_email&is_public=eq.true&audio_url=neq.&audio_url=not.is.null`);
         const countMap = {};
+        const ownerMeta = {};
         (trackCounts || []).forEach(t => {
           const k = (t.owner_name || '') + '__' + (t.owner_provider || '');
           countMap[k] = (countMap[k] || 0) + 1;
+          if (!ownerMeta[k]) ownerMeta[k] = { name: t.owner_name, provider: t.owner_provider, avatar: t.owner_avatar || '' };
         });
-        const result = (users || []).map(u => ({
-          name: u.name, provider: u.provider, avatar: u.avatar || '',
-          plan: u.plan || 'free', tracks: countMap[u.name + '__' + u.provider] || 0,
-        }));
+        /* users 테이블 기반 목록 */
+        const userSet = new Set();
+        const result = (users || []).map(u => {
+          const k = u.name + '__' + u.provider;
+          userSet.add(k);
+          return { name: u.name, provider: u.provider, avatar: u.avatar || '', plan: u.plan || 'free', tracks: countMap[k] || 0 };
+        });
+        /* tracks에는 있지만 users 테이블에 없는 사용자 보완 (guest/bot 제외) */
+        Object.entries(ownerMeta).forEach(([k, meta]) => {
+          if (userSet.has(k)) return;
+          if (!meta.provider || meta.provider === 'guest' || meta.provider === 'bot' || meta.provider === 'mgr_manager') return;
+          if (!meta.name || meta.name === '익명') return;
+          result.push({ name: meta.name, provider: meta.provider, avatar: meta.avatar, plan: 'free', tracks: countMap[k] || 0 });
+        });
         return res.status(200).json({ ok: true, creators: result });
       } catch (e) {
         return res.status(200).json({ ok: false, creators: [], error: e.message });
