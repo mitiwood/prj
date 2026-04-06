@@ -9791,17 +9791,27 @@ async function generateSuno() {
   if(spinner) spinner.style.display = 'inline-block';
   if(debugEl){ debugEl.style.display = 'none'; debugEl.textContent = ''; }
 
-  var apiKey = typeof currentUser !== 'undefined' && currentUser ? (localStorage.getItem('kieApiKey')||'') : (localStorage.getItem('kieApiKey')||'');
-  var body = { mv: false };
-  if(desc) body.gpt_description_prompt = desc;
-  if(lyrics) body.prompt = lyrics;
-  if(style) body.tags = style;
+  var apiKey = '';
+  /* kie.ai /api/v1/generate 포맷으로 변환
+   * - gpt_description_prompt(desc) → customMode:false일 때 kie.ai가 style로 처리
+   * - lyrics → prompt (customMode:true), desc만 있으면 customMode:false
+   */
+  var hasLyrics = !!lyrics;
+  var body = {
+    prompt: lyrics || desc,
+    style: style || '',
+    customMode: hasLyrics,
+    instrumental: _sunoInstOn,
+    model: 'V4',
+    callBackUrl: (typeof CALLBACK !== 'undefined') ? CALLBACK : 'https://ddinggok.com/api/callback',
+  };
   if(title) body.title = title;
-  if(_sunoInstOn) body.make_instrumental = true;
+  /* desc가 있고 가사도 있으면 desc를 style 앞에 붙임 */
+  if(desc && hasLyrics && !style) body.style = desc.slice(0, 200);
 
   try {
-    toast('Suno API 호출 중...','ok',2000);
-    var data = await kieRequest(apiKey, 'POST', '/api/suno/v1/music', body);
+    toast('Suno 생성 시작...','ok',2000);
+    var data = await kieRequest(apiKey, 'POST', '/api/v1/generate', body);
     if(debugEl){ debugEl.style.display = 'block'; debugEl.textContent = JSON.stringify(data, null, 2); }
 
     /* taskId 추출 — 레거시 응답 구조 대응 */
