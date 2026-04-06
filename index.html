@@ -5715,8 +5715,10 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <!-- 곡 설명 -->
         <div class="suno-field">
           <label class="suno-label">곡 설명</label>
-          <textarea class="suno-input" id="simple-prompt" rows="3"
-            placeholder="만들고 싶은 음악을 자유롭게 설명해주세요&#10;예: 비 오는 날 카페에서 듣는 잔잔한 재즈"></textarea>
+          <textarea class="suno-input" id="simple-prompt" rows="3" maxlength="500"
+            placeholder="만들고 싶은 음악을 자유롭게 설명해주세요&#10;예: 비 오는 날 카페에서 듣는 잔잔한 재즈"
+            oninput="(function(t){var l=t.value.length,c=t.parentNode.querySelector('.simple-prompt-counter');if(!c)return;c.textContent=l+'/500';c.style.color=l>=500?'#ef4444':l>=300?'#f59e0b':'#6b7280';})(this)"></textarea>
+          <div style="text-align:right;margin-top:3px;"><span class="simple-prompt-counter" style="font-size:11px;color:#6b7280;">0/500</span></div>
           <div class="suno-ai-row">
             <input class="suno-ai-input" id="ai-assist-input" type="text" placeholder="AI에게 추천받기 (예: 새벽 감성 R&B)" data-i18n-ph="moodPlaceholder">
             <button class="suno-ai-btn" id="ai-assist-btn" onclick="_aiAssistRecommend()">AI 추천</button>
@@ -13270,9 +13272,9 @@ async function generate(overrideParams){
   try{
     /* YT 모드도 커스텀 모드처럼 가사+스타일 전달 */
     const _ytStyleStr = overrideParams?.styleStr || styleStr;
-    /* customMode: 가사 직접 입력 시 true → kie.ai가 style 필드 반영 */
-    /* customMode: 가사/설명이 있으면 true → kie.ai가 style+prompt 모두 반영 */
-    const _forceCustom = isSimple || (prompt||'').length > 400 || _simpleHasRealLyrics;
+    /* customMode: 실제 가사 입력 시에만 true — 심플 설명만 있을 땐 false (kie.ai 자체 작사)
+     * isSimple 단독으로 customMode 강제 시 음악설명을 가사로 해석 → SENSITIVE_WORD_ERROR 유발 */
+    const _forceCustom = _simpleHasRealLyrics || (prompt||'').length > 400;
     /* kie.ai SENSITIVE_WORD 방지 — prompt/style에서 민감 키워드 제거 */
     var _swRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
     if(_swRe.test(prompt)) prompt=prompt.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
