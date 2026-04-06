@@ -26071,6 +26071,9 @@ async function _fetchServerCredits(){
       if(currentUser) currentUser.plan = _plan;
       try{_updateCreditBadge();_updateCreditWarn();}catch(e){}
       if(typeof renderPlanUI === 'function') renderPlanUI();
+      /* Suno 탭: supervisor만 표시 */
+      var _sunoTab = document.querySelector('.mtab[data-mode="suno"]');
+      if(_sunoTab) _sunoTab.classList.toggle('mtab-hidden', !_isSupervisor);
     }
   }catch(e){ console.warn('[Credits] fetch fail:', e.message); }
 }

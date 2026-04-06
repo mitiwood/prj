@@ -40,7 +40,7 @@ const DEFAULT_CONFIG = {
     simple:  { enabled: true,  order: 2 },
     youtube: { enabled: true,  order: 3 },
     mv:      { enabled: true,  order: 4 },
-    suno:    { enabled: true,  order: 5 },
+    suno:    { enabled: false, order: 5 },
   },
 };
 
