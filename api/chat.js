@@ -1,8 +1,16 @@
 /**
  * /api/chat — 커뮤니티 채팅 API
  *
- * GET  ?room=general&limit=50&since=timestamp → 메시지 조회 + 인사이트
- * POST body: {room, content, author_name, author_avatar, author_provider, reply_to?} → 메시지 전송
+ * GET  ?room=general&limit=50&since=ts    → 메시지 조회 + 인사이트 + 리액션
+ * GET  ?q=검색어&room=general             → 메시지 검색
+ * GET  ?action=rooms                      → 채팅방 목록
+ * POST body: {room, content, ...}         → 메시지 전송
+ * POST body: {action:'react', ...}        → 리액션 토글
+ * POST body: {action:'edit', ...}         → 메시지 수정
+ * POST body: {action:'report', ...}       → 신고
+ * POST body: {action:'delete', ...}       → 삭제
+ * POST body: {action:'pin'/'unpin', ...}  → 고정
+ * POST body: {action:'typing', ...}       → 타이핑 인디케이터
  */
 import webpush from 'web-push';
 
@@ -77,13 +85,11 @@ function _buildInsight(messages) {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const todayMsgs = messages.filter(m => m.created_at >= todayStart);
   const authors = new Set(todayMsgs.map(m => m.author_name));
-  /* 최근 1시간 내 활발한 유저 top 3 */
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const recentMsgs = messages.filter(m => m.created_at >= hourAgo);
   const authorCounts = {};
   recentMsgs.forEach(m => { authorCounts[m.author_name] = (authorCounts[m.author_name] || 0) + 1; });
   const topChatters = Object.entries(authorCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
-
   return {
     todayMessages: todayMsgs.length,
     todayParticipants: authors.size,
@@ -93,6 +99,16 @@ function _buildInsight(messages) {
   };
 }
 
+/* 채팅방 목록 */
+const CHAT_ROOMS = [
+  { id: 'general', label: '전체', icon: '💬' },
+  { id: 'kpop',    label: 'K-POP', icon: '🎤' },
+  { id: 'hiphop',  label: '힙합',  icon: '🎧' },
+  { id: 'indie',   label: '인디',  icon: '🎸' },
+  { id: 'rnb',     label: 'R&B',   icon: '🎵' },
+  { id: 'edm',     label: 'EDM',   icon: '🎛' },
+];
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -100,45 +116,79 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* GET — 메시지 조회 + 인사이트 */
+  /* GET — 메시지 조회 / 검색 / 방 목록 */
   if (req.method === 'GET') {
-    const { room = 'general', limit = '50', since, user, provider } = req.query || {};
-    const lim = Math.min(parseInt(limit) || 50, 100);
+    const { action, room = 'general', limit = '50', since, user, provider, q } = req.query || {};
+
+    /* 채팅방 목록 */
+    if (action === 'rooms') {
+      return res.status(200).json({ ok: true, rooms: CHAT_ROOMS });
+    }
 
     /* 온라인 트래킹 */
     if (user) _trackOnline(user, provider || '');
 
     if (SB_URL && SB_KEY) {
       try {
-        let path = `/chat_messages?room=eq.${room}&order=created_at.desc&limit=${lim}`;
+        const lim = Math.min(parseInt(limit) || 50, 100);
+
+        /* 검색 모드 */
+        if (q && q.trim()) {
+          const safeQ = q.trim().replace(/'/g, "''").slice(0, 100);
+          const { data } = await sb('GET', `/chat_messages?room=eq.${encodeURIComponent(room)}&content=ilike.*${encodeURIComponent(safeQ)}*&order=created_at.desc&limit=${lim}`);
+          const msgs = Array.isArray(data) ? data.reverse() : [];
+          return res.status(200).json({ ok: true, messages: msgs, search: true });
+        }
+
+        /* 일반 조회 */
+        let path = `/chat_messages?room=eq.${encodeURIComponent(room)}&order=created_at.desc&limit=${lim}`;
         if (since) path += `&created_at=gt.${new Date(parseInt(since)).toISOString()}`;
         const { data } = await sb('GET', path);
         const msgs = Array.isArray(data) ? data.reverse() : [];
 
-        /* 인사이트용 오늘 메시지 별도 조회 (since 없이) */
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+        /* 리액션 로드 — 해당 메시지 ID 묶음으로 1회 조회 */
+        let reactMap = {};
+        if (msgs.length) {
+          const msgIds = msgs.map(m => m.id).filter(Boolean);
+          if (msgIds.length) {
+            try {
+              const { data: rxs } = await sb('GET', `/chat_reactions?msg_id=in.(${msgIds.join(',')})&select=msg_id,emoji,author_name,author_provider`);
+              if (Array.isArray(rxs)) {
+                rxs.forEach(r => {
+                  if (!reactMap[r.msg_id]) reactMap[r.msg_id] = [];
+                  reactMap[r.msg_id].push({ emoji: r.emoji, name: r.author_name, provider: r.author_provider });
+                });
+              }
+            } catch {}
+          }
+          msgs.forEach(m => { m._reactions = reactMap[String(m.id)] || []; });
+        }
+
+        /* 인사이트용 오늘 메시지 */
         let allToday = msgs;
         if (since) {
           try {
-            const { data: td } = await sb('GET', `/chat_messages?room=eq.${room}&created_at=gte.${todayStart.toISOString()}&order=created_at.desc&limit=200`);
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const { data: td } = await sb('GET', `/chat_messages?room=eq.${encodeURIComponent(room)}&created_at=gte.${todayStart.toISOString()}&order=created_at.desc&limit=200`);
             allToday = Array.isArray(td) ? td : [];
           } catch {}
         }
 
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday), typing: await _getTyping(), pinned: _pinnedMsg });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(allToday), typing: await _getTyping(), pinned: _pinnedMsg, rooms: CHAT_ROOMS });
       } catch (e) {
+        const lim = Math.min(parseInt(limit) || 50, 100);
         const msgs = _mem.filter(m => m.room === room).slice(-lim);
-        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg });
+        return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg, rooms: CHAT_ROOMS });
       }
     }
+    const lim = Math.min(parseInt(limit) || 50, 100);
     const msgs = _mem.filter(m => m.room === room).slice(-lim);
-    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg });
+    return res.status(200).json({ ok: true, messages: msgs, insight: _buildInsight(msgs), typing: await _getTyping(), pinned: _pinnedMsg, rooms: CHAT_ROOMS });
   }
 
-  /* POST — 메시지 전송 / 삭제 */
+  /* POST */
   if (req.method === 'POST') {
-    const { action, msgId, room = 'general', content, author_name, author_avatar = '', author_provider = '', reply_to = null } = req.body || {};
+    const { action, msgId, room = 'general', content, author_name, author_avatar = '', author_provider = '', reply_to = null, emoji, reason } = req.body || {};
 
     /* 타이핑 */
     if (action === 'typing') {
@@ -169,6 +219,8 @@ export default async function handler(req, res) {
       if (SB_URL && SB_KEY) {
         try {
           await sb('DELETE', `/chat_messages?id=eq.${msgId}&author_name=eq.${encodeURIComponent(author_name)}&author_provider=eq.${encodeURIComponent(author_provider || '')}`);
+          /* 해당 메시지 리액션도 삭제 */
+          await sb('DELETE', `/chat_reactions?msg_id=eq.${msgId}`).catch(() => {});
           return res.status(200).json({ ok: true, deleted: true });
         } catch (e) { return res.status(200).json({ ok: false, error: e.message }); }
       }
@@ -176,6 +228,63 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, deleted: true });
     }
 
+    /* 리액션 토글 */
+    if (action === 'react' && msgId && emoji) {
+      if (!author_name || !author_provider) return res.status(401).json({ error: 'login required' });
+      if (SB_URL && SB_KEY) {
+        try {
+          const { data: existing } = await sb('GET', `/chat_reactions?msg_id=eq.${encodeURIComponent(String(msgId))}&emoji=eq.${encodeURIComponent(emoji)}&author_name=eq.${encodeURIComponent(author_name)}&author_provider=eq.${encodeURIComponent(author_provider)}&limit=1`);
+          if (Array.isArray(existing) && existing.length) {
+            await sb('DELETE', `/chat_reactions?msg_id=eq.${encodeURIComponent(String(msgId))}&emoji=eq.${encodeURIComponent(emoji)}&author_name=eq.${encodeURIComponent(author_name)}&author_provider=eq.${encodeURIComponent(author_provider)}`);
+            return res.status(200).json({ ok: true, toggled: 'removed' });
+          } else {
+            await sb('POST', '/chat_reactions', { msg_id: String(msgId), room, emoji, author_name, author_provider, created_at: new Date().toISOString() });
+            return res.status(200).json({ ok: true, toggled: 'added' });
+          }
+        } catch (e) { return res.status(200).json({ ok: false, error: e.message }); }
+      }
+      return res.status(200).json({ ok: true, toggled: 'local' });
+    }
+
+    /* 메시지 수정 */
+    if (action === 'edit' && msgId) {
+      if (!content || !author_name) return res.status(400).json({ error: 'content and author_name required' });
+      if (content.length > 500) return res.status(400).json({ error: 'message too long' });
+      if (SB_URL && SB_KEY) {
+        try {
+          await sb('PATCH', `/chat_messages?id=eq.${msgId}&author_name=eq.${encodeURIComponent(author_name)}&author_provider=eq.${encodeURIComponent(author_provider || '')}`, {
+            content: content.slice(0, 500),
+            edited_at: new Date().toISOString(),
+          });
+          return res.status(200).json({ ok: true });
+        } catch (e) { return res.status(200).json({ ok: false, error: e.message }); }
+      }
+      const m = _mem.find(m => String(m.id) === String(msgId) && m.author_name === author_name);
+      if (m) { m.content = content.slice(0, 500); m.edited_at = new Date().toISOString(); }
+      return res.status(200).json({ ok: true });
+    }
+
+    /* 신고 */
+    if (action === 'report' && msgId) {
+      if (!author_name || !reason) return res.status(400).json({ error: 'author_name and reason required' });
+      const rateKey = `report_${author_name}_${author_provider}`;
+      if (!_checkRate(rateKey, 3, 60000)) return res.status(429).json({ error: '신고를 너무 많이 했어요' });
+      if (SB_URL && SB_KEY) {
+        try {
+          await sb('POST', '/chat_reports', {
+            msg_id: String(msgId),
+            room,
+            reporter_name: author_name,
+            reporter_provider: author_provider || '',
+            reason: reason.slice(0, 200),
+            created_at: new Date().toISOString(),
+          });
+        } catch {}
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    /* 메시지 전송 */
     if (!content || !author_name) return res.status(400).json({ error: 'content and author_name required' });
     if (content.length > 500) return res.status(400).json({ error: 'message too long (max 500)' });
     if (!author_provider) return res.status(401).json({ error: 'login required' });
@@ -183,7 +292,6 @@ export default async function handler(req, res) {
     const rateKey = `chat_${author_name}_${author_provider}`;
     if (!_checkRate(rateKey, 5)) return res.status(429).json({ error: '메시지를 너무 빠르게 보내고 있어요' });
 
-    /* 온라인 트래킹 */
     _trackOnline(author_name, author_provider);
 
     const msg = {
@@ -196,11 +304,17 @@ export default async function handler(req, res) {
     if (SB_URL && SB_KEY) {
       try {
         const { data } = await sb('POST', '/chat_messages', msg);
-        /* 답글이면 해당 사용자에게 푸시 알림 */
+        /* 답글 푸시 알림 */
         if (reply_to && reply_to.name && reply_to.name !== author_name) {
-          await _notifyReply(reply_to, author_name, content).catch(e =>
-            console.error('[Chat] push notify error:', e.message)
-          );
+          await _notifyUser(reply_to.name, author_name, content, 'reply').catch(() => {});
+        }
+        /* 멘션 알림 — @username 파싱 */
+        const mentions = content.match(/@([^\s@#\[\]{}|\\^`<>]+)/g) || [];
+        for (const mention of mentions) {
+          const targetName = mention.slice(1);
+          if (targetName && targetName !== author_name) {
+            await _notifyUser(targetName, author_name, content, 'mention').catch(() => {});
+          }
         }
         return res.status(200).json({ ok: true, message: Array.isArray(data) ? data[0] : data });
       } catch (e) {
@@ -217,35 +331,29 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-/* ── 답글 푸시 알림 ── */
-async function _notifyReply(replyTo, senderName, content) {
+/* ── 푸시 알림 (답글 + 멘션 공통) ── */
+async function _notifyUser(targetName, senderName, content, type) {
   if (!SB_URL || !SB_KEY) return;
-
   const VAPID_PUB = process.env.VAPID_PUBLIC_KEY;
   const VAPID_PRV = process.env.VAPID_PRIVATE_KEY;
   if (!VAPID_PUB || !VAPID_PRV) return;
 
-  /* 대상 사용자의 푸시 구독 조회 */
-  const targetName = encodeURIComponent(replyTo.name);
-  const { data } = await sb('GET', `/push_subscriptions?user_name=eq.${targetName}&select=subscription`);
+  const { data } = await sb('GET', `/push_subscriptions?user_name=eq.${encodeURIComponent(targetName)}&select=subscription`);
   if (!Array.isArray(data) || !data.length) return;
 
-  /* VAPID 키 설정 (SPKI→raw 변환) */
   let vapidPub = VAPID_PUB;
   try {
     const pad = '='.repeat((4 - vapidPub.length % 4) % 4);
     const raw = Buffer.from(vapidPub.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
-    if (raw.length === 91) {
-      vapidPub = raw.slice(26).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
+    if (raw.length === 91) vapidPub = raw.slice(26).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   } catch {}
 
   webpush.setVapidDetails('mailto:admin@ai-music-studio.app', vapidPub, VAPID_PRV);
 
-  const preview = (content || '').slice(0, 60);
+  const title = type === 'mention' ? `🔔 ${senderName}님이 회원님을 멘션했어요` : `💬 ${senderName}님이 답장했어요`;
   const payload = JSON.stringify({
-    title: `💬 ${senderName}님이 답장했어요`,
-    body: preview,
+    title,
+    body: (content || '').slice(0, 60),
     icon: '/icon-192.png',
     url: 'https://ddinggok.com/?tab=community&chat=1',
     badge: '/icon-72.png',
@@ -257,9 +365,8 @@ async function _notifyReply(replyTo, senderName, content) {
     try {
       await webpush.sendNotification(sub, payload);
     } catch (e) {
-      /* 410 Gone = 만료된 구독 → 삭제 */
       if (e.statusCode === 410) {
-        await sb('DELETE', `/push_subscriptions?user_name=eq.${targetName}&subscription->>endpoint=eq.${encodeURIComponent(sub.endpoint)}`).catch(() => {});
+        await sb('DELETE', `/push_subscriptions?user_name=eq.${encodeURIComponent(targetName)}&subscription->>endpoint=eq.${encodeURIComponent(sub.endpoint)}`).catch(() => {});
       }
     }
   }

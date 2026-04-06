@@ -352,3 +352,43 @@ CREATE POLICY "gifts_service_write" ON public.gifts FOR ALL USING (true) WITH CH
 CREATE INDEX IF NOT EXISTS idx_gifts_to ON public.gifts (to_name);
 CREATE INDEX IF NOT EXISTS idx_gifts_from ON public.gifts (from_name);
 CREATE INDEX IF NOT EXISTS idx_gifts_created ON public.gifts (created_at DESC);
+
+-- ============================================================
+-- 18. chat_reactions 테이블 (리액션 DB 저장)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.chat_reactions (
+  id              BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  msg_id          TEXT        NOT NULL,
+  room            TEXT        NOT NULL DEFAULT 'general',
+  emoji           TEXT        NOT NULL,
+  author_name     TEXT        NOT NULL,
+  author_provider TEXT        NOT NULL DEFAULT '',
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(msg_id, emoji, author_name, author_provider)
+);
+ALTER TABLE public.chat_reactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY chat_reactions_public_read ON public.chat_reactions FOR SELECT USING (true);
+CREATE POLICY chat_reactions_service_write ON public.chat_reactions FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_chat_reactions_msg ON public.chat_reactions(msg_id);
+
+-- ============================================================
+-- 19. chat_reports 테이블 (신고)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.chat_reports (
+  id                BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  msg_id            TEXT        NOT NULL,
+  room              TEXT        DEFAULT 'general',
+  reporter_name     TEXT        NOT NULL,
+  reporter_provider TEXT        NOT NULL DEFAULT '',
+  reason            TEXT        NOT NULL,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.chat_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY chat_reports_service_write ON public.chat_reports FOR ALL USING (auth.role() = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_chat_reports_msg ON public.chat_reports(msg_id);
+
+-- ============================================================
+-- 20. chat_messages 수정 지원 컬럼 추가
+-- ============================================================
+ALTER TABLE public.chat_messages
+  ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ DEFAULT NULL;
