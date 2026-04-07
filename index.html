@@ -11854,7 +11854,7 @@ async function pollResult(apiKey,taskId,_localGenCount){
       var sec = Math.round(elapsed/1000);
       /* SENSITIVE_WORD_ERROR 감지 */
       const respMsg = (st.response?.errorMessage||st.errorMessage||st.msg||'').toString();
-      if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')){
+      if(respMsg.includes('SENSITIVE_WORD')||respMsg.includes('sensitive_word')||status.includes('SENSITIVE_WORD')){
         /* 첫 번째 시도면 자동 재시도 플래그 설정 — 호출측에서 prompt 정제 후 재생성 */
         var _swErr=new Error('SENSITIVE_WORD_RETRY');
         _swErr._sensitiveRetry=true;
@@ -13381,9 +13381,12 @@ async function generate(overrideParams){
      * isSimple 단독으로 customMode 강제 시 음악설명을 가사로 해석 → SENSITIVE_WORD_ERROR 유발 */
     const _forceCustom = _simpleHasRealLyrics || (prompt||'').length > 400;
     /* kie.ai SENSITIVE_WORD 방지 — prompt/style에서 민감 키워드 제거 */
-    var _swRe=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon|자살|살인|마약|폭탄|테러|총|강간|학살)\b/gi;
-    if(_swRe.test(prompt)) prompt=prompt.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
-    if(styleStr&&_swRe.test(styleStr)) styleStr=styleStr.replace(_swRe,'').replace(/\s{2,}/g,' ').trim();
+    /* \b는 한글(\W)에 적용 안됨 → 한글/영어 분리하여 처리 */
+    var _swReEn=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon)\b/gi;
+    var _swReKo=/(자살|살인|마약|폭탄|테러|총기|총알|강간|학살|죽어|죽을|죽고|죽이|살해|칼|피범벅|자해)/g;
+    function _swClean(s){ return s.replace(_swReEn,'').replace(_swReKo,'').replace(/\s{2,}/g,' ').trim(); }
+    if(_swReEn.test(prompt)||_swReKo.test(prompt)) prompt=_swClean(prompt);
+    if(styleStr&&(_swReEn.test(styleStr)||_swReKo.test(styleStr))) styleStr=_swClean(styleStr);
     const body={prompt,customMode:(isCustom&&!!lyricsText)||isYT||_forceCustom,instrumental:instOn,model,callBackUrl:CALLBACK,styleWeight:sw,weirdnessConstraint:wc};
     /* 곡 길이 제어 — 짧게 선택 시 duration 힌트 */
     if(selectedDuration===0){
@@ -13736,12 +13739,16 @@ async function generate(overrideParams){
     $('loading-card').classList.remove('on');
     _genLog('ERROR',e.message,{elapsed:(Date.now()-_genT0)+'ms'});
 
-    /* SENSITIVE_WORD: prompt 비우고 자동 재시도 (1회) */
+    /* SENSITIVE_WORD: 가사에서 민감 단어 제거 후 재시도 (1회) */
     if(e._sensitiveRetry && !window._genSensitiveRetried){
       window._genSensitiveRetried=true;
+      var _swRetryEn=/\b(kill|murder|suicide|drug|cocaine|heroin|meth|sex|porn|fuck|shit|bitch|nigga|rape|terror|bomb|gun|shoot|blood|die|dead|death|knife|stab|weapon)\b/gi;
+      var _swRetryKo=/(자살|살인|마약|폭탄|테러|총기|총알|강간|학살|죽어|죽을|죽고|죽이|살해|칼|피범벅|자해)/g;
+      function _swRetryClean(s){ return (s||'').replace(_swRetryEn,'').replace(_swRetryKo,'').replace(/\s{2,}/g,' ').trim(); }
+      var _pEl=$('prompt'), _sEl=$('simple-lyrics');
+      if(_pEl) _pEl.value=_swRetryClean(_pEl.value);
+      if(_sEl) _sEl.value=_swRetryClean(_sEl.value);
       toast('⚠️ 민감 표현 감지 — 가사 자동 수정 후 재시도...','',3000);
-      $('prompt').value='';
-      if($('simple-lyrics')) $('simple-lyrics').value='';
       setTimeout(function(){ _QueueManager.setBusy('music',false);_globalGenerating=false;_syncGenButtons(); generate({_afterLyrics:true}); },1500);
       return;
     }
