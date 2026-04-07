@@ -5798,26 +5798,6 @@ body.mp-on .comm-share-panel{padding-bottom:calc(56px + 62px + env(safe-area-ins
         <div id="suno-genre-chips" style="display:none;"></div>
         <div id="simple-mood-grid" style="display:none;"></div>
 
-        <!-- 가사 (아코디언) -->
-        <div class="suno-field">
-          <button class="suno-accordion-toggle" id="simple-lyrics-toggle" onclick="_toggleSimpleLyrics()">
-            <span class="suno-accordion-icon" id="simple-lyrics-icon">+</span>
-            <span>가사 직접 입력</span>
-            <span class="suno-hint" style="margin-left:auto;">비우면 AI가 자동 작사</span>
-          </button>
-          <div class="suno-accordion-body" id="simple-lyrics-body" style="display:none;">
-            <textarea class="suno-input" id="simple-lyrics" rows="5" data-i18n-ph="lyricsPlaceholder"
-              placeholder="[Verse 1]&#10;가사를 입력하세요..."></textarea>
-            <div class="suno-lyrics-actions">
-              <button class="suno-btn-ghost" onclick="_resetLyrics('simple-lyrics')">초기화</button>
-              <button class="lyrics-gen-btn" id="simple-lyrics-btn" style="padding:6px 12px;border-radius:8px;">
-                <span class="lspin" id="simple-lyrics-spinner"></span>
-                AI 자동 작사
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- 레퍼런스 아티스트 -->
         <div class="suno-field">
           <button class="suno-accordion-toggle" onclick="var d=this.nextElementSibling;d.style.display=(d.style.display==='none')?'':'none';this.querySelector('.suno-accordion-icon').textContent=(d.style.display==='none')?'+':'-'">
@@ -9762,7 +9742,7 @@ var simpleInstOn=false;
 })();
 
 /* ── 심플 모드 AI 자동 작사 ── */
-$('simple-lyrics-btn').addEventListener('click',async()=>{
+$('simple-lyrics-btn')?.addEventListener('click',async()=>{
   if(!currentUser){toast('로그인 후 AI 작사를 이용할 수 있어요','err',2500);openLoginSheet();return;}
   if(!checkPlanLimit('lyrics'))return;
   if(!kieApiKey){toast('API 키 로딩 중...','err');return;}
