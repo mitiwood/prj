@@ -4,9 +4,13 @@ const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 async function sb(path) {
   if (!SB_URL || !SB_KEY) return [];
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 5000); /* 5초 타임아웃 */
     const r = await fetch(`${SB_URL}/rest/v1${path}`, {
       headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+      signal: ctrl.signal,
     });
+    clearTimeout(timeout);
     if (!r.ok) return [];
     return await r.json();
   } catch (e) { return []; }
