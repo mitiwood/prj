@@ -15011,7 +15011,20 @@ function _doTogglePlay(btn,idx,url){
   setTimeout(function(){if(audio===activeAudio&&audio.paused){btn.textContent='\u25B6';toast('오디오를 불러올 수 없어요. 잠시 후 다시 시도해주세요.','err',3000);}},10000);
 }
 function seekAudio(e,wrap){
-  if(!activeAudio||activeAudio._idx!==+wrap.dataset.idx||!activeAudio.duration||!isFinite(activeAudio.duration))return;
+  var wrapIdx=+wrap.dataset.idx;
+  if(!activeAudio||activeAudio._idx!==wrapIdx||!activeAudio.duration||!isFinite(activeAudio.duration)){
+    /* fpAudio fallback — 미니플레이어가 같은 결과 카드 트랙 재생 중인지 확인 */
+    if(fpAudio&&fpAudio.duration&&isFinite(fpAudio.duration)){
+      var _rcBtn=document.querySelector('.ap-play-btn[data-idx="'+wrapIdx+'"]');
+      var _sid=(typeof fpCurrentIdx!=='undefined'&&historyData[fpCurrentIdx]?.id)||'';
+      var _match=(_sid&&_rcBtn?.dataset.audioId===_sid)||(fpAudio.src&&_rcBtn?.dataset.url&&fpAudio.src.includes(_rcBtn.dataset.url));
+      if(_match){
+        const rect=wrap.querySelector('.ap-prog-track').getBoundingClientRect();
+        fpAudio.currentTime=fpAudio.duration*Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+      }
+    }
+    return;
+  }
   const rect=wrap.querySelector('.ap-prog-track').getBoundingClientRect();
   activeAudio.currentTime=activeAudio.duration*Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
 }
@@ -16550,6 +16563,9 @@ function _destroyFpAudio(){
   fpAudio=null;
   clearInterval(fpVizTimer);
   mpStopViz(); fpStopViz();
+  /* 결과 카드 progress bar 초기화 */
+  document.querySelectorAll('.ap-prog-fill').forEach(function(f){f.style.width='0%';});
+  document.querySelectorAll('.ap-time').forEach(function(t){if(t.textContent.includes(' / ')&&!t.textContent.includes('─'))t.textContent='0:00 / '+t.textContent.split(' / ')[1];});
 }
 
 /* ── 본인 소유 트랙 여부 판별 ── */
@@ -16655,6 +16671,17 @@ function showMiniPlayer(idx){
         if(d.fpCur) d.fpCur.textContent=formatTime(audio.currentTime);
         if(d.fpDur) d.fpDur.textContent=formatTime(audio.duration);
         if(fpSyncMode&&fpTimestampLines.length) fpSyncLyrics(audio.currentTime);
+      }
+      /* 결과 카드 ap-prog-fill / ap-time 동기화 */
+      var _rcSid=(typeof fpCurrentIdx!=='undefined'&&historyData[fpCurrentIdx]?.id)||'';
+      var _rcBtn=_rcSid?document.querySelector('.ap-play-btn[data-audio-id="'+_rcSid+'"]'):null;
+      if(!_rcBtn&&audio.src){var _cs=audio.src;document.querySelectorAll('.ap-play-btn[data-url]').forEach(function(b){if(!_rcBtn&&_cs.includes(b.dataset.url))_rcBtn=b;});}
+      if(_rcBtn){
+        var _rIdx=_rcBtn.dataset.idx;
+        var _rFill=document.getElementById('ap-prog-'+_rIdx);
+        var _rTime=document.getElementById('ap-time-'+_rIdx);
+        if(_rFill) _rFill.style.width=(ratio*100)+'%';
+        if(_rTime) _rTime.textContent=formatTime(audio.currentTime)+' / '+formatTime(audio.duration);
       }
     });
   },_sig);
